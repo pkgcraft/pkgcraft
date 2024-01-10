@@ -1,13 +1,14 @@
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
 use pkgcruft::pipeline::Pipeline;
 use pkgcruft::reporter::Reporter;
 
-use crate::args::{target_restriction, StdinOrArgs};
+use crate::args::StdinOrArgs;
 use crate::options;
 
 #[derive(Debug, Args)]
@@ -21,12 +22,8 @@ pub struct Command {
     #[arg(short, long)]
     jobs: Option<usize>,
 
-    /// Target repository
-    #[arg(short, long)]
-    repo: Option<String>,
-
     /// Reporter to use
-    #[arg(short = 'R', default_value = "fancy")]
+    #[arg(short, default_value = "fancy")]
     reporter: Reporter,
 
     #[clap(flatten)]
@@ -35,13 +32,6 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(mut self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine target repo set
-        let repos = if let Some(target) = self.repo.as_ref() {
-            config.add_target_repo(target)?.into()
-        } else {
-            config.repos.set(Some(RepoFormat::Ebuild))
-        };
-
         // determine checks and reports
         let (checks, reports) = self.options.checks.collapse();
 
@@ -50,7 +40,7 @@ impl Command {
             .targets
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| target_restriction(config, &repos, &s, true))
+            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
             .collect();
         let targets = targets?;
 
@@ -58,7 +48,7 @@ impl Command {
 
         for (repo_set, restrict) in targets {
             for repo in repo_set.repos() {
-                let pipeline = Pipeline::new(jobs, &checks, &reports, repo, &restrict);
+                let pipeline = Pipeline::new(jobs, &checks, &reports, repo, &restrict)?;
                 for result in &pipeline {
                     self.reporter.report(&result)?;
                 }

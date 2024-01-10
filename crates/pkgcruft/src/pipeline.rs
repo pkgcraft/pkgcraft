@@ -4,17 +4,18 @@ use std::thread;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use indexmap::IndexSet;
 use pkgcraft::dep::Cpv;
-use pkgcraft::repo::{ebuild, Repo};
+use pkgcraft::repo::{ebuild, Repo, Repository};
 use pkgcraft::restrict::{dep::Restrict as DepRestrict, Restrict};
 
 use crate::check::{Check, CheckKind, Scope, CHECKS};
 use crate::report::{Report, ReportKind, REPORTS};
 use crate::runner::CheckRunner;
 use crate::source::{self, SourceKind};
+use crate::Error;
 
 pub struct Pipeline {
     jobs: usize,
-    repo: Repo,
+    repo: &'static ebuild::Repo,
     checks: IndexSet<Check>,
     reports: HashSet<ReportKind>,
     restrict: Restrict,
@@ -27,7 +28,7 @@ impl Pipeline {
         reports: &[ReportKind],
         repo: &Repo,
         restrict: &Restrict,
-    ) -> Self {
+    ) -> crate::Result<Self> {
         let mut checks: IndexSet<Check> = if checks.is_empty() {
             CHECKS.iter().copied().collect()
         } else {
@@ -41,13 +42,22 @@ impl Pipeline {
             reports.iter().copied().collect()
         };
 
-        Self {
+        // TODO: support checks for non-ebuild repo types?
+        let repo = repo.as_ebuild().ok_or_else(|| {
+            Error::InvalidValue(format!("unsupported repo format: {}", repo.format()))
+        })?;
+
+        // TODO: drop this hack once lifetime handling is improved for thread usage
+        let repo = Box::new(repo.clone());
+        let repo: &'static ebuild::Repo = Box::leak(repo);
+
+        Ok(Self {
             jobs,
-            repo: repo.clone(),
+            repo,
             checks,
             reports,
             restrict: restrict.clone(),
-        }
+        })
     }
 
     /// Create worker threads that run checks in the pipeline.
@@ -57,16 +67,7 @@ impl Pipeline {
     ) -> (thread::JoinHandle<()>, Vec<thread::JoinHandle<()>>) {
         let (worker_tx, worker_rx) = unbounded();
 
-        // TODO: support checks for non-ebuild repo types?
-        let repo = self
-            .repo
-            .as_ebuild()
-            .expect("currently only ebuild repos are supported");
-
-        // TODO: drop this hack once lifetime handling is improved for thread usage
-        let repo = Box::new(repo.clone());
-        let repo: &'static ebuild::Repo = Box::leak(repo);
-
+        let repo = self.repo;
         let mut pkg_runner = CheckRunner::new(source::EbuildPackage { repo });
         let mut raw_pkg_runner = CheckRunner::new(source::EbuildPackageRaw { repo });
         let mut pkg_set_runner = CheckRunner::new(source::EbuildPackageSet { repo });
