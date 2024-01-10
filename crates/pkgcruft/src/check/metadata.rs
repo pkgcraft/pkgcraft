@@ -1,4 +1,3 @@
-use crossbeam_channel::Sender;
 use itertools::Itertools;
 use pkgcraft::dep;
 use pkgcraft::error::Error::InvalidPkg;
@@ -36,7 +35,7 @@ impl<'a> MetadataCheck<'a> {
 }
 
 impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
-    fn run(&self, pkg: &Pkg<'a>, tx: &Sender<Report>) -> crate::Result<()> {
+    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use PackageReport::*;
         let mut success = true;
 
@@ -46,8 +45,7 @@ impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
                     if let Some(val) = raw.get(key) {
                         if dep::parse::package_dependency_set(val, pkg.eapi()).is_err() {
                             success = false;
-                            let report = InvalidDependency.report(pkg, key.to_string());
-                            tx.send(report).unwrap();
+                            reports.push(InvalidDependency.report(pkg, key.to_string()));
                         }
                     }
                 }
@@ -63,14 +61,12 @@ impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
 
                 if !missing.is_empty() {
                     success = false;
-                    let report = MissingMetadata.report(pkg, missing.iter().join(", "));
-                    tx.send(report).unwrap();
+                    reports.push(MissingMetadata.report(pkg, missing.iter().join(", ")));
                 }
             }
             Err(InvalidPkg { id: _, err }) => {
                 success = false;
-                let report = SourcingError.report(pkg, err);
-                tx.send(report).unwrap();
+                reports.push(SourcingError.report(pkg, err));
             }
             // no other pkgcraft error types should occur
             Err(e) => panic!("MetadataCheck failed: {e}"),

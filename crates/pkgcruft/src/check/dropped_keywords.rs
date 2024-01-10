@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use crossbeam_channel::Sender;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
@@ -32,7 +31,7 @@ impl<'a> DroppedKeywordsCheck<'a> {
 }
 
 impl<'a> CheckRun<Vec<Pkg<'a>>> for DroppedKeywordsCheck<'a> {
-    fn run(&self, pkgs: &Vec<Pkg<'a>>, tx: &Sender<Report>) -> crate::Result<()> {
+    fn run(&self, pkgs: &Vec<Pkg<'a>>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use PackageReport::*;
 
         // ignore packages lacking keywords
@@ -92,8 +91,7 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for DroppedKeywordsCheck<'a> {
 
         for (pkg, arches) in &dropped {
             let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            let report = DroppedKeywords.report(pkg, arches);
-            tx.send(report).unwrap();
+            reports.push(DroppedKeywords.report(pkg, arches));
         }
 
         Ok(())

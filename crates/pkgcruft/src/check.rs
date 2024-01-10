@@ -2,7 +2,6 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
-use crossbeam_channel::Sender;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use pkgcraft::macros::cmp_not_equal;
@@ -58,10 +57,10 @@ pub(crate) enum CheckRunner<'a> {
 
 // TODO: rework to leverage compile time checks for type mismatches between checks, source, and runners
 impl<'a> CheckRun<ebuild::Pkg<'a>> for CheckRunner<'a> {
-    fn run(&self, item: &ebuild::Pkg<'a>, tx: &Sender<Report>) -> crate::Result<()> {
+    fn run(&self, item: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use CheckRunner::*;
         match self {
-            Dependency(c) => c.run(item, tx),
+            Dependency(c) => c.run(item, reports),
             _ => panic!("check not valid for ebuild pkg runs"),
         }
     }
@@ -69,10 +68,10 @@ impl<'a> CheckRun<ebuild::Pkg<'a>> for CheckRunner<'a> {
 
 // TODO: rework to leverage compile time checks for type mismatches between checks, source, and runners
 impl<'a> CheckRun<ebuild::raw::Pkg<'a>> for CheckRunner<'a> {
-    fn run(&self, item: &ebuild::raw::Pkg<'a>, tx: &Sender<Report>) -> crate::Result<()> {
+    fn run(&self, item: &ebuild::raw::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use CheckRunner::*;
         match self {
-            Metadata(c) => c.run(item, tx),
+            Metadata(c) => c.run(item, reports),
             _ => panic!("check not valid for raw ebuild pkg runs"),
         }
     }
@@ -80,11 +79,11 @@ impl<'a> CheckRun<ebuild::raw::Pkg<'a>> for CheckRunner<'a> {
 
 // TODO: rework to leverage compile time checks for type mismatches between checks, source, and runners
 impl<'a> CheckRun<Vec<ebuild::Pkg<'a>>> for CheckRunner<'a> {
-    fn run(&self, item: &Vec<ebuild::Pkg<'a>>, tx: &Sender<Report>) -> crate::Result<()> {
+    fn run(&self, item: &Vec<ebuild::Pkg<'a>>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use CheckRunner::*;
         match self {
-            DroppedKeywords(c) => c.run(item, tx),
-            UnstableOnly(c) => c.run(item, tx),
+            DroppedKeywords(c) => c.run(item, reports),
+            UnstableOnly(c) => c.run(item, reports),
             _ => panic!("check not valid for ebuild pkg set runs"),
         }
     }
@@ -92,7 +91,7 @@ impl<'a> CheckRun<Vec<ebuild::Pkg<'a>>> for CheckRunner<'a> {
 
 /// Run a check for a given item sending back any generated reports.
 pub(crate) trait CheckRun<T> {
-    fn run(&self, item: &T, tx: &Sender<Report>) -> crate::Result<()>;
+    fn run(&self, item: &T, reports: &mut Vec<Report>) -> crate::Result<()>;
 }
 
 #[derive(Debug, Copy, Clone)]

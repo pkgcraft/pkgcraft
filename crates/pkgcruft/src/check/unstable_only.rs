@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use crossbeam_channel::Sender;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Stable};
 use pkgcraft::pkg::ebuild::Pkg;
@@ -36,7 +35,7 @@ impl<'a> UnstableOnlyCheck<'a> {
 }
 
 impl<'a> CheckRun<Vec<Pkg<'a>>> for UnstableOnlyCheck<'a> {
-    fn run(&self, pkgs: &Vec<Pkg<'a>>, tx: &Sender<Report>) -> crate::Result<()> {
+    fn run(&self, pkgs: &Vec<Pkg<'a>>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use PackageSetReport::*;
 
         // iterator over arches allowed as stable by the repo
@@ -60,8 +59,7 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for UnstableOnlyCheck<'a> {
 
         if !arches.is_empty() {
             let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            let report = UnstableOnly.report(pkgs, arches);
-            tx.send(report).unwrap();
+            reports.push(UnstableOnly.report(pkgs, arches));
         }
 
         Ok(())

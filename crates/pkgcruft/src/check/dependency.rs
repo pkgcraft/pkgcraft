@@ -1,4 +1,3 @@
-use crossbeam_channel::Sender;
 use indexmap::IndexSet;
 use pkgcraft::dep::{Dep, Flatten};
 use pkgcraft::pkg::ebuild::Pkg;
@@ -37,14 +36,13 @@ impl<'a> DependencyCheck<'a> {
 }
 
 impl<'a> CheckRun<Pkg<'a>> for DependencyCheck<'_> {
-    fn run(&self, pkg: &Pkg<'a>, tx: &Sender<Report>) -> crate::Result<()> {
+    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use PackageReport::*;
 
         for key in pkg.eapi().dep_keys() {
             for dep in pkg.dependencies(&[*key]).into_iter_flatten() {
                 if dep.blocker().is_none() && self.deprecated(dep) {
-                    let report = DeprecatedDependency.report(pkg, format!("{key}: {dep}"));
-                    tx.send(report).unwrap();
+                    reports.push(DeprecatedDependency.report(pkg, format!("{key}: {dep}")));
                 }
             }
         }

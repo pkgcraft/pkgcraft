@@ -1,4 +1,3 @@
-use crossbeam_channel::Sender;
 use pkgcraft::restrict::Restrict;
 
 use crate::check::CheckRun;
@@ -51,11 +50,11 @@ where
     pub(crate) fn run<R: Into<Restrict>>(
         &self,
         restrict: R,
-        tx: &Sender<Report>,
+        reports: &mut Vec<Report>,
     ) -> crate::Result<()> {
         for item in self.source.iter_restrict(restrict) {
             for check in &self.checks {
-                check.run(&item, tx)?;
+                check.run(&item, reports)?;
             }
         }
 

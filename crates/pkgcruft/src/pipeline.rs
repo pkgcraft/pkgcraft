@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::thread;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
@@ -63,7 +63,7 @@ impl Pipeline {
     /// Create worker threads that run checks in the pipeline.
     fn create_workers(
         &self,
-        report_tx: Sender<Report>,
+        report_tx: Sender<Vec<Report>>,
     ) -> (thread::JoinHandle<()>, Vec<thread::JoinHandle<()>>) {
         let (worker_tx, worker_rx) = unbounded();
 
@@ -119,25 +119,30 @@ impl Pipeline {
                 let rx = worker_rx.clone();
                 thread::spawn(move || {
                     for (scope, restrict) in rx {
+                        let mut reports = vec![];
+
                         match scope {
                             Scope::Package => {
                                 if !raw_pkg_runner.is_empty()
-                                    && raw_pkg_runner.run(&restrict, &tx).is_err()
+                                    && raw_pkg_runner.run(&restrict, &mut reports).is_err()
                                 {
                                     // skip the remaining runners if metadata errors exist
                                     continue;
                                 }
 
                                 if !pkg_runner.is_empty() {
-                                    pkg_runner.run(&restrict, &tx).ok();
+                                    pkg_runner.run(&restrict, &mut reports).ok();
                                 }
                             }
                             Scope::PackageSet => {
                                 if !pkg_set_runner.is_empty() {
-                                    pkg_set_runner.run(&restrict, &tx).ok();
+                                    pkg_set_runner.run(&restrict, &mut reports).ok();
                                 }
                             }
                         }
+
+                        reports.sort();
+                        tx.send(reports).unwrap();
                     }
                 })
             })
@@ -163,33 +168,34 @@ impl<'a> IntoIterator for &'a Pipeline {
             rx,
             _producer,
             _workers,
-            reports: &self.reports,
+            filter: &self.reports,
+            reports: VecDeque::new(),
         }
     }
 }
 
 pub struct Iter<'a> {
-    rx: Receiver<Report>,
+    rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
-    reports: &'a HashSet<ReportKind>,
+    filter: &'a HashSet<ReportKind>,
+    reports: VecDeque<Report>,
 }
 
 impl Iterator for Iter<'_> {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            match self.rx.recv() {
-                Ok(r) => {
-                    if self.reports.contains(r.kind()) {
-                        return Some(r);
-                    } else {
-                        continue;
-                    }
-                }
-                Err(_) => return None,
+        self.reports.pop_front().or_else(|| match self.rx.recv() {
+            Ok(reports) => {
+                self.reports.extend(
+                    reports
+                        .into_iter()
+                        .filter(|r| self.filter.contains(r.kind())),
+                );
+                self.next()
             }
-        }
+            Err(_) => None,
+        })
     }
 }
