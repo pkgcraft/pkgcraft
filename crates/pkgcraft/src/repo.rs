@@ -593,6 +593,15 @@ impl Repository for Repo {
         }
     }
 
+    fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
+        match self {
+            Self::Configured(repo) => repo.restrict_from_path(path),
+            Self::Ebuild(repo) => repo.restrict_from_path(path),
+            Self::Fake(repo) => repo.restrict_from_path(path),
+            Self::Unsynced(repo) => repo.restrict_from_path(path),
+        }
+    }
+
     fn sync(&self) -> crate::Result<()> {
         match self {
             Self::Configured(repo) => repo.sync(),
