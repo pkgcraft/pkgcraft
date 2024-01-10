@@ -8,6 +8,7 @@ use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
+#[clap(next_help_heading = "Regen options")]
 pub struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
@@ -31,7 +32,7 @@ pub struct Command {
 
     // positionals
     /// Target repository
-    #[arg(default_value = ".")]
+    #[arg(default_value = ".", help_heading = "Arguments")]
     repo: String,
 }
 
