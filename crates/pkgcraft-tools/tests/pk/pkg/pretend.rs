@@ -29,10 +29,11 @@ fn invalid_cwd_target() {
 
 #[test]
 fn nonexistent_path_target() {
-    cmd("pk pkg pretend path/to/nonexistent/repo")
+    let path = "path/to/nonexistent/repo";
+    cmd(format!("pk pkg pretend {path}"))
         .assert()
         .stdout("")
-        .stderr(contains("invalid dep restriction"))
+        .stderr(contains(format!("invalid path target: {path}: No such file or directory")))
         .failure()
         .code(2);
 }

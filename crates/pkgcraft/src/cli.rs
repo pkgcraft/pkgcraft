@@ -85,7 +85,7 @@ pub fn target_restriction(
 
             Ok(repo_set.filter(restrict))
         }
-        (_, Err(e)) if target.starts_with(['.', '/']) => {
+        (_, Err(e)) if target.contains('/') => {
             Err(Error::InvalidValue(format!("invalid path target: {target}: {e}")))
         }
         (Err(e), _) => Err(e),

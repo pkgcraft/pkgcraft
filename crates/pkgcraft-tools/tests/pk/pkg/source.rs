@@ -3,6 +3,7 @@ use std::env;
 use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
 use predicates::prelude::*;
+use predicates::str::contains;
 
 use crate::predicates::lines_contain;
 
@@ -11,17 +12,18 @@ fn invalid_cwd_target() {
     cmd("pk pkg source")
         .assert()
         .stdout("")
-        .stderr(predicate::str::contains("invalid repo path"))
+        .stderr(contains("invalid repo path"))
         .failure()
         .code(2);
 }
 
 #[test]
 fn nonexistent_path_target() {
-    cmd("pk pkg source path/to/nonexistent/repo")
+    let path = "path/to/nonexistent/repo";
+    cmd(format!("pk pkg source {path}"))
         .assert()
         .stdout("")
-        .stderr(predicate::str::contains("invalid dep restriction"))
+        .stderr(contains(format!("invalid path target: {path}: No such file or directory")))
         .failure()
         .code(2);
 }
