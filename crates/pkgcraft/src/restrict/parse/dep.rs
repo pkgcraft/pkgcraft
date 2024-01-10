@@ -198,7 +198,7 @@ peg::parser!(grammar restrict() for str {
         }
 
     rule repo_restrict() -> DepRestrict
-        = "::" s:repo_glob() {?
+        = s:repo_glob() {?
             match s.matches('*').count() {
                 0 => Ok(DepRestrict::repo(Some(s))),
                 _ => {
@@ -206,7 +206,10 @@ peg::parser!(grammar restrict() for str {
                     Ok(DepRestrict::Repo(Some(r)))
                 }
             }
-        } / "::" path:$(_+) { DepRestrict::repo(Some(path)) }
+        } / path:$(_+) { DepRestrict::repo(Some(path)) }
+
+    rule repo_dep() -> DepRestrict
+        = "::" r:repo_restrict() { r }
 
     rule blocker_restrict() -> DepRestrict
         = blocker:("!"*<1,2>) {?
@@ -219,7 +222,7 @@ peg::parser!(grammar restrict() for str {
 
     pub(super) rule dep() -> (Vec<DepRestrict>, Option<Version<&'input str>>)
         = blocker_r:blocker_restrict()? pkg_r:pkg_restricts()
-            slot_r:slot_restricts()? use_r:use_restricts()? repo_r:repo_restrict()?
+            slot_r:slot_restricts()? use_r:use_restricts()? repo_r:repo_dep()?
         {
             let (mut restricts, ver) = pkg_r;
 
