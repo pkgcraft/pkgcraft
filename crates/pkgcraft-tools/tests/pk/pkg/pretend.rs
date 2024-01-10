@@ -48,17 +48,16 @@ fn no_pkgs() {
         .success();
 }
 
-// TODO: re-enable using a custom -c/--config option
-/*#[test]
+#[test]
 fn pkg_target_from_stdin() {
     let repo = TEST_DATA.ebuild_repo("phases").unwrap();
     cmd("pk pkg pretend -")
-        .write_stdin("pkg-pretend/success-with-output")
+        .write_stdin(format!("pkg-pretend/success-with-output::{}", repo.path()))
         .assert()
         .stdout(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
         .stderr("")
         .success();
-}*/
+}
 
 #[test]
 fn path_targets() {

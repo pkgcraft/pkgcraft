@@ -37,18 +37,17 @@ fn no_pkgs() {
         .success();
 }
 
-// TODO: re-enable using a custom -c/--config option
-/*#[test]
+#[test]
 fn pkg_target_from_stdin() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_raw_pkg("cat/dep-1", &[]).unwrap();
     cmd("pk pkg source -")
-        .write_stdin("cat/dep")
+        .write_stdin(format!("cat/dep::{}", t.path()))
         .assert()
         .stdout(lines_contain(["cat/dep-1"]))
         .stderr("")
         .success();
-}*/
+}
 
 #[test]
 fn invalid_pkgs() {
@@ -64,10 +63,8 @@ fn invalid_pkgs() {
     t.create_raw_pkg_from_str("cat/a-1", &data).unwrap();
     t.create_raw_pkg_from_str("cat/b-1", &data).unwrap();
 
-    // TODO: re-enable using a custom -c/--config option
-    /*
     // dep restriction
-    cmd("pk pkg source cat/a-1")
+    cmd(format!("pk pkg source cat/a-1::{path}"))
         .assert()
         .stdout("")
         .stderr(lines_contain([format!("invalid pkg: cat/a-1::{path}: line 4: die: error: msg")]))
@@ -75,14 +72,12 @@ fn invalid_pkgs() {
         .code(1);
 
     // category restriction
-    cmd("pk pkg source cat/\*")
+    cmd(format!("pk pkg source cat/*::{path}"))
         .assert()
         .stdout("")
         .stderr(lines_contain(["cat/a-1", "cat/b-1"]))
         .failure()
         .code(1);
-
-    */
 
     // repo target
     cmd(format!("pk pkg source {}", path))
