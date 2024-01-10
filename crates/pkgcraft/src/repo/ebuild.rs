@@ -681,16 +681,10 @@ impl Repository for Repo {
         &self.repo_config().location
     }
 
-    fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P, cpv: bool) -> Option<Restrict> {
+    fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
         let path = path.as_ref().canonicalize_utf8().ok()?;
         if self.contains(&path) {
             let mut restricts = vec![];
-
-            // don't add repo restriction for Cpv-targeted restricts
-            if !cpv {
-                restricts.push(DepRestrict::repo(Some(self.id())));
-            }
-
             let relpath = path.strip_prefix(self.path()).unwrap_or(&path);
             let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();
             for (i, s) in components.iter().enumerate() {

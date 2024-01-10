@@ -390,7 +390,7 @@ pub trait Repository: PkgRepository + fmt::Display {
     fn priority(&self) -> i32;
     fn path(&self) -> &Utf8Path;
     /// Try converting a path to a [`Restrict`], returns None if the path isn't in the repo.
-    fn restrict_from_path<P: AsRef<Utf8Path>>(&self, _path: P, _cpv: bool) -> Option<Restrict> {
+    fn restrict_from_path<P: AsRef<Utf8Path>>(&self, _path: P) -> Option<Restrict> {
         None
     }
     fn sync(&self) -> crate::Result<()>;
