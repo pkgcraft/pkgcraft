@@ -206,7 +206,7 @@ peg::parser!(grammar restrict() for str {
                     Ok(DepRestrict::Repo(Some(r)))
                 }
             }
-        } / path:$(_+) { DepRestrict::repo(Some(path)) }
+        } / path:$("/" _+) { DepRestrict::repo(Some(path)) }
 
     rule repo_dep() -> DepRestrict
         = "::" r:repo_restrict() { r }
