@@ -19,7 +19,7 @@ pub struct Command {
     jobs: Option<usize>,
 
     /// Reporter to use
-    #[arg(short, default_value = "fancy")]
+    #[arg(short, long, default_value = "fancy")]
     reporter: Reporter,
 
     #[clap(flatten)]
