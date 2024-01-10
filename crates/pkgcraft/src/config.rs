@@ -220,9 +220,9 @@ impl Config {
     // during mutations causing references to change.
 
     /// Add local repo from a filesystem path.
-    pub fn add_repo_path<P: AsRef<Utf8Path>>(
+    pub fn add_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         &mut self,
-        name: &str,
+        name: S,
         priority: i32,
         path: P,
         external: bool,
@@ -233,9 +233,9 @@ impl Config {
     }
 
     /// Add local repo from a potentially nested filesystem path.
-    pub fn add_nested_repo_path<P: AsRef<Utf8Path>>(
+    pub fn add_nested_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         &mut self,
-        name: &str,
+        name: S,
         priority: i32,
         path: P,
         external: bool,
@@ -258,7 +258,8 @@ impl Config {
     }
 
     /// Return the repo for a given name or path, potentially adding it to the config.
-    pub fn add_target_repo(&mut self, target: &str) -> crate::Result<Repo> {
+    pub fn add_target_repo<S: AsRef<str>>(&mut self, target: S) -> crate::Result<Repo> {
+        let target = target.as_ref();
         if let Some(repo) = self.repos.get(target) {
             Ok(repo.clone())
         } else if Utf8Path::new(target).exists() {

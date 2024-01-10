@@ -184,12 +184,13 @@ make_repo_traits!(Repo);
 
 impl Repo {
     /// Try to load a repo from a path.
-    pub fn from_path<P: AsRef<Utf8Path>>(
-        id: &str,
+    pub fn from_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
+        id: S,
         priority: i32,
         path: P,
         finalize: bool,
     ) -> crate::Result<Self> {
+        let id = id.as_ref();
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
@@ -211,12 +212,13 @@ impl Repo {
     }
 
     /// Try to load a repo from a potentially nested path.
-    pub fn from_nested_path<P: AsRef<Utf8Path>>(
-        id: &str,
+    pub fn from_nested_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
+        id: S,
         priority: i32,
         path: P,
         finalize: bool,
     ) -> crate::Result<Self> {
+        let id = id.as_ref();
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
