@@ -12,14 +12,6 @@ pub enum Reporter {
     Fancy(FancyReporter),
 }
 
-impl PartialEq for Reporter {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-
-impl Eq for Reporter {}
-
 impl Default for Reporter {
     fn default() -> Self {
         Reporter::Fancy(Default::default())
