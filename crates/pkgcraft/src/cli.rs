@@ -55,7 +55,7 @@ pub fn target_restriction(
                     }
                 }
 
-                match &paths[..] {
+                match paths[..] {
                     [path] if path.contains('/') => {
                         let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
                             Error::InvalidValue(format!("invalid repo path: {path}: {e}"))
@@ -73,6 +73,11 @@ pub fn target_restriction(
                         };
 
                         return Ok((RepoSet::from_iter([&repo]), Restrict::and(restricts)));
+                    }
+                    [id] => {
+                        if repo_set.repos().iter().find(|r| r.id() == id).is_none() {
+                            return Err(Error::InvalidValue(format!("unknown repo: {id}")));
+                        }
                     }
                     _ => (),
                 }
