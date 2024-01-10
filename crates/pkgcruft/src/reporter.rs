@@ -20,6 +20,12 @@ impl PartialEq for Reporter {
 
 impl Eq for Reporter {}
 
+impl Default for Reporter {
+    fn default() -> Self {
+        Reporter::Fancy(Default::default())
+    }
+}
+
 impl Reporter {
     pub fn report(&mut self, report: &Report) -> crate::Result<()> {
         match self {
