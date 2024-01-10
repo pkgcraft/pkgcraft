@@ -206,7 +206,7 @@ peg::parser!(grammar restrict() for str {
                     Ok(DepRestrict::Repo(Some(r)))
                 }
             }
-        }
+        } / "::" path:$(_+) { DepRestrict::repo(Some(path)) }
 
     rule blocker_restrict() -> DepRestrict
         = blocker:("!"*<1,2>) {?
