@@ -186,16 +186,15 @@ impl Iterator for Iter<'_> {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.reports.pop_front().or_else(|| match self.rx.recv() {
-            Ok(reports) => {
+        self.reports.pop_front().or_else(|| {
+            self.rx.recv().ok().and_then(|reports| {
                 self.reports.extend(
                     reports
                         .into_iter()
                         .filter(|r| self.filter.contains(r.kind())),
                 );
                 self.next()
-            }
-            Err(_) => None,
+            })
         })
     }
 }
