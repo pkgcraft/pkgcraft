@@ -5,12 +5,20 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use crate::report::{Report, ReportLevel, ReportScope};
 
-#[derive(AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, Clone)]
+#[derive(AsRefStr, EnumIter, EnumString, Debug, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Reporter {
     Simple(SimpleReporter),
     Fancy(FancyReporter),
 }
+
+impl PartialEq for Reporter {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Eq for Reporter {}
 
 impl Reporter {
     pub fn report(&mut self, report: &Report) -> crate::Result<()> {
@@ -21,7 +29,7 @@ impl Reporter {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct SimpleReporter {}
 
 impl SimpleReporter {
@@ -31,7 +39,7 @@ impl SimpleReporter {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
     prev_key: Option<String>,
 }
