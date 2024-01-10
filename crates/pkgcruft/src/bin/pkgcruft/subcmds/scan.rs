@@ -12,12 +12,8 @@ use crate::args::StdinOrArgs;
 use crate::options;
 
 #[derive(Debug, Args)]
+#[clap(next_help_heading = "Scan options")]
 pub struct Command {
-    // positionals
-    /// Target packages or paths
-    #[arg(value_name = "TARGET", default_value = ".")]
-    targets: Vec<String>,
-
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,
@@ -28,6 +24,11 @@ pub struct Command {
 
     #[clap(flatten)]
     options: options::Options,
+
+    // positionals
+    /// Target packages or paths
+    #[arg(default_value = ".", help_heading = "Arguments")]
+    targets: Vec<String>,
 }
 
 impl Command {
