@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Pretend};
 use pkgcraft::repo::RepoFormat;
@@ -10,17 +11,11 @@ use scallop::pool::PoolIter;
 
 use crate::args::StdinOrArgs;
 
-use super::target_restriction;
-
 #[derive(Debug, Args)]
 pub struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,
-
-    /// Target repository
-    #[arg(short, long)]
-    repo: Option<String>,
 
     // positionals
     /// Target packages or paths
@@ -32,13 +27,6 @@ pub struct Command {
 // TODO: support binpkg repos
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine target repo set
-        let repos = if let Some(target) = self.repo.as_ref() {
-            config.add_target_repo(target)?.into()
-        } else {
-            config.repos.set(Some(RepoFormat::Ebuild))
-        };
-
         let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<Option<String>> {
             let pkg = ebuild::Pkg::try_from(pkg)?;
             pkg.pretend()
@@ -53,7 +41,7 @@ impl Command {
             .targets
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| target_restriction(config, &repos, &s, false))
+            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
             .collect();
         let targets = targets?;
 

@@ -22,7 +22,7 @@ fn invalid_cwd_target() {
     cmd("pk pkg pretend")
         .assert()
         .stdout("")
-        .stderr(contains("non-ebuild repo"))
+        .stderr(contains("invalid repo path"))
         .failure()
         .code(2);
 }
@@ -48,16 +48,17 @@ fn no_pkgs() {
         .success();
 }
 
-#[test]
+// TODO: re-enable using a custom -c/--config option
+/*#[test]
 fn pkg_target_from_stdin() {
     let repo = TEST_DATA.ebuild_repo("phases").unwrap();
-    cmd(format!("pk pkg pretend -r {} -", repo.path()))
+    cmd("pk pkg pretend -")
         .write_stdin("pkg-pretend/success-with-output")
         .assert()
         .stdout(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
         .stderr("")
         .success();
-}
+}*/
 
 #[test]
 fn path_targets() {

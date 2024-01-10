@@ -4,6 +4,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::Args;
+use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Source};
 use pkgcraft::repo::RepoFormat;
@@ -13,8 +14,6 @@ use scallop::pool::PoolIter;
 use tracing::error;
 
 use crate::args::StdinOrArgs;
-
-use super::target_restriction;
 
 /// Duration bound to apply against elapsed time values.
 #[derive(Debug, Copy, Clone)]
@@ -65,10 +64,6 @@ pub struct Command {
     /// Parallel jobs to run (default: # of physical CPUs)
     #[arg(short, long)]
     jobs: Option<usize>,
-
-    /// Target repository
-    #[arg(short, long)]
-    repo: Option<String>,
 
     /// Benchmark sourcing for a given duration per package
     #[arg(long)]
@@ -218,13 +213,6 @@ where
 
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine target repo set
-        let repos = if let Some(target) = self.repo.as_ref() {
-            config.add_target_repo(target)?.into()
-        } else {
-            config.repos.set(Some(RepoFormat::Ebuild))
-        };
-
         // default to running a job on each physical CPU in order to limit contention
         let jobs = bounded_jobs(self.jobs.unwrap_or(num_cpus::get_physical()));
 
@@ -232,7 +220,7 @@ impl Command {
         let mut status = ExitCode::SUCCESS;
         for target in self.targets.stdin_or_args().split_whitespace() {
             // determine target restriction
-            let (repos, restrict) = target_restriction(config, &repos, &target, false)?;
+            let (repos, restrict) = target_restriction(config, Some(RepoFormat::Ebuild), &target)?;
 
             // find matching packages from targeted repos
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));

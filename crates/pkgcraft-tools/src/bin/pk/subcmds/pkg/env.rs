@@ -3,6 +3,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
@@ -16,17 +17,11 @@ use strum::IntoEnumIterator;
 
 use crate::args::StdinOrArgs;
 
-use super::target_restriction;
-
 #[derive(Debug, Args)]
 pub struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,
-
-    /// Target repository
-    #[arg(short, long)]
-    repo: Option<String>,
 
     /// Variable filtering
     #[arg(short, long)]
@@ -41,13 +36,6 @@ pub struct Command {
 // TODO: support other repo types such as configured and binpkg
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine target repo set
-        let repos = if let Some(target) = self.repo.as_ref() {
-            config.add_target_repo(target)?.into()
-        } else {
-            config.repos.set(Some(RepoFormat::Ebuild))
-        };
-
         let external: HashSet<_> = variables::visible().into_iter().collect();
         let bash: HashSet<_> = ["PIPESTATUS"].into_iter().collect();
         let pms: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
@@ -110,7 +98,7 @@ impl Command {
             .targets
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| target_restriction(config, &repos, &s, false))
+            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
             .collect();
         let targets = targets?;
 

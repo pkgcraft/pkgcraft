@@ -2,13 +2,12 @@ use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::RepoFormat;
 
 use crate::args::StdinOrArgs;
-
-use super::target_restriction;
 
 #[derive(Debug, Args)]
 pub struct Command {
@@ -40,10 +39,6 @@ pub struct Command {
     #[arg(long)]
     format: Option<CacheFormat>,
 
-    /// Target repository
-    #[arg(short, long)]
-    repo: Option<String>,
-
     // positionals
     /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".")]
@@ -52,19 +47,12 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine target repo set
-        let repos = if let Some(target) = self.repo.as_ref() {
-            config.add_target_repo(target)?.into()
-        } else {
-            config.repos.set(Some(RepoFormat::Ebuild))
-        };
-
         // determine target restrictions
         let targets: Result<Vec<_>, _> = self
             .targets
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| target_restriction(config, &repos, &s, true))
+            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
             .collect();
         let targets = targets?;
 
