@@ -74,10 +74,8 @@ pub fn target_restriction(
 
                         return Ok((RepoSet::from_iter([&repo]), Restrict::and(restricts)));
                     }
-                    [id] => {
-                        if repo_set.repos().iter().find(|r| r.id() == id).is_none() {
-                            return Err(Error::InvalidValue(format!("unknown repo: {id}")));
-                        }
+                    [id] if !repo_set.repos().iter().any(|r| r.id() == id) => {
+                        return Err(Error::InvalidValue(format!("unknown repo: {id}")));
                     }
                     _ => (),
                 }
