@@ -35,6 +35,31 @@ impl RepoSet {
     pub fn ebuild(&self) -> impl Iterator<Item = &Arc<EbuildRepo>> {
         self.0.iter().filter_map(|r| r.as_ebuild())
     }
+
+    /// Filter a repo set using repo restrictions.
+    pub fn filter(self, restrict: Restrict) -> (Self, Restrict) {
+        if let Restrict::And(vals) = &restrict {
+            use DepRestrict::Repo;
+            let mut repo_restricts = vec![];
+            let mut restricts = vec![];
+            for r in vals.iter().map(Deref::deref) {
+                match r {
+                    Restrict::Dep(Repo(Some(r))) => repo_restricts.push(r),
+                    r => restricts.push(r),
+                }
+            }
+
+            if !repo_restricts.is_empty() {
+                let set = self
+                    .into_iter()
+                    .filter(|r| repo_restricts.iter().all(|res| res.matches(r.id())))
+                    .collect();
+                return (set, Restrict::and(restricts));
+            }
+        }
+
+        (self, restrict)
+    }
 }
 
 impl Default for RepoSet {
