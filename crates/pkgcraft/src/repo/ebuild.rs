@@ -26,6 +26,7 @@ use crate::pkg::ebuild::{self, manifest::Manifest, xml};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
+use crate::traits::Intersects;
 use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
@@ -541,6 +542,28 @@ impl Repo {
             iter: IterRaw::new(self, Some(&restrict)),
             restrict,
         }
+    }
+
+    /// Scan the deprecated package list returning the first match for a given dependency.
+    pub fn deprecated(&self, dep: &Dep<String>) -> Option<&Dep<String>> {
+        if dep.blocker().is_none() {
+            if let Some(pkg) = self
+                .metadata()
+                .pkg_deprecated()
+                .iter()
+                .find(|x| x.intersects(dep))
+            {
+                match (pkg.slot_dep(), dep.slot_dep()) {
+                    // deprecated pkg matches all slots
+                    (None, _) => return Some(pkg),
+                    // deprecated slot dep matches the dependency
+                    (Some(s1), Some(s2)) if s1.slot() == s2.slot() => return Some(pkg),
+                    // TODO: query slot cache for remaining mismatched variants?
+                    _ => (),
+                }
+            }
+        }
+        None
     }
 
     /// Return a configured repo using the given config settings.
