@@ -4,9 +4,8 @@ use clap::Args;
 use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::utils::bounded_jobs;
-use pkgcruft::pipeline::Pipeline;
 use pkgcruft::reporter::Reporter;
+use pkgcruft::scanner::Scanner;
 
 use crate::args::StdinOrArgs;
 use crate::options;
@@ -33,7 +32,7 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(mut self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine checks and reports
+        // determine check and report filters
         let (checks, reports) = self.options.checks.collapse();
 
         // determine target restrictions
@@ -45,12 +44,16 @@ impl Command {
             .collect();
         let targets = targets?;
 
-        let jobs = bounded_jobs(self.jobs.unwrap_or_default());
+        // create report scanner
+        let scanner = Scanner::new()
+            .jobs(self.jobs.unwrap_or_default())
+            .checks(&checks)
+            .reports(&reports);
 
+        // run scanner for all targets
         for (repo_set, restrict) in targets {
             for repo in repo_set.repos() {
-                let pipeline = Pipeline::new(jobs, &checks, &reports, repo, &restrict)?;
-                for result in &pipeline {
+                for result in scanner.run(repo, &restrict)? {
                     self.reporter.report(&result)?;
                 }
             }

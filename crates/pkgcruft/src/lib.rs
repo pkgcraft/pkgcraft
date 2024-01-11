@@ -2,10 +2,10 @@
 
 pub mod check;
 pub mod error;
-pub mod pipeline;
 pub mod report;
 pub mod reporter;
 pub mod runner;
+pub mod scanner;
 pub mod source;
 
 pub use self::error::Error;

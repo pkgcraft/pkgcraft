@@ -1,11 +1,12 @@
 use std::collections::{HashSet, VecDeque};
 use std::thread;
 
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{unbounded, Receiver};
 use indexmap::IndexSet;
 use pkgcraft::dep::Cpv;
 use pkgcraft::repo::{ebuild, Repo, Repository};
 use pkgcraft::restrict::{dep::Restrict as DepRestrict, Restrict};
+use pkgcraft::utils::bounded_jobs;
 
 use crate::check::{Check, CheckKind, Scope, CHECKS};
 use crate::report::{Report, ReportKind, REPORTS};
@@ -13,35 +14,54 @@ use crate::runner::CheckRunner;
 use crate::source::{self, SourceKind};
 use crate::Error;
 
-pub struct Pipeline {
+#[derive(Debug)]
+pub struct Scanner {
     jobs: usize,
-    repo: &'static ebuild::Repo,
     checks: IndexSet<Check>,
     filter: HashSet<ReportKind>,
-    restrict: Restrict,
 }
 
-impl Pipeline {
-    pub fn new(
-        jobs: usize,
-        checks: &[CheckKind],
-        reports: &[ReportKind],
-        repo: &Repo,
-        restrict: &Restrict,
-    ) -> crate::Result<Self> {
-        let mut checks: IndexSet<Check> = if checks.is_empty() {
-            CHECKS.iter().copied().collect()
-        } else {
-            checks.iter().map(|k| k.into()).copied().collect()
-        };
-        checks.sort();
+impl Default for Scanner {
+    fn default() -> Self {
+        Self {
+            jobs: bounded_jobs(0),
+            checks: CHECKS.iter().copied().collect(),
+            filter: REPORTS.iter().copied().collect(),
+        }
+    }
+}
 
-        let reports: HashSet<ReportKind> = if reports.is_empty() {
-            REPORTS.iter().copied().collect()
-        } else {
-            reports.iter().copied().collect()
-        };
+impl Scanner {
+    /// Create a new scanner using the default settings.
+    pub fn new() -> Self {
+        Scanner::default()
+    }
 
+    /// Set the number of parallel scanner jobs to run.
+    pub fn jobs(mut self, jobs: usize) -> Self {
+        self.jobs = bounded_jobs(jobs);
+        self
+    }
+
+    /// Set the checks to run.
+    pub fn checks(mut self, checks: &[CheckKind]) -> Self {
+        if !checks.is_empty() {
+            self.checks = checks.iter().map(|c| c.into()).copied().collect();
+            self.checks.sort();
+        }
+        self
+    }
+
+    /// Set the report types to allow.
+    pub fn reports(mut self, reports: &[ReportKind]) -> Self {
+        if !reports.is_empty() {
+            self.filter = reports.iter().copied().collect();
+        }
+        self
+    }
+
+    /// Run the scanner returning an iterator of reports.
+    pub fn run(&self, repo: &Repo, restrict: &Restrict) -> crate::Result<Iter> {
         // TODO: support checks for non-ebuild repo types?
         let repo = repo.as_ebuild().ok_or_else(|| {
             Error::InvalidValue(format!("unsupported repo format: {}", repo.format()))
@@ -51,23 +71,6 @@ impl Pipeline {
         let repo = Box::new(repo.clone());
         let repo: &'static ebuild::Repo = Box::leak(repo);
 
-        Ok(Self {
-            jobs,
-            repo,
-            checks,
-            filter: reports,
-            restrict: restrict.clone(),
-        })
-    }
-
-    /// Create worker threads that run checks in the pipeline.
-    fn create_workers(
-        &self,
-        report_tx: Sender<Vec<Report>>,
-    ) -> (thread::JoinHandle<()>, Vec<thread::JoinHandle<()>>) {
-        let (worker_tx, worker_rx) = unbounded();
-
-        let repo = self.repo;
         let mut pkg_runner = CheckRunner::new(source::EbuildPackage { repo });
         let mut raw_pkg_runner = CheckRunner::new(source::EbuildPackageRaw { repo });
         let mut pkg_set_runner = CheckRunner::new(source::EbuildPackageSet { repo });
@@ -80,16 +83,17 @@ impl Pipeline {
         }
 
         // send matches to the workers
-        let restrict = self.restrict.clone();
+        let restrict = restrict.clone();
+        let (restrict_tx, restrict_rx) = unbounded();
         let pkg_set = !pkg_set_runner.is_empty();
         // TODO: use multiple producers to push restrictions
-        let producer = thread::spawn(move || {
+        let _producer = thread::spawn(move || {
             let mut prev: Option<Cpv<String>> = None;
 
             for cpv in repo.iter_cpv_restrict(&restrict) {
                 // send versioned restricts for package checks
                 let restrict = Restrict::from(&cpv);
-                worker_tx.send((Scope::Package, restrict)).unwrap();
+                restrict_tx.send((Scope::Package, restrict)).unwrap();
 
                 // send unversioned restricts for package set checks
                 if pkg_set {
@@ -105,22 +109,23 @@ impl Pipeline {
                         DepRestrict::category(cpv.category()),
                         DepRestrict::package(cpv.package()),
                     ]);
-                    worker_tx.send((Scope::PackageSet, restrict)).unwrap();
+                    restrict_tx.send((Scope::PackageSet, restrict)).unwrap();
                     prev = Some(cpv);
                 }
             }
         });
 
-        let workers: Vec<_> = (0..self.jobs)
+        let (reports_tx, reports_rx) = unbounded();
+        let _workers: Vec<_> = (0..self.jobs)
             .map(|_| {
                 let filter = self.filter.clone();
                 let pkg_runner = pkg_runner.clone();
                 let raw_pkg_runner = raw_pkg_runner.clone();
                 let pkg_set_runner = pkg_set_runner.clone();
-                let tx = report_tx.clone();
-                let rx = worker_rx.clone();
+                let reports_tx = reports_tx.clone();
+                let restrict_rx = restrict_rx.clone();
                 thread::spawn(move || {
-                    for (scope, restrict) in rx {
+                    for (scope, restrict) in restrict_rx {
                         let mut reports = vec![];
 
                         match scope {
@@ -149,40 +154,24 @@ impl Pipeline {
                         // sort and send reports
                         if !reports.is_empty() {
                             reports.sort();
-                            tx.send(reports).unwrap();
+                            reports_tx.send(reports).unwrap();
                         }
                     }
                 })
             })
             .collect();
 
-        (producer, workers)
-    }
-
-    /*fn create_runners(&self) -> Vec<CheckRunner> {
-        vec![]
-    }*/
-}
-
-impl IntoIterator for &Pipeline {
-    type Item = Report;
-    type IntoIter = Iter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        let (tx, rx) = unbounded();
-        let (_producer, _workers) = self.create_workers(tx);
-
-        Iter {
-            rx,
+        Ok(Iter {
+            reports_rx,
             _producer,
             _workers,
             reports: VecDeque::new(),
-        }
+        })
     }
 }
 
 pub struct Iter {
-    rx: Receiver<Vec<Report>>,
+    reports_rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
     reports: VecDeque<Report>,
@@ -193,7 +182,7 @@ impl Iterator for Iter {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.reports.pop_front().or_else(|| {
-            self.rx.recv().ok().and_then(|reports| {
+            self.reports_rx.recv().ok().and_then(|reports| {
                 self.reports.extend(reports);
                 self.next()
             })
