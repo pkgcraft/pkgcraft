@@ -859,6 +859,7 @@ impl<'a> IterCpv<'a> {
         Self {
             iter: match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
                 ([], [], []) => {
+                    // TODO: revert to serialized iteration once repos provide parallel iterators
                     let mut cpvs = repo
                         .categories()
                         .into_par_iter()
@@ -1198,6 +1199,20 @@ mod tests {
     }
 
     #[test]
+    fn iter_cpv() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
+        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let mut iter = repo.iter_cpv();
+        for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
+            assert_eq!(iter.next(), Some(Cpv::try_new(cpv).unwrap()));
+        }
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
     fn iter() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
@@ -1206,8 +1221,7 @@ mod tests {
         t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
         let mut iter = repo.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
-            let pkg = iter.next();
-            assert_eq!(pkg.map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));
+            assert_eq!(iter.next().map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));
         }
         assert!(iter.next().is_none());
     }
