@@ -1213,6 +1213,23 @@ mod tests {
     }
 
     #[test]
+    fn iter_cpv_restrict() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
+        // single match via Cpv
+        let cpv = Cpv::try_new("optional/none-8").unwrap();
+        let iter = repo.iter_cpv_restrict(&cpv);
+        let cpvs: Vec<_> = iter.collect();
+        assert_eq!(cpvs, [cpv]);
+
+        // multiple matches via package name
+        let restrict = DepRestrict::package("inherit");
+        let iter = repo.iter_cpv_restrict(restrict);
+        let cpvs: Vec<_> = iter.collect();
+        assert!(cpvs.len() > 2);
+    }
+
+    #[test]
     fn iter() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
