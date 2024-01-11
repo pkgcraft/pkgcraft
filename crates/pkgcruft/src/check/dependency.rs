@@ -30,8 +30,21 @@ impl<'a> DependencyCheck<'a> {
         }
     }
 
-    fn deprecated(&self, dep: &Dep<String>) -> bool {
-        self.pkg_deprecated.iter().any(|x| dep.intersects(x))
+    /// Scan a repo's deprecated package list returning the first match for a dependency.
+    fn deprecated(&self, dep: &Dep<String>) -> Option<&Dep<String>> {
+        if dep.blocker().is_none() {
+            if let Some(pkg) = self.pkg_deprecated.iter().find(|x| x.intersects(dep)) {
+                match (pkg.slot_dep(), dep.slot_dep()) {
+                    // deprecated pkg matches all slots
+                    (None, _) => return Some(pkg),
+                    // deprecated slot dep matches the dependency
+                    (Some(s1), Some(s2)) if s1.slot() == s2.slot() => return Some(pkg),
+                    // TODO: query slot cache for remaining mismatched variants?
+                    _ => return None,
+                }
+            }
+        }
+        None
     }
 }
 
@@ -41,7 +54,7 @@ impl<'a> CheckRun<Pkg<'a>> for DependencyCheck<'_> {
 
         for key in pkg.eapi().dep_keys() {
             for dep in pkg.dependencies(&[*key]).into_iter_flatten() {
-                if dep.blocker().is_none() && self.deprecated(dep) {
+                if self.deprecated(dep).is_some() {
                     reports.push(DeprecatedDependency.report(pkg, format!("{key}: {dep}")));
                 }
             }

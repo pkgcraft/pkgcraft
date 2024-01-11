@@ -82,6 +82,7 @@ impl Pipeline {
         // send matches to the workers
         let restrict = self.restrict.clone();
         let pkg_set = !pkg_set_runner.is_empty();
+        // TODO: use multiple producers to push restrictions
         let producer = thread::spawn(move || {
             let mut prev: Option<Cpv<String>> = None;
 
