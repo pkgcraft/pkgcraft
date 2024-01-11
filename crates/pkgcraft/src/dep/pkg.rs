@@ -191,6 +191,18 @@ impl SlotDep<String> {
     }
 }
 
+impl<S: Stringable> SlotDep<S> {
+    /// Return the slot.
+    pub fn slot(&self) -> Option<&Slot<S>> {
+        self.slot.as_ref()
+    }
+
+    /// Return the slot operator.
+    pub fn op(&self) -> Option<SlotOperator> {
+        self.op
+    }
+}
+
 impl FromStr for SlotDep<String> {
     type Err = Error;
 
