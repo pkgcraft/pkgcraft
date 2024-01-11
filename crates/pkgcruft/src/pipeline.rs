@@ -142,8 +142,10 @@ impl Pipeline {
                             }
                         }
 
-                        reports.sort();
-                        tx.send(reports).unwrap();
+                        if !reports.is_empty() {
+                            reports.sort();
+                            tx.send(reports).unwrap();
+                        }
                     }
                 })
             })
