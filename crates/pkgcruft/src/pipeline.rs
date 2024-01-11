@@ -17,7 +17,7 @@ pub struct Pipeline {
     jobs: usize,
     repo: &'static ebuild::Repo,
     checks: IndexSet<Check>,
-    reports: HashSet<ReportKind>,
+    filter: HashSet<ReportKind>,
     restrict: Restrict,
 }
 
@@ -55,7 +55,7 @@ impl Pipeline {
             jobs,
             repo,
             checks,
-            reports,
+            filter: reports,
             restrict: restrict.clone(),
         })
     }
@@ -113,6 +113,7 @@ impl Pipeline {
 
         let workers: Vec<_> = (0..self.jobs)
             .map(|_| {
+                let filter = self.filter.clone();
                 let pkg_runner = pkg_runner.clone();
                 let raw_pkg_runner = raw_pkg_runner.clone();
                 let pkg_set_runner = pkg_set_runner.clone();
@@ -142,6 +143,10 @@ impl Pipeline {
                             }
                         }
 
+                        // filter reports
+                        reports.retain(|r| filter.contains(r.kind()));
+
+                        // sort and send reports
                         if !reports.is_empty() {
                             reports.sort();
                             tx.send(reports).unwrap();
@@ -159,9 +164,9 @@ impl Pipeline {
     }*/
 }
 
-impl<'a> IntoIterator for &'a Pipeline {
+impl IntoIterator for &Pipeline {
     type Item = Report;
-    type IntoIter = Iter<'a>;
+    type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
         let (tx, rx) = unbounded();
@@ -171,31 +176,25 @@ impl<'a> IntoIterator for &'a Pipeline {
             rx,
             _producer,
             _workers,
-            filter: &self.reports,
             reports: VecDeque::new(),
         }
     }
 }
 
-pub struct Iter<'a> {
+pub struct Iter {
     rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
-    filter: &'a HashSet<ReportKind>,
     reports: VecDeque<Report>,
 }
 
-impl Iterator for Iter<'_> {
+impl Iterator for Iter {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.reports.pop_front().or_else(|| {
             self.rx.recv().ok().and_then(|reports| {
-                self.reports.extend(
-                    reports
-                        .into_iter()
-                        .filter(|r| self.filter.contains(r.kind())),
-                );
+                self.reports.extend(reports);
                 self.next()
             })
         })
