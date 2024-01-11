@@ -1,4 +1,4 @@
-use pkgcraft::dep::Flatten;
+use pkgcraft::dep::{Flatten, Operator};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
@@ -13,7 +13,10 @@ pub(crate) static CHECK: Check = Check {
     source: SourceKind::EbuildPackage,
     scope: Scope::Package,
     priority: 0,
-    reports: &[ReportKind::Package(PackageReport::DeprecatedDependency)],
+    reports: &[
+        ReportKind::Package(PackageReport::DeprecatedDependency),
+        ReportKind::Package(PackageReport::MissingRevision),
+    ],
 };
 
 #[derive(Debug, Clone)]
@@ -35,6 +38,10 @@ impl<'a> CheckRun<Pkg<'a>> for DependencyCheck<'_> {
             for dep in pkg.dependencies(&[*key]).into_iter_flatten() {
                 if self.repo.deprecated(dep).is_some() {
                     reports.push(DeprecatedDependency.report(pkg, format!("{key}: {dep}")));
+                }
+
+                if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
+                    reports.push(MissingRevision.report(pkg, format!("{key}: {dep}")));
                 }
             }
         }

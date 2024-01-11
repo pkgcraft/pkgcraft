@@ -39,6 +39,7 @@ pub enum PackageReport {
     DroppedKeywords,
     InvalidDependency,
     MissingMetadata,
+    MissingRevision,
     SourcingError,
 }
 
