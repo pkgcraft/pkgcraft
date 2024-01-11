@@ -50,7 +50,7 @@ pub enum DepField {
     Package,
     Blocker,
     Version,
-    Slot,
+    SlotDep,
     UseDeps,
     Repo,
 }
@@ -59,7 +59,7 @@ impl DepField {
     /// Return an iterator consisting of all optional dep fields.
     pub fn optional() -> impl Iterator<Item = Self> {
         use DepField::*;
-        [Blocker, Version, Slot, UseDeps, Repo].into_iter()
+        [Blocker, Version, SlotDep, UseDeps, Repo].into_iter()
     }
 }
 
@@ -206,7 +206,7 @@ pub struct Dep<S: Stringable> {
     pub(crate) package: S,
     pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<Version<S>>,
-    pub(crate) slot: Option<SlotDep<S>>,
+    pub(crate) slot_dep: Option<SlotDep<S>>,
     pub(crate) use_deps: Option<SortedSet<UseDep<S>>>,
     pub(crate) repo: Option<S>,
 }
@@ -216,12 +216,12 @@ impl<'a> Dep<&'a str> {
     pub(crate) fn with(
         mut self,
         blocker: Option<Blocker>,
-        slot: Option<SlotDep<&'a str>>,
+        slot_dep: Option<SlotDep<&'a str>>,
         use_deps: Option<Vec<UseDep<&'a str>>>,
         repo: Option<&'a str>,
     ) -> Self {
         self.blocker = blocker;
-        self.slot = slot;
+        self.slot_dep = slot_dep;
         self.use_deps = use_deps.map(|u| u.into_iter().collect());
         self.repo = repo;
         self
@@ -237,7 +237,7 @@ impl IntoOwned for Dep<&str> {
             package: self.package.to_string(),
             blocker: self.blocker,
             version: self.version.into_owned(),
-            slot: self.slot.into_owned(),
+            slot_dep: self.slot_dep.into_owned(),
             use_deps: self
                 .use_deps
                 .map(|u| u.into_iter().map(|u| u.into_owned()).collect()),
@@ -413,14 +413,14 @@ impl Dep<String> {
                         dep.to_mut().version = None;
                     }
                 }
-                DepField::Slot => {
+                DepField::SlotDep => {
                     if let Some(s) = s {
                         let val = SlotDep::try_new(s)?;
-                        if !dep.slot.as_ref().map(|v| v == &val).unwrap_or_default() {
-                            dep.to_mut().slot = Some(val);
+                        if !dep.slot_dep.as_ref().map(|v| v == &val).unwrap_or_default() {
+                            dep.to_mut().slot_dep = Some(val);
                         }
-                    } else if self.slot.is_some() {
-                        dep.to_mut().slot = None;
+                    } else if self.slot_dep.is_some() {
+                        dep.to_mut().slot_dep = None;
                     }
                 }
                 DepField::UseDeps => {
@@ -551,9 +551,14 @@ impl<S: Stringable> Dep<S> {
         }
     }
 
+    /// Return a package dependency's slot dependency.
+    pub fn slot_dep(&self) -> Option<&SlotDep<S>> {
+        self.slot_dep.as_ref()
+    }
+
     /// Return a package dependency's slot.
     pub fn slot(&self) -> Option<&str> {
-        self.slot
+        self.slot_dep
             .as_ref()
             .and_then(|s| s.slot.as_ref())
             .map(|s| s.slot())
@@ -561,7 +566,7 @@ impl<S: Stringable> Dep<S> {
 
     /// Return a package dependency's subslot.
     pub fn subslot(&self) -> Option<&str> {
-        self.slot
+        self.slot_dep
             .as_ref()
             .and_then(|s| s.slot.as_ref())
             .and_then(|s| s.subslot())
@@ -569,7 +574,7 @@ impl<S: Stringable> Dep<S> {
 
     /// Return a package dependency's slot operator.
     pub fn slot_op(&self) -> Option<SlotOperator> {
-        self.slot.as_ref().and_then(|s| s.op)
+        self.slot_dep.as_ref().and_then(|s| s.op)
     }
 
     /// Return a package dependency's repository.
@@ -584,7 +589,7 @@ impl<S: Stringable> Dep<S> {
             self.package(),
             self.version(),
             self.blocker(),
-            self.slot.as_ref(),
+            self.slot_dep(),
             self.use_deps(),
             self.repo(),
         )
@@ -601,7 +606,7 @@ where
     cmp_not_equal!(d1.package(), d2.package());
     partial_cmp_opt_not_equal!(&d1.version, &d2.version);
     cmp_not_equal!(&d1.blocker, &d2.blocker);
-    partial_cmp_opt_not_equal!(&d1.slot, &d2.slot);
+    partial_cmp_opt_not_equal!(&d1.slot_dep, &d2.slot_dep);
     partial_cmp_opt_not_equal!(&d1.use_deps, &d2.use_deps);
     cmp_not_equal!(&d1.repo(), &d2.repo());
     Ordering::Equal
@@ -628,9 +633,9 @@ impl<S: Stringable> fmt::Display for Dep<S> {
             Some(Greater) => write!(f, ">{cpv}")?,
         }
 
-        // append slot
-        if let Some(slot) = &self.slot {
-            write!(f, ":{slot}")?;
+        // append slot dep
+        if let Some(slot_dep) = &self.slot_dep {
+            write!(f, ":{slot_dep}")?;
         }
 
         // append repo
@@ -1146,7 +1151,7 @@ mod tests {
 
         for (field, expected) in [
             (DepField::Blocker, ">=cat/pkg-1.2-r3:4/5=::repo[a,b]"),
-            (DepField::Slot, "!!>=cat/pkg-1.2-r3::repo[a,b]"),
+            (DepField::SlotDep, "!!>=cat/pkg-1.2-r3::repo[a,b]"),
             (DepField::Version, "!!cat/pkg:4/5=::repo[a,b]"),
             (DepField::UseDeps, "!!>=cat/pkg-1.2-r3:4/5=::repo"),
             (DepField::Repo, "!!>=cat/pkg-1.2-r3:4/5=[a,b]"),
@@ -1184,11 +1189,11 @@ mod tests {
             (DepField::Category, "a", "!!>=a/pkg-1.2-r3:4::repo[a,b]"),
             (DepField::Package, "b", "!!>=cat/b-1.2-r3:4::repo[a,b]"),
             (DepField::Blocker, "!", "!>=cat/pkg-1.2-r3:4::repo[a,b]"),
-            (DepField::Slot, "1", "!!>=cat/pkg-1.2-r3:1::repo[a,b]"),
-            (DepField::Slot, "1/2", "!!>=cat/pkg-1.2-r3:1/2::repo[a,b]"),
-            (DepField::Slot, "1/2=", "!!>=cat/pkg-1.2-r3:1/2=::repo[a,b]"),
-            (DepField::Slot, "*", "!!>=cat/pkg-1.2-r3:*::repo[a,b]"),
-            (DepField::Slot, "=", "!!>=cat/pkg-1.2-r3:=::repo[a,b]"),
+            (DepField::SlotDep, "1", "!!>=cat/pkg-1.2-r3:1::repo[a,b]"),
+            (DepField::SlotDep, "1/2", "!!>=cat/pkg-1.2-r3:1/2::repo[a,b]"),
+            (DepField::SlotDep, "1/2=", "!!>=cat/pkg-1.2-r3:1/2=::repo[a,b]"),
+            (DepField::SlotDep, "*", "!!>=cat/pkg-1.2-r3:*::repo[a,b]"),
+            (DepField::SlotDep, "=", "!!>=cat/pkg-1.2-r3:=::repo[a,b]"),
             (DepField::Version, "<0", "!!<cat/pkg-0:4::repo[a,b]"),
             (DepField::UseDeps, "x,y,z", "!!>=cat/pkg-1.2-r3:4::repo[x,y,z]"),
             (DepField::Repo, "test", "!!>=cat/pkg-1.2-r3:4::test[a,b]"),
@@ -1224,7 +1229,7 @@ mod tests {
             (DepField::Category, Some("a")),
             (DepField::Package, Some("b")),
             (DepField::Blocker, Some("!")),
-            (DepField::Slot, Some("1/2=")),
+            (DepField::SlotDep, Some("1/2=")),
             (DepField::Version, Some("<0")),
             (DepField::UseDeps, Some("x,y,z")),
             (DepField::Repo, Some("test")),
@@ -1246,7 +1251,7 @@ mod tests {
         assert!(dep.modify([(DepField::Category, Some("-cat"))]).is_err());
         assert!(dep.modify([(DepField::Package, Some("pkg-1a-1"))]).is_err());
         assert!(dep.modify([(DepField::Blocker, Some("!!!"))]).is_err());
-        assert!(dep.modify([(DepField::Slot, Some(":1"))]).is_err());
+        assert!(dep.modify([(DepField::SlotDep, Some(":1"))]).is_err());
         assert!(dep.modify([(DepField::Version, Some("1"))]).is_err());
         assert!(dep.modify([(DepField::UseDeps, Some("+u1,u2"))]).is_err());
         assert!(dep.modify([(DepField::Repo, Some("pkg-1a-1"))]).is_err());
