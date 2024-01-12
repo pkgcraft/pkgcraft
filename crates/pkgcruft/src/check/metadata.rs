@@ -53,7 +53,6 @@ impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
                     .mandatory_keys()
                     .iter()
                     .filter(|k| raw.get(k).is_none())
-                    .copied()
                     .sorted()
                     .collect();
 
