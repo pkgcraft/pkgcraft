@@ -44,7 +44,8 @@ impl Command {
 
         let mut line = String::new();
         while reader.read_line(&mut line)? != 0 {
-            let report: Report = serde_json::from_str(&line).unwrap();
+            let report: Report =
+                serde_json::from_str(&line).map_err(|e| anyhow!("invalid JSON report: {e}"))?;
             if filter.contains(report.kind()) {
                 self.reporter.report(&report)?;
             }
