@@ -22,7 +22,13 @@ pub struct Command {
     reporter: Reporter,
 
     #[clap(flatten)]
-    options: options::Options,
+    checks: options::checks::Checks,
+
+    #[clap(flatten)]
+    arches: options::arches::Arches,
+
+    #[clap(flatten)]
+    profiles: options::profiles::Profiles,
 
     // positionals
     /// Target packages or paths
@@ -33,7 +39,7 @@ pub struct Command {
 impl Command {
     pub(super) fn run(mut self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine check and report filters
-        let (checks, reports) = self.options.checks.collapse();
+        let (checks, reports) = self.checks.collapse();
 
         // determine target restrictions
         let targets: Result<Vec<_>, _> = self
@@ -53,8 +59,8 @@ impl Command {
         // run scanner for all targets
         for (repo_set, restrict) in targets {
             for repo in repo_set.repos() {
-                for result in scanner.run(repo, &restrict)? {
-                    self.reporter.report(&result)?;
+                for report in scanner.run(repo, &restrict)? {
+                    self.reporter.report(&report)?;
                 }
             }
         }
