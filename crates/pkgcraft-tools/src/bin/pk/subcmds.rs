@@ -1,12 +1,12 @@
 use std::process::ExitCode;
 
+use pkgcraft::config::Config;
+
 mod cpv;
 mod dep;
 mod pkg;
 mod repo;
 mod version;
-
-use pkgcraft::config::Config;
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {

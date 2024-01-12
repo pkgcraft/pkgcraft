@@ -1,8 +1,8 @@
 use std::process::ExitCode;
 use std::str::FromStr;
 
-use clap::Args;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
+use clap::Args;
 use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
