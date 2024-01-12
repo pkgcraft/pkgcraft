@@ -68,8 +68,7 @@ impl Scanner {
         })?;
 
         // TODO: drop this hack once lifetime handling is improved for thread usage
-        let repo = Box::new(repo.clone());
-        let repo: &'static ebuild::Repo = Box::leak(repo);
+        let repo: &'static ebuild::Repo = Box::leak(Box::new(repo.clone()));
 
         let mut pkg_runner = CheckRunner::new(source::EbuildPackage { repo });
         let mut raw_pkg_runner = CheckRunner::new(source::EbuildPackageRaw { repo });
