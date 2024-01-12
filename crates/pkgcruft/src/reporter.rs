@@ -4,7 +4,6 @@ use strum::{AsRefStr, EnumIter, EnumString};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use crate::report::{Report, ReportLevel, ReportScope};
-use crate::Error;
 
 #[derive(AsRefStr, EnumIter, EnumString, Debug, Clone)]
 #[strum(serialize_all = "snake_case")]
@@ -91,9 +90,7 @@ pub struct JsonReporter {}
 
 impl JsonReporter {
     pub fn report(&self, report: &Report) -> crate::Result<()> {
-        let json = serde_json::to_string(&report)
-            .map_err(|e| Error::InvalidValue(format!("failed serializing report to JSON: {e}")))?;
-        println!("{}", json);
+        println!("{}", report.to_json()?);
         Ok(())
     }
 }
