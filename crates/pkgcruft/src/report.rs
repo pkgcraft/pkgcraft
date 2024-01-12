@@ -7,6 +7,7 @@ use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use pkgcraft::dep::{Cpv, Dep};
 use pkgcraft::pkg::Package;
+use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
@@ -201,6 +202,15 @@ impl Report {
 
     pub(crate) fn level(&self) -> &ReportLevel {
         &self.level
+    }
+}
+
+impl Restriction<&Report> for Restrict {
+    fn matches(&self, report: &Report) -> bool {
+        match &report.scope {
+            ReportScope::Version(cpv) => self.matches(cpv),
+            ReportScope::Package(cpn) => self.matches(cpn),
+        }
     }
 }
 
