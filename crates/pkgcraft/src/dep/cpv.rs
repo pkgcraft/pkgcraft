@@ -5,7 +5,7 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 use camino::Utf8PathBuf;
-use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::macros::{equivalent, partial_cmp_not_equal_opt};
 use crate::traits::{Intersects, IntoOwned, ToRef};
@@ -124,7 +124,7 @@ impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Cow<'_, Dep<S2
 }
 
 /// Package identifier.
-#[derive(Debug, Serialize, Deserialize, Eq, Ord, Clone, Hash)]
+#[derive(SerializeDisplay, DeserializeFromStr, Debug, Eq, Ord, Clone, Hash)]
 pub struct Cpv<S: Stringable> {
     pub(crate) category: S,
     pub(crate) package: S,
