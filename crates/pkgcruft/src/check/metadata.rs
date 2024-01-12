@@ -37,14 +37,12 @@ impl<'a> MetadataCheck<'a> {
 impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use PackageReport::*;
-        let mut success = true;
 
         match pkg.metadata_raw() {
             Ok(raw) => {
                 for key in pkg.eapi().dep_keys() {
                     if let Some(val) = raw.get(key) {
                         if dep::parse::package_dependency_set(val, pkg.eapi()).is_err() {
-                            success = false;
                             reports.push(InvalidDependency.report(pkg, key.to_string()));
                         }
                     }
@@ -60,19 +58,17 @@ impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
                     .collect();
 
                 if !missing.is_empty() {
-                    success = false;
                     reports.push(MissingMetadata.report(pkg, missing.iter().join(", ")));
                 }
             }
             Err(InvalidPkg { id: _, err }) => {
-                success = false;
                 reports.push(SourcingError.report(pkg, err));
             }
             // no other pkgcraft error types should occur
             Err(e) => panic!("MetadataCheck failed: {e}"),
         }
 
-        if success {
+        if reports.is_empty() {
             Ok(())
         } else {
             Err(Error::SkipRemainingChecks(CheckKind::Metadata))
