@@ -23,6 +23,7 @@ struct Command {
 }
 
 impl Command {
+    /// Return the vector containing the current running command name including subcommands.
     fn command(&self) -> Vec<&str> {
         let mut cmd = vec![env!("CARGO_BIN_NAME")];
         self.subcmd.command(&mut cmd);

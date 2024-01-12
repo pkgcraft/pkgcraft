@@ -12,7 +12,7 @@ mod show;
 pub enum Subcommand {
     /// Replay reports
     Replay(replay::Command),
-    /// Scan targets for QA issues
+    /// Scan for QA issues
     Scan(scan::Command),
     /// Show various information
     Show(show::Command),
