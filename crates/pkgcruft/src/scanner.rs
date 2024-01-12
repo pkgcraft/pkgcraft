@@ -54,14 +54,14 @@ impl Scanner {
     }
 
     /// Set the report types to allow.
-    pub fn reports(mut self, reports: &[ReportKind]) -> Self {
-        if !reports.is_empty() {
+    pub fn filter(mut self, filter: &[ReportKind]) -> Self {
+        if !filter.is_empty() {
             self.filter = ENABLED_CHECKS
                 .iter()
                 .flat_map(|c| c.reports())
                 .copied()
                 .collect();
-            self.filter.extend(reports.iter().copied());
+            self.filter.extend(filter.iter().copied());
         }
         self
     }

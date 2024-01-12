@@ -10,20 +10,20 @@ pub(crate) struct Checks {
     #[arg(short, long)]
     checks: Vec<CheckKind>,
 
-    /// Limit to specific keywords
+    /// Limit to specific report variants
     #[arg(short, long)]
-    keywords: Vec<ReportKind>,
+    filter: Vec<ReportKind>,
 }
 
 impl Checks {
     pub(crate) fn collapse(&self) -> (Vec<CheckKind>, Vec<ReportKind>) {
         let mut checks = self.checks.clone();
-        let mut reports = self.keywords.clone();
+        let mut filter = self.filter.clone();
 
         // add checks related to report options
-        for keyword in &self.keywords {
+        for report in &self.filter {
             for check in &*CHECKS {
-                if check.reports().contains(keyword) {
+                if check.reports().contains(report) {
                     checks.push(check.kind());
                 }
             }
@@ -31,9 +31,9 @@ impl Checks {
 
         // add reports related to check options
         for check in self.checks.iter().filter_map(|c| CHECKS.get(c)) {
-            reports.extend(check.reports().iter().copied());
+            filter.extend(check.reports().iter().copied());
         }
 
-        (checks, reports)
+        (checks, filter)
     }
 }
