@@ -16,24 +16,21 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(&self) -> (Vec<CheckKind>, Vec<ReportKind>) {
-        let mut checks = self.checks.clone();
-        let mut filter = self.filter.clone();
-
+    pub(crate) fn collapse(mut self) -> (Vec<CheckKind>, Vec<ReportKind>) {
         // add checks related to report options
         for report in &self.filter {
             for check in &*CHECKS {
                 if check.reports().contains(report) {
-                    checks.push(check.kind());
+                    self.checks.push(check.kind());
                 }
             }
         }
 
         // add reports related to check options
         for check in self.checks.iter().filter_map(|c| CHECKS.get(c)) {
-            filter.extend(check.reports().iter().copied());
+            self.filter.extend(check.reports().iter().copied());
         }
 
-        (checks, filter)
+        (self.checks, self.filter)
     }
 }
