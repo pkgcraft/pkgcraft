@@ -5,6 +5,7 @@ use std::str;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::{
@@ -22,7 +23,7 @@ pub trait WithOp {
     fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str>;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Number<S: Stringable> {
     pub(crate) raw: S,
     pub(crate) value: u64,
@@ -135,7 +136,7 @@ impl<S: Stringable> fmt::Display for Number<S> {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Eq, Ord, Hash, Clone)]
+#[derive(Debug, Default, Eq, Ord, Hash, Clone)]
 pub struct Revision<S: Stringable>(pub(crate) Number<S>);
 
 impl IntoOwned for Revision<&str> {
@@ -244,9 +245,7 @@ impl<S: Stringable> fmt::Display for Revision<S> {
     }
 }
 
-#[derive(
-    Debug, Display, Serialize, Deserialize, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
-)]
+#[derive(Debug, Display, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum SuffixKind {
     Alpha,
@@ -256,7 +255,7 @@ pub(crate) enum SuffixKind {
     P,
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, Ord, Hash, Clone)]
+#[derive(Debug, Eq, Ord, Hash, Clone)]
 pub(crate) struct Suffix<S: Stringable> {
     pub(crate) kind: SuffixKind,
     pub(crate) version: Option<Number<S>>,
@@ -313,9 +312,9 @@ impl<S: Stringable> fmt::Display for Suffix<S> {
     Display,
     EnumString,
     EnumIter,
-    Debug,
     Serialize,
     Deserialize,
+    Debug,
     PartialEq,
     Eq,
     PartialOrd,
@@ -361,7 +360,7 @@ impl Operator {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(SerializeDisplay, DeserializeFromStr, Clone)]
 pub struct Version<S: Stringable> {
     pub(crate) op: Option<Operator>,
     pub(crate) numbers: Vec<Number<S>>,
