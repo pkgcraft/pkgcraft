@@ -1,7 +1,9 @@
 use std::collections::HashSet;
-use std::io::{self, BufRead};
+use std::fs::File;
+use std::io::{self, BufRead, BufReader};
 use std::process::ExitCode;
 
+use anyhow::anyhow;
 use clap::Args;
 use pkgcruft::report::{Report, ReportKind, REPORTS};
 use pkgcruft::reporter::Reporter;
@@ -16,6 +18,11 @@ pub struct Command {
     /// Limit to specific report variants
     #[arg(short, long, value_name = "REPORT")]
     filter: Vec<ReportKind>,
+
+    // positionals
+    /// Target file
+    #[arg(default_value = "-", help_heading = "Arguments")]
+    file: String,
 }
 
 impl Command {
@@ -26,9 +33,17 @@ impl Command {
             self.filter.iter().collect()
         };
 
-        let mut lock = io::stdin().lock();
+        let mut reader: Box<dyn BufRead> = match self.file.as_str() {
+            "-" => Box::new(io::stdin().lock()),
+            path => {
+                let file =
+                    File::open(path).map_err(|e| anyhow!("failed loading file: {path}: {e}"))?;
+                Box::new(BufReader::new(file))
+            }
+        };
+
         let mut line = String::new();
-        while lock.read_line(&mut line)? != 0 {
+        while reader.read_line(&mut line)? != 0 {
             let report: Report = serde_json::from_str(&line).unwrap();
             if filter.contains(report.kind()) {
                 self.reporter.report(&report)?;
