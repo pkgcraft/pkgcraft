@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<ExitCode> {
     config.load()?;
 
     args.subcmd.run(&mut config).or_else(|err| {
-        eprintln!("pkgcruft: error: {err}");
+        eprintln!("{err}");
         Ok(ExitCode::from(2))
     })
 }

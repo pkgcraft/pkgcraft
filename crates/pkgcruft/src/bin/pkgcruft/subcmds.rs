@@ -1,5 +1,6 @@
 use std::process::ExitCode;
 
+use anyhow::anyhow;
 use pkgcraft::config::Config;
 
 mod replay;
@@ -20,9 +21,13 @@ impl Subcommand {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
-            Replay(cmd) => cmd.run(),
-            Scan(cmd) => cmd.run(config),
-            Show(cmd) => cmd.run(),
+            Replay(cmd) => cmd
+                .run()
+                .map_err(|e| anyhow!("pkgcraft replay: error: {e}")),
+            Scan(cmd) => cmd
+                .run(config)
+                .map_err(|e| anyhow!("pkgcraft scan: error: {e}")),
+            Show(cmd) => cmd.run().map_err(|e| anyhow!("pkgcraft show: error: {e}")),
         }
     }
 }
