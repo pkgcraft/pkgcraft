@@ -23,9 +23,9 @@ impl Command {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
-    /// Output global environment
+    /// Output ebuild environment
     Env(env::Command),
-    /// Generate package metadata
+    /// Manipulate package metadata
     Metadata(metadata::Command),
     /// Run the pkg_pretend phase
     Pretend(pretend::Command),
@@ -33,7 +33,7 @@ pub enum Subcommand {
     Revdeps(revdeps::Command),
     /// Output package keywords
     Showkw(showkw::Command),
-    /// Source ebuilds and dump elapsed time
+    /// Benchmark ebuild sourcing
     Source(source::Command),
 }
 
