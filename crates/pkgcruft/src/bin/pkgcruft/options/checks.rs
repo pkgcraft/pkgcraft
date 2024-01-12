@@ -12,13 +12,13 @@ pub(crate) struct Checks {
 
     /// Limit to specific report variants
     #[arg(short, long)]
-    filter: Vec<ReportKind>,
+    reports: Vec<ReportKind>,
 }
 
 impl Checks {
     pub(crate) fn collapse(mut self) -> (Vec<CheckKind>, Vec<ReportKind>) {
         // add checks related to report options
-        for report in &self.filter {
+        for report in &self.reports {
             for check in &*CHECKS {
                 if check.reports().contains(report) {
                     self.checks.push(check.kind());
@@ -28,9 +28,9 @@ impl Checks {
 
         // add reports related to check options
         for check in self.checks.iter().filter_map(|c| CHECKS.get(c)) {
-            self.filter.extend(check.reports().iter().copied());
+            self.reports.extend(check.reports().iter().copied());
         }
 
-        (self.checks, self.filter)
+        (self.checks, self.reports)
     }
 }

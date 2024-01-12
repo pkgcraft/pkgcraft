@@ -18,7 +18,7 @@ use crate::Error;
 pub struct Scanner {
     jobs: usize,
     checks: IndexSet<Check>,
-    filter: HashSet<ReportKind>,
+    reports: HashSet<ReportKind>,
 }
 
 impl Default for Scanner {
@@ -26,7 +26,7 @@ impl Default for Scanner {
         Self {
             jobs: bounded_jobs(0),
             checks: CHECKS.iter().copied().collect(),
-            filter: REPORTS.iter().copied().collect(),
+            reports: REPORTS.iter().copied().collect(),
         }
     }
 }
@@ -54,14 +54,14 @@ impl Scanner {
     }
 
     /// Set the report types to allow.
-    pub fn filter(mut self, filter: &[ReportKind]) -> Self {
-        if !filter.is_empty() {
-            self.filter = ENABLED_CHECKS
+    pub fn reports(mut self, reports: &[ReportKind]) -> Self {
+        if !reports.is_empty() {
+            self.reports = ENABLED_CHECKS
                 .iter()
                 .flat_map(|c| c.reports())
                 .copied()
                 .collect();
-            self.filter.extend(filter.iter().copied());
+            self.reports.extend(reports.iter().copied());
         }
         self
     }
@@ -123,7 +123,7 @@ impl Scanner {
         let (reports_tx, reports_rx) = unbounded();
         let _workers: Vec<_> = (0..self.jobs)
             .map(|_| {
-                let filter = self.filter.clone();
+                let filter = self.reports.clone();
                 let pkg_runner = pkg_runner.clone();
                 let raw_pkg_runner = raw_pkg_runner.clone();
                 let pkg_set_runner = pkg_set_runner.clone();

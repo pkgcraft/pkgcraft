@@ -18,7 +18,7 @@ pub struct Command {
     jobs: Option<usize>,
 
     /// Reporter to use
-    #[arg(short, long, default_value = "fancy")]
+    #[arg(short = 'R', long, default_value = "fancy")]
     reporter: Reporter,
 
     #[clap(flatten)]
@@ -38,8 +38,8 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(mut self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine checks to run and report filter
-        let (checks, filter) = self.checks.collapse();
+        // determine checks and reports
+        let (checks, reports) = self.checks.collapse();
 
         // determine target restrictions
         let targets: Result<Vec<_>, _> = self
@@ -54,7 +54,7 @@ impl Command {
         let scanner = Scanner::new()
             .jobs(self.jobs.unwrap_or_default())
             .checks(&checks)
-            .filter(&filter);
+            .reports(&reports);
 
         // run scanner for all targets
         for (repo_set, restrict) in targets {

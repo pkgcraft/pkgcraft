@@ -12,12 +12,12 @@ use pkgcruft::reporter::Reporter;
 #[clap(next_help_heading = "Replay options")]
 pub struct Command {
     /// Reporter to use
-    #[arg(short, long, default_value = "fancy")]
+    #[arg(short = 'R', long, default_value = "fancy")]
     reporter: Reporter,
 
     /// Limit to specific report variants
     #[arg(short, long, value_name = "REPORT")]
-    filter: Vec<ReportKind>,
+    reports: Vec<ReportKind>,
 
     // positionals
     /// Target file
@@ -27,10 +27,10 @@ pub struct Command {
 
 impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
-        let filter: HashSet<_> = if self.filter.is_empty() {
+        let reports: HashSet<_> = if self.reports.is_empty() {
             REPORTS.iter().collect()
         } else {
-            self.filter.iter().collect()
+            self.reports.iter().collect()
         };
 
         let mut reader: Box<dyn BufRead> = match self.file.as_str() {
@@ -46,7 +46,7 @@ impl Command {
         while reader.read_line(&mut line)? != 0 {
             let report: Report =
                 serde_json::from_str(&line).map_err(|e| anyhow!("invalid JSON report: {e}"))?;
-            if filter.contains(report.kind()) {
+            if reports.contains(report.kind()) {
                 self.reporter.report(&report)?;
             }
             line.clear();
