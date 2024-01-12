@@ -188,8 +188,13 @@ impl std::fmt::Display for Check {
     }
 }
 
+/// The ordered set of all checks.
 pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
     [dependency::CHECK, dropped_keywords::CHECK, metadata::CHECK, unstable_only::CHECK]
         .into_iter()
         .collect()
 });
+
+/// The ordered set of checks that are always run.
+pub(crate) static ENABLED_CHECKS: Lazy<IndexSet<Check>> =
+    Lazy::new(|| [metadata::CHECK].into_iter().collect());

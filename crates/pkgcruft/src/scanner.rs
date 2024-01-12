@@ -8,7 +8,7 @@ use pkgcraft::repo::{ebuild, Repo, Repository};
 use pkgcraft::restrict::{dep::Restrict as DepRestrict, Restrict};
 use pkgcraft::utils::bounded_jobs;
 
-use crate::check::{Check, CheckKind, Scope, CHECKS};
+use crate::check::{Check, CheckKind, Scope, CHECKS, ENABLED_CHECKS};
 use crate::report::{Report, ReportKind, REPORTS};
 use crate::runner::CheckRunner;
 use crate::source::{self, SourceKind};
@@ -46,7 +46,8 @@ impl Scanner {
     /// Set the checks to run.
     pub fn checks(mut self, checks: &[CheckKind]) -> Self {
         if !checks.is_empty() {
-            self.checks = checks.iter().map(Check::from).collect();
+            self.checks = ENABLED_CHECKS.clone();
+            self.checks.extend(checks.iter().map(Check::from));
             self.checks.sort();
         }
         self
@@ -55,7 +56,12 @@ impl Scanner {
     /// Set the report types to allow.
     pub fn reports(mut self, reports: &[ReportKind]) -> Self {
         if !reports.is_empty() {
-            self.filter = reports.iter().copied().collect();
+            self.filter = ENABLED_CHECKS
+                .iter()
+                .flat_map(|c| c.reports())
+                .copied()
+                .collect();
+            self.filter.extend(reports.iter().copied());
         }
         self
     }
