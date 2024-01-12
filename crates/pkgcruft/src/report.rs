@@ -7,12 +7,13 @@ use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use pkgcraft::dep::Cpv;
 use pkgcraft::pkg::Package;
+use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::check::CHECKS;
 use crate::Error;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum ReportLevel {
     Error,
     Warning,
@@ -21,6 +22,8 @@ pub enum ReportLevel {
 }
 
 #[derive(
+    Serialize,
+    Deserialize,
     AsRefStr,
     Display,
     EnumIter,
@@ -59,6 +62,8 @@ impl PackageReport {
 }
 
 #[derive(
+    Serialize,
+    Deserialize,
     AsRefStr,
     Display,
     EnumIter,
@@ -91,7 +96,7 @@ impl PackageSetReport {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum ReportKind {
     Package(PackageReport),
     PackageSet(PackageSetReport),
@@ -158,7 +163,7 @@ impl PartialOrd for ReportKind {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub enum ReportScope {
     Version(Cpv<String>),
     Package(String),
@@ -173,7 +178,7 @@ impl std::fmt::Display for ReportScope {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Report {
     scope: ReportScope,
     kind: ReportKind,

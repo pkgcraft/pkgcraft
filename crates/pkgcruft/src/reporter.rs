@@ -4,12 +4,14 @@ use strum::{AsRefStr, EnumIter, EnumString};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use crate::report::{Report, ReportLevel, ReportScope};
+use crate::Error;
 
 #[derive(AsRefStr, EnumIter, EnumString, Debug, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Reporter {
     Simple(SimpleReporter),
     Fancy(FancyReporter),
+    Json(JsonReporter),
 }
 
 impl Default for Reporter {
@@ -23,6 +25,7 @@ impl Reporter {
         match self {
             Self::Simple(r) => r.report(report),
             Self::Fancy(r) => r.report(report),
+            Self::Json(r) => r.report(report),
         }
     }
 }
@@ -79,6 +82,18 @@ impl FancyReporter {
         }
         writeln!(&mut stdout, "{}", report.description())?;
 
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct JsonReporter {}
+
+impl JsonReporter {
+    pub fn report(&self, report: &Report) -> crate::Result<()> {
+        let json = serde_json::to_string(&report)
+            .map_err(|e| Error::InvalidValue(format!("failed serializing report to JSON: {e}")))?;
+        println!("{}", json);
         Ok(())
     }
 }
