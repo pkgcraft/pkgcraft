@@ -176,9 +176,9 @@ impl PartialOrd for Check {
     }
 }
 
-impl From<&CheckKind> for &'static Check {
+impl From<&CheckKind> for Check {
     fn from(kind: &CheckKind) -> Self {
-        CHECKS.get(kind).expect("unregistered check: {kind}")
+        *CHECKS.get(kind).expect("unregistered check: {kind}")
     }
 }
 

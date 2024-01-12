@@ -46,7 +46,7 @@ impl Scanner {
     /// Set the checks to run.
     pub fn checks(mut self, checks: &[CheckKind]) -> Self {
         if !checks.is_empty() {
-            self.checks = checks.iter().map(|c| c.into()).copied().collect();
+            self.checks = checks.iter().map(Check::from).collect();
             self.checks.sort();
         }
         self
