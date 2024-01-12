@@ -1,11 +1,14 @@
 use std::process::ExitCode;
+use std::str::FromStr;
 
 use clap::Args;
+use clap::builder::{PossibleValuesParser, TypedValueParser};
 use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcruft::reporter::Reporter;
 use pkgcruft::scanner::Scanner;
+use strum::VariantNames;
 
 use crate::args::StdinOrArgs;
 use crate::options;
@@ -18,7 +21,14 @@ pub struct Command {
     jobs: Option<usize>,
 
     /// Reporter to use
-    #[arg(short = 'R', long, default_value = "fancy")]
+    #[arg(
+        short = 'R',
+        long,
+        default_value = "fancy",
+        hide_possible_values = true,
+        value_parser = PossibleValuesParser::new(Reporter::VARIANTS)
+            .map(|s| Reporter::from_str(&s).unwrap()),
+    )]
     reporter: Reporter,
 
     #[clap(flatten)]
