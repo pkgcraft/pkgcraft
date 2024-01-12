@@ -51,7 +51,7 @@ impl FancyReporter {
 
         let key = match report.scope() {
             ReportScope::Version(cpv) => cpv.cpn(),
-            ReportScope::Package(s) => s.clone(),
+            ReportScope::Package(cpn) => cpn.to_string(),
         };
 
         if key != self.prev_key.as_deref().unwrap_or_default() {

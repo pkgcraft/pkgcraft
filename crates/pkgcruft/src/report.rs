@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
-use pkgcraft::dep::Cpv;
+use pkgcraft::dep::{Cpv, Dep};
 use pkgcraft::pkg::Package;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
@@ -166,14 +166,14 @@ impl PartialOrd for ReportKind {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub enum ReportScope {
     Version(Cpv<String>),
-    Package(String),
+    Package(Dep<String>),
 }
 
 impl std::fmt::Display for ReportScope {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::Version(cpv) => write!(f, "{cpv}"),
-            Self::Package(name) => write!(f, "{name}"),
+            Self::Package(cpn) => write!(f, "{cpn}"),
         }
     }
 }
