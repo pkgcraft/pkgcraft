@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use itertools::Itertools;
+use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumString};
 
 use crate::eapi::Eapi;
@@ -212,7 +213,7 @@ impl FromStr for SlotDep<String> {
 }
 
 /// Package dependency.
-#[derive(Debug, Default, Clone)]
+#[derive(SerializeDisplay, DeserializeFromStr, Debug, Default, Clone)]
 pub struct Dep<S: Stringable> {
     pub(crate) category: S,
     pub(crate) package: S,
