@@ -1,13 +1,14 @@
 use std::process::ExitCode;
 
-use anyhow::anyhow;
 use pkgcraft::config::Config;
+use strum::AsRefStr;
 
 mod replay;
 mod scan;
 mod show;
 
-#[derive(Debug, clap::Subcommand)]
+#[derive(Debug, AsRefStr, clap::Subcommand)]
+#[strum(serialize_all = "snake_case")]
 pub enum Subcommand {
     /// Replay reports
     Replay(replay::Command),
@@ -18,16 +19,18 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
+    pub(super) fn command<'a>(&'a self, cmd: &mut Vec<&'a str>) {
+        cmd.push(self.as_ref());
+    }
+}
+
+impl Subcommand {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
-            Replay(cmd) => cmd
-                .run()
-                .map_err(|e| anyhow!("pkgcraft replay: error: {e}")),
-            Scan(cmd) => cmd
-                .run(config)
-                .map_err(|e| anyhow!("pkgcraft scan: error: {e}")),
-            Show(cmd) => cmd.run().map_err(|e| anyhow!("pkgcraft show: error: {e}")),
+            Replay(cmd) => cmd.run(),
+            Scan(cmd) => cmd.run(config),
+            Show(cmd) => cmd.run(),
         }
     }
 }

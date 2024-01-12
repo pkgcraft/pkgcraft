@@ -22,6 +22,14 @@ struct Command {
     subcmd: subcmds::Subcommand,
 }
 
+impl Command {
+    fn command(&self) -> Vec<&str> {
+        let mut cmd = vec![env!("CARGO_BIN_NAME")];
+        self.subcmd.command(&mut cmd);
+        cmd
+    }
+}
+
 fn main() -> anyhow::Result<ExitCode> {
     // reset SIGPIPE behavior since rust ignores it by default
     reset_sigpipe();
@@ -44,8 +52,9 @@ fn main() -> anyhow::Result<ExitCode> {
     let mut config = Config::new("pkgcraft", "");
     config.load()?;
 
+    let cmd = args.command().join(" ");
     args.subcmd.run(&mut config).or_else(|err| {
-        eprintln!("{err}");
+        eprintln!("{cmd}: error: {err}");
         Ok(ExitCode::from(2))
     })
 }
