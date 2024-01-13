@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::io::Write;
 
+use strfmt::strfmt;
 use strum::{AsRefStr, EnumIter, EnumString, EnumVariantNames};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use crate::report::{Report, ReportLevel, ReportScope};
+use crate::Error;
 
 #[derive(AsRefStr, EnumIter, EnumString, EnumVariantNames, Debug, Clone)]
 #[strum(serialize_all = "snake_case")]
@@ -11,6 +14,7 @@ pub enum Reporter {
     Simple(SimpleReporter),
     Fancy(FancyReporter),
     Json(JsonReporter),
+    Template(TemplateReporter),
 }
 
 impl Default for Reporter {
@@ -20,11 +24,32 @@ impl Default for Reporter {
 }
 
 impl Reporter {
+    /// Inject a template into compatible reporter variants.
+    pub fn template(&mut self, template: String) -> crate::Result<()> {
+        match (self, template) {
+            (Self::Template(r), s) if !s.is_empty() => r.template = s,
+            (Self::Template(_), _) => {
+                return Err(Error::InvalidValue(
+                    "template reporter requires non-empty template".to_string(),
+                ))
+            }
+            (_, s) if !s.is_empty() => {
+                return Err(Error::InvalidValue(
+                    "template only valid with template reporter".to_string(),
+                ))
+            }
+            _ => (),
+        }
+        Ok(())
+    }
+
+    /// Run a report through a reporter.
     pub fn report(&mut self, report: &Report) -> crate::Result<()> {
         match self {
             Self::Simple(r) => r.report(report),
             Self::Fancy(r) => r.report(report),
             Self::Json(r) => r.report(report),
+            Self::Template(r) => r.report(report),
         }
     }
 }
@@ -91,6 +116,41 @@ pub struct JsonReporter {}
 impl JsonReporter {
     pub fn report(&self, report: &Report) -> crate::Result<()> {
         println!("{}", report.to_json()?);
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TemplateReporter {
+    template: String,
+}
+
+impl TemplateReporter {
+    pub fn report(&self, report: &Report) -> crate::Result<()> {
+        let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind().to_string())]
+            .into_iter()
+            .collect();
+
+        match report.scope() {
+            ReportScope::Version(cpv) => {
+                attrs.extend([
+                    ("category".to_string(), cpv.category().to_string()),
+                    ("package".to_string(), cpv.package().to_string()),
+                    ("version".to_string(), cpv.version().to_string()),
+                ]);
+            }
+            ReportScope::Package(cpn) => attrs.extend([
+                ("category".to_string(), cpn.category().to_string()),
+                ("package".to_string(), cpn.package().to_string()),
+            ]),
+        }
+
+        let s = strfmt(&self.template, &attrs)
+            .map_err(|e| Error::InvalidValue(format!("templating failed: {e}")))?;
+        if !s.is_empty() {
+            println!("{s}");
+        }
+
         Ok(())
     }
 }

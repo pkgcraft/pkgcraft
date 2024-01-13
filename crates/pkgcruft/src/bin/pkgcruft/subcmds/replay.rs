@@ -2,31 +2,19 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::process::ExitCode;
-use std::str::FromStr;
 
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
-use clap::builder::{PossibleValuesParser, TypedValueParser};
+use clap::builder::PossibleValuesParser;
 use clap::{Args, ValueHint};
 use pkgcraft::restrict::{self, Restrict, Restriction};
 use pkgcruft::report::{Report, ReportKind, REPORTS};
-use pkgcruft::reporter::Reporter;
-use strum::VariantNames;
+
+use crate::options::reporter::ReporterOptions;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Replay options")]
 pub struct Command {
-    /// Reporter to use
-    #[arg(
-        short = 'R',
-        long,
-        default_value = "fancy",
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(Reporter::VARIANTS)
-            .map(|s| Reporter::from_str(&s).unwrap()),
-    )]
-    reporter: Reporter,
-
     /// Limit to specific report variants
     #[arg(
         short,
@@ -41,6 +29,9 @@ pub struct Command {
     #[arg(short, long)]
     filter: Option<String>,
 
+    #[clap(flatten)]
+    reporter: ReporterOptions,
+
     // positionals
     /// Target file path (uses stdin by default)
     #[arg(
@@ -52,18 +43,24 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+        // determine package restriction
         let restrict = match self.filter.as_deref() {
             Some(s) => restrict::parse::dep(s)?,
             None => Restrict::True,
         };
 
+        // determine reports filter
         let reports: HashSet<_> = if self.reports.is_empty() {
             REPORTS.iter().collect()
         } else {
             self.reports.iter().collect()
         };
 
+        // determine reporter
+        let mut reporter = self.reporter.collapse()?;
+
+        // open target file for reading
         let mut reader: Box<dyn BufRead> = match self.file.as_ref() {
             None => Box::new(io::stdin().lock()),
             Some(path) => {
@@ -77,7 +74,7 @@ impl Command {
         while reader.read_line(&mut line)? != 0 {
             let report = Report::from_json(&line)?;
             if reports.contains(report.kind()) && restrict.matches(&report) {
-                self.reporter.report(&report)?;
+                reporter.report(&report)?;
             }
             line.clear();
         }

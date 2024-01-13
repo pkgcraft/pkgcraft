@@ -1,5 +1,4 @@
 use clap::Args;
-
 use pkgcruft::check::{CheckKind, CHECKS};
 use pkgcruft::report::ReportKind;
 

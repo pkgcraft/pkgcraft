@@ -1,14 +1,10 @@
 use std::process::ExitCode;
-use std::str::FromStr;
 
-use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
-use pkgcruft::reporter::Reporter;
 use pkgcruft::scanner::Scanner;
-use strum::VariantNames;
 
 use crate::args::StdinOrArgs;
 use crate::options;
@@ -20,16 +16,8 @@ pub struct Command {
     #[arg(short, long)]
     jobs: Option<usize>,
 
-    /// Reporter to use
-    #[arg(
-        short = 'R',
-        long,
-        default_value = "fancy",
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(Reporter::VARIANTS)
-            .map(|s| Reporter::from_str(&s).unwrap()),
-    )]
-    reporter: Reporter,
+    #[clap(flatten)]
+    reporter: options::reporter::ReporterOptions,
 
     #[clap(flatten)]
     checks: options::checks::Checks,
@@ -47,9 +35,12 @@ pub struct Command {
 }
 
 impl Command {
-    pub(super) fn run(mut self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine checks and reports
         let (checks, reports) = self.checks.collapse();
+
+        // determine reporter
+        let mut reporter = self.reporter.collapse()?;
 
         // determine target restrictions
         let targets: Result<Vec<_>, _> = self
@@ -70,7 +61,7 @@ impl Command {
         for (repo_set, restrict) in targets {
             for repo in repo_set.repos() {
                 for report in scanner.run(repo, &restrict)? {
-                    self.reporter.report(&report)?;
+                    reporter.report(&report)?;
                 }
             }
         }
