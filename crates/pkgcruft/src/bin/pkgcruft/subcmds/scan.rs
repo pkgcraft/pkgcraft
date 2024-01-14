@@ -1,10 +1,8 @@
 use std::process::ExitCode;
 
 use clap::Args;
-use indexmap::IndexMap;
-use pkgcraft::cli::target_restriction;
+use pkgcraft::cli::TargetRestrictions;
 use pkgcraft::config::Config;
-use pkgcraft::repo::RepoFormat;
 use pkgcruft::scanner::Scanner;
 
 use crate::args::StdinOrArgs;
@@ -16,6 +14,10 @@ pub struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,
+
+    /// Target repo
+    #[arg(long)]
+    repo: Option<String>,
 
     #[clap(flatten)]
     reporter: options::reporter::ReporterOptions,
@@ -44,20 +46,9 @@ impl Command {
         let mut reporter = self.reporter.collapse()?;
 
         // determine target restrictions
-        let targets: Result<Vec<_>, _> = self
-            .targets
-            .stdin_or_args()
-            .split_whitespace()
-            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
-            .collect();
-        let targets = targets?;
-
-        // TODO: Implement custom types for ordered maps of ordered collections so FromIterator
-        // works directly instead of instead of having to first collect to a vector.
-        let mut collapsed_targets = IndexMap::<_, Vec<_>>::new();
-        for (set, restrict) in targets {
-            collapsed_targets.entry(set).or_default().push(restrict);
-        }
+        let targets = TargetRestrictions::new(config)
+            .repo(self.repo)?
+            .targets(self.targets.stdin_or_args().split_whitespace())?;
 
         // create report scanner
         let scanner = Scanner::new()
@@ -66,9 +57,9 @@ impl Command {
             .reports(&reports);
 
         // run scanner for all targets
-        for (repo_set, restricts) in &collapsed_targets {
+        for (repo_set, restricts) in targets {
             for repo in repo_set.repos() {
-                for report in scanner.run(repo, restricts)? {
+                for report in scanner.run(repo, &restricts)? {
                     reporter.report(&report)?;
                 }
             }
