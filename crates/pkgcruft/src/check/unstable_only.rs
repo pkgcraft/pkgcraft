@@ -1,9 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Stable};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{PackageSetReport, Report, ReportKind};
 use crate::source::SourceKind;
@@ -38,21 +39,16 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for UnstableOnlyCheck<'a> {
     fn run(&self, pkgs: &Vec<Pkg<'a>>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use PackageSetReport::*;
 
-        // iterator over arches allowed as stable by the repo
-        let stable_keywords = pkgs
+        let arches: Vec<_> = pkgs
             .iter()
-            .flat_map(|p| p.keywords())
-            .filter(|k| self.arches.contains(k.arch()));
-
-        // collapse keywords into an arch-keyed mapping
-        let mut pkg_keywords = HashMap::<_, HashSet<_>>::new();
-        for k in stable_keywords {
-            pkg_keywords.entry(k.arch()).or_default().insert(k);
-        }
-
-        // find arches that only have unstable keywords
-        let arches: Vec<_> = pkg_keywords
-            .iter()
+            .flat_map(|pkg| pkg.keywords())
+            // select keywords allowed stable in the repo
+            .filter(|kw| self.arches.contains(kw.arch()))
+            .map(|kw| (kw.arch(), kw))
+            // collapse keywords into an arch->keyword mapping
+            .collect::<OrderedMap<_, OrderedSet<_>>>()
+            .into_iter()
+            // find arches that only have unstable keywords
             .filter(|(_, v)| v.iter().all(|k| k.status() != Stable))
             .map(|(k, _)| k)
             .collect();
