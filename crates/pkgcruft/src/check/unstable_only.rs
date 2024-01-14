@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Stable};
+use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
@@ -49,7 +49,7 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for UnstableOnlyCheck<'a> {
             .collect::<OrderedMap<_, OrderedSet<_>>>()
             .into_iter()
             // find arches that only have unstable keywords
-            .filter(|(_, v)| v.iter().all(|k| k.status() != Stable))
+            .filter(|(_, v)| v.iter().all(|k| k.status() == Unstable))
             .map(|(k, _)| k)
             .collect();
 
