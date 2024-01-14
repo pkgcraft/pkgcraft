@@ -1,6 +1,7 @@
 use std::process::ExitCode;
 
 use clap::Args;
+use indexmap::IndexMap;
 use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
@@ -51,6 +52,13 @@ impl Command {
             .collect();
         let targets = targets?;
 
+        // TODO: Implement custom types for ordered maps of ordered collections so FromIterator
+        // works directly instead of instead of having to first collect to a vector.
+        let mut collapsed_targets = IndexMap::<_, Vec<_>>::new();
+        for (set, restrict) in targets {
+            collapsed_targets.entry(set).or_default().push(restrict);
+        }
+
         // create report scanner
         let scanner = Scanner::new()
             .jobs(self.jobs.unwrap_or_default())
@@ -58,9 +66,9 @@ impl Command {
             .reports(&reports);
 
         // run scanner for all targets
-        for (repo_set, restrict) in targets {
+        for (repo_set, restricts) in &collapsed_targets {
             for repo in repo_set.repos() {
-                for report in scanner.run(repo, &restrict)? {
+                for report in scanner.run(repo, restricts)? {
                     reporter.report(&report)?;
                 }
             }

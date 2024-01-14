@@ -67,7 +67,11 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run(&self, repo: &Repo, restrict: &Restrict) -> crate::Result<Iter> {
+    pub fn run<I, R>(&self, repo: &Repo, restricts: I) -> crate::Result<Iter>
+    where
+        I: IntoIterator<Item = R>,
+        R: Into<Restrict>,
+    {
         // TODO: support checks for non-ebuild repo types?
         let repo = repo.as_ebuild().ok_or_else(|| {
             Error::InvalidValue(format!("unsupported repo format: {}", repo.format()))
@@ -88,34 +92,35 @@ impl Scanner {
         }
 
         // send matches to the workers
-        let restrict = restrict.clone();
+        let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
         let (restrict_tx, restrict_rx) = unbounded();
         let pkg_set = !pkg_set_runner.is_empty();
         // TODO: use multiple producers to push restrictions
         let _producer = thread::spawn(move || {
             let mut prev: Option<Cpv<String>> = None;
+            for r in restricts {
+                for cpv in repo.iter_cpv_restrict(r) {
+                    // send versioned restricts for package checks
+                    let restrict = Restrict::from(&cpv);
+                    restrict_tx.send((Scope::Package, restrict)).unwrap();
 
-            for cpv in repo.iter_cpv_restrict(&restrict) {
-                // send versioned restricts for package checks
-                let restrict = Restrict::from(&cpv);
-                restrict_tx.send((Scope::Package, restrict)).unwrap();
-
-                // send unversioned restricts for package set checks
-                if pkg_set {
-                    if let Some(prev_cpv) = prev.as_ref() {
-                        if prev_cpv.category() == cpv.category()
-                            && prev_cpv.package() == cpv.package()
-                        {
-                            continue;
+                    // send unversioned restricts for package set checks
+                    if pkg_set {
+                        if let Some(prev_cpv) = prev.as_ref() {
+                            if prev_cpv.category() == cpv.category()
+                                && prev_cpv.package() == cpv.package()
+                            {
+                                continue;
+                            }
                         }
-                    }
 
-                    let restrict = Restrict::and([
-                        DepRestrict::category(cpv.category()),
-                        DepRestrict::package(cpv.package()),
-                    ]);
-                    restrict_tx.send((Scope::PackageSet, restrict)).unwrap();
-                    prev = Some(cpv);
+                        let restrict = Restrict::and([
+                            DepRestrict::category(cpv.category()),
+                            DepRestrict::package(cpv.package()),
+                        ]);
+                        restrict_tx.send((Scope::PackageSet, restrict)).unwrap();
+                        prev = Some(cpv);
+                    }
                 }
             }
         });
