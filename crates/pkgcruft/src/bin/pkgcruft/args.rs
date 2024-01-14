@@ -25,7 +25,7 @@ impl Iterator for StdinArgs<'_> {
     }
 }
 
-/// Pull values from stdin if it's not a terminal or the first argument is `-`, otherwise use the
+/// Pull values from stdin if it's not a terminal and the first argument is `-`, otherwise use the
 /// provided arguments.
 pub(super) trait StdinOrArgs {
     fn stdin_or_args<'a>(self) -> StdinArgs<'a>
@@ -33,9 +33,8 @@ pub(super) trait StdinOrArgs {
         Self: IntoIterator<Item = String> + Sized + 'a,
     {
         let mut iter = self.into_iter().peekable();
-        let first = iter.peek().map(|s| s.as_str());
-        let iter: Box<dyn Iterator<Item = String>> = match (stdin().is_terminal(), first) {
-            (false, _) | (_, Some("-")) => Box::new(stdin().lines().map_while(Result::ok)),
+        let iter: Box<dyn Iterator<Item = String>> = match iter.peek().map(|s| s.as_str()) {
+            Some("-") if !stdin().is_terminal() => Box::new(stdin().lines().map_while(Result::ok)),
             _ => Box::new(iter),
         };
 

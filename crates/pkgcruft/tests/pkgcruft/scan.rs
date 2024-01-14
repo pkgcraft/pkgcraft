@@ -13,7 +13,19 @@ fn missing_target() {
 }
 
 #[test]
-fn nonexistent_target() {
+fn stdin_targets() {
+    let t = TempRepo::new("test", None, 0, None).unwrap();
+    cmd("pkgcruft scan -")
+        .arg(t.path())
+        .write_stdin("cat/pkg\n")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+}
+
+#[test]
+fn nonexistent_path_target() {
     cmd("pkgcruft scan path/to/nonexistent/repo")
         .assert()
         .stdout("")
