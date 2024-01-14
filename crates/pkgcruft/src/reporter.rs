@@ -14,7 +14,7 @@ pub enum Reporter {
     Simple(SimpleReporter),
     Fancy(FancyReporter),
     Json(JsonReporter),
-    Template(TemplateReporter),
+    Format(FormatReporter),
 }
 
 impl Default for Reporter {
@@ -24,18 +24,18 @@ impl Default for Reporter {
 }
 
 impl Reporter {
-    /// Inject a template into compatible reporter variants.
-    pub fn template(&mut self, template: String) -> crate::Result<()> {
-        match (self, template) {
-            (Self::Template(r), s) if !s.is_empty() => r.template = s,
-            (Self::Template(_), _) => {
+    /// Inject a format string into compatible reporter variants.
+    pub fn format(&mut self, format: String) -> crate::Result<()> {
+        match (self, format) {
+            (Self::Format(r), s) if !s.is_empty() => r.format = s,
+            (Self::Format(_), _) => {
                 return Err(Error::InvalidValue(
-                    "template reporter requires non-empty template".to_string(),
+                    "format reporter requires non-empty format".to_string(),
                 ))
             }
             (_, s) if !s.is_empty() => {
                 return Err(Error::InvalidValue(
-                    "template only valid with template reporter".to_string(),
+                    "format only valid with format reporter".to_string(),
                 ))
             }
             _ => (),
@@ -49,7 +49,7 @@ impl Reporter {
             Self::Simple(r) => r.report(report),
             Self::Fancy(r) => r.report(report),
             Self::Json(r) => r.report(report),
-            Self::Template(r) => r.report(report),
+            Self::Format(r) => r.report(report),
         }
     }
 }
@@ -121,11 +121,11 @@ impl JsonReporter {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct TemplateReporter {
-    template: String,
+pub struct FormatReporter {
+    format: String,
 }
 
-impl TemplateReporter {
+impl FormatReporter {
     pub fn report(&self, report: &Report) -> crate::Result<()> {
         let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind().to_string())]
             .into_iter()
@@ -145,8 +145,8 @@ impl TemplateReporter {
             ]),
         }
 
-        let s = strfmt(&self.template, &attrs)
-            .map_err(|e| Error::InvalidValue(format!("templating failed: {e}")))?;
+        let s = strfmt(&self.format, &attrs)
+            .map_err(|e| Error::InvalidValue(format!("formatting failed: {e}")))?;
         if !s.is_empty() {
             println!("{s}");
         }

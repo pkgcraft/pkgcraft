@@ -19,14 +19,14 @@ pub(crate) struct ReporterOptions {
     )]
     reporter: Reporter,
 
-    /// Template for the template reporter
+    /// Format string for the format reporter
     #[arg(short, long)]
-    template: Option<String>,
+    format: Option<String>,
 }
 
 impl ReporterOptions {
     pub(crate) fn collapse(mut self) -> anyhow::Result<Reporter> {
-        self.reporter.template(self.template.unwrap_or_default())?;
+        self.reporter.format(self.format.unwrap_or_default())?;
         Ok(self.reporter)
     }
 }
