@@ -521,6 +521,19 @@ impl Repo {
         cpvs
     }
 
+    pub fn iter_cpn(&self) -> IterCpn {
+        IterCpn::new(self, None)
+    }
+
+    /// Return a filtered iterator of unversioned Deps for the repo.
+    pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpnRestrict<'_> {
+        let restrict = val.into();
+        IterCpnRestrict {
+            iter: IterCpn::new(self, Some(&restrict)),
+            restrict,
+        }
+    }
+
     /// Return a filtered iterator of Cpvs for the repo.
     pub fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpvRestrict<'_> {
         let restrict = val.into();
@@ -826,6 +839,146 @@ impl<'a> Iterator for IterRaw<'a> {
     }
 }
 
+pub struct IterCpn<'a> {
+    iter: Box<dyn Iterator<Item = Dep<String>> + 'a>,
+}
+
+impl<'a> IterCpn<'a> {
+    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
+        use DepRestrict::{Category, Package};
+        use StrRestrict::Equal;
+        let mut cat_restricts = vec![];
+        let mut pkg_restricts = vec![];
+
+        // extract restrictions for package filtering
+        if let Some(Restrict::And(vals)) = restrict {
+            for r in vals.iter().map(Deref::deref) {
+                match r {
+                    Restrict::Dep(Category(r)) => {
+                        cat_restricts.push(r.clone());
+                    }
+                    Restrict::Dep(r @ Package(_)) => {
+                        pkg_restricts.push(r.clone());
+                    }
+                    _ => (),
+                }
+            }
+        }
+
+        Self {
+            iter: match (&mut *cat_restricts, &mut *pkg_restricts) {
+                ([], []) => {
+                    // TODO: revert to serialized iteration once repos provide parallel iterators
+                    let mut cpns = repo
+                        .categories()
+                        .into_par_iter()
+                        .flat_map(|cat| {
+                            repo.packages(&cat)
+                                .into_iter()
+                                .map(|pn| Dep {
+                                    category: cat.to_string(),
+                                    package: pn,
+                                    ..Default::default()
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>();
+                    cpns.par_sort();
+                    Box::new(cpns.into_iter())
+                }
+                ([Equal(cat)], [Package(Equal(pn))]) => {
+                    let cat = std::mem::take(cat);
+                    let pn = std::mem::take(pn);
+                    let cpn = Dep {
+                        category: cat,
+                        package: pn,
+                        ..Default::default()
+                    };
+                    if repo.contains(&cpn) {
+                        Box::new(iter::once(cpn))
+                    } else {
+                        Box::new(iter::empty())
+                    }
+                }
+                ([], [Package(Equal(pn))]) => {
+                    let pn = std::mem::take(pn);
+
+                    Box::new(repo.categories().into_iter().flat_map(move |cat| {
+                        let cpn = Dep {
+                            category: cat,
+                            package: pn.to_string(),
+                            ..Default::default()
+                        };
+                        if repo.contains(&cpn) {
+                            vec![cpn]
+                        } else {
+                            vec![]
+                        }
+                    }))
+                }
+                ([], [_, ..]) => {
+                    // convert package restricts into string restrictions
+                    let pkg_restrict =
+                        Restrict::and(pkg_restricts.into_iter().filter_map(|r| match r {
+                            Package(x) => Some(x),
+                            _ => None,
+                        }));
+
+                    Box::new(repo.categories().into_iter().flat_map(move |cat| {
+                        repo.packages(&cat)
+                            .into_iter()
+                            .filter(|pn| pkg_restrict.matches(pn.as_str()))
+                            .map(|pn| Dep {
+                                category: cat.clone(),
+                                package: pn,
+                                ..Default::default()
+                            })
+                            .collect::<Vec<_>>()
+                    }))
+                }
+                _ => {
+                    let cat_restrict = match cat_restricts.len() {
+                        0 => Restrict::True,
+                        1 => cat_restricts.remove(0).into(),
+                        _ => Restrict::and(cat_restricts),
+                    };
+
+                    let pkg_restrict = match pkg_restricts.len() {
+                        0 => Restrict::True,
+                        1 => pkg_restricts.remove(0).into(),
+                        _ => Restrict::and(pkg_restricts),
+                    };
+
+                    Box::new(
+                        repo.categories()
+                            .into_iter()
+                            .filter(move |cat| cat_restrict.matches(cat.as_str()))
+                            .flat_map(move |cat| {
+                                repo.packages(&cat)
+                                    .into_iter()
+                                    .filter(|pn| pkg_restrict.matches(pn.as_str()))
+                                    .map(|pn| Dep {
+                                        category: cat.clone(),
+                                        package: pn,
+                                        ..Default::default()
+                                    })
+                                    .collect::<Vec<_>>()
+                            }),
+                    )
+                }
+            },
+        }
+    }
+}
+
+impl<'a> Iterator for IterCpn<'a> {
+    type Item = Dep<String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
 pub struct IterCpv<'a> {
     iter: Box<dyn Iterator<Item = Cpv<String>> + 'a>,
 }
@@ -980,6 +1133,19 @@ impl<'a> Iterator for IterRestrict<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
+    }
+}
+
+pub struct IterCpnRestrict<'a> {
+    iter: IterCpn<'a>,
+    restrict: Restrict,
+}
+
+impl<'a> Iterator for IterCpnRestrict<'a> {
+    type Item = Dep<String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|cpn| self.restrict.matches(cpn))
     }
 }
 
