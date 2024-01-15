@@ -13,12 +13,6 @@ pub enum SourceKind {
     EbuildPackageSet,
 }
 
-/*pub(crate) enum Source {
-    EbuildPackage(EbuildPackage),
-    EbuildPackageRaw(EbuildPackageRaw),
-    EbuildPackageSet(EbuildPackageSet),
-}*/
-
 // TODO: return impl Iterator once MSRV >= 1.75
 pub(crate) trait IterRestrict {
     type Item;
