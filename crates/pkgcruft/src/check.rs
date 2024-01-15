@@ -194,7 +194,3 @@ pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
         .into_iter()
         .collect()
 });
-
-/// The ordered set of checks that are always run.
-pub(crate) static ENABLED_CHECKS: Lazy<IndexSet<Check>> =
-    Lazy::new(|| [metadata::CHECK].into_iter().collect());

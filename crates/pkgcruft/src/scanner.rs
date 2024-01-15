@@ -46,8 +46,7 @@ impl Scanner {
     /// Set the checks to run.
     pub fn checks(mut self, checks: &[CheckKind]) -> Self {
         if !checks.is_empty() {
-            self.checks = ENABLED_CHECKS.clone();
-            self.checks.extend(checks.iter().map(Check::from));
+            self.checks = checks.iter().map(Check::from).collect();
             self.checks.sort();
         }
         self
@@ -56,12 +55,7 @@ impl Scanner {
     /// Set the report types to allow.
     pub fn reports(mut self, reports: &[ReportKind]) -> Self {
         if !reports.is_empty() {
-            self.reports = ENABLED_CHECKS
-                .iter()
-                .flat_map(|c| c.reports())
-                .copied()
-                .collect();
-            self.reports.extend(reports.iter().copied());
+            self.reports = reports.iter().copied().collect();
         }
         self
     }
