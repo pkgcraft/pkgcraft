@@ -1,6 +1,7 @@
 use std::io;
 use std::process::ExitCode;
 
+use clap::builder::ArgPredicate;
 use clap::Args;
 use pkgcraft::cli::TargetRestrictions;
 use pkgcraft::config::Config;
@@ -34,7 +35,13 @@ pub struct Command {
 
     // positionals
     /// Target packages or paths
-    #[arg(default_value = ".", help_heading = "Arguments")]
+    #[arg(
+        // default to the current working directory
+        default_value = ".",
+        // default to all packages when targeting a repo
+        default_value_if("repo", ArgPredicate::IsPresent, Some("*")),
+        help_heading = "Arguments",
+    )]
     targets: Vec<String>,
 }
 
