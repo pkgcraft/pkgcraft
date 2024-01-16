@@ -26,8 +26,8 @@ pub enum Error {
         id: String,
         err: String,
     },
-    #[error("configured repo can't be manually created: {0}")]
-    ConfiguredRepo(String),
+    #[error("{kind} repo can't be manually loaded: {id}")]
+    LoadRepo { kind: RepoFormat, id: String },
     #[error("invalid pkg: {id}: {err}")]
     InvalidPkg { id: String, err: String },
     #[error("{id}: {err}")]

@@ -59,7 +59,12 @@ impl RepoFormat {
             Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
             Self::Fake => fake::Repo::from_path(id, priority, path)?.into(),
             Self::Empty => empty::Repo::from_path(id, priority, path)?.into(),
-            _ => return Err(Error::ConfiguredRepo(id.to_string())),
+            _ => {
+                return Err(Error::LoadRepo {
+                    kind: *self,
+                    id: id.to_string(),
+                })
+            }
         };
 
         // try to finalize as a stand-alone repo
@@ -196,7 +201,7 @@ impl Repo {
         for format in RepoFormat::iter() {
             match format.load_from_path(id, priority, path, finalize) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
-                Err(Error::ConfiguredRepo(_)) => (),
+                Err(Error::LoadRepo { .. }) => (),
                 Err(e) => return Err(e),
                 result => return result,
             }
@@ -224,7 +229,7 @@ impl Repo {
         for format in RepoFormat::iter() {
             match format.load_from_nested_path(id, priority, path, finalize) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
-                Err(Error::ConfiguredRepo(_)) => (),
+                Err(Error::LoadRepo { .. }) => (),
                 Err(e) => return Err(e),
                 result => return result,
             }
