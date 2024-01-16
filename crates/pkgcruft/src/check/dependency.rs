@@ -4,14 +4,15 @@ use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{PackageReport, Report, ReportKind};
+use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun, Scope};
+use super::{Check, CheckKind, CheckRun};
 
 pub(crate) static CHECK: Check = Check {
     kind: CheckKind::Dependency,
     source: SourceKind::EbuildPackage,
-    scope: Scope::Package,
+    scope: Scope::Version,
     priority: 0,
     reports: &[
         ReportKind::Package(PackageReport::DeprecatedDependency),

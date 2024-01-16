@@ -7,14 +7,15 @@ use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{PackageSetReport, Report, ReportKind};
+use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun, Scope};
+use super::{Check, CheckKind, CheckRun};
 
 pub(crate) static CHECK: Check = Check {
     kind: CheckKind::UnstableOnly,
     source: SourceKind::EbuildPackageSet,
-    scope: Scope::PackageSet,
+    scope: Scope::Package,
     priority: 0,
     reports: &[ReportKind::PackageSet(PackageSetReport::UnstableOnly)],
 };

@@ -7,14 +7,15 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{PackageReport, Report, ReportKind};
+use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun, Scope};
+use super::{Check, CheckKind, CheckRun};
 
 pub(crate) static CHECK: Check = Check {
     kind: CheckKind::DroppedKeywords,
     source: SourceKind::EbuildPackageSet,
-    scope: Scope::PackageSet,
+    scope: Scope::Package,
     priority: 0,
     reports: &[ReportKind::Package(PackageReport::DroppedKeywords)],
 };

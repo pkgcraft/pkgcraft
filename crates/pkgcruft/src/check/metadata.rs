@@ -6,15 +6,16 @@ use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{PackageReport, Report, ReportKind};
+use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 
-use super::{Check, CheckKind, CheckRun, Scope};
+use super::{Check, CheckKind, CheckRun};
 
 pub(crate) static CHECK: Check = Check {
     kind: CheckKind::Metadata,
     source: SourceKind::EbuildPackageRaw,
-    scope: Scope::Package,
+    scope: Scope::Version,
     priority: -9999,
     reports: &[
         ReportKind::Package(PackageReport::InvalidDependency),

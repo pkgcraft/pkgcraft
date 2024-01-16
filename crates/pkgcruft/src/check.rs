@@ -10,20 +10,13 @@ use pkgcraft::repo::ebuild::Repo;
 use strum::{AsRefStr, EnumIter, EnumString};
 
 use crate::report::{Report, ReportKind};
+use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub mod dependency;
 pub mod dropped_keywords;
 pub mod metadata;
 pub mod unstable_only;
-
-#[derive(
-    AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
-)]
-pub enum Scope {
-    Package,
-    PackageSet,
-}
 
 #[derive(
     AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
