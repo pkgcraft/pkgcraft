@@ -36,7 +36,7 @@ impl<'a> TargetRestrictions<'a> {
 
     pub fn repo(mut self, value: Option<String>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
-            if Utf8Path::new(s).exists() {
+            if s.contains('/') && Utf8Path::new(s).exists() {
                 let repo = self.repo_format.load_from_path(s, 0, s, true)?;
                 self.config.add_repo(&repo, true)?;
                 self.repo_set = RepoSet::from_iter([repo]);
