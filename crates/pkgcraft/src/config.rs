@@ -259,7 +259,7 @@ impl Config {
         Ok(r)
     }
 
-    /// Add local repo if a specific format from a potentially nested filesystem path.
+    /// Add local repo of a specific format from a potentially nested filesystem path.
     pub fn add_format_repo_nested_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         &mut self,
         name: S,
