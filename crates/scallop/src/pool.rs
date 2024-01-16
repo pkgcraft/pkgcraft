@@ -230,17 +230,16 @@ where
         Ok((pool, iter))
     }
 
-    /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn send_iter<V: IntoIterator<Item = I>>(&self, vals: V) -> crate::Result<()> {
-        // queue data in a separate process
+    /// Queue items from an iterable for processing using a separate, forked process.
+    pub fn send_iter<V: IntoIterator<Item = I>>(&self, values: V) -> crate::Result<()> {
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 shell::fork_init();
                 // send values to process pool
-                for val in vals.into_iter() {
+                for value in values.into_iter() {
                     self.input_tx
-                        .send(Msg::Val(val))
+                        .send(Msg::Val(value))
                         .map_err(|e| Error::Base(format!("failed queuing value: {e}")))?;
                 }
 
@@ -255,6 +254,13 @@ where
         }?;
 
         Ok(())
+    }
+
+    /// Queue an item for processing.
+    pub fn send(&self, value: I) -> crate::Result<()> {
+        self.input_tx
+            .send(Msg::Val(value))
+            .map_err(|e| Error::Base(format!("failed queuing value: {e}")))
     }
 }
 
