@@ -5,7 +5,7 @@ use colored::{Color, Colorize};
 use strfmt::strfmt;
 use strum::{AsRefStr, EnumIter, EnumString, EnumVariantNames};
 
-use crate::report::{Report, ReportLevel, ReportScope};
+use crate::report::{Report, ReportScope};
 use crate::Error;
 
 #[derive(AsRefStr, EnumIter, EnumString, EnumVariantNames, Debug, Clone)]
@@ -84,15 +84,7 @@ impl FancyReporter {
             self.prev_key = Some(key);
         }
 
-        // determine report name color by its level
-        let color = match report.level() {
-            ReportLevel::Error => Color::Red,
-            ReportLevel::Warning => Color::Yellow,
-            ReportLevel::Style => Color::Cyan,
-            ReportLevel::Info => Color::Green,
-        };
-
-        write!(output, "  {}", report.kind().as_ref().color(color))?;
+        write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
 
         write!(output, ": ")?;
         if let ReportScope::Version(cpv) = report.scope() {

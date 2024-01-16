@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use colored::Color;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use pkgcraft::dep::{Cpv, Dep};
@@ -20,6 +21,17 @@ pub enum ReportLevel {
     Warning,
     Style,
     Info,
+}
+
+impl From<&ReportLevel> for Color {
+    fn from(level: &ReportLevel) -> Self {
+        match level {
+            ReportLevel::Error => Color::Red,
+            ReportLevel::Warning => Color::Yellow,
+            ReportLevel::Style => Color::Cyan,
+            ReportLevel::Info => Color::Green,
+        }
+    }
 }
 
 #[derive(
