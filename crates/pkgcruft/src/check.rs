@@ -279,7 +279,7 @@ impl std::fmt::Display for Check {
     }
 }
 
-/// The ordered set of all checks.
+/// The ordered set of all check variants.
 pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
     [dependency::CHECK, dropped_keywords::CHECK, metadata::CHECK, unstable_only::CHECK]
         .into_iter()

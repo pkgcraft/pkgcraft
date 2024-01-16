@@ -263,5 +263,9 @@ impl Restriction<&Report> for Restrict {
     }
 }
 
-pub static REPORTS: Lazy<IndexSet<ReportKind>> =
-    Lazy::new(|| CHECKS.iter().flat_map(|c| c.reports()).copied().collect());
+/// The ordered set of all report variants.
+pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
+    let mut reports: IndexSet<_> = CHECKS.iter().flat_map(|c| c.reports()).copied().collect();
+    reports.sort();
+    reports
+});
