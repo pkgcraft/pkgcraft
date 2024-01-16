@@ -43,10 +43,10 @@ impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
             Ok(raw) => {
                 for key in pkg.eapi().dep_keys() {
                     if let Some(val) = raw.get(key) {
-                        // TODO: add error output in report message once contextual relevance is
-                        // fixed (issue #153)
-                        if dep::parse::package_dependency_set(val, pkg.eapi()).is_err() {
-                            reports.push(InvalidDependency.report(pkg, key.to_string()));
+                        // TODO: improve contextual relevance for parsing failures (issue #153)
+                        if let Err(e) = dep::parse::package_dependency_set(val, pkg.eapi()) {
+                            let msg = format!("{key}: {e}");
+                            reports.push(InvalidDependency.report(pkg, msg));
                         }
                     }
                 }
