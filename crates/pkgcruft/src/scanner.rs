@@ -90,8 +90,9 @@ impl Scanner {
         let _producer = thread::spawn(move || {
             for r in restricts {
                 for cpn in repo.iter_cpn_restrict(r) {
-                    let restrict = Restrict::from(&cpn);
-                    restrict_tx.send(restrict).unwrap();
+                    restrict_tx
+                        .send(Restrict::from(&cpn))
+                        .expect("sending restrict failed");
                 }
             }
         });
@@ -125,7 +126,7 @@ impl Scanner {
                         // sort and send reports
                         if !reports.is_empty() {
                             reports.sort();
-                            reports_tx.send(reports).unwrap();
+                            reports_tx.send(reports).expect("sending report failed");
                         }
                     }
                 })
