@@ -37,7 +37,9 @@ impl<'a> CheckRun<Pkg<'a>> for DependencyCheck<'_> {
         for key in pkg.eapi().dep_keys() {
             for dep in pkg.dependencies(&[*key]).into_iter_flatten() {
                 if self.repo.deprecated(dep).is_some() {
-                    reports.push(DeprecatedDependency.report(pkg, format!("{key}: {dep}")));
+                    // drop use deps since package.deprecated doesn't include them
+                    let msg = format!("{key}: {}", dep.no_use_deps());
+                    reports.push(DeprecatedDependency.report(pkg, msg));
                 }
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
