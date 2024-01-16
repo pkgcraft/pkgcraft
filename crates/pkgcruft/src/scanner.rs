@@ -108,15 +108,14 @@ impl Scanner {
                 thread::spawn(move || {
                     for restrict in restrict_rx {
                         let mut reports = vec![];
+                        let mut metadata_errors = false;
 
-                        if !raw_pkg_runner.is_empty()
-                            && raw_pkg_runner.run(&restrict, &mut reports).is_err()
-                        {
-                            // skip the remaining runners if metadata errors exist
-                            continue;
+                        if !raw_pkg_runner.is_empty() {
+                            metadata_errors = raw_pkg_runner.run(&restrict, &mut reports).is_err();
                         }
 
-                        if !pkg_runner.is_empty() {
+                        // skip the remaining runners if metadata errors exist
+                        if !metadata_errors && !pkg_runner.is_empty() {
                             pkg_runner.run(&restrict, &mut reports).ok();
                         }
 
