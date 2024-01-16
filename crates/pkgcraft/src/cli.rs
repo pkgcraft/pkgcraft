@@ -36,9 +36,10 @@ impl<'a> TargetRestrictions<'a> {
 
     pub fn repo(mut self, value: Option<String>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
-            if s.contains('/') && Utf8Path::new(s).exists() {
-                let repo = self.repo_format.load_from_path(s, 0, s, true)?;
-                self.config.add_repo(&repo, true)?;
+            if s.contains('/') {
+                let repo = self
+                    .config
+                    .add_format_repo_path(s, 0, s, true, self.repo_format)?;
                 self.repo_set = RepoSet::from_iter([repo]);
             } else {
                 let repo = self
@@ -49,11 +50,10 @@ impl<'a> TargetRestrictions<'a> {
                 self.repo_set = RepoSet::from_iter([repo]);
             }
         } else if let Ok(path) = current_dir() {
-            if let Ok(repo) = self
-                .repo_format
-                .load_from_nested_path(&path, 0, &path, true)
+            if let Ok(repo) =
+                self.config
+                    .add_format_repo_nested_path(&path, 0, &path, true, self.repo_format)
             {
-                self.config.add_repo(&repo, true)?;
                 self.repo_set = RepoSet::from_iter([repo]);
             }
         }
@@ -91,10 +91,13 @@ impl<'a> TargetRestrictions<'a> {
                             {
                                 repo.clone()
                             } else {
-                                let repo =
-                                    self.repo_format.load_from_path(&path, 0, &path, true)?;
-                                self.config.add_repo(&repo, true)?;
-                                repo
+                                self.config.add_format_repo_path(
+                                    &path,
+                                    0,
+                                    &path,
+                                    true,
+                                    self.repo_format,
+                                )?
                             };
 
                             return Ok((RepoSet::from_iter([&repo]), Restrict::and(restricts)));
@@ -117,12 +120,11 @@ impl<'a> TargetRestrictions<'a> {
                 {
                     // configured repo path restrict
                     Ok((RepoSet::from_iter([repo]), restrict))
-                } else if let Ok(repo) = self
-                    .repo_format
-                    .load_from_nested_path(&path, 0, &path, true)
+                } else if let Ok(repo) =
+                    self.config
+                        .add_format_repo_nested_path(&path, 0, &path, true, self.repo_format)
                 {
                     // external repo path restrict
-                    self.config.add_repo(&repo, true)?;
                     let restrict = repo.restrict_from_path(&path).expect("invalid repo path");
                     Ok((RepoSet::from_iter([&repo]), restrict))
                 } else {
