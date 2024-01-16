@@ -5,7 +5,7 @@ use pkgcraft::pkg::ebuild::raw::Pkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{PackageReport, Report, ReportKind};
+use crate::report::{Report, ReportKind, VersionReport};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
@@ -18,9 +18,9 @@ pub(crate) static CHECK: Check = Check {
     scope: Scope::Version,
     priority: -9999,
     reports: &[
-        ReportKind::Package(PackageReport::InvalidDependency),
-        ReportKind::Package(PackageReport::MissingMetadata),
-        ReportKind::Package(PackageReport::SourcingError),
+        ReportKind::Version(VersionReport::InvalidDependency),
+        ReportKind::Version(VersionReport::MissingMetadata),
+        ReportKind::Version(VersionReport::SourcingError),
     ],
 };
 
@@ -37,7 +37,7 @@ impl<'a> MetadataCheck<'a> {
 
 impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
-        use PackageReport::*;
+        use VersionReport::*;
 
         match pkg.metadata_raw() {
             Ok(raw) => {

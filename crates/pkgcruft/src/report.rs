@@ -50,7 +50,7 @@ impl From<&ReportLevel> for Color {
     Copy,
     Clone,
 )]
-pub enum PackageReport {
+pub enum VersionReport {
     DeprecatedDependency,
     DroppedKeywords,
     InvalidDependency,
@@ -59,7 +59,7 @@ pub enum PackageReport {
     SourcingError,
 }
 
-impl PackageReport {
+impl VersionReport {
     pub(crate) fn report<P, S>(self, pkg: P, description: S) -> Report
     where
         P: Package,
@@ -67,7 +67,7 @@ impl PackageReport {
     {
         Report {
             scope: ReportScope::Version(pkg.cpv().clone()),
-            kind: ReportKind::Package(self),
+            kind: ReportKind::Version(self),
             level: ReportLevel::Warning,
             description: description.into(),
         }
@@ -90,11 +90,11 @@ impl PackageReport {
     Copy,
     Clone,
 )]
-pub enum PackageSetReport {
+pub enum PackageReport {
     UnstableOnly,
 }
 
-impl PackageSetReport {
+impl PackageReport {
     pub(crate) fn report<P, S>(self, pkgs: &[P], description: S) -> Report
     where
         P: Package,
@@ -102,7 +102,7 @@ impl PackageSetReport {
     {
         Report {
             scope: ReportScope::Package(pkgs[0].cpn()),
-            kind: ReportKind::PackageSet(self),
+            kind: ReportKind::Package(self),
             level: ReportLevel::Warning,
             description: description.into(),
         }
@@ -111,8 +111,8 @@ impl PackageSetReport {
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum ReportKind {
+    Version(VersionReport),
     Package(PackageReport),
-    PackageSet(PackageSetReport),
 }
 
 impl FromStr for ReportKind {
@@ -129,8 +129,8 @@ impl FromStr for ReportKind {
 impl std::fmt::Display for ReportKind {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            Self::Version(k) => write!(f, "{k}"),
             Self::Package(k) => write!(f, "{k}"),
-            Self::PackageSet(k) => write!(f, "{k}"),
         }
     }
 }
@@ -138,8 +138,8 @@ impl std::fmt::Display for ReportKind {
 impl AsRef<str> for ReportKind {
     fn as_ref(&self) -> &str {
         match self {
+            Self::Version(r) => r.as_ref(),
             Self::Package(r) => r.as_ref(),
-            Self::PackageSet(r) => r.as_ref(),
         }
     }
 }

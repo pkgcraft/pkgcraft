@@ -3,7 +3,7 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{PackageReport, Report, ReportKind};
+use crate::report::{Report, ReportKind, VersionReport};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
@@ -15,8 +15,8 @@ pub(crate) static CHECK: Check = Check {
     scope: Scope::Version,
     priority: 0,
     reports: &[
-        ReportKind::Package(PackageReport::DeprecatedDependency),
-        ReportKind::Package(PackageReport::MissingRevision),
+        ReportKind::Version(VersionReport::DeprecatedDependency),
+        ReportKind::Version(VersionReport::MissingRevision),
     ],
 };
 
@@ -33,7 +33,7 @@ impl<'a> DependencyCheck<'a> {
 
 impl<'a> CheckRun<Pkg<'a>> for DependencyCheck<'_> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
-        use PackageReport::*;
+        use VersionReport::*;
 
         for key in pkg.eapi().dep_keys() {
             for dep in pkg.dependencies(&[*key]).into_iter_flatten() {
