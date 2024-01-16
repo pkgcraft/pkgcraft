@@ -70,8 +70,21 @@ impl VersionReport {
         Report {
             scope: ReportScope::Version(pkg.cpv().clone()),
             kind: ReportKind::Version(self),
-            level: ReportLevel::Warning,
+            level: self.level(),
             description: description.into(),
+        }
+    }
+
+    fn level(&self) -> ReportLevel {
+        use ReportLevel::*;
+        use VersionReport::*;
+        match self {
+            DeprecatedDependency => Warning,
+            DroppedKeywords => Warning,
+            InvalidDependency => Error,
+            MissingMetadata => Error,
+            MissingRevision => Warning,
+            SourcingError => Error,
         }
     }
 }
@@ -106,8 +119,16 @@ impl PackageReport {
         Report {
             scope: ReportScope::Package(pkgs[0].cpn()),
             kind: ReportKind::Package(self),
-            level: ReportLevel::Warning,
+            level: self.level(),
             description: description.into(),
+        }
+    }
+
+    fn level(&self) -> ReportLevel {
+        use PackageReport::*;
+        use ReportLevel::*;
+        match self {
+            UnstableOnly => Info,
         }
     }
 }
