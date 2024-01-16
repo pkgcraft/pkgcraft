@@ -1,3 +1,4 @@
+use std::io::{self, Write};
 use std::mem;
 use std::process::ExitCode;
 
@@ -51,15 +52,16 @@ impl<'a> FormatString<'a> for Command {
 impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
+        let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
 
         let values = mem::take(&mut self.values);
         for s in values.stdin_or_args().split_whitespace() {
             if let Ok(ver) = Version::parse(&s) {
                 if let Some(fmt) = &self.format {
-                    println!("{}", self.format_str(fmt, &ver)?);
+                    writeln!(stdout, "{}", self.format_str(fmt, &ver)?)?;
                 }
             } else {
-                eprintln!("INVALID VERSION: {s}");
+                writeln!(stderr, "INVALID VERSION: {s}")?;
                 status = ExitCode::FAILURE;
             }
         }

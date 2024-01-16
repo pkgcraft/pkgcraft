@@ -1,3 +1,4 @@
+use std::io::{self, Write};
 use std::mem;
 use std::process::ExitCode;
 
@@ -62,15 +63,16 @@ impl<'a> FormatString<'a> for Command {
 impl Command {
     pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
+        let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
 
         let values = mem::take(&mut self.values);
         for s in values.stdin_or_args().split_whitespace() {
             if let Ok(cpv) = Cpv::parse(&s) {
                 if let Some(fmt) = &self.format {
-                    println!("{}", self.format_str(fmt, &cpv)?);
+                    writeln!(stdout, "{}", self.format_str(fmt, &cpv)?)?;
                 }
             } else {
-                eprintln!("INVALID CPV: {s}");
+                writeln!(stderr, "INVALID CPV: {s}")?;
                 status = ExitCode::FAILURE;
             }
         }

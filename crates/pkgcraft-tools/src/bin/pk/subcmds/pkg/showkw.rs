@@ -1,3 +1,4 @@
+use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
@@ -27,13 +28,14 @@ impl Command {
             .collect();
         let targets = targets?;
 
+        let mut stdout = io::stdout().lock();
         for (repos, restrict) in targets {
             // find matching packages from targeted repos
             let pkgs = repos.ebuild().flat_map(|r| r.iter_restrict(&restrict));
 
             // TODO: use tabular formatting output
             for pkg in pkgs {
-                println!("{pkg}: {}", pkg.keywords().iter().join(" "));
+                writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
             }
         }
 
