@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::eapi::Eapi;
 use crate::macros::build_from_paths;
 use crate::repo::ebuild::temp::Repo as TempRepo;
-use crate::repo::Repo;
+use crate::repo::{Repo, RepoFormat};
 use crate::utils::find_existing_path;
 use crate::{shell, Error};
 pub(crate) use repo::RepoConfig;
@@ -232,6 +232,20 @@ impl Config {
         Ok(r)
     }
 
+    /// Add local repo of a specific format from a filesystem path.
+    pub fn add_format_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
+        &mut self,
+        name: S,
+        priority: i32,
+        path: P,
+        external: bool,
+        format: RepoFormat,
+    ) -> crate::Result<Repo> {
+        let r = format.load_from_path(name, priority, path, false)?;
+        self.add_repo(&r, external)?;
+        Ok(r)
+    }
+
     /// Add local repo from a potentially nested filesystem path.
     pub fn add_nested_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         &mut self,
@@ -241,6 +255,20 @@ impl Config {
         external: bool,
     ) -> crate::Result<Repo> {
         let r = Repo::from_nested_path(name, priority, path, false)?;
+        self.add_repo(&r, external)?;
+        Ok(r)
+    }
+
+    /// Add local repo if a specific format from a potentially nested filesystem path.
+    pub fn add_format_repo_nested_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
+        &mut self,
+        name: S,
+        priority: i32,
+        path: P,
+        external: bool,
+        format: RepoFormat,
+    ) -> crate::Result<Repo> {
+        let r = format.load_from_nested_path(name, priority, path, false)?;
         self.add_repo(&r, external)?;
         Ok(r)
     }
