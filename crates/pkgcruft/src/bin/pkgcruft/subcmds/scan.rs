@@ -1,3 +1,4 @@
+use std::io;
 use std::process::ExitCode;
 
 use clap::Args;
@@ -57,10 +58,11 @@ impl Command {
             .reports(&reports);
 
         // run scanner for all targets
+        let mut stdout = io::stdout().lock();
         for (repo_set, restricts) in targets {
             for repo in repo_set.repos() {
                 for report in scanner.run(repo, &restricts)? {
-                    reporter.report(&report)?;
+                    reporter.report(&report, &mut stdout)?;
                 }
             }
         }

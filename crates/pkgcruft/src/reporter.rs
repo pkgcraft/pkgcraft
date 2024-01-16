@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::io::Write;
 
+use colored::{Color, Colorize};
 use strfmt::strfmt;
 use strum::{AsRefStr, EnumIter, EnumString, EnumVariantNames};
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use crate::report::{Report, ReportLevel, ReportScope};
 use crate::Error;
@@ -44,12 +44,12 @@ impl Reporter {
     }
 
     /// Run a report through a reporter.
-    pub fn report(&mut self, report: &Report) -> crate::Result<()> {
+    pub fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         match self {
-            Self::Simple(r) => r.report(report),
-            Self::Fancy(r) => r.report(report),
-            Self::Json(r) => r.report(report),
-            Self::Format(r) => r.report(report),
+            Self::Simple(r) => r.report(report, output),
+            Self::Fancy(r) => r.report(report, output),
+            Self::Json(r) => r.report(report, output),
+            Self::Format(r) => r.report(report, output),
         }
     }
 }
@@ -58,8 +58,8 @@ impl Reporter {
 pub struct SimpleReporter {}
 
 impl SimpleReporter {
-    pub fn report(&mut self, report: &Report) -> crate::Result<()> {
-        println!("{}: {}: {}", report.scope(), report.kind(), report.description());
+    pub fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+        writeln!(output, "{}: {}: {}", report.scope(), report.kind(), report.description())?;
         Ok(())
     }
 }
@@ -70,9 +70,7 @@ pub struct FancyReporter {
 }
 
 impl FancyReporter {
-    pub fn report(&mut self, report: &Report) -> crate::Result<()> {
-        let mut stdout = StandardStream::stdout(ColorChoice::Auto);
-
+    pub fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         let key = match report.scope() {
             ReportScope::Version(cpv) => cpv.cpn(),
             ReportScope::Package(cpn) => cpn.to_string(),
@@ -80,11 +78,9 @@ impl FancyReporter {
 
         if key != self.prev_key.as_deref().unwrap_or_default() {
             if self.prev_key.is_some() {
-                writeln!(&mut stdout)?;
+                writeln!(output)?;
             }
-            stdout.set_color(ColorSpec::new().set_fg(Some(Color::Blue)).set_bold(true))?;
-            writeln!(&mut stdout, "{key}")?;
-            stdout.reset()?;
+            writeln!(output, "{}", key.color(Color::Blue).bold())?;
             self.prev_key = Some(key);
         }
 
@@ -96,15 +92,13 @@ impl FancyReporter {
             ReportLevel::Info => Color::Green,
         };
 
-        stdout.set_color(ColorSpec::new().set_fg(Some(color)))?;
-        write!(&mut stdout, "  {}", report.kind())?;
-        stdout.reset()?;
+        write!(output, "  {}", report.kind().as_ref().color(color))?;
 
-        write!(&mut stdout, ": ")?;
+        write!(output, ": ")?;
         if let ReportScope::Version(cpv) = report.scope() {
-            write!(&mut stdout, "version {}: ", cpv.version())?;
+            write!(output, "version {}: ", cpv.version())?;
         }
-        writeln!(&mut stdout, "{}", report.description())?;
+        writeln!(output, "{}", report.description())?;
 
         Ok(())
     }
@@ -114,8 +108,8 @@ impl FancyReporter {
 pub struct JsonReporter {}
 
 impl JsonReporter {
-    pub fn report(&self, report: &Report) -> crate::Result<()> {
-        println!("{}", report.to_json()?);
+    pub fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+        writeln!(output, "{}", report.to_json()?)?;
         Ok(())
     }
 }
@@ -126,7 +120,7 @@ pub struct FormatReporter {
 }
 
 impl FormatReporter {
-    pub fn report(&self, report: &Report) -> crate::Result<()> {
+    pub fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind().to_string())]
             .into_iter()
             .collect();
@@ -148,7 +142,7 @@ impl FormatReporter {
         let s = strfmt(&self.format, &attrs)
             .map_err(|e| Error::InvalidValue(format!("formatting failed: {e}")))?;
         if !s.is_empty() {
-            println!("{s}");
+            writeln!(output, "{s}")?;
         }
 
         Ok(())

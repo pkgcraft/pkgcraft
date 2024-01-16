@@ -70,11 +70,12 @@ impl Command {
             }
         };
 
+        let mut stdout = io::stdout().lock();
         let mut line = String::new();
         while reader.read_line(&mut line)? != 0 {
             let report = Report::from_json(&line)?;
             if reports.contains(report.kind()) && restrict.matches(&report) {
-                reporter.report(&report)?;
+                reporter.report(&report, &mut stdout)?;
             }
             line.clear();
         }
