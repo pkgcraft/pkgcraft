@@ -10,11 +10,11 @@ use crate::report::{PackageReport, Report, ReportKind};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun};
+use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
 
 pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::UnstableOnly,
-    source: SourceKind::EbuildPackageSet,
+    kind: CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::UnstableOnly),
+    source: SourceKind::EbuildPackage,
     scope: Scope::Package,
     priority: 0,
     reports: &[ReportKind::Package(PackageReport::UnstableOnly)],

@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
@@ -12,20 +13,121 @@ use strum::{AsRefStr, EnumIter, EnumString};
 use crate::report::{Report, ReportKind};
 use crate::scope::Scope;
 use crate::source::SourceKind;
+use crate::Error;
 
 pub mod dependency;
 pub mod dropped_keywords;
 pub mod metadata;
 pub mod unstable_only;
 
+/// Checks run against ebuild packages.
 #[derive(
     AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
-pub enum CheckKind {
+pub enum EbuildPkgCheckKind {
     Dependency,
-    DroppedKeywords,
+}
+
+impl EbuildPkgCheckKind {
+    pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgCheck {
+        use EbuildPkgCheckKind::*;
+        match self {
+            Dependency => EbuildPkgCheck::Dependency(dependency::DependencyCheck::new(repo)),
+        }
+    }
+}
+
+/// Checks run against raw ebuild packages.
+#[derive(
+    AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
+pub enum EbuildRawPkgCheckKind {
     Metadata,
+}
+
+impl EbuildRawPkgCheckKind {
+    pub(crate) fn to_check(self, repo: &Repo) -> EbuildRawPkgCheck {
+        use EbuildRawPkgCheckKind::*;
+        match self {
+            Metadata => EbuildRawPkgCheck::Metadata(metadata::MetadataCheck::new(repo)),
+        }
+    }
+}
+
+/// Checks run against ebuild package sets.
+#[derive(
+    AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
+pub enum EbuildPkgSetCheckKind {
+    DroppedKeywords,
     UnstableOnly,
+}
+
+impl EbuildPkgSetCheckKind {
+    pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgSetCheck {
+        use EbuildPkgSetCheckKind::*;
+        match self {
+            DroppedKeywords => EbuildPkgSetCheck::DroppedKeywords(
+                dropped_keywords::DroppedKeywordsCheck::new(repo),
+            ),
+            UnstableOnly => {
+                EbuildPkgSetCheck::UnstableOnly(unstable_only::UnstableOnlyCheck::new(repo))
+            }
+        }
+    }
+}
+
+/// All checks separated by source type.
+#[derive(Debug, Copy, Clone)]
+pub enum CheckKind {
+    EbuildPkg(EbuildPkgCheckKind),
+    EbuildRawPkg(EbuildRawPkgCheckKind),
+    EbuildPkgSet(EbuildPkgSetCheckKind),
+}
+
+impl FromStr for CheckKind {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        CHECKS
+            .get(s)
+            .map(|c| c.kind())
+            .ok_or_else(|| Error::InvalidValue(format!("unknown check: {s}")))
+    }
+}
+
+impl std::fmt::Display for CheckKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::EbuildPkg(k) => write!(f, "{}", k.as_ref()),
+            Self::EbuildRawPkg(k) => write!(f, "{}", k.as_ref()),
+            Self::EbuildPkgSet(k) => write!(f, "{}", k.as_ref()),
+        }
+    }
+}
+
+impl AsRef<str> for CheckKind {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::EbuildPkg(k) => k.as_ref(),
+            Self::EbuildRawPkg(k) => k.as_ref(),
+            Self::EbuildPkgSet(k) => k.as_ref(),
+        }
+    }
+}
+
+impl PartialEq for CheckKind {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Eq for CheckKind {}
+
+impl Hash for CheckKind {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state)
+    }
 }
 
 impl Borrow<str> for CheckKind {
@@ -34,50 +136,58 @@ impl Borrow<str> for CheckKind {
     }
 }
 
-impl std::fmt::Display for CheckKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.as_ref())
+impl Ord for CheckKind {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+
+impl PartialOrd for CheckKind {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum CheckRunner<'a> {
+pub(crate) enum EbuildPkgCheck<'a> {
     Dependency(dependency::DependencyCheck<'a>),
-    DroppedKeywords(dropped_keywords::DroppedKeywordsCheck<'a>),
+}
+
+impl<'a> CheckRun<ebuild::Pkg<'a>> for EbuildPkgCheck<'a> {
+    fn run(&self, item: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
+        use EbuildPkgCheck::*;
+        match self {
+            Dependency(c) => c.run(item, reports),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum EbuildRawPkgCheck<'a> {
     Metadata(metadata::MetadataCheck<'a>),
+}
+
+impl<'a> CheckRun<ebuild::raw::Pkg<'a>> for EbuildRawPkgCheck<'a> {
+    fn run(&self, item: &ebuild::raw::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
+        use EbuildRawPkgCheck::*;
+        match self {
+            Metadata(c) => c.run(item, reports),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum EbuildPkgSetCheck<'a> {
+    DroppedKeywords(dropped_keywords::DroppedKeywordsCheck<'a>),
     UnstableOnly(unstable_only::UnstableOnlyCheck<'a>),
 }
 
-// TODO: rework to leverage compile time checks for type mismatches between checks, source, and runners
-impl<'a> CheckRun<ebuild::Pkg<'a>> for CheckRunner<'a> {
-    fn run(&self, item: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
-        use CheckRunner::*;
-        match self {
-            Dependency(c) => c.run(item, reports),
-            _ => panic!("check not valid for ebuild pkg runs"),
-        }
-    }
-}
-
-// TODO: rework to leverage compile time checks for type mismatches between checks, source, and runners
-impl<'a> CheckRun<ebuild::raw::Pkg<'a>> for CheckRunner<'a> {
-    fn run(&self, item: &ebuild::raw::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
-        use CheckRunner::*;
-        match self {
-            Metadata(c) => c.run(item, reports),
-            _ => panic!("check not valid for raw ebuild pkg runs"),
-        }
-    }
-}
-
-// TODO: rework to leverage compile time checks for type mismatches between checks, source, and runners
-impl<'a> CheckRun<Vec<ebuild::Pkg<'a>>> for CheckRunner<'a> {
+impl<'a> CheckRun<Vec<ebuild::Pkg<'a>>> for EbuildPkgSetCheck<'a> {
     fn run(&self, item: &Vec<ebuild::Pkg<'a>>, reports: &mut Vec<Report>) -> crate::Result<()> {
-        use CheckRunner::*;
+        use EbuildPkgSetCheck::*;
         match self {
             DroppedKeywords(c) => c.run(item, reports),
             UnstableOnly(c) => c.run(item, reports),
-            _ => panic!("check not valid for ebuild pkg set runs"),
         }
     }
 }
@@ -115,18 +225,6 @@ impl Check {
 
     pub fn reports(&self) -> &[ReportKind] {
         self.reports
-    }
-
-    pub(crate) fn to_runner(self, repo: &Repo) -> CheckRunner {
-        use CheckKind::*;
-        match self.kind {
-            Dependency => CheckRunner::Dependency(dependency::DependencyCheck::new(repo)),
-            DroppedKeywords => {
-                CheckRunner::DroppedKeywords(dropped_keywords::DroppedKeywordsCheck::new(repo))
-            }
-            Metadata => CheckRunner::Metadata(metadata::MetadataCheck::new(repo)),
-            UnstableOnly => CheckRunner::UnstableOnly(unstable_only::UnstableOnlyCheck::new(repo)),
-        }
     }
 }
 

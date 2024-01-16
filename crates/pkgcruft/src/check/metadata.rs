@@ -10,10 +10,10 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 
-use super::{Check, CheckKind, CheckRun};
+use super::{Check, CheckKind, CheckRun, EbuildRawPkgCheckKind};
 
 pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::Metadata,
+    kind: CheckKind::EbuildRawPkg(EbuildRawPkgCheckKind::Metadata),
     source: SourceKind::EbuildPackageRaw,
     scope: Scope::Version,
     priority: -9999,
@@ -73,7 +73,7 @@ impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
         if reports.is_empty() {
             Ok(())
         } else {
-            Err(Error::SkipRemainingChecks(CheckKind::Metadata))
+            Err(Error::SkipRemainingChecks)
         }
     }
 }

@@ -9,8 +9,8 @@ use pkgcraft::utils::bounded_jobs;
 
 use crate::check::{Check, CheckKind, CHECKS};
 use crate::report::{Report, ReportKind, REPORTS};
-use crate::runner::{CheckRunner, CheckRunnerSet};
-use crate::source::{self, SourceKind};
+use crate::runner::{EbuildPkgCheckRunner, EbuildRawPkgCheckRunner};
+use crate::source::SourceKind;
 use crate::Error;
 
 #[derive(Debug)]
@@ -73,13 +73,13 @@ impl Scanner {
         // TODO: drop this hack once lifetime handling is improved for thread usage
         let repo: &'static ebuild::Repo = Box::leak(Box::new(repo.clone()));
 
-        let mut raw_pkg_runner = CheckRunner::new(source::EbuildPackageRaw { repo });
-        let mut pkg_runner = CheckRunnerSet::new(source::EbuildPackage { repo });
+        let mut raw_pkg_runner = EbuildRawPkgCheckRunner::new(repo);
+        let mut pkg_runner = EbuildPkgCheckRunner::new(repo);
+        use SourceKind::*;
         for c in &self.checks {
             match c.source() {
-                SourceKind::EbuildPackage => pkg_runner.item_checks.push(c.to_runner(repo)),
-                SourceKind::EbuildPackageSet => pkg_runner.set_checks.push(c.to_runner(repo)),
-                SourceKind::EbuildPackageRaw => raw_pkg_runner.push(c.to_runner(repo)),
+                EbuildPackage => pkg_runner.add_check(c),
+                EbuildPackageRaw => raw_pkg_runner.add_check(c),
             }
         }
 

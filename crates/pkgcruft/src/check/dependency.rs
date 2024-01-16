@@ -7,10 +7,10 @@ use crate::report::{Report, ReportKind, VersionReport};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun};
+use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
 
 pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::Dependency,
+    kind: CheckKind::EbuildPkg(EbuildPkgCheckKind::Dependency),
     source: SourceKind::EbuildPackage,
     scope: Scope::Version,
     priority: 0,

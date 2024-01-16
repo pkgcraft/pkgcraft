@@ -10,11 +10,11 @@ use crate::report::{Report, ReportKind, VersionReport};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun};
+use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
 
 pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::DroppedKeywords,
-    source: SourceKind::EbuildPackageSet,
+    kind: CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::DroppedKeywords),
+    source: SourceKind::EbuildPackage,
     scope: Scope::Package,
     priority: 0,
     reports: &[ReportKind::Version(VersionReport::DroppedKeywords)],

@@ -10,7 +10,6 @@ use strum::{AsRefStr, EnumIter, EnumString};
 pub enum SourceKind {
     EbuildPackage,
     EbuildPackageRaw,
-    EbuildPackageSet,
 }
 
 // TODO: return impl Iterator once MSRV >= 1.75
@@ -49,26 +48,5 @@ impl<'a> IterRestrict for EbuildPackageRaw<'a> {
         val: R,
     ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
         Box::new(self.repo.iter_raw_restrict(val))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct EbuildPackageSet<'a> {
-    pub(crate) repo: &'a Repo,
-}
-
-impl<'a> IterRestrict for EbuildPackageSet<'a> {
-    type Item = Vec<ebuild::Pkg<'a>>;
-
-    fn iter_restrict<R: Into<Restrict>>(
-        &self,
-        val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
-        let pkgs: Vec<_> = self.repo.iter_restrict(val).collect();
-        if pkgs.is_empty() {
-            Box::new(std::iter::empty())
-        } else {
-            Box::new(std::iter::once(pkgs))
-        }
     }
 }

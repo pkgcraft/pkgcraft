@@ -15,6 +15,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString};
 use crate::check::CHECKS;
 use crate::Error;
 
+/// The severity of the report.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum ReportLevel {
     Error,
@@ -34,6 +35,7 @@ impl From<&ReportLevel> for Color {
     }
 }
 
+/// Report variants that relate to ebuild packages.
 #[derive(
     Serialize,
     Deserialize,
@@ -74,6 +76,7 @@ impl VersionReport {
     }
 }
 
+/// Report variants that relate to ebuild package sets.
 #[derive(
     Serialize,
     Deserialize,
@@ -109,6 +112,7 @@ impl PackageReport {
     }
 }
 
+/// All report variants separated by scope.
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum ReportKind {
     Version(VersionReport),
