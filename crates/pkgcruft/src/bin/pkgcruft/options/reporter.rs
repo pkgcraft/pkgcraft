@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use pkgcruft::reporter::Reporter;
@@ -15,7 +13,7 @@ pub(crate) struct ReporterOptions {
         default_value = "fancy",
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(Reporter::VARIANTS)
-            .map(|s| Reporter::from_str(&s).unwrap()),
+            .map(|s| s.parse::<Reporter>().unwrap()),
     )]
     reporter: Reporter,
 

@@ -5,7 +5,7 @@ use std::process::ExitCode;
 
 use anyhow::anyhow;
 use camino::Utf8PathBuf;
-use clap::builder::PossibleValuesParser;
+use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Args, ValueHint};
 use pkgcraft::restrict::{self, Restrict, Restriction};
 use pkgcruft::report::{Report, ReportKind, REPORTS};
@@ -21,7 +21,8 @@ pub struct Command {
         long,
         value_name = "REPORT",
         hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(REPORTS.iter().map(|r| r.as_ref())),
+        value_parser = PossibleValuesParser::new(REPORTS.iter().map(|r| r.as_ref()))
+            .map(|s| s.parse::<ReportKind>().unwrap()),
     )]
     reports: Vec<ReportKind>,
 
