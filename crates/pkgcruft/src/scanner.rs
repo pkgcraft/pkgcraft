@@ -60,7 +60,11 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<I, R>(&self, repo: &Repo, restricts: I) -> crate::Result<Iter>
+    pub fn run<I, R>(
+        &self,
+        repo: &Repo,
+        restricts: I,
+    ) -> crate::Result<impl Iterator<Item = Report>>
     where
         I: IntoIterator<Item = R>,
         R: Into<Restrict>,
@@ -141,7 +145,7 @@ impl Scanner {
     }
 }
 
-pub struct Iter {
+struct Iter {
     reports_rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
