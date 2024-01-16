@@ -25,11 +25,6 @@ impl Checks {
             }
         }
 
-        // add reports related to check options
-        for check in self.checks.iter().filter_map(|c| CHECKS.get(c)) {
-            self.reports.extend(check.reports().iter().copied());
-        }
-
         (self.checks, self.reports)
     }
 }
