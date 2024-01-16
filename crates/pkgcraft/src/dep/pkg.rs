@@ -376,6 +376,12 @@ impl Dep<String> {
         dep
     }
 
+    /// Potentially create a new Dep without use dependencies.
+    pub fn no_use_deps(&self) -> Cow<'_, Self> {
+        self.without([DepField::UseDeps])
+            .unwrap_or_else(|e| panic!("{e}"))
+    }
+
     /// Potentially create a new Dep, modifying the given fields and values.
     pub fn modify<'a, I>(&self, values: I) -> crate::Result<Cow<'_, Self>>
     where
@@ -1155,6 +1161,19 @@ mod tests {
         for s in ["!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]", "=cat/pkg-1", "cat/pkg"] {
             let dep = Dep::try_new(s).unwrap();
             assert_eq!(dep.unversioned(), expected);
+        }
+    }
+
+    #[test]
+    fn no_use_deps() {
+        for (s, expected) in [
+            ("!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]", "!!>=cat/pkg-1.2-r3:4/5=::repo"),
+            ("=cat/pkg-1[a,b,c]", "=cat/pkg-1"),
+            ("cat/pkg", "cat/pkg"),
+        ] {
+            let dep = Dep::try_new(s).unwrap();
+            let expected = Dep::try_new(expected).unwrap();
+            assert_eq!(dep.no_use_deps(), expected);
         }
     }
 
