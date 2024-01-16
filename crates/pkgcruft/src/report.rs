@@ -55,7 +55,7 @@ impl From<&ReportLevel> for Color {
 pub enum VersionReport {
     DeprecatedDependency,
     DroppedKeywords,
-    InvalidDependency,
+    InvalidDependencySet,
     MissingMetadata,
     MissingRevision,
     SourcingError,
@@ -77,14 +77,13 @@ impl VersionReport {
 
     fn level(&self) -> ReportLevel {
         use ReportLevel::*;
-        use VersionReport::*;
         match self {
-            DeprecatedDependency => Warning,
-            DroppedKeywords => Warning,
-            InvalidDependency => Error,
-            MissingMetadata => Error,
-            MissingRevision => Warning,
-            SourcingError => Error,
+            Self::DeprecatedDependency => Warning,
+            Self::DroppedKeywords => Warning,
+            Self::InvalidDependencySet => Error,
+            Self::MissingMetadata => Error,
+            Self::MissingRevision => Warning,
+            Self::SourcingError => Error,
         }
     }
 }
@@ -125,10 +124,9 @@ impl PackageReport {
     }
 
     fn level(&self) -> ReportLevel {
-        use PackageReport::*;
         use ReportLevel::*;
         match self {
-            UnstableOnly => Info,
+            Self::UnstableOnly => Info,
         }
     }
 }

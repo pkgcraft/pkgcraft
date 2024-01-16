@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use pkgcraft::dep;
 use pkgcraft::error::Error::InvalidPkg;
+use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::ebuild::raw::Pkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
@@ -18,7 +19,7 @@ pub(crate) static CHECK: Check = Check {
     scope: Scope::Version,
     priority: -9999,
     reports: &[
-        ReportKind::Version(VersionReport::InvalidDependency),
+        ReportKind::Version(VersionReport::InvalidDependencySet),
         ReportKind::Version(VersionReport::MissingMetadata),
         ReportKind::Version(VersionReport::SourcingError),
     ],
@@ -38,21 +39,12 @@ impl<'a> MetadataCheck<'a> {
 impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use VersionReport::*;
+        let eapi = pkg.eapi();
 
         match pkg.metadata_raw() {
             Ok(raw) => {
-                for key in pkg.eapi().dep_keys() {
-                    if let Some(val) = raw.get(key) {
-                        // TODO: improve contextual relevance for parsing failures (issue #153)
-                        if let Err(e) = dep::parse::package_dependency_set(val, pkg.eapi()) {
-                            let msg = format!("{key}: {e}");
-                            reports.push(InvalidDependency.report(pkg, msg));
-                        }
-                    }
-                }
-
-                let missing: Vec<_> = pkg
-                    .eapi()
+                // check for required metadata
+                let missing: Vec<_> = eapi
                     .mandatory_keys()
                     .iter()
                     .filter(|k| raw.get(k).is_none())
@@ -61,6 +53,45 @@ impl<'a> CheckRun<Pkg<'a>> for MetadataCheck<'_> {
 
                 if !missing.is_empty() {
                     reports.push(MissingMetadata.report(pkg, missing.iter().join(", ")));
+                }
+
+                // verify depset parsing
+                // TODO: improve contextual relevance for depset parsing failures (issue #153)
+                for key in eapi.dep_keys() {
+                    if let Some(val) = raw.get(key) {
+                        if let Err(e) = dep::parse::package_dependency_set(val, eapi) {
+                            let msg = format!("{key}: {e}");
+                            reports.push(InvalidDependencySet.report(pkg, msg));
+                        }
+                    }
+                }
+
+                if let Some(val) = raw.get(&Key::LICENSE) {
+                    if let Err(e) = dep::parse::license_dependency_set(val) {
+                        let msg = format!("{}: {e}", Key::LICENSE);
+                        reports.push(InvalidDependencySet.report(pkg, msg));
+                    }
+                }
+
+                if let Some(val) = raw.get(&Key::PROPERTIES) {
+                    if let Err(e) = dep::parse::properties_dependency_set(val) {
+                        let msg = format!("{}: {e}", Key::PROPERTIES);
+                        reports.push(InvalidDependencySet.report(pkg, msg));
+                    }
+                }
+
+                if let Some(val) = raw.get(&Key::REQUIRED_USE) {
+                    if let Err(e) = dep::parse::required_use_dependency_set(val, eapi) {
+                        let msg = format!("{}: {e}", Key::REQUIRED_USE);
+                        reports.push(InvalidDependencySet.report(pkg, msg));
+                    }
+                }
+
+                if let Some(val) = raw.get(&Key::RESTRICT) {
+                    if let Err(e) = dep::parse::restrict_dependency_set(val) {
+                        let msg = format!("{}: {e}", Key::RESTRICT);
+                        reports.push(InvalidDependencySet.report(pkg, msg));
+                    }
                 }
             }
             Err(InvalidPkg { id: _, err }) => {
