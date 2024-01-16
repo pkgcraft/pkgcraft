@@ -246,7 +246,7 @@ impl MetadataCacheRegen<'_> {
             }
             Ok(())
         };
-        let pool = PoolSendIter::new(self.jobs, func, !self.output)?;
+        let (pool, results_iter) = PoolSendIter::new(self.jobs, func, !self.output)?;
 
         // use progress bar to show completion progress if enabled
         let pb = if self.progress {
@@ -295,7 +295,6 @@ impl MetadataCacheRegen<'_> {
             }
         }
 
-        // send Cpvs and iterate over returned results, tracking progress and errors
         let mut errors = 0;
         if !cpvs.is_empty() {
             if self.verify {
@@ -304,7 +303,11 @@ impl MetadataCacheRegen<'_> {
                 pb.set_message("generating metadata:");
             }
 
-            for r in pool.iter(cpvs.into_iter())? {
+            // send cpvs to the process pool
+            pool.send_iter(cpvs)?;
+
+            // iterate over returned results, tracking progress and errors
+            for r in results_iter {
                 pb.inc(1);
 
                 // log errors

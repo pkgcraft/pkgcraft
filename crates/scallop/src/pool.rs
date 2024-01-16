@@ -153,22 +153,25 @@ enum Msg<T> {
     Stop,
 }
 
-pub struct PoolSendIter<I, O>
+#[derive(Debug, Clone)]
+pub struct PoolSendIter<I>
 where
     I: Serialize + for<'a> Deserialize<'a>,
-    O: Serialize + for<'a> Deserialize<'a>,
 {
     input_tx: IpcSender<Msg<I>>,
-    output_rx: IpcReceiver<Msg<O>>,
 }
 
-impl<I, O> PoolSendIter<I, O>
+impl<I> PoolSendIter<I>
 where
     I: Serialize + for<'a> Deserialize<'a>,
-    O: Serialize + for<'a> Deserialize<'a>,
 {
-    pub fn new<F>(size: usize, func: F, suppress: bool) -> crate::Result<Self>
+    pub fn new<O, F>(
+        size: usize,
+        func: F,
+        suppress: bool,
+    ) -> crate::Result<(Self, PoolReceiveIter<O>)>
     where
+        O: Serialize + for<'a> Deserialize<'a>,
         F: FnOnce(I) -> O,
     {
         // enable internal bash SIGCHLD handler
@@ -222,18 +225,20 @@ where
             Err(e) => Err(Error::Base(format!("process pool failed start: {e}"))),
         }?;
 
-        Ok(Self { input_tx, output_rx })
+        let pool = Self { input_tx };
+        let iter = PoolReceiveIter { rx: output_rx };
+        Ok((pool, iter))
     }
 
     /// Create a new forked process pool, sending the given data to it for processing.
-    pub fn iter<V: Iterator<Item = I>>(&self, vals: V) -> crate::Result<PoolReceiveIter<O>> {
+    pub fn send_iter<V: IntoIterator<Item = I>>(&self, vals: V) -> crate::Result<()> {
         // queue data in a separate process
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 shell::fork_init();
                 // send values to process pool
-                for val in vals {
+                for val in vals.into_iter() {
                     self.input_tx
                         .send(Msg::Val(val))
                         .map_err(|e| Error::Base(format!("failed queuing value: {e}")))?;
@@ -249,28 +254,27 @@ where
             Err(e) => Err(Error::Base(format!("failed starting queuing process: {e}"))),
         }?;
 
-        Ok(PoolReceiveIter { rx: &self.output_rx })
+        Ok(())
     }
 }
 
-impl<I, O> Drop for PoolSendIter<I, O>
+impl<I> Drop for PoolSendIter<I>
 where
     I: Serialize + for<'a> Deserialize<'a>,
-    O: Serialize + for<'a> Deserialize<'a>,
 {
     fn drop(&mut self) {
         self.input_tx.send(Msg::Stop).ok();
     }
 }
 
-pub struct PoolReceiveIter<'p, T>
+pub struct PoolReceiveIter<T>
 where
     T: Serialize + for<'a> Deserialize<'a>,
 {
-    rx: &'p IpcReceiver<Msg<T>>,
+    rx: IpcReceiver<Msg<T>>,
 }
 
-impl<T> Iterator for PoolReceiveIter<'_, T>
+impl<T> Iterator for PoolReceiveIter<T>
 where
     T: Serialize + for<'a> Deserialize<'a>,
 {
