@@ -7,6 +7,7 @@ use colored::Color;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use pkgcraft::dep::{Cpv, Dep};
+use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::Package;
 use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
@@ -214,7 +215,7 @@ impl std::fmt::Display for ReportScope {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Report {
     scope: ReportScope,
     kind: ReportKind,
@@ -249,6 +250,31 @@ impl Report {
     pub fn from_json(data: &str) -> crate::Result<Self> {
         serde_json::from_str(data)
             .map_err(|e| Error::InvalidValue(format!("failed deserializing JSON to report: {e}")))
+    }
+}
+
+impl Ord for Report {
+    fn cmp(&self, other: &Self) -> Ordering {
+        use ReportScope::*;
+        match (&self.scope, &other.scope) {
+            (Version(cpv), Package(dep)) => {
+                cmp_not_equal!(&cpv.cpn(), &dep.cpn());
+                return Ordering::Less;
+            }
+            (Package(dep), Version(cpv)) => {
+                cmp_not_equal!(&dep.cpn(), &cpv.cpn());
+                return Ordering::Greater;
+            }
+            (s1, s2) => cmp_not_equal!(s1, s2),
+        }
+        cmp_not_equal!(&self.kind, &other.kind);
+        self.description.cmp(&other.description)
+    }
+}
+
+impl PartialOrd for Report {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
