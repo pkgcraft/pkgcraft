@@ -6,6 +6,7 @@ use std::process::ExitCode;
 use anyhow::anyhow;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Args, ValueHint};
+use itertools::Either;
 use pkgcraft::restrict::{self, Restrict, Restriction};
 use pkgcruft::report::{Report, ReportKind, REPORTS};
 
@@ -74,9 +75,9 @@ impl Replay {
     fn run(
         &self,
         target: String,
-    ) -> anyhow::Result<Box<dyn Iterator<Item = anyhow::Result<Report>> + '_>> {
+    ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<Report>> + '_> {
         if target == "-" {
-            Ok(Box::new(Iter {
+            Ok(Either::Left(Iter {
                 line: String::new(),
                 reader: io::stdin().lock(),
                 reports: &self.reports,
@@ -85,7 +86,7 @@ impl Replay {
         } else {
             let file =
                 File::open(&target).map_err(|e| anyhow!("failed loading file: {target}: {e}"))?;
-            Ok(Box::new(Iter {
+            Ok(Either::Right(Iter {
                 line: String::new(),
                 reader: BufReader::new(file),
                 reports: &self.reports,
