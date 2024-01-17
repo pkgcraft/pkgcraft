@@ -4,7 +4,6 @@ use std::io::{self, BufRead, BufReader};
 use std::process::ExitCode;
 
 use anyhow::anyhow;
-use camino::Utf8PathBuf;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Args, ValueHint};
 use pkgcraft::restrict::{self, Restrict, Restriction};
@@ -34,13 +33,14 @@ pub struct Command {
     reporter: ReporterOptions,
 
     // positionals
-    /// Target file path (uses stdin by default)
+    /// Target file path
     #[arg(
         help_heading = "Arguments",
         value_name = "FILE",
         value_hint = ValueHint::FilePath,
+        default_value = "-",
     )]
-    file: Option<Utf8PathBuf>,
+    file: String,
 }
 
 impl Command {
@@ -63,8 +63,8 @@ impl Command {
 
         // open target file for reading
         let mut reader: Box<dyn BufRead> = match self.file.as_ref() {
-            None => Box::new(io::stdin().lock()),
-            Some(path) => {
+            "-" => Box::new(io::stdin().lock()),
+            path => {
                 let file =
                     File::open(path).map_err(|e| anyhow!("failed loading file: {path}: {e}"))?;
                 Box::new(BufReader::new(file))
