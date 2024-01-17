@@ -85,9 +85,10 @@ impl<'a> CheckRun<Vec<Pkg<'a>>> for DroppedKeywordsCheck<'a> {
         #[allow(clippy::mutable_key_type)] // false positive due to ebuild pkg OnceLock usage
         let mut dropped = HashMap::<_, Vec<_>>::new();
         for (arch, pkgs) in &changes {
-            for pkg in pkgs {
-                dropped.entry(pkg).or_default().push(arch);
-            }
+            // TODO: report all pkgs with dropped keywords in verbose mode?
+            // only report the latest pkg with dropped keywords
+            let pkg = pkgs.last().unwrap();
+            dropped.entry(pkg).or_default().push(arch);
         }
 
         for (pkg, arches) in &dropped {
