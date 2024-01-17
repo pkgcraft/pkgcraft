@@ -43,42 +43,95 @@ pub struct Command {
     file: String,
 }
 
+#[derive(Debug)]
+struct Replay {
+    reports: HashSet<ReportKind>,
+    filter: Restrict,
+}
+
+impl Replay {
+    fn new() -> Self {
+        Self {
+            reports: REPORTS.iter().copied().collect(),
+            filter: Restrict::True,
+        }
+    }
+
+    fn reports(mut self, reports: Vec<ReportKind>) -> Self {
+        if !reports.is_empty() {
+            self.reports = reports.into_iter().collect();
+        }
+        self
+    }
+
+    fn filter(mut self, restrict: Option<String>) -> anyhow::Result<Self> {
+        if let Some(s) = restrict.as_deref() {
+            self.filter = restrict::parse::dep(s)?;
+        };
+        Ok(self)
+    }
+
+    fn run(
+        &self,
+        target: String,
+    ) -> anyhow::Result<Box<dyn Iterator<Item = anyhow::Result<Report>> + '_>> {
+        if target == "-" {
+            Ok(Box::new(Iter {
+                line: String::new(),
+                reader: io::stdin().lock(),
+                reports: &self.reports,
+                filter: &self.filter,
+            }))
+        } else {
+            let file =
+                File::open(&target).map_err(|e| anyhow!("failed loading file: {target}: {e}"))?;
+            Ok(Box::new(Iter {
+                line: String::new(),
+                reader: BufReader::new(file),
+                reports: &self.reports,
+                filter: &self.filter,
+            }))
+        }
+    }
+}
+
+struct Iter<'a, R: BufRead> {
+    line: String,
+    reader: R,
+    reports: &'a HashSet<ReportKind>,
+    filter: &'a Restrict,
+}
+
+impl<R: BufRead> Iterator for Iter<'_, R> {
+    type Item = anyhow::Result<Report>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            self.line.clear();
+            match self.reader.read_line(&mut self.line) {
+                Ok(0) => return None,
+                Ok(_) => match Report::from_json(&self.line) {
+                    Ok(report) => {
+                        if self.reports.contains(report.kind()) && self.filter.matches(&report) {
+                            return Some(Ok(report));
+                        }
+                    }
+                    Err(e) => return Some(Err(anyhow!("{e}"))),
+                },
+                Err(e) => return Some(Err(anyhow!("failed reading line: {e}"))),
+            }
+        }
+    }
+}
+
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        // determine package restriction
-        let restrict = match self.filter.as_deref() {
-            Some(s) => restrict::parse::dep(s)?,
-            None => Restrict::True,
-        };
-
-        // determine reports filter
-        let reports: HashSet<_> = if self.reports.is_empty() {
-            REPORTS.iter().collect()
-        } else {
-            self.reports.iter().collect()
-        };
-
-        // determine reporter
-        let mut reporter = self.reporter.collapse()?;
-
-        // open target file for reading
-        let mut reader: Box<dyn BufRead> = match self.file.as_ref() {
-            "-" => Box::new(io::stdin().lock()),
-            path => {
-                let file =
-                    File::open(path).map_err(|e| anyhow!("failed loading file: {path}: {e}"))?;
-                Box::new(BufReader::new(file))
-            }
-        };
+        let replay = Replay::new().reports(self.reports).filter(self.filter)?;
 
         let mut stdout = io::stdout().lock();
-        let mut line = String::new();
-        while reader.read_line(&mut line)? != 0 {
-            let report = Report::from_json(&line)?;
-            if reports.contains(report.kind()) && restrict.matches(&report) {
-                reporter.report(&report, &mut stdout)?;
-            }
-            line.clear();
+        let mut reporter = self.reporter.collapse()?;
+        for report in replay.run(self.file)? {
+            reporter.report(&(report?), &mut stdout)?;
         }
 
         Ok(ExitCode::SUCCESS)
