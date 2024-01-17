@@ -18,7 +18,7 @@ pub(crate) struct ReporterOptions {
     reporter: Reporter,
 
     /// Format string for the format reporter
-    #[arg(short, long)]
+    #[arg(long)]
     format: Option<String>,
 }
 
