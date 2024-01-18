@@ -58,7 +58,7 @@ impl Reporter {
 pub struct SimpleReporter {}
 
 impl SimpleReporter {
-    pub fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         writeln!(output, "{}: {}: {}", report.scope(), report.kind(), report.description())?;
         Ok(())
     }
@@ -70,7 +70,7 @@ pub struct FancyReporter {
 }
 
 impl FancyReporter {
-    pub fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         let key = match report.scope() {
             ReportScope::Version(cpv) => cpv.cpn(),
             ReportScope::Package(cpn) => cpn.to_string(),
@@ -100,7 +100,7 @@ impl FancyReporter {
 pub struct JsonReporter {}
 
 impl JsonReporter {
-    pub fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         writeln!(output, "{}", report.to_json()?)?;
         Ok(())
     }
@@ -112,7 +112,7 @@ pub struct FormatReporter {
 }
 
 impl FormatReporter {
-    pub fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind().to_string())]
             .into_iter()
             .collect();

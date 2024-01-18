@@ -236,7 +236,7 @@ impl Report {
         &self.description
     }
 
-    pub(crate) fn level(&self) -> &ReportLevel {
+    pub fn level(&self) -> &ReportLevel {
         &self.level
     }
 

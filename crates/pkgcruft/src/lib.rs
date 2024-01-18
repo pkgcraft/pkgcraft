@@ -4,10 +4,10 @@ pub mod check;
 pub mod error;
 pub mod report;
 pub mod reporter;
-pub mod runner;
+mod runner;
 pub mod scanner;
 pub mod scope;
-pub mod source;
+mod source;
 
 pub use self::error::Error;
 
