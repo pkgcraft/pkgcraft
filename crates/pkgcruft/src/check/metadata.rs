@@ -36,7 +36,7 @@ impl<'a> MetadataCheck<'a> {
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'_> {
+impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use VersionReport::*;
         let eapi = pkg.eapi();

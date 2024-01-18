@@ -34,7 +34,7 @@ impl<'a> DependencyCheck<'a> {
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for DependencyCheck<'_> {
+impl<'a> CheckRun<&Pkg<'a>> for DependencyCheck<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
         use VersionReport::*;
 
