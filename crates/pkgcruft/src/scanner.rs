@@ -1,7 +1,8 @@
 use std::collections::{HashSet, VecDeque};
+use std::sync::Arc;
 use std::thread;
 
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use indexmap::IndexSet;
 use pkgcraft::repo::{ebuild, Repo, Repository};
 use pkgcraft::restrict::Restrict;
@@ -94,26 +95,10 @@ impl Scanner {
         });
 
         let (reports_tx, reports_rx) = unbounded();
-        let _workers: Vec<_> = (0..self.jobs)
-            .map(|_| {
-                let filter = self.reports.clone();
-                let runner = sync_runner.clone();
-                let reports_tx = reports_tx.clone();
-                let restrict_rx = restrict_rx.clone();
-                thread::spawn(move || {
-                    for restrict in restrict_rx {
-                        // run checks and filter reports
-                        let mut reports = runner.run(&restrict);
-                        reports.retain(|r| filter.contains(r.kind()));
-
-                        // sort and send reports
-                        if !reports.is_empty() {
-                            reports.sort();
-                            reports_tx.send(reports).expect("sending reports failed");
-                        }
-                    }
-                })
-            })
+        let runner = Arc::new(sync_runner);
+        let filter = Arc::new(self.reports.clone());
+        let _workers = (0..self.jobs)
+            .map(|_| Worker::new(&runner, &filter, &restrict_rx, &reports_tx))
             .collect();
 
         Ok(Iter {
@@ -125,10 +110,46 @@ impl Scanner {
     }
 }
 
+/// Check running worker for thread-based parallelism.
+struct Worker {
+    _thread: thread::JoinHandle<()>,
+}
+
+impl Worker {
+    /// Create a worker thread, receiving restrictions and sending reports over the channel.
+    fn new(
+        runner: &Arc<SyncCheckRunner<'static>>,
+        filter: &Arc<HashSet<ReportKind>>,
+        rx: &Receiver<Restrict>,
+        tx: &Sender<Vec<Report>>,
+    ) -> Self {
+        let runner = runner.clone();
+        let filter = filter.clone();
+        let rx = rx.clone();
+        let tx = tx.clone();
+
+        Self {
+            _thread: thread::spawn(move || {
+                for restrict in rx {
+                    // run checks and filter reports
+                    let mut reports = runner.run(&restrict);
+                    reports.retain(|r| filter.contains(r.kind()));
+
+                    // sort and send reports
+                    if !reports.is_empty() {
+                        reports.sort();
+                        tx.send(reports).expect("sending reports failed");
+                    }
+                }
+            }),
+        }
+    }
+}
+
 struct Iter {
     reports_rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
-    _workers: Vec<thread::JoinHandle<()>>,
+    _workers: Vec<Worker>,
     reports: VecDeque<Report>,
 }
 
