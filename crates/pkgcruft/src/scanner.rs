@@ -97,51 +97,52 @@ impl Scanner {
         let (reports_tx, reports_rx) = unbounded();
         let runner = Arc::new(sync_runner);
         let filter = Arc::new(self.reports.clone());
-        let _workers = (0..self.jobs)
-            .map(|_| Worker::new(&runner, &filter, &restrict_rx, &reports_tx))
-            .collect();
 
         Ok(Iter {
             reports_rx,
             _producer,
-            _workers,
+            _workers: Workers::new(self.jobs, &runner, &filter, &restrict_rx, &reports_tx),
             reports: VecDeque::new(),
         })
     }
 }
 
-/// Check running worker for thread-based parallelism.
-struct Worker {
-    _thread: thread::JoinHandle<()>,
+/// Worker threads that parallelize check running.
+struct Workers {
+    _threads: Vec<thread::JoinHandle<()>>,
 }
 
-impl Worker {
-    /// Create a worker thread, receiving restrictions and sending reports over the channel.
+impl Workers {
+    /// Create worker threads, receiving restrictions and sending reports over the channel.
     fn new(
+        jobs: usize,
         runner: &Arc<SyncCheckRunner<'static>>,
         filter: &Arc<HashSet<ReportKind>>,
         rx: &Receiver<Restrict>,
         tx: &Sender<Vec<Report>>,
     ) -> Self {
-        let runner = runner.clone();
-        let filter = filter.clone();
-        let rx = rx.clone();
-        let tx = tx.clone();
-
         Self {
-            _thread: thread::spawn(move || {
-                for restrict in rx {
-                    // run checks and filter reports
-                    let mut reports = runner.run(&restrict);
-                    reports.retain(|r| filter.contains(r.kind()));
+            _threads: (0..jobs)
+                .map(|_| {
+                    let runner = runner.clone();
+                    let filter = filter.clone();
+                    let rx = rx.clone();
+                    let tx = tx.clone();
+                    thread::spawn(move || {
+                        for restrict in rx {
+                            // run checks and filter reports
+                            let mut reports = runner.run(&restrict);
+                            reports.retain(|r| filter.contains(r.kind()));
 
-                    // sort and send reports
-                    if !reports.is_empty() {
-                        reports.sort();
-                        tx.send(reports).expect("sending reports failed");
-                    }
-                }
-            }),
+                            // sort and send reports
+                            if !reports.is_empty() {
+                                reports.sort();
+                                tx.send(reports).expect("sending reports failed");
+                            }
+                        }
+                    })
+                })
+                .collect(),
         }
     }
 }
@@ -149,7 +150,7 @@ impl Worker {
 struct Iter {
     reports_rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
-    _workers: Vec<Worker>,
+    _workers: Workers,
     reports: VecDeque<Report>,
 }
 
