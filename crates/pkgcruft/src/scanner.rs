@@ -79,11 +79,10 @@ impl Scanner {
 
         let mut raw_pkg_runner = EbuildRawPkgCheckRunner::new(repo);
         let mut pkg_runner = EbuildPkgCheckRunner::new(repo);
-        use SourceKind::*;
         for c in &self.checks {
             match c.source() {
-                EbuildPackage => pkg_runner.add_check(c),
-                EbuildPackageRaw => raw_pkg_runner.add_check(c),
+                SourceKind::EbuildPackage => pkg_runner.add_check(c),
+                SourceKind::EbuildPackageRaw => raw_pkg_runner.add_check(c),
             }
         }
 
