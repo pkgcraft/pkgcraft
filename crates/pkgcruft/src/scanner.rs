@@ -80,30 +80,44 @@ impl Scanner {
         let mut sync_runner = SyncCheckRunner::new(repo);
         sync_runner.add_checks(self.checks.iter().copied());
 
-        // send matches to the workers
-        let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
         let (restrict_tx, restrict_rx) = unbounded();
-        // TODO: use multiple producers to push restrictions
-        let _producer = thread::spawn(move || {
-            for r in restricts {
-                for cpn in repo.iter_cpn_restrict(r) {
-                    restrict_tx
-                        .send(Restrict::from(&cpn))
-                        .expect("sending restrict failed");
-                }
-            }
-        });
-
         let (reports_tx, reports_rx) = unbounded();
         let runner = Arc::new(sync_runner);
         let filter = Arc::new(self.reports.clone());
 
         Ok(Iter {
             reports_rx,
-            _producer,
+            _producer: Producer::new(repo, restricts, restrict_tx),
             _workers: Workers::new(self.jobs, &runner, &filter, &restrict_rx, &reports_tx),
             reports: VecDeque::new(),
         })
+    }
+}
+
+// TODO: use multiple producers to push restrictions
+/// Restriction producer thread that helps parallelize check running.
+struct Producer {
+    _thread: thread::JoinHandle<()>,
+}
+
+impl Producer {
+    /// Create a producer that sends restrictions over the channel to the workers.
+    fn new<I, R>(repo: &'static ebuild::Repo, restricts: I, tx: Sender<Restrict>) -> Self
+    where
+        I: IntoIterator<Item = R>,
+        R: Into<Restrict>,
+    {
+        let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
+        Self {
+            _thread: thread::spawn(move || {
+                for r in restricts {
+                    for cpn in repo.iter_cpn_restrict(r) {
+                        tx.send(Restrict::from(&cpn))
+                            .expect("sending restrict failed");
+                    }
+                }
+            }),
+        }
     }
 }
 
@@ -113,7 +127,7 @@ struct Workers {
 }
 
 impl Workers {
-    /// Create worker threads, receiving restrictions and sending reports over the channel.
+    /// Create workers that receive restrictions and send reports over the channel.
     fn new(
         jobs: usize,
         runner: &Arc<SyncCheckRunner<'static>>,
@@ -149,7 +163,7 @@ impl Workers {
 
 struct Iter {
     reports_rx: Receiver<Vec<Report>>,
-    _producer: thread::JoinHandle<()>,
+    _producer: Producer,
     _workers: Workers,
     reports: VecDeque<Report>,
 }
