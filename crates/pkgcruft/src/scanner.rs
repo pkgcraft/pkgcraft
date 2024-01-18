@@ -9,8 +9,7 @@ use pkgcraft::utils::bounded_jobs;
 
 use crate::check::{Check, CheckKind, CHECKS};
 use crate::report::{Report, ReportKind, REPORTS};
-use crate::runner::{EbuildPkgCheckRunner, EbuildRawPkgCheckRunner};
-use crate::source::SourceKind;
+use crate::runner::SyncCheckRunner;
 use crate::Error;
 
 #[derive(Debug)]
@@ -77,14 +76,8 @@ impl Scanner {
         // TODO: drop this hack once lifetime handling is improved for thread usage
         let repo: &'static ebuild::Repo = Box::leak(Box::new(repo.clone()));
 
-        let mut raw_pkg_runner = EbuildRawPkgCheckRunner::new(repo);
-        let mut pkg_runner = EbuildPkgCheckRunner::new(repo);
-        for c in &self.checks {
-            match c.source() {
-                SourceKind::EbuildPackage => pkg_runner.add_check(c),
-                SourceKind::EbuildPackageRaw => raw_pkg_runner.add_check(c),
-            }
-        }
+        let mut sync_runner = SyncCheckRunner::new(repo);
+        sync_runner.add_checks(self.checks.iter().copied());
 
         // send matches to the workers
         let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
@@ -104,25 +97,13 @@ impl Scanner {
         let _workers: Vec<_> = (0..self.jobs)
             .map(|_| {
                 let filter = self.reports.clone();
-                let pkg_runner = pkg_runner.clone();
-                let raw_pkg_runner = raw_pkg_runner.clone();
+                let runner = sync_runner.clone();
                 let reports_tx = reports_tx.clone();
                 let restrict_rx = restrict_rx.clone();
                 thread::spawn(move || {
                     for restrict in restrict_rx {
-                        let mut reports = vec![];
-                        let mut metadata_errors = false;
-
-                        if !raw_pkg_runner.is_empty() {
-                            metadata_errors = raw_pkg_runner.run(&restrict, &mut reports).is_err();
-                        }
-
-                        // skip the remaining runners if metadata errors exist
-                        if !metadata_errors && !pkg_runner.is_empty() {
-                            pkg_runner.run(&restrict, &mut reports).ok();
-                        }
-
-                        // filter reports
+                        // run checks and filter reports
+                        let mut reports = runner.run(&restrict);
                         reports.retain(|r| filter.contains(r.kind()));
 
                         // sort and send reports

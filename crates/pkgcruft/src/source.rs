@@ -4,12 +4,23 @@ use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Restrict;
 use strum::{AsRefStr, EnumIter, EnumString};
 
+use crate::runner::*;
+
 #[derive(
     AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub enum SourceKind {
     EbuildPackage,
     EbuildPackageRaw,
+}
+
+impl SourceKind {
+    pub(crate) fn new_runner<'a>(&self, repo: &'a Repo) -> CheckRunner<'a> {
+        match self {
+            Self::EbuildPackage => CheckRunner::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
+            Self::EbuildPackageRaw => CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
+        }
+    }
 }
 
 // TODO: return impl Iterator once MSRV >= 1.75
