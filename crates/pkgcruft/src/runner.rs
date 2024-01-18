@@ -6,15 +6,15 @@ use crate::report::Report;
 use crate::source::{self, IterRestrict};
 
 #[derive(Debug, Clone)]
-pub(crate) struct EbuildPkgCheckRunner {
-    checks: Vec<check::EbuildPkgCheck<'static>>,
-    set_checks: Vec<check::EbuildPkgSetCheck<'static>>,
-    source: source::EbuildPackage<'static>,
-    repo: &'static Repo,
+pub(crate) struct EbuildPkgCheckRunner<'a> {
+    checks: Vec<check::EbuildPkgCheck<'a>>,
+    set_checks: Vec<check::EbuildPkgSetCheck<'a>>,
+    source: source::EbuildPackage<'a>,
+    repo: &'a Repo,
 }
 
-impl EbuildPkgCheckRunner {
-    pub(crate) fn new(repo: &'static Repo) -> Self {
+impl<'a> EbuildPkgCheckRunner<'a> {
+    pub(crate) fn new(repo: &'a Repo) -> Self {
         Self {
             checks: Default::default(),
             set_checks: Default::default(),
@@ -61,14 +61,14 @@ impl EbuildPkgCheckRunner {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct EbuildRawPkgCheckRunner {
-    checks: Vec<check::EbuildRawPkgCheck<'static>>,
-    source: source::EbuildPackageRaw<'static>,
-    repo: &'static Repo,
+pub(crate) struct EbuildRawPkgCheckRunner<'a> {
+    checks: Vec<check::EbuildRawPkgCheck<'a>>,
+    source: source::EbuildPackageRaw<'a>,
+    repo: &'a Repo,
 }
 
-impl EbuildRawPkgCheckRunner {
-    pub(crate) fn new(repo: &'static Repo) -> Self {
+impl<'a> EbuildRawPkgCheckRunner<'a> {
+    pub(crate) fn new(repo: &'a Repo) -> Self {
         Self {
             checks: Default::default(),
             source: source::EbuildPackageRaw { repo },
