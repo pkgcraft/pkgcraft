@@ -31,8 +31,8 @@ impl<'a> DroppedKeywordsCheck<'a> {
     }
 }
 
-impl<'a> CheckRun<Vec<Pkg<'a>>> for DroppedKeywordsCheck<'a> {
-    fn run(&self, pkgs: &Vec<Pkg<'a>>, reports: &mut Vec<Report>) -> crate::Result<()> {
+impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
+    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) -> crate::Result<()> {
         use VersionReport::*;
 
         // ignore packages lacking keywords

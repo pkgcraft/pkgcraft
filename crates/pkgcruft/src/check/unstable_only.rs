@@ -36,8 +36,8 @@ impl<'a> UnstableOnlyCheck<'a> {
     }
 }
 
-impl<'a> CheckRun<Vec<Pkg<'a>>> for UnstableOnlyCheck<'a> {
-    fn run(&self, pkgs: &Vec<Pkg<'a>>, reports: &mut Vec<Report>) -> crate::Result<()> {
+impl<'a> CheckRun<&[Pkg<'a>]> for UnstableOnlyCheck<'a> {
+    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) -> crate::Result<()> {
         use PackageReport::*;
 
         let arches: Vec<_> = pkgs
