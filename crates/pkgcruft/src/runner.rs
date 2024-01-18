@@ -25,7 +25,7 @@ impl<'a> SyncCheckRunner<'a> {
     ///
     /// This creates new sources and checkrunner variants on the fly. Note that the iterator of
     /// checks should be pre-sorted so the runners get inserted in their running order.
-    pub(crate) fn add_checks<I>(&mut self, checks: I)
+    pub(crate) fn checks<I>(mut self, checks: I) -> Self
     where
         I: IntoIterator<Item = Check>,
     {
@@ -36,6 +36,7 @@ impl<'a> SyncCheckRunner<'a> {
                 .or_insert_with(|| source.new_runner(self.repo))
                 .add_check(&check);
         }
+        self
     }
 
     /// Run all check runners in order of priority.

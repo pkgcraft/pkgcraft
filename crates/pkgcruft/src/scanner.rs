@@ -77,9 +77,7 @@ impl Scanner {
         // TODO: drop this hack once lifetime handling is improved for thread usage
         let repo: &'static ebuild::Repo = Box::leak(Box::new(repo.clone()));
 
-        let mut sync_runner = SyncCheckRunner::new(repo);
-        sync_runner.add_checks(self.checks.iter().copied());
-
+        let sync_runner = SyncCheckRunner::new(repo).checks(self.checks.iter().copied());
         let (restrict_tx, restrict_rx) = unbounded();
         let (reports_tx, reports_rx) = unbounded();
         let runner = Arc::new(sync_runner);
