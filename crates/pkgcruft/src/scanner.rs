@@ -109,7 +109,7 @@ impl Scanner {
                         // sort and send reports
                         if !reports.is_empty() {
                             reports.sort();
-                            reports_tx.send(reports).expect("sending report failed");
+                            reports_tx.send(reports).expect("sending reports failed");
                         }
                     }
                 })
