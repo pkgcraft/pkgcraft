@@ -6,6 +6,7 @@ use strum::{AsRefStr, EnumIter, EnumString};
 
 use crate::runner::*;
 
+/// All check runner source variants.
 #[derive(
     AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
@@ -15,6 +16,7 @@ pub enum SourceKind {
 }
 
 impl SourceKind {
+    /// Create a new check runner for a source variant.
     pub(crate) fn new_runner<'a>(&self, repo: &'a Repo) -> CheckRunner<'a> {
         match self {
             Self::EbuildPackage => CheckRunner::EbuildPkg(EbuildPkgCheckRunner::new(repo)),

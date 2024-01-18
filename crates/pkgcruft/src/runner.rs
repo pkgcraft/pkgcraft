@@ -6,6 +6,7 @@ use crate::check::{self, Check, CheckKind, CheckRun};
 use crate::report::Report;
 use crate::source::{self, IterRestrict, SourceKind};
 
+/// Check runner for synchronous checks.
 #[derive(Debug, Clone)]
 pub(crate) struct SyncCheckRunner<'a> {
     runners: IndexMap<SourceKind, CheckRunner<'a>>,
@@ -20,6 +21,10 @@ impl<'a> SyncCheckRunner<'a> {
         }
     }
 
+    /// Add checks to the runner.
+    ///
+    /// This creates new sources and checkrunner variants on the fly. Note that the iterator of
+    /// checks should be pre-sorted so the runners get inserted in their running order.
     pub(crate) fn add_checks<I>(&mut self, checks: I)
     where
         I: IntoIterator<Item = Check>,
@@ -33,6 +38,7 @@ impl<'a> SyncCheckRunner<'a> {
         }
     }
 
+    /// Run all check runners in order of priority.
     pub(crate) fn run(&self, restrict: &Restrict) -> Vec<Report> {
         let mut reports = vec![];
         for runner in self.runners.values() {
@@ -42,6 +48,7 @@ impl<'a> SyncCheckRunner<'a> {
     }
 }
 
+/// Generic check runners.
 #[derive(Debug, Clone)]
 pub(crate) enum CheckRunner<'a> {
     EbuildPkg(EbuildPkgCheckRunner<'a>),
@@ -49,6 +56,7 @@ pub(crate) enum CheckRunner<'a> {
 }
 
 impl CheckRunner<'_> {
+    /// Add a check to the check runner.
     fn add_check(&mut self, check: &Check) {
         match self {
             Self::EbuildPkg(r) => r.add_check(check),
@@ -56,6 +64,7 @@ impl CheckRunner<'_> {
         }
     }
 
+    /// Run the check runner for a given restriction.
     fn run(&self, restrict: &Restrict, reports: &mut Vec<Report>) -> crate::Result<()> {
         match self {
             Self::EbuildPkg(r) => r.run(restrict, reports),
@@ -64,6 +73,7 @@ impl CheckRunner<'_> {
     }
 }
 
+/// Check runner for ebuild package checks.
 #[derive(Debug, Clone)]
 pub(crate) struct EbuildPkgCheckRunner<'a> {
     checks: Vec<check::EbuildPkgCheck<'a>>,
@@ -82,6 +92,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         }
     }
 
+    /// Add a check to the check runner.
     fn add_check(&mut self, check: &Check) {
         use CheckKind::*;
         match check.kind() {
@@ -91,11 +102,8 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         }
     }
 
-    pub(crate) fn run<R: Into<Restrict>>(
-        &self,
-        restrict: R,
-        reports: &mut Vec<Report>,
-    ) -> crate::Result<()> {
+    /// Run the check runner for a given restriction.
+    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) -> crate::Result<()> {
         let mut pkgs = vec![];
 
         for pkg in self.source.iter_restrict(restrict) {
@@ -115,6 +123,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 }
 
+/// Check runner for raw ebuild package checks.
 #[derive(Debug, Clone)]
 pub(crate) struct EbuildRawPkgCheckRunner<'a> {
     checks: Vec<check::EbuildRawPkgCheck<'a>>,
@@ -131,6 +140,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
         }
     }
 
+    /// Add a check to the check runner.
     fn add_check(&mut self, check: &Check) {
         use CheckKind::*;
         match check.kind() {
@@ -139,11 +149,8 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
         }
     }
 
-    pub(crate) fn run<R: Into<Restrict>>(
-        &self,
-        restrict: R,
-        reports: &mut Vec<Report>,
-    ) -> crate::Result<()> {
+    /// Run the check runner for a given restriction.
+    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) -> crate::Result<()> {
         for pkg in self.source.iter_restrict(restrict) {
             for check in &self.checks {
                 check.run(&pkg, reports)?;
