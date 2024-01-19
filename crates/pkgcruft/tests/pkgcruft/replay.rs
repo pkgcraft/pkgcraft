@@ -83,3 +83,18 @@ fn file_targets() {
         .stderr("")
         .success();
 }
+
+#[test]
+fn reporters() {
+    for opt in ["-R", "--reporter"] {
+        for reporter in ["simple", "fancy", "json"] {
+            cmd("pkgcruft replay")
+                .args([opt, reporter])
+                .arg(QA_PRIMARY_FILE.path())
+                .assert()
+                .stdout(predicate::str::is_empty().not())
+                .stderr("")
+                .success();
+        }
+    }
+}
