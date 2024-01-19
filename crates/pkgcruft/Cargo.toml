@@ -55,3 +55,4 @@ tracing-subscriber = "0.3.18"
 
 [dev-dependencies]
 predicates = "3.1.0"
+tempfile = "3.9.0"

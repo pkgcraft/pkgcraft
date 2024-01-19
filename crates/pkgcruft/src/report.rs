@@ -243,13 +243,13 @@ impl Report {
     /// Serialize a [`Report`] into JSON.
     pub fn to_json(&self) -> crate::Result<String> {
         serde_json::to_string(&self)
-            .map_err(|e| Error::InvalidValue(format!("failed serializing report to JSON: {e}")))
+            .map_err(|e| Error::InvalidValue(format!("failed serializing report: {e}")))
     }
 
     /// Deserialize a JSON string into a [`Report`].
     pub fn from_json(data: &str) -> crate::Result<Self> {
         serde_json::from_str(data)
-            .map_err(|e| Error::InvalidValue(format!("failed deserializing JSON to report: {e}")))
+            .map_err(|e| Error::InvalidValue(format!("failed deserializing report: {e}")))
     }
 }
 
