@@ -1,5 +1,8 @@
-use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
-use pkgcraft::test::cmd;
+use std::env;
+
+use pkgcraft::repo::Repository;
+use pkgcraft::test::{cmd, TEST_DATA};
+use predicates::prelude::*;
 use predicates::str::contains;
 
 #[test]
@@ -47,23 +50,25 @@ fn invalid_dep_restricts() {
 
 #[test]
 fn stdin_targets() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    cmd("pkgcruft scan -")
-        .arg(t.path())
-        .write_stdin("cat/pkg\n")
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    env::set_current_dir(repo.path()).unwrap();
+    for arg in ["DroppedKeywords", "DroppedKeywords/DroppedKeywords"] {
+        cmd("pkgcruft scan -R simple -")
+            .write_stdin(format!("{arg}\n"))
+            .assert()
+            .stdout(contains("DroppedKeywords: arm64"))
+            .stderr("")
+            .success();
+    }
 }
 
 #[test]
-fn empty_ebuild_repo() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
+fn repo_path_target() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     cmd("pkgcruft scan")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
-        .stdout("")
+        .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
 }
