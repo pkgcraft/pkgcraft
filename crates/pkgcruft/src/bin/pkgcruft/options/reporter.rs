@@ -24,7 +24,7 @@ pub(crate) struct ReporterOptions {
 
 impl ReporterOptions {
     pub(crate) fn collapse(mut self) -> anyhow::Result<Reporter> {
-        self.reporter.format(self.format.unwrap_or_default())?;
+        self.reporter.format(self.format)?;
         Ok(self.reporter)
     }
 }

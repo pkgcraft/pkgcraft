@@ -25,21 +25,25 @@ impl Default for Reporter {
 
 impl Reporter {
     /// Inject a format string into compatible reporter variants.
-    pub fn format(&mut self, format: String) -> crate::Result<()> {
+    pub fn format(&mut self, format: Option<String>) -> crate::Result<()> {
         match (self, format) {
-            (Self::Format(r), s) if !s.is_empty() => r.format = s,
-            (Self::Format(_), _) => {
-                return Err(Error::InvalidValue(
-                    "format reporter requires non-empty format".to_string(),
-                ))
+            (Self::Format(r), format) => {
+                if let Some(s) = format {
+                    r.format = s;
+                } else {
+                    return Err(Error::InvalidValue(
+                        "format reporter requires a format string".to_string(),
+                    ));
+                }
             }
-            (_, s) if !s.is_empty() => {
+            (_, Some(_)) => {
                 return Err(Error::InvalidValue(
-                    "format only valid with format reporter".to_string(),
+                    "format option only valid with the format reporter".to_string(),
                 ))
             }
             _ => (),
         }
+
         Ok(())
     }
 
