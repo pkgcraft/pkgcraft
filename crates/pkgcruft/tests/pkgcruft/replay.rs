@@ -155,3 +155,32 @@ fn reports() {
         assert_eq!(&data, &expected[0..2]);
     }
 }
+
+#[test]
+fn filter() {
+    let reports = indoc::indoc! {r#"
+        {"scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"kind":{"Version":"DroppedKeywords"},"level":"Warning","description":"alpha, hppa, ia64, m68k, ppc"}
+        {"scope":{"Version":"x11-wm/mutter-45.1"},"kind":{"Version":"DroppedKeywords"},"level":"Warning","description":"ppc64"}
+        {"scope":{"Package":"x11-wm/mutter"},"kind":{"Package":"UnstableOnly"},"level":"Info","description":"arm, ppc64"}
+    "#};
+    let expected: Vec<_> = reports.lines().collect();
+
+    for opt in ["-f", "--filter"] {
+        for (target, expected) in [
+            ("sys-fs/*", &expected[0..=0]),
+            ("*m*", &expected[0..]),
+            ("mutter", &expected[1..=2]),
+            ("mutter-45.1", &expected[1..=1]),
+        ] {
+            let output = cmd("pkgcruft replay -R json -")
+                .args([opt, target])
+                .write_stdin(reports)
+                .output()
+                .unwrap()
+                .stdout;
+            let data = String::from_utf8(output).unwrap();
+            let data: Vec<_> = data.lines().collect();
+            assert_eq!(&data, expected);
+        }
+    }
+}
