@@ -1,10 +1,25 @@
+use std::fs;
 use std::io::Write;
 
+use once_cell::sync::Lazy;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::NamedTempFile;
+
+/// Temporary file of all serialized reports from the primary QA test repo.
+static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
+    let mut file = NamedTempFile::new().unwrap();
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let output = cmd("pkgcruft scan -R json")
+        .arg(repo.path())
+        .output()
+        .unwrap()
+        .stdout;
+    file.write_all(&output).unwrap();
+    file
+});
 
 #[test]
 fn nonexistent_path_target() {
@@ -28,18 +43,9 @@ fn invalid_dir_target() {
 
 #[test]
 fn stdin() {
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-
-    // run scan, saving serialized report output
-    let output = cmd("pkgcruft scan -R json")
-        .arg(repo.path())
-        .output()
-        .unwrap()
-        .stdout;
-
     // valid
     cmd("pkgcruft replay -")
-        .write_stdin(output)
+        .write_stdin(fs::read_to_string(QA_PRIMARY_FILE.path()).unwrap())
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -70,20 +76,8 @@ fn file_targets() {
         .code(2);
 
     // valid
-    let mut file = NamedTempFile::new().unwrap();
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-
-    // serialize reports to file
-    let output = cmd("pkgcruft scan -R json")
-        .arg(repo.path())
-        .output()
-        .unwrap()
-        .stdout;
-    file.write_all(&output).unwrap();
-
-    // replay reports from file
     cmd("pkgcruft replay")
-        .arg(file.path())
+        .arg(QA_PRIMARY_FILE.path())
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
