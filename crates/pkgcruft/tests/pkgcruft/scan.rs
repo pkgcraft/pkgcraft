@@ -1,15 +1,48 @@
 use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
 use pkgcraft::test::cmd;
-use predicates::prelude::*;
+use predicates::str::contains;
 
 #[test]
-fn missing_target() {
+fn invalid_cwd() {
     cmd("pkgcruft scan")
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("invalid repo path"))
         .failure()
         .code(2);
+}
+
+#[test]
+fn nonexistent_path_target() {
+    cmd("pkgcruft scan path/to/nonexistent/repo")
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid path target"))
+        .failure()
+        .code(2);
+}
+
+#[test]
+fn invalid_path_target() {
+    cmd("pkgcruft scan /")
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid repo path"))
+        .failure()
+        .code(2);
+}
+
+#[test]
+fn invalid_dep_restricts() {
+    for s in ["^pkg", "cat&pkg"] {
+        cmd("pkgcruft scan")
+            .arg(s)
+            .assert()
+            .stdout("")
+            .stderr(contains(format!("invalid dep restriction: {s}")))
+            .failure()
+            .code(2);
+    }
 }
 
 #[test]
@@ -22,16 +55,6 @@ fn stdin_targets() {
         .stdout("")
         .stderr("")
         .success();
-}
-
-#[test]
-fn nonexistent_path_target() {
-    cmd("pkgcruft scan path/to/nonexistent/repo")
-        .assert()
-        .stdout("")
-        .stderr(predicate::str::is_empty().not())
-        .failure()
-        .code(2);
 }
 
 #[test]
