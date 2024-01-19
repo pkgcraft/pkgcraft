@@ -27,20 +27,6 @@ fn invalid_dir_target() {
 }
 
 #[test]
-fn invalid_file_target() {
-    let mut file = NamedTempFile::new().unwrap();
-    writeln!(file, "invalid reports json file").unwrap();
-
-    cmd("pkgcruft replay")
-        .arg(file.path())
-        .assert()
-        .stdout("")
-        .stderr(contains("failed deserializing report"))
-        .failure()
-        .code(2);
-}
-
-#[test]
 fn stdin() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
 
@@ -48,11 +34,12 @@ fn stdin() {
     let output = cmd("pkgcruft scan -R json")
         .arg(repo.path())
         .output()
-        .unwrap();
+        .unwrap()
+        .stdout;
 
     // valid
     cmd("pkgcruft replay -")
-        .write_stdin(output.stdout)
+        .write_stdin(output)
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -66,4 +53,39 @@ fn stdin() {
         .stderr(contains("failed deserializing report"))
         .failure()
         .code(2);
+}
+
+#[test]
+fn file_targets() {
+    let mut file = NamedTempFile::new().unwrap();
+    writeln!(file, "invalid reports json file").unwrap();
+
+    // invalid
+    cmd("pkgcruft replay")
+        .arg(file.path())
+        .assert()
+        .stdout("")
+        .stderr(contains("failed deserializing report"))
+        .failure()
+        .code(2);
+
+    // valid
+    let mut file = NamedTempFile::new().unwrap();
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+
+    // serialize reports to file
+    let output = cmd("pkgcruft scan -R json")
+        .arg(repo.path())
+        .output()
+        .unwrap()
+        .stdout;
+    file.write_all(&output).unwrap();
+
+    // replay reports from file
+    cmd("pkgcruft replay")
+        .arg(file.path())
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
 }
