@@ -98,3 +98,27 @@ fn reporters() {
         }
     }
 }
+
+#[test]
+fn sort() {
+    // serialized reports in reversed sorting order
+    let reports = indoc::indoc! {r#"
+        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"level":"Info","description":"x86"}
+        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"level":"Warning","description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"level":"Warning","description":"BDEPEND: media-sound/pulseaudio"}
+    "#};
+    let mut expected: Vec<_> = reports.lines().collect();
+    expected.reverse();
+
+    for opt in ["-s", "--sort"] {
+        let output = cmd("pkgcruft replay -R json -")
+            .arg(opt)
+            .write_stdin(reports)
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let data: Vec<_> = data.lines().collect();
+        assert_eq!(&data, &expected);
+    }
+}

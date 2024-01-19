@@ -136,16 +136,16 @@ impl Command {
         let mut stdout = io::stdout().lock();
         let mut reporter = self.reporter.collapse()?;
 
-        if !self.sort {
-            for report in replay.run(self.file)? {
-                reporter.report(&(report?), &mut stdout)?;
-            }
-        } else {
+        if self.sort {
             let reports: Result<Vec<_>, _> = replay.run(self.file)?.collect();
             let mut reports = reports?;
             reports.sort();
             for report in reports {
                 reporter.report(&report, &mut stdout)?;
+            }
+        } else {
+            for report in replay.run(self.file)? {
+                reporter.report(&(report?), &mut stdout)?;
             }
         }
 
