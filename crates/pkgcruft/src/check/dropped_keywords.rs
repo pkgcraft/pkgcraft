@@ -99,3 +99,29 @@ impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::dep::Dep;
+    use pkgcraft::repo::{PkgRepository, Repository};
+    use pkgcraft::test::TEST_DATA;
+
+    use crate::report::Iter;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+        let check = DroppedKeywordsCheck::new(repo);
+        let json = repo
+            .path()
+            .join("DroppedKeywords/DroppedKeywords/reports.json");
+        let expected: Result<Vec<_>, _> = Iter::try_from_file(&json).unwrap().collect();
+        let dep = Dep::try_new_cpn("DroppedKeywords/DroppedKeywords").unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(&dep).collect();
+        let mut reports = vec![];
+        check.run(&pkgs, &mut reports).unwrap();
+        assert_eq!(&reports, &expected.unwrap());
+    }
+}
