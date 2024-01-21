@@ -33,7 +33,7 @@ pub(crate) fn digest<D: Digest>(data: &[u8]) -> String {
 }
 
 /// Get the current working directory as a Utf8PathBuf.
-pub(crate) fn current_dir() -> crate::Result<Utf8PathBuf> {
+pub fn current_dir() -> crate::Result<Utf8PathBuf> {
     let dir = env::current_dir()
         .map_err(|e| Error::InvalidValue(format!("can't get current dir: {e}")))?;
     Utf8PathBuf::try_from(dir)
