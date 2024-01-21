@@ -82,7 +82,7 @@ impl<'a> TargetRestrictions<'a> {
                     match paths[..] {
                         [path] if path.contains('/') => {
                             let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
-                                Error::InvalidValue(format!("invalid repo path: {path}: {e}"))
+                                Error::InvalidValue(format!("invalid repo: {path}: {e}"))
                             })?;
 
                             // add external repo to the config if it doesn't exist
@@ -120,15 +120,21 @@ impl<'a> TargetRestrictions<'a> {
                 {
                     // configured repo path restrict
                     Ok((RepoSet::from_iter([repo]), restrict))
-                } else if let Ok(repo) =
-                    self.config
-                        .add_format_repo_nested_path(&path, 0, &path, true, self.repo_format)
-                {
-                    // external repo path restrict
-                    let restrict = repo.restrict_from_path(&path).expect("invalid repo path");
-                    Ok((RepoSet::from_iter([&repo]), restrict))
                 } else {
-                    Err(Error::InvalidValue(format!("invalid repo path: {path}")))
+                    match self.config.add_format_repo_nested_path(
+                        &path,
+                        0,
+                        &path,
+                        true,
+                        self.repo_format,
+                    ) {
+                        Ok(repo) => {
+                            // external repo path restrict
+                            let restrict = repo.restrict_from_path(&path).expect("invalid repo");
+                            Ok((RepoSet::from_iter([&repo]), restrict))
+                        }
+                        Err(e) => Err(e),
+                    }
                 }
             }
             (_, Err(e)) if target.contains('/') => {
