@@ -39,7 +39,7 @@ pub unsafe extern "C" fn pkgcraft_repo_from_path(
             try_str_from_ptr!(id)
         };
 
-        let repo = unwrap_or_panic!(Repo::from_path(id, priority, path, finalize));
+        let repo = unwrap_or_panic!(Repo::from_path(id, path, priority, finalize));
         Box::into_raw(Box::new(repo))
     }
 }
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn pkgcraft_repo_from_format(
             try_str_from_ptr!(id)
         };
 
-        let repo = unwrap_or_panic!(format.load_from_path(id, priority, path, finalize));
+        let repo = unwrap_or_panic!(format.load_from_path(id, path, priority, finalize));
         Box::into_raw(Box::new(repo))
     }
 }

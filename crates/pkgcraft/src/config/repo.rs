@@ -109,7 +109,7 @@ impl Config {
             // ignore unsynced or nonexistent repos
             match c
                 .format
-                .load_from_path(&name, c.priority, &c.location, false)
+                .load_from_path(&name, &c.location, c.priority, false)
             {
                 Ok(repo) => repos.push(repo),
                 Err(err) => warn!("{err}"),
@@ -145,7 +145,7 @@ impl Config {
         };
         config.sync()?;
 
-        let repo = Repo::from_path(name, priority, config.location, false)?;
+        let repo = Repo::from_path(name, config.location, priority, false)?;
 
         // write repo config file to disk
         let data = toml::to_string(repo.repo_config())
@@ -166,7 +166,7 @@ impl Config {
         // create temporary repo and persist it to disk
         let temp_repo = TempRepo::new(name, Some(&self.repo_dir), priority, None)?;
         temp_repo.persist(Some(&path))?;
-        Repo::from_path(name, priority, path.as_str(), false)
+        Repo::from_path(name, &path, priority, false)
     }
 
     pub(super) fn create_temp(

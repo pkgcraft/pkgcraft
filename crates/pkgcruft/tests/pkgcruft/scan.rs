@@ -2,15 +2,17 @@ use std::env;
 
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::utils::current_dir;
 use predicates::prelude::*;
 use predicates::str::contains;
 
 #[test]
 fn invalid_cwd() {
+    let path = current_dir().unwrap();
     cmd("pkgcruft scan")
         .assert()
         .stdout("")
-        .stderr(contains("invalid repo path"))
+        .stderr(contains(format!("invalid ebuild repo: {path}")))
         .failure()
         .code(2);
 }
@@ -30,7 +32,7 @@ fn invalid_path_target() {
     cmd("pkgcruft scan /")
         .assert()
         .stdout("")
-        .stderr(contains("invalid repo path"))
+        .stderr(contains("invalid ebuild repo: /"))
         .failure()
         .code(2);
 }

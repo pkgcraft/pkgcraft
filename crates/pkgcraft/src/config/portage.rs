@@ -37,7 +37,7 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
                 // pull supported fields from config
                 let priority = settings.get("priority").unwrap_or("0").parse().unwrap_or(0);
                 if let Some(path) = settings.get("location") {
-                    Repo::from_path(name, priority, path, false)
+                    Repo::from_path(name, path, priority, false)
                 } else {
                     Err(Error::Config(format!(
                         "invalid repos.conf file: {f:?}: missing location field: {name}"

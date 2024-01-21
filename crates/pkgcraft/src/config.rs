@@ -223,11 +223,11 @@ impl Config {
     pub fn add_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         &mut self,
         name: S,
-        priority: i32,
         path: P,
+        priority: i32,
         external: bool,
     ) -> crate::Result<Repo> {
-        let r = Repo::from_path(name, priority, path, false)?;
+        let r = Repo::from_path(name, path, priority, false)?;
         self.add_repo(&r, external)?;
         Ok(r)
     }
@@ -236,41 +236,45 @@ impl Config {
     pub fn add_format_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         &mut self,
         name: S,
-        priority: i32,
         path: P,
+        priority: i32,
         external: bool,
         format: RepoFormat,
     ) -> crate::Result<Repo> {
-        let r = format.load_from_path(name, priority, path, false)?;
+        let r = format.load_from_path(name, path, priority, false)?;
         self.add_repo(&r, external)?;
         Ok(r)
     }
 
     /// Add local repo from a potentially nested filesystem path.
-    pub fn add_nested_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
+    pub fn add_nested_repo_path<P: AsRef<Utf8Path>>(
         &mut self,
-        name: S,
-        priority: i32,
         path: P,
-        external: bool,
+        priority: i32,
     ) -> crate::Result<Repo> {
-        let r = Repo::from_nested_path(name, priority, path, false)?;
-        self.add_repo(&r, external)?;
+        let r = Repo::from_nested_path(path, priority, false)?;
+        self.add_repo(&r, true)?;
         Ok(r)
     }
 
     /// Add local repo of a specific format from a potentially nested filesystem path.
-    pub fn add_format_repo_nested_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
+    pub fn add_format_repo_nested_path<P: AsRef<Utf8Path>>(
         &mut self,
-        name: S,
-        priority: i32,
         path: P,
-        external: bool,
+        priority: i32,
         format: RepoFormat,
     ) -> crate::Result<Repo> {
-        let r = format.load_from_nested_path(name, priority, path, false)?;
-        self.add_repo(&r, external)?;
-        Ok(r)
+        let path = path.as_ref();
+        match format.load_from_nested_path(path, priority, false) {
+            Err(Error::NotARepo { .. }) => {
+                Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
+            }
+            Err(e) => Err(e),
+            Ok(r) => {
+                self.add_repo(&r, true)?;
+                Ok(r)
+            }
+        }
     }
 
     /// Add external repo from a URI.
@@ -291,7 +295,7 @@ impl Config {
         if let Some(repo) = self.repos.get(target) {
             Ok(repo.clone())
         } else if Utf8Path::new(target).exists() {
-            Ok(self.add_nested_repo_path(target, 0, target, true)?)
+            Ok(self.add_nested_repo_path(target, 0)?)
         } else {
             Err(Error::InvalidValue(format!("unknown repo: {target}")))
         }

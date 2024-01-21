@@ -55,7 +55,7 @@ pub(crate) fn target_ebuild_repo<'a>(
 ) -> anyhow::Result<&'a EbuildRepo> {
     if config.repos.get(repo).is_none() {
         if Path::new(repo).exists() {
-            config.add_repo_path(repo, 0, repo, true)?;
+            config.add_repo_path(repo, repo, 0, true)?;
         } else {
             anyhow::bail!("unknown repo: {repo}");
         }

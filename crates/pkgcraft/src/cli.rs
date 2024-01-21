@@ -39,7 +39,7 @@ impl<'a> TargetRestrictions<'a> {
             if s.contains('/') {
                 let repo = self
                     .config
-                    .add_format_repo_path(s, 0, s, true, self.repo_format)?;
+                    .add_format_repo_path(s, s, 0, true, self.repo_format)?;
                 self.repo_set = RepoSet::from_iter([repo]);
             } else {
                 let repo = self
@@ -50,9 +50,9 @@ impl<'a> TargetRestrictions<'a> {
                 self.repo_set = RepoSet::from_iter([repo]);
             }
         } else if let Ok(path) = current_dir() {
-            if let Ok(repo) =
-                self.config
-                    .add_format_repo_nested_path(&path, 0, &path, true, self.repo_format)
+            if let Ok(repo) = self
+                .config
+                .add_format_repo_nested_path(&path, 0, self.repo_format)
             {
                 self.repo_set = RepoSet::from_iter([repo]);
             }
@@ -93,8 +93,8 @@ impl<'a> TargetRestrictions<'a> {
                             } else {
                                 self.config.add_format_repo_path(
                                     &path,
-                                    0,
                                     &path,
+                                    0,
                                     true,
                                     self.repo_format,
                                 )?
@@ -121,13 +121,10 @@ impl<'a> TargetRestrictions<'a> {
                     // configured repo path restrict
                     Ok((RepoSet::from_iter([repo]), restrict))
                 } else {
-                    match self.config.add_format_repo_nested_path(
-                        &path,
-                        0,
-                        &path,
-                        true,
-                        self.repo_format,
-                    ) {
+                    match self
+                        .config
+                        .add_format_repo_nested_path(&path, 0, self.repo_format)
+                    {
                         Ok(repo) => {
                             // external repo path restrict
                             let restrict = repo.restrict_from_path(&path).expect("invalid repo");
@@ -189,7 +186,7 @@ pub fn target_restriction(
             {
                 // configured repo path restrict
                 return Ok((RepoSet::from_iter([repo]), restrict));
-            } else if let Ok(repo) = repo_format.load_from_nested_path(path, 0, path, true) {
+            } else if let Ok(repo) = repo_format.load_from_nested_path(path, 0, true) {
                 // external repo path restrict
                 config.add_repo(&repo, true)?;
                 let restrict = repo.restrict_from_path(path).expect("invalid repo path");
@@ -227,7 +224,7 @@ pub fn target_restriction(
                         {
                             repo.clone()
                         } else {
-                            let repo = repo_format.load_from_path(&path, 0, &path, true)?;
+                            let repo = repo_format.load_from_path(&path, &path, 0, true)?;
                             config.add_repo(&repo, true)?;
                             repo
                         };

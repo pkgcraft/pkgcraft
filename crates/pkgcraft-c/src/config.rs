@@ -37,7 +37,7 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
         };
 
         let config = try_mut_from_ptr!(c);
-        let repo = unwrap_or_panic!(config.add_repo_path(id, priority, path, external));
+        let repo = unwrap_or_panic!(config.add_repo_path(id, path, priority, external));
         Box::into_raw(Box::new(repo))
     }
 }

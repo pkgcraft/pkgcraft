@@ -1199,7 +1199,7 @@ mod tests {
         // none
         let repo = Repo::from_path("a", 0, repos_dir.join("valid/primary")).unwrap();
         let repo = config
-            .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
+            .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
         assert!(repo.masters().next().is_none());
@@ -1209,13 +1209,13 @@ mod tests {
         // nonexistent
         let repo =
             Repo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters")).unwrap();
-        let r = config.add_repo_path(repo.id(), 0, repo.path().as_str(), false);
+        let r = config.add_repo_path(repo.id(), repo.path().as_str(), 0, false);
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
 
         // single
         let repo = Repo::from_path("b", 0, repos_dir.join("valid/secondary")).unwrap();
         let repo = config
-            .add_repo_path(repo.id(), 0, repo.path().as_str(), false)
+            .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
         let masters: Vec<_> = repo.masters().map(|r| r.id().to_string()).collect();
@@ -1244,11 +1244,11 @@ mod tests {
         let repos_dir = TEST_DATA.path().join("repos/invalid");
 
         // nonexistent profiles/eapi file uses EAPI 0 which isn't supported
-        let r = config.add_repo_path("test", 0, repos_dir.join("unsupported-eapi"), false);
+        let r = config.add_repo_path("test", repos_dir.join("unsupported-eapi"), 0, false);
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: 0$");
 
         // unknown EAPI
-        let r = config.add_repo_path("test", 0, repos_dir.join("unknown-eapi"), false);
+        let r = config.add_repo_path("test", repos_dir.join("unknown-eapi"), 0, false);
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: unknown$");
 
         // supported EAPI

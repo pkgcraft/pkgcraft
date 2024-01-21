@@ -39,11 +39,10 @@ impl RepoFormat {
     pub fn load_from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
         &self,
         id: S,
-        priority: i32,
         path: P,
+        priority: i32,
         finalize: bool,
     ) -> crate::Result<Repo> {
-        let mut id = id.as_ref();
         let path = path.as_ref();
         let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
             id: path.to_string(),
@@ -51,6 +50,7 @@ impl RepoFormat {
         })?;
 
         // don't use relative paths for repo ids
+        let mut id = id.as_ref();
         if id == path {
             id = abspath.as_str();
         }
@@ -78,14 +78,12 @@ impl RepoFormat {
     }
 
     /// Try to load a specific repo type from a given path, traversing parents.
-    pub fn load_from_nested_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
+    pub fn load_from_nested_path<P: AsRef<Utf8Path>>(
         self,
-        id: S,
-        priority: i32,
         path: P,
+        priority: i32,
         finalize: bool,
     ) -> crate::Result<Repo> {
-        let id = id.as_ref();
         let path = path.as_ref();
         let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
             id: path.to_string(),
@@ -94,7 +92,7 @@ impl RepoFormat {
 
         let mut path = abspath.as_path();
         while let Some(parent) = path.parent() {
-            match self.load_from_path(path, priority, path, finalize) {
+            match self.load_from_path(path, path, priority, finalize) {
                 Err(Error::NotARepo { .. }) => path = parent,
                 result => return result,
             }
@@ -102,8 +100,8 @@ impl RepoFormat {
 
         Err(Error::NotARepo {
             kind: self,
-            id: id.to_string(),
-            err: format!("no repo found under: {abspath}"),
+            id: abspath.to_string(),
+            err: "no nested repo found".to_string(),
         })
     }
 }
@@ -191,15 +189,15 @@ impl Repo {
     /// Try to load a repo from a path.
     pub fn from_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         id: S,
-        priority: i32,
         path: P,
+        priority: i32,
         finalize: bool,
     ) -> crate::Result<Self> {
         let id = id.as_ref();
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            match format.load_from_path(id, priority, path, finalize) {
+            match format.load_from_path(id, path, priority, finalize) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
                 Err(e) => return Err(e),
@@ -217,17 +215,15 @@ impl Repo {
     }
 
     /// Try to load a repo from a potentially nested path.
-    pub fn from_nested_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
-        id: S,
-        priority: i32,
+    pub fn from_nested_path<P: AsRef<Utf8Path>>(
         path: P,
+        priority: i32,
         finalize: bool,
     ) -> crate::Result<Self> {
-        let id = id.as_ref();
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            match format.load_from_nested_path(id, priority, path, finalize) {
+            match format.load_from_nested_path(path, priority, finalize) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
                 Err(e) => return Err(e),
