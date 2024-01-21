@@ -80,29 +80,33 @@ impl Replay {
         &self,
         target: String,
     ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<Report>> + '_> {
+        let line = String::new();
+        let reports = &self.reports;
+        let filter = &self.filter;
+
         if target == "-" {
             Ok(Either::Left(Iter {
-                line: String::new(),
                 reader: io::stdin().lock(),
-                reports: &self.reports,
-                filter: &self.filter,
+                line,
+                reports,
+                filter,
             }))
         } else {
             let file =
                 File::open(&target).map_err(|e| anyhow!("failed loading file: {target}: {e}"))?;
             Ok(Either::Right(Iter {
-                line: String::new(),
                 reader: BufReader::new(file),
-                reports: &self.reports,
-                filter: &self.filter,
+                line,
+                reports,
+                filter,
             }))
         }
     }
 }
 
 struct Iter<'a, R: BufRead> {
-    line: String,
     reader: R,
+    line: String,
     reports: &'a HashSet<ReportKind>,
     filter: &'a Restrict,
 }
