@@ -1,8 +1,12 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
+use std::collections::HashSet;
+use std::fs::File;
 use std::hash::{Hash, Hasher};
+use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
+use camino::Utf8Path;
 use colored::Color;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
@@ -283,6 +287,53 @@ impl Restriction<&Report> for Restrict {
         match &report.scope {
             ReportScope::Version(cpv) => self.matches(cpv),
             ReportScope::Package(cpn) => self.matches(cpn),
+        }
+    }
+}
+
+pub struct Iter<'a, R: BufRead> {
+    reader: R,
+    line: String,
+    filter: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
+}
+
+impl<'a> Iter<'a, BufReader<File>> {
+    /// Try to create a new reports iterator from a given file.
+    pub fn try_from_file<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Iter<'a, BufReader<File>>> {
+        let path = path.as_ref();
+        let file = File::open(path)
+            .map_err(|e| Error::InvalidValue(format!("failed loading file: {path}: {e}")))?;
+        Ok(Iter {
+            reader: BufReader::new(file),
+            line: String::new(),
+            filter: None,
+        })
+    }
+}
+
+impl<R: BufRead> Iterator for Iter<'_, R> {
+    type Item = crate::Result<Report>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            self.line.clear();
+            match self.reader.read_line(&mut self.line) {
+                Ok(0) => return None,
+                Ok(_) => match Report::from_json(&self.line) {
+                    Ok(report) => {
+                        if let Some((reports, filter)) = self.filter {
+                            if !reports.contains(report.kind()) || !filter.matches(&report) {
+                                continue;
+                            }
+                        }
+                        return Some(Ok(report));
+                    }
+                    Err(e) => return Some(Err(e)),
+                },
+                Err(e) => {
+                    return Some(Err(Error::InvalidValue(format!("failed reading line: {e}"))))
+                }
+            }
         }
     }
 }
