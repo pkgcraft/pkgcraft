@@ -117,7 +117,7 @@ mod tests {
         let json = repo
             .path()
             .join("DroppedKeywords/DroppedKeywords/reports.json");
-        let expected: Result<Vec<_>, _> = Iter::try_from_file(&json).unwrap().collect();
+        let expected: Result<Vec<_>, _> = Iter::try_from_file(&json, None).unwrap().collect();
         let dep = Dep::try_new_cpn("DroppedKeywords/DroppedKeywords").unwrap();
         let pkgs: Vec<_> = repo.iter_restrict(&dep).collect();
         let mut reports = vec![];

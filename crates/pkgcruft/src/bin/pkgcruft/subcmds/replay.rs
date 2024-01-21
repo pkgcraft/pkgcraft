@@ -1,14 +1,12 @@
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io;
 use std::process::ExitCode;
 
-use anyhow::anyhow;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Args, ValueHint};
 use itertools::Either;
-use pkgcraft::restrict::{self, Restrict, Restriction};
-use pkgcruft::report::{Report, ReportKind, REPORTS};
+use pkgcraft::restrict::{self, Restrict};
+use pkgcruft::report::{Iter, Report, ReportKind, REPORTS};
 
 use crate::options::reporter::ReporterOptions;
 
@@ -79,56 +77,14 @@ impl Replay {
     fn run(
         &self,
         target: String,
-    ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<Report>> + '_> {
-        let line = String::new();
-        let reports = &self.reports;
-        let filter = &self.filter;
-
+    ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
+        let filters = (&self.reports, &self.filter);
         if target == "-" {
-            Ok(Either::Left(Iter {
-                reader: io::stdin().lock(),
-                line,
-                reports,
-                filter,
-            }))
+            let iter = Iter::from_reader(io::stdin().lock(), Some(filters));
+            Ok(Either::Left(iter))
         } else {
-            let file =
-                File::open(&target).map_err(|e| anyhow!("failed loading file: {target}: {e}"))?;
-            Ok(Either::Right(Iter {
-                reader: BufReader::new(file),
-                line,
-                reports,
-                filter,
-            }))
-        }
-    }
-}
-
-struct Iter<'a, R: BufRead> {
-    reader: R,
-    line: String,
-    reports: &'a HashSet<ReportKind>,
-    filter: &'a Restrict,
-}
-
-impl<R: BufRead> Iterator for Iter<'_, R> {
-    type Item = anyhow::Result<Report>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            self.line.clear();
-            match self.reader.read_line(&mut self.line) {
-                Ok(0) => return None,
-                Ok(_) => match Report::from_json(&self.line) {
-                    Ok(report) => {
-                        if self.reports.contains(report.kind()) && self.filter.matches(&report) {
-                            return Some(Ok(report));
-                        }
-                    }
-                    Err(e) => return Some(Err(anyhow!("{e}"))),
-                },
-                Err(e) => return Some(Err(anyhow!("failed reading line: {e}"))),
-            }
+            let iter = Iter::try_from_file(&target, Some(filters))?;
+            Ok(Either::Right(iter))
         }
     }
 }

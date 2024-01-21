@@ -294,20 +294,37 @@ impl Restriction<&Report> for Restrict {
 pub struct Iter<'a, R: BufRead> {
     reader: R,
     line: String,
-    filter: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
+    filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
 }
 
 impl<'a> Iter<'a, BufReader<File>> {
     /// Try to create a new reports iterator from a given file.
-    pub fn try_from_file<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Iter<'a, BufReader<File>>> {
+    pub fn try_from_file<P: AsRef<Utf8Path>>(
+        path: P,
+        filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
+    ) -> crate::Result<Iter<'a, BufReader<File>>> {
         let path = path.as_ref();
         let file = File::open(path)
             .map_err(|e| Error::InvalidValue(format!("failed loading file: {path}: {e}")))?;
         Ok(Iter {
             reader: BufReader::new(file),
             line: String::new(),
-            filter: None,
+            filters,
         })
+    }
+}
+
+impl<'a, R: BufRead> Iter<'a, R> {
+    /// Create a new reports iterator from a given BufRead object.
+    pub fn from_reader(
+        reader: R,
+        filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
+    ) -> Iter<'a, R> {
+        Iter {
+            reader,
+            line: String::new(),
+            filters,
+        }
     }
 }
 
@@ -321,7 +338,7 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
                 Ok(0) => return None,
                 Ok(_) => match Report::from_json(&self.line) {
                     Ok(report) => {
-                        if let Some((reports, filter)) = self.filter {
+                        if let Some((reports, filter)) = self.filters {
                             if !reports.contains(report.kind()) || !filter.matches(&report) {
                                 continue;
                             }
