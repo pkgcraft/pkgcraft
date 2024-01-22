@@ -56,9 +56,9 @@ impl RepoFormat {
         }
 
         let repo: Repo = match self {
-            Self::Ebuild => ebuild::Repo::from_path(id, priority, path)?.into(),
-            Self::Fake => fake::Repo::from_path(id, priority, path)?.into(),
-            Self::Empty => empty::Repo::from_path(id, priority, path)?.into(),
+            Self::Ebuild => ebuild::Repo::from_path(id, priority, &abspath)?.into(),
+            Self::Fake => fake::Repo::from_path(id, priority, &abspath)?.into(),
+            Self::Empty => empty::Repo::from_path(id, priority, &abspath)?.into(),
             _ => {
                 return Err(Error::LoadRepo {
                     kind: *self,

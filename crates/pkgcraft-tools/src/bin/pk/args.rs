@@ -1,6 +1,6 @@
 use std::io::{stdin, IsTerminal};
-use std::path::Path;
 
+use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::Repo as EbuildRepo;
 
@@ -51,19 +51,20 @@ impl StdinOrArgs for Vec<String> {}
 /// Convert a target ebuild repo arg into an ebuild repo reference.
 pub(crate) fn target_ebuild_repo<'a>(
     config: &'a mut Config,
-    repo: &str,
+    target: &str,
 ) -> anyhow::Result<&'a EbuildRepo> {
-    if config.repos.get(repo).is_none() {
-        if Path::new(repo).exists() {
-            config.add_repo_path(repo, repo, 0, true)?;
-        } else {
-            anyhow::bail!("unknown repo: {repo}");
-        }
-    }
+    let id = if config.repos.get(target).is_some() {
+        target.to_string()
+    } else if let Ok(abspath) = Utf8Path::new(target).canonicalize_utf8() {
+        config.add_repo_path(&abspath, &abspath, 0, true)?;
+        abspath.to_string()
+    } else {
+        anyhow::bail!("unknown repo: {target}");
+    };
 
-    if let Some(r) = config.repos.get(repo).and_then(|r| r.as_ebuild()) {
+    if let Some(r) = config.repos.get(&id).and_then(|r| r.as_ebuild()) {
         Ok(r.as_ref())
     } else {
-        anyhow::bail!("non-ebuild repo: {repo}")
+        anyhow::bail!("non-ebuild repo: {target}")
     }
 }
