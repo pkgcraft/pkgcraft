@@ -1920,6 +1920,7 @@ dependencies = [
  "colored",
  "crossbeam-channel",
  "git2",
+ "glob",
  "indexmap 2.1.0",
  "indoc",
  "itertools 0.12.0",

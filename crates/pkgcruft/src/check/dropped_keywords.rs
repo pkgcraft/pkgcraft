@@ -102,26 +102,44 @@ impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::dep::Dep;
-    use pkgcraft::repo::{PkgRepository, Repository};
+    use glob::glob;
+    use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
 
     use crate::report::Iter;
+    use crate::scanner::Scanner;
 
     use super::*;
 
     #[test]
     fn check() {
-        let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-        let check = DroppedKeywordsCheck::new(repo);
-        let json = repo
-            .path()
-            .join("DroppedKeywords/DroppedKeywords/reports.json");
+        let repo = TEST_DATA.config().repos.get("qa-primary").unwrap();
+        let check_dir = repo.path().join(CHECK.kind().as_ref());
+        let restrict = repo.restrict_from_path(&check_dir).unwrap();
+        let scanner = Scanner::new().jobs(1).checks(&[CHECK.kind()]);
+        let expected: Vec<_> = glob(&format!("{check_dir}/*/reports.json"))
+            .unwrap()
+            .filter_map(Result::ok)
+            .flat_map(|path| {
+                Iter::try_from_file(path, None)
+                    .unwrap()
+                    .filter_map(Result::ok)
+            })
+            .collect();
+        let reports: Vec<_> = scanner.run(repo, [&restrict]).unwrap().collect();
+        assert_eq!(&reports, &expected);
+    }
+
+    #[test]
+    fn report() {
+        let repo = TEST_DATA.config().repos.get("qa-primary").unwrap();
+        let report = ReportKind::Version(VersionReport::DroppedKeywords);
+        let report_dir = repo.path().join(format!("{CHECK}/{report}"));
+        let restrict = repo.restrict_from_path(&report_dir).unwrap();
+        let scanner = Scanner::new().jobs(1).reports(&[report]);
+        let json = report_dir.join("reports.json");
         let expected: Result<Vec<_>, _> = Iter::try_from_file(&json, None).unwrap().collect();
-        let dep = Dep::try_new_cpn("DroppedKeywords/DroppedKeywords").unwrap();
-        let pkgs: Vec<_> = repo.iter_restrict(&dep).collect();
-        let mut reports = vec![];
-        check.run(&pkgs, &mut reports).unwrap();
+        let reports: Vec<_> = scanner.run(repo, [&restrict]).unwrap().collect();
         assert_eq!(&reports, &expected.unwrap());
     }
 }

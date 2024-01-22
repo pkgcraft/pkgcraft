@@ -4,9 +4,9 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 use std::str::FromStr;
 
-use camino::Utf8Path;
 use colored::Color;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
@@ -299,13 +299,13 @@ pub struct Iter<'a, R: BufRead> {
 
 impl<'a> Iter<'a, BufReader<File>> {
     /// Try to create a new reports iterator from a given file.
-    pub fn try_from_file<P: AsRef<Utf8Path>>(
+    pub fn try_from_file<P: AsRef<Path>>(
         path: P,
         filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
     ) -> crate::Result<Iter<'a, BufReader<File>>> {
         let path = path.as_ref();
         let file = File::open(path)
-            .map_err(|e| Error::InvalidValue(format!("failed loading file: {path}: {e}")))?;
+            .map_err(|e| Error::InvalidValue(format!("failed loading file: {path:?}: {e}")))?;
         Ok(Iter {
             reader: BufReader::new(file),
             line: String::new(),
