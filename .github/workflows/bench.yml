@@ -43,11 +43,11 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build
-      run: cargo criterion --no-run -p pkgcraft
-
-    - name: Benchmark
+    - name: Benchmark pkgcraft
       run: cargo criterion -p pkgcraft --color always --output-format quiet
+
+    - name: Benchmark pkgcruft
+      run: cargo criterion -p pkgcruft --color always --output-format quiet
 
     - name: Remove old caches
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
