@@ -1,7 +1,7 @@
 [package]
 name = "pkgcruft"
 version = "0.0.1"
-description = "pkgcraft-based QA support for Gentoo"
+description = "QA library and tools based on pkgcraft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
 readme = "README.md"
