@@ -1918,6 +1918,7 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "colored",
+ "criterion",
  "crossbeam-channel",
  "git2",
  "glob",

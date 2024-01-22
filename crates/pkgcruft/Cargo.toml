@@ -30,6 +30,10 @@ name = "pkgcruft"
 name = "pkgcruft-git-pre-push"
 required-features = ["git"]
 
+[[bench]]
+name = "bench"
+harness = false
+
 [dependencies]
 anyhow = "1.0.79"
 camino = "1.1.6"
@@ -54,6 +58,7 @@ tracing-log = "0.2.0"
 tracing-subscriber = "0.3.18"
 
 [dev-dependencies]
+criterion = "0.5"
 glob = "0.3.1"
 indoc = "2.0.4"
 predicates = "3.1.0"
