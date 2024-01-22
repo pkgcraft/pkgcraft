@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn traits() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap().as_ref();
         let pkg = TEST_DATA
             .ebuild_raw_pkg("=optional/none-8::metadata")
             .unwrap();

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{env, fmt, fs};
 
 use assert_cmd::Command;
@@ -158,11 +159,10 @@ impl TestData {
         &self.config
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::Repo> {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&Arc<crate::repo::ebuild::Repo>> {
         if let Some(repo) = self.config.repos.get(name) {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
-                .map(|r| r.as_ref())
         } else {
             Err(Error::InvalidValue(format!("unknown repo: {name}")))
         }
