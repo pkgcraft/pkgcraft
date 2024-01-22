@@ -102,12 +102,11 @@ impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
 
 #[cfg(test)]
 mod tests {
-    use glob::glob;
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
 
-    use crate::report::Iter;
     use crate::scanner::Scanner;
+    use crate::test::glob_reports;
 
     use super::*;
 
@@ -117,15 +116,7 @@ mod tests {
         let check_dir = repo.path().join(CHECK.kind().as_ref());
         let restrict = repo.restrict_from_path(&check_dir).unwrap();
         let scanner = Scanner::new().jobs(1).checks(&[CHECK.kind()]);
-        let expected: Vec<_> = glob(&format!("{check_dir}/*/reports.json"))
-            .unwrap()
-            .filter_map(Result::ok)
-            .flat_map(|path| {
-                Iter::try_from_file(path, None)
-                    .unwrap()
-                    .filter_map(Result::ok)
-            })
-            .collect();
+        let expected: Vec<_> = glob_reports(format!("{check_dir}/*/reports.json")).collect();
         let reports: Vec<_> = scanner.run(repo, [&restrict]).unwrap().collect();
         assert_eq!(&reports, &expected);
     }
@@ -137,9 +128,8 @@ mod tests {
         let report_dir = repo.path().join(format!("{CHECK}/{report}"));
         let restrict = repo.restrict_from_path(&report_dir).unwrap();
         let scanner = Scanner::new().jobs(1).reports(&[report]);
-        let json = report_dir.join("reports.json");
-        let expected: Result<Vec<_>, _> = Iter::try_from_file(&json, None).unwrap().collect();
+        let expected: Vec<_> = glob_reports(format!("{report_dir}/reports.json")).collect();
         let reports: Vec<_> = scanner.run(repo, [&restrict]).unwrap().collect();
-        assert_eq!(&reports, &expected.unwrap());
+        assert_eq!(&reports, &expected);
     }
 }
