@@ -19,7 +19,7 @@ config = { version = "0.13.4", default-features = false, features = ["toml"] }
 futures = "0.3.30"
 pkgcraft = { path = "../pkgcraft", version = "0.0.13" }
 prost = "0.12.3"
-regex = "1.10.2"
+regex = "1.10.3"
 serde = { version = "1.0.195", features = ["derive"] }
 thiserror = "1.0.56"
 tokio = { version = "1.35", features = ["full"] }
@@ -38,7 +38,7 @@ tonic-build = "0.10.2"
 
 [dev-dependencies]
 assert_cmd = "2.0.13"
-regex = "1.10.2"
+regex = "1.10.3"
 tempfile = "3.9.0"
 
 [lib]
