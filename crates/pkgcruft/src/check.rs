@@ -30,9 +30,8 @@ pub enum EbuildPkgCheckKind {
 
 impl EbuildPkgCheckKind {
     pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgCheck {
-        use EbuildPkgCheckKind::*;
         match self {
-            Dependency => EbuildPkgCheck::Dependency(dependency::DependencyCheck::new(repo)),
+            Self::Dependency => EbuildPkgCheck::Dependency(dependency::DependencyCheck::new(repo)),
         }
     }
 }
@@ -47,9 +46,8 @@ pub enum EbuildRawPkgCheckKind {
 
 impl EbuildRawPkgCheckKind {
     pub(crate) fn to_check(self, repo: &Repo) -> EbuildRawPkgCheck {
-        use EbuildRawPkgCheckKind::*;
         match self {
-            Metadata => EbuildRawPkgCheck::Metadata(metadata::MetadataCheck::new(repo)),
+            Self::Metadata => EbuildRawPkgCheck::Metadata(metadata::MetadataCheck::new(repo)),
         }
     }
 }
@@ -65,12 +63,11 @@ pub enum EbuildPkgSetCheckKind {
 
 impl EbuildPkgSetCheckKind {
     pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgSetCheck {
-        use EbuildPkgSetCheckKind::*;
         match self {
-            DroppedKeywords => EbuildPkgSetCheck::DroppedKeywords(
+            Self::DroppedKeywords => EbuildPkgSetCheck::DroppedKeywords(
                 dropped_keywords::DroppedKeywordsCheck::new(repo),
             ),
-            UnstableOnly => {
+            Self::UnstableOnly => {
                 EbuildPkgSetCheck::UnstableOnly(unstable_only::UnstableOnlyCheck::new(repo))
             }
         }
@@ -155,9 +152,8 @@ pub(crate) enum EbuildPkgCheck<'a> {
 
 impl<'a> CheckRun<&ebuild::Pkg<'a>> for EbuildPkgCheck<'a> {
     fn run(&self, item: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
-        use EbuildPkgCheck::*;
         match self {
-            Dependency(c) => c.run(item, reports),
+            Self::Dependency(c) => c.run(item, reports),
         }
     }
 }
@@ -169,9 +165,8 @@ pub(crate) enum EbuildRawPkgCheck<'a> {
 
 impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for EbuildRawPkgCheck<'a> {
     fn run(&self, item: &ebuild::raw::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
-        use EbuildRawPkgCheck::*;
         match self {
-            Metadata(c) => c.run(item, reports),
+            Self::Metadata(c) => c.run(item, reports),
         }
     }
 }
@@ -184,10 +179,9 @@ pub(crate) enum EbuildPkgSetCheck<'a> {
 
 impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for EbuildPkgSetCheck<'a> {
     fn run(&self, item: &[ebuild::Pkg<'a>], reports: &mut Vec<Report>) -> crate::Result<()> {
-        use EbuildPkgSetCheck::*;
         match self {
-            DroppedKeywords(c) => c.run(item, reports),
-            UnstableOnly(c) => c.run(item, reports),
+            Self::DroppedKeywords(c) => c.run(item, reports),
+            Self::UnstableOnly(c) => c.run(item, reports),
         }
     }
 }
