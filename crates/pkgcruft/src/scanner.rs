@@ -178,3 +178,24 @@ impl Iterator for Iter {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::repo::Repository;
+    use pkgcraft::test::TEST_DATA;
+
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn run() {
+        let repo = TEST_DATA.config().repos.get("qa-primary").unwrap();
+        let repo_path = repo.path();
+        let restrict = repo.restrict_from_path(repo_path).unwrap();
+        let scanner = Scanner::new().jobs(1);
+        let expected: Vec<_> = glob_reports(format!("{repo_path}/**/reports.json")).collect();
+        let reports: Vec<_> = scanner.run(repo, [&restrict]).unwrap().collect();
+        assert_eq!(&reports, &expected);
+    }
+}
