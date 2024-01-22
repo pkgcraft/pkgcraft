@@ -4,14 +4,13 @@ use std::thread;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use indexmap::IndexSet;
-use pkgcraft::repo::{ebuild, Repo, Repository};
+use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 
 use crate::check::{Check, CheckKind, CHECKS};
 use crate::report::{Report, ReportKind, REPORTS};
 use crate::runner::SyncCheckRunner;
-use crate::Error;
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -60,22 +59,13 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<I, R>(
-        &self,
-        repo: &Repo,
-        restricts: I,
-    ) -> crate::Result<impl Iterator<Item = Report>>
+    pub fn run<I, R>(&self, repo: &Arc<Repo>, restricts: I) -> impl Iterator<Item = Report>
     where
         I: IntoIterator<Item = R>,
         R: Into<Restrict>,
     {
-        // TODO: support checks for non-ebuild repo types?
-        let repo = repo.as_ebuild().ok_or_else(|| {
-            Error::InvalidValue(format!("unsupported repo format: {}", repo.format()))
-        })?;
-
         // TODO: drop this hack once lifetime handling is improved for thread usage
-        let repo: &'static ebuild::Repo = Box::leak(Box::new(repo.clone()));
+        let repo: &'static Repo = Box::leak(Box::new(repo.clone()));
 
         let sync_runner = SyncCheckRunner::new(repo).checks(self.checks.iter().copied());
         let (restrict_tx, restrict_rx) = unbounded();
@@ -83,12 +73,12 @@ impl Scanner {
         let runner = Arc::new(sync_runner);
         let filter = Arc::new(self.reports.clone());
 
-        Ok(Iter {
+        Iter {
             reports_rx,
             _producer: Producer::new(repo, restricts, restrict_tx),
             _workers: Workers::new(self.jobs, &runner, &filter, &restrict_rx, &reports_tx),
             reports: VecDeque::new(),
-        })
+        }
     }
 }
 
@@ -100,7 +90,7 @@ struct Producer {
 
 impl Producer {
     /// Create a producer that sends restrictions over the channel to the workers.
-    fn new<I, R>(repo: &'static ebuild::Repo, restricts: I, tx: Sender<Restrict>) -> Self
+    fn new<I, R>(repo: &'static Repo, restricts: I, tx: Sender<Restrict>) -> Self
     where
         I: IntoIterator<Item = R>,
         R: Into<Restrict>,
@@ -190,12 +180,12 @@ mod tests {
 
     #[test]
     fn run() {
-        let repo = TEST_DATA.config().repos.get("qa-primary").unwrap();
+        let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
         let repo_path = repo.path();
         let restrict = repo.restrict_from_path(repo_path).unwrap();
         let scanner = Scanner::new().jobs(1);
         let expected: Vec<_> = glob_reports(format!("{repo_path}/**/reports.json")).collect();
-        let reports: Vec<_> = scanner.run(repo, [&restrict]).unwrap().collect();
+        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
         assert_eq!(&reports, &expected);
     }
 }
