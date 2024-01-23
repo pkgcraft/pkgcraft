@@ -8,37 +8,6 @@ use pkgcruft::test::glob_reports;
 use predicates::str::contains;
 
 #[test]
-fn invalid_cwd() {
-    let path = current_dir().unwrap();
-    cmd("pkgcruft scan")
-        .assert()
-        .stdout("")
-        .stderr(contains(format!("invalid ebuild repo: {path}")))
-        .failure()
-        .code(2);
-}
-
-#[test]
-fn nonexistent_path_target() {
-    cmd("pkgcruft scan path/to/nonexistent/repo")
-        .assert()
-        .stdout("")
-        .stderr(contains("invalid path target"))
-        .failure()
-        .code(2);
-}
-
-#[test]
-fn invalid_path_target() {
-    cmd("pkgcruft scan /")
-        .assert()
-        .stdout("")
-        .stderr(contains("invalid ebuild repo: /"))
-        .failure()
-        .code(2);
-}
-
-#[test]
 fn invalid_dep_restricts() {
     for s in ["^pkg", "cat&pkg"] {
         cmd("pkgcruft scan")
@@ -67,6 +36,15 @@ fn stdin_targets() {
 
 #[test]
 fn current_dir_targets() {
+    // invalid
+    let path = current_dir().unwrap();
+    cmd("pkgcruft scan")
+        .assert()
+        .stdout("")
+        .stderr(contains(format!("invalid ebuild repo: {path}")))
+        .failure()
+        .code(2);
+
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
 
@@ -108,6 +86,22 @@ fn current_dir_targets() {
 
 #[test]
 fn path_targets() {
+    // nonexistent
+    cmd("pkgcruft scan path/to/nonexistent/repo")
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid path target"))
+        .failure()
+        .code(2);
+
+    // invalid
+    cmd("pkgcruft scan /")
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid ebuild repo: /"))
+        .failure()
+        .code(2);
+
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
 
