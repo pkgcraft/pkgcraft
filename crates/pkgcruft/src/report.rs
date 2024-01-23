@@ -29,8 +29,8 @@ pub enum ReportLevel {
     Info,
 }
 
-impl From<&ReportLevel> for Color {
-    fn from(level: &ReportLevel) -> Self {
+impl From<ReportLevel> for Color {
+    fn from(level: ReportLevel) -> Self {
         match level {
             ReportLevel::Error => Color::Red,
             ReportLevel::Warning => Color::Yellow,
@@ -75,7 +75,6 @@ impl VersionReport {
         Report {
             scope: ReportScope::Version(pkg.cpv().clone()),
             kind: ReportKind::Version(self),
-            level: self.level(),
             description: description.into(),
         }
     }
@@ -123,7 +122,6 @@ impl PackageReport {
         Report {
             scope: ReportScope::Package(pkgs[0].cpn()),
             kind: ReportKind::Package(self),
-            level: self.level(),
             description: description.into(),
         }
     }
@@ -141,6 +139,16 @@ impl PackageReport {
 pub enum ReportKind {
     Version(VersionReport),
     Package(PackageReport),
+}
+
+impl ReportKind {
+    /// The severity of the report variant.
+    pub fn level(&self) -> ReportLevel {
+        match self {
+            Self::Version(k) => k.level(),
+            Self::Package(k) => k.level(),
+        }
+    }
 }
 
 impl FromStr for ReportKind {
@@ -223,7 +231,6 @@ impl std::fmt::Display for ReportScope {
 pub struct Report {
     scope: ReportScope,
     kind: ReportKind,
-    level: ReportLevel,
     description: String,
 }
 
@@ -244,8 +251,8 @@ impl Report {
     }
 
     /// The severity of the report.
-    pub fn level(&self) -> &ReportLevel {
-        &self.level
+    pub fn level(&self) -> ReportLevel {
+        self.kind.level()
     }
 
     /// Serialize a [`Report`] into a JSON string.

@@ -103,9 +103,9 @@ fn reporters() {
 fn sort() {
     // serialized reports in reversed sorting order
     let reports = indoc::indoc! {r#"
-        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"level":"Info","description":"x86"}
-        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"level":"Warning","description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"level":"Warning","description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
+        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
     "#};
     let mut expected: Vec<_> = reports.lines().collect();
     expected.reverse();
@@ -126,9 +126,9 @@ fn sort() {
 #[test]
 fn reports() {
     let reports = indoc::indoc! {r#"
-        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"level":"Warning","description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"level":"Warning","description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"level":"Info","description":"x86"}
+        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
@@ -159,9 +159,9 @@ fn reports() {
 #[test]
 fn filter() {
     let reports = indoc::indoc! {r#"
-        {"scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"kind":{"Version":"DroppedKeywords"},"level":"Warning","description":"alpha, hppa, ia64, m68k, ppc"}
-        {"scope":{"Version":"x11-wm/mutter-45.1"},"kind":{"Version":"DroppedKeywords"},"level":"Warning","description":"ppc64"}
-        {"scope":{"Package":"x11-wm/mutter"},"kind":{"Package":"UnstableOnly"},"level":"Info","description":"arm, ppc64"}
+        {"scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"kind":{"Version":"DroppedKeywords"},"description":"alpha, hppa, ia64, m68k, ppc"}
+        {"scope":{"Version":"x11-wm/mutter-45.1"},"kind":{"Version":"DroppedKeywords"},"description":"ppc64"}
+        {"scope":{"Package":"x11-wm/mutter"},"kind":{"Package":"UnstableOnly"},"description":"arm, ppc64"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
