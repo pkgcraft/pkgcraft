@@ -53,9 +53,9 @@ fn invalid_dep_restricts() {
 #[test]
 fn stdin_targets() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    env::set_current_dir(repo.path()).unwrap();
     for arg in ["DroppedKeywords", "DroppedKeywords/DroppedKeywords"] {
         cmd("pkgcruft scan -R simple -")
+            .args(["--repo", repo.path().as_ref()])
             .write_stdin(format!("{arg}\n"))
             .assert()
             .stdout(contains("DroppedKeywords: arm64"))
