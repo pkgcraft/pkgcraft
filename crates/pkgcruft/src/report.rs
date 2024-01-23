@@ -157,7 +157,7 @@ impl FromStr for ReportKind {
     fn from_str(s: &str) -> crate::Result<Self> {
         REPORTS
             .get(s)
-            .ok_or_else(|| Error::InvalidValue(format!("unknown report: {s}")))
+            .ok_or_else(|| Error::InvalidValue(format!("invalid report variant: {s}")))
             .copied()
     }
 }

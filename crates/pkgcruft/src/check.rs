@@ -89,7 +89,7 @@ impl FromStr for CheckKind {
         CHECKS
             .get(s)
             .map(|c| c.kind())
-            .ok_or_else(|| Error::InvalidValue(format!("unknown check: {s}")))
+            .ok_or_else(|| Error::InvalidValue(format!("invalid check variant: {s}")))
     }
 }
 
