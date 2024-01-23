@@ -8,7 +8,22 @@ use pkgcruft::test::glob_reports;
 use predicates::str::contains;
 
 #[test]
-fn invalid_dep_restricts() {
+fn stdin_targets() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    for arg in ["DroppedKeywords", "DroppedKeywords/DroppedKeywords"] {
+        cmd("pkgcruft scan -R simple -")
+            .args(["--repo", repo.path().as_ref()])
+            .write_stdin(format!("{arg}\n"))
+            .assert()
+            .stdout(contains("DroppedKeywords: arm64"))
+            .stderr("")
+            .success();
+    }
+}
+
+#[test]
+fn dep_restrict_targets() {
+    // invalid
     for s in ["^pkg", "cat&pkg"] {
         cmd("pkgcruft scan")
             .arg(s)
@@ -18,15 +33,15 @@ fn invalid_dep_restricts() {
             .failure()
             .code(2);
     }
-}
 
-#[test]
-fn stdin_targets() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    for arg in ["DroppedKeywords", "DroppedKeywords/DroppedKeywords"] {
-        cmd("pkgcruft scan -R simple -")
-            .args(["--repo", repo.path().as_ref()])
-            .write_stdin(format!("{arg}\n"))
+    let repo_path = repo.path();
+
+    // valid
+    for s in ["DroppedKeywords/*", "DroppedKeywords"] {
+        cmd("pkgcruft scan -R simple")
+            .args(["--repo", repo_path.as_ref()])
+            .arg(s)
             .assert()
             .stdout(contains("DroppedKeywords: arm64"))
             .stderr("")
