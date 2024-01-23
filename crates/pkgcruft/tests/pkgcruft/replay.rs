@@ -87,6 +87,16 @@ fn file_targets() {
 #[test]
 fn reporters() {
     for opt in ["-R", "--reporter"] {
+        // invalid
+        cmd("pkgcruft replay")
+            .args([opt, "invalid"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
         for reporter in ["simple", "fancy", "json"] {
             cmd("pkgcruft replay")
                 .args([opt, reporter])
