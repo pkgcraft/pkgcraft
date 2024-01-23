@@ -3,6 +3,8 @@ use std::env;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
 use pkgcraft::utils::current_dir;
+use pkgcruft::report::Report;
+use pkgcruft::test::glob_reports;
 use predicates::prelude::*;
 use predicates::str::contains;
 
@@ -96,28 +98,49 @@ fn current_dir_targets() {
 #[test]
 fn path_targets() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
 
     // repo dir
-    cmd("pkgcruft scan")
+    let expected: Vec<_> = glob_reports(format!("{repo_path}/**/reports.json")).collect();
+    let output = cmd("pkgcruft scan -j1 -R json")
         .arg(repo.path())
-        .assert()
-        .stdout(predicate::str::is_empty().not())
-        .stderr("")
-        .success();
+        .output()
+        .unwrap()
+        .stdout;
+    let data = String::from_utf8(output).unwrap();
+    let reports: Vec<_> = data
+        .lines()
+        .map(|s| Report::from_json(s).unwrap())
+        .collect();
+    assert_eq!(&expected, &reports);
 
     // category dir
-    cmd("pkgcruft scan")
-        .arg(repo.path().join("DroppedKeywords"))
-        .assert()
-        .stdout(predicate::str::is_empty().not())
-        .stderr("")
-        .success();
+    let expected: Vec<_> =
+        glob_reports(format!("{repo_path}/Dependency/**/reports.json")).collect();
+    let output = cmd("pkgcruft scan -j1 -R json")
+        .arg(repo.path().join("Dependency"))
+        .output()
+        .unwrap()
+        .stdout;
+    let data = String::from_utf8(output).unwrap();
+    let reports: Vec<_> = data
+        .lines()
+        .map(|s| Report::from_json(s).unwrap())
+        .collect();
+    assert_eq!(&expected, &reports);
 
     // package dir
-    cmd("pkgcruft scan")
-        .arg(repo.path().join("DroppedKeywords/DroppedKeywords"))
-        .assert()
-        .stdout(predicate::str::is_empty().not())
-        .stderr("")
-        .success();
+    let expected: Vec<_> =
+        glob_reports(format!("{repo_path}/Dependency/DeprecatedDependency/reports.json")).collect();
+    let output = cmd("pkgcruft scan -j1 -R json")
+        .arg(repo.path().join("Dependency/DeprecatedDependency"))
+        .output()
+        .unwrap()
+        .stdout;
+    let data = String::from_utf8(output).unwrap();
+    let reports: Vec<_> = data
+        .lines()
+        .map(|s| Report::from_json(s).unwrap())
+        .collect();
+    assert_eq!(&expected, &reports);
 }
