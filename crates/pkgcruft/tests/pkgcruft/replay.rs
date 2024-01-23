@@ -186,6 +186,16 @@ fn filter() {
     let expected: Vec<_> = reports.lines().collect();
 
     for opt in ["-f", "--filter"] {
+        // invalid
+        cmd("pkgcruft replay")
+            .args([opt, "%invalid"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("invalid dep restriction: %invalid"))
+            .failure()
+            .code(2);
+
         for (target, expected) in [
             ("sys-fs/*", &expected[0..=0]),
             ("*m*", &expected[0..]),
