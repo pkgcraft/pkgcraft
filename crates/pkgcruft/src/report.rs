@@ -228,23 +228,27 @@ pub struct Report {
 }
 
 impl Report {
+    /// The scope the report relates to, e.g. a specific package version or package name.
     pub fn scope(&self) -> &ReportScope {
         &self.scope
     }
 
+    /// The report variant.
     pub fn kind(&self) -> &ReportKind {
         &self.kind
     }
 
+    /// The description of the report.
     pub fn description(&self) -> &str {
         &self.description
     }
 
+    /// The severity of the report.
     pub fn level(&self) -> &ReportLevel {
         &self.level
     }
 
-    /// Serialize a [`Report`] into JSON.
+    /// Serialize a [`Report`] into a JSON string.
     pub fn to_json(&self) -> crate::Result<String> {
         serde_json::to_string(&self)
             .map_err(|e| Error::InvalidValue(format!("failed serializing report: {e}")))
@@ -291,6 +295,7 @@ impl Restriction<&Report> for Restrict {
     }
 }
 
+/// Iterator for deserializing reports from a BufRead object.
 pub struct Iter<'a, R: BufRead> {
     reader: R,
     line: String,
@@ -298,7 +303,7 @@ pub struct Iter<'a, R: BufRead> {
 }
 
 impl<'a> Iter<'a, BufReader<File>> {
-    /// Try to create a new reports iterator from a given file.
+    /// Try to create a new reports iterator from a file path.
     pub fn try_from_file<P: AsRef<Path>>(
         path: P,
         filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
@@ -315,7 +320,7 @@ impl<'a> Iter<'a, BufReader<File>> {
 }
 
 impl<'a, R: BufRead> Iter<'a, R> {
-    /// Create a new reports iterator from a given BufRead object.
+    /// Create a new reports iterator from a BufRead object.
     pub fn from_reader(
         reader: R,
         filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
