@@ -273,11 +273,11 @@ impl Ord for Report {
         use ReportScope::*;
         match (&self.scope, &other.scope) {
             (Version(cpv), Package(dep)) => {
-                cmp_not_equal!(&cpv.cpn(), &dep.cpn());
+                cmp_not_equal!(&(cpv.category(), cpv.package()), &(dep.category(), dep.package()));
                 return Ordering::Less;
             }
             (Package(dep), Version(cpv)) => {
-                cmp_not_equal!(&dep.cpn(), &cpv.cpn());
+                cmp_not_equal!(&(dep.category(), dep.package()), &(cpv.category(), cpv.package()));
                 return Ordering::Greater;
             }
             (s1, s2) => cmp_not_equal!(s1, s2),
