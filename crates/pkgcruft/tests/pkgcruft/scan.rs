@@ -65,6 +65,35 @@ fn stdin_targets() {
 }
 
 #[test]
+fn current_dir_targets() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+
+    // repo dir
+    env::set_current_dir(repo.path()).unwrap();
+    cmd("pkgcruft scan")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // category dir
+    env::set_current_dir(repo.path().join("DroppedKeywords")).unwrap();
+    cmd("pkgcruft scan")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // package dir
+    env::set_current_dir(repo.path().join("DroppedKeywords/DroppedKeywords")).unwrap();
+    cmd("pkgcruft scan")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+}
+
+#[test]
 fn repo_path_target() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     cmd("pkgcruft scan")
