@@ -70,22 +70,22 @@ impl SimpleReporter {
 
 #[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
-    prev_key: Option<String>,
+    prev_cpn: Option<String>,
 }
 
 impl FancyReporter {
     fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
-        let key = match report.scope() {
+        let cpn = match report.scope() {
             ReportScope::Version(cpv) => cpv.cpn(),
             ReportScope::Package(cpn) => cpn.to_string(),
         };
 
-        if key != self.prev_key.as_deref().unwrap_or_default() {
-            if self.prev_key.is_some() {
+        if cpn != self.prev_cpn.as_deref().unwrap_or_default() {
+            if self.prev_cpn.is_some() {
                 writeln!(output)?;
             }
-            writeln!(output, "{}", key.color(Color::Blue).bold())?;
-            self.prev_key = Some(key);
+            writeln!(output, "{}", cpn.color(Color::Blue).bold())?;
+            self.prev_cpn = Some(cpn);
         }
 
         write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
