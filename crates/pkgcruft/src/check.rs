@@ -209,7 +209,7 @@ impl Check {
         self.priority
     }
 
-    pub fn source(&self) -> SourceKind {
+    pub(crate) fn source(&self) -> SourceKind {
         self.source
     }
 

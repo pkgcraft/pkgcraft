@@ -10,7 +10,7 @@ use crate::runner::*;
 #[derive(
     AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
-pub enum SourceKind {
+pub(crate) enum SourceKind {
     EbuildPackage,
     EbuildPackageRaw,
 }
