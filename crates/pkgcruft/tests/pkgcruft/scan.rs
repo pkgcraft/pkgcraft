@@ -94,10 +94,28 @@ fn current_dir_targets() {
 }
 
 #[test]
-fn repo_path_target() {
+fn path_targets() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+
+    // repo dir
     cmd("pkgcruft scan")
         .arg(repo.path())
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // category dir
+    cmd("pkgcruft scan")
+        .arg(repo.path().join("DroppedKeywords"))
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // package dir
+    cmd("pkgcruft scan")
+        .arg(repo.path().join("DroppedKeywords/DroppedKeywords"))
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
