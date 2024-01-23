@@ -133,6 +133,16 @@ fn reports() {
     let expected: Vec<_> = reports.lines().collect();
 
     for opt in ["-r", "--reports"] {
+        // invalid
+        cmd("pkgcruft replay")
+            .args([opt, "invalid"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
         // single match
         let output = cmd("pkgcruft replay -R json -")
             .args([opt, "UnstableOnly"])
