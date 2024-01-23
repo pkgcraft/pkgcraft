@@ -1,11 +1,9 @@
-#![cfg(test)]
-
 use glob::glob;
 
 use crate::report::{Iter, Report};
 
 /// Return an iterator of reports from a globbed file path pattern.
-pub(crate) fn glob_reports<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Report> {
+pub fn glob_reports<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Report> {
     glob(pattern.as_ref())
         .unwrap()
         .filter_map(Result::ok)

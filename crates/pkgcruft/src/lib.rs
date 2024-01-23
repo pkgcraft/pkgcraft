@@ -8,7 +8,8 @@ mod runner;
 pub mod scanner;
 pub mod scope;
 mod source;
-mod test;
+#[cfg(feature = "test")]
+pub mod test;
 
 pub use self::error::Error;
 
