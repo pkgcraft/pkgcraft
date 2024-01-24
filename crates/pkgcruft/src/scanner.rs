@@ -100,8 +100,7 @@ impl Producer {
             _thread: thread::spawn(move || {
                 for r in restricts {
                     for cpn in repo.iter_cpn_restrict(r) {
-                        tx.send(Restrict::from(&cpn))
-                            .expect("sending restrict failed");
+                        tx.send(Restrict::from(&cpn)).ok();
                     }
                 }
             }),
@@ -139,7 +138,7 @@ impl Workers {
                             // sort and send reports
                             if !reports.is_empty() {
                                 reports.sort();
-                                tx.send(reports).expect("sending reports failed");
+                                tx.send(reports).ok();
                             }
                         }
                     })
