@@ -3,12 +3,12 @@ use std::io::Write;
 
 use colored::{Color, Colorize};
 use strfmt::strfmt;
-use strum::{AsRefStr, EnumIter, EnumString, EnumVariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString, EnumVariantNames};
 
 use crate::report::{Report, ReportScope};
 use crate::Error;
 
-#[derive(AsRefStr, EnumIter, EnumString, EnumVariantNames, Debug, Clone)]
+#[derive(AsRefStr, Display, EnumIter, EnumString, EnumVariantNames, Debug, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Reporter {
     Simple(SimpleReporter),
@@ -27,19 +27,12 @@ impl Reporter {
     /// Inject a format string into compatible reporter variants.
     pub fn format(&mut self, format: Option<String>) -> crate::Result<()> {
         match (self, format) {
-            (Self::Format(r), format) => {
-                if let Some(s) = format {
-                    r.format = s;
-                } else {
-                    return Err(Error::InvalidValue(
-                        "format reporter requires a format string".to_string(),
-                    ));
-                }
+            (Self::Format(r), Some(format)) => r.format = format,
+            (r @ Self::Format(_), None) => {
+                return Err(Error::InvalidValue(format!("format required for {r} reporter")));
             }
-            (_, Some(_)) => {
-                return Err(Error::InvalidValue(
-                    "format option only valid with the format reporter".to_string(),
-                ))
+            (r, Some(_)) => {
+                return Err(Error::InvalidValue(format!("format invalid for {r} reporter")))
             }
             _ => (),
         }
