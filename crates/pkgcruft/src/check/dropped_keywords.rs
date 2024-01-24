@@ -120,16 +120,4 @@ mod tests {
         let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
         assert_eq!(&reports, &expected);
     }
-
-    #[test]
-    fn report() {
-        let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-        let report = ReportKind::Version(VersionReport::DroppedKeywords);
-        let report_dir = repo.path().join(format!("{CHECK}/{report}"));
-        let restrict = repo.restrict_from_path(&report_dir).unwrap();
-        let scanner = Scanner::new().jobs(1).reports(&[report]);
-        let expected: Vec<_> = glob_reports(format!("{report_dir}/reports.json")).collect();
-        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
-        assert_eq!(&reports, &expected);
-    }
 }
