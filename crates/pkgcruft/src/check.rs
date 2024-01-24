@@ -145,7 +145,7 @@ impl PartialOrd for CheckKind {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) enum EbuildPkgCheck<'a> {
     Dependency(dependency::DependencyCheck<'a>),
 }
@@ -158,7 +158,7 @@ impl<'a> CheckRun<&ebuild::Pkg<'a>> for EbuildPkgCheck<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) enum EbuildRawPkgCheck<'a> {
     Metadata(metadata::MetadataCheck<'a>),
 }
@@ -171,7 +171,7 @@ impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for EbuildRawPkgCheck<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) enum EbuildPkgSetCheck<'a> {
     DroppedKeywords(dropped_keywords::DroppedKeywordsCheck<'a>),
     UnstableOnly(unstable_only::UnstableOnlyCheck<'a>),

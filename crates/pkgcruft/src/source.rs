@@ -32,7 +32,7 @@ pub(crate) trait IterRestrict {
         -> Box<dyn Iterator<Item = Self::Item> + '_>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct EbuildPackage<'a> {
     pub(crate) repo: &'a Repo,
 }
@@ -48,7 +48,7 @@ impl<'a> IterRestrict for EbuildPackage<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct EbuildPackageRaw<'a> {
     pub(crate) repo: &'a Repo,
 }

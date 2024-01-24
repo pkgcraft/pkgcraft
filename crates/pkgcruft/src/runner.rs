@@ -7,7 +7,7 @@ use crate::report::Report;
 use crate::source::{self, IterRestrict, SourceKind};
 
 /// Check runner for synchronous checks.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct SyncCheckRunner<'a> {
     runners: IndexMap<SourceKind, CheckRunner<'a>>,
     repo: &'a Repo,
@@ -50,7 +50,7 @@ impl<'a> SyncCheckRunner<'a> {
 }
 
 /// Generic check runners.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) enum CheckRunner<'a> {
     EbuildPkg(EbuildPkgCheckRunner<'a>),
     EbuildRawPkg(EbuildRawPkgCheckRunner<'a>),
@@ -75,7 +75,7 @@ impl CheckRunner<'_> {
 }
 
 /// Check runner for ebuild package checks.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct EbuildPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildPkgCheck<'a>>,
     pkgs_checks: Vec<check::EbuildPkgSetCheck<'a>>,
@@ -125,7 +125,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 }
 
 /// Check runner for raw ebuild package checks.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct EbuildRawPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildRawPkgCheck<'a>>,
     source: source::EbuildPackageRaw<'a>,
