@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::thread;
 
@@ -16,15 +16,15 @@ use crate::runner::SyncCheckRunner;
 pub struct Scanner {
     jobs: usize,
     checks: IndexSet<Check>,
-    reports: HashSet<ReportKind>,
+    reports: IndexSet<ReportKind>,
 }
 
 impl Default for Scanner {
     fn default() -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: CHECKS.iter().copied().collect(),
-            reports: REPORTS.iter().copied().collect(),
+            checks: CHECKS.clone(),
+            reports: REPORTS.clone(),
         }
     }
 }
@@ -119,7 +119,7 @@ impl Workers {
     fn new(
         jobs: usize,
         runner: &Arc<SyncCheckRunner<'static>>,
-        filter: &Arc<HashSet<ReportKind>>,
+        filter: &Arc<IndexSet<ReportKind>>,
         rx: &Receiver<Restrict>,
         tx: &Sender<Vec<Report>>,
     ) -> Self {
