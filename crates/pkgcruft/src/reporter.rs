@@ -129,7 +129,7 @@ impl FormatReporter {
         }
 
         let s = strfmt(&self.format, &attrs)
-            .map_err(|e| Error::InvalidValue(format!("formatting failed: {e}")))?;
+            .map_err(|e| Error::InvalidValue(format!("invalid output format: {e}")))?;
         if !s.is_empty() {
             writeln!(output, "{s}")?;
         }
