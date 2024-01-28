@@ -3,12 +3,12 @@ use std::io::Write;
 
 use colored::{Color, Colorize};
 use strfmt::strfmt;
-use strum::{AsRefStr, Display, EnumIter, EnumString, EnumVariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::report::{Report, ReportScope};
 use crate::Error;
 
-#[derive(AsRefStr, Display, EnumIter, EnumString, EnumVariantNames, Debug, Clone)]
+#[derive(AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub enum Reporter {
     Simple(SimpleReporter),

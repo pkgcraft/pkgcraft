@@ -58,7 +58,7 @@ scallop = { path = "../scallop", version = "0.0.12" }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_with = { version = "3.5.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
-strum = { version = "0.25.0", features = ["derive"] }
+strum = { version = "0.26.1", features = ["derive"] }
 tar = { version = "0.4.40", optional = true }
 tempfile = "3.9.0"
 thiserror = "1.0.56"
