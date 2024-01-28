@@ -67,10 +67,10 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Benchmark pkgcraft
-      run: cargo criterion -p pkgcraft --color always --output-format quiet
+      run: cargo criterion --all-features -p pkgcraft --color always --output-format quiet
 
     - name: Benchmark pkgcruft
-      run: cargo criterion -p pkgcruft --color always --output-format quiet
+      run: cargo criterion --all-features -p pkgcruft --color always --output-format quiet
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
