@@ -15,10 +15,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout pkgcraft workspace
       uses: actions/checkout@v4
