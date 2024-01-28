@@ -44,6 +44,29 @@ jobs:
           target
         key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
 
+    - name: Remove old caches
+      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: |
+        gh extension install actions/gh-actions-cache
+
+        REPO=${{ github.repository }}
+        BRANCH=${{ github.ref }}
+        KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-
+
+        # find matching caches
+        mapfile -t cache_keys < <( gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1 )
+
+        # remove all matching caches
+        for key in ${cache_keys[@]}
+        do
+          gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
+        done
+
+        exit 0
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Install cargo-c via binary package on Linux
       if: runner.os == 'Linux'
       run: curl -L https://github.com/lu-zero/cargo-c/releases/latest/download/cargo-c-x86_64-unknown-linux-musl.tar.gz | tar xvzf - -C ~/.cargo/bin
@@ -69,29 +92,6 @@ jobs:
         name: pkgcraft-c-${{ runner.os }}
         path: ${{ env.pkgcraft_dir }}
         if-no-files-found: error
-
-    - name: Remove old caches
-      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
-      continue-on-error: true
-      run: |
-        gh extension install actions/gh-actions-cache
-
-        REPO=${{ github.repository }}
-        BRANCH=${{ github.ref }}
-        KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-
-
-        # find matching caches
-        mapfile -t cache_keys < <( gh actions-cache list -R $REPO -B $BRANCH --key $KEY | cut -f 1 )
-
-        # remove all matching caches
-        for key in ${cache_keys[@]}
-        do
-          gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
-        done
-
-        exit 0
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}

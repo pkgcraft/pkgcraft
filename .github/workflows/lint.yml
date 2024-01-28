@@ -37,17 +37,6 @@ jobs:
           target
         key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
 
-    - name: Run rustfmt
-      run: cargo fmt --check
-
-    - name: Install protoc for arcanist
-      uses: arduino/setup-protoc@v2
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Run clippy
-      run: cargo clippy --all-features --all-targets
-
     - name: Remove old caches
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
       continue-on-error: true
@@ -70,6 +59,17 @@ jobs:
         exit 0
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run rustfmt
+      run: cargo fmt --check
+
+    - name: Install protoc for arcanist
+      uses: arduino/setup-protoc@v2
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run clippy
+      run: cargo clippy --all-features --all-targets
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
