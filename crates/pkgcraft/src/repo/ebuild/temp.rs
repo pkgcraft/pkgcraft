@@ -115,7 +115,7 @@ impl Repo {
                 .parse()
                 .map_err(|_| Error::InvalidValue(format!("invalid metadata key: {key}")))?;
             match val {
-                "" => values.remove(&key),
+                "" => values.swap_remove(&key),
                 _ => values.insert(key, val),
             };
         }

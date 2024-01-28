@@ -458,16 +458,13 @@ impl Eapi {
     /// Enable support for archive extensions during Eapi registration.
     fn enable_archives(mut self, types: &[&str]) -> Self {
         self.archives.extend(types.iter().map(|s| s.to_string()));
-        // sort archives by extension length, longest to shortest.
-        self.archives.sort_by(|s1, s2| s1.len().cmp(&s2.len()));
-        self.archives.reverse();
         self
     }
 
     /// Disable support for archive extensions during Eapi registration.
     fn disable_archives(mut self, types: &[&str]) -> Self {
         for x in types {
-            if !self.archives.remove(*x) {
+            if !self.archives.swap_remove(*x) {
                 panic!("EAPI {self}: disabling unknown archive format: {x:?}");
             }
         }
@@ -514,10 +511,14 @@ impl Eapi {
         self
     }
 
-    /// Finalize remaining fields that depend on previous fields.
+    /// Finalize and sort ordered fields that depend on previous operations.
     fn finalize(mut self) -> Self {
         self.phases = self.operations.iter().flatten().copied().collect();
+        // sort phases by name
         self.phases.sort();
+        // sort archives by extension length, longest to shortest.
+        self.archives
+            .sort_by(|s1, s2| (s1.len().cmp(&s2.len()).reverse()));
         self
     }
 }
