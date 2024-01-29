@@ -21,6 +21,7 @@ use crate::panic::ffi_catch_panic;
 use crate::types::{Dep, SetOp};
 use crate::utils::boxed;
 
+pub mod cpn;
 pub mod cpv;
 pub mod pkg;
 pub mod uri;

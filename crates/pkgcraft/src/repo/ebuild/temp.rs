@@ -6,7 +6,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use tempfile::TempDir;
 
-use crate::dep::{Cpv, Dep, Version};
+use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::pkg::ebuild::{self, metadata::Key};
 use crate::repo::{make_repo_traits, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
@@ -264,14 +264,20 @@ impl PkgRepository for Repo {
     }
 }
 
+impl Contains<&Cpn<String>> for Repo {
+    fn contains(&self, value: &Cpn<String>) -> bool {
+        self.repo().contains(value)
+    }
+}
+
 impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, cpv: &Cpv<String>) -> bool {
-        self.repo().contains(cpv)
+    fn contains(&self, value: &Cpv<String>) -> bool {
+        self.repo().contains(value)
     }
 }
 
 impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, dep: &Dep<String>) -> bool {
-        self.repo().contains(dep)
+    fn contains(&self, value: &Dep<String>) -> bool {
+        self.repo().contains(value)
     }
 }

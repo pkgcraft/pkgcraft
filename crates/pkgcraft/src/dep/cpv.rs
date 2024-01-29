@@ -11,6 +11,7 @@ use crate::macros::{equivalent, partial_cmp_not_equal_opt};
 use crate::traits::{Intersects, IntoOwned, ToRef};
 use crate::Error;
 
+use super::cpn::Cpn;
 use super::pkg::Dep;
 use super::version::{Operator, Revision, Version, WithOp};
 use super::{parse, Stringable};
@@ -123,11 +124,10 @@ impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Cow<'_, Dep<S2
     }
 }
 
-/// Package identifier.
+/// Versioned package.
 #[derive(SerializeDisplay, DeserializeFromStr, Debug, Eq, Ord, Clone, Hash)]
 pub struct Cpv<S: Stringable> {
-    pub(crate) category: S,
-    pub(crate) package: S,
+    pub(crate) cpn: Cpn<S>,
     pub(crate) version: Version<S>,
 }
 
@@ -136,10 +136,12 @@ impl<S: Stringable> WithOp for Cpv<S> {
 
     fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str> {
         Ok(Dep {
-            category: self.category,
-            package: self.package,
+            cpn: self.cpn,
             version: Some(self.version.with_op(op)?),
-            ..Default::default()
+            blocker: None,
+            slot_dep: None,
+            use_deps: None,
+            repo: None,
         })
     }
 }
@@ -149,8 +151,7 @@ impl<'a> IntoOwned for Cpv<&'a str> {
 
     fn into_owned(self) -> Self::Owned {
         Cpv {
-            category: self.category.to_string(),
-            package: self.package.to_string(),
+            cpn: self.cpn.into_owned(),
             version: self.version.into_owned(),
         }
     }
@@ -161,8 +162,7 @@ impl<'a> ToRef<'a> for Cpv<String> {
 
     fn to_ref(&'a self) -> Self::Ref {
         Cpv {
-            category: self.category.as_ref(),
-            package: self.package.as_ref(),
+            cpn: self.cpn.to_ref(),
             version: self.version.to_ref(),
         }
     }
@@ -183,14 +183,19 @@ impl<'a> Cpv<&'a str> {
 }
 
 impl<S: Stringable> Cpv<S> {
+    /// Return the [`Cpn`].
+    pub fn cpn(&self) -> &Cpn<S> {
+        &self.cpn
+    }
+
     /// Return a Cpv's category.
     pub fn category(&self) -> &str {
-        self.category.as_ref()
+        self.cpn.category()
     }
 
     /// Return a Cpv's package.
     pub fn package(&self) -> &str {
-        self.package.as_ref()
+        self.cpn.package()
     }
 
     /// Return a Cpv's version.
@@ -226,11 +231,6 @@ impl<S: Stringable> Cpv<S> {
     /// Return the string of the version with the revision.
     pub fn pvr(&self) -> String {
         self.version.to_string()
-    }
-
-    /// Return the string of the category and package name.
-    pub fn cpn(&self) -> String {
-        format!("{}/{}", self.category, self.package)
     }
 
     /// Return the relative ebuild file path.
@@ -280,7 +280,7 @@ where
 
 impl<S: Stringable> fmt::Display for Cpv<S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}-{}", self.category, self.package, self.version)
+        write!(f, "{}-{}", self.cpn, self.version)
     }
 }
 

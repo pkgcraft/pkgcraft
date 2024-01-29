@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use indexmap::IndexSet;
 
-use crate::dep::{Cpv, Dep, Version};
+use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::Pkg;
 use crate::repo::ebuild::Repo as EbuildRepo;
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -155,15 +155,21 @@ impl PkgRepository for RepoSet {
     }
 }
 
+impl Contains<&Cpn<String>> for RepoSet {
+    fn contains(&self, value: &Cpn<String>) -> bool {
+        self.0.iter().any(|r| r.contains(value))
+    }
+}
+
 impl Contains<&Cpv<String>> for RepoSet {
-    fn contains(&self, cpv: &Cpv<String>) -> bool {
-        self.0.iter().any(|r| r.contains(cpv))
+    fn contains(&self, value: &Cpv<String>) -> bool {
+        self.0.iter().any(|r| r.contains(value))
     }
 }
 
 impl Contains<&Dep<String>> for RepoSet {
-    fn contains(&self, dep: &Dep<String>) -> bool {
-        self.0.iter().any(|r| r.contains(dep))
+    fn contains(&self, value: &Dep<String>) -> bool {
+        self.0.iter().any(|r| r.contains(value))
     }
 }
 

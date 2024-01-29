@@ -9,7 +9,7 @@ use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
 use crate::config::RepoConfig;
-use crate::dep::{Cpv, Dep, Version};
+use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict;
 use crate::traits::Contains;
@@ -340,6 +340,7 @@ pub trait PkgRepository:
     + PartialOrd
     + Ord
     + Hash
+    + for<'a> Contains<&'a Cpn<String>>
     + for<'a> Contains<&'a Cpv<String>>
     + for<'a> Contains<&'a Dep<String>>
 {
@@ -526,24 +527,35 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, cpv: &Cpv<String>) -> bool {
+impl Contains<&Cpn<String>> for Repo {
+    fn contains(&self, value: &Cpn<String>) -> bool {
         match self {
-            Self::Configured(repo) => repo.contains(cpv),
-            Self::Ebuild(repo) => repo.contains(cpv),
-            Self::Fake(repo) => repo.contains(cpv),
-            Self::Unsynced(repo) => repo.contains(cpv),
+            Self::Configured(repo) => repo.contains(value),
+            Self::Ebuild(repo) => repo.contains(value),
+            Self::Fake(repo) => repo.contains(value),
+            Self::Unsynced(repo) => repo.contains(value),
+        }
+    }
+}
+
+impl Contains<&Cpv<String>> for Repo {
+    fn contains(&self, value: &Cpv<String>) -> bool {
+        match self {
+            Self::Configured(repo) => repo.contains(value),
+            Self::Ebuild(repo) => repo.contains(value),
+            Self::Fake(repo) => repo.contains(value),
+            Self::Unsynced(repo) => repo.contains(value),
         }
     }
 }
 
 impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, dep: &Dep<String>) -> bool {
+    fn contains(&self, value: &Dep<String>) -> bool {
         match self {
-            Self::Configured(repo) => repo.contains(dep),
-            Self::Ebuild(repo) => repo.contains(dep),
-            Self::Fake(repo) => repo.contains(dep),
-            Self::Unsynced(repo) => repo.contains(dep),
+            Self::Configured(repo) => repo.contains(value),
+            Self::Ebuild(repo) => repo.contains(value),
+            Self::Fake(repo) => repo.contains(value),
+            Self::Unsynced(repo) => repo.contains(value),
         }
     }
 }

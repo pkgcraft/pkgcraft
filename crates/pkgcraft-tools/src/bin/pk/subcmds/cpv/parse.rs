@@ -49,7 +49,7 @@ impl<'a> EnumVariable<'a> for Key {
             PR => obj.pr(),
             PV => obj.pv(),
             PVR => obj.pvr(),
-            CPN => obj.cpn(),
+            CPN => obj.cpn().to_string(),
             CPV => obj.to_string(),
         }
     }

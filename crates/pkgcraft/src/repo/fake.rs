@@ -6,7 +6,7 @@ use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
 use crate::config::RepoConfig;
-use crate::dep::{Cpv, Dep, Version};
+use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
@@ -177,6 +177,12 @@ impl PkgRepository for Repo {
             iter: self.into_iter(),
             restrict: val.into(),
         }
+    }
+}
+
+impl Contains<&Cpn<String>> for Repo {
+    fn contains(&self, cpn: &Cpn<String>) -> bool {
+        self.iter_restrict(cpn).next().is_some()
     }
 }
 

@@ -5,7 +5,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 
 use crate::config::RepoConfig;
-use crate::dep::{Cpv, Dep, Version};
+use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::Pkg;
 use crate::restrict::Restrict;
 use crate::traits::Contains;
@@ -109,14 +109,20 @@ impl PkgRepository for Repo {
     }
 }
 
+impl Contains<&Cpn<String>> for Repo {
+    fn contains(&self, _: &Cpn<String>) -> bool {
+        false
+    }
+}
+
 impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, _cpv: &Cpv<String>) -> bool {
+    fn contains(&self, _: &Cpv<String>) -> bool {
         false
     }
 }
 
 impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, _dep: &Dep<String>) -> bool {
+    fn contains(&self, _: &Dep<String>) -> bool {
         false
     }
 }

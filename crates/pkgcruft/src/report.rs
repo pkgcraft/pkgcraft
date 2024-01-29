@@ -10,7 +10,7 @@ use std::str::FromStr;
 use colored::Color;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
-use pkgcraft::dep::{Cpv, Dep};
+use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::Package;
 use pkgcraft::restrict::{Restrict, Restriction};
@@ -120,7 +120,7 @@ impl PackageReport {
         S: Into<String>,
     {
         Report {
-            scope: ReportScope::Package(pkgs[0].cpn()),
+            scope: ReportScope::Package(pkgs[0].cpn().clone()),
             kind: ReportKind::Package(self),
             description: description.into(),
         }
@@ -215,7 +215,7 @@ impl PartialOrd for ReportKind {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub enum ReportScope {
     Version(Cpv<String>),
-    Package(Dep<String>),
+    Package(Cpn<String>),
 }
 
 impl std::fmt::Display for ReportScope {

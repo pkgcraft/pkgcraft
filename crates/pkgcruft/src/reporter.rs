@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::Write;
 
 use colored::{Color, Colorize};
+use pkgcraft::dep::Cpn;
 use strfmt::strfmt;
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
@@ -63,21 +64,26 @@ impl SimpleReporter {
 
 #[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
-    prev_cpn: Option<String>,
+    prev_cpn: Option<Cpn<String>>,
 }
 
 impl FancyReporter {
     fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         let cpn = match report.scope() {
-            ReportScope::Version(cpv) => cpv.cpn(),
-            ReportScope::Package(cpn) => cpn.to_string(),
+            ReportScope::Version(cpv) => cpv.cpn().clone(),
+            ReportScope::Package(cpn) => cpn.clone(),
         };
 
-        if cpn != self.prev_cpn.as_deref().unwrap_or_default() {
+        if !self
+            .prev_cpn
+            .as_ref()
+            .map(|prev| prev == &cpn)
+            .unwrap_or_default()
+        {
             if self.prev_cpn.is_some() {
                 writeln!(output)?;
             }
-            writeln!(output, "{}", cpn.color(Color::Blue).bold())?;
+            writeln!(output, "{}", cpn.to_string().color(Color::Blue).bold())?;
             self.prev_cpn = Some(cpn);
         }
 

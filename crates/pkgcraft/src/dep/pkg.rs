@@ -20,7 +20,7 @@ use crate::Error;
 
 use super::use_dep::{UseDep, UseDepKind};
 use super::version::{Operator, Revision, Version};
-use super::{parse, Cpv, Stringable};
+use super::{parse, Cpn, Cpv, Stringable};
 
 #[repr(C)]
 #[derive(
@@ -213,10 +213,9 @@ impl FromStr for SlotDep<String> {
 }
 
 /// Package dependency.
-#[derive(SerializeDisplay, DeserializeFromStr, Debug, Default, Clone)]
+#[derive(SerializeDisplay, DeserializeFromStr, Debug, Clone)]
 pub struct Dep<S: Stringable> {
-    pub(crate) category: S,
-    pub(crate) package: S,
+    pub(crate) cpn: Cpn<S>,
     pub(crate) blocker: Option<Blocker>,
     pub(crate) version: Option<Version<S>>,
     pub(crate) slot_dep: Option<SlotDep<S>>,
@@ -246,8 +245,7 @@ impl IntoOwned for Dep<&str> {
 
     fn into_owned(self) -> Self::Owned {
         Dep {
-            category: self.category.to_string(),
-            package: self.package.to_string(),
+            cpn: self.cpn.into_owned(),
             blocker: self.blocker,
             version: self.version.into_owned(),
             slot_dep: self.slot_dep.into_owned(),
@@ -255,6 +253,19 @@ impl IntoOwned for Dep<&str> {
                 .use_deps
                 .map(|u| u.into_iter().map(|u| u.into_owned()).collect()),
             repo: self.repo.map(|s| s.to_string()),
+        }
+    }
+}
+
+impl<S: Stringable> From<Cpn<S>> for Dep<S> {
+    fn from(cpn: Cpn<S>) -> Self {
+        Self {
+            cpn,
+            blocker: None,
+            version: None,
+            slot_dep: None,
+            use_deps: None,
+            repo: None,
         }
     }
 }
@@ -319,8 +330,7 @@ impl FromStr for Dep<String> {
 
 /// Key type used for implementing various traits, e.g. Eq, Hash, etc.
 type DepKey<'a, S> = (
-    &'a str,                          // category
-    &'a str,                          // package
+    &'a Cpn<S>,                       // unversioned dep
     Option<&'a Version<S>>,           // version
     Option<Blocker>,                  // blocker
     Option<&'a SlotDep<S>>,           // slot
@@ -332,11 +342,6 @@ impl Dep<String> {
     /// Create a new Dep from a given string using the default EAPI.
     pub fn try_new(s: &str) -> crate::Result<Self> {
         parse::dep(s, Default::default())
-    }
-
-    /// Create a new unversioned Dep from a given string.
-    pub fn try_new_cpn(s: &str) -> crate::Result<Self> {
-        parse::cpn(s).into_owned()
     }
 
     /// Potentially create a new Dep, removing the given fields.
@@ -393,8 +398,8 @@ impl Dep<String> {
                 DepField::Category => {
                     if let Some(s) = s {
                         let val = parse::category(s)?;
-                        if dep.category != val {
-                            dep.to_mut().category = val.to_string();
+                        if dep.cpn.category != val {
+                            dep.to_mut().cpn.category = val.to_string();
                         }
                     } else {
                         return Err(Error::InvalidValue("category cannot be unset".to_string()));
@@ -403,8 +408,8 @@ impl Dep<String> {
                 DepField::Package => {
                     if let Some(s) = s {
                         let val = parse::package(s)?;
-                        if dep.package != val {
-                            dep.to_mut().package = val.to_string();
+                        if dep.cpn.package != val {
+                            dep.to_mut().cpn.package = val.to_string();
                         }
                     } else {
                         return Err(Error::InvalidValue("package cannot be unset".to_string()));
@@ -477,14 +482,19 @@ impl<'a> Dep<&'a str> {
 }
 
 impl<S: Stringable> Dep<S> {
+    /// Return the [`Cpn`].
+    pub fn cpn(&self) -> &Cpn<S> {
+        &self.cpn
+    }
+
     /// Return a package dependency's category.
     pub fn category(&self) -> &str {
-        self.category.as_ref()
+        self.cpn.category()
     }
 
     /// Return a package dependency's package.
     pub fn package(&self) -> &str {
-        self.package.as_ref()
+        self.cpn.package()
     }
 
     /// Return a package dependency's blocker.
@@ -554,19 +564,13 @@ impl<S: Stringable> Dep<S> {
         self.version().map(|v| v.without_op()).unwrap_or_default()
     }
 
-    /// Return the package dependency's category and package.
-    /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg".
-    pub fn cpn(&self) -> String {
-        format!("{}/{}", self.category, self.package)
-    }
-
     /// Return the package dependency's category, package, version, and revision.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
     pub fn cpv(&self) -> String {
         if let Some(ver) = &self.version {
-            format!("{}/{}-{}", self.category, self.package, ver.without_op())
+            format!("{}-{}", self.cpn, ver.without_op())
         } else {
-            self.cpn()
+            format!("{}", self.cpn)
         }
     }
 
@@ -603,15 +607,7 @@ impl<S: Stringable> Dep<S> {
 
     /// Return a key value used to implement various traits, e.g. Eq, Hash, etc.
     fn key(&self) -> DepKey<S> {
-        (
-            self.category(),
-            self.package(),
-            self.version(),
-            self.blocker(),
-            self.slot_dep(),
-            self.use_deps(),
-            self.repo(),
-        )
+        (self.cpn(), self.version(), self.blocker(), self.slot_dep(), self.use_deps(), self.repo())
     }
 }
 
@@ -831,12 +827,6 @@ mod tests {
                 assert!(result.is_err(), "{s:?} didn't fail for EAPI={eapi}");
             }
         }
-
-        // unversioned
-        assert!(Dep::try_new_cpn("cat/pkg").is_ok());
-        assert!(Dep::try_new_cpn("cat/pkg-1").is_err());
-        assert!(Dep::try_new_cpn(">=cat/pkg-1").is_err());
-        assert!(Dep::try_new_cpn("cat/pkg:0").is_err());
     }
 
     #[test]
@@ -863,7 +853,7 @@ mod tests {
 
     #[test]
     fn cpn() {
-        for (s, key) in [
+        for (s, cpn) in [
             ("cat/pkg", "cat/pkg"),
             ("<cat/pkg-4", "cat/pkg"),
             ("<=cat/pkg-4-r1", "cat/pkg"),
@@ -874,7 +864,7 @@ mod tests {
             (">cat/pkg-4-r1:0=", "cat/pkg"),
         ] {
             let dep: Dep<_> = s.parse().unwrap();
-            assert_eq!(dep.cpn(), key);
+            assert_eq!(dep.cpn(), &Cpn::try_new(cpn).unwrap());
         }
     }
 
@@ -1157,7 +1147,7 @@ mod tests {
 
     #[test]
     fn unversioned() {
-        let expected = Dep::try_new_cpn("cat/pkg").unwrap();
+        let expected = Dep::try_new("cat/pkg").unwrap();
         for s in ["!!>=cat/pkg-1.2-r3:4/5=::repo[a,b]", "=cat/pkg-1", "cat/pkg"] {
             let dep = Dep::try_new(s).unwrap();
             assert_eq!(dep.unversioned(), expected);

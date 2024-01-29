@@ -10,9 +10,9 @@ use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::{Cpv, Dep, Version};
+use crate::types::{Cpn, Cpv, Dep, Version};
 
-/// Parse a CPV string into a Cpv object.
+/// Parse a string into a Cpv object.
 ///
 /// Returns NULL on error.
 ///
@@ -181,14 +181,14 @@ pub unsafe extern "C" fn pkgcraft_cpv_pvr(c: *mut Cpv) -> *mut c_char {
     try_ptr_from_str!(cpv.pvr())
 }
 
-/// Get the category and package of a Cpv object.
+/// Get the Cpn of a Cpv object.
 ///
 /// # Safety
 /// The argument must be a non-null Cpv pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_cpv_cpn(c: *mut Cpv) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_cpv_cpn(c: *mut Cpv) -> *mut Cpn {
     let cpv = try_ref_from_ptr!(c);
-    try_ptr_from_str!(cpv.cpn())
+    Box::into_raw(Box::new(cpv.cpn().clone()))
 }
 
 /// Return the string for a Cpv object.

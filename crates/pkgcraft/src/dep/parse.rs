@@ -1,5 +1,6 @@
 use cached::{proc_macro::cached, SizedCache};
 
+use crate::dep::cpn::Cpn;
 use crate::dep::cpv::{Cpv, CpvOrDep};
 use crate::dep::pkg::{Blocker, Dep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
@@ -198,18 +199,18 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
+    pub(super) rule cpn() -> Cpn<&'input str>
+        = category:category() "/" package:package() {
+            Cpn { category, package }
+        }
+
     pub(super) rule cpv() -> Cpv<&'input str>
-        = category:category() "/" package:package() "-" version:version()
-        { Cpv { category, package, version } }
+        = cpn:cpn() "-" version:version()
+        { Cpv { cpn, version } }
 
     rule dep_pkg() -> Dep<&'input str>
-        = dep:cpn() { dep }
+        = cpn:cpn() { cpn.into() }
         / dep:with_op(<cpv()>) { dep }
-
-    pub(super) rule cpn() -> Dep<&'input str>
-        = category:category() "/" package:package() {
-            Dep { category, package, ..Default::default() }
-        }
 
     pub(super) rule dep(eapi: &'static Eapi) -> Dep<&'input str>
         = blocker:blocker()? dep:dep_pkg() slot:slot_dep_str()?
@@ -396,8 +397,8 @@ pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep<String>> {
     dep_str(s, eapi).into_owned()
 }
 
-pub(super) fn cpn(s: &str) -> crate::Result<Dep<&str>> {
-    depspec::cpn(s).map_err(|e| peg_error("invalid unversioned dep", s, e))
+pub(super) fn cpn(s: &str) -> crate::Result<Cpn<&str>> {
+    depspec::cpn(s).map_err(|e| peg_error("invalid cpn", s, e))
 }
 
 pub fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String, String>> {

@@ -1,4 +1,4 @@
-use crate::dep::{Blocker, Cpv, Dep, UseDep, Version};
+use crate::dep::{Blocker, Cpn, Cpv, Dep, UseDep, Version};
 use crate::traits::Intersects;
 use crate::types::SortedSet;
 
@@ -44,6 +44,23 @@ impl Restrict {
 
     pub fn repo(o: Option<&str>) -> Self {
         Self::Repo(o.map(StrRestrict::equal))
+    }
+}
+
+impl Restriction<&Cpn<String>> for Restrict {
+    fn matches(&self, cpn: &Cpn<String>) -> bool {
+        use self::Restrict::*;
+        match self {
+            Category(r) => r.matches(cpn.category()),
+            Package(r) => r.matches(cpn.package()),
+            Version(None) => true,
+            Blocker(None) => true,
+            Slot(None) => true,
+            Subslot(None) => true,
+            UseDeps(None) => true,
+            Repo(None) => true,
+            _ => false,
+        }
     }
 }
 
@@ -110,6 +127,14 @@ impl From<Restrict> for BaseRestrict {
     }
 }
 
+impl Restriction<&Cpn<String>> for BaseRestrict {
+    fn matches(&self, cpn: &Cpn<String>) -> bool {
+        crate::restrict::restrict_match! {self, cpn,
+            Self::Dep(r) => r.matches(cpn),
+        }
+    }
+}
+
 impl Restriction<&Cpv<String>> for BaseRestrict {
     fn matches(&self, cpv: &Cpv<String>) -> bool {
         crate::restrict::restrict_match! {self, cpv,
@@ -123,6 +148,12 @@ impl Restriction<&Dep<String>> for BaseRestrict {
         crate::restrict::restrict_match! {self, dep,
             Self::Dep(r) => r.matches(dep),
         }
+    }
+}
+
+impl From<&Cpn<String>> for BaseRestrict {
+    fn from(cpn: &Cpn<String>) -> Self {
+        BaseRestrict::and([Restrict::category(cpn.category()), Restrict::package(cpn.package())])
     }
 }
 

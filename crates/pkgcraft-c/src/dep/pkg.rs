@@ -12,7 +12,7 @@ use pkgcraft::utils::hash;
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::{Cpv, Dep, Version};
+use crate::types::{Cpn, Cpv, Dep, Version};
 use crate::utils::{boxed, obj_to_str};
 
 use super::use_dep::UseDep;
@@ -130,21 +130,6 @@ pub unsafe extern "C" fn pkgcraft_dep_modify(
         } else {
             d
         }
-    }
-}
-
-/// Parse a string into an unversioned package dependency.
-///
-/// Returns NULL on error.
-///
-/// # Safety
-/// The argument must be a UTF-8 string.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_new_cpn(s: *const c_char) -> *mut Dep {
-    ffi_catch_panic! {
-        let s = try_str_from_ptr!(s);
-        let dep = unwrap_or_panic!(Dep::try_new_cpn(s));
-        Box::into_raw(Box::new(dep))
     }
 }
 
@@ -444,15 +429,14 @@ pub unsafe extern "C" fn pkgcraft_dep_pvr(d: *mut Dep) -> *mut c_char {
     }
 }
 
-/// Get the category and package of a package dependency.
-/// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg".
+/// Get the Cpn of a package dependency.
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut Cpn {
     let dep = try_ref_from_ptr!(d);
-    try_ptr_from_str!(dep.cpn())
+    Box::into_raw(Box::new(dep.cpn().clone()))
 }
 
 /// Get the category, package, and version of a package dependency.

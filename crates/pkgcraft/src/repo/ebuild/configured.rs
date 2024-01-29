@@ -6,7 +6,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 
 use crate::config::{RepoConfig, Settings};
-use crate::dep::{Cpv, Dep, Version};
+use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::ebuild::configured::Pkg;
 use crate::repo::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 use crate::restrict::{Restrict, Restriction};
@@ -92,6 +92,12 @@ impl PkgRepository for Repo {
             iter: self.into_iter(),
             restrict: val.into(),
         }
+    }
+}
+
+impl Contains<&Cpn<String>> for Repo {
+    fn contains(&self, cpn: &Cpn<String>) -> bool {
+        self.raw.contains(cpn)
     }
 }
 

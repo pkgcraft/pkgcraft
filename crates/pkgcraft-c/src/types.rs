@@ -10,6 +10,9 @@ pub type Revision = RevisionOwned<String>;
 use pkgcraft::dep::version::Version as VersionOwned;
 pub type Version = VersionOwned<String>;
 
+use pkgcraft::dep::cpn::Cpn as CpnOwned;
+pub type Cpn = CpnOwned<String>;
+
 use pkgcraft::dep::cpv::Cpv as CpvOwned;
 pub type Cpv = CpvOwned<String>;
 

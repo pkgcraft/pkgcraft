@@ -3,7 +3,7 @@ use std::fmt;
 use enum_as_inner::EnumAsInner;
 use scallop::ExecStatus;
 
-use crate::dep::{Cpv, Dep, Version};
+use crate::dep::{Cpn, Cpv, Version};
 use crate::eapi::{Eapi, Restrict as EapiRestrict};
 use crate::repo::{Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -29,6 +29,21 @@ pub trait Package: fmt::Debug + fmt::Display {
 
     /// Return a package's Cpv.
     fn cpv(&self) -> &Cpv<String>;
+
+    /// Return the unversioned package.
+    fn cpn(&self) -> &Cpn<String> {
+        self.cpv().cpn()
+    }
+
+    /// Return a package's category.
+    fn category(&self) -> &str {
+        self.cpv().category()
+    }
+
+    /// Return a package's name.
+    fn package(&self) -> &str {
+        self.cpv().package()
+    }
 
     /// Return a package's version.
     fn version(&self) -> &Version<String> {
@@ -58,15 +73,6 @@ pub trait Package: fmt::Debug + fmt::Display {
     /// Returna package's version and revision.
     fn pvr(&self) -> String {
         self.cpv().pvr()
-    }
-
-    /// Return a package's unversioned Dep.
-    fn cpn(&self) -> Dep<String> {
-        Dep {
-            category: self.cpv().category().to_string(),
-            package: self.cpv().package().to_string(),
-            ..Default::default()
-        }
     }
 }
 
@@ -301,6 +307,6 @@ mod tests {
         assert_eq!(pkg.pr(), "r2");
         assert_eq!(pkg.pv(), "1");
         assert_eq!(pkg.pvr(), "1-r2");
-        assert_eq!(pkg.cpn(), Dep::try_new_cpn("cat/pkg").unwrap());
+        assert_eq!(pkg.cpn(), &Cpn::try_new("cat/pkg").unwrap());
     }
 }

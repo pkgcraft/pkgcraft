@@ -29,6 +29,9 @@ pub struct Revision;
 /// Opaque wrapper for pkgcraft::dep::version::Version<String> objects.
 pub struct Version;
 
+/// Opaque wrapper for pkgcraft::dep::cpv::Cpn<String> objects.
+pub struct Cpn;
+
 /// Opaque wrapper for pkgcraft::dep::cpv::Cpv<String> objects.
 pub struct Cpv;
 

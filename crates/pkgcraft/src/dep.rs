@@ -12,6 +12,7 @@ use crate::traits::{Contains, IntoOwned, ToRef};
 use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
 use crate::Error;
 
+pub mod cpn;
 pub mod cpv;
 pub mod parse;
 pub mod pkg;
@@ -19,6 +20,7 @@ pub mod uri;
 pub mod use_dep;
 pub mod version;
 
+pub use cpn::Cpn;
 pub use cpv::{Cpv, CpvOrDep};
 pub use pkg::{Blocker, Dep, DepField, Slot, SlotDep, SlotOperator};
 pub use uri::Uri;

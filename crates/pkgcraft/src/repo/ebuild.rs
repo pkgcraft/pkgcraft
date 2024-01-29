@@ -16,7 +16,7 @@ use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::config::{RepoConfig, Settings};
-use crate::dep::{self, Cpv, Dep, Operator, Version};
+use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
 use crate::files::{
     has_ext, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list, sorted_dir_list_utf8,
@@ -127,7 +127,7 @@ where
     /// Get the cache data related to a given package Cpv.
     fn get(&self, cpv: &Cpv<String>) -> Arc<T> {
         self.tx
-            .send(Msg::Key(cpv.cpn()))
+            .send(Msg::Key(cpv.cpn().to_string()))
             .expect("failed requesting pkg manifest data");
         self.rx.recv().expect("failed receiving pkg manifest data")
     }
@@ -762,6 +762,12 @@ impl AsRef<Utf8Path> for Repo {
     }
 }
 
+impl Contains<&Cpn<String>> for Repo {
+    fn contains(&self, cpn: &Cpn<String>) -> bool {
+        self.path().join(cpn.to_string()).exists()
+    }
+}
+
 impl Contains<&Cpv<String>> for Repo {
     fn contains(&self, cpv: &Cpv<String>) -> bool {
         self.path().join(cpv.relpath()).exists()
@@ -840,7 +846,7 @@ impl<'a> Iterator for IterRaw<'a> {
 }
 
 pub struct IterCpn<'a> {
-    iter: Box<dyn Iterator<Item = Dep<String>> + 'a>,
+    iter: Box<dyn Iterator<Item = Cpn<String>> + 'a>,
 }
 
 impl<'a> IterCpn<'a> {
@@ -875,10 +881,9 @@ impl<'a> IterCpn<'a> {
                         .flat_map(|cat| {
                             repo.packages(&cat)
                                 .into_iter()
-                                .map(|pn| Dep {
+                                .map(|pn| Cpn {
                                     category: cat.to_string(),
                                     package: pn,
-                                    ..Default::default()
                                 })
                                 .collect::<Vec<_>>()
                         })
@@ -889,11 +894,7 @@ impl<'a> IterCpn<'a> {
                 ([Equal(cat)], [Package(Equal(pn))]) => {
                     let cat = std::mem::take(cat);
                     let pn = std::mem::take(pn);
-                    let cpn = Dep {
-                        category: cat,
-                        package: pn,
-                        ..Default::default()
-                    };
+                    let cpn = Cpn { category: cat, package: pn };
                     if repo.contains(&cpn) {
                         Box::new(iter::once(cpn))
                     } else {
@@ -904,10 +905,9 @@ impl<'a> IterCpn<'a> {
                     let pn = std::mem::take(pn);
 
                     Box::new(repo.categories().into_iter().flat_map(move |cat| {
-                        let cpn = Dep {
+                        let cpn = Cpn {
                             category: cat,
                             package: pn.to_string(),
-                            ..Default::default()
                         };
                         if repo.contains(&cpn) {
                             vec![cpn]
@@ -928,10 +928,9 @@ impl<'a> IterCpn<'a> {
                         repo.packages(&cat)
                             .into_iter()
                             .filter(|pn| pkg_restrict.matches(pn.as_str()))
-                            .map(|pn| Dep {
+                            .map(|pn| Cpn {
                                 category: cat.clone(),
                                 package: pn,
-                                ..Default::default()
                             })
                             .collect::<Vec<_>>()
                     }))
@@ -957,10 +956,9 @@ impl<'a> IterCpn<'a> {
                                 repo.packages(&cat)
                                     .into_iter()
                                     .filter(|pn| pkg_restrict.matches(pn.as_str()))
-                                    .map(|pn| Dep {
+                                    .map(|pn| Cpn {
                                         category: cat.clone(),
                                         package: pn,
-                                        ..Default::default()
                                     })
                                     .collect::<Vec<_>>()
                             }),
@@ -972,7 +970,7 @@ impl<'a> IterCpn<'a> {
 }
 
 impl<'a> Iterator for IterCpn<'a> {
-    type Item = Dep<String>;
+    type Item = Cpn<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
@@ -1142,7 +1140,7 @@ pub struct IterCpnRestrict<'a> {
 }
 
 impl<'a> Iterator for IterCpnRestrict<'a> {
-    type Item = Dep<String>;
+    type Item = Cpn<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|cpn| self.restrict.matches(cpn))

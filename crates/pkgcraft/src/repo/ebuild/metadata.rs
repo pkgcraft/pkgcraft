@@ -10,7 +10,7 @@ use indexmap::{IndexMap, IndexSet};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::{error, warn};
 
-use crate::dep::{parse, Dep};
+use crate::dep::{parse, Cpn, Dep};
 use crate::eapi::Eapi;
 use crate::files::{
     has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8, sorted_dir_list,
@@ -179,7 +179,7 @@ impl Borrow<str> for ArchStatus {
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum PkgUpdate {
-    Move(Dep<String>, Dep<String>),
+    Move(Cpn<String>, Cpn<String>),
     SlotMove(Dep<String>, String, String),
 }
 
@@ -189,16 +189,11 @@ impl FromStr for PkgUpdate {
     fn from_str(s: &str) -> crate::Result<Self> {
         let tokens: Vec<_> = s.split_whitespace().collect();
         match &tokens[..] {
-            ["move", s1, s2] => {
-                let d1 = Dep::try_new_cpn(s1)?;
-                let d2 = Dep::try_new_cpn(s2)?;
-                Ok(Self::Move(d1, d2))
-            }
+            ["move", s1, s2] => Ok(Self::Move(s1.parse()?, s2.parse()?)),
             ["slotmove", dep, s1, s2] => {
-                let dep = dep.parse()?;
                 let s1 = parse::slot(s1)?;
                 let s2 = parse::slot(s2)?;
-                Ok(Self::SlotMove(dep, s1.to_string(), s2.to_string()))
+                Ok(Self::SlotMove(dep.parse()?, s1.to_string(), s2.to_string()))
             }
             _ => Err(Error::InvalidValue(format!("invalid or unknown update: {s}"))),
         }
@@ -641,8 +636,8 @@ impl Metadata {
             let (cpn, use_desc) = s
                 .split_once(':')
                 .ok_or_else(|| Error::InvalidValue(s.to_string()))?;
-            let dep = Dep::try_new_cpn(cpn)?;
-            Ok((dep.to_string(), parse_use_desc(use_desc)?))
+            let _ = Cpn::try_new(cpn)?;
+            Ok((cpn.to_string(), parse_use_desc(use_desc)?))
         };
 
         self.use_local_desc.get_or_init(|| {
@@ -1084,7 +1079,7 @@ mod tests {
         fs::write(metadata.path.join("profiles/updates/1Q-9999"), data).unwrap();
         let updates = metadata.updates();
         assert_eq!(updates.len(), 2);
-        assert_logs_re!(".+ line 5: .+?: invalid unversioned dep: cat/pkg3-1$");
+        assert_logs_re!(".+ line 5: .+?: invalid cpn: cat/pkg3-1$");
         assert_logs_re!(".+ line 11: .+?: invalid slot: @$");
     }
 

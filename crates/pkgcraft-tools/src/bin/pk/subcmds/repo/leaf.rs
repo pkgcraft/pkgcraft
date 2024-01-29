@@ -27,13 +27,16 @@ impl Command {
         for pkg in repo {
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies(&[]).into_iter_flatten() {
-                cache.entry(dep.cpn()).or_default().insert(dep.clone());
+                cache
+                    .entry(dep.cpn().clone())
+                    .or_default()
+                    .insert(dep.clone());
             }
         }
 
         // determine if a given package is a leaf
         let is_leaf = |cpv: &Cpv<String>| -> bool {
-            !cache.get(&cpv.cpn()).is_some_and(|deps| {
+            !cache.get(cpv.cpn()).is_some_and(|deps| {
                 deps.iter()
                     .any(|d| d.intersects(cpv) && d.blocker().is_none())
             })
