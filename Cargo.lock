@@ -1110,7 +1110,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http",
- "indexmap 2.2.0",
+ "indexmap 2.2.1",
  "slab",
  "tokio",
  "tokio-util",
@@ -1288,9 +1288,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.2.0"
+version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf2a4f498956c7723dc280afc6a37d0dec50b39a29e232c6187ce4503703e8c2"
+checksum = "433de089bd45971eecf4668ee0ee8f4cec17db4f8bd8f7bc3197a6ce37aa7d9b"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
@@ -1784,7 +1784,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
 dependencies = [
  "fixedbitset",
- "indexmap 2.2.0",
+ "indexmap 2.2.1",
 ]
 
 [[package]]
@@ -1848,7 +1848,7 @@ dependencies = [
  "git2",
  "glob",
  "hex",
- "indexmap 2.2.0",
+ "indexmap 2.2.1",
  "indicatif",
  "indoc",
  "is_executable",
@@ -1897,7 +1897,7 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "humantime",
- "indexmap 2.2.0",
+ "indexmap 2.2.1",
  "indoc",
  "itertools 0.12.0",
  "num_cpus",
@@ -1926,7 +1926,7 @@ dependencies = [
  "crossbeam-channel",
  "git2",
  "glob",
- "indexmap 2.2.0",
+ "indexmap 2.2.1",
  "indoc",
  "itertools 0.12.0",
  "num_cpus",
@@ -2371,7 +2371,7 @@ dependencies = [
  "bitflags 2.4.2",
  "camino",
  "ctor",
- "indexmap 2.2.0",
+ "indexmap 2.2.1",
  "ipc-channel",
  "libc",
  "nix",
@@ -2833,7 +2833,7 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d34d383cd00a163b4a5b85053df514d45bc330f6de7737edfe0a93311d1eaa03"
 dependencies = [
- "indexmap 2.2.0",
+ "indexmap 2.2.1",
  "serde",
  "serde_spanned",
  "toml_datetime",

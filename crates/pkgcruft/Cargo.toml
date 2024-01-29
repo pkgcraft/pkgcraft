@@ -44,7 +44,7 @@ clap-verbosity-flag = "2.1.2"
 colored = "2.1.0"
 crossbeam-channel = "0.5.11"
 git2 = { version = "0.18.1", optional = true }
-indexmap = { version = "2.2.0", features = ["serde"] }
+indexmap = { version = "2.2.1", features = ["serde"] }
 itertools = "0.12.0"
 num_cpus = "1.16.0"
 once_cell = "1.19.0"
