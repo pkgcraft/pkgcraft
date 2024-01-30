@@ -488,7 +488,7 @@ impl<'a> Dep<&'a str> {
 }
 
 impl<S: Stringable> Dep<S> {
-    /// Return the [`Cpn`].
+    /// Return a package dependency's [`Cpn`].
     pub fn cpn(&self) -> &Cpn<S> {
         &self.cpn
     }
