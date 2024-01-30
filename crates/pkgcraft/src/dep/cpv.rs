@@ -291,6 +291,12 @@ impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for Cpv<S2> {
     }
 }
 
+impl<S: Stringable> From<Cpv<S>> for Cpn<S> {
+    fn from(cpv: Cpv<S>) -> Self {
+        cpv.cpn.clone()
+    }
+}
+
 impl TryFrom<&str> for Cpv<String> {
     type Error = Error;
 
