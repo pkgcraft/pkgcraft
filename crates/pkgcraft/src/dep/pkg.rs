@@ -270,6 +270,12 @@ impl<S: Stringable> From<Cpn<S>> for Dep<S> {
     }
 }
 
+impl<S: Stringable> From<Dep<S>> for Cpn<S> {
+    fn from(dep: Dep<S>) -> Self {
+        dep.cpn.clone()
+    }
+}
+
 impl<S1: Stringable, S2: Stringable> PartialEq<Dep<S1>> for Dep<S2> {
     fn eq(&self, other: &Dep<S1>) -> bool {
         cmp(self, other) == Ordering::Equal
