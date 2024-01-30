@@ -124,8 +124,7 @@ peg::parser!(grammar depspec() for str {
         ) { s }
 
     pub(super) rule slot() -> Slot<&'input str>
-        = name:$(slot_name() ("/" slot_name())?)
-        { Slot { name } }
+        = name:$(slot_name() ("/" slot_name())?) { Slot { name } }
 
     pub(super) rule slot_dep() -> SlotDep<&'input str>
         = "=" { SlotDep { slot: None, op: Some(SlotOperator::Equal) } }
@@ -200,13 +199,10 @@ peg::parser!(grammar depspec() for str {
         }
 
     pub(super) rule cpn() -> Cpn<&'input str>
-        = category:category() "/" package:package() {
-            Cpn { category, package }
-        }
+        = category:category() "/" package:package() { Cpn { category, package } }
 
     pub(super) rule cpv() -> Cpv<&'input str>
-        = cpn:cpn() "-" version:version()
-        { Cpv { cpn, version } }
+        = cpn:cpn() "-" version:version() { Cpv { cpn, version } }
 
     rule dep_pkg() -> Dep<&'input str>
         = cpn:cpn() { cpn.into() }
