@@ -25,7 +25,7 @@ pub(crate) static CHECK: Check = Check {
     ],
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct MetadataCheck<'a> {
     _repo: &'a Repo,
 }

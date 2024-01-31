@@ -23,7 +23,7 @@ pub(crate) static CHECK: Check = Check {
     ],
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct DependencyCheck<'a> {
     repo: &'a Repo,
 }

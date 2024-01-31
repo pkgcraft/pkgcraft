@@ -20,7 +20,7 @@ pub(crate) static CHECK: Check = Check {
     reports: &[ReportKind::Version(VersionReport::DroppedKeywords)],
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct DroppedKeywordsCheck<'a> {
     arches: &'a IndexSet<String>,
 }

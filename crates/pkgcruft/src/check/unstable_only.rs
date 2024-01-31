@@ -20,7 +20,7 @@ pub(crate) static CHECK: Check = Check {
     reports: &[ReportKind::Package(PackageReport::UnstableOnly)],
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct UnstableOnlyCheck<'a> {
     arches: HashSet<&'a str>,
 }
