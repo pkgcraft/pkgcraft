@@ -48,8 +48,8 @@ indexmap = { version = "2.2.2", features = ["serde"] }
 itertools = "0.12.1"
 num_cpus = "1.16.0"
 once_cell = "1.19.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.13" }
-scallop = { path = "../scallop", version = "0.0.12" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.14" }
+scallop = { path = "../scallop", version = "0.0.13" }
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"
 strfmt = "0.2.4"
