@@ -18,6 +18,7 @@ pub mod test;
 pub mod traits;
 pub mod types;
 pub mod utils;
+pub(crate) mod xml;
 
 pub use self::error::Error;
 

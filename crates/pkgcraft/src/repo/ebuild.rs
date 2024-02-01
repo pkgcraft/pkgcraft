@@ -11,7 +11,6 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use roxmltree::Document;
 use tracing::warn;
 use walkdir::{DirEntry, WalkDir};
 
@@ -27,6 +26,7 @@ use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Intersects;
+use crate::xml::parse_xml_with_dtd;
 use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
@@ -346,7 +346,7 @@ impl Repo {
     pub fn categories_xml(&self) -> &IndexMap<String, String> {
         // parse a category's metadata.xml data
         let parse_xml = |data: &str| -> crate::Result<Option<String>> {
-            Document::parse(data)
+            parse_xml_with_dtd(data)
                 .map_err(|e| Error::InvalidValue(format!("failed parsing category xml: {e}")))
                 .map(|doc| {
                     doc.root_element().children().find_map(|node| {

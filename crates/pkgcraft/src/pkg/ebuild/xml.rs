@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 use itertools::Itertools;
-use roxmltree::{Document, Node};
+use roxmltree::Node;
 use strum::{AsRefStr, Display, EnumString};
 
 use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::ArcCacheData;
 use crate::types::OrderedSet;
+use crate::xml::parse_xml_with_dtd;
 use crate::Error;
 
 #[derive(AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
@@ -262,7 +263,7 @@ impl ArcCacheData for Metadata {
     const RELPATH: &'static str = "metadata.xml";
 
     fn parse(data: &str) -> crate::Result<Self> {
-        let doc = Document::parse(data).map_err(|e| Error::InvalidValue(e.to_string()))?;
+        let doc = parse_xml_with_dtd(data).map_err(|e| Error::InvalidValue(e.to_string()))?;
         let mut data = Self::default();
 
         for node in doc.root_element().children() {
