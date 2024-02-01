@@ -1,3 +1,33 @@
+# 0.0.14 (2024-02-01)
+
+## Added
+- `pk cpv`: Add CPV-related support separate from `pk dep`. This provides much
+  of the same support that `pk dep` provides for package dependencies, but
+  instead for CPV objects (e.g. cat/pkg-1-r2 where a corresponding package
+  dependency could be =cat/pkg-1-r2).
+
+- `pk pkg showkw`: Add initial package keyword output support. This command is
+  the rough precursor to a `pkgdev showkw` and eshowkw alternative that
+  currently doesn't support tabular output.
+
+- `pk pkg env`: Add initial ebuild package environment dumping support. This
+  command sources targeted ebuilds and dumps their respective bash environments
+  to stdout.
+
+- `pk pkg metadata`: Add initial support for selective package metadata
+  mangling currently only allowing regeneration and verification. Where `pk
+  repo metadata` operates on entire ebuild repos, this command operates on
+  custom restrictions such as paths or package globs (by default it uses the
+  current working directory). This allows much quicker, targeted metadata
+  generation when working in specific packages directories or for scripts
+  targeting specific packages.
+
+## Changed
+- `pk repo metadata`: Split actions into separate subcommands so the previous
+  default regen action now must be run via `pk repo metadata regen`. Cache
+  cleaning and removal are supported via the `clean` and `remove` subcommands,
+  respectively.
+
 # 0.0.13 (2023-11-06)
 
 ## Fixed
