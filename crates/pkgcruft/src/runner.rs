@@ -43,7 +43,7 @@ impl<'a> SyncCheckRunner<'a> {
     pub(crate) fn run(&self, restrict: &Restrict) -> Vec<Report> {
         let mut reports = vec![];
         for runner in self.runners.values() {
-            runner.run(restrict, &mut reports).ok();
+            runner.run(restrict, &mut reports);
         }
         reports
     }
@@ -66,7 +66,7 @@ impl CheckRunner<'_> {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, restrict: &Restrict, reports: &mut Vec<Report>) {
         match self {
             Self::EbuildPkg(r) => r.run(restrict, reports),
             Self::EbuildRawPkg(r) => r.run(restrict, reports),
@@ -104,23 +104,21 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Run the check runner for a given restriction.
-    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) {
         let mut pkgs = vec![];
 
         for pkg in self.source.iter_restrict(restrict) {
             for check in &self.pkg_checks {
-                check.run(&pkg, reports)?;
+                check.run(&pkg, reports);
             }
             pkgs.push(pkg);
         }
 
         if !pkgs.is_empty() {
             for check in &self.pkgs_checks {
-                check.run(&pkgs, reports)?;
+                check.run(&pkgs, reports);
             }
         }
-
-        Ok(())
     }
 }
 
@@ -151,13 +149,11 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     }
 
     /// Run the check runner for a given restriction.
-    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) {
         for pkg in self.source.iter_restrict(restrict) {
             for check in &self.pkg_checks {
-                check.run(&pkg, reports)?;
+                check.run(&pkg, reports);
             }
         }
-
-        Ok(())
     }
 }

@@ -151,7 +151,7 @@ pub(crate) enum EbuildPkgCheck<'a> {
 }
 
 impl<'a> CheckRun<&ebuild::Pkg<'a>> for EbuildPkgCheck<'a> {
-    fn run(&self, pkg: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, pkg: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) {
         match self {
             Self::Dependency(c) => c.run(pkg, reports),
         }
@@ -164,7 +164,7 @@ pub(crate) enum EbuildRawPkgCheck<'a> {
 }
 
 impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for EbuildRawPkgCheck<'a> {
-    fn run(&self, pkg: &ebuild::raw::Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, pkg: &ebuild::raw::Pkg<'a>, reports: &mut Vec<Report>) {
         match self {
             Self::Metadata(c) => c.run(pkg, reports),
         }
@@ -178,7 +178,7 @@ pub(crate) enum EbuildPkgSetCheck<'a> {
 }
 
 impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for EbuildPkgSetCheck<'a> {
-    fn run(&self, pkgs: &[ebuild::Pkg<'a>], reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, pkgs: &[ebuild::Pkg<'a>], reports: &mut Vec<Report>) {
         match self {
             Self::DroppedKeywords(c) => c.run(pkgs, reports),
             Self::UnstableOnly(c) => c.run(pkgs, reports),
@@ -188,7 +188,7 @@ impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for EbuildPkgSetCheck<'a> {
 
 /// Run a check for a given item sending back any generated reports.
 pub(crate) trait CheckRun<T> {
-    fn run(&self, item: T, reports: &mut Vec<Report>) -> crate::Result<()>;
+    fn run(&self, item: T, reports: &mut Vec<Report>);
 }
 
 #[derive(Debug, Copy, Clone)]

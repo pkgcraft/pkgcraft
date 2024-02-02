@@ -9,7 +9,6 @@ use pkgcraft::repo::ebuild::Repo;
 use crate::report::{Report, ReportKind, VersionReport};
 use crate::scope::Scope;
 use crate::source::SourceKind;
-use crate::Error;
 
 use super::{Check, CheckKind, CheckRun, EbuildRawPkgCheckKind};
 
@@ -37,7 +36,7 @@ impl<'a> MetadataCheck<'a> {
 }
 
 impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'a> {
-    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         use VersionReport::*;
         let eapi = pkg.eapi();
 
@@ -99,12 +98,6 @@ impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'a> {
             }
             // no other pkgcraft error types should occur
             Err(e) => panic!("MetadataCheck failed: {e}"),
-        }
-
-        if reports.is_empty() {
-            Ok(())
-        } else {
-            Err(Error::SkipRemainingChecks)
         }
     }
 }

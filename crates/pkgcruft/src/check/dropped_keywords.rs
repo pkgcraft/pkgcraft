@@ -32,13 +32,13 @@ impl<'a> DroppedKeywordsCheck<'a> {
 }
 
 impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
-    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
         use VersionReport::*;
 
         // ignore packages lacking keywords
         let pkgs: Vec<_> = pkgs.iter().filter(|p| !p.keywords().is_empty()).collect();
         if pkgs.len() <= 1 {
-            return Ok(());
+            return;
         };
 
         let mut seen = HashSet::new();
@@ -95,8 +95,6 @@ impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
             let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
             reports.push(DroppedKeywords.report(pkg, arches));
         }
-
-        Ok(())
     }
 }
 

@@ -37,7 +37,7 @@ impl<'a> UnstableOnlyCheck<'a> {
 }
 
 impl<'a> CheckRun<&[Pkg<'a>]> for UnstableOnlyCheck<'a> {
-    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
         use PackageReport::*;
 
         let arches: Vec<_> = pkgs
@@ -58,8 +58,6 @@ impl<'a> CheckRun<&[Pkg<'a>]> for UnstableOnlyCheck<'a> {
             let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
             reports.push(UnstableOnly.report(pkgs, arches));
         }
-
-        Ok(())
     }
 }
 

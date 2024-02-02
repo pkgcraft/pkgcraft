@@ -35,7 +35,7 @@ impl<'a> DependencyCheck<'a> {
 }
 
 impl<'a> CheckRun<&Pkg<'a>> for DependencyCheck<'a> {
-    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) -> crate::Result<()> {
+    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         use VersionReport::*;
 
         for key in pkg.eapi().dep_keys() {
@@ -57,8 +57,6 @@ impl<'a> CheckRun<&Pkg<'a>> for DependencyCheck<'a> {
                 reports.push(DeprecatedDependency.report(pkg, msg));
             }
         }
-
-        Ok(())
     }
 }
 
