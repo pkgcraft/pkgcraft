@@ -86,10 +86,10 @@ impl VersionReport {
         match self {
             Self::DeprecatedDependency => Warning,
             Self::DroppedKeywords => Warning,
-            Self::InvalidDependencySet => Error,
-            Self::MissingMetadata => Error,
+            Self::InvalidDependencySet => Critical,
+            Self::MissingMetadata => Critical,
             Self::MissingRevision => Warning,
-            Self::SourcingError => Error,
+            Self::SourcingError => Critical,
         }
     }
 }
