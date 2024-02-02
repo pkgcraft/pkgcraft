@@ -73,7 +73,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: linux
+        name: ${{ github.ref_name }}-${{ matrix.target }}
         path: ./*.tar.xz
         if-no-files-found: error
         retention-days: 3
@@ -88,11 +88,12 @@ jobs:
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
 
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          source/*.tar.xz
-          linux/*.tar.xz
+        files: artifacts/*.tar.xz
         fail_on_unmatched_files: true
