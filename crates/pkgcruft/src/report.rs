@@ -23,6 +23,7 @@ use crate::Error;
 /// The severity of the report.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum ReportLevel {
+    Critical,
     Error,
     Warning,
     Style,
@@ -32,7 +33,8 @@ pub enum ReportLevel {
 impl From<ReportLevel> for Color {
     fn from(level: ReportLevel) -> Self {
         match level {
-            ReportLevel::Error => Color::Red,
+            ReportLevel::Critical => Color::Red,
+            ReportLevel::Error => Color::TrueColor { r: 255, g: 140, b: 0 },
             ReportLevel::Warning => Color::Yellow,
             ReportLevel::Style => Color::Cyan,
             ReportLevel::Info => Color::Green,
