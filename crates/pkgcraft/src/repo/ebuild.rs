@@ -793,6 +793,7 @@ impl<'a> IntoIterator for &'a Repo {
     }
 }
 
+/// Iterable of valid ebuild packages.
 pub struct Iter<'a> {
     iter: IterRaw<'a>,
     repo: &'a Repo,
@@ -819,6 +820,7 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
+/// Iterable of valid, raw ebuild packages.
 pub struct IterRaw<'a> {
     iter: IterCpv<'a>,
     repo: &'a Repo,
@@ -845,6 +847,7 @@ impl<'a> Iterator for IterRaw<'a> {
     }
 }
 
+/// Iterable of [`Cpn`] objects.
 pub struct IterCpn<'a> {
     iter: Box<dyn Iterator<Item = Cpn<String>> + 'a>,
 }
@@ -977,6 +980,7 @@ impl<'a> Iterator for IterCpn<'a> {
     }
 }
 
+/// Iterable of [`Cpv`] objects.
 pub struct IterCpv<'a> {
     iter: Box<dyn Iterator<Item = Cpv<String>> + 'a>,
 }
@@ -1121,6 +1125,7 @@ impl<'a> Iterator for IterCpv<'a> {
     }
 }
 
+/// Iterable of valid ebuild packages matching a given restriction.
 pub struct IterRestrict<'a> {
     iter: Iter<'a>,
     restrict: Restrict,
@@ -1134,6 +1139,7 @@ impl<'a> Iterator for IterRestrict<'a> {
     }
 }
 
+/// Iterable of [`Cpn`] objects matching a given restriction.
 pub struct IterCpnRestrict<'a> {
     iter: IterCpn<'a>,
     restrict: Restrict,
@@ -1147,6 +1153,7 @@ impl<'a> Iterator for IterCpnRestrict<'a> {
     }
 }
 
+/// Iterable of [`Cpv`] objects matching a given restriction.
 pub struct IterCpvRestrict<'a> {
     iter: IterCpv<'a>,
     restrict: Restrict,
@@ -1160,6 +1167,7 @@ impl<'a> Iterator for IterCpvRestrict<'a> {
     }
 }
 
+/// Iterable of valid, raw ebuild packages matching a given restriction.
 pub struct IterRawRestrict<'a> {
     iter: IterRaw<'a>,
     restrict: Restrict,
