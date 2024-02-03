@@ -110,10 +110,7 @@ pub(crate) fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-pub(crate) fn sorted_dir_list_utf8<P: AsRef<Utf8Path>>(
-    path: P,
-) -> crate::Result<Vec<Utf8DirEntry>> {
-    let path = path.as_ref();
+pub(crate) fn sorted_dir_list_utf8(path: &Utf8Path) -> crate::Result<Vec<Utf8DirEntry>> {
     let entries: Result<Vec<_>, _> = path
         .read_dir_utf8()
         .map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?
