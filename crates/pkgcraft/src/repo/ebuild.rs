@@ -11,14 +11,11 @@ use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use tracing::warn;
-use walkdir::DirEntry;
 
 use crate::config::{RepoConfig, Settings};
 use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
-use crate::files::{
-    has_ext, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list, sorted_dir_list_utf8,
-};
+use crate::files::{has_ext_utf8, is_dir_utf8, is_file_utf8, is_hidden_utf8, sorted_dir_list_utf8};
 use crate::macros::build_path;
 use crate::pkg::ebuild::{self, manifest::Manifest, xml};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -615,38 +612,32 @@ impl PkgRepository for Repo {
             cat.strip_prefix('/').unwrap_or(cat),
             pkg.strip_prefix('/').unwrap_or(pkg)
         );
-        let ebuilds = sorted_dir_list(&path).into_iter().filter_entry(is_ebuild);
-        let mut versions = IndexSet::new();
-        for entry in ebuilds {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    if let Some(err) = e.io_error() {
-                        if err.kind() != io::ErrorKind::NotFound {
-                            warn!("{}: failed walking {:?}: {e}", self.id(), &path);
-                        }
-                    }
-                    continue;
-                }
-            };
-            let path = entry.path();
-            let pn = path.parent().unwrap().file_name().unwrap().to_str();
-            let pf = path.file_stem().unwrap().to_str();
-            if let (Some(pn), Some(pf)) = (pn, pf) {
+        let entries = match sorted_dir_list_utf8(&path) {
+            Ok(vals) => vals,
+            Err(e) => {
+                warn!("{}: {path}: {e}", self.id());
+                return Default::default();
+            }
+        };
+
+        let mut versions: IndexSet<_> = entries
+            .into_iter()
+            .filter(|e| is_file_utf8(e) && !is_hidden_utf8(e) && has_ext_utf8(e, "ebuild"))
+            .filter_map(|entry| {
+                let path = entry.path();
+                let pn = path.parent().unwrap().file_name().unwrap();
+                let pf = path.file_stem().unwrap();
                 if pn == &pf[..pn.len()] {
                     match Version::try_new(&pf[pn.len() + 1..]) {
-                        Ok(v) => {
-                            versions.insert(v);
-                        }
-                        Err(e) => warn!("{}: {e}: {path:?}", self.id()),
+                        Ok(v) => return Some(v),
+                        Err(e) => warn!("{}: {e}: {path}", self.id()),
                     }
                 } else {
-                    warn!("{}: unmatched ebuild: {path:?}", self.id());
+                    warn!("{}: unmatched ebuild: {path}", self.id());
                 }
-            } else {
-                warn!("{}: non-unicode path: {path:?}", self.id());
-            }
-        }
+                None
+            })
+            .collect();
         versions.sort();
         versions
     }
@@ -750,10 +741,6 @@ impl Contains<&Dep<String>> for Repo {
     fn contains(&self, dep: &Dep<String>) -> bool {
         self.iter_restrict(dep).next().is_some()
     }
-}
-
-fn is_ebuild(e: &DirEntry) -> bool {
-    is_file(e) && !is_hidden(e) && has_ext(e, "ebuild")
 }
 
 impl<'a> IntoIterator for &'a Repo {

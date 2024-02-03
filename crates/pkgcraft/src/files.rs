@@ -95,13 +95,6 @@ pub(crate) fn is_file(entry: &DirEntry) -> bool {
     entry.path().is_file()
 }
 
-pub(crate) fn has_ext(entry: &DirEntry, ext: &str) -> bool {
-    match entry.path().extension() {
-        Some(e) => e.to_str() == Some(ext),
-        _ => false,
-    }
-}
-
 pub(crate) fn is_hidden(entry: &DirEntry) -> bool {
     entry
         .file_name()
