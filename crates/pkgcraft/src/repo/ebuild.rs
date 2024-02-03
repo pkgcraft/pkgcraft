@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
@@ -382,16 +381,13 @@ impl Repo {
     }
 
     /// Convert an ebuild file path into a Cpv.
-    fn cpv_from_ebuild_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv<String>> {
-        let path = path.as_ref();
-        let err = |s: &str| -> Error {
-            Error::InvalidValue(format!("invalid ebuild path: {path:?}: {s}"))
-        };
+    fn cpv_from_ebuild_path(&self, path: &Utf8Path) -> crate::Result<Cpv<String>> {
+        let err =
+            |s: &str| -> Error { Error::InvalidValue(format!("invalid ebuild path: {path}: {s}")) };
 
         let relpath = path
             .strip_prefix(self.path())
             .map_err(|_| err("missing repo prefix"))?;
-        let relpath = <&Utf8Path>::try_from(relpath).map_err(|_| err("invalid unicode path"))?;
 
         let (cat, pkg, file) = relpath
             .components()
