@@ -381,9 +381,7 @@ impl Repo {
     fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv<String>> {
         let err =
             |s: &str| -> Error { Error::InvalidValue(format!("invalid ebuild path: {path}: {s}")) };
-        let relpath = path
-            .strip_prefix(self.path())
-            .map_err(|_| err("missing repo prefix"))?;
+        let relpath = path.strip_prefix(self.path()).unwrap_or(path);
         let (cat, pkg, file) = relpath
             .components()
             .map(|s| s.as_str())
