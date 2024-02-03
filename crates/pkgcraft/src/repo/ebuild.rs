@@ -381,14 +381,12 @@ impl Repo {
     }
 
     /// Convert an ebuild file path into a Cpv.
-    fn cpv_from_ebuild_path(&self, path: &Utf8Path) -> crate::Result<Cpv<String>> {
+    fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv<String>> {
         let err =
             |s: &str| -> Error { Error::InvalidValue(format!("invalid ebuild path: {path}: {s}")) };
-
         let relpath = path
             .strip_prefix(self.path())
             .map_err(|_| err("missing repo prefix"))?;
-
         let (cat, pkg, file) = relpath
             .components()
             .map(|s| s.as_str())
@@ -486,7 +484,7 @@ impl Repo {
         if let Ok(entries) = path.read_dir_utf8() {
             let mut cpvs: IndexSet<_> = entries
                 .filter_map(|e| e.ok())
-                .filter_map(|e| self.cpv_from_ebuild_path(e.path()).ok())
+                .filter_map(|e| self.cpv_from_path(e.path()).ok())
                 .collect();
             cpvs.sort();
             cpvs
@@ -706,7 +704,7 @@ impl Repository for Repo {
                         restricts.push(DepRestrict::package(*s));
                     }
                     (2, s) if s.ends_with(".ebuild") => {
-                        if let Ok(cpv) = self.cpv_from_ebuild_path(&path) {
+                        if let Ok(cpv) = self.cpv_from_path(&path) {
                             let ver = cpv.version().clone();
                             restricts.push(DepRestrict::Version(Some(ver)));
                         }
