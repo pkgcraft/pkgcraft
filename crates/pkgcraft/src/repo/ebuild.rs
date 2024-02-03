@@ -469,8 +469,8 @@ impl Repo {
             .get(cpv)
     }
 
-    /// Return the sorted set of Cpvs in a given category.
-    pub fn category_cpvs(&self, category: &str) -> IndexSet<Cpv<String>> {
+    /// Return the sorted set of Cpvs from a given category.
+    pub fn cpvs_from_category(&self, category: &str) -> IndexSet<Cpv<String>> {
         // filter invalid ebuild paths
         let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv<String>> {
             match r {
@@ -1016,7 +1016,7 @@ impl<'a> IterCpv<'a> {
                     let mut cpvs = repo
                         .categories()
                         .into_par_iter()
-                        .flat_map(|s| repo.category_cpvs(&s))
+                        .flat_map(|s| repo.cpvs_from_category(&s))
                         .collect::<Vec<_>>();
                     cpvs.par_sort();
                     Box::new(cpvs.into_iter())
@@ -1104,7 +1104,7 @@ impl<'a> IterCpv<'a> {
                         repo.categories()
                             .into_iter()
                             .filter(move |s| cat_restrict.matches(s.as_str()))
-                            .flat_map(|s| repo.category_cpvs(&s))
+                            .flat_map(|s| repo.cpvs_from_category(&s))
                             .filter(move |cpv| pkg_restrict.matches(cpv)),
                     )
                 }

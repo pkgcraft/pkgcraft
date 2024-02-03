@@ -261,7 +261,7 @@ impl MetadataCacheRegen<'_> {
             // pull all package Cpvs from the repo
             repo.categories()
                 .into_par_iter()
-                .flat_map(|s| repo.category_cpvs(&s))
+                .flat_map(|s| repo.cpvs_from_category(&s))
                 .collect()
         } else {
             self.targets
