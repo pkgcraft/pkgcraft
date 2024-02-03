@@ -120,7 +120,7 @@ mod tests {
 
     use crate::command::commands;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::macros::{assert_err_re, build_from_paths};
+    use crate::macros::{assert_err_re, build_path};
     use crate::shell::phase::PhaseKind::SrcConfigure;
     use crate::shell::{BuildData, Scope};
 
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn args() {
         get_build_mut().scope = Scope::Phase(SrcConfigure);
-        let configure_dir = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata", "autotools");
+        let configure_dir = build_path!(env!("CARGO_MANIFEST_DIR"), "testdata", "autotools");
         env::set_current_dir(configure_dir).unwrap();
 
         // TODO: add support for generating build state data for tests

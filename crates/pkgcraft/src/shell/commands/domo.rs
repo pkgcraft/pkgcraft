@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use camino::Utf8Path;
 use scallop::{Error, ExecStatus};
 
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 
@@ -18,7 +18,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let dest = build_from_paths!(
+    let dest = build_path!(
         build
             .env
             .get(&DESTTREE)

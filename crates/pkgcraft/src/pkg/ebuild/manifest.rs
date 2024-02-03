@@ -6,7 +6,7 @@ use camino::Utf8Path;
 use itertools::Itertools;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::repo::ebuild::ArcCacheData;
 use crate::types::OrderedSet;
 use crate::utils::digest;
@@ -108,7 +108,7 @@ impl ManifestFile {
         distdir: &Utf8Path,
     ) -> crate::Result<()> {
         let path = match self.kind {
-            ManifestType::Aux => build_from_paths!(pkgdir, "files", &self.name),
+            ManifestType::Aux => build_path!(pkgdir, "files", &self.name),
             ManifestType::Dist => distdir.join(&self.name),
             _ => pkgdir.join(&self.name),
         };

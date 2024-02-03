@@ -6,7 +6,7 @@ use clap::Parser;
 use scallop::{Error, ExecStatus};
 use walkdir::DirEntry;
 
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::{get_build_mut, write_stderr};
 
@@ -134,7 +134,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .as_ref()
         .map(|s| s.trim_start_matches('/'))
         .unwrap_or_default();
-    let dest = build_from_paths!("/usr/share/doc", build.pkg()?.cpv().pf(), subdir, doc_prefix);
+    let dest = build_path!("/usr/share/doc", build.pkg()?.cpv().pf(), subdir, doc_prefix);
     let install = build.install().dest(dest)?;
 
     let (dirs, files): (Vec<_>, Vec<_>) =

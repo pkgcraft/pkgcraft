@@ -15,7 +15,7 @@ use scallop::{functions, Error, ExecStatus};
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::pkg::ebuild::{metadata::Key, EbuildPackage};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::Eclass;
@@ -372,8 +372,7 @@ impl<'a> BuildData<'a> {
 
             FILESDIR => {
                 let cpv = self.cpv()?;
-                let path =
-                    build_from_paths!(self.repo()?.path(), cpv.category(), cpv.package(), "files");
+                let path = build_path!(self.repo()?.path(), cpv.category(), cpv.package(), "files");
                 Ok(path.to_string())
             }
             PORTDIR => self.repo().map(|r| r.path().to_string()),

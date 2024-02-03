@@ -1,12 +1,13 @@
+/// Build a [`Utf8PathBuf`] path from a base and components.
 #[macro_export]
-macro_rules! build_from_paths {
+macro_rules! build_path {
     ($base:expr, $($segment:expr),+) => {{
         let mut base: ::camino::Utf8PathBuf = $base.into();
         $(base.push($segment);)*
         base
     }}
 }
-pub use build_from_paths;
+pub use build_path;
 
 #[cfg(test)]
 macro_rules! assert_err_re {

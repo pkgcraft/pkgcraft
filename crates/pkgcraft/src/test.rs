@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 
 use crate::config::Config;
 use crate::dep::{Blocker, Cpv, Dep, Revision, SlotOperator, UseDep, Version};
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -188,7 +188,7 @@ impl TestData {
 }
 
 pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
-    let path = build_from_paths!(env!("CARGO_MANIFEST_DIR"), "testdata");
+    let path = build_path!(env!("CARGO_MANIFEST_DIR"), "testdata");
 
     // load valid repos from test data, ignoring purposefully broken ones
     let mut config = Config::new("pkgcraft", "");

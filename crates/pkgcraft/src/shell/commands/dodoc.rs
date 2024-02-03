@@ -3,7 +3,7 @@ use std::path::Path;
 use scallop::{Error, ExecStatus};
 
 use crate::files::NO_WALKDIR_FILTER;
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::get_build_mut;
 
@@ -18,11 +18,8 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
     destination: &str,
 ) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
-    let dest = build_from_paths!(
-        "/usr/share/doc",
-        build.pkg()?.cpv().pf(),
-        destination.trim_start_matches('/')
-    );
+    let dest =
+        build_path!("/usr/share/doc", build.pkg()?.cpv().pf(), destination.trim_start_matches('/'));
     let install = build.install().dest(dest)?;
 
     let (dirs, files): (Vec<_>, Vec<_>) =

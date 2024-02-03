@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::eapi::Eapi;
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::repo::ebuild::temp::Repo as TempRepo;
 use crate::repo::{Repo, RepoFormat};
 use crate::utils::find_existing_path;
@@ -52,8 +52,8 @@ impl ConfigPath {
 
         // pull user config from $XDG_CONFIG_HOME, otherwise $HOME/.config
         let user_config: Utf8PathBuf = match env::var("XDG_CONFIG_HOME") {
-            Ok(x) => prefixed(build_from_paths!(&x, name)),
-            Err(_) => prefixed(build_from_paths!(&home, ".config", name)),
+            Ok(x) => prefixed(build_path!(&x, name)),
+            Err(_) => prefixed(build_path!(&home, ".config", name)),
         };
 
         let system_config = prefixed(Utf8PathBuf::from(format!("/etc/{name}")));
@@ -71,19 +71,19 @@ impl ConfigPath {
             _ => {
                 // pull user cache path from $XDG_CACHE_HOME, otherwise $HOME/.cache
                 cache = match env::var("XDG_CACHE_HOME") {
-                    Ok(x) => prefixed(build_from_paths!(&x, name)),
-                    Err(_) => prefixed(build_from_paths!(&home, ".cache", name)),
+                    Ok(x) => prefixed(build_path!(&x, name)),
+                    Err(_) => prefixed(build_path!(&home, ".cache", name)),
                 };
 
                 // pull user data path from $XDG_DATA_HOME, otherwise $HOME/.local/share
                 data = match env::var("XDG_DATA_HOME") {
-                    Ok(x) => prefixed(build_from_paths!(&x, name)),
-                    Err(_) => prefixed(build_from_paths!(&home, ".local", "share", name)),
+                    Ok(x) => prefixed(build_path!(&x, name)),
+                    Err(_) => prefixed(build_path!(&home, ".local", "share", name)),
                 };
 
                 // pull user runtime path from $XDG_RUNTIME_DIR, otherwise use the cache directory.
                 run = match env::var("XDG_RUNTIME_DIR") {
-                    Ok(x) => prefixed(build_from_paths!(&x, name)),
+                    Ok(x) => prefixed(build_path!(&x, name)),
                     Err(_) => cache.clone(),
                 };
 

@@ -20,7 +20,7 @@ use crate::eapi::Eapi;
 use crate::files::{
     has_ext, is_dir_utf8, is_file, is_hidden, is_hidden_utf8, sorted_dir_list, sorted_dir_list_utf8,
 };
-use crate::macros::build_from_paths;
+use crate::macros::build_path;
 use crate::pkg::ebuild::{self, manifest::Manifest, xml};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -82,7 +82,7 @@ where
                 match path_rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s)) => {
-                        let path = build_from_paths!(repo.path(), &s, T::RELPATH);
+                        let path = build_path!(repo.path(), &s, T::RELPATH);
                         let data = fs::read_to_string(&path)
                             .map_err(|e| {
                                 if e.kind() != io::ErrorKind::NotFound {
@@ -364,7 +364,7 @@ impl Repo {
             self.categories()
                 .iter()
                 .filter_map(|cat| {
-                    let path = build_from_paths!(self.path(), cat, "metadata.xml");
+                    let path = build_path!(self.path(), cat, "metadata.xml");
                     let desc = fs::read_to_string(&path)
                         .map_err(|e| Error::IO(format!("failed reading category xml: {e}")))
                         .and_then(|s| parse_xml(&s));
@@ -506,7 +506,7 @@ impl Repo {
 
     /// Return the sorted set of Cpvs from a given package.
     fn cpvs_from_package(&self, category: &str, package: &str) -> IndexSet<Cpv<String>> {
-        let path = build_from_paths!(self.path(), category, package);
+        let path = build_path!(self.path(), category, package);
         if let Ok(entries) = path.read_dir_utf8() {
             let mut cpvs: IndexSet<_> = entries
                 .filter_map(|e| e.ok())
@@ -636,7 +636,7 @@ impl PkgRepository for Repo {
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
-        let path = build_from_paths!(
+        let path = build_path!(
             self.path(),
             cat.strip_prefix('/').unwrap_or(cat),
             pkg.strip_prefix('/').unwrap_or(pkg)
