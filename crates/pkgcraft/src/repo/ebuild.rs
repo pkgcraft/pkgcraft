@@ -314,7 +314,7 @@ impl Repo {
     }
 
     /// Return a repo's category dirs from the filesystem.
-    pub fn category_dirs(&self) -> IndexSet<String> {
+    fn category_dirs(&self) -> IndexSet<String> {
         let entries = match sorted_dir_list_utf8(self.path()) {
             Ok(vals) => vals,
             Err(e) => {
