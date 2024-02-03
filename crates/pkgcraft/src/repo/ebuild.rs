@@ -12,7 +12,7 @@ use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use tracing::warn;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::DirEntry;
 
 use crate::config::{RepoConfig, Settings};
 use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
@@ -471,37 +471,17 @@ impl Repo {
 
     /// Return the sorted set of Cpvs from a given category.
     pub fn cpvs_from_category(&self, category: &str) -> IndexSet<Cpv<String>> {
-        // filter invalid ebuild paths
-        let filter_path = |r: walkdir::Result<DirEntry>| -> Option<Cpv<String>> {
-            match r {
-                Ok(e) => match self.cpv_from_ebuild_path(e.path()) {
-                    Ok(cpv) => Some(cpv),
-                    Err(e) => {
-                        warn!("{}: {e}", self.id());
-                        None
-                    }
-                },
-                Err(e) => {
-                    if e.io_error()
-                        .map(|e| e.kind() != io::ErrorKind::NotFound)
-                        .unwrap_or(true)
-                    {
-                        warn!("{}: failed walking repo: {e}", self.id());
-                    }
-                    None
-                }
-            }
-        };
-
-        let mut cpvs: IndexSet<_> = WalkDir::new(self.path().join(category))
-            .min_depth(2)
-            .max_depth(2)
-            .into_iter()
-            .filter_entry(is_ebuild)
-            .filter_map(filter_path)
-            .collect();
-        cpvs.sort();
-        cpvs
+        let path = build_path!(self.path(), category);
+        if let Ok(entries) = path.read_dir_utf8() {
+            let mut cpvs: IndexSet<_> = entries
+                .filter_map(|e| e.ok())
+                .flat_map(|e| self.cpvs_from_package(category, e.file_name()))
+                .collect();
+            cpvs.sort();
+            cpvs
+        } else {
+            Default::default()
+        }
     }
 
     /// Return the sorted set of Cpvs from a given package.
