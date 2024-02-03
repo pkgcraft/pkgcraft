@@ -581,7 +581,7 @@ impl PkgRepository for Repo {
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
-        let path = self.path().join(cat.strip_prefix('/').unwrap_or(cat));
+        let path = self.path().join(cat);
         let entries = match sorted_dir_list_utf8(&path) {
             Ok(vals) => vals,
             Err(e) => {
@@ -607,11 +607,7 @@ impl PkgRepository for Repo {
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
-        let path = build_path!(
-            self.path(),
-            cat.strip_prefix('/').unwrap_or(cat),
-            pkg.strip_prefix('/').unwrap_or(pkg)
-        );
+        let path = build_path!(self.path(), cat, pkg);
         let entries = match sorted_dir_list_utf8(&path) {
             Ok(vals) => vals,
             Err(e) => {
