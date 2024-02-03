@@ -412,23 +412,6 @@ impl Repo {
             })
     }
 
-    /// Get the ordered set of Cpvs from a given package path.
-    fn cpvs_from_package_path<P>(&self, path: P) -> IndexSet<Cpv<String>>
-    where
-        P: AsRef<Utf8Path>,
-    {
-        if let Ok(entries) = path.as_ref().read_dir_utf8() {
-            let mut cpvs: IndexSet<_> = entries
-                .filter_map(|e| e.ok())
-                .filter_map(|e| self.cpv_from_ebuild_path(e.path()).ok())
-                .collect();
-            cpvs.sort();
-            cpvs
-        } else {
-            Default::default()
-        }
-    }
-
     /// Return the set of inherited architectures sorted by name.
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
@@ -519,6 +502,21 @@ impl Repo {
             .collect();
         cpvs.sort();
         cpvs
+    }
+
+    /// Return the sorted set of Cpvs from a given package.
+    fn cpvs_from_package(&self, category: &str, package: &str) -> IndexSet<Cpv<String>> {
+        let path = build_from_paths!(self.path(), category, package);
+        if let Ok(entries) = path.read_dir_utf8() {
+            let mut cpvs: IndexSet<_> = entries
+                .filter_map(|e| e.ok())
+                .filter_map(|e| self.cpv_from_ebuild_path(e.path()).ok())
+                .collect();
+            cpvs.sort();
+            cpvs
+        } else {
+            Default::default()
+        }
     }
 
     pub fn iter_cpn(&self) -> IterCpn {
@@ -1040,9 +1038,8 @@ impl<'a> IterCpv<'a> {
                         _ => Restrict::and(ver_restricts),
                     };
 
-                    let path = build_from_paths!(repo.path(), cat, pn);
                     Box::new(
-                        repo.cpvs_from_package_path(path)
+                        repo.cpvs_from_package(cat, pn)
                             .into_iter()
                             .filter(move |cpv| ver_restrict.matches(cpv)),
                     )
@@ -1055,9 +1052,8 @@ impl<'a> IterCpv<'a> {
                         _ => Restrict::and(ver_restricts),
                     };
 
-                    Box::new(repo.categories().into_iter().flat_map(move |s| {
-                        let path = build_from_paths!(repo.path(), &s, &pn);
-                        repo.cpvs_from_package_path(path)
+                    Box::new(repo.categories().into_iter().flat_map(move |cat| {
+                        repo.cpvs_from_package(&cat, &pn)
                             .into_iter()
                             .filter(|cpv| ver_restrict.matches(cpv))
                             .collect::<Vec<_>>()
@@ -1077,12 +1073,12 @@ impl<'a> IterCpv<'a> {
                         _ => Restrict::and(ver_restricts),
                     };
 
-                    Box::new(repo.categories().into_iter().flat_map(move |s| {
-                        if let Ok(entries) = repo.path().join(s).read_dir_utf8() {
+                    Box::new(repo.categories().into_iter().flat_map(move |cat| {
+                        if let Ok(entries) = repo.path().join(&cat).read_dir_utf8() {
                             entries
                                 .filter_map(|e| e.ok())
                                 .filter(|e| pkg_restrict.matches(e.file_name()))
-                                .flat_map(|e| repo.cpvs_from_package_path(e.path()))
+                                .flat_map(|e| repo.cpvs_from_package(&cat, e.file_name()))
                                 .filter(|cpv| ver_restrict.matches(cpv))
                                 .collect::<Vec<_>>()
                         } else {
