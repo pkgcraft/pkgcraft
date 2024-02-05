@@ -62,7 +62,7 @@ jobs:
         cargo install cargo-criterion || true
 
     - name: Install protoc for arcanist
-      uses: arduino/setup-protoc@v2
+      uses: arduino/setup-protoc@v3
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
