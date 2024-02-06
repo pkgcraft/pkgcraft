@@ -59,8 +59,7 @@ jobs:
 
     - name: Build pkgcruft
       run: |
-        cross build --target ${{ matrix.target }} --all-features --all-targets \
-          --profile release-strip -p pkgcruft
+        cross build --target ${{ matrix.target }} --profile release-strip -p pkgcruft
 
     - name: Create archive
       run: |
