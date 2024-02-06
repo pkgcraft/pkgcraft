@@ -2,15 +2,28 @@ use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Restrict;
-use strum::{AsRefStr, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::runner::*;
 
 /// All check runner source variants.
 #[derive(
-    AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr,
+    Display,
+    EnumIter,
+    EnumString,
+    VariantNames,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
 )]
-pub(crate) enum SourceKind {
+#[strum(serialize_all = "kebab-case")]
+pub enum SourceKind {
     Ebuild,
     EbuildRaw,
 }

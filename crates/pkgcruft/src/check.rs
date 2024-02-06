@@ -212,7 +212,7 @@ impl Check {
     }
 
     /// The source of the values the check runs against.
-    pub(crate) fn source(&self) -> SourceKind {
+    pub fn source(&self) -> SourceKind {
         self.source
     }
 
