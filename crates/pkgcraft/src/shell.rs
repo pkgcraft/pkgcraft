@@ -21,7 +21,6 @@ use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::Eclass;
 use crate::repo::Repository;
 use crate::restrict::Restrict;
-use crate::test::TESTING;
 use crate::traits::SourceBash;
 use crate::types::Deque;
 
@@ -448,19 +447,18 @@ impl<'a> BuildData<'a> {
     }
 
     fn stdin(&mut self) -> scallop::Result<&mut dyn Read> {
-        if !*TESTING && isatty(0).unwrap_or(false) {
-            return Err(Error::Base("no input available, stdin is a tty".into()));
-        }
-
-        if !*TESTING {
-            Ok(&mut self.stdin.inner)
-        } else {
+        if cfg!(feature = "test") {
             Ok(&mut self.stdin.fake)
+        } else {
+            if isatty(0).unwrap_or(false) {
+                return Err(Error::Base("no input available, stdin is a tty".into()));
+            }
+            Ok(&mut self.stdin.inner)
         }
     }
 
     fn stdout(&mut self) -> &mut dyn Write {
-        if !*TESTING || scallop::shell::in_subshell() {
+        if cfg!(not(feature = "test")) || scallop::shell::in_subshell() {
             &mut self.stdout.inner
         } else {
             &mut self.stdout.fake
@@ -468,7 +466,7 @@ impl<'a> BuildData<'a> {
     }
 
     fn stderr(&mut self) -> &mut dyn Write {
-        if !*TESTING || scallop::shell::in_subshell() {
+        if cfg!(not(feature = "test")) || scallop::shell::in_subshell() {
             &mut self.stderr.inner
         } else {
             &mut self.stderr.fake
@@ -568,7 +566,7 @@ fn update_build(state: BuildData<'static>) {
     let build = get_build_mut();
 
     // TODO: handle resets in external process pool
-    if *TESTING && !matches!(build.state, BuildState::Empty(_)) {
+    if cfg!(feature = "test") && !matches!(build.state, BuildState::Empty(_)) {
         scallop::shell::reset(&["PATH"]);
     }
 
