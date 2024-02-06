@@ -13,6 +13,8 @@ rust-version.workspace = true
 
 [features]
 default = []
+# use mimalloc for memory allocation
+mimalloc = ["dep:mimalloc"]
 # external test support
 test = ["dep:glob"]
 
@@ -51,8 +53,9 @@ tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.18"
 
-# exported test support deps
+# optional deps
 glob = { version = "0.3.1", optional = true }
+mimalloc = { version = "0.1.39", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"

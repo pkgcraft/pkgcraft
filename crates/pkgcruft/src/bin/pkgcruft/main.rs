@@ -11,6 +11,10 @@ mod args;
 mod options;
 mod subcmds;
 
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Debug, Parser)]
 #[command(version, long_about = None, disable_help_subcommand = true)]
 struct Command {
