@@ -10,7 +10,7 @@ use crate::report::{Report, ReportScope};
 use crate::Error;
 
 #[derive(AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, Clone)]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum Reporter {
     Simple(SimpleReporter),
     Fancy(FancyReporter),

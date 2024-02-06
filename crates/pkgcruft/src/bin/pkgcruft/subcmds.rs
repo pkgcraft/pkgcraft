@@ -8,7 +8,7 @@ mod scan;
 mod show;
 
 #[derive(Debug, AsRefStr, clap::Subcommand)]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum Subcommand {
     /// Replay reports
     Replay(replay::Command),
