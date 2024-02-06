@@ -56,9 +56,14 @@ impl Scanner {
     }
 
     /// Set the report types to allow.
-    pub fn reports(mut self, reports: &[ReportKind]) -> Self {
-        if !reports.is_empty() {
-            self.reports = reports.iter().copied().collect();
+    pub fn reports<I, T>(mut self, reports: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<ReportKind>,
+    {
+        let mut reports = reports.into_iter().map(Into::into).peekable();
+        if reports.peek().is_some() {
+            self.reports = reports.collect();
         }
         self
     }

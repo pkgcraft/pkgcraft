@@ -62,7 +62,7 @@ impl Command {
         let scanner = Scanner::new()
             .jobs(self.jobs.unwrap_or_default())
             .checks(checks)
-            .reports(&reports);
+            .reports(reports);
 
         // run scanner for all targets
         let mut stdout = io::stdout().lock();
