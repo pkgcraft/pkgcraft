@@ -58,8 +58,7 @@ jobs:
       run: cargo install cross --git https://github.com/cross-rs/cross
 
     - name: Build pkgcruft
-      run: |
-        cross build --target ${{ matrix.target }} --profile release-strip -p pkgcruft
+      run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcruft
 
     - name: Create archive
       run: |
