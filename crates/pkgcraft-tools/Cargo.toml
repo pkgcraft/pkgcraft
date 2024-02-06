@@ -18,6 +18,8 @@ bench = false
 [features]
 # flaky tests that aren't run by default
 flaky = []
+# test support
+test = ["pkgcraft/test"]
 
 [dependencies]
 aho-corasick = "1.1.2"

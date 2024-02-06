@@ -13,8 +13,8 @@ rust-version.workspace = true
 
 [features]
 default = []
-# external test support
-test = ["dep:glob"]
+# test support
+test = ["dep:glob", "pkgcraft/test"]
 
 [lib]
 name = "pkgcruft"
