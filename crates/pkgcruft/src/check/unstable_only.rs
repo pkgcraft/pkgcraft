@@ -74,7 +74,7 @@ mod tests {
     #[test]
     fn check() {
         let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(CHECK.kind().as_ref());
+        let check_dir = repo.path().join(CHECK.as_ref());
         let restrict = repo.restrict_from_path(&check_dir).unwrap();
         let scanner = Scanner::new().jobs(1).checks([CHECK]);
         let expected: Vec<_> = glob_reports(format!("{check_dir}/*/reports.json")).collect();

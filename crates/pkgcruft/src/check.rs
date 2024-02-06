@@ -241,6 +241,12 @@ impl Hash for Check {
     }
 }
 
+impl AsRef<str> for Check {
+    fn as_ref(&self) -> &str {
+        self.kind.as_ref()
+    }
+}
+
 impl Borrow<str> for Check {
     fn borrow(&self) -> &str {
         self.kind.as_ref()
