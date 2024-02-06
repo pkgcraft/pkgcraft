@@ -272,6 +272,12 @@ impl From<&CheckKind> for Check {
     }
 }
 
+impl From<&Check> for Check {
+    fn from(value: &Check) -> Self {
+        *value
+    }
+}
+
 impl std::fmt::Display for Check {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.kind)

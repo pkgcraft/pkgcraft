@@ -61,7 +61,7 @@ impl Command {
         // create report scanner
         let scanner = Scanner::new()
             .jobs(self.jobs.unwrap_or_default())
-            .checks(&checks)
+            .checks(checks)
             .reports(&reports);
 
         // run scanner for all targets

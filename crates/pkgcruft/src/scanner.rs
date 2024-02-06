@@ -8,7 +8,7 @@ use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 
-use crate::check::{Check, CheckKind, CHECKS};
+use crate::check::{Check, CHECKS};
 use crate::report::{Report, ReportKind, REPORTS};
 use crate::runner::SyncCheckRunner;
 
@@ -42,9 +42,14 @@ impl Scanner {
     }
 
     /// Set the checks to run.
-    pub fn checks(mut self, checks: &[CheckKind]) -> Self {
-        if !checks.is_empty() {
-            self.checks = checks.iter().map(Check::from).collect();
+    pub fn checks<I, T>(mut self, checks: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<Check>,
+    {
+        let mut checks = checks.into_iter().map(Into::into).peekable();
+        if checks.peek().is_some() {
+            self.checks = checks.collect();
             self.checks.sort();
         }
         self
