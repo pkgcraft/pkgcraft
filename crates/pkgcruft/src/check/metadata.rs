@@ -14,7 +14,7 @@ use super::{Check, CheckKind, CheckRun, EbuildRawPkgCheckKind};
 
 pub(crate) static CHECK: Check = Check {
     kind: CheckKind::EbuildRawPkg(EbuildRawPkgCheckKind::Metadata),
-    source: SourceKind::EbuildPackageRaw,
+    source: SourceKind::EbuildRaw,
     scope: Scope::Version,
     priority: -9999,
     reports: &[

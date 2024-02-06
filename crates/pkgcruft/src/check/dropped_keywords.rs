@@ -14,7 +14,7 @@ use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
 
 pub(crate) static CHECK: Check = Check {
     kind: CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::DroppedKeywords),
-    source: SourceKind::EbuildPackage,
+    source: SourceKind::Ebuild,
     scope: Scope::Package,
     priority: 0,
     reports: &[ReportKind::Version(VersionReport::DroppedKeywords)],

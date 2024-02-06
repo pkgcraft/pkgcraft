@@ -11,16 +11,16 @@ use crate::runner::*;
     AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 pub(crate) enum SourceKind {
-    EbuildPackage,
-    EbuildPackageRaw,
+    Ebuild,
+    EbuildRaw,
 }
 
 impl SourceKind {
     /// Create a new check runner for a source variant.
     pub(crate) fn new_runner<'a>(&self, repo: &'a Repo) -> CheckRunner<'a> {
         match self {
-            Self::EbuildPackage => CheckRunner::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
-            Self::EbuildPackageRaw => CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
+            Self::Ebuild => CheckRunner::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
+            Self::EbuildRaw => CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
         }
     }
 }
@@ -33,11 +33,11 @@ pub(crate) trait IterRestrict {
 }
 
 #[derive(Debug)]
-pub(crate) struct EbuildPackage<'a> {
+pub(crate) struct Ebuild<'a> {
     pub(crate) repo: &'a Repo,
 }
 
-impl<'a> IterRestrict for EbuildPackage<'a> {
+impl<'a> IterRestrict for Ebuild<'a> {
     type Item = ebuild::Pkg<'a>;
 
     fn iter_restrict<R: Into<Restrict>>(
@@ -49,11 +49,11 @@ impl<'a> IterRestrict for EbuildPackage<'a> {
 }
 
 #[derive(Debug)]
-pub(crate) struct EbuildPackageRaw<'a> {
+pub(crate) struct EbuildRaw<'a> {
     pub(crate) repo: &'a Repo,
 }
 
-impl<'a> IterRestrict for EbuildPackageRaw<'a> {
+impl<'a> IterRestrict for EbuildRaw<'a> {
     type Item = ebuild::raw::Pkg<'a>;
 
     fn iter_restrict<R: Into<Restrict>>(

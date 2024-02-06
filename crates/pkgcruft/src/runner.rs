@@ -79,7 +79,7 @@ impl CheckRunner<'_> {
 pub(crate) struct EbuildPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildPkgCheck<'a>>,
     pkgs_checks: Vec<check::EbuildPkgSetCheck<'a>>,
-    source: source::EbuildPackage<'a>,
+    source: source::Ebuild<'a>,
     repo: &'a Repo,
 }
 
@@ -88,7 +88,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         Self {
             pkg_checks: Default::default(),
             pkgs_checks: Default::default(),
-            source: source::EbuildPackage { repo },
+            source: source::Ebuild { repo },
             repo,
         }
     }
@@ -126,7 +126,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 #[derive(Debug)]
 pub(crate) struct EbuildRawPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildRawPkgCheck<'a>>,
-    source: source::EbuildPackageRaw<'a>,
+    source: source::EbuildRaw<'a>,
     repo: &'a Repo,
 }
 
@@ -134,7 +134,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     pub(crate) fn new(repo: &'a Repo) -> Self {
         Self {
             pkg_checks: Default::default(),
-            source: source::EbuildPackageRaw { repo },
+            source: source::EbuildRaw { repo },
             repo,
         }
     }
