@@ -42,7 +42,7 @@ tracing-subscriber = "0.3.18"
 indoc = "2.0.4"
 predicates = "3.1.0"
 pretty_assertions = "1.4.0"
-tempfile = "3.9.0"
+tempfile = "3.10.0"
 walkdir = "2.4.0"
 
 [[test]]

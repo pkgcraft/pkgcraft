@@ -38,7 +38,7 @@ enum-as-inner = "0.6.0"
 filetime = "0.2.23"
 flate2 = { version = "1.0.28", optional = true }
 futures = "0.3.30"
-git2 = { version = "0.18.1", optional = true }
+git2 = { version = "0.18.2", optional = true }
 glob = "0.3.1"
 hex = "0.4.3"
 indexmap = { version = "2.2.2", features = ["rayon", "serde"] }
@@ -62,10 +62,10 @@ serde_with = { version = "3.6.0", default-features = false, features = ["macros"
 sha2 = "0.10.8"
 strum = { version = "0.26.1", features = ["derive"] }
 tar = { version = "0.4.40", optional = true }
-tempfile = "3.9.0"
+tempfile = "3.10.0"
 thiserror = "1.0.56"
 tokio = { version = "1.36.0", features = ["full"], optional = true }
-toml = "0.8.9"
+toml = "0.8.10"
 tracing = "0.1.40"
 walkdir = "2.4.0"
 

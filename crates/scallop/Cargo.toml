@@ -44,4 +44,4 @@ num_cpus = "1.16.0"
 
 [dev-dependencies]
 ctor = "0.2.6"
-tempfile = "3.9.0"
+tempfile = "3.10.0"
