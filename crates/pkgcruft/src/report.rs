@@ -15,13 +15,30 @@ use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::Package;
 use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, Display, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::check::CHECKS;
 use crate::Error;
 
 /// The severity of the report.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(
+    AsRefStr,
+    Display,
+    EnumIter,
+    EnumString,
+    VariantNames,
+    Serialize,
+    Deserialize,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
+)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ReportLevel {
     Critical,
     Error,
