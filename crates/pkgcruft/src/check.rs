@@ -8,6 +8,7 @@ use once_cell::sync::Lazy;
 use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, EnumIter, EnumString};
 
 use crate::report::{Report, ReportKind};
@@ -295,4 +296,12 @@ pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
     [dependency::CHECK, dropped_keywords::CHECK, metadata::CHECK, unstable_only::CHECK]
         .into_iter()
         .collect()
+});
+
+/// The ordered map of all source variants to the checks that use them.
+pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<Check>>> = Lazy::new(|| {
+    let mut map: OrderedMap<SourceKind, OrderedSet<Check>> =
+        CHECKS.iter().map(|c| (c.source(), *c)).collect();
+    map.sort_keys();
+    map
 });

@@ -14,10 +14,11 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::Package;
 use pkgcraft::restrict::{Restrict, Restriction};
+use pkgcraft::types::{OrderedMap, OrderedSet};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
-use crate::check::CHECKS;
+use crate::check::{Check, CHECKS};
 use crate::Error;
 
 /// The severity of the report.
@@ -397,4 +398,14 @@ pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
     let mut reports: IndexSet<_> = CHECKS.iter().flat_map(|c| c.reports()).copied().collect();
     reports.sort();
     reports
+});
+
+/// The ordered map of all report variants to the checks that can generate them.
+pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::new(|| {
+    let mut map: OrderedMap<ReportKind, OrderedSet<Check>> = CHECKS
+        .iter()
+        .flat_map(|c| c.reports().iter().copied().map(|r| (r, *c)))
+        .collect();
+    map.sort_keys();
+    map
 });
