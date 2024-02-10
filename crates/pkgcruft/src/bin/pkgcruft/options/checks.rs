@@ -1,7 +1,7 @@
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
-use pkgcruft::check::{Check, CheckKind, CHECKS};
-use pkgcruft::report::ReportKind;
+use pkgcruft::check::{Check, CheckKind, SOURCE_CHECKS};
+use pkgcruft::report::{ReportKind, REPORT_CHECKS};
 use pkgcruft::source::SourceKind;
 use strum::VariantNames;
 
@@ -32,22 +32,18 @@ impl Checks {
         let mut checks: Vec<_> = self.checks.iter().map(Check::from).collect();
 
         // add checks related to report options
-        for report in &self.reports {
-            for check in &*CHECKS {
-                if check.reports().contains(report) {
-                    checks.push(*check);
-                }
-            }
-        }
+        checks.extend(self.reports.iter().flat_map(|r| {
+            REPORT_CHECKS
+                .get(r)
+                .expect("no checks for report variant: {r}")
+        }));
 
         // add checks related to source options
-        for source in &self.sources {
-            for check in &*CHECKS {
-                if check.source() == *source {
-                    checks.push(*check);
-                }
-            }
-        }
+        checks.extend(self.sources.iter().flat_map(|s| {
+            SOURCE_CHECKS
+                .get(s)
+                .expect("no checks for source variant: {s}")
+        }));
 
         (checks, self.reports)
     }
