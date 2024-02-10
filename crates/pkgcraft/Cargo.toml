@@ -13,7 +13,6 @@ rust-version.workspace = true
 
 [lib]
 name = "pkgcraft"
-path = "src/lib.rs"
 
 [features]
 default = []
