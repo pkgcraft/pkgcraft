@@ -11,10 +11,6 @@ use pkgcruft::report::{ReportLevel, REPORTS};
 
 #[derive(Debug, Args)]
 pub struct Subcommand {
-    /// Color reports by level
-    #[arg(short, long)]
-    color: bool,
-
     /// Output specific levels
     #[arg(
         short,
@@ -37,11 +33,7 @@ impl Subcommand {
         let mut stdout = io::stdout().lock();
         for report in &*REPORTS {
             if levels.contains(&report.level()) {
-                if self.color {
-                    writeln!(stdout, "{}", report.as_ref().color(report.level()))?;
-                } else {
-                    writeln!(stdout, "{report}")?;
-                }
+                writeln!(stdout, "{}", report.as_ref().color(report.level()))?;
             }
         }
 

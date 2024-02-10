@@ -9,15 +9,3 @@ fn output() {
         .stderr("")
         .success();
 }
-
-#[test]
-fn color() {
-    for opt in ["-c", "--color"] {
-        cmd("pkgcruft show reports")
-            .arg(opt)
-            .assert()
-            .stdout(predicate::str::is_empty().not())
-            .stderr("")
-            .success();
-    }
-}
