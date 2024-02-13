@@ -117,6 +117,7 @@ jobs:
         name: coverage
         path: lcov.info
         if-no-files-found: error
+        retention-days: 3
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
