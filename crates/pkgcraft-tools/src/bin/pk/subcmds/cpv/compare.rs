@@ -9,7 +9,7 @@ use pkgcraft::dep::Cpv;
 use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     /// Comparison expressions (uses stdin if "-")
     #[arg(value_name = "EXPR")]
     values: Vec<String>,

@@ -12,7 +12,7 @@ use crate::args::StdinOrArgs;
 use crate::format::{EnumVariable, FormatString};
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     // options
     /// Use a specific EAPI
     #[arg(long)]
@@ -29,7 +29,7 @@ pub struct Command {
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(clippy::upper_case_acronyms)]
 #[allow(non_camel_case_types)]
-pub enum Key {
+pub(crate) enum Key {
     BLOCKER,
     CATEGORY,
     P,

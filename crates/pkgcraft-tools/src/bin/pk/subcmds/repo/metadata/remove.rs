@@ -7,7 +7,7 @@ use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     /// Custom cache path
     #[arg(short, long)]
     path: Option<String>,

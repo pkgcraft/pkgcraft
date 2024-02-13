@@ -4,7 +4,7 @@ use pkgcraft::dep::Version;
 use pkgcraft::traits::Intersects;
 
 #[derive(Debug, clap::Args)]
-pub struct Command {
+pub(crate) struct Command {
     value1: String,
     value2: String,
 }

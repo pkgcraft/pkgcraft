@@ -9,7 +9,7 @@ mod repo;
 mod version;
 
 #[derive(Debug, clap::Subcommand)]
-pub enum Subcommand {
+pub(crate) enum Subcommand {
     /// Cpv commands
     Cpv(cpv::Command),
     /// Dependency commands

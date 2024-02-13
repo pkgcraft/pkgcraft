@@ -10,7 +10,7 @@ use pkgcraft::pkg::Package;
 use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     /// Output packages for a target EAPI
     #[arg(short, long)]
     eapi: Option<&'static Eapi>,

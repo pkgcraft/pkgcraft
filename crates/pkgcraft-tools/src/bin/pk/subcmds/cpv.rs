@@ -8,7 +8,7 @@ mod sort;
 
 #[derive(Debug, clap::Args)]
 #[command(args_conflicts_with_subcommands = true)]
-pub struct Command {
+pub(crate) struct Command {
     #[command(subcommand)]
     command: Subcommand,
 }
@@ -20,7 +20,7 @@ impl Command {
 }
 
 #[derive(Debug, clap::Subcommand)]
-pub enum Subcommand {
+enum Subcommand {
     /// Compare two values
     Compare(compare::Command),
     /// Determine if a cpv intersects another value

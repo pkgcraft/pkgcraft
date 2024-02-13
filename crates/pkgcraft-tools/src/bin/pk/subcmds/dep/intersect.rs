@@ -5,7 +5,7 @@ use pkgcraft::dep::{CpvOrDep, Dep};
 use pkgcraft::traits::Intersects;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     dep: String,
     cpv_or_dep: String,
 }

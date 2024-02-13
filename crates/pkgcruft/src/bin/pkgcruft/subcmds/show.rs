@@ -6,7 +6,7 @@ mod checks;
 mod reports;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     #[command(subcommand)]
     command: Subcommand,
 }
@@ -18,7 +18,7 @@ impl Command {
 }
 
 #[derive(Debug, clap::Subcommand)]
-pub enum Subcommand {
+enum Subcommand {
     /// Show available checks
     Checks(checks::Subcommand),
     /// Show available reports

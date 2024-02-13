@@ -8,7 +8,7 @@ use pkgcraft::dep::Version;
 use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     values: Vec<String>,
 }
 

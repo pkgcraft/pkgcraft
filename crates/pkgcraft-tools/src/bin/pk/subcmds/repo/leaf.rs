@@ -11,7 +11,7 @@ use pkgcraft::traits::Intersects;
 use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     // positionals
     /// Target repository
     #[arg(required = true)]

@@ -7,7 +7,7 @@ mod regen;
 mod remove;
 
 #[derive(Debug, clap::Args)]
-pub struct Command {
+pub(crate) struct Command {
     #[command(subcommand)]
     command: Subcommand,
 }
@@ -19,7 +19,7 @@ impl Command {
 }
 
 #[derive(Debug, clap::Subcommand)]
-pub enum Subcommand {
+enum Subcommand {
     /// Clean metadata cache
     Clean(clean::Command),
     /// Regenerate metadata cache

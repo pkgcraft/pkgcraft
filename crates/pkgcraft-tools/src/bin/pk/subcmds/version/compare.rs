@@ -9,7 +9,7 @@ use pkgcraft::dep::Version;
 use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     /// Version comparison expressions (uses stdin if "-")
     #[arg(value_name = "EXPR")]
     values: Vec<String>,

@@ -12,7 +12,7 @@ use crate::options::reporter::ReporterOptions;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Replay options")]
-pub struct Command {
+pub(crate) struct Command {
     /// Limit to specific report variants
     #[arg(
         short,

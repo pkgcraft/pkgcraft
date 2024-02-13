@@ -12,7 +12,7 @@ use crate::options;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Scan options")]
-pub struct Command {
+pub(crate) struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,

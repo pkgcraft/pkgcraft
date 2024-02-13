@@ -12,7 +12,7 @@ use scallop::pool::PoolIter;
 use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,

@@ -10,7 +10,7 @@ use strum::{IntoEnumIterator, VariantNames};
 use pkgcruft::report::{ReportLevel, REPORTS};
 
 #[derive(Debug, Args)]
-pub struct Subcommand {
+pub(super) struct Subcommand {
     /// Output specific levels
     #[arg(
         short,

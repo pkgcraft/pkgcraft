@@ -60,7 +60,7 @@ impl FromStr for Bound {
 }
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     /// Parallel jobs to run (default: # of physical CPUs)
     #[arg(short, long)]
     jobs: Option<usize>,

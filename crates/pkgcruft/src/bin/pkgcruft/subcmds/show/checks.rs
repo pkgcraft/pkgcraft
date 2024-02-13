@@ -6,7 +6,7 @@ use clap::Args;
 use pkgcruft::check::CHECKS;
 
 #[derive(Debug, Args)]
-pub struct Subcommand {}
+pub(super) struct Subcommand {}
 
 impl Subcommand {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {

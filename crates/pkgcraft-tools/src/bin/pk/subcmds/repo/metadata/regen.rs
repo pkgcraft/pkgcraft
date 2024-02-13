@@ -9,7 +9,7 @@ use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Regen options")]
-pub struct Command {
+pub(crate) struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,

@@ -10,7 +10,7 @@ use pkgcraft::traits::Intersects;
 use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     /// Target repository
     #[arg(short, long)]
     repo: Option<String>,

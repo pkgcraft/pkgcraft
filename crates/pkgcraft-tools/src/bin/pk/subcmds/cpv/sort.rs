@@ -7,7 +7,7 @@ use pkgcraft::dep::Cpv;
 use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
-pub struct Command {
+pub(crate) struct Command {
     values: Vec<String>,
 }
 

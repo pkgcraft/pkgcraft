@@ -12,7 +12,7 @@ use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
-pub struct Command {
+pub(crate) struct Command {
     /// Target repo
     #[arg(long)]
     repo: Option<String>,

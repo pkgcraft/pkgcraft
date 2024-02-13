@@ -9,7 +9,7 @@ mod show;
 
 #[derive(Debug, AsRefStr, clap::Subcommand)]
 #[strum(serialize_all = "kebab-case")]
-pub enum Subcommand {
+pub(crate) enum Subcommand {
     /// Replay reports
     Replay(replay::Command),
     /// Scan for QA issues

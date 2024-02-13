@@ -3,12 +3,12 @@ use std::str::FromStr;
 use aho_corasick::AhoCorasick;
 use strum::IntoEnumIterator;
 
-pub trait EnumVariable<'a>: std::fmt::Display + FromStr + IntoEnumIterator {
+pub(crate) trait EnumVariable<'a>: std::fmt::Display + FromStr + IntoEnumIterator {
     type Object;
     fn value(&self, obj: &'a Self::Object) -> String;
 }
 
-pub trait FormatString<'a> {
+pub(crate) trait FormatString<'a> {
     type Object;
     type FormatKey: EnumVariable<'a, Object = Self::Object>;
 
