@@ -30,7 +30,7 @@ blake3 = { version = "1.5.0", features = ["traits-preview"] }
 cached = "0.48.1"
 camino = { version = "1.1.6", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.4.18", features = ["derive"] }
+clap = { version = "4.5.0", features = ["derive"] }
 crossbeam-channel = "0.5.11"
 digest = "0.10.7"
 enum-as-inner = "0.6.0"
@@ -40,8 +40,8 @@ futures = "0.3.30"
 git2 = { version = "0.18.2", optional = true }
 glob = "0.3.1"
 hex = "0.4.3"
-indexmap = { version = "2.2.2", features = ["rayon", "serde"] }
-indicatif = "0.17.7"
+indexmap = { version = "2.2.3", features = ["rayon", "serde"] }
+indicatif = "0.17.8"
 indoc = "2.0.4"
 is_executable = "1.0.1"
 itertools = "0.12.1"
@@ -57,12 +57,12 @@ roxmltree = "0.19.0"
 rust-ini = "0.20.0"
 scallop = { path = "../scallop", version = "0.0.13" }
 serde = { version = "1.0.196", features = ["derive"] }
-serde_with = { version = "3.6.0", default-features = false, features = ["macros"] }
+serde_with = { version = "3.6.1", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
 strum = { version = "0.26.1", features = ["derive"] }
 tar = { version = "0.4.40", optional = true }
 tempfile = "3.10.0"
-thiserror = "1.0.56"
+thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"], optional = true }
 toml = "0.8.10"
 tracing = "0.1.40"
