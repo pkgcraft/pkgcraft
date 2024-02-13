@@ -7,6 +7,9 @@ authors = ["Tim Harder <radhermit@gmail.com>"]
 edition = "2021"
 rust-version = "1.74"
 
+[workspace.lints.rust]
+unreachable_pub = "warn"
+
 [profile.release-strip]
 inherits = "release"
 strip = "symbols"

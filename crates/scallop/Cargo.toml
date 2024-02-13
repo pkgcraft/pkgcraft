@@ -18,6 +18,9 @@ authors.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 name = "scallop"
 path = "src/lib.rs"

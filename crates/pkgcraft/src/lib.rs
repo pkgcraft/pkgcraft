@@ -1,5 +1,3 @@
-#![warn(unreachable_pub)]
-
 pub(crate) mod archive;
 pub mod cli;
 pub(crate) mod command;

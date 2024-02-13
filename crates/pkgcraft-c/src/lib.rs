@@ -1,4 +1,3 @@
-#![warn(unreachable_pub)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use std::ffi::c_char;

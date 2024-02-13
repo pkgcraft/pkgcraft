@@ -1,9 +1,9 @@
 use criterion::*;
 
-mod dep;
-mod depset;
-mod repo;
-mod version;
+pub mod dep;
+pub mod depset;
+pub mod repo;
+pub mod version;
 
 criterion_group!(dep, dep::bench_pkg_deps);
 criterion_group!(repo, repo::bench_repo_ebuild);

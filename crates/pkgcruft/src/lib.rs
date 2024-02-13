@@ -1,5 +1,3 @@
-#![warn(unreachable_pub)]
-
 pub mod check;
 pub mod error;
 pub mod report;
