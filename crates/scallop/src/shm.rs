@@ -42,10 +42,11 @@ pub(crate) fn create_shm(prefix: &str, size: usize) -> crate::Result<*mut c_void
             length,
             ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
             MapFlags::MAP_SHARED,
-            Some(&shm_fd),
+            &shm_fd,
             0,
         )
         .map_err(|e| Error::Base(format!("mmap(): {e}")))?
+        .as_mut()
     };
 
     close(shm_fd.as_raw_fd())?;

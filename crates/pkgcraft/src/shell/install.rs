@@ -6,7 +6,7 @@ use std::{fs, io};
 use clap::Parser;
 use filetime::{set_file_times, FileTime};
 use itertools::{Either, Itertools};
-use nix::{sys::stat, unistd};
+use nix::{fcntl::AtFlags, sys::stat, unistd};
 use scallop::Error;
 use walkdir::{DirEntry, WalkDir};
 
@@ -143,7 +143,7 @@ impl Install {
         let uid = opts.owner.as_ref().map(|o| o.uid);
         let gid = opts.group.as_ref().map(|g| g.gid);
         if uid.is_some() || gid.is_some() {
-            unistd::fchownat(None, path, uid, gid, unistd::FchownatFlags::NoFollowSymlink)
+            unistd::fchownat(None, path, uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW)
                 .map_err(|e| Error::Base(format!("failed setting file uid/gid: {path:?}: {e}")))?;
         }
 

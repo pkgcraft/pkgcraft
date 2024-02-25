@@ -2,7 +2,7 @@ use std::fs::File;
 use std::os::fd::{AsRawFd, RawFd};
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
-use nix::errno::errno;
+use nix::errno::Errno;
 use nix::unistd::{close, dup2, fork, ForkResult};
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +43,7 @@ impl SharedSemaphore {
         if unsafe { libc::sem_init(sem, 1, size) } == 0 {
             Ok(Self { sem, size })
         } else {
-            let err = errno();
+            let err = Errno::last_raw();
             Err(Error::Base(format!("sem_init() failed: {err}")))
         }
     }
@@ -52,7 +52,7 @@ impl SharedSemaphore {
         if unsafe { libc::sem_wait(self.sem) } == 0 {
             Ok(())
         } else {
-            let err = errno();
+            let err = Errno::last_raw();
             Err(Error::Base(format!("sem_wait() failed: {err}")))
         }
     }
@@ -61,7 +61,7 @@ impl SharedSemaphore {
         if unsafe { libc::sem_post(self.sem) } == 0 {
             Ok(())
         } else {
-            let err = errno();
+            let err = Errno::last_raw();
             Err(Error::Base(format!("sem_post() failed: {err}")))
         }
     }
