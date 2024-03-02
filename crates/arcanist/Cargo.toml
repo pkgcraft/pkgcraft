@@ -39,7 +39,7 @@ tonic-build = "0.11.0"
 [dev-dependencies]
 assert_cmd = "2.0.14"
 regex = "1.10.3"
-tempfile = "3.10.0"
+tempfile = "3.10.1"
 
 [lib]
 name = "arcanist"
