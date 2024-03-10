@@ -11,7 +11,20 @@ use crate::args::StdinOrArgs;
 #[derive(Debug, Args)]
 pub(crate) struct Command {
     /// Comparison expressions (uses stdin if "-")
-    #[arg(value_name = "EXPR")]
+    #[arg(
+        value_name = "EXPR",
+        long_help = indoc::indoc! {r#"
+            Dep comparison expressions.
+
+            Valid comparison expressions consist of two deps separated by
+            whitespace with an operator between them. Supported operators
+            include <, <=, ==, !=, >=, and >.
+
+            For example, to test if one dep is less than or equal to another
+            use: `pk dep compare "=cat/pkg-1.2.3-r1 <= =cat/pkg-1.2.3-r2"` which
+            returns shell true (0) when run."#
+        }
+    )]
     values: Vec<String>,
 }
 
