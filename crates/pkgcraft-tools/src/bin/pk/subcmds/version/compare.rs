@@ -11,7 +11,20 @@ use crate::args::StdinOrArgs;
 #[derive(Debug, Args)]
 pub(crate) struct Command {
     /// Version comparison expressions (uses stdin if "-")
-    #[arg(value_name = "EXPR")]
+    #[arg(
+        value_name = "EXPR",
+        long_help = indoc::indoc! {r#"
+            Version comparison expressions.
+
+            These consist of two versions separated by a whitespace with a
+            version operator between them. Supported operators include <, <=,
+            ==, !=, >=, and >.
+
+            For example, to test if 1.2.3-r1 is less than or equal to 1.2.3-r2
+            use: `pk version compare "1.2.3-r1 <= 1.2.3-r2"` which returns shell
+            true (0) when run."#
+        }
+    )]
     values: Vec<String>,
 }
 

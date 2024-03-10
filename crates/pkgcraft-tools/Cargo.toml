@@ -32,6 +32,7 @@ clap = { version = "4.5.1", features = ["derive"] }
 clap-verbosity-flag = "2.2.0"
 humantime = "2.1.0"
 indexmap = { version = "2.2.5", features = ["serde"] }
+indoc = "2.0.4"
 itertools = "0.12.1"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.14" }
@@ -42,7 +43,6 @@ tracing-log = "0.2.0"
 tracing-subscriber = "0.3.18"
 
 [dev-dependencies]
-indoc = "2.0.4"
 predicates = "3.1.0"
 pretty_assertions = "1.4.0"
 tempfile = "3.10.1"
