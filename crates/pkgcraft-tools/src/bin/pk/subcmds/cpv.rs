@@ -21,15 +21,15 @@ impl Command {
 
 #[derive(Debug, clap::Subcommand)]
 enum Subcommand {
-    /// Compare two values
+    /// Compare two cpvs
     Compare(compare::Command),
     /// Determine if a cpv intersects another value
     Intersect(intersect::Command),
-    /// Parse value and optionally print formatted output
+    /// Parse cpv and optionally print formatted output
     Parse(parse::Command),
-    /// Collapse values into a set
+    /// Collapse cpvs into a set
     Set(set::Command),
-    /// Sort values
+    /// Sort cpvs
     Sort(sort::Command),
 }
 

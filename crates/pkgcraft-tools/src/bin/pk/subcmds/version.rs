@@ -27,7 +27,7 @@ enum Subcommand {
     Intersect(intersect::Command),
     /// Parse a version and optionally print formatted output
     Parse(parse::Command),
-    /// Collapse input into a set of versions
+    /// Collapse versions into a set
     Set(set::Command),
     /// Sort versions
     Sort(sort::Command),
