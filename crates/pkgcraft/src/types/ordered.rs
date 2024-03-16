@@ -425,8 +425,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::hash;
-
     use super::*;
 
     #[test]
@@ -435,25 +433,25 @@ mod tests {
         let s1 = OrderedSet::from(["a"]);
         let s2 = OrderedSet::from(["b"]);
         assert_ne!(&s1, &s2);
-        assert_ne!(hash(&s1), hash(&s2));
+        assert_ne!(OrderedSet::from([s1, s2]).len(), 1);
 
         // different ordering
         let s1 = OrderedSet::from(["a", "b"]);
         let s2 = OrderedSet::from(["b", "a"]);
         assert_ne!(&s1, &s2);
-        assert_ne!(hash(&s1), hash(&s2));
+        assert_ne!(OrderedSet::from([s1, s2]).len(), 1);
 
         // similar ordering
         let s1 = OrderedSet::from(["a", "b"]);
         let s2 = OrderedSet::from(["a", "b"]);
         assert_eq!(&s1, &s2);
-        assert_eq!(hash(&s1), hash(&s2));
+        assert_eq!(OrderedSet::from([s1, s2]).len(), 1);
 
         // matching elements
         let s1 = OrderedSet::from(["a", "b", "a"]);
         let s2 = OrderedSet::from(["a", "b", "b"]);
         assert_eq!(&s1, &s2);
-        assert_eq!(hash(&s1), hash(&s2));
+        assert_eq!(OrderedSet::from([s1, s2]).len(), 1);
     }
 
     #[test]
@@ -462,24 +460,24 @@ mod tests {
         let s1 = SortedSet::from(["a"]);
         let s2 = SortedSet::from(["b"]);
         assert_ne!(&s1, &s2);
-        assert_ne!(hash(&s1), hash(&s2));
+        assert_ne!(SortedSet::from([s1, s2]).len(), 1);
 
         // different ordering
         let s1 = SortedSet::from(["a", "b"]);
         let s2 = SortedSet::from(["b", "a"]);
         assert_eq!(&s1, &s2);
-        assert_eq!(hash(&s1), hash(&s2));
+        assert_eq!(SortedSet::from([s1, s2]).len(), 1);
 
         // similar ordering
         let s1 = SortedSet::from(["a", "b"]);
         let s2 = SortedSet::from(["a", "b"]);
         assert_eq!(&s1, &s2);
-        assert_eq!(hash(&s1), hash(&s2));
+        assert_eq!(SortedSet::from([s1, s2]).len(), 1);
 
         // matching elements
         let s1 = SortedSet::from(["a", "b", "a"]);
         let s2 = SortedSet::from(["a", "b", "b"]);
         assert_eq!(&s1, &s2);
-        assert_eq!(hash(&s1), hash(&s2));
+        assert_eq!(SortedSet::from([s1, s2]).len(), 1);
     }
 }
