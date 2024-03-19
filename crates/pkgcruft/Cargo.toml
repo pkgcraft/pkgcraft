@@ -33,9 +33,9 @@ name = "bench"
 harness = false
 
 [dependencies]
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 camino = "1.1.6"
-clap = { version = "4.5.1", features = ["derive"] }
+clap = { version = "4.5.3", features = ["derive"] }
 clap-verbosity-flag = "2.2.0"
 colored = "2.1.0"
 crossbeam-channel = "0.5.12"
@@ -48,8 +48,8 @@ scallop = { path = "../scallop", version = "0.0.13" }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 strfmt = "0.2.4"
-strum = { version = "0.26.1", features = ["derive"] }
-thiserror = "1.0.57"
+strum = { version = "0.26.2", features = ["derive"] }
+thiserror = "1.0.58"
 tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.18"

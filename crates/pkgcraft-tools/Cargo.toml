@@ -26,9 +26,9 @@ test = ["pkgcraft/test"]
 
 [dependencies]
 aho-corasick = "1.1.2"
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 camino = "1.1.6"
-clap = { version = "4.5.1", features = ["derive"] }
+clap = { version = "4.5.3", features = ["derive"] }
 clap-verbosity-flag = "2.2.0"
 humantime = "2.1.0"
 indexmap = { version = "2.2.5", features = ["serde"] }
@@ -37,7 +37,7 @@ itertools = "0.12.1"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.14" }
 scallop = { path = "../scallop", version = "0.0.13" }
-strum = { version = "0.26.1", features = ["derive"] }
+strum = { version = "0.26.2", features = ["derive"] }
 tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.18"
