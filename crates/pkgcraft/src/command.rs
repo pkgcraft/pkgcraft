@@ -93,7 +93,7 @@ impl RunCommand for Command {
 #[cfg(test)]
 thread_local! {
     static COMMANDS: RefCell<Vec<Vec<String>>> = RefCell::new(Default::default());
-    static RUN_COMMAND: RefCell<bool> = RefCell::new(false);
+    static RUN_COMMAND: RefCell<bool> = const { RefCell::new(false) };
 }
 
 #[cfg(test)]

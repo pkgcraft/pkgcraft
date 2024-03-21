@@ -94,7 +94,7 @@ impl Drop for PkgcraftError {
 }
 
 thread_local! {
-    static LAST_ERROR: RefCell<Option<Error>> = RefCell::new(None);
+    static LAST_ERROR: RefCell<Option<Error>> = const { RefCell::new(None) };
 }
 
 /// Update the most recent error, clearing the previous value.

@@ -117,7 +117,7 @@ where
 }
 
 thread_local! {
-    static SUBSCRIBER: RefCell<Option<DefaultGuard>> = RefCell::new(None);
+    static SUBSCRIBER: RefCell<Option<DefaultGuard>> = const { RefCell::new(None) };
 }
 
 /// Enable pkgcraft logging support.
