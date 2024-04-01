@@ -25,14 +25,14 @@ flaky = []
 test = ["pkgcraft/test"]
 
 [dependencies]
-aho-corasick = "1.1.2"
+aho-corasick = "1.1.3"
 anyhow = "1.0.81"
 camino = "1.1.6"
-clap = { version = "4.5.3", features = ["derive"] }
+clap = { version = "4.5.4", features = ["derive"] }
 clap-verbosity-flag = "2.2.0"
 humantime = "2.1.0"
-indexmap = { version = "2.2.5", features = ["serde"] }
-indoc = "2.0.4"
+indexmap = { version = "2.2.6", features = ["serde"] }
+indoc = "2.0.5"
 itertools = "0.12.1"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.14" }
