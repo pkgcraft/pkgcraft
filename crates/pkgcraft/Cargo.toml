@@ -30,7 +30,7 @@ test = ["dep:assert_cmd"]
 async-trait = "0.1.79"
 blake2 = "0.10.6"
 blake3 = { version = "1.5.1", features = ["traits-preview"] }
-cached = "0.49.2"
+cached = "0.49.3"
 camino = { version = "1.1.6", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.5.4", features = ["derive"] }
@@ -55,7 +55,7 @@ once_cell = "1.19.0"
 peg = "0.8.2"
 rayon = "1.10.0"
 regex = "1.10.4"
-reqwest = { version = "0.12.2", default-features = false, features = ["rustls-tls", "stream"], optional = true }
+reqwest = { version = "0.12.3", default-features = false, features = ["rustls-tls", "stream"], optional = true }
 roxmltree = "0.19.0"
 rust-ini = "0.21.0"
 scallop = { path = "../scallop", version = "0.0.13" }

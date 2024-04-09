@@ -40,7 +40,7 @@ thiserror = "1.0.58"
 tracing = "0.1.40"
 
 [build-dependencies]
-autotools = "0.2.6"
+autotools = "0.2.7"
 bindgen = "0.69.4"
 camino = "1.1.6"
 num_cpus = "1.16.0"
