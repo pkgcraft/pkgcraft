@@ -23,7 +23,9 @@ jobs:
       id: rust
 
     - name: Create vendored release tarball
-      run: .ci/vendor-tarball pkgcraft-c
+      run: |
+        .ci/vendor-release pkgcraft-c
+        tar -cv -I "xz -9 -T0" -f ${{ github.ref_name }}.tar.xz ${{ github.ref_name }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

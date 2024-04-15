@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Create a vendored rust release tarball.
+# Create a vendored release.
+# Requires a single argument of the target package name.
 
 set -e
 
+REPO_DIR=${PWD}
 PACKAGE=$1
 
 # build crate
@@ -35,10 +37,15 @@ replace-with = "vendored-sources"
 directory = "vendor"
 EOF
 
-# ${RELEASE}
-popd >/dev/null
-# target/package
+# remove unused, windows-only static libs to decrease archive size
+#
+# TODO: drop this once `cargo vendor` supports platform targeting:
+# https://github.com/rust-lang/cargo/issues/7058
+rm -fr vendor/winapi-*gnu*/lib/*.a
+rm -fr vendor/windows_*gnu*/lib/*.a
+rm -fr vendor/windows_*msvc*/lib/*.lib
+
 popd >/dev/null
 
-# create release tarball
-tar -C target/package -cv -I 'xz -9 -T0' -f ${RELEASE}.tar.xz ${RELEASE}
+# move release to repo dir
+mv ${RELEASE} ${REPO_DIR}
