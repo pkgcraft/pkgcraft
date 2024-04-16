@@ -38,11 +38,10 @@ impl SourceKind {
     }
 }
 
-// TODO: return impl Iterator once MSRV >= 1.75
 pub(crate) trait IterRestrict {
     type Item;
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R)
-        -> Box<dyn Iterator<Item = Self::Item> + '_>;
+
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_;
 }
 
 #[derive(Debug)]
@@ -53,11 +52,8 @@ pub(crate) struct Ebuild<'a> {
 impl<'a> IterRestrict for Ebuild<'a> {
     type Item = ebuild::Pkg<'a>;
 
-    fn iter_restrict<R: Into<Restrict>>(
-        &self,
-        val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
-        Box::new(self.repo.iter_restrict(val))
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
+        self.repo.iter_restrict(val)
     }
 }
 
@@ -69,10 +65,7 @@ pub(crate) struct EbuildRaw<'a> {
 impl<'a> IterRestrict for EbuildRaw<'a> {
     type Item = ebuild::raw::Pkg<'a>;
 
-    fn iter_restrict<R: Into<Restrict>>(
-        &self,
-        val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
-        Box::new(self.repo.iter_raw_restrict(val))
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
+        self.repo.iter_raw_restrict(val)
     }
 }
