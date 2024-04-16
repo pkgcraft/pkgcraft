@@ -1,7 +1,6 @@
 use std::io::{self, Write};
 use std::path::Path;
 
-use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -16,7 +15,6 @@ pub(crate) struct Repo {
     pub(crate) uri: String,
 }
 
-#[async_trait]
 impl Syncable for Repo {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
         if HANDLED_URI_RE.is_match(uri) {

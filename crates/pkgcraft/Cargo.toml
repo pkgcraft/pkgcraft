@@ -27,7 +27,6 @@ https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
 test = ["dep:assert_cmd"]
 
 [dependencies]
-async-trait = "0.1.80"
 blake2 = "0.10.6"
 blake3 = { version = "1.5.1", features = ["traits-preview"] }
 cached = "0.49.3"

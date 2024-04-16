@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-use async_trait::async_trait;
 use flate2::read::GzDecoder;
 use futures::StreamExt;
 use once_cell::sync::Lazy;
@@ -26,7 +25,6 @@ pub(crate) struct Repo {
     url: String,
 }
 
-#[async_trait]
 impl Syncable for Repo {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
         match HANDLED_URI_RE.captures(uri) {

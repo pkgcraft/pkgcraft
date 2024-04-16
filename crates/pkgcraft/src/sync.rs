@@ -3,7 +3,6 @@ use std::fs;
 use std::path::Path;
 use std::str::FromStr;
 
-use async_trait::async_trait;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
 use crate::Error;
@@ -35,7 +34,6 @@ impl fmt::Display for Syncer {
     }
 }
 
-#[async_trait]
 trait Syncable {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
     async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()>;

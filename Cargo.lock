@@ -1874,7 +1874,6 @@ name = "pkgcraft"
 version = "0.0.14"
 dependencies = [
  "assert_cmd",
- "async-trait",
  "blake2",
  "blake3",
  "cached",
