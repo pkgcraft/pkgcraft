@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use pkgcraft::config::Config;
 use strum::AsRefStr;
 
+mod diff;
 mod replay;
 mod scan;
 mod show;
@@ -10,6 +11,8 @@ mod show;
 #[derive(Debug, AsRefStr, clap::Subcommand)]
 #[strum(serialize_all = "kebab-case")]
 pub(crate) enum Subcommand {
+    /// Compare reports
+    Diff(diff::Command),
     /// Replay reports
     Replay(replay::Command),
     /// Scan for QA issues
@@ -28,6 +31,7 @@ impl Subcommand {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         use Subcommand::*;
         match self {
+            Diff(cmd) => cmd.run(),
             Replay(cmd) => cmd.run(),
             Scan(cmd) => cmd.run(config),
             Show(cmd) => cmd.run(),
