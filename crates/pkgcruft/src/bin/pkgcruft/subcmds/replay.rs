@@ -12,7 +12,7 @@ use crate::options::reporter::ReporterOptions;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Replay options")]
-pub(crate) struct Command {
+pub(crate) struct Options {
     /// Limit to specific report variants
     #[arg(
         short,
@@ -34,12 +34,16 @@ pub(crate) struct Command {
 
     #[clap(flatten)]
     reporter: ReporterOptions,
+}
 
-    // positionals
+#[derive(Debug, Args)]
+pub(crate) struct Command {
+    #[clap(flatten)]
+    options: Options,
+
     /// Target file path
     #[arg(
         help_heading = "Arguments",
-        value_name = "FILE",
         value_hint = ValueHint::FilePath,
         default_value = "-",
     )]
@@ -91,15 +95,17 @@ impl Replay {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let replay = Replay::new().reports(self.reports).filter(self.filter)?;
+        let replay = Replay::new()
+            .reports(self.options.reports)
+            .filter(self.options.filter)?;
 
         let mut reports: Vec<_> = replay.run(self.file)?.try_collect()?;
-        if self.sort {
+        if self.options.sort {
             reports.sort();
         }
 
         let mut stdout = io::stdout().lock();
-        let mut reporter = self.reporter.collapse()?;
+        let mut reporter = self.options.reporter.collapse()?;
         for report in reports {
             reporter.report(&report, &mut stdout)?;
         }
