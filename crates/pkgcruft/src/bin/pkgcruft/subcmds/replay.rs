@@ -99,15 +99,18 @@ impl Command {
             .reports(self.options.reports)
             .filter(self.options.filter)?;
 
-        let mut reports: Vec<_> = replay.run(self.file)?.try_collect()?;
-        if self.options.sort {
+        let reports = if self.options.sort {
+            let mut reports: Vec<_> = replay.run(self.file)?.try_collect()?;
             reports.sort();
-        }
+            Either::Left(reports.into_iter().map(Ok))
+        } else {
+            Either::Right(replay.run(self.file)?)
+        };
 
         let mut stdout = io::stdout().lock();
         let mut reporter = self.options.reporter.collapse()?;
         for report in reports {
-            reporter.report(&report, &mut stdout)?;
+            reporter.report(&(report?), &mut stdout)?;
         }
 
         Ok(ExitCode::SUCCESS)
