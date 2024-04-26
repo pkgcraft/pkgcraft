@@ -385,7 +385,7 @@ pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Dep<
 }
 
 #[cached(
-    type = "SizedCache<(String, &Eapi), crate::Result<Dep<String>>>",
+    ty = "SizedCache<(String, &Eapi), crate::Result<Dep<String>>>",
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
