@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Args, ValueHint};
-use itertools::Either;
+use itertools::{Either, Itertools};
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind, REPORTS};
 
@@ -93,20 +93,15 @@ impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         let replay = Replay::new().reports(self.reports).filter(self.filter)?;
 
+        let mut reports: Vec<_> = replay.run(self.file)?.try_collect()?;
+        if self.sort {
+            reports.sort();
+        }
+
         let mut stdout = io::stdout().lock();
         let mut reporter = self.reporter.collapse()?;
-
-        if self.sort {
-            let reports: Result<Vec<_>, _> = replay.run(self.file)?.collect();
-            let mut reports = reports?;
-            reports.sort();
-            for report in reports {
-                reporter.report(&report, &mut stdout)?;
-            }
-        } else {
-            for report in replay.run(self.file)? {
-                reporter.report(&(report?), &mut stdout)?;
-            }
+        for report in reports {
+            reporter.report(&report, &mut stdout)?;
         }
 
         Ok(ExitCode::SUCCESS)
