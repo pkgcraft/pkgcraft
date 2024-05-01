@@ -1182,10 +1182,22 @@ mod tests {
     }
 
     #[test]
-    fn id_and_name() {
-        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
+    fn invalid() {
+        let repos_dir = TEST_DATA.path().join("repos/invalid");
 
+        // nonexistent profiles/repo_name file
+        let path = repos_dir.join("missing-name");
+        let r = Repo::from_path(&path, 0, &path);
+        assert_err_re!(
+            r,
+            format!("^invalid repo: {path}: profiles/repo_name: No such file or directory")
+        );
+    }
+
+    #[test]
+    fn id_and_name() {
         // repo id matches name
+        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_eq!(repo.id(), "primary");
         assert_eq!(repo.name(), "primary");
 
