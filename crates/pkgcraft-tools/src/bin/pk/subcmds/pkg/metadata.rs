@@ -2,6 +2,7 @@ use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::Args;
+use itertools::Itertools;
 use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
@@ -48,13 +49,12 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target restrictions
-        let targets: Result<Vec<_>, _> = self
+        let targets: Vec<_> = self
             .targets
             .stdin_or_args()
             .split_whitespace()
             .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
-            .collect();
-        let targets = targets?;
+            .try_collect()?;
 
         for (repo_set, restrict) in targets {
             for repo in repo_set.ebuild() {

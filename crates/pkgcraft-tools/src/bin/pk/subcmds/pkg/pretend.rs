@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use itertools::Itertools;
 use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Pretend};
@@ -37,13 +38,12 @@ impl Command {
         let mut status = ExitCode::SUCCESS;
 
         // determine target restrictions
-        let targets: Result<Vec<_>, _> = self
+        let targets: Vec<_> = self
             .targets
             .stdin_or_args()
             .split_whitespace()
             .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
-            .collect();
-        let targets = targets?;
+            .try_collect()?;
 
         // find matching packages from targeted repos
         let pkgs = targets.iter().flat_map(|(repo_set, restrict)| {

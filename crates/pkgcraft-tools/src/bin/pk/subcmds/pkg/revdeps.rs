@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use itertools::Itertools;
 use pkgcraft::config::Config;
 use pkgcraft::dep::{CpvOrDep, Flatten};
 use pkgcraft::repo::RepoFormat;
@@ -32,8 +33,7 @@ impl Command {
 
         // convert targets to Cpv or Dep objects
         let targets: Vec<_> = self.targets.stdin_or_args().split_whitespace().collect();
-        let targets: Result<Vec<_>, _> = targets.iter().map(|s| CpvOrDep::parse(s)).collect();
-        let targets = targets?;
+        let targets: Vec<_> = targets.iter().map(|s| CpvOrDep::parse(s)).try_collect()?;
 
         // TODO: use a revdeps cache for queries (#120)
         // TODO: parallelize while generating metadata on the fly (#121)

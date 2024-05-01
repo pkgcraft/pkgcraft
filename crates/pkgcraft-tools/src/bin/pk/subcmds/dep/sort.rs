@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use itertools::Itertools;
 use pkgcraft::dep::Dep;
 
 use crate::args::StdinOrArgs;
@@ -13,14 +14,13 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let values: Result<Vec<_>, _> = self
+        let mut values: Vec<_> = self
             .values
             .stdin_or_args()
             .split_whitespace()
             .map(|s| Dep::try_new(&s))
-            .collect();
+            .try_collect()?;
 
-        let mut values = values?;
         values.sort();
 
         let mut stdout = io::stdout().lock();
