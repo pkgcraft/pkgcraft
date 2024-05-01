@@ -257,8 +257,8 @@ impl Metadata {
             },
             Err(e) => {
                 let msg = format!("profiles/repo_name: {e}");
-                // assume path is misconfigured repo if the profiles dir exists
-                if path.join("profiles").exists() {
+                // assume path is misconfigured repo if profiles dir exists
+                if path.join("profiles").is_dir() {
                     Err(invalid_repo(msg))
                 } else {
                     Err(not_a_repo(msg))
