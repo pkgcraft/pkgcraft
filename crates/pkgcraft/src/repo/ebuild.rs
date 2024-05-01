@@ -1185,6 +1185,14 @@ mod tests {
     fn invalid() {
         let repos_dir = TEST_DATA.path().join("repos/invalid");
 
+        // invalid profiles/eapi file
+        let path = repos_dir.join("invalid-eapi");
+        let r = Repo::from_path(&path, 0, &path);
+        assert_err_re!(
+            r,
+            format!(r##"^invalid repo: {path}: profiles/eapi: invalid EAPI: "# invalid\\n8""##)
+        );
+
         // nonexistent profiles/repo_name file
         let path = repos_dir.join("missing-name");
         let r = Repo::from_path(&path, 0, &path);
