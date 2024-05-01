@@ -75,17 +75,17 @@ pub struct ManifestFile {
 
 impl ManifestFile {
     fn try_new(kind: ManifestType, name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
-        let checksums: crate::Result<Vec<_>> = chksums
+        let checksums: Vec<_> = chksums
             .iter()
             .tuples()
             .map(|(kind, val)| Checksum::try_new(kind, val))
-            .collect();
+            .try_collect()?;
 
         Ok(ManifestFile {
             kind,
             name: name.to_string(),
             size,
-            checksums: checksums?,
+            checksums,
         })
     }
 

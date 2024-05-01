@@ -4,6 +4,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 use camino::{Utf8DirEntry, Utf8Path};
+use itertools::Itertools;
 use nix::{sys::stat, unistd};
 use walkdir::{DirEntry, WalkDir};
 
@@ -104,12 +105,10 @@ pub(crate) fn is_hidden(entry: &DirEntry) -> bool {
 }
 
 pub(crate) fn sorted_dir_list_utf8(path: &Utf8Path) -> crate::Result<Vec<Utf8DirEntry>> {
-    let entries: Result<Vec<_>, _> = path
+    let mut entries: Vec<_> = path
         .read_dir_utf8()
         .map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?
-        .collect();
-    let mut entries: Vec<_> =
-        entries.map_err(|e| Error::IO(format!("failed reading dir: {path}: {e}")))?;
+        .try_collect()?;
     entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
     Ok(entries)
 }

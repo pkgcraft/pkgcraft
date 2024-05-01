@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use glob::glob;
+use itertools::Itertools;
 use scallop::variables::var_to_vec;
 use scallop::{Error, ExecStatus};
 
@@ -42,10 +43,9 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<P
     for f in globs.iter().map(|s| s.as_ref()) {
         let paths =
             glob(f).map_err(|e| Error::Base(format!("invalid docs glob pattern: {f}: {e}")))?;
-        let paths: scallop::Result<Vec<_>> = paths
+        let paths: Vec<_> = paths
             .map(|r| r.map_err(|e| Error::Base(format!("failed reading docs file: {e}"))))
-            .collect();
-        let paths = paths?;
+            .try_collect()?;
 
         // unmatched patterns cause errors for non-default input
         if force && paths.is_empty() {

@@ -3,6 +3,7 @@ use std::fs::File;
 use std::process::Command;
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
+use itertools::Itertools;
 use scallop::{Error, ExecStatus};
 
 use crate::shell::write_stdout;
@@ -69,16 +70,15 @@ struct FindPatches<'a>(std::slice::Iter<'a, &'a Utf8Path>);
 /// Return all the patches for a given path.
 fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<PatchFile>)> {
     if path.is_dir() {
-        let dir_patches: scallop::Result<Vec<_>> = path
+        let mut dir_patches: Vec<_> = path
             .read_dir_utf8()?
             .filter_map(|e| match e {
                 Ok(e) if is_patch(&e) => Some(PatchFile::try_new(e.into_path())),
                 Ok(_) => None,
                 Err(e) => Some(Err(Error::Base(format!("failed reading patches: {path}: {e}")))),
             })
-            .collect();
+            .try_collect()?;
 
-        let mut dir_patches = dir_patches?;
         // this sorts by utf8 not the POSIX locale specified by PMS
         dir_patches.sort();
 

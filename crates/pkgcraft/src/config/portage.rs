@@ -27,7 +27,7 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
         let ini = Ini::load_from_file(f)
             .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))?;
 
-        let repos: Result<Vec<_>, _> = ini
+        let repos: Vec<_> = ini
             .iter()
             .filter_map(|(section, p)| match section {
                 Some(s) if s != "DEFAULT" => Some((s, p)),
@@ -44,28 +44,21 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
                     )))
                 }
             })
-            .collect();
+            .try_collect()?;
 
         // log repos loaded from the file
-        if let Ok(vals) = &repos {
-            let msg = if !vals.is_empty() {
-                vals.iter().map(|r| r.id()).join(", ")
-            } else {
-                "no repos found".to_string()
-            };
+        let msg = if !repos.is_empty() {
+            repos.iter().map(|r| r.id()).join(", ")
+        } else {
+            "no repos found".to_string()
+        };
 
-            info!("loading portage config: {f}: {msg}");
-        }
-
-        repos
+        info!("loading portage config: {f}: {msg}");
+        Ok(repos)
     };
 
     // load ini files in lexical order
     files.sort();
-
-    files
-        .iter()
-        .map(|f| repos_from_file(f))
-        .collect::<crate::Result<Vec<Vec<_>>>>()
-        .map(|repos| repos.into_iter().flatten().collect())
+    let repos: Vec<_> = files.iter().map(|f| repos_from_file(f)).try_collect()?;
+    Ok(repos.into_iter().flatten().collect())
 }
