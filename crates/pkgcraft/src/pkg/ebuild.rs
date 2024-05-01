@@ -355,7 +355,7 @@ mod tests {
             SLOT=0
         "#};
         let r = t.create_raw_pkg_from_str("cat/pkg-1", data);
-        assert_err_re!(r, r"invalid EAPI: \$EAPI");
+        assert_err_re!(r, r#"invalid EAPI: "\$EAPI""#);
 
         // unmatched quotes
         let data = indoc::indoc! {r#"
@@ -364,7 +364,7 @@ mod tests {
             SLOT=0
         "#};
         let r = t.create_raw_pkg_from_str("cat/pkg-1", data);
-        assert_err_re!(r, r#"invalid EAPI: '8""#);
+        assert_err_re!(r, r#"invalid EAPI: "'8"#);
 
         // unknown with leading whitespace, single quotes, and varying whitespace comment
         let data = indoc::indoc! {r#"

@@ -48,7 +48,7 @@ peg::parser!(grammar parse() for str {
 });
 
 pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
-    parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))
+    parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))
 }
 
 /// Features that relate to differentiation between EAPIs as specified by PMS.
@@ -172,7 +172,7 @@ impl FromStr for &'static Eapi {
         } else if Eapi::parse(s).is_ok() {
             Err(Error::InvalidValue(format!("unsupported EAPI: {s}")))
         } else {
-            Err(Error::InvalidValue(format!("invalid EAPI: {s}")))
+            Err(Error::InvalidValue(format!("invalid EAPI: {s:?}")))
         }
     }
 }
@@ -234,7 +234,7 @@ impl Eapi {
     /// Verify a string represents a valid EAPI.
     pub fn parse<S: AsRef<str>>(s: S) -> crate::Result<()> {
         let s = s.as_ref();
-        parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s}")))?;
+        parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
         Ok(())
     }
 
