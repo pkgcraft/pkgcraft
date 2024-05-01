@@ -255,7 +255,15 @@ impl Metadata {
                 Some(Err(e)) => Err(invalid_repo(format!("profiles/repo_name: {e}"))),
                 None => Err(invalid_repo("profiles/repo_name empty".to_string())),
             },
-            Err(e) => Err(not_a_repo(format!("profiles/repo_name: {e}"))),
+            Err(e) => {
+                let msg = format!("profiles/repo_name: {e}");
+                // assume path is misconfigured repo if the profiles dir exists
+                if path.join("profiles").exists() {
+                    Err(invalid_repo(msg))
+                } else {
+                    Err(not_a_repo(msg))
+                }
+            }
         }?;
 
         // verify repo EAPI
