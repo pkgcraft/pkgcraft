@@ -2,6 +2,7 @@ use std::ops::Deref;
 
 use camino::Utf8Path;
 use indexmap::IndexMap;
+use itertools::Itertools;
 
 use crate::config::Config;
 use crate::repo::set::RepoSet;
@@ -150,11 +151,10 @@ impl<'a> TargetRestrictions<'a> {
         S: AsRef<str>,
     {
         // determine target restrictions
-        let targets: Result<Vec<_>, _> = values
+        let targets: Vec<_> = values
             .into_iter()
             .map(|s| self.target_restriction(s.as_ref()))
-            .collect();
-        let targets = targets?;
+            .try_collect()?;
 
         // TODO: Implement custom types for ordered maps of ordered collections so FromIterator
         // works directly instead of instead of having to first collect to a vector.
