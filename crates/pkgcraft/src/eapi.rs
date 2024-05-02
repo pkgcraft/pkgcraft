@@ -240,7 +240,7 @@ impl Eapi {
 
     /// Check if an EAPI has a given feature.
     pub fn has(&self, feature: Feature) -> bool {
-        self.features.get(&feature).is_some()
+        self.features.contains(&feature)
     }
 
     /// Parse a package dependency using a specific EAPI.
