@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::ffi::{c_void, CStr, CString};
-use std::{fmt, slice};
+use std::fmt;
 
 use bitflags::bitflags;
 use indexmap::IndexSet;
@@ -340,19 +340,19 @@ pub fn array_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
         }
     }?;
 
-    let mut count: i32 = 0;
-    let strings: Vec<String>;
+    let mut values = vec![];
 
     unsafe {
-        let str_array = bash::array_to_argv(array_ptr, &mut count);
-        strings = slice::from_raw_parts(str_array, count as usize)
-            .iter()
-            .map(|s| String::from(CStr::from_ptr(*s).to_str().unwrap()))
-            .collect();
-        bash::strvec_dispose(str_array);
+        let head = (*array_ptr).head;
+        let mut elem = (*head).next;
+        while elem != head {
+            let value = CStr::from_ptr((*elem).value).to_str().unwrap();
+            values.push(value.to_string());
+            elem = (*elem).next;
+        }
     }
 
-    Ok(strings)
+    Ok(values)
 }
 
 /// Get the value of a given variable as Vec<String>.
