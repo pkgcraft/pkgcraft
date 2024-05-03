@@ -293,8 +293,11 @@ impl Drop for ScopedVariable {
 /// Get the raw string value of a given variable name, returning None when nonexistent.
 pub fn optional<S: AsRef<str>>(name: S) -> Option<String> {
     let name = CString::new(name.as_ref()).unwrap();
-    let ptr = unsafe { bash::get_string_value(name.as_ptr()).as_ref() };
-    ptr.map(|s| unsafe { String::from(CStr::from_ptr(s).to_str().unwrap()) })
+    unsafe {
+        bash::get_string_value(name.as_ptr())
+            .as_ref()
+            .map(|s| CStr::from_ptr(s).to_str().unwrap().to_string())
+    }
 }
 
 /// Get the raw string value of a given variable name, returning an Error when nonexistent.
@@ -306,8 +309,11 @@ pub fn required<S: AsRef<str>>(name: S) -> crate::Result<String> {
 /// Get the expanded value of a given string.
 pub fn expand<S: AsRef<str>>(val: S) -> Option<String> {
     let val = CString::new(val.as_ref()).unwrap();
-    let ptr = unsafe { bash::expand_string_to_string(val.as_ptr() as *mut _, 0).as_ref() };
-    ptr.map(|s| unsafe { String::from(CStr::from_ptr(s).to_str().unwrap()) })
+    unsafe {
+        bash::expand_string_to_string(val.as_ptr() as *mut _, 0)
+            .as_ref()
+            .map(|s| CStr::from_ptr(s).to_str().unwrap().to_string())
+    }
 }
 
 /// Get the string value of a given variable name splitting it into Vec<String> based on IFS.
