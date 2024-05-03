@@ -49,6 +49,14 @@ bitflags! {
     }
 }
 
+/// Return the mutable reference to a raw bash variable if it exists.
+macro_rules! find_variable {
+    ($name:expr) => {{
+        let name = CString::new($name).unwrap();
+        unsafe { bash::find_variable(name.as_ptr()).as_mut() }
+    }};
+}
+
 /// Unset a given variable name ignoring if it is nonexistent or readonly.
 pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
     let name = name.as_ref();
@@ -166,20 +174,15 @@ pub trait ShellVariable: AsRef<str> {
         self.bind(s, Some(Assign::APPEND), None)
     }
 
-    fn shell_var(&self) -> Option<&mut bash::ShellVar> {
-        let var_name = CString::new(self.name()).unwrap();
-        unsafe { bash::find_variable(var_name.as_ptr()).as_mut() }
-    }
-
     fn is_array(&self) -> bool {
-        match self.shell_var() {
+        match find_variable!(self.name()) {
             None => false,
             Some(v) => v.attributes as u32 & Attr::ARRAY.bits() != 0,
         }
     }
 
     fn is_readonly(&self) -> bool {
-        match self.shell_var() {
+        match find_variable!(self.name()) {
             None => false,
             Some(v) => v.attributes as u32 & Attr::READONLY.bits() != 0,
         }
@@ -333,9 +336,7 @@ pub fn string_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
 /// Get the value of an array for a given variable name.
 pub fn array_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
     let name = name.as_ref();
-    let var_name = CString::new(name).unwrap();
-    let var = unsafe { bash::find_variable(var_name.as_ptr()).as_ref() };
-    let array_ptr = match var {
+    let array_ptr = match find_variable!(name) {
         None => Err(Error::Base(format!("undefined variable: {name}"))),
         Some(v) => {
             if (v.attributes as u32 & Attr::ARRAY.bits()) != 0 {
