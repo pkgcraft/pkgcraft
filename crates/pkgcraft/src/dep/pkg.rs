@@ -346,8 +346,8 @@ type DepKey<'a, S> = (
 
 impl Dep<String> {
     /// Create a new Dep from a given string using the default EAPI.
-    pub fn try_new(s: &str) -> crate::Result<Self> {
-        parse::dep(s, Default::default())
+    pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        parse::dep(s.as_ref(), Default::default())
     }
 
     /// Potentially create a new Dep, removing the given fields.

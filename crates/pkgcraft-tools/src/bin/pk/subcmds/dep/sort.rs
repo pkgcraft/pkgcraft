@@ -18,7 +18,7 @@ impl Command {
             .values
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| Dep::try_new(&s))
+            .map(Dep::try_new)
             .try_collect()?;
 
         values.sort();

@@ -19,7 +19,7 @@ impl Command {
             .values
             .stdin_or_args()
             .split_whitespace()
-            .map(|s| Version::try_new(&s))
+            .map(Version::try_new)
             .try_collect()?;
 
         let mut stdout = io::stdout().lock();

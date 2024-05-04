@@ -14,13 +14,17 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let versions: Vec<_> = self.values.stdin_or_args().split_whitespace().collect();
-        let mut versions: Vec<_> = versions.iter().map(|s| Version::parse(s)).try_collect()?;
+        let mut values: Vec<_> = self
+            .values
+            .stdin_or_args()
+            .split_whitespace()
+            .map(Version::try_new)
+            .try_collect()?;
 
-        versions.sort();
+        values.sort();
 
         let mut stdout = io::stdout().lock();
-        for v in versions {
+        for v in values {
             writeln!(stdout, "{v}")?;
         }
 

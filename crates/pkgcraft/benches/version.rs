@@ -28,7 +28,7 @@ pub fn bench_pkg_versions(c: &mut Criterion) {
     c.bench_function("version-cmp-sort-simple", |b| {
         let mut versions: Vec<_> = (0..100)
             .rev()
-            .map(|s| Version::try_new(&format!("{}", s)).unwrap())
+            .map(|x| Version::try_new(x.to_string()).unwrap())
             .collect();
         b.iter(|| versions.sort());
     });

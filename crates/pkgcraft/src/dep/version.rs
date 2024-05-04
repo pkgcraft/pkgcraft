@@ -439,18 +439,18 @@ impl<'a> Version<&'a str> {
 
 impl Version<String> {
     /// Create an owned [`Version`] from a given string with or without an [`Operator`].
-    pub fn try_new(s: &str) -> crate::Result<Self> {
-        Version::parse(s).into_owned()
+    pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        Version::parse(s.as_ref()).into_owned()
     }
 
     /// Create an owned [`Version`] with an [`Operator`].
-    pub fn try_new_with_op(s: &str) -> crate::Result<Self> {
-        Version::parse_with_op(s).into_owned()
+    pub fn try_new_with_op<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        Version::parse_with_op(s.as_ref()).into_owned()
     }
 
     /// Create an owned [`Version`] without an [`Operator`].
-    pub fn try_new_without_op(s: &str) -> crate::Result<Self> {
-        Version::parse_without_op(s).into_owned()
+    pub fn try_new_without_op<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        Version::parse_without_op(s.as_ref()).into_owned()
     }
 }
 
