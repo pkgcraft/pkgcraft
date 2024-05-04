@@ -5,6 +5,7 @@ use std::fmt;
 use bitflags::bitflags;
 use indexmap::IndexSet;
 
+use crate::array::Array;
 use crate::error::ok_or_error;
 use crate::traits::*;
 use crate::{bash, Error, ExecStatus};
@@ -52,10 +53,11 @@ bitflags! {
 /// Return the mutable reference to a raw bash variable if it exists.
 macro_rules! find_variable {
     ($name:expr) => {{
-        let name = CString::new($name).unwrap();
+        let name = std::ffi::CString::new($name).unwrap();
         unsafe { bash::find_variable(name.as_ptr()).as_mut() }
     }};
 }
+pub(crate) use find_variable;
 
 /// Unset a given variable name ignoring if it is nonexistent or readonly.
 pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
@@ -365,33 +367,9 @@ pub fn array_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
 /// Get the value of a given variable as Vec<String>.
 pub fn var_to_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     let name = name.as_ref();
-    let var = Variable::new(name);
-    if var.is_array() {
-        array_to_vec(name).ok()
-    } else {
-        string_vec(name)
-    }
-}
-
-/// Provide access to bash's $PIPESTATUS shell variable.
-pub struct PipeStatus {
-    statuses: Vec<i32>,
-}
-
-impl PipeStatus {
-    /// Get the current value for $PIPESTATUS.
-    pub fn get() -> Self {
-        let statuses = array_to_vec("PIPESTATUS")
-            .unwrap_or_default()
-            .iter()
-            .map(|s| s.parse::<i32>().unwrap_or(-1))
-            .collect();
-        Self { statuses }
-    }
-
-    /// Determine if a process failed in the related pipeline.
-    pub fn failed(&self) -> bool {
-        self.statuses.iter().any(|s| *s != 0)
+    match Array::new(name) {
+        Ok(array) => Some(array.into_iter().map(|s| s.to_string()).collect()),
+        Err(_) => string_vec(name),
     }
 }
 

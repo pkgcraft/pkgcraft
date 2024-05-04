@@ -1,5 +1,6 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
+pub mod array;
 pub mod bash;
 pub mod builtins;
 pub mod command;

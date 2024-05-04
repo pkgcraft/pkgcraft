@@ -1,4 +1,4 @@
-use scallop::variables::PipeStatus;
+use scallop::array::PipeStatus;
 use scallop::ExecStatus;
 
 use super::{die, make_builtin};
