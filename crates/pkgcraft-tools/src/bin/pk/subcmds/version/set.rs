@@ -3,6 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use pkgcraft::dep::Version;
 
 use crate::args::StdinOrArgs;
@@ -14,11 +15,15 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let versions: Vec<_> = self.values.stdin_or_args().split_whitespace().collect();
-        let versions: Result<IndexSet<_>, _> = versions.iter().map(|s| Version::parse(s)).collect();
+        let values: IndexSet<_> = self
+            .values
+            .stdin_or_args()
+            .split_whitespace()
+            .map(|s| Version::try_new(&s))
+            .try_collect()?;
 
         let mut stdout = io::stdout().lock();
-        for v in versions? {
+        for v in values {
             writeln!(stdout, "{v}")?;
         }
 
