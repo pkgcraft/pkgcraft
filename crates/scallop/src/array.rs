@@ -156,4 +156,19 @@ mod tests {
         assert_eq!(array.len(), 3);
         assert!(!array.is_empty());
     }
+
+    #[test]
+    fn iterator() {
+        // empty array
+        source::string("ARRAY=()").unwrap();
+        let array = Array::from("ARRAY").unwrap();
+        assert!(array.iter().next().is_none());
+        assert!(array.into_iter().next().is_none());
+
+        // non-empty array
+        source::string("ARRAY=( 1 2 3 )").unwrap();
+        let array = Array::from("ARRAY").unwrap();
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["1", "2", "3"]);
+        assert_eq!(array.into_iter().collect::<Vec<_>>(), ["1", "2", "3"]);
+    }
 }
