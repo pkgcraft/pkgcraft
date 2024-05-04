@@ -12,8 +12,8 @@ pub struct Array<'a> {
 }
 
 impl<'a> Array<'a> {
-    /// Create a new Array from a given variable name.
-    pub fn new<S: AsRef<str>>(name: S) -> crate::Result<Self> {
+    /// Create a new Array from an existing bash variable.
+    pub fn from<S: AsRef<str>>(name: S) -> crate::Result<Self> {
         let name = name.as_ref();
         let ptr = match find_variable!(name) {
             None => Err(Error::Base(format!("undefined variable: {name}"))),
@@ -125,7 +125,7 @@ pub struct PipeStatus {
 impl PipeStatus {
     /// Get the current value for $PIPESTATUS.
     pub fn get() -> Self {
-        let statuses = match Array::new("PIPESTATUS") {
+        let statuses = match Array::from("PIPESTATUS") {
             Ok(array) => array.iter().map(|s| s.parse().unwrap_or(-1)).collect(),
             Err(_) => Default::default(),
         };
@@ -148,13 +148,13 @@ mod tests {
     fn len_and_is_empty() {
         // empty array
         source::string("ARRAY=()").unwrap();
-        let array = Array::new("ARRAY").unwrap();
+        let array = Array::from("ARRAY").unwrap();
         assert_eq!(array.len(), 0);
         assert!(array.is_empty());
 
         // non-empty array
         source::string("ARRAY=( 1 2 3 )").unwrap();
-        let array = Array::new("ARRAY").unwrap();
+        let array = Array::from("ARRAY").unwrap();
         assert_eq!(array.len(), 3);
         assert!(!array.is_empty());
     }
