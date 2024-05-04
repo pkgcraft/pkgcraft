@@ -7,7 +7,6 @@ use crate::{bash, Error};
 /// Wrapper type for bash arrays.
 pub struct Array<'a> {
     inner: *mut bash::Array,
-    len: usize,
     phantom: PhantomData<&'a mut bash::Array>,
 }
 
@@ -28,7 +27,6 @@ impl<'a> Array<'a> {
 
         Ok(Self {
             inner: ptr,
-            len: unsafe { (*ptr).num_elements.try_into().unwrap() },
             phantom: PhantomData,
         })
     }
@@ -40,12 +38,12 @@ impl<'a> Array<'a> {
 
     /// Return the length of the array.
     pub fn len(&self) -> usize {
-        self.len
+        unsafe { (*self.inner).num_elements.try_into().unwrap() }
     }
 
     /// Return true if the array is empty, otherwise false.
     pub fn is_empty(&self) -> bool {
-        self.len == 0
+        unsafe { (*self.inner).num_elements == 0 }
     }
 }
 
