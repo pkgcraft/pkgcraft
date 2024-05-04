@@ -186,7 +186,7 @@ fn main() {
         .allowlist_var("ASS_.*")
 
         .header("bash/array.h")
-        .allowlist_function("array_to_argv")
+        .allowlist_type("ARRAY")
 
         .header("bash/flags.h")
         .allowlist_var("restricted")
