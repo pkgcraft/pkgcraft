@@ -339,7 +339,7 @@ pub fn string_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
 pub fn var_to_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     let name = name.as_ref();
     match Array::from(name) {
-        Ok(array) => Some(array.into_iter().map(|s| s.to_string()).collect()),
+        Ok(array) => Some(array.into_iter().collect()),
         Err(_) => string_vec(name),
     }
 }
