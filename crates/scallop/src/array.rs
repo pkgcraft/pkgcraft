@@ -7,13 +7,15 @@ use crate::{bash, Error};
 /// Wrapper type for bash arrays.
 pub struct Array<'a> {
     inner: *mut bash::Array,
+    len: usize,
     phantom: PhantomData<&'a mut bash::Array>,
 }
 
 impl<'a> Array<'a> {
+    /// Create a new Array from a given variable name.
     pub fn new<S: AsRef<str>>(name: S) -> crate::Result<Self> {
         let name = name.as_ref();
-        let array_ptr = match find_variable!(name) {
+        let ptr = match find_variable!(name) {
             None => Err(Error::Base(format!("undefined variable: {name}"))),
             Some(v) => {
                 if (v.attributes as u32 & Attr::ARRAY.bits()) != 0 {
@@ -25,13 +27,25 @@ impl<'a> Array<'a> {
         }?;
 
         Ok(Self {
-            inner: array_ptr,
+            inner: ptr,
+            len: unsafe { (*ptr).num_elements.try_into().unwrap() },
             phantom: PhantomData,
         })
     }
 
+    /// Return a shared iterator for the array.
     pub fn iter(&self) -> ArrayIter {
         self.into_iter()
+    }
+
+    /// Return the length of the array.
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Return true if the array is empty, otherwise false.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
     }
 }
 
@@ -121,5 +135,27 @@ impl PipeStatus {
     /// Determine if a process failed in the related pipeline.
     pub fn failed(&self) -> bool {
         self.statuses.iter().any(|s| *s != 0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::source;
+
+    use super::*;
+
+    #[test]
+    fn len_and_is_empty() {
+        // empty array
+        source::string("ARRAY=()").unwrap();
+        let array = Array::new("ARRAY").unwrap();
+        assert_eq!(array.len(), 0);
+        assert!(array.is_empty());
+
+        // non-empty array
+        source::string("ARRAY=( 1 2 3 )").unwrap();
+        let array = Array::new("ARRAY").unwrap();
+        assert_eq!(array.len(), 3);
+        assert!(!array.is_empty());
     }
 }
