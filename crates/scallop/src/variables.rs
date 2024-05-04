@@ -335,35 +335,6 @@ pub fn string_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     }
 }
 
-/// Get the value of an array for a given variable name.
-pub fn array_to_vec<S: AsRef<str>>(name: S) -> crate::Result<Vec<String>> {
-    let name = name.as_ref();
-    let array_ptr = match find_variable!(name) {
-        None => Err(Error::Base(format!("undefined variable: {name}"))),
-        Some(v) => {
-            if (v.attributes as u32 & Attr::ARRAY.bits()) != 0 {
-                Ok(v.value as *mut bash::Array)
-            } else {
-                Err(Error::Base(format!("variable is not an array: {name}")))
-            }
-        }
-    }?;
-
-    let mut values = vec![];
-
-    unsafe {
-        let head = (*array_ptr).head;
-        let mut elem = (*head).next;
-        while elem != head {
-            let value = CStr::from_ptr((*elem).value).to_str().unwrap();
-            values.push(value.to_string());
-            elem = (*elem).next;
-        }
-    }
-
-    Ok(values)
-}
-
 /// Get the value of a given variable as Vec<String>.
 pub fn var_to_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     let name = name.as_ref();
