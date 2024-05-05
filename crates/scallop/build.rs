@@ -189,6 +189,8 @@ fn main() {
         .allowlist_type("ARRAY")
         .allowlist_function("array_insert")
         .allowlist_function("array_reference")
+        .allowlist_function("array_remove")
+        .allowlist_function("array_dispose_element")
 
         .header("bash/flags.h")
         .allowlist_var("restricted")
