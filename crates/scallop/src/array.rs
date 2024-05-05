@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::ffi::{c_long, CStr, CString};
 use std::marker::PhantomData;
 
 use crate::variables::{find_variable, Attr};
@@ -34,6 +34,33 @@ impl<'a> Array<'a> {
     /// Return a shared iterator for the array.
     pub fn iter(&self) -> ArrayIter {
         self.into_iter()
+    }
+
+    /// Append an element to the array.
+    pub fn append<S: AsRef<str>>(&mut self, value: S) {
+        let index = unsafe { (*self.inner).max_index + 1 };
+        self.insert(index, value);
+    }
+
+    /// Insert an element into the array with a given index value.
+    pub fn insert<I, S>(&mut self, index: I, value: S)
+    where
+        I: Into<c_long>,
+        S: AsRef<str>,
+    {
+        let cstr = CString::new(value.as_ref()).unwrap();
+        let cstr = cstr.as_ptr() as *mut _;
+        unsafe {
+            bash::array_insert(self.inner, index.into(), cstr);
+        }
+    }
+
+    /// Return a reference to a value at a given index.
+    pub fn get<I: Into<c_long>>(&mut self, index: I) -> Option<&str> {
+        unsafe {
+            let value = bash::array_reference(self.inner, index.into());
+            value.as_ref().map(|s| CStr::from_ptr(s).to_str().unwrap())
+        }
     }
 
     /// Return the length of the array.
@@ -170,5 +197,38 @@ mod tests {
         let array = Array::from("ARRAY").unwrap();
         assert_eq!(array.iter().collect::<Vec<_>>(), ["1", "2", "3"]);
         assert_eq!(array.into_iter().collect::<Vec<_>>(), ["1", "2", "3"]);
+    }
+
+    #[test]
+    fn manipulation() {
+        // empty array
+        source::string("ARRAY=()").unwrap();
+        let mut array = Array::from("ARRAY").unwrap();
+
+        // append
+        array.append("1");
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["1"]);
+        assert_eq!(array.get(0).unwrap(), "1");
+
+        // insert overriding existing
+        array.insert(0, "2");
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["2"]);
+        assert_eq!(array.get(0).unwrap(), "2");
+
+        // insert new
+        array.insert(1, "3");
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["2", "3"]);
+        assert_eq!(array.get(1).unwrap(), "3");
+
+        // insert non-sequential
+        array.insert(100, "5");
+        array.insert(99, "4");
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["2", "3", "4", "5"]);
+        assert_eq!(array.get(99).unwrap(), "4");
+
+        // append starts at the latest index
+        array.append("6");
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["2", "3", "4", "5", "6"]);
+        assert_eq!(array.get(101).unwrap(), "6");
     }
 }

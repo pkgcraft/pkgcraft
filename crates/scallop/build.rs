@@ -187,6 +187,8 @@ fn main() {
 
         .header("bash/array.h")
         .allowlist_type("ARRAY")
+        .allowlist_function("array_insert")
+        .allowlist_function("array_reference")
 
         .header("bash/flags.h")
         .allowlist_var("restricted")
