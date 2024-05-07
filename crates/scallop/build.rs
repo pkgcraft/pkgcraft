@@ -192,8 +192,6 @@ fn main() {
         .allowlist_function("array_reference")
         .allowlist_function("array_remove")
         .allowlist_function("array_dispose_element")
-        .allowlist_function("array_rshift")
-        .allowlist_function("array_shift")
 
         .header("bash/flags.h")
         .allowlist_var("restricted")
