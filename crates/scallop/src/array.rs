@@ -289,14 +289,13 @@ mod tests {
     #[test]
     fn iterator() {
         // empty array
-        source::string("ARRAY=()").unwrap();
-        let array = Array::from("ARRAY").unwrap();
+        let array = Array::new("ARRAY");
         assert!(array.iter().next().is_none());
         assert!(array.into_iter().next().is_none());
 
         // non-empty array
-        source::string("ARRAY=( 1 2 3 )").unwrap();
-        let array = Array::from("ARRAY").unwrap();
+        let mut array = Array::new("ARRAY");
+        array.extend(["1", "2", "3"]);
         assert_eq!(array.iter().collect::<Vec<_>>(), ["1", "2", "3"]);
         assert_eq!(array.into_iter().collect::<Vec<_>>(), ["1", "2", "3"]);
     }
@@ -304,8 +303,7 @@ mod tests {
     #[test]
     fn manipulation() {
         // empty array
-        source::string("ARRAY=()").unwrap();
-        let mut array = Array::from("ARRAY").unwrap();
+        let mut array = Array::new("ARRAY");
 
         // remove nonexistent
         assert!(array.remove(0).is_none());
@@ -345,8 +343,7 @@ mod tests {
 
     #[test]
     fn extend() {
-        source::string("ARRAY=()").unwrap();
-        let mut array = Array::from("ARRAY").unwrap();
+        let mut array = Array::new("ARRAY");
         array.extend(["1"]);
         assert_eq!(array.iter().collect::<Vec<_>>(), ["1"]);
         array.extend(vec!["2".to_string(), "3".to_string()]);
