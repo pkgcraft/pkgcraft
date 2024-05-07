@@ -86,6 +86,17 @@ impl<'a> Array<'a> {
     }
 }
 
+impl<S: AsRef<str>> Extend<S> for Array<'_> {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = S>,
+    {
+        for value in iter {
+            self.append(value);
+        }
+    }
+}
+
 impl<'a> IntoIterator for &'a Array<'a> {
     type Item = &'a str;
     type IntoIter = ArrayIter<'a>;
@@ -251,5 +262,15 @@ mod tests {
         assert_eq!(array.remove(0).unwrap(), "2");
         assert!(array.get(0).is_none());
         assert_eq!(array.iter().collect::<Vec<_>>(), ["3", "4", "5", "6"]);
+    }
+
+    #[test]
+    fn extend() {
+        source::string("ARRAY=()").unwrap();
+        let mut array = Array::from("ARRAY").unwrap();
+        array.extend(["1"]);
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["1"]);
+        array.extend(vec!["2".to_string(), "3".to_string()]);
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["1", "2", "3"]);
     }
 }
