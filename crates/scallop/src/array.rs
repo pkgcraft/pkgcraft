@@ -89,6 +89,24 @@ impl<'a> Array<'a> {
         }
     }
 
+    /// Remove and return the last value if it exists.
+    pub fn pop_back(&mut self) -> Option<String> {
+        let index = unsafe { (*self.inner).max_index };
+        self.remove(index)
+    }
+
+    /// Remove and return the first value if it exists.
+    pub fn pop_front(&mut self) -> Option<String> {
+        unsafe {
+            let element = bash::array_shift(self.inner, 1, 0);
+            let value = element
+                .as_ref()
+                .map(|e| CStr::from_ptr(e.value).to_str().unwrap().to_string());
+            bash::array_dispose_element(element);
+            value
+        }
+    }
+
     /// Return the length of the array.
     pub fn len(&self) -> usize {
         unsafe { (*self.inner).num_elements.try_into().unwrap() }
@@ -308,6 +326,8 @@ mod tests {
         // remove nonexistent
         assert!(array.remove(0).is_none());
         assert!(array.get(0).is_none());
+        assert!(array.pop_back().is_none());
+        assert!(array.pop_front().is_none());
 
         // append
         array.append("1");
@@ -339,6 +359,11 @@ mod tests {
         assert_eq!(array.remove(0).unwrap(), "2");
         assert!(array.get(0).is_none());
         assert_eq!(array.iter().collect::<Vec<_>>(), ["3", "4", "5", "6"]);
+
+        // pop values
+        assert_eq!(array.pop_back().unwrap(), "6");
+        assert_eq!(array.pop_front().unwrap(), "3");
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["4", "5"]);
     }
 
     #[test]
