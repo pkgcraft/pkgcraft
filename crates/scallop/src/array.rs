@@ -1,5 +1,6 @@
 use std::ffi::{c_long, CStr, CString};
 use std::marker::PhantomData;
+use std::ops::Deref;
 
 use crate::variables::{find_variable, Attr};
 use crate::{bash, Error};
@@ -166,9 +167,7 @@ impl<'a> Iterator for ArrayIntoIter<'a> {
 }
 
 /// Provide access to bash's $PIPESTATUS shell variable.
-pub struct PipeStatus {
-    statuses: Vec<i32>,
-}
+pub struct PipeStatus(Vec<i32>);
 
 impl PipeStatus {
     /// Get the current value for $PIPESTATUS.
@@ -177,12 +176,20 @@ impl PipeStatus {
             Ok(array) => array.iter().map(|s| s.parse().unwrap_or(-1)).collect(),
             Err(_) => Default::default(),
         };
-        Self { statuses }
+        Self(statuses)
     }
 
     /// Determine if a process failed in the related pipeline.
     pub fn failed(&self) -> bool {
-        self.statuses.iter().any(|s| *s != 0)
+        self.iter().any(|s| *s != 0)
+    }
+}
+
+impl Deref for PipeStatus {
+    type Target = [i32];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
