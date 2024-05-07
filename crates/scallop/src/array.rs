@@ -12,7 +12,19 @@ pub struct Array<'a> {
 }
 
 impl<'a> Array<'a> {
-    /// Create a new Array from an existing bash variable.
+    /// Create a new Array using the given variable name.
+    pub fn new<S: AsRef<str>>(name: S) -> Self {
+        let cstr = CString::new(name.as_ref()).unwrap();
+        unsafe {
+            let ptr = bash::make_new_array_variable(cstr.as_ptr() as *mut _);
+            Self {
+                inner: (*ptr).value as *mut _,
+                phantom: PhantomData,
+            }
+        }
+    }
+
+    /// Create a new Array from an existing variable.
     pub fn from<S: AsRef<str>>(name: S) -> crate::Result<Self> {
         let name = name.as_ref();
         let ptr = match find_variable!(name) {
@@ -198,6 +210,13 @@ mod tests {
     use crate::source;
 
     use super::*;
+
+    #[test]
+    fn new() {
+        let mut array = Array::new("ARRAY");
+        array.append("a");
+        source::string("[[ ${ARRAY[0]} == a ]]").unwrap();
+    }
 
     #[test]
     fn len_and_is_empty() {

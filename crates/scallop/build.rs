@@ -156,6 +156,7 @@ fn main() {
         .allowlist_function("check_unbind_variable")
         .allowlist_function("find_function")
         .allowlist_function("find_variable")
+        .allowlist_function("make_new_array_variable")
         .allowlist_function("push_context")
         .allowlist_function("pop_context")
         .allowlist_var("temporary_env")
