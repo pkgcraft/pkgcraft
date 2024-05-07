@@ -1,4 +1,5 @@
 use std::ffi::{c_long, CStr, CString};
+use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
@@ -107,6 +108,22 @@ impl<S: AsRef<str>> Extend<S> for Array<'_> {
         for value in iter {
             self.append(value);
         }
+    }
+}
+
+// Note that this only compares array values and their order, not indices.
+impl PartialEq for Array<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.iter().eq(other.iter())
+    }
+}
+
+impl Eq for Array<'_> {}
+
+impl fmt::Debug for Array<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let values: Vec<_> = self.iter().collect();
+        write!(f, "Array {{ {values:?} }}")
     }
 }
 
@@ -238,6 +255,29 @@ mod tests {
         let array = Array::from("ARRAY").unwrap();
         assert_eq!(array.len(), 3);
         assert!(!array.is_empty());
+    }
+
+    #[test]
+    fn eq() {
+        // empty
+        let mut array1 = Array::new("ARRAY1");
+        source::string("ARRAY2=()").unwrap();
+        let mut array2 = Array::from("ARRAY2").unwrap();
+        assert_eq!(&array1, &array2);
+
+        // non-empty
+        array1.append("1");
+        array2.append("1");
+        assert_eq!(&array1, &array2);
+
+        // non-matching indices
+        array1.insert(100, "2");
+        array2.insert(101, "2");
+        assert_eq!(&array1, &array2);
+
+        // non-matching values
+        array1.append("3");
+        assert_ne!(&array1, &array2);
     }
 
     #[test]
