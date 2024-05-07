@@ -84,36 +84,15 @@ impl<'a> Array<'a> {
     }
 
     /// Remove and return the last value if it exists.
-    pub fn pop_back(&mut self) -> Option<String> {
+    pub fn pop(&mut self) -> Option<String> {
         let index = unsafe { (*self.inner).max_index };
         self.remove(index)
     }
 
-    /// Remove and return the first value if it exists.
-    pub fn pop_front(&mut self) -> Option<String> {
-        unsafe {
-            let element = bash::array_shift(self.inner, 1, 0);
-            let value = element
-                .as_ref()
-                .map(|e| CStr::from_ptr(e.value).to_str().unwrap().to_string());
-            bash::array_dispose_element(element);
-            value
-        }
-    }
-
-    /// Append an element to the array.
-    pub fn push_back<S: AsRef<str>>(&mut self, value: S) {
+    /// Append a value to the array.
+    pub fn push<S: AsRef<str>>(&mut self, value: S) {
         let index = unsafe { (*self.inner).max_index + 1 };
         self.insert(index, value);
-    }
-
-    /// Prepend an element to the array.
-    pub fn push_front<S: AsRef<str>>(&mut self, value: S) {
-        let cstr = CString::new(value.as_ref()).unwrap();
-        let cstr = cstr.as_ptr() as *mut _;
-        unsafe {
-            bash::array_rshift(self.inner, 1, cstr);
-        }
     }
 
     /// Return the length of the array.
@@ -133,7 +112,7 @@ impl<S: AsRef<str>> Extend<S> for Array<'_> {
         T: IntoIterator<Item = S>,
     {
         for value in iter {
-            self.push_back(value);
+            self.push(value);
         }
     }
 }
@@ -259,7 +238,7 @@ mod tests {
     fn new() {
         let mut array = Array::new("ARRAY");
         assert_eq!(format!("{array:?}"), "Array { [] }");
-        array.push_back("a");
+        array.push("a");
         assert_eq!(format!("{array:?}"), r#"Array { ["a"] }"#);
 
         // verify native bash existence
@@ -299,8 +278,8 @@ mod tests {
         assert_eq!(&array1, &array2);
 
         // non-empty
-        array1.push_back("1");
-        array2.push_back("1");
+        array1.push("1");
+        array2.push("1");
         assert_eq!(&array1, &array2);
 
         // non-matching indices
@@ -309,7 +288,7 @@ mod tests {
         assert_eq!(&array1, &array2);
 
         // non-matching values
-        array1.push_back("3");
+        array1.push("3");
         assert_ne!(&array1, &array2);
     }
 
@@ -335,11 +314,10 @@ mod tests {
         // remove nonexistent
         assert!(array.remove(0).is_none());
         assert!(array.get(0).is_none());
-        assert!(array.pop_back().is_none());
-        assert!(array.pop_front().is_none());
+        assert!(array.pop().is_none());
 
-        // append
-        array.push_back("1");
+        // push
+        array.push("1");
         assert_eq!(array.iter().collect::<Vec<_>>(), ["1"]);
         assert_eq!(array.get(0).unwrap(), "1");
 
@@ -359,8 +337,8 @@ mod tests {
         assert_eq!(array.iter().collect::<Vec<_>>(), ["2", "3", "4", "5"]);
         assert_eq!(array.get(99).unwrap(), "4");
 
-        // append starts at the latest index
-        array.push_back("6");
+        // push starts at the latest index
+        array.push("6");
         assert_eq!(array.iter().collect::<Vec<_>>(), ["2", "3", "4", "5", "6"]);
         assert_eq!(array.get(101).unwrap(), "6");
 
@@ -370,14 +348,8 @@ mod tests {
         assert_eq!(array.iter().collect::<Vec<_>>(), ["3", "4", "5", "6"]);
 
         // pop values
-        assert_eq!(array.pop_back().unwrap(), "6");
-        assert_eq!(array.pop_front().unwrap(), "3");
-        assert_eq!(array.iter().collect::<Vec<_>>(), ["4", "5"]);
-
-        // push values
-        array.push_back("1");
-        array.push_front("2");
-        assert_eq!(array.iter().collect::<Vec<_>>(), ["2", "4", "5", "1"]);
+        assert_eq!(array.pop().unwrap(), "6");
+        assert_eq!(array.iter().collect::<Vec<_>>(), ["3", "4", "5"]);
     }
 
     #[test]
