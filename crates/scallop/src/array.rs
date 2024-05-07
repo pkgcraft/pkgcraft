@@ -19,7 +19,7 @@ impl<'a> Array<'a> {
             None => Err(Error::Base(format!("undefined variable: {name}"))),
             Some(v) => {
                 if (v.attributes as u32 & Attr::ARRAY.bits()) != 0 {
-                    Ok(v.value as *mut bash::Array)
+                    Ok(v.value)
                 } else {
                     Err(Error::Base(format!("variable is not an array: {name}")))
                 }
@@ -27,7 +27,7 @@ impl<'a> Array<'a> {
         }?;
 
         Ok(Self {
-            inner: ptr,
+            inner: ptr as *mut _,
             phantom: PhantomData,
         })
     }
