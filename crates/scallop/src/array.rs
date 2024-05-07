@@ -231,7 +231,11 @@ mod tests {
     #[test]
     fn new() {
         let mut array = Array::new("ARRAY");
+        assert_eq!(format!("{array:?}"), "Array { [] }");
         array.append("a");
+        assert_eq!(format!("{array:?}"), r#"Array { ["a"] }"#);
+
+        // verify native bash existence
         source::string("[[ ${ARRAY[0]} == a ]]").unwrap();
     }
 
@@ -247,12 +251,14 @@ mod tests {
         // empty
         source::string("ARRAY=()").unwrap();
         let array = Array::from("ARRAY").unwrap();
+        assert_eq!(format!("{array:?}"), "Array { [] }");
         assert_eq!(array.len(), 0);
         assert!(array.is_empty());
 
         // non-empty
         source::string("ARRAY=( 1 2 3 )").unwrap();
         let array = Array::from("ARRAY").unwrap();
+        assert_eq!(format!("{array:?}"), r#"Array { ["1", "2", "3"] }"#);
         assert_eq!(array.len(), 3);
         assert!(!array.is_empty());
     }
