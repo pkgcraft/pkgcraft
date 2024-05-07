@@ -219,14 +219,21 @@ mod tests {
     }
 
     #[test]
-    fn len_and_is_empty() {
-        // empty array
+    fn from() {
+        // nonexistent
+        assert!(Array::from("ARRAY").is_err());
+
+        // non-array
+        source::string("ARRAY=a").unwrap();
+        assert!(Array::from("ARRAY").is_err());
+
+        // empty
         source::string("ARRAY=()").unwrap();
         let array = Array::from("ARRAY").unwrap();
         assert_eq!(array.len(), 0);
         assert!(array.is_empty());
 
-        // non-empty array
+        // non-empty
         source::string("ARRAY=( 1 2 3 )").unwrap();
         let array = Array::from("ARRAY").unwrap();
         assert_eq!(array.len(), 3);
