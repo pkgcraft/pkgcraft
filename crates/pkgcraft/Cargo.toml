@@ -29,7 +29,7 @@ test = ["dep:assert_cmd"]
 [dependencies]
 blake2 = "0.10.6"
 blake3 = { version = "1.5.1", features = ["traits-preview"] }
-cached = "0.50.0"
+cached = "0.51.3"
 camino = { version = "1.1.6", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.5.4", features = ["derive"] }
@@ -58,13 +58,13 @@ reqwest = { version = "0.12.4", default-features = false, features = ["rustls-tl
 roxmltree = "0.19.0"
 rust-ini = "0.21.0"
 scallop = { path = "../scallop", version = "0.0.15" }
-serde = { version = "1.0.199", features = ["derive"] }
+serde = { version = "1.0.201", features = ["derive"] }
 serde_with = { version = "3.8.1", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
 strum = { version = "0.26.2", features = ["derive"] }
 tar = { version = "0.4.40", optional = true }
 tempfile = "3.10.1"
-thiserror = "1.0.59"
+thiserror = "1.0.60"
 tokio = { version = "1.37.0", features = ["full"], optional = true }
 toml = "0.8.12"
 tracing = "0.1.40"
