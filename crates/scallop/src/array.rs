@@ -374,6 +374,7 @@ mod tests {
         assert!(!pipestatus.failed());
         assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [0]);
 
+        // single failure
         source::string("false").ok();
         let pipestatus = PipeStatus::get();
         assert!(pipestatus.failed());
