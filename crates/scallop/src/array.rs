@@ -369,16 +369,18 @@ mod tests {
         assert!(pipestatus.is_empty());
 
         // single success
-        source::string("true").unwrap();
+        source::string("true").ok();
         let pipestatus = PipeStatus::get();
         assert!(!pipestatus.failed());
         assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [0]);
 
-        // TODO: Add single failure test that requires source::string() to optionally support
-        // ignoring exit status.
+        source::string("false").ok();
+        let pipestatus = PipeStatus::get();
+        assert!(pipestatus.failed());
+        assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [1]);
 
         // multiple commands
-        source::string("true | false | true").unwrap();
+        source::string("true | false | true").ok();
         let pipestatus = PipeStatus::get();
         assert!(pipestatus.failed());
         assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [0, 1, 0]);
