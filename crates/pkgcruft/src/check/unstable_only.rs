@@ -83,9 +83,8 @@ mod tests {
         let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
         assert_eq!(&reports, &expected);
 
-        // repo dir restriction
-        let restrict = repo.restrict_from_path(repo.path()).unwrap();
-        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
+        // repo restriction
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
     }
 }
