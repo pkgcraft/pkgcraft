@@ -58,7 +58,7 @@ impl<'a> SyncCheckRunner<'a> {
 
 /// Generic check runners.
 #[derive(Debug)]
-pub(super) enum CheckRunner<'a> {
+enum CheckRunner<'a> {
     EbuildPkg(EbuildPkgCheckRunner<'a>),
     EbuildRawPkg(EbuildRawPkgCheckRunner<'a>),
 }
@@ -83,7 +83,7 @@ impl CheckRunner<'_> {
 
 /// Check runner for ebuild package checks.
 #[derive(Debug)]
-pub(super) struct EbuildPkgCheckRunner<'a> {
+struct EbuildPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildPkgCheck<'a>>,
     pkg_set_checks: Vec<check::EbuildPkgSetCheck<'a>>,
     source: source::Ebuild<'a>,
@@ -91,7 +91,7 @@ pub(super) struct EbuildPkgCheckRunner<'a> {
 }
 
 impl<'a> EbuildPkgCheckRunner<'a> {
-    pub(super) fn new(repo: &'a Repo) -> Self {
+    fn new(repo: &'a Repo) -> Self {
         Self {
             pkg_checks: Default::default(),
             pkg_set_checks: Default::default(),
@@ -131,14 +131,14 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 
 /// Check runner for raw ebuild package checks.
 #[derive(Debug)]
-pub(super) struct EbuildRawPkgCheckRunner<'a> {
+struct EbuildRawPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildRawPkgCheck<'a>>,
     source: source::EbuildRaw<'a>,
     repo: &'a Repo,
 }
 
 impl<'a> EbuildRawPkgCheckRunner<'a> {
-    pub(super) fn new(repo: &'a Repo) -> Self {
+    fn new(repo: &'a Repo) -> Self {
         Self {
             pkg_checks: Default::default(),
             source: source::EbuildRaw { repo },
