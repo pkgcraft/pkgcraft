@@ -33,7 +33,14 @@ impl<'a> SyncCheckRunner<'a> {
             let source = check.source();
             self.runners
                 .entry(source)
-                .or_insert_with(|| source.new_runner(self.repo))
+                .or_insert_with(|| match source {
+                    SourceKind::Ebuild => {
+                        CheckRunner::EbuildPkg(EbuildPkgCheckRunner::new(self.repo))
+                    }
+                    SourceKind::EbuildRaw => {
+                        CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(self.repo))
+                    }
+                })
                 .add_check(&check);
         }
         self

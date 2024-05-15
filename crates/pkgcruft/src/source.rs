@@ -4,8 +4,6 @@ use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Restrict;
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
-use crate::runner::*;
-
 /// All check runner source variants.
 #[derive(
     AsRefStr,
@@ -26,16 +24,6 @@ use crate::runner::*;
 pub enum SourceKind {
     Ebuild,
     EbuildRaw,
-}
-
-impl SourceKind {
-    /// Create a new check runner for a source variant.
-    pub(crate) fn new_runner<'a>(&self, repo: &'a Repo) -> CheckRunner<'a> {
-        match self {
-            Self::Ebuild => CheckRunner::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
-            Self::EbuildRaw => CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
-        }
-    }
 }
 
 pub(crate) trait IterRestrict {
