@@ -212,6 +212,7 @@ fn filter() {
             ("*m*", &expected[0..]),
             ("mutter", &expected[1..=2]),
             ("mutter-45.1", &expected[1..=1]),
+            ("*", &expected),
         ] {
             let output = cmd("pkgcruft replay -R json -")
                 .args([opt, target])
