@@ -1,7 +1,7 @@
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
-use pkgcruft::check::{Check, CheckKind, SOURCE_CHECKS};
-use pkgcruft::report::{ReportKind, REPORT_CHECKS};
+use pkgcruft::check::{Check, CheckKind, CHECKS, SOURCE_CHECKS};
+use pkgcruft::report::{ReportKind, REPORTS, REPORT_CHECKS};
 use pkgcruft::source::SourceKind;
 use strum::VariantNames;
 
@@ -9,11 +9,25 @@ use strum::VariantNames;
 #[clap(next_help_heading = Some("Check selection"))]
 pub(crate) struct Checks {
     /// Specific checks to run
-    #[arg(short, long)]
+    #[arg(
+        short,
+        long,
+        value_name = "CHECK",
+        hide_possible_values = true,
+        value_parser = PossibleValuesParser::new(CHECKS.iter().map(|r| r.as_ref()))
+            .map(|s| s.parse::<CheckKind>().unwrap()),
+    )]
     checks: Vec<CheckKind>,
 
     /// Limit to specific report variants
-    #[arg(short, long)]
+    #[arg(
+        short,
+        long,
+        value_name = "REPORT",
+        hide_possible_values = true,
+        value_parser = PossibleValuesParser::new(REPORTS.iter().map(|r| r.as_ref()))
+            .map(|s| s.parse::<ReportKind>().unwrap()),
+    )]
     reports: Vec<ReportKind>,
 
     /// Limit to specific source variants
