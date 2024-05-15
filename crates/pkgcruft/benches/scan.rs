@@ -5,7 +5,7 @@ use pkgcraft::test::TEST_DATA;
 use pkgcruft::scanner::Scanner;
 
 pub fn bench(c: &mut Criterion) {
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo = TEST_DATA.repo("qa-primary").unwrap();
 
     c.bench_function("scan", |b| {
         let scanner = Scanner::new();

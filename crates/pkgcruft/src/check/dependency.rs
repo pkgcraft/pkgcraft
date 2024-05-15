@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn check() {
-        let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+        let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK.as_ref());
         let restrict = repo.restrict_from_path(&check_dir).unwrap();
         let scanner = Scanner::new().jobs(1).checks([CHECK]);
