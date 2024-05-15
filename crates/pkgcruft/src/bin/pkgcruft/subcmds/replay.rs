@@ -18,6 +18,7 @@ pub(crate) struct Options {
         short,
         long,
         value_name = "REPORT",
+        value_delimiter = ',',
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(REPORTS.iter().map(|r| r.as_ref()))
             .map(|s| s.parse::<ReportKind>().unwrap()),
