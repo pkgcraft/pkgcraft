@@ -78,7 +78,7 @@ impl CheckRunner<'_> {
 #[derive(Debug)]
 pub(crate) struct EbuildPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildPkgCheck<'a>>,
-    pkgs_checks: Vec<check::EbuildPkgSetCheck<'a>>,
+    pkg_set_checks: Vec<check::EbuildPkgSetCheck<'a>>,
     source: source::Ebuild<'a>,
     repo: &'a Repo,
 }
@@ -87,7 +87,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     pub(crate) fn new(repo: &'a Repo) -> Self {
         Self {
             pkg_checks: Default::default(),
-            pkgs_checks: Default::default(),
+            pkg_set_checks: Default::default(),
             source: source::Ebuild { repo },
             repo,
         }
@@ -98,7 +98,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         use CheckKind::*;
         match check.kind() {
             EbuildPkg(k) => self.pkg_checks.push(k.to_check(self.repo)),
-            EbuildPkgSet(k) => self.pkgs_checks.push(k.to_check(self.repo)),
+            EbuildPkgSet(k) => self.pkg_set_checks.push(k.to_check(self.repo)),
             _ => panic!("{check} invalid for ebuild pkg check runner"),
         }
     }
@@ -115,7 +115,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         }
 
         if !pkgs.is_empty() {
-            for check in &self.pkgs_checks {
+            for check in &self.pkg_set_checks {
                 check.run(&pkgs, reports);
             }
         }
