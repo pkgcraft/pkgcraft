@@ -152,13 +152,18 @@ impl TestData {
         &self.config
     }
 
+    pub fn repo(&self, name: &str) -> crate::Result<&crate::repo::Repo> {
+        self.config
+            .repos
+            .get(name)
+            .ok_or_else(|| Error::InvalidValue(format!("unknown repo: {name}")))
+    }
+
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&Arc<crate::repo::ebuild::Repo>> {
-        if let Some(repo) = self.config.repos.get(name) {
+        self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
-        } else {
-            Err(Error::InvalidValue(format!("unknown repo: {name}")))
-        }
+        })
     }
 
     pub fn ebuild_raw_pkg<'a>(
