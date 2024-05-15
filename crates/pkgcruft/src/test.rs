@@ -8,7 +8,7 @@ pub fn glob_reports<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Report> {
         .unwrap()
         .filter_map(Result::ok)
         .flat_map(|path| {
-            Iter::try_from_file(path, None)
+            Iter::try_from_file(path, None, None)
                 .unwrap()
                 .filter_map(Result::ok)
         })

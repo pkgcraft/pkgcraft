@@ -332,14 +332,16 @@ impl Restriction<&Report> for Restrict {
 pub struct Iter<'a, R: BufRead> {
     reader: R,
     line: String,
-    filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
+    reports: Option<&'a HashSet<ReportKind>>,
+    restrict: Option<&'a Restrict>,
 }
 
 impl<'a> Iter<'a, BufReader<File>> {
     /// Try to create a new reports iterator from a file path.
     pub fn try_from_file<P: AsRef<Path>>(
         path: P,
-        filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
+        reports: Option<&'a HashSet<ReportKind>>,
+        restrict: Option<&'a Restrict>,
     ) -> crate::Result<Iter<'a, BufReader<File>>> {
         let path = path.as_ref();
         let file = File::open(path)
@@ -347,7 +349,8 @@ impl<'a> Iter<'a, BufReader<File>> {
         Ok(Iter {
             reader: BufReader::new(file),
             line: String::new(),
-            filters,
+            reports,
+            restrict,
         })
     }
 }
@@ -356,12 +359,14 @@ impl<'a, R: BufRead> Iter<'a, R> {
     /// Create a new reports iterator from a BufRead object.
     pub fn from_reader(
         reader: R,
-        filters: Option<(&'a HashSet<ReportKind>, &'a Restrict)>,
+        reports: Option<&'a HashSet<ReportKind>>,
+        restrict: Option<&'a Restrict>,
     ) -> Iter<'a, R> {
         Iter {
             reader,
             line: String::new(),
-            filters,
+            reports,
+            restrict,
         }
     }
 }
@@ -376,11 +381,20 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
                 Ok(0) => return None,
                 Ok(_) => match Report::from_json(&self.line) {
                     Ok(report) => {
-                        if let Some((reports, filter)) = self.filters {
-                            if !reports.contains(report.kind()) || !filter.matches(&report) {
+                        // skip excluded report variants
+                        if let Some(reports) = self.reports {
+                            if !reports.contains(report.kind()) {
                                 continue;
                             }
                         }
+
+                        // skip excluded restrictions
+                        if let Some(filter) = self.restrict {
+                            if !filter.matches(&report) {
+                                continue;
+                            }
+                        }
+
                         return Some(Ok(report));
                     }
                     Err(e) => return Some(Err(e)),

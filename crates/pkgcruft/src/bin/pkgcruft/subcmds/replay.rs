@@ -51,30 +51,27 @@ pub(crate) struct Command {
     file: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Replay {
-    reports: HashSet<ReportKind>,
-    filter: Restrict,
+    reports: Option<HashSet<ReportKind>>,
+    filter: Option<Restrict>,
 }
 
 impl Replay {
     fn new() -> Self {
-        Self {
-            reports: REPORTS.iter().copied().collect(),
-            filter: Restrict::True,
-        }
+        Self::default()
     }
 
     fn reports(mut self, reports: Vec<ReportKind>) -> Self {
         if !reports.is_empty() {
-            self.reports = reports.into_iter().collect();
+            self.reports = Some(reports.into_iter().collect());
         }
         self
     }
 
     fn filter(mut self, restrict: Option<String>) -> anyhow::Result<Self> {
         if let Some(s) = restrict.as_deref() {
-            self.filter = restrict::parse::dep(s)?;
+            self.filter = Some(restrict::parse::dep(s)?);
         };
         Ok(self)
     }
@@ -83,12 +80,13 @@ impl Replay {
         &self,
         target: String,
     ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
-        let filters = (&self.reports, &self.filter);
+        let reports = self.reports.as_ref();
+        let filter = self.filter.as_ref();
         if target == "-" {
-            let iter = Iter::from_reader(io::stdin().lock(), Some(filters));
+            let iter = Iter::from_reader(io::stdin().lock(), reports, filter);
             Ok(Either::Left(iter))
         } else {
-            let iter = Iter::try_from_file(&target, Some(filters))?;
+            let iter = Iter::try_from_file(&target, reports, filter)?;
             Ok(Either::Right(iter))
         }
     }
