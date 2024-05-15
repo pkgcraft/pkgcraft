@@ -74,9 +74,16 @@ mod tests {
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK.as_ref());
-        let restrict = repo.restrict_from_path(&check_dir).unwrap();
         let scanner = Scanner::new().jobs(1).checks([CHECK]);
         let expected: Vec<_> = glob_reports(format!("{check_dir}/*/reports.json")).collect();
+
+        // check dir restriction
+        let restrict = repo.restrict_from_path(&check_dir).unwrap();
+        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
+        assert_eq!(&reports, &expected);
+
+        // repo dir restriction
+        let restrict = repo.restrict_from_path(repo.path()).unwrap();
         let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
         assert_eq!(&reports, &expected);
     }
