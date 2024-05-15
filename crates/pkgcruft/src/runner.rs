@@ -8,13 +8,13 @@ use crate::source::{self, IterRestrict, SourceKind};
 
 /// Check runner for synchronous checks.
 #[derive(Debug)]
-pub(crate) struct SyncCheckRunner<'a> {
+pub(super) struct SyncCheckRunner<'a> {
     runners: IndexMap<SourceKind, CheckRunner<'a>>,
     repo: &'a Repo,
 }
 
 impl<'a> SyncCheckRunner<'a> {
-    pub(crate) fn new(repo: &'a Repo) -> Self {
+    pub(super) fn new(repo: &'a Repo) -> Self {
         Self {
             runners: Default::default(),
             repo,
@@ -25,7 +25,7 @@ impl<'a> SyncCheckRunner<'a> {
     ///
     /// This creates new sources and checkrunner variants on the fly. Note that the iterator of
     /// checks should be pre-sorted so the runners get inserted in their running order.
-    pub(crate) fn checks<I>(mut self, checks: I) -> Self
+    pub(super) fn checks<I>(mut self, checks: I) -> Self
     where
         I: IntoIterator<Item = Check>,
     {
@@ -40,7 +40,7 @@ impl<'a> SyncCheckRunner<'a> {
     }
 
     /// Run all check runners in order of priority.
-    pub(crate) fn run(&self, restrict: &Restrict) -> Vec<Report> {
+    pub(super) fn run(&self, restrict: &Restrict) -> Vec<Report> {
         let mut reports = vec![];
         for runner in self.runners.values() {
             runner.run(restrict, &mut reports);
@@ -51,7 +51,7 @@ impl<'a> SyncCheckRunner<'a> {
 
 /// Generic check runners.
 #[derive(Debug)]
-pub(crate) enum CheckRunner<'a> {
+pub(super) enum CheckRunner<'a> {
     EbuildPkg(EbuildPkgCheckRunner<'a>),
     EbuildRawPkg(EbuildRawPkgCheckRunner<'a>),
 }
@@ -76,7 +76,7 @@ impl CheckRunner<'_> {
 
 /// Check runner for ebuild package checks.
 #[derive(Debug)]
-pub(crate) struct EbuildPkgCheckRunner<'a> {
+pub(super) struct EbuildPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildPkgCheck<'a>>,
     pkg_set_checks: Vec<check::EbuildPkgSetCheck<'a>>,
     source: source::Ebuild<'a>,
@@ -84,7 +84,7 @@ pub(crate) struct EbuildPkgCheckRunner<'a> {
 }
 
 impl<'a> EbuildPkgCheckRunner<'a> {
-    pub(crate) fn new(repo: &'a Repo) -> Self {
+    pub(super) fn new(repo: &'a Repo) -> Self {
         Self {
             pkg_checks: Default::default(),
             pkg_set_checks: Default::default(),
@@ -124,14 +124,14 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 
 /// Check runner for raw ebuild package checks.
 #[derive(Debug)]
-pub(crate) struct EbuildRawPkgCheckRunner<'a> {
+pub(super) struct EbuildRawPkgCheckRunner<'a> {
     pkg_checks: Vec<check::EbuildRawPkgCheck<'a>>,
     source: source::EbuildRaw<'a>,
     repo: &'a Repo,
 }
 
 impl<'a> EbuildRawPkgCheckRunner<'a> {
-    pub(crate) fn new(repo: &'a Repo) -> Self {
+    pub(super) fn new(repo: &'a Repo) -> Self {
         Self {
             pkg_checks: Default::default(),
             source: source::EbuildRaw { repo },
