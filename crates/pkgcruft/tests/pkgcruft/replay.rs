@@ -173,6 +173,17 @@ fn reports() {
         let data = String::from_utf8(output).unwrap();
         let data: Vec<_> = data.lines().collect();
         assert_eq!(&data, &expected[0..2]);
+
+        // multiple report variants
+        let output = cmd("pkgcruft replay -R json -")
+            .args([opt, "DeprecatedDependency,UnstableOnly"])
+            .write_stdin(reports)
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let data: Vec<_> = data.lines().collect();
+        assert_eq!(&data, &expected);
     }
 }
 
