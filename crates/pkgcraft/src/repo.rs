@@ -151,6 +151,12 @@ impl From<empty::Repo> for Repo {
     }
 }
 
+impl From<&Repo> for Restrict {
+    fn from(repo: &Repo) -> Self {
+        repo.restrict_from_path(repo.path()).unwrap_or(Self::False)
+    }
+}
+
 impl PartialEq for Repo {
     fn eq(&self, other: &Self) -> bool {
         use Repo::*;
