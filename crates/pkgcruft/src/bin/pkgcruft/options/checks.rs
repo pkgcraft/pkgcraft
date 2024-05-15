@@ -12,7 +12,8 @@ pub(crate) struct Checks {
     #[arg(
         short,
         long,
-        value_name = "CHECK",
+        value_name = "CHECK[,...]",
+        value_delimiter = ',',
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(CHECKS.iter().map(|r| r.as_ref()))
             .map(|s| s.parse::<CheckKind>().unwrap()),
@@ -23,7 +24,8 @@ pub(crate) struct Checks {
     #[arg(
         short,
         long,
-        value_name = "REPORT",
+        value_name = "REPORT[,...]",
+        value_delimiter = ',',
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(REPORTS.iter().map(|r| r.as_ref()))
             .map(|s| s.parse::<ReportKind>().unwrap()),
@@ -34,6 +36,8 @@ pub(crate) struct Checks {
     #[arg(
         short = 'S',
         long,
+        value_name = "SOURCE[,...]",
+        value_delimiter = ',',
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(SourceKind::VARIANTS)
             .map(|s| s.parse::<SourceKind>().unwrap()),
