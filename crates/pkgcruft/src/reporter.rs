@@ -25,22 +25,6 @@ impl Default for Reporter {
 }
 
 impl Reporter {
-    /// Inject a format string into compatible reporter variants.
-    pub fn format(&mut self, format: Option<String>) -> crate::Result<()> {
-        match (self, format) {
-            (Self::Format(r), Some(format)) => r.format = format,
-            (r @ Self::Format(_), None) => {
-                return Err(Error::InvalidValue(format!("format required for {r} reporter")));
-            }
-            (r, Some(_)) => {
-                return Err(Error::InvalidValue(format!("format invalid for {r} reporter")))
-            }
-            _ => (),
-        }
-
-        Ok(())
-    }
-
     /// Run a report through a reporter.
     pub fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         match self {
@@ -111,7 +95,7 @@ impl JsonReporter {
 
 #[derive(Debug, Default, Clone)]
 pub struct FormatReporter {
-    format: String,
+    pub format: String,
 }
 
 impl FormatReporter {
