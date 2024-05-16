@@ -8,6 +8,9 @@ pub fn glob_reports<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Report> {
         .unwrap()
         .filter_map(Result::ok)
         .flat_map(|path| {
+            let path = path
+                .to_str()
+                .unwrap_or_else(|| panic!("invalid path: {path:?}"));
             Iter::try_from_file(path, None, None)
                 .unwrap()
                 .filter_map(Result::ok)
