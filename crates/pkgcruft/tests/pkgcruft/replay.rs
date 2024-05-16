@@ -188,7 +188,7 @@ fn reports() {
 }
 
 #[test]
-fn filter() {
+fn pkgs() {
     let reports = indoc::indoc! {r#"
         {"scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"kind":{"Version":"DroppedKeywords"},"description":"alpha, hppa, ia64, m68k, ppc"}
         {"scope":{"Version":"x11-wm/mutter-45.1"},"kind":{"Version":"DroppedKeywords"},"description":"ppc64"}
@@ -196,7 +196,7 @@ fn filter() {
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
-    for opt in ["-f", "--filter"] {
+    for opt in ["-p", "--pkgs"] {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "%invalid"])

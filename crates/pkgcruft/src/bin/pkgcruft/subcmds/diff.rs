@@ -24,9 +24,9 @@ pub(crate) struct Options {
     )]
     reports: Vec<ReportKind>,
 
-    /// Restriction to filter packages
+    /// Package restriction
     #[arg(short, long)]
-    filter: Option<String>,
+    pkgs: Option<String>,
 
     /// Sort reports
     #[arg(short, long)]
@@ -53,7 +53,7 @@ pub(crate) struct Command {
 #[derive(Debug, Default)]
 struct Replay {
     reports: Option<HashSet<ReportKind>>,
-    filter: Option<Restrict>,
+    pkgs: Option<Restrict>,
 }
 
 impl Replay {
@@ -68,9 +68,9 @@ impl Replay {
         self
     }
 
-    fn filter(mut self, restrict: Option<String>) -> anyhow::Result<Self> {
+    fn pkgs(mut self, restrict: Option<String>) -> anyhow::Result<Self> {
         if let Some(s) = restrict.as_deref() {
-            self.filter = Some(restrict::parse::dep(s)?);
+            self.pkgs = Some(restrict::parse::dep(s)?);
         };
         Ok(self)
     }
@@ -79,7 +79,7 @@ impl Replay {
         &self,
         target: String,
     ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
-        let iter = Iter::try_from_file(&target, self.reports.as_ref(), self.filter.as_ref())?;
+        let iter = Iter::try_from_file(&target, self.reports.as_ref(), self.pkgs.as_ref())?;
         Ok(iter)
     }
 }
@@ -88,7 +88,7 @@ impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         let replay = Replay::new()
             .reports(self.options.reports)
-            .filter(self.options.filter)?;
+            .pkgs(self.options.pkgs)?;
 
         let reports1: HashSet<_> = replay.run(self.file1)?.try_collect()?;
         let reports2: HashSet<_> = replay.run(self.file2)?.try_collect()?;
