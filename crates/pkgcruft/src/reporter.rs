@@ -88,7 +88,7 @@ pub struct JsonReporter {}
 
 impl JsonReporter {
     fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
-        writeln!(output, "{}", report.to_json()?)?;
+        writeln!(output, "{}", report.to_json())?;
         Ok(())
     }
 }
