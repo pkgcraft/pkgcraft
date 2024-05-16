@@ -368,6 +368,25 @@ impl<'a, R: BufRead> Iter<'a, R> {
             restrict,
         }
     }
+
+    /// Determine if a given [`Report`] should be filtered.
+    fn filtered(&self, report: &Report) -> bool {
+        // skip excluded report variants
+        if let Some(reports) = self.reports {
+            if !reports.contains(report.kind()) {
+                return true;
+            }
+        }
+
+        // skip excluded restrictions
+        if let Some(filter) = self.restrict {
+            if !filter.matches(report) {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 impl<R: BufRead> Iterator for Iter<'_, R> {
@@ -380,21 +399,9 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
                 Ok(0) => return None,
                 Ok(_) => match Report::from_json(&self.line) {
                     Ok(report) => {
-                        // skip excluded report variants
-                        if let Some(reports) = self.reports {
-                            if !reports.contains(report.kind()) {
-                                continue;
-                            }
+                        if !self.filtered(&report) {
+                            return Some(Ok(report));
                         }
-
-                        // skip excluded restrictions
-                        if let Some(filter) = self.restrict {
-                            if !filter.matches(&report) {
-                                continue;
-                            }
-                        }
-
-                        return Some(Ok(report));
                     }
                     err => return Some(err),
                 },
