@@ -53,14 +53,14 @@ impl Checks {
         checks.extend(self.reports.iter().flat_map(|r| {
             REPORT_CHECKS
                 .get(r)
-                .expect("no checks for report variant: {r}")
+                .unwrap_or_else(|| panic!("no checks for report variant: {r}"))
         }));
 
         // add checks related to source options
         checks.extend(self.sources.iter().flat_map(|s| {
             SOURCE_CHECKS
                 .get(s)
-                .expect("no checks for source variant: {s}")
+                .unwrap_or_else(|| panic!("no checks for source variant: {s}"))
         }));
 
         (checks, self.reports)

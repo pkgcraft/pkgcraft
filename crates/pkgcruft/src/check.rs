@@ -275,7 +275,9 @@ impl PartialOrd for Check {
 
 impl From<&CheckKind> for Check {
     fn from(kind: &CheckKind) -> Self {
-        *CHECKS.get(kind).expect("unregistered check: {kind}")
+        *CHECKS
+            .get(kind)
+            .unwrap_or_else(|| panic!("unregistered check: {kind}"))
     }
 }
 

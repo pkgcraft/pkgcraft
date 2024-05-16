@@ -48,7 +48,7 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_extend(
 ) -> *mut Repo {
     ffi_catch_panic! {
         let repo = try_mut_from_ptr!(r);
-        let repo = repo.as_fake_mut().expect("invalid repo type: {repo:?}");
+        let repo = repo.as_fake_mut().expect("invalid repo type");
         let repo = unwrap_or_panic!(
             Arc::get_mut(repo).ok_or_else(|| Error::new("failed getting mutable repo ref"))
         );
