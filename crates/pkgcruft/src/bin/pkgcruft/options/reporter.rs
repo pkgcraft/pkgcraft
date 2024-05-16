@@ -18,7 +18,7 @@ pub(crate) struct ReporterOptions {
     reporter: Reporter,
 
     /// Format string for the format reporter
-    #[arg(long)]
+    #[arg(long, required_if_eq("reporter", "format"))]
     format: Option<String>,
 }
 
