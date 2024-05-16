@@ -396,7 +396,7 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 
                         return Some(Ok(report));
                     }
-                    Err(e) => return Some(Err(e)),
+                    err => return Some(err),
                 },
                 Err(e) => {
                     return Some(Err(Error::InvalidValue(format!("failed reading line: {e}"))))
