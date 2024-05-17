@@ -37,19 +37,15 @@ impl<'a> TargetRestrictions<'a> {
 
     pub fn repo(mut self, value: Option<String>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
-            if s.contains('/') {
-                let repo = self
-                    .config
-                    .add_format_repo_path(s, s, 0, true, self.repo_format)?;
-                self.repo_set = RepoSet::from_iter([repo]);
+            let repo = if let Some(repo) = self.config.repos.get(s) {
+                Ok(repo.clone())
+            } else if Utf8Path::new(s).exists() {
+                self.config
+                    .add_format_repo_path(s, s, 0, true, self.repo_format)
             } else {
-                let repo = self
-                    .config
-                    .repos
-                    .get(s)
-                    .ok_or_else(|| Error::InvalidValue(format!("unknown repo: {s}")))?;
-                self.repo_set = RepoSet::from_iter([repo]);
-            }
+                Err(Error::InvalidValue(format!("unknown repo: {s}")))
+            }?;
+            self.repo_set = RepoSet::from_iter([repo]);
         } else if let Ok(path) = current_dir() {
             if let Ok(repo) = self
                 .config
