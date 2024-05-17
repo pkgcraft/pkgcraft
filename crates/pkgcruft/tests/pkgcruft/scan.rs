@@ -164,3 +164,26 @@ fn path_targets() {
         .collect();
     assert_eq!(&expected, &reports);
 }
+
+#[test]
+fn checks() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+    let expected: Vec<_> =
+        glob_reports(format!("{repo_path}/Dependency/**/reports.json")).collect();
+
+    for opt in ["-c", "--checks"] {
+        let output = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "Dependency"])
+            .arg(repo.path())
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let reports: Vec<_> = data
+            .lines()
+            .map(|s| Report::from_json(s).unwrap())
+            .collect();
+        assert_eq!(&expected, &reports);
+    }
+}
