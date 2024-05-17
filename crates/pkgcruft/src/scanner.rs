@@ -30,9 +30,9 @@ impl Default for Scanner {
 }
 
 impl Scanner {
-    /// Create a new scanner using the default settings.
+    /// Create a new scanner with all checks enabled.
     pub fn new() -> Self {
-        Scanner::default()
+        Self::default()
     }
 
     /// Set the number of parallel scanner jobs to run.
@@ -47,24 +47,18 @@ impl Scanner {
         I: IntoIterator<Item = T>,
         T: Into<Check>,
     {
-        let mut checks = checks.into_iter().map(Into::into).peekable();
-        if checks.peek().is_some() {
-            self.checks = checks.collect();
-            self.checks.sort();
-        }
+        self.checks = checks.into_iter().map(Into::into).collect();
+        self.checks.sort();
         self
     }
 
-    /// Set the report types to allow.
+    /// Set enabled report variants.
     pub fn reports<I, T>(mut self, reports: I) -> Self
     where
         I: IntoIterator<Item = T>,
         T: Into<ReportKind>,
     {
-        let mut reports = reports.into_iter().map(Into::into).peekable();
-        if reports.peek().is_some() {
-            self.reports = reports.collect();
-        }
+        self.reports = reports.into_iter().map(Into::into).collect();
         self
     }
 

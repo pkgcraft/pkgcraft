@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
+use indexmap::IndexSet;
 use pkgcruft::check::{Check, CheckKind, CHECKS, SOURCE_CHECKS};
 use pkgcruft::report::{ReportKind, ReportLevel, REPORTS, REPORT_CHECKS};
 use pkgcruft::source::SourceKind;
@@ -60,16 +61,23 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(self) -> (Vec<Check>, Vec<ReportKind>) {
-        let mut reports = self.reports;
+    pub(crate) fn collapse(self) -> (IndexSet<Check>, IndexSet<ReportKind>) {
+        // determine enabled report set
+        let mut default_reports = true;
+        let mut reports: IndexSet<_> = if !self.reports.is_empty() {
+            self.reports.into_iter().collect()
+        } else {
+            Default::default()
+        };
 
-        // enable reports related to level options
+        // enable reports related to levels
         if !self.levels.is_empty() {
             let levels: HashSet<_> = self.levels.into_iter().collect();
             reports.extend(REPORTS.iter().filter(|r| levels.contains(&r.level())));
+            default_reports = false;
         }
 
-        // enable reports related to source options
+        // enable reports related to sources
         if !self.sources.is_empty() {
             reports.extend(self.sources.iter().flat_map(|s| {
                 SOURCE_CHECKS
@@ -78,16 +86,39 @@ impl Checks {
                     .into_iter()
                     .flat_map(|x| x.reports())
             }));
+            default_reports = false;
         }
 
-        let mut checks: Vec<_> = self.checks.iter().map(Check::from).collect();
+        // enable reports related to checks
+        if !self.checks.is_empty() {
+            reports.extend(self.checks.iter().flat_map(|x| {
+                CHECKS
+                    .get(x)
+                    .unwrap_or_else(|| panic!("no check: {x}"))
+                    .reports()
+            }));
+            default_reports = false;
+        }
 
-        // add checks related to enabled report variants
-        checks.extend(reports.iter().flat_map(|r| {
-            REPORT_CHECKS
-                .get(r)
-                .unwrap_or_else(|| panic!("no checks for report variant: {r}"))
-        }));
+        // default to enabling all report variants
+        if default_reports {
+            reports.clone_from(&REPORTS);
+        }
+
+        // determine enabled check set
+        let checks = if !self.checks.is_empty() {
+            self.checks.iter().map(Into::into).collect()
+        } else {
+            reports
+                .iter()
+                .flat_map(|r| {
+                    REPORT_CHECKS
+                        .get(r)
+                        .unwrap_or_else(|| panic!("no checks for report variant: {r}"))
+                })
+                .copied()
+                .collect()
+        };
 
         (checks, reports)
     }
