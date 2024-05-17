@@ -190,10 +190,9 @@ mod tests {
     fn run() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let repo_path = repo.path();
-        let restrict = repo.restrict_from_path(repo_path).unwrap();
         let scanner = Scanner::new().jobs(1);
         let expected: Vec<_> = glob_reports(format!("{repo_path}/**/reports.json")).collect();
-        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
     }
 }
