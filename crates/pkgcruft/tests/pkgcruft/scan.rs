@@ -246,6 +246,15 @@ fn reporter() {
                 .success();
         }
 
+        // missing format string
+        cmd("pkgcruft scan -j1")
+            .args([opt, "format"])
+            .assert()
+            .stdout("")
+            .stderr(contains("--format"))
+            .failure()
+            .code(2);
+
         cmd("pkgcruft scan -j1")
             .args([opt, "format"])
             .args(["--format", "{package}"])

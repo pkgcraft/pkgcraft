@@ -107,6 +107,16 @@ fn reporter() {
                 .success();
         }
 
+        // missing format string
+        cmd("pkgcruft replay")
+            .args([opt, "format"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("--format"))
+            .failure()
+            .code(2);
+
         cmd("pkgcruft replay")
             .args([opt, "format"])
             .args(["--format", "{package}"])
