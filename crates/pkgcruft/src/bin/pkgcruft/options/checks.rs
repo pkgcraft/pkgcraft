@@ -65,6 +65,7 @@ impl Checks {
         // determine enabled report set
         let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
+            default_reports = false;
             self.reports.into_iter().collect()
         } else {
             Default::default()
