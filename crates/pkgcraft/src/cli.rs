@@ -45,13 +45,13 @@ impl<'a> TargetRestrictions<'a> {
             } else {
                 Err(Error::InvalidValue(format!("unknown repo: {s}")))
             }?;
-            self.repo_set = RepoSet::from_iter([repo]);
+            self.repo_set = repo.into();
         } else if let Ok(path) = current_dir() {
             if let Ok(repo) = self
                 .config
                 .add_format_repo_nested_path(&path, 0, self.repo_format)
             {
-                self.repo_set = RepoSet::from_iter([repo]);
+                self.repo_set = repo.into();
             }
         }
 
@@ -97,7 +97,7 @@ impl<'a> TargetRestrictions<'a> {
                                 )?
                             };
 
-                            return Ok((RepoSet::from_iter([&repo]), Restrict::and(restricts)));
+                            return Ok((repo.into(), Restrict::and(restricts)));
                         }
                         [id] if !self.repo_set.repos().iter().any(|r| r.id() == id) => {
                             return Err(Error::InvalidValue(format!("unknown repo: {id}")));
@@ -116,7 +116,7 @@ impl<'a> TargetRestrictions<'a> {
                     .find_map(|repo| repo.restrict_from_path(&path).map(|r| (repo, r)))
                 {
                     // configured repo path restrict
-                    Ok((RepoSet::from_iter([repo]), restrict))
+                    Ok((repo.into(), restrict))
                 } else {
                     match self
                         .config
@@ -125,7 +125,7 @@ impl<'a> TargetRestrictions<'a> {
                         Ok(repo) => {
                             // external repo path restrict
                             let restrict = repo.restrict_from_path(&path).expect("invalid repo");
-                            Ok((RepoSet::from_iter([&repo]), restrict))
+                            Ok((repo.into(), restrict))
                         }
                         Err(e) => Err(e),
                     }
@@ -181,12 +181,12 @@ pub fn target_restriction(
                 .find_map(|repo| repo.restrict_from_path(path).map(|r| (repo, r)))
             {
                 // configured repo path restrict
-                return Ok((RepoSet::from_iter([repo]), restrict));
+                return Ok((repo.into(), restrict));
             } else if let Ok(repo) = repo_format.load_from_nested_path(path, 0, true) {
                 // external repo path restrict
                 config.add_repo(&repo, true)?;
                 let restrict = repo.restrict_from_path(path).expect("invalid repo path");
-                return Ok((RepoSet::from_iter([&repo]), restrict));
+                return Ok((repo.into(), restrict));
             } else {
                 return Err(Error::InvalidValue(format!("invalid repo path: {path}")));
             }
@@ -225,7 +225,7 @@ pub fn target_restriction(
                             repo
                         };
 
-                        return Ok((RepoSet::from_iter([&repo]), Restrict::and(restricts)));
+                        return Ok((repo.into(), Restrict::and(restricts)));
                     }
                     [id] if !repo_set.repos().iter().any(|r| r.id() == id) => {
                         return Err(Error::InvalidValue(format!("unknown repo: {id}")));
