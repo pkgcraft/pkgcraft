@@ -166,6 +166,62 @@ fn path_targets() {
 }
 
 #[test]
+fn repo() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+
+    env::set_current_dir(repo.path()).unwrap();
+    for path in [".", "./", repo_path.as_str()] {
+        // implicit target
+        let output = cmd("pkgcruft scan -j1 -R json")
+            .args(["--repo", path])
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let reports: Vec<_> = data
+            .lines()
+            .map(|s| Report::from_json(s).unwrap())
+            .collect();
+        let expected: Vec<_> = glob_reports(format!("{repo_path}/**/reports.json")).collect();
+        assert_eq!(&expected, &reports);
+
+        // category target
+        let output = cmd("pkgcruft scan -j1 -R json")
+            .args(["--repo", path])
+            .arg("Dependency/*")
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let reports: Vec<_> = data
+            .lines()
+            .map(|s| Report::from_json(s).unwrap())
+            .collect();
+        let expected: Vec<_> =
+            glob_reports(format!("{repo_path}/Dependency/**/reports.json")).collect();
+        assert_eq!(&expected, &reports);
+
+        // pkg target
+        let output = cmd("pkgcruft scan -j1 -R json")
+            .args(["--repo", path])
+            .arg("DeprecatedDependency")
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let reports: Vec<_> = data
+            .lines()
+            .map(|s| Report::from_json(s).unwrap())
+            .collect();
+        let expected: Vec<_> =
+            glob_reports(format!("{repo_path}/Dependency/DeprecatedDependency/reports.json"))
+                .collect();
+        assert_eq!(&expected, &reports);
+    }
+}
+
+#[test]
 fn checks() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
