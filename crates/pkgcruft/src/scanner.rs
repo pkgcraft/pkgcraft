@@ -182,6 +182,8 @@ mod tests {
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
 
+    use crate::check::{CheckKind, EbuildPkgCheckKind};
+    use crate::report::{ReportKind, VersionReport};
     use crate::test::glob_reports;
 
     use super::*;
@@ -190,8 +192,27 @@ mod tests {
     fn run() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let repo_path = repo.path();
+
+        // repo level
         let scanner = Scanner::new().jobs(1);
         let expected: Vec<_> = glob_reports(format!("{repo_path}/**/reports.json")).collect();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+
+        // specific checks
+        let check = CheckKind::EbuildPkg(EbuildPkgCheckKind::Dependency);
+        let scanner = Scanner::new().jobs(1).checks([check]);
+        let expected: Vec<_> =
+            glob_reports(format!("{repo_path}/Dependency/**/reports.json")).collect();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+
+        // specific reports
+        let report = ReportKind::Version(VersionReport::DeprecatedDependency);
+        let scanner = Scanner::new().jobs(1).reports([report]);
+        let expected: Vec<_> =
+            glob_reports(format!("{repo_path}/Dependency/DeprecatedDependency/reports.json"))
+                .collect();
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
     }
