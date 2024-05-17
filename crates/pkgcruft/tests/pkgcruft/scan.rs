@@ -5,6 +5,7 @@ use pkgcraft::test::{cmd, TEST_DATA};
 use pkgcraft::utils::current_dir;
 use pkgcruft::report::Report;
 use pkgcruft::test::glob_reports;
+use predicates::prelude::*;
 use predicates::str::contains;
 
 #[test]
@@ -218,6 +219,40 @@ fn repo() {
             glob_reports(format!("{repo_path}/Dependency/DeprecatedDependency/reports.json"))
                 .collect();
         assert_eq!(&expected, &reports);
+    }
+}
+
+#[test]
+fn reporter() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    env::set_current_dir(repo.path()).unwrap();
+
+    for opt in ["-R", "--reporter"] {
+        // invalid
+        cmd("pkgcruft scan -j1")
+            .args([opt, "invalid"])
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
+        for reporter in ["simple", "fancy", "json"] {
+            cmd("pkgcruft scan -j1")
+                .args([opt, reporter])
+                .assert()
+                .stdout(predicate::str::is_empty().not())
+                .stderr("")
+                .success();
+        }
+
+        cmd("pkgcruft scan -j1")
+            .args([opt, "format"])
+            .args(["--format", "{package}"])
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
     }
 }
 
