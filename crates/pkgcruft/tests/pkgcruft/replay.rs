@@ -22,6 +22,16 @@ static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
 });
 
 #[test]
+fn missing_target() {
+    cmd("pkgcruft replay")
+        .assert()
+        .stdout("")
+        .stderr(contains("FILE"))
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn nonexistent_path_target() {
     cmd("pkgcruft replay path/to/nonexistent/file.json")
         .assert()
