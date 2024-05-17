@@ -161,12 +161,6 @@ pub enum ReportKind {
     Package(PackageReport),
 }
 
-impl From<&ReportKind> for ReportKind {
-    fn from(value: &ReportKind) -> Self {
-        *value
-    }
-}
-
 impl ReportKind {
     /// The severity of the report variant.
     pub fn level(&self) -> ReportLevel {

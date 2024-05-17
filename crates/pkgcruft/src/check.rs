@@ -273,17 +273,11 @@ impl PartialOrd for Check {
     }
 }
 
-impl From<&CheckKind> for Check {
-    fn from(kind: &CheckKind) -> Self {
+impl From<CheckKind> for Check {
+    fn from(kind: CheckKind) -> Self {
         *CHECKS
-            .get(kind)
+            .get(&kind)
             .unwrap_or_else(|| panic!("unregistered check: {kind}"))
-    }
-}
-
-impl From<&Check> for Check {
-    fn from(value: &Check) -> Self {
-        *value
     }
 }
 

@@ -108,7 +108,7 @@ impl Checks {
 
         // determine enabled check set
         let checks = if !self.checks.is_empty() {
-            self.checks.iter().map(Into::into).collect()
+            self.checks.into_iter().map(Into::into).collect()
         } else {
             reports
                 .iter()
