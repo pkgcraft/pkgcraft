@@ -85,7 +85,7 @@ fn file_targets() {
 }
 
 #[test]
-fn reporters() {
+fn reporter() {
     for opt in ["-R", "--reporter"] {
         // invalid
         cmd("pkgcruft replay")
@@ -106,6 +106,15 @@ fn reporters() {
                 .stderr("")
                 .success();
         }
+
+        cmd("pkgcruft replay")
+            .args([opt, "format"])
+            .args(["--format", "{package}"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
     }
 }
 
