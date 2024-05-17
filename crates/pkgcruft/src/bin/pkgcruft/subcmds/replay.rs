@@ -46,7 +46,6 @@ pub(crate) struct Command {
     #[arg(
         help_heading = "Arguments",
         value_hint = ValueHint::FilePath,
-        default_value = "-",
     )]
     file: String,
 }
