@@ -82,6 +82,12 @@ impl From<Repo> for RepoSet {
     }
 }
 
+impl From<&Repo> for RepoSet {
+    fn from(repo: &Repo) -> Self {
+        repo.clone().into()
+    }
+}
+
 impl PkgRepository for RepoSet {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
     type IterCpv<'a> = IterCpv where Self: 'a;
