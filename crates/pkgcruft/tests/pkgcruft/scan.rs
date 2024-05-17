@@ -187,3 +187,26 @@ fn checks() {
         assert_eq!(&expected, &reports);
     }
 }
+
+#[test]
+fn reports() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+    let expected: Vec<_> =
+        glob_reports(format!("{repo_path}/Dependency/DeprecatedDependency/reports.json")).collect();
+
+    for opt in ["-r", "--reports"] {
+        let output = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "DeprecatedDependency"])
+            .arg(repo.path())
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let reports: Vec<_> = data
+            .lines()
+            .map(|s| Report::from_json(s).unwrap())
+            .collect();
+        assert_eq!(&expected, &reports);
+    }
+}
