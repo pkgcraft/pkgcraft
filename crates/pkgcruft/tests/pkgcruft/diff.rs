@@ -4,6 +4,25 @@ use predicates::str::contains;
 use crate::replay::QA_PRIMARY_FILE;
 
 #[test]
+fn missing_args() {
+    // missing both file args
+    cmd("pkgcruft diff")
+        .assert()
+        .stdout("")
+        .stderr(contains("FILE1"))
+        .failure()
+        .code(2);
+
+    // missing second file arg
+    cmd("pkgcruft diff file1.json")
+        .assert()
+        .stdout("")
+        .stderr(contains("FILE2"))
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn nonexistent_path_targets() {
     cmd("pkgcruft diff path/to/nonexistent/file1.json path/to/nonexistent/file2.json")
         .assert()
