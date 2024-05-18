@@ -195,24 +195,21 @@ mod tests {
 
         // repo level
         let scanner = Scanner::new().jobs(1);
-        let expected: Vec<_> = glob_reports(format!("{repo_path}/**/reports.json")).collect();
+        let expected = glob_reports!("{repo_path}/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
         // specific checks
         let check = CheckKind::EbuildPkg(EbuildPkgCheckKind::Dependency);
         let scanner = Scanner::new().jobs(1).checks([check]);
-        let expected: Vec<_> =
-            glob_reports(format!("{repo_path}/Dependency/**/reports.json")).collect();
+        let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
         // specific reports
         let report = ReportKind::Version(VersionReport::DeprecatedDependency);
         let scanner = Scanner::new().jobs(1).reports([report]);
-        let expected: Vec<_> =
-            glob_reports(format!("{repo_path}/Dependency/DeprecatedDependency/reports.json"))
-                .collect();
+        let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
     }
