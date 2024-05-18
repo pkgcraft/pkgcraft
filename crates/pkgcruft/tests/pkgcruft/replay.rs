@@ -95,74 +95,6 @@ fn file_targets() {
 }
 
 #[test]
-fn reporter() {
-    for opt in ["-R", "--reporter"] {
-        // invalid
-        cmd("pkgcruft replay")
-            .args([opt, "invalid"])
-            .arg(QA_PRIMARY_FILE.path())
-            .assert()
-            .stdout("")
-            .stderr(predicate::str::is_empty().not())
-            .failure()
-            .code(2);
-
-        for reporter in ["simple", "fancy", "json"] {
-            cmd("pkgcruft replay")
-                .args([opt, reporter])
-                .arg(QA_PRIMARY_FILE.path())
-                .assert()
-                .stdout(predicate::str::is_empty().not())
-                .stderr("")
-                .success();
-        }
-
-        // missing format string
-        cmd("pkgcruft replay")
-            .args([opt, "format"])
-            .arg(QA_PRIMARY_FILE.path())
-            .assert()
-            .stdout("")
-            .stderr(contains("--format"))
-            .failure()
-            .code(2);
-
-        cmd("pkgcruft replay")
-            .args([opt, "format"])
-            .args(["--format", "{package}"])
-            .arg(QA_PRIMARY_FILE.path())
-            .assert()
-            .stdout(predicate::str::is_empty().not())
-            .stderr("")
-            .success();
-    }
-}
-
-#[test]
-fn sort() {
-    // serialized reports in reversed sorting order
-    let reports = indoc::indoc! {r#"
-        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
-        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-    "#};
-    let mut expected: Vec<_> = reports.lines().collect();
-    expected.reverse();
-
-    for opt in ["-s", "--sort"] {
-        let output = cmd("pkgcruft replay -R json -")
-            .arg(opt)
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&data, &expected);
-    }
-}
-
-#[test]
 fn reports() {
     let reports = indoc::indoc! {r#"
         {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
@@ -253,5 +185,73 @@ fn pkgs() {
             let data: Vec<_> = data.lines().collect();
             assert_eq!(&data, expected);
         }
+    }
+}
+
+#[test]
+fn sort() {
+    // serialized reports in reversed sorting order
+    let reports = indoc::indoc! {r#"
+        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
+        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+    "#};
+    let mut expected: Vec<_> = reports.lines().collect();
+    expected.reverse();
+
+    for opt in ["-s", "--sort"] {
+        let output = cmd("pkgcruft replay -R json -")
+            .arg(opt)
+            .write_stdin(reports)
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let data: Vec<_> = data.lines().collect();
+        assert_eq!(&data, &expected);
+    }
+}
+
+#[test]
+fn reporter() {
+    for opt in ["-R", "--reporter"] {
+        // invalid
+        cmd("pkgcruft replay")
+            .args([opt, "invalid"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
+        for reporter in ["simple", "fancy", "json"] {
+            cmd("pkgcruft replay")
+                .args([opt, reporter])
+                .arg(QA_PRIMARY_FILE.path())
+                .assert()
+                .stdout(predicate::str::is_empty().not())
+                .stderr("")
+                .success();
+        }
+
+        // missing format string
+        cmd("pkgcruft replay")
+            .args([opt, "format"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("--format"))
+            .failure()
+            .code(2);
+
+        cmd("pkgcruft replay")
+            .args([opt, "format"])
+            .args(["--format", "{package}"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
     }
 }
