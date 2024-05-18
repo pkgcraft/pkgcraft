@@ -140,6 +140,50 @@ fn checks() {
 }
 
 #[test]
+fn levels() {
+    let reports = indoc::indoc! {r#"
+        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
+    "#};
+    let expected: Vec<_> = reports.lines().collect();
+
+    for opt in ["-l", "--levels"] {
+        // invalid
+        cmd("pkgcruft replay")
+            .args([opt, "invalid"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
+        // valid
+        let output = cmd("pkgcruft replay -R json -")
+            .args([opt, "warning"])
+            .write_stdin(reports)
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let data: Vec<_> = data.lines().collect();
+        assert_eq!(&data, &expected[0..2]);
+
+        // multiple values
+        let output = cmd("pkgcruft replay -R json -")
+            .args([opt, "warning,info"])
+            .write_stdin(reports)
+            .output()
+            .unwrap()
+            .stdout;
+        let data = String::from_utf8(output).unwrap();
+        let data: Vec<_> = data.lines().collect();
+        assert_eq!(&data, &expected[0..3]);
+    }
+}
+
+#[test]
 fn reports() {
     let reports = indoc::indoc! {r#"
         {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
