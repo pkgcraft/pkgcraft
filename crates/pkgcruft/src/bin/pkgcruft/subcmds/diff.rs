@@ -2,28 +2,16 @@ use std::collections::HashSet;
 use std::io;
 use std::process::ExitCode;
 
-use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Args, ValueHint};
 use itertools::Itertools;
 use pkgcraft::restrict::{self, Restrict};
-use pkgcruft::report::{Iter, Report, ReportKind, REPORTS};
+use pkgcruft::report::{Iter, Report, ReportKind};
 
-use crate::options::reporter::ReporterOptions;
+use crate::options;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Diff options")]
 pub(crate) struct Options {
-    /// Limit to specific report variants
-    #[arg(
-        short,
-        long,
-        value_name = "REPORT",
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(REPORTS.iter().map(|r| r.as_ref()))
-            .map(|s| s.parse::<ReportKind>().unwrap()),
-    )]
-    reports: Vec<ReportKind>,
-
     /// Package restriction
     #[arg(short, long)]
     pkgs: Option<String>,
@@ -33,11 +21,14 @@ pub(crate) struct Options {
     sort: bool,
 
     #[clap(flatten)]
-    reporter: ReporterOptions,
+    reporter: options::reporter::ReporterOptions,
 }
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
+    #[clap(flatten)]
+    checks: options::checks::Checks,
+
     #[clap(flatten)]
     options: Options,
 
@@ -61,10 +52,11 @@ impl Replay {
         Self::default()
     }
 
-    fn reports(mut self, reports: Vec<ReportKind>) -> Self {
-        if !reports.is_empty() {
-            self.reports = Some(reports.into_iter().collect());
-        }
+    fn reports<I>(mut self, reports: I) -> Self
+    where
+        I: IntoIterator<Item = ReportKind>,
+    {
+        self.reports = Some(reports.into_iter().collect());
         self
     }
 
@@ -86,9 +78,10 @@ impl Replay {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let replay = Replay::new()
-            .reports(self.options.reports)
-            .pkgs(self.options.pkgs)?;
+        // determine enabled checks and reports
+        let (_checks, reports) = self.checks.collapse();
+
+        let replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
 
         let reports1: HashSet<_> = replay.run(self.file1)?.try_collect()?;
         let reports2: HashSet<_> = replay.run(self.file2)?.try_collect()?;
