@@ -9,9 +9,9 @@ use pkgcruft::source::SourceKind;
 use strum::VariantNames;
 
 #[derive(Debug, Args)]
-#[clap(next_help_heading = Some("Check selection"))]
+#[clap(next_help_heading = Some("Report selection"))]
 pub(crate) struct Checks {
-    /// Specific checks to run
+    /// Limit to specific checks
     #[arg(
         short,
         long,
