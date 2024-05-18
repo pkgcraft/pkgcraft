@@ -23,8 +23,30 @@ fn missing_args() {
 }
 
 #[test]
-fn nonexistent_path_targets() {
-    cmd("pkgcruft diff path/to/nonexistent/file1.json path/to/nonexistent/file2.json")
+fn nonexistent_files() {
+    // first
+    cmd("pkgcruft diff")
+        .arg("path/to/nonexistent/file1.json")
+        .arg(QA_PRIMARY_FILE.path())
+        .assert()
+        .stdout("")
+        .stderr(contains("failed loading file"))
+        .failure()
+        .code(2);
+
+    // second
+    cmd("pkgcruft diff")
+        .arg(QA_PRIMARY_FILE.path())
+        .arg("path/to/nonexistent/file1.json")
+        .assert()
+        .stdout("")
+        .stderr(contains("failed loading file"))
+        .failure()
+        .code(2);
+
+    // both
+    cmd("pkgcruft diff")
+        .args(["path/to/nonexistent/file1.json", "path/to/nonexistent/file2.json"])
         .assert()
         .stdout("")
         .stderr(contains("failed loading file"))
