@@ -9,7 +9,7 @@ use predicates::str::contains;
 use tempfile::NamedTempFile;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
-static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
+pub(crate) static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
     let mut file = NamedTempFile::new().unwrap();
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let output = cmd("pkgcruft scan -R json")
