@@ -63,6 +63,7 @@ impl<'a> CheckRun<&[Pkg<'a>]> for UnstableOnlyCheck<'a> {
 
 #[cfg(test)]
 mod tests {
+    use pkgcraft::config::Config;
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
 
@@ -86,5 +87,11 @@ mod tests {
         // repo restriction
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
+
+        // empty repo
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = t.repo();
+        assert!(scanner.run(repo, [repo]).next().is_none());
     }
 }
