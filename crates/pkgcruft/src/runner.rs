@@ -30,17 +30,9 @@ impl<'a> SyncCheckRunner<'a> {
         I: IntoIterator<Item = &'static Check>,
     {
         for check in checks {
-            let source = check.source;
             self.runners
-                .entry(source)
-                .or_insert_with(|| match source {
-                    SourceKind::Ebuild => {
-                        CheckRunner::EbuildPkg(EbuildPkgCheckRunner::new(self.repo))
-                    }
-                    SourceKind::EbuildRaw => {
-                        CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(self.repo))
-                    }
-                })
+                .entry(check.source)
+                .or_insert_with(|| CheckRunner::new(check.source, self.repo))
                 .add_check(check.kind);
         }
         self
@@ -63,7 +55,14 @@ enum CheckRunner<'a> {
     EbuildRawPkg(EbuildRawPkgCheckRunner<'a>),
 }
 
-impl CheckRunner<'_> {
+impl<'a> CheckRunner<'a> {
+    fn new(source: SourceKind, repo: &'a Repo) -> Self {
+        match source {
+            SourceKind::Ebuild => Self::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
+            SourceKind::EbuildRaw => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
+        }
+    }
+
     /// Add a check to the check runner.
     fn add_check(&mut self, kind: CheckKind) {
         match self {
