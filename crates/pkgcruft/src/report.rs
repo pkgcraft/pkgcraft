@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::fmt;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader};
@@ -92,12 +93,12 @@ impl VersionReport {
     pub(crate) fn report<P, S>(self, pkg: P, description: S) -> Report
     where
         P: Package,
-        S: Into<String>,
+        S: fmt::Display,
     {
         Report {
             scope: ReportScope::Version(pkg.cpv().clone()),
             kind: ReportKind::Version(self),
-            description: description.into(),
+            description: description.to_string(),
         }
     }
 
@@ -141,12 +142,12 @@ impl PackageReport {
     pub(crate) fn report<P, S>(self, pkgs: &[P], description: S) -> Report
     where
         P: Package,
-        S: Into<String>,
+        S: fmt::Display,
     {
         Report {
             scope: ReportScope::Package(pkgs[0].cpn().clone()),
             kind: ReportKind::Package(self),
-            description: description.into(),
+            description: description.to_string(),
         }
     }
 
@@ -186,8 +187,8 @@ impl FromStr for ReportKind {
     }
 }
 
-impl std::fmt::Display for ReportKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for ReportKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Version(k) => write!(f, "{k}"),
             Self::Package(k) => write!(f, "{k}"),
@@ -242,8 +243,8 @@ pub enum ReportScope {
     Package(Cpn<String>),
 }
 
-impl std::fmt::Display for ReportScope {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for ReportScope {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Version(cpv) => write!(f, "{cpv}"),
             Self::Package(cpn) => write!(f, "{cpn}"),
