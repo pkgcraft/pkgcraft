@@ -110,26 +110,30 @@ where
     S2: AsRef<str>,
 {
     let (arch1, arch2) = (arch1.as_ref(), arch2.as_ref());
-    match (arch1.find('-'), arch2.find('-')) {
+    match (arch1.split_once('-'), arch2.split_once('-')) {
         (None, Some(_)) => return Ordering::Less,
         (Some(_), None) => return Ordering::Greater,
-        _ => cmp_not_equal!(arch1, arch2),
+        (Some((arch1, platform1)), Some((arch2, platform2))) => {
+            cmp_not_equal!(platform1, platform2);
+            cmp_not_equal!(arch1, arch2)
+        }
+        (None, None) => cmp_not_equal!(arch1, arch2),
     }
 
     Ordering::Equal
 }
 
 /// Compare two keywords, making unprefixed arches less than prefixed arches.
-fn cmp<S1, S2>(k1: &Keyword<S1>, k2: &Keyword<S2>) -> Ordering
+fn cmp<S1, S2>(kw1: &Keyword<S1>, kw2: &Keyword<S2>) -> Ordering
 where
     S1: Stringable,
     S2: Stringable,
 {
-    let cmp = cmp_arches(k1.arch(), k2.arch());
+    let cmp = cmp_arches(kw1.arch(), kw2.arch());
     if cmp != Ordering::Equal {
         return cmp;
     }
-    k1.status.cmp(&k2.status)
+    kw1.status.cmp(&kw2.status)
 }
 
 impl<S: Stringable> Ord for Keyword<S> {
@@ -252,6 +256,9 @@ mod tests {
             "arch1 < arch2",
             "arch-plat1 < arch-plat2",
             "-* < -arch",
+            // platform higher priority than arch
+            "arch1-plat1 < arch2-plat2",
+            "arch2-plat1 < arch1-plat2",
             // status order
             "-arch < ~arch",
             "~arch < arch",
