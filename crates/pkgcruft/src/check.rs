@@ -66,27 +66,28 @@ impl CheckKind {
     }
 
     pub(crate) fn ebuild(self, repo: &Repo) -> EbuildPkgCheck {
+        use EbuildPkgCheck::*;
         match self {
-            Self::Dependency => EbuildPkgCheck::Dependency(dependency::Check::new(repo)),
-            Self::Eapi => EbuildPkgCheck::Eapi(eapi::Check::new(repo)),
-            Self::Keywords => EbuildPkgCheck::Keywords(keywords::Check::new(repo)),
+            Self::Dependency => Dependency(dependency::Check::new(repo)),
+            Self::Eapi => Eapi(eapi::Check::new(repo)),
+            Self::Keywords => Keywords(keywords::Check::new(repo)),
             _ => panic!("{self} is not an ebuild check"),
         }
     }
 
     pub(crate) fn ebuild_raw(self, repo: &Repo) -> EbuildRawPkgCheck {
+        use EbuildRawPkgCheck::*;
         match self {
-            Self::Metadata => EbuildRawPkgCheck::Metadata(metadata::Check::new(repo)),
+            Self::Metadata => Metadata(metadata::Check::new(repo)),
             _ => panic!("{self} is not a raw ebuild check"),
         }
     }
 
     pub(crate) fn ebuild_pkg_set(self, repo: &Repo) -> EbuildPkgSetCheck {
+        use EbuildPkgSetCheck::*;
         match self {
-            Self::DroppedKeywords => {
-                EbuildPkgSetCheck::DroppedKeywords(dropped_keywords::Check::new(repo))
-            }
-            Self::UnstableOnly => EbuildPkgSetCheck::UnstableOnly(unstable_only::Check::new(repo)),
+            Self::DroppedKeywords => DroppedKeywords(dropped_keywords::Check::new(repo)),
+            Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
             _ => panic!("{self} is not an ebuild pkg set check"),
         }
     }
