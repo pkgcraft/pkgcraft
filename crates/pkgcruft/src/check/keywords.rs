@@ -49,7 +49,7 @@ impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
         if !overlapping.is_empty() {
             let keywords = overlapping
                 .iter()
-                .map(|keywords| format!("({})", keywords.iter().join(", ")))
+                .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
             reports.push(OverlappingKeywords.report(pkg, keywords));
         }
