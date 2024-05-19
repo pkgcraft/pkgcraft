@@ -6,7 +6,7 @@ use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{Report, ReportKind, VersionReport};
+use crate::report::{Report, ReportKind, VersionReport::DroppedKeywords};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
@@ -17,7 +17,7 @@ pub(crate) static CHECK: Check = Check {
     source: SourceKind::Ebuild,
     scope: Scope::Package,
     priority: 0,
-    reports: &[ReportKind::Version(VersionReport::DroppedKeywords)],
+    reports: &[ReportKind::Version(DroppedKeywords)],
 };
 
 #[derive(Debug)]
@@ -33,8 +33,6 @@ impl<'a> DroppedKeywordsCheck<'a> {
 
 impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
     fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
-        use VersionReport::*;
-
         // ignore packages lacking keywords
         let pkgs: Vec<_> = pkgs.iter().filter(|p| !p.keywords().is_empty()).collect();
         if pkgs.len() <= 1 {

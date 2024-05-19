@@ -3,7 +3,10 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{Report, ReportKind, VersionReport};
+use crate::report::{
+    Report, ReportKind,
+    VersionReport::{OverlappingKeywords, UnsortedKeywords},
+};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
@@ -14,10 +17,7 @@ pub(crate) static CHECK: Check = Check {
     source: SourceKind::Ebuild,
     scope: Scope::Package,
     priority: 0,
-    reports: &[
-        ReportKind::Version(VersionReport::OverlappingKeywords),
-        ReportKind::Version(VersionReport::UnsortedKeywords),
-    ],
+    reports: &[ReportKind::Version(OverlappingKeywords), ReportKind::Version(UnsortedKeywords)],
 };
 
 #[derive(Debug)]
@@ -33,8 +33,6 @@ impl<'a> KeywordsCheck<'a> {
 
 impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
-        use VersionReport::*;
-
         let keywords_map = pkg
             .keywords()
             .iter()

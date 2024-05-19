@@ -6,7 +6,7 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{PackageReport, Report, ReportKind};
+use crate::report::{PackageReport::UnstableOnly, Report, ReportKind};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
@@ -17,7 +17,7 @@ pub(crate) static CHECK: Check = Check {
     source: SourceKind::Ebuild,
     scope: Scope::Package,
     priority: 0,
-    reports: &[ReportKind::Package(PackageReport::UnstableOnly)],
+    reports: &[ReportKind::Package(UnstableOnly)],
 };
 
 #[derive(Debug)]
@@ -38,8 +38,6 @@ impl<'a> UnstableOnlyCheck<'a> {
 
 impl<'a> CheckRun<&[Pkg<'a>]> for UnstableOnlyCheck<'a> {
     fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
-        use PackageReport::*;
-
         let arches: Vec<_> = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())
