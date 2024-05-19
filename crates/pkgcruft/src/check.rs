@@ -313,8 +313,7 @@ pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
 
 /// The ordered map of all source variants to the checks that use them.
 pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<Check>>> = Lazy::new(|| {
-    let mut map: OrderedMap<SourceKind, OrderedSet<Check>> =
-        CHECKS.iter().map(|c| (c.source(), *c)).collect();
+    let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS.iter().map(|c| (c.source(), *c)).collect();
     map.sort_keys();
     map
 });

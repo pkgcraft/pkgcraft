@@ -425,7 +425,7 @@ pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
 
 /// The ordered map of all report variants to the checks that can generate them.
 pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::new(|| {
-    let mut map: OrderedMap<ReportKind, OrderedSet<Check>> = CHECKS
+    let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS
         .iter()
         .flat_map(|c| c.reports().iter().copied().map(|r| (r, *c)))
         .collect();
