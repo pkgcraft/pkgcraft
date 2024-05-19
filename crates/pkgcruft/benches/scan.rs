@@ -1,6 +1,5 @@
 use criterion::Criterion;
 
-use pkgcraft::restrict::Restrict;
 use pkgcraft::test::TEST_DATA;
 use pkgcruft::scanner::Scanner;
 
@@ -9,10 +8,9 @@ pub fn bench(c: &mut Criterion) {
 
     c.bench_function("scan", |b| {
         let scanner = Scanner::new();
-        let restrict = Restrict::True;
         let mut count = 0;
         b.iter(|| {
-            count = scanner.run(repo, [&restrict]).count();
+            count = scanner.run(repo, [repo]).count();
         });
         assert!(count > 0);
     });
