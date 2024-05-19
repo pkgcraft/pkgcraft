@@ -16,7 +16,7 @@ fn stdin_targets() {
             .args(["--repo", repo.path().as_ref()])
             .write_stdin(format!("{arg}\n"))
             .assert()
-            .stdout(contains("DroppedKeywords: arm64"))
+            .stdout(contains("DroppedKeywords: x86"))
             .stderr("")
             .success();
     }
@@ -44,7 +44,7 @@ fn dep_restrict_targets() {
             .args(["--repo", repo_path.as_ref()])
             .arg(s)
             .assert()
-            .stdout(contains("DroppedKeywords: arm64"))
+            .stdout(contains("DroppedKeywords: x86"))
             .stderr("")
             .success();
     }
