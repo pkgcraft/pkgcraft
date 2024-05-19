@@ -10,26 +10,26 @@ use pkgcraft::repo::ebuild::Repo;
 use crate::report::{Report, ReportKind::DroppedKeywords};
 use crate::scope::Scope;
 
-use super::{Check, CheckKind, CheckRun};
+use super::{CheckBuilder, CheckKind, CheckRun};
 
-pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::DroppedKeywords)
+pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
+    CheckBuilder::new(CheckKind::DroppedKeywords)
         .scope(Scope::Package)
         .reports([DroppedKeywords])
 });
 
 #[derive(Debug)]
-pub(crate) struct DroppedKeywordsCheck<'a> {
+pub(crate) struct Check<'a> {
     arches: &'a IndexSet<String>,
 }
 
-impl<'a> DroppedKeywordsCheck<'a> {
+impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
         Self { arches: repo.arches() }
     }
 }
 
-impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
+impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
         // ignore packages lacking keywords
         let pkgs: Vec<_> = pkgs.iter().filter(|p| !p.keywords().is_empty()).collect();

@@ -7,23 +7,23 @@ use crate::report::{
     ReportKind::{EapiBanned, EapiDeprecated},
 };
 
-use super::{Check, CheckKind, CheckRun};
+use super::{CheckBuilder, CheckKind, CheckRun};
 
-pub(super) static CHECK: Lazy<Check> =
-    Lazy::new(|| Check::build(CheckKind::Eapi).reports([EapiBanned, EapiDeprecated]));
+pub(super) static CHECK: Lazy<super::Check> =
+    Lazy::new(|| CheckBuilder::new(CheckKind::Eapi).reports([EapiBanned, EapiDeprecated]));
 
 #[derive(Debug)]
-pub(crate) struct EapiCheck<'a> {
+pub(crate) struct Check<'a> {
     repo: &'a Repo,
 }
 
-impl<'a> EapiCheck<'a> {
+impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
         Self { repo }
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for EapiCheck<'a> {
+impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         if self
             .repo

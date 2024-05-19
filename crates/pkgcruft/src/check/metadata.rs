@@ -13,27 +13,27 @@ use crate::report::{
 };
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun};
+use super::{CheckBuilder, CheckKind, CheckRun};
 
-pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::Metadata)
+pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
+    CheckBuilder::new(CheckKind::Metadata)
         .source(SourceKind::EbuildRaw)
         .priority(-9999)
         .reports([InvalidDependencySet, MissingMetadata, SourcingError])
 });
 
 #[derive(Debug)]
-pub(crate) struct MetadataCheck<'a> {
+pub(crate) struct Check<'a> {
     _repo: &'a Repo,
 }
 
-impl<'a> MetadataCheck<'a> {
+impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
         Self { _repo: repo }
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'a> {
+impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         let eapi = pkg.eapi();
 

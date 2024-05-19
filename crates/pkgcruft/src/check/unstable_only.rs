@@ -10,20 +10,20 @@ use pkgcraft::types::{OrderedMap, OrderedSet};
 use crate::report::{Report, ReportKind::UnstableOnly};
 use crate::scope::Scope;
 
-use super::{Check, CheckKind, CheckRun};
+use super::{CheckBuilder, CheckKind, CheckRun};
 
-pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::UnstableOnly)
+pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
+    CheckBuilder::new(CheckKind::UnstableOnly)
         .scope(Scope::Package)
         .reports([UnstableOnly])
 });
 
 #[derive(Debug)]
-pub(crate) struct UnstableOnlyCheck<'a> {
+pub(crate) struct Check<'a> {
     arches: HashSet<&'a str>,
 }
 
-impl<'a> UnstableOnlyCheck<'a> {
+impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
         let arches = if let Some(arches) = repo.metadata().arches_desc().get("stable") {
             arches.iter().map(|s| s.as_str()).collect()
@@ -34,7 +34,7 @@ impl<'a> UnstableOnlyCheck<'a> {
     }
 }
 
-impl<'a> CheckRun<&[Pkg<'a>]> for UnstableOnlyCheck<'a> {
+impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
         let arches: Vec<_> = pkgs
             .iter()

@@ -12,24 +12,24 @@ use crate::report::{
     ReportKind::{DeprecatedDependency, MissingRevision},
 };
 
-use super::{Check, CheckKind, CheckRun};
+use super::{CheckBuilder, CheckKind, CheckRun};
 
-pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::Dependency).reports([DeprecatedDependency, MissingRevision])
+pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
+    CheckBuilder::new(CheckKind::Dependency).reports([DeprecatedDependency, MissingRevision])
 });
 
 #[derive(Debug)]
-pub(crate) struct DependencyCheck<'a> {
+pub(crate) struct Check<'a> {
     repo: &'a Repo,
 }
 
-impl<'a> DependencyCheck<'a> {
+impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
         Self { repo }
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for DependencyCheck<'a> {
+impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         for key in pkg.eapi().dep_keys() {
             let mut deprecated = HashSet::new();

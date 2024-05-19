@@ -9,24 +9,24 @@ use crate::report::{
     ReportKind::{OverlappingKeywords, UnsortedKeywords},
 };
 
-use super::{Check, CheckKind, CheckRun};
+use super::{CheckBuilder, CheckKind, CheckRun};
 
-pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::Keywords).reports([OverlappingKeywords, UnsortedKeywords])
+pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
+    CheckBuilder::new(CheckKind::Keywords).reports([OverlappingKeywords, UnsortedKeywords])
 });
 
 #[derive(Debug)]
-pub(crate) struct KeywordsCheck<'a> {
+pub(crate) struct Check<'a> {
     _repo: &'a Repo,
 }
 
-impl<'a> KeywordsCheck<'a> {
+impl<'a> Check<'a> {
     pub(super) fn new(_repo: &'a Repo) -> Self {
         Self { _repo }
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
+impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         let keywords_map = pkg
             .keywords()
