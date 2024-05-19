@@ -323,7 +323,7 @@ impl Config {
         eapi: Option<&Eapi>,
     ) -> crate::Result<TempRepo> {
         let temp_repo = self.repos.create_temp(name, priority, eapi)?;
-        self.add_repo(&temp_repo.repo, false)?;
+        self.add_repo(temp_repo.repo(), false)?;
         Ok(temp_repo)
     }
 }

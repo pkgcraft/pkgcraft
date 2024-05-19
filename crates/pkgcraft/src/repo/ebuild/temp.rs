@@ -21,7 +21,7 @@ use super::Repo as EbuildRepo;
 pub struct Repo {
     tempdir: TempDir,
     path: Utf8PathBuf,
-    pub(crate) repo: BaseRepo,
+    repo: BaseRepo,
 }
 
 impl PartialEq for Repo {
@@ -125,7 +125,7 @@ impl Repo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        ebuild::raw::Pkg::try_new(cpv, self.repo())
+        ebuild::raw::Pkg::try_new(cpv, self.ebuild_repo())
     }
 
     /// Create a [`ebuild::Pkg`] from ebuild field settings.
@@ -146,7 +146,7 @@ impl Repo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        ebuild::raw::Pkg::try_new(cpv, self.repo())
+        ebuild::raw::Pkg::try_new(cpv, self.ebuild_repo())
     }
 
     /// Create a [`ebuild::Pkg`] from an ebuild using raw data.
@@ -173,8 +173,13 @@ impl Repo {
         &self.path
     }
 
-    /// Return the temporary repo's file path.
-    pub fn repo(&self) -> &EbuildRepo {
+    /// Return the temporary repo's wrapped repo object.
+    pub fn repo(&self) -> &BaseRepo {
+        &self.repo
+    }
+
+    /// Return the temporary repo's wrapped ebuild repo object.
+    pub fn ebuild_repo(&self) -> &EbuildRepo {
         self.repo.as_ebuild().expect("invalid repo type")
     }
 
@@ -248,15 +253,15 @@ impl PkgRepository for Repo {
     }
 
     fn iter_cpv(&self) -> Self::IterCpv<'_> {
-        self.repo().iter_cpv()
+        self.ebuild_repo().iter_cpv()
     }
 
     fn iter(&self) -> Self::Iter<'_> {
-        self.repo().iter()
+        self.ebuild_repo().iter()
     }
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
-        self.repo().iter_restrict(val)
+        self.ebuild_repo().iter_restrict(val)
     }
 
     fn is_empty(&self) -> bool {

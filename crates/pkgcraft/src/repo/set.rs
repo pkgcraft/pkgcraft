@@ -424,7 +424,7 @@ mod tests {
         assert!(!s.contains(&cpv));
 
         // repo set with no pkgs
-        let s = RepoSet::from_iter([&t.repo, &f_repo]);
+        let s = RepoSet::from_iter([t.repo(), &f_repo]);
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
@@ -448,7 +448,7 @@ mod tests {
         // multiple pkgs of different types
         let fake_repo = fake::Repo::new("fake", 0).pkgs(["cat/pkg-1"]);
         let f_repo: Repo = fake_repo.into();
-        let s = RepoSet::from_iter([&t.repo, &f_repo]);
+        let s = RepoSet::from_iter([t.repo(), &f_repo]);
         assert_ordered_eq(s.categories(), ["cat"]);
         assert_ordered_eq(s.packages("cat"), ["pkg"]);
         assert_ordered_eq(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);

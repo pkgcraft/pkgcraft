@@ -338,7 +338,7 @@ mod tests {
     fn regen_errors() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
+        let repo = t.ebuild_repo();
 
         // create a large number of packages with a subshelled, invalid scope builtin call
         for pv in 0..50 {

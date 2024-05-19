@@ -273,7 +273,7 @@ mod tests {
         let r1: Repo = fake::Repo::new("b", 0).pkgs(["cat/pkg-1"]).into();
         let t = config.temp_repo("a", 0, None).unwrap();
         t.create_raw_pkg("cat/pkg-0", &[]).unwrap();
-        let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
+        let mut pkgs: Vec<_> = r1.iter().chain(t.repo().iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::a", "cat/pkg-1::b"]);
@@ -282,7 +282,7 @@ mod tests {
         let r1: Repo = fake::Repo::new("a", -1).pkgs(["cat/pkg-0"]).into();
         let t = config.temp_repo("b", 0, None).unwrap();
         t.create_raw_pkg("cat/pkg-0", &[]).unwrap();
-        let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
+        let mut pkgs: Vec<_> = r1.iter().chain(t.repo().iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::b", "cat/pkg-0::a"]);
@@ -291,7 +291,7 @@ mod tests {
         let r1: Repo = fake::Repo::new("2", 0).pkgs(["cat/pkg-0"]).into();
         let t = config.temp_repo("1", 0, None).unwrap();
         t.create_raw_pkg("cat/pkg-0", &[]).unwrap();
-        let mut pkgs: Vec<_> = r1.iter().chain(t.repo.iter()).collect();
+        let mut pkgs: Vec<_> = r1.iter().chain(t.repo().iter()).collect();
         pkgs.sort();
         let pkg_strs: Vec<_> = pkgs.iter().map(|p| p.to_string()).collect();
         assert_eq!(pkg_strs, ["cat/pkg-0::1", "cat/pkg-0::2"]);

@@ -236,8 +236,12 @@ mod tests {
         let mut config = crate::config::Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
 
-        let manifest_hashes = t.repo().metadata().config().manifest_hashes();
-        let required_hashes = t.repo().metadata().config().manifest_required_hashes();
+        let manifest_hashes = t.ebuild_repo().metadata().config().manifest_hashes();
+        let required_hashes = t
+            .ebuild_repo()
+            .metadata()
+            .config()
+            .manifest_required_hashes();
         let tmpdir = tempdir().unwrap();
         let distdir: &Utf8Path = tmpdir.path().try_into().unwrap();
 
