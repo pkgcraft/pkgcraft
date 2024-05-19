@@ -50,3 +50,31 @@ impl<'a> CheckRun<&Pkg<'a>> for EapiCheck<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::repo::Repository;
+    use pkgcraft::test::TEST_DATA;
+
+    use crate::scanner::Scanner;
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        let repo = TEST_DATA.repo("qa-primary").unwrap();
+        let check_dir = repo.path().join(CHECK.as_ref());
+        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let expected = glob_reports!("{check_dir}/*/reports.json");
+
+        // check dir restriction
+        let restrict = repo.restrict_from_path(&check_dir).unwrap();
+        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
+        assert_eq!(&reports, &expected);
+
+        // repo restriction
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+    }
+}
