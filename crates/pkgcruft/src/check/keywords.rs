@@ -51,10 +51,13 @@ impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
             reports.push(OverlappingKeywords.report(pkg, keywords));
         }
 
-        let mut sorted_keywords = pkg.keywords().clone();
+        // ignore overlapping keywords when checking order
+        let flattened_keywords: OrderedSet<_> =
+            keywords_map.values().filter_map(|x| x.first()).collect();
+        let mut sorted_keywords = flattened_keywords.clone();
         sorted_keywords.sort();
 
-        if &sorted_keywords != pkg.keywords() {
+        if sorted_keywords != flattened_keywords {
             let keywords = pkg.keywords().iter().join(" ");
             reports.push(UnsortedKeywords.report(pkg, keywords));
         }
