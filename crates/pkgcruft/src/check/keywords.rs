@@ -9,11 +9,10 @@ use crate::report::{
     ReportKind::{OverlappingKeywords, UnsortedKeywords},
 };
 
-use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
+use super::{Check, CheckKind, CheckRun};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::EbuildPkg(EbuildPkgCheckKind::Keywords))
-        .reports([OverlappingKeywords, UnsortedKeywords])
+    Check::build(CheckKind::Keywords).reports([OverlappingKeywords, UnsortedKeywords])
 });
 
 #[derive(Debug)]

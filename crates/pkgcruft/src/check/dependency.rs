@@ -12,11 +12,10 @@ use crate::report::{
     ReportKind::{DeprecatedDependency, MissingRevision},
 };
 
-use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
+use super::{Check, CheckKind, CheckRun};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::EbuildPkg(EbuildPkgCheckKind::Dependency))
-        .reports([DeprecatedDependency, MissingRevision])
+    Check::build(CheckKind::Dependency).reports([DeprecatedDependency, MissingRevision])
 });
 
 #[derive(Debug)]

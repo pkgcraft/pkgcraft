@@ -10,10 +10,10 @@ use pkgcraft::types::{OrderedMap, OrderedSet};
 use crate::report::{Report, ReportKind::UnstableOnly};
 use crate::scope::Scope;
 
-use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
+use super::{Check, CheckKind, CheckRun};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::UnstableOnly))
+    Check::build(CheckKind::UnstableOnly)
         .scope(Scope::Package)
         .reports([UnstableOnly])
 });

@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 
-use crate::check::{self, Check, CheckKind, CheckRun};
+use crate::check::{self, Check, CheckKind, CheckRun, CheckValue};
 use crate::report::Report;
 use crate::source::{self, IterRestrict, SourceKind};
 
@@ -41,7 +41,7 @@ impl<'a> SyncCheckRunner<'a> {
                         CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(self.repo))
                     }
                 })
-                .add_check(check);
+                .add_check(check.kind);
         }
         self
     }
@@ -65,10 +65,10 @@ enum CheckRunner<'a> {
 
 impl CheckRunner<'_> {
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: &'static Check) {
+    fn add_check(&mut self, kind: CheckKind) {
         match self {
-            Self::EbuildPkg(r) => r.add_check(check),
-            Self::EbuildRawPkg(r) => r.add_check(check),
+            Self::EbuildPkg(r) => r.add_check(kind),
+            Self::EbuildRawPkg(r) => r.add_check(kind),
         }
     }
 
@@ -101,12 +101,11 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: &'static Check) {
-        use CheckKind::*;
-        match check.kind {
-            EbuildPkg(k) => self.pkg_checks.push(k.to_check(self.repo)),
-            EbuildPkgSet(k) => self.pkg_set_checks.push(k.to_check(self.repo)),
-            _ => panic!("{check} invalid for ebuild pkg check runner"),
+    fn add_check(&mut self, kind: CheckKind) {
+        match kind.value() {
+            CheckValue::Pkg => self.pkg_checks.push(kind.ebuild(self.repo)),
+            CheckValue::PkgSet => self.pkg_set_checks.push(kind.ebuild_pkg_set(self.repo)),
+            _ => panic!("{kind} invalid for ebuild pkg check runner"),
         }
     }
 
@@ -147,11 +146,10 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: &'static Check) {
-        use CheckKind::*;
-        match check.kind {
-            EbuildRawPkg(k) => self.pkg_checks.push(k.to_check(self.repo)),
-            _ => panic!("{check} invalid for ebuild raw pkg check runner"),
+    fn add_check(&mut self, kind: CheckKind) {
+        match kind.value() {
+            CheckValue::RawPkg => self.pkg_checks.push(kind.ebuild_raw(self.repo)),
+            _ => panic!("{kind} invalid for ebuild raw pkg check runner"),
         }
     }
 

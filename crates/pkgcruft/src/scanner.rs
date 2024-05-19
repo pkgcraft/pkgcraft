@@ -183,7 +183,7 @@ mod tests {
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
 
-    use crate::check::{CheckKind, EbuildPkgCheckKind};
+    use crate::check::CheckKind;
     use crate::report::ReportKind;
     use crate::test::glob_reports;
 
@@ -201,8 +201,7 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // specific checks
-        let check = CheckKind::EbuildPkg(EbuildPkgCheckKind::Dependency);
-        let scanner = Scanner::new().jobs(1).checks([check]);
+        let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

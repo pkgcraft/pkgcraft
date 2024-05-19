@@ -1,7 +1,6 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use std::str::FromStr;
 
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
@@ -9,12 +8,11 @@ use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::{AsRefStr, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::report::{Report, ReportKind};
 use crate::scope::Scope;
 use crate::source::SourceKind;
-use crate::Error;
 
 pub mod dependency;
 pub mod dropped_keywords;
@@ -23,53 +21,67 @@ pub mod keywords;
 pub mod metadata;
 pub mod unstable_only;
 
-/// Checks run against ebuild packages.
+/// All checks separated by source type.
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum CheckValue {
+    Pkg,
+    RawPkg,
+    PkgSet,
+}
+
+/// All checks separated by source type.
 #[derive(
-    AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    AsRefStr,
+    Display,
+    EnumIter,
+    EnumString,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
 )]
-pub enum EbuildPkgCheckKind {
+pub enum CheckKind {
     Dependency,
     Eapi,
     Keywords,
-}
-
-impl EbuildPkgCheckKind {
-    pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgCheck {
-        match self {
-            Self::Dependency => EbuildPkgCheck::Dependency(dependency::DependencyCheck::new(repo)),
-            Self::Eapi => EbuildPkgCheck::Eapi(eapi::EapiCheck::new(repo)),
-            Self::Keywords => EbuildPkgCheck::Keywords(keywords::KeywordsCheck::new(repo)),
-        }
-    }
-}
-
-/// Checks run against raw ebuild packages.
-#[derive(
-    AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
-)]
-pub enum EbuildRawPkgCheckKind {
     Metadata,
-}
-
-impl EbuildRawPkgCheckKind {
-    pub(crate) fn to_check(self, repo: &Repo) -> EbuildRawPkgCheck {
-        match self {
-            Self::Metadata => EbuildRawPkgCheck::Metadata(metadata::MetadataCheck::new(repo)),
-        }
-    }
-}
-
-/// Checks run against ebuild package sets.
-#[derive(
-    AsRefStr, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
-)]
-pub enum EbuildPkgSetCheckKind {
     DroppedKeywords,
     UnstableOnly,
 }
 
-impl EbuildPkgSetCheckKind {
-    pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgSetCheck {
+impl CheckKind {
+    pub(crate) fn value(&self) -> CheckValue {
+        match self {
+            Self::Dependency => CheckValue::Pkg,
+            Self::Eapi => CheckValue::Pkg,
+            Self::Keywords => CheckValue::Pkg,
+            Self::Metadata => CheckValue::RawPkg,
+            Self::DroppedKeywords => CheckValue::PkgSet,
+            Self::UnstableOnly => CheckValue::PkgSet,
+        }
+    }
+
+    pub(crate) fn ebuild(self, repo: &Repo) -> EbuildPkgCheck {
+        match self {
+            Self::Dependency => EbuildPkgCheck::Dependency(dependency::DependencyCheck::new(repo)),
+            Self::Eapi => EbuildPkgCheck::Eapi(eapi::EapiCheck::new(repo)),
+            Self::Keywords => EbuildPkgCheck::Keywords(keywords::KeywordsCheck::new(repo)),
+            _ => panic!("{self} is not an ebuild check"),
+        }
+    }
+
+    pub(crate) fn ebuild_raw(self, repo: &Repo) -> EbuildRawPkgCheck {
+        match self {
+            Self::Metadata => EbuildRawPkgCheck::Metadata(metadata::MetadataCheck::new(repo)),
+            _ => panic!("{self} is not a raw ebuild check"),
+        }
+    }
+
+    pub(crate) fn ebuild_pkg_set(self, repo: &Repo) -> EbuildPkgSetCheck {
         match self {
             Self::DroppedKeywords => EbuildPkgSetCheck::DroppedKeywords(
                 dropped_keywords::DroppedKeywordsCheck::new(repo),
@@ -77,78 +89,8 @@ impl EbuildPkgSetCheckKind {
             Self::UnstableOnly => {
                 EbuildPkgSetCheck::UnstableOnly(unstable_only::UnstableOnlyCheck::new(repo))
             }
+            _ => panic!("{self} is not a ebuild pkg set check"),
         }
-    }
-}
-
-/// All checks separated by source type.
-#[derive(Debug, Copy, Clone)]
-pub enum CheckKind {
-    EbuildPkg(EbuildPkgCheckKind),
-    EbuildRawPkg(EbuildRawPkgCheckKind),
-    EbuildPkgSet(EbuildPkgSetCheckKind),
-}
-
-impl FromStr for CheckKind {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        CHECKS
-            .get(s)
-            .map(|c| c.kind)
-            .ok_or_else(|| Error::InvalidValue(format!("invalid check variant: {s}")))
-    }
-}
-
-impl std::fmt::Display for CheckKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::EbuildPkg(k) => write!(f, "{}", k.as_ref()),
-            Self::EbuildRawPkg(k) => write!(f, "{}", k.as_ref()),
-            Self::EbuildPkgSet(k) => write!(f, "{}", k.as_ref()),
-        }
-    }
-}
-
-impl AsRef<str> for CheckKind {
-    fn as_ref(&self) -> &str {
-        match self {
-            Self::EbuildPkg(k) => k.as_ref(),
-            Self::EbuildRawPkg(k) => k.as_ref(),
-            Self::EbuildPkgSet(k) => k.as_ref(),
-        }
-    }
-}
-
-impl PartialEq for CheckKind {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-
-impl Eq for CheckKind {}
-
-impl Hash for CheckKind {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_ref().hash(state)
-    }
-}
-
-impl Borrow<str> for CheckKind {
-    fn borrow(&self) -> &str {
-        self.as_ref()
-    }
-}
-
-impl Ord for CheckKind {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for CheckKind {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
 

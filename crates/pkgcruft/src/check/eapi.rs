@@ -7,12 +7,10 @@ use crate::report::{
     ReportKind::{EapiBanned, EapiDeprecated},
 };
 
-use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
+use super::{Check, CheckKind, CheckRun};
 
-pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::EbuildPkg(EbuildPkgCheckKind::Eapi))
-        .reports([EapiBanned, EapiDeprecated])
-});
+pub(super) static CHECK: Lazy<Check> =
+    Lazy::new(|| Check::build(CheckKind::Eapi).reports([EapiBanned, EapiDeprecated]));
 
 #[derive(Debug)]
 pub(crate) struct EapiCheck<'a> {

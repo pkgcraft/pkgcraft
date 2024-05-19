@@ -13,10 +13,10 @@ use crate::report::{
 };
 use crate::source::SourceKind;
 
-use super::{Check, CheckKind, CheckRun, EbuildRawPkgCheckKind};
+use super::{Check, CheckKind, CheckRun};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::EbuildRawPkg(EbuildRawPkgCheckKind::Metadata))
+    Check::build(CheckKind::Metadata)
         .source(SourceKind::EbuildRaw)
         .priority(-9999)
         .reports([InvalidDependencySet, MissingMetadata, SourcingError])

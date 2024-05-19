@@ -10,10 +10,10 @@ use pkgcraft::repo::ebuild::Repo;
 use crate::report::{Report, ReportKind::DroppedKeywords};
 use crate::scope::Scope;
 
-use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
+use super::{Check, CheckKind, CheckRun};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
-    Check::build(CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::DroppedKeywords))
+    Check::build(CheckKind::DroppedKeywords)
         .scope(Scope::Package)
         .reports([DroppedKeywords])
 });
