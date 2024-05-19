@@ -87,7 +87,7 @@ impl CheckKind {
                 EbuildPkgSetCheck::DroppedKeywords(dropped_keywords::Check::new(repo))
             }
             Self::UnstableOnly => EbuildPkgSetCheck::UnstableOnly(unstable_only::Check::new(repo)),
-            _ => panic!("{self} is not a ebuild pkg set check"),
+            _ => panic!("{self} is not an ebuild pkg set check"),
         }
     }
 }
