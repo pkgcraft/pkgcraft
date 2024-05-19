@@ -13,7 +13,7 @@ fn stdin_targets() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     for arg in ["DroppedKeywords", "DroppedKeywords/DroppedKeywords"] {
         cmd("pkgcruft scan -R simple -")
-            .args(["--repo", repo.path().as_ref()])
+            .args(["--repo", repo.path().as_str()])
             .write_stdin(format!("{arg}\n"))
             .assert()
             .stdout(contains("DroppedKeywords: x86"))
@@ -41,7 +41,7 @@ fn dep_restrict_targets() {
     // valid
     for s in ["DroppedKeywords/*", "DroppedKeywords"] {
         cmd("pkgcruft scan -R simple")
-            .args(["--repo", repo_path.as_ref()])
+            .args(["--repo", repo_path.as_str()])
             .arg(s)
             .assert()
             .stdout(contains("DroppedKeywords: x86"))
