@@ -179,6 +179,7 @@ impl Iterator for Iter {
 
 #[cfg(test)]
 mod tests {
+    use pkgcraft::dep::Dep;
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
 
@@ -212,5 +213,10 @@ mod tests {
         let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
+
+        // non-matching restriction
+        let scanner = Scanner::new().jobs(1);
+        let dep = Dep::try_new("nonexistent/pkg").unwrap();
+        assert!(scanner.run(repo, [&dep]).next().is_none());
     }
 }

@@ -63,6 +63,15 @@ fn dep_restrict_targets() {
             .stderr("")
             .success();
     }
+
+    // nonexistent
+    cmd("pkgcruft scan -R simple")
+        .args(["--repo", repo_path.as_str()])
+        .arg("nonexistent/pkg")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
 }
 
 #[test]
