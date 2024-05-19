@@ -79,10 +79,10 @@ impl From<ReportLevel> for Color {
     Clone,
 )]
 pub enum VersionReport {
-    BannedEapi,
     DeprecatedDependency,
-    DeprecatedEapi,
     DroppedKeywords,
+    EapiBanned,
+    EapiDeprecated,
     InvalidDependencySet,
     MissingMetadata,
     MissingRevision,
@@ -107,10 +107,10 @@ impl VersionReport {
     fn level(&self) -> ReportLevel {
         use ReportLevel::*;
         match self {
-            Self::BannedEapi => Error,
             Self::DeprecatedDependency => Warning,
-            Self::DeprecatedEapi => Warning,
             Self::DroppedKeywords => Warning,
+            Self::EapiBanned => Error,
+            Self::EapiDeprecated => Warning,
             Self::InvalidDependencySet => Critical,
             Self::MissingMetadata => Critical,
             Self::MissingRevision => Warning,

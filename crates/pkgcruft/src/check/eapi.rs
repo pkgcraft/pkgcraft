@@ -3,7 +3,7 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report, ReportKind,
-    VersionReport::{BannedEapi, DeprecatedEapi},
+    VersionReport::{EapiBanned, EapiDeprecated},
 };
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -15,7 +15,7 @@ pub(crate) static CHECK: Check = Check {
     source: SourceKind::Ebuild,
     scope: Scope::Package,
     priority: 0,
-    reports: &[ReportKind::Version(BannedEapi), ReportKind::Version(DeprecatedEapi)],
+    reports: &[ReportKind::Version(EapiBanned), ReportKind::Version(EapiDeprecated)],
 };
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ impl<'a> CheckRun<&Pkg<'a>> for EapiCheck<'a> {
             .eapis_deprecated()
             .contains(pkg.eapi().as_ref())
         {
-            reports.push(DeprecatedEapi.report(pkg, pkg.eapi()));
+            reports.push(EapiDeprecated.report(pkg, pkg.eapi()));
         } else if self
             .repo
             .metadata()
@@ -46,7 +46,7 @@ impl<'a> CheckRun<&Pkg<'a>> for EapiCheck<'a> {
             .eapis_banned()
             .contains(pkg.eapi().as_ref())
         {
-            reports.push(BannedEapi.report(pkg, pkg.eapi()));
+            reports.push(EapiBanned.report(pkg, pkg.eapi()));
         }
     }
 }
