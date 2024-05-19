@@ -83,6 +83,7 @@ pub enum VersionReport {
     InvalidDependencySet,
     MissingMetadata,
     MissingRevision,
+    OverlappingKeywords,
     SourcingError,
     UnsortedKeywords,
 }
@@ -108,6 +109,7 @@ impl VersionReport {
             Self::InvalidDependencySet => Critical,
             Self::MissingMetadata => Critical,
             Self::MissingRevision => Warning,
+            Self::OverlappingKeywords => Warning,
             Self::SourcingError => Critical,
             Self::UnsortedKeywords => Style,
         }

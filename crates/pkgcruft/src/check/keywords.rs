@@ -1,6 +1,8 @@
 use itertools::Itertools;
+use pkgcraft::pkg::ebuild::keyword::Keyword;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{Report, ReportKind, VersionReport};
 use crate::scope::Scope;
@@ -13,7 +15,10 @@ pub(crate) static CHECK: Check = Check {
     source: SourceKind::Ebuild,
     scope: Scope::Package,
     priority: 0,
-    reports: &[ReportKind::Version(VersionReport::UnsortedKeywords)],
+    reports: &[
+        ReportKind::Version(VersionReport::OverlappingKeywords),
+        ReportKind::Version(VersionReport::UnsortedKeywords),
+    ],
 };
 
 #[derive(Debug)]
@@ -30,6 +35,24 @@ impl<'a> KeywordsCheck<'a> {
 impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         use VersionReport::*;
+
+        let overlapping: Vec<Vec<Keyword<_>>> = pkg
+            .keywords()
+            .iter()
+            .map(|k| (k.arch(), k.status()))
+            .collect::<OrderedMap<_, OrderedSet<_>>>()
+            .into_iter()
+            .filter(|(_, statuses)| statuses.len() > 1)
+            .map(|(arch, statuses)| statuses.into_iter().map(|s| (s, arch).into()).collect())
+            .collect();
+
+        if !overlapping.is_empty() {
+            let keywords = overlapping
+                .iter()
+                .map(|keywords| format!("({})", keywords.iter().join(", ")))
+                .join(", ");
+            reports.push(OverlappingKeywords.report(pkg, keywords));
+        }
 
         let mut sorted_keywords = pkg.keywords().clone();
         sorted_keywords.sort();
