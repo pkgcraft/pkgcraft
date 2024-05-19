@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
@@ -8,17 +9,14 @@ use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{PackageReport::UnstableOnly, Report, ReportKind};
 use crate::scope::Scope;
-use crate::source::SourceKind;
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
 
-pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::UnstableOnly),
-    source: SourceKind::Ebuild,
-    scope: Scope::Package,
-    priority: 0,
-    reports: &[ReportKind::Package(UnstableOnly)],
-};
+pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
+    Check::build(CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::UnstableOnly))
+        .scope(Scope::Package)
+        .reports([ReportKind::Package(UnstableOnly)])
+});
 
 #[derive(Debug)]
 pub(crate) struct UnstableOnlyCheck<'a> {
@@ -74,7 +72,7 @@ mod tests {
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK.as_ref());
-        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let scanner = Scanner::new().jobs(1).checks([&*CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction

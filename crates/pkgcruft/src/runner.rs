@@ -27,7 +27,7 @@ impl<'a> SyncCheckRunner<'a> {
     /// checks should be pre-sorted so the runners get inserted in their running order.
     pub(super) fn checks<I>(mut self, checks: I) -> Self
     where
-        I: IntoIterator<Item = Check>,
+        I: IntoIterator<Item = &'static Check>,
     {
         for check in checks {
             let source = check.source;
@@ -41,7 +41,7 @@ impl<'a> SyncCheckRunner<'a> {
                         CheckRunner::EbuildRawPkg(EbuildRawPkgCheckRunner::new(self.repo))
                     }
                 })
-                .add_check(&check);
+                .add_check(check);
         }
         self
     }
@@ -65,7 +65,7 @@ enum CheckRunner<'a> {
 
 impl CheckRunner<'_> {
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: &Check) {
+    fn add_check(&mut self, check: &'static Check) {
         match self {
             Self::EbuildPkg(r) => r.add_check(check),
             Self::EbuildRawPkg(r) => r.add_check(check),
@@ -101,7 +101,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: &Check) {
+    fn add_check(&mut self, check: &'static Check) {
         use CheckKind::*;
         match check.kind {
             EbuildPkg(k) => self.pkg_checks.push(k.to_check(self.repo)),
@@ -147,7 +147,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: &Check) {
+    fn add_check(&mut self, check: &'static Check) {
         use CheckKind::*;
         match check.kind {
             EbuildRawPkg(k) => self.pkg_checks.push(k.to_check(self.repo)),

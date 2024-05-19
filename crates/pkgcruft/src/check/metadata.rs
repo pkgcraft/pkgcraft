@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use pkgcraft::dep;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::metadata::Key;
@@ -10,22 +11,20 @@ use crate::report::{
     Report, ReportKind,
     VersionReport::{InvalidDependencySet, MissingMetadata, SourcingError},
 };
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{Check, CheckKind, CheckRun, EbuildRawPkgCheckKind};
 
-pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::EbuildRawPkg(EbuildRawPkgCheckKind::Metadata),
-    source: SourceKind::EbuildRaw,
-    scope: Scope::Version,
-    priority: -9999,
-    reports: &[
-        ReportKind::Version(InvalidDependencySet),
-        ReportKind::Version(MissingMetadata),
-        ReportKind::Version(SourcingError),
-    ],
-};
+pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
+    Check::build(CheckKind::EbuildRawPkg(EbuildRawPkgCheckKind::Metadata))
+        .source(SourceKind::EbuildRaw)
+        .priority(-9999)
+        .reports([
+            ReportKind::Version(InvalidDependencySet),
+            ReportKind::Version(MissingMetadata),
+            ReportKind::Version(SourcingError),
+        ])
+});
 
 #[derive(Debug)]
 pub(crate) struct MetadataCheck<'a> {

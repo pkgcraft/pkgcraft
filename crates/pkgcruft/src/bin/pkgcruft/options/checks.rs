@@ -61,7 +61,7 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(self) -> (IndexSet<Check>, IndexSet<ReportKind>) {
+    pub(crate) fn collapse(self) -> (IndexSet<&'static Check>, IndexSet<ReportKind>) {
         // determine enabled report set
         let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
@@ -85,7 +85,7 @@ impl Checks {
                     .get(s)
                     .unwrap_or_else(|| panic!("no checks for source variant: {s}"))
                     .into_iter()
-                    .flat_map(|x| x.reports)
+                    .flat_map(|x| &x.reports)
             }));
             default_reports = false;
         }
@@ -93,7 +93,7 @@ impl Checks {
         // enable reports related to checks
         if !self.checks.is_empty() {
             reports.extend(self.checks.iter().flat_map(|x| {
-                CHECKS
+                &CHECKS
                     .get(x)
                     .unwrap_or_else(|| panic!("no check: {x}"))
                     .reports

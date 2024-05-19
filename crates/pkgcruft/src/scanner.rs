@@ -15,7 +15,7 @@ use crate::runner::SyncCheckRunner;
 #[derive(Debug)]
 pub struct Scanner {
     jobs: usize,
-    checks: IndexSet<Check>,
+    checks: IndexSet<&'static Check>,
     reports: IndexSet<ReportKind>,
 }
 
@@ -45,7 +45,7 @@ impl Scanner {
     pub fn checks<I, T>(mut self, checks: I) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: Into<Check>,
+        T: Into<&'static Check>,
     {
         self.checks = checks.into_iter().map(Into::into).collect();
         self.checks.sort();

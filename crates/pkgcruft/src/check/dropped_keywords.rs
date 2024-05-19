@@ -2,23 +2,21 @@ use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{Report, ReportKind, VersionReport::DroppedKeywords};
 use crate::scope::Scope;
-use crate::source::SourceKind;
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
 
-pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::DroppedKeywords),
-    source: SourceKind::Ebuild,
-    scope: Scope::Package,
-    priority: 0,
-    reports: &[ReportKind::Version(DroppedKeywords)],
-};
+pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
+    Check::build(CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::DroppedKeywords))
+        .scope(Scope::Package)
+        .reports([ReportKind::Version(DroppedKeywords)])
+});
 
 #[derive(Debug)]
 pub(crate) struct DroppedKeywordsCheck<'a> {
@@ -110,7 +108,7 @@ mod tests {
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK.as_ref());
-        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let scanner = Scanner::new().jobs(1).checks([&*CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction

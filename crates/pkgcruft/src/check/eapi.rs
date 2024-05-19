@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 
@@ -5,18 +6,13 @@ use crate::report::{
     Report, ReportKind,
     VersionReport::{EapiBanned, EapiDeprecated},
 };
-use crate::scope::Scope;
-use crate::source::SourceKind;
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
 
-pub(crate) static CHECK: Check = Check {
-    kind: CheckKind::EbuildPkg(EbuildPkgCheckKind::Eapi),
-    source: SourceKind::Ebuild,
-    scope: Scope::Package,
-    priority: 0,
-    reports: &[ReportKind::Version(EapiBanned), ReportKind::Version(EapiDeprecated)],
-};
+pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
+    Check::build(CheckKind::EbuildPkg(EbuildPkgCheckKind::Eapi))
+        .reports([ReportKind::Version(EapiBanned), ReportKind::Version(EapiDeprecated)])
+});
 
 #[derive(Debug)]
 pub(crate) struct EapiCheck<'a> {
@@ -65,7 +61,7 @@ mod tests {
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK.as_ref());
-        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let scanner = Scanner::new().jobs(1).checks([&*CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction
