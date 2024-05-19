@@ -1,5 +1,6 @@
 use std::env;
 
+use assert_cmd::Command;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
 use pkgcraft::utils::current_dir;
@@ -7,6 +8,20 @@ use pkgcruft::report::Report;
 use pkgcruft::test::glob_reports;
 use predicates::prelude::*;
 use predicates::str::contains;
+
+trait IntoReports {
+    fn to_reports(&mut self) -> Vec<Report>;
+}
+
+impl IntoReports for Command {
+    fn to_reports(&mut self) -> Vec<Report> {
+        let output = self.output().unwrap().stdout;
+        let data = String::from_utf8(output).unwrap();
+        data.lines()
+            .map(|s| Report::from_json(s).unwrap())
+            .collect()
+    }
+}
 
 #[test]
 fn stdin_targets() {
@@ -67,34 +82,19 @@ fn current_dir_targets() {
     // repo dir
     env::set_current_dir(repo.path()).unwrap();
     let expected = glob_reports!("{repo_path}/**/reports.json");
-    let output = cmd("pkgcruft scan -j1 -R json").output().unwrap().stdout;
-    let data = String::from_utf8(output).unwrap();
-    let reports: Vec<_> = data
-        .lines()
-        .map(|s| Report::from_json(s).unwrap())
-        .collect();
+    let reports = cmd("pkgcruft scan -j1 -R json").to_reports();
     assert_eq!(&expected, &reports);
 
     // category dir
     env::set_current_dir(repo.path().join("Dependency")).unwrap();
     let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-    let output = cmd("pkgcruft scan -j1 -R json").output().unwrap().stdout;
-    let data = String::from_utf8(output).unwrap();
-    let reports: Vec<_> = data
-        .lines()
-        .map(|s| Report::from_json(s).unwrap())
-        .collect();
+    let reports = cmd("pkgcruft scan -j1 -R json").to_reports();
     assert_eq!(&expected, &reports);
 
     // package dir
     env::set_current_dir(repo.path().join("Dependency/DeprecatedDependency")).unwrap();
     let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
-    let output = cmd("pkgcruft scan -j1 -R json").output().unwrap().stdout;
-    let data = String::from_utf8(output).unwrap();
-    let reports: Vec<_> = data
-        .lines()
-        .map(|s| Report::from_json(s).unwrap())
-        .collect();
+    let reports = cmd("pkgcruft scan -j1 -R json").to_reports();
     assert_eq!(&expected, &reports);
 }
 
@@ -121,44 +121,23 @@ fn path_targets() {
 
     // repo dir
     let expected = glob_reports!("{repo_path}/**/reports.json");
-    let output = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -j1 -R json")
         .arg(repo.path())
-        .output()
-        .unwrap()
-        .stdout;
-    let data = String::from_utf8(output).unwrap();
-    let reports: Vec<_> = data
-        .lines()
-        .map(|s| Report::from_json(s).unwrap())
-        .collect();
+        .to_reports();
     assert_eq!(&expected, &reports);
 
     // category dir
     let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-    let output = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -j1 -R json")
         .arg(repo.path().join("Dependency"))
-        .output()
-        .unwrap()
-        .stdout;
-    let data = String::from_utf8(output).unwrap();
-    let reports: Vec<_> = data
-        .lines()
-        .map(|s| Report::from_json(s).unwrap())
-        .collect();
+        .to_reports();
     assert_eq!(&expected, &reports);
 
     // package dir
     let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
-    let output = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -j1 -R json")
         .arg(repo.path().join("Dependency/DeprecatedDependency"))
-        .output()
-        .unwrap()
-        .stdout;
-    let data = String::from_utf8(output).unwrap();
-    let reports: Vec<_> = data
-        .lines()
-        .map(|s| Report::from_json(s).unwrap())
-        .collect();
+        .to_reports();
     assert_eq!(&expected, &reports);
 }
 
@@ -170,46 +149,25 @@ fn repo() {
     env::set_current_dir(repo.path()).unwrap();
     for path in [".", "./", repo_path.as_str()] {
         // implicit target
-        let output = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -j1 -R json")
             .args(["--repo", path])
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let reports: Vec<_> = data
-            .lines()
-            .map(|s| Report::from_json(s).unwrap())
-            .collect();
+            .to_reports();
         let expected = glob_reports!("{repo_path}/**/reports.json");
         assert_eq!(&expected, &reports);
 
         // category target
-        let output = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -j1 -R json")
             .args(["--repo", path])
             .arg("Dependency/*")
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let reports: Vec<_> = data
-            .lines()
-            .map(|s| Report::from_json(s).unwrap())
-            .collect();
+            .to_reports();
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         assert_eq!(&expected, &reports);
 
         // pkg target
-        let output = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -j1 -R json")
             .args(["--repo", path])
             .arg("DeprecatedDependency")
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let reports: Vec<_> = data
-            .lines()
-            .map(|s| Report::from_json(s).unwrap())
-            .collect();
+            .to_reports();
         let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
         assert_eq!(&expected, &reports);
     }
@@ -217,16 +175,9 @@ fn repo() {
     // implicit target set to all packages when targeting a repo
     let qa_overlay = TEST_DATA.ebuild_repo("qa-secondary").unwrap();
     env::set_current_dir(qa_overlay.path()).unwrap();
-    let output = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -j1 -R json")
         .args(["--repo", repo_path.as_str()])
-        .output()
-        .unwrap()
-        .stdout;
-    let data = String::from_utf8(output).unwrap();
-    let reports: Vec<_> = data
-        .lines()
-        .map(|s| Report::from_json(s).unwrap())
-        .collect();
+        .to_reports();
     let expected = glob_reports!("{repo_path}/**/reports.json");
     assert_eq!(&expected, &reports);
 }
@@ -281,17 +232,10 @@ fn checks() {
     let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
 
     for opt in ["-c", "--checks"] {
-        let output = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "Dependency"])
             .arg(repo.path())
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let reports: Vec<_> = data
-            .lines()
-            .map(|s| Report::from_json(s).unwrap())
-            .collect();
+            .to_reports();
         assert_eq!(&expected, &reports);
     }
 }
@@ -303,17 +247,10 @@ fn reports() {
     let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
 
     for opt in ["-r", "--reports"] {
-        let output = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "DeprecatedDependency"])
             .arg(repo.path())
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let reports: Vec<_> = data
-            .lines()
-            .map(|s| Report::from_json(s).unwrap())
-            .collect();
+            .to_reports();
         assert_eq!(&expected, &reports);
     }
 }
