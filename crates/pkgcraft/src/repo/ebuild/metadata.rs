@@ -63,6 +63,8 @@ impl Ini {
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Config {
     cache_formats: OrderedSet<CacheFormat>,
+    eapis_banned: OrderedSet<String>,
+    eapis_deprecated: OrderedSet<String>,
     manifest_hashes: OrderedSet<HashType>,
     manifest_required_hashes: OrderedSet<HashType>,
     masters: OrderedSet<String>,
@@ -88,6 +90,8 @@ impl Config {
 
         Ok(Self {
             cache_formats: ordered_set!(ini, "cache-formats")?,
+            eapis_banned: ordered_set!(ini, "eapis-banned")?,
+            eapis_deprecated: ordered_set!(ini, "eapis-deprecated")?,
             manifest_hashes: ordered_set!(ini, "manifest-hashes")?,
             manifest_required_hashes: ordered_set!(ini, "manifest-required-hashes")?,
             masters: ordered_set!(ini, "masters")?,
@@ -99,6 +103,16 @@ impl Config {
     /// Return the ordered set of metadata cache types.
     pub fn cache_formats(&self) -> &OrderedSet<CacheFormat> {
         &self.cache_formats
+    }
+
+    /// Return the ordered set of banned EAPIs.
+    pub fn eapis_banned(&self) -> &OrderedSet<String> {
+        &self.eapis_banned
+    }
+
+    /// Return the ordered set of deprecated EAPIs.
+    pub fn eapis_deprecated(&self) -> &OrderedSet<String> {
+        &self.eapis_deprecated
     }
 
     /// Return the ordered set of hash types that must be used for Manifest entries.
