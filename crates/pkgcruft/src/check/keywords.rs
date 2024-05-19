@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::keyword::Keyword;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
@@ -36,15 +35,15 @@ impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         use VersionReport::*;
 
-        let overlapping: Vec<Vec<Keyword<_>>> = pkg
+        let keywords_map = pkg
             .keywords()
             .iter()
-            .map(|k| (k.arch(), k.status()))
-            .collect::<OrderedMap<_, OrderedSet<_>>>()
-            .into_iter()
-            .filter(|(_, statuses)| statuses.len() > 1)
-            .map(|(arch, statuses)| statuses.into_iter().map(|s| (s, arch).into()).collect())
-            .collect();
+            .map(|k| (k.arch(), k))
+            .collect::<OrderedMap<_, OrderedSet<_>>>();
+        let overlapping = keywords_map
+            .values()
+            .filter(|keywords| keywords.len() > 1)
+            .collect::<Vec<_>>();
 
         if !overlapping.is_empty() {
             let keywords = overlapping

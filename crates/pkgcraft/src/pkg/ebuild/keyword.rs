@@ -19,15 +19,6 @@ pub struct Keyword<S: Stringable> {
     pub(crate) arch: S,
 }
 
-impl<S: Stringable> From<(KeywordStatus, S)> for Keyword<S> {
-    fn from(values: (KeywordStatus, S)) -> Self {
-        Self {
-            status: values.0,
-            arch: values.1,
-        }
-    }
-}
-
 impl IntoOwned for Keyword<&str> {
     type Owned = Keyword<String>;
 
