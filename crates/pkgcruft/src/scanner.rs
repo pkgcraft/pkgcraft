@@ -184,7 +184,7 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
 
     use crate::check::{CheckKind, EbuildPkgCheckKind};
-    use crate::report::{ReportKind, VersionReport};
+    use crate::report::ReportKind;
     use crate::test::glob_reports;
 
     use super::*;
@@ -208,8 +208,9 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // specific reports
-        let report = ReportKind::Version(VersionReport::DeprecatedDependency);
-        let scanner = Scanner::new().jobs(1).reports([report]);
+        let scanner = Scanner::new()
+            .jobs(1)
+            .reports([ReportKind::DeprecatedDependency]);
         let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

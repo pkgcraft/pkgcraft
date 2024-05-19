@@ -8,15 +8,15 @@ use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
-    Report, ReportKind,
-    VersionReport::{DeprecatedDependency, MissingRevision},
+    Report,
+    ReportKind::{DeprecatedDependency, MissingRevision},
 };
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
     Check::build(CheckKind::EbuildPkg(EbuildPkgCheckKind::Dependency))
-        .reports([ReportKind::Version(DeprecatedDependency), ReportKind::Version(MissingRevision)])
+        .reports([DeprecatedDependency, MissingRevision])
 });
 
 #[derive(Debug)]
@@ -42,13 +42,13 @@ impl<'a> CheckRun<&Pkg<'a>> for DependencyCheck<'a> {
                 }
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
-                    reports.push(MissingRevision.report(pkg, format!("{key}: {dep}")));
+                    reports.push(MissingRevision.version(pkg, format!("{key}: {dep}")));
                 }
             }
 
             if !deprecated.is_empty() {
                 let msg = format!("{key}: {}", deprecated.iter().sorted().join(", "));
-                reports.push(DeprecatedDependency.report(pkg, msg));
+                reports.push(DeprecatedDependency.version(pkg, msg));
             }
         }
     }

@@ -8,8 +8,8 @@ use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
-    Report, ReportKind,
-    VersionReport::{InvalidDependencySet, MissingMetadata, SourcingError},
+    Report,
+    ReportKind::{InvalidDependencySet, MissingMetadata, SourcingError},
 };
 use crate::source::SourceKind;
 
@@ -19,11 +19,7 @@ pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
     Check::build(CheckKind::EbuildRawPkg(EbuildRawPkgCheckKind::Metadata))
         .source(SourceKind::EbuildRaw)
         .priority(-9999)
-        .reports([
-            ReportKind::Version(InvalidDependencySet),
-            ReportKind::Version(MissingMetadata),
-            ReportKind::Version(SourcingError),
-        ])
+        .reports([InvalidDependencySet, MissingMetadata, SourcingError])
 });
 
 #[derive(Debug)]
@@ -52,7 +48,7 @@ impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'a> {
                     .collect();
 
                 if !missing.is_empty() {
-                    reports.push(MissingMetadata.report(pkg, missing.iter().join(", ")));
+                    reports.push(MissingMetadata.version(pkg, missing.iter().join(", ")));
                 }
 
                 // verify depset parsing
@@ -61,7 +57,7 @@ impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'a> {
                     if let Some(val) = raw.get(key) {
                         if let Err(e) = dep::parse::package_dependency_set(val, eapi) {
                             let msg = format!("{key}: {e}");
-                            reports.push(InvalidDependencySet.report(pkg, msg));
+                            reports.push(InvalidDependencySet.version(pkg, msg));
                         }
                     }
                 }
@@ -69,33 +65,33 @@ impl<'a> CheckRun<&Pkg<'a>> for MetadataCheck<'a> {
                 if let Some(val) = raw.get(&Key::LICENSE) {
                     if let Err(e) = dep::parse::license_dependency_set(val) {
                         let msg = format!("{}: {e}", Key::LICENSE);
-                        reports.push(InvalidDependencySet.report(pkg, msg));
+                        reports.push(InvalidDependencySet.version(pkg, msg));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::PROPERTIES) {
                     if let Err(e) = dep::parse::properties_dependency_set(val) {
                         let msg = format!("{}: {e}", Key::PROPERTIES);
-                        reports.push(InvalidDependencySet.report(pkg, msg));
+                        reports.push(InvalidDependencySet.version(pkg, msg));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::REQUIRED_USE) {
                     if let Err(e) = dep::parse::required_use_dependency_set(val, eapi) {
                         let msg = format!("{}: {e}", Key::REQUIRED_USE);
-                        reports.push(InvalidDependencySet.report(pkg, msg));
+                        reports.push(InvalidDependencySet.version(pkg, msg));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::RESTRICT) {
                     if let Err(e) = dep::parse::restrict_dependency_set(val) {
                         let msg = format!("{}: {e}", Key::RESTRICT);
-                        reports.push(InvalidDependencySet.report(pkg, msg));
+                        reports.push(InvalidDependencySet.version(pkg, msg));
                     }
                 }
             }
             Err(InvalidPkg { id: _, err }) => {
-                reports.push(SourcingError.report(pkg, err));
+                reports.push(SourcingError.version(pkg, err));
             }
             // no other pkgcraft error types should occur
             Err(e) => panic!("MetadataCheck failed: {e}"),

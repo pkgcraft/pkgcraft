@@ -7,7 +7,7 @@ use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{Report, ReportKind, VersionReport::DroppedKeywords};
+use crate::report::{Report, ReportKind::DroppedKeywords};
 use crate::scope::Scope;
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
@@ -15,7 +15,7 @@ use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
     Check::build(CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::DroppedKeywords))
         .scope(Scope::Package)
-        .reports([ReportKind::Version(DroppedKeywords)])
+        .reports([DroppedKeywords])
 });
 
 #[derive(Debug)]
@@ -89,7 +89,7 @@ impl<'a> CheckRun<&[Pkg<'a>]> for DroppedKeywordsCheck<'a> {
 
         for (pkg, arches) in &dropped {
             let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            reports.push(DroppedKeywords.report(pkg, arches));
+            reports.push(DroppedKeywords.version(pkg, arches));
         }
     }
 }

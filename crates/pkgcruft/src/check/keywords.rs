@@ -5,15 +5,15 @@ use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{
-    Report, ReportKind,
-    VersionReport::{OverlappingKeywords, UnsortedKeywords},
+    Report,
+    ReportKind::{OverlappingKeywords, UnsortedKeywords},
 };
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
     Check::build(CheckKind::EbuildPkg(EbuildPkgCheckKind::Keywords))
-        .reports([ReportKind::Version(OverlappingKeywords), ReportKind::Version(UnsortedKeywords)])
+        .reports([OverlappingKeywords, UnsortedKeywords])
 });
 
 #[derive(Debug)]
@@ -44,7 +44,7 @@ impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
                 .iter()
                 .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
-            reports.push(OverlappingKeywords.report(pkg, keywords));
+            reports.push(OverlappingKeywords.version(pkg, keywords));
         }
 
         // ignore overlapping keywords when checking order
@@ -55,7 +55,7 @@ impl<'a> CheckRun<&Pkg<'a>> for KeywordsCheck<'a> {
 
         if sorted_keywords != flattened_keywords {
             let keywords = pkg.keywords().iter().join(" ");
-            reports.push(UnsortedKeywords.report(pkg, keywords));
+            reports.push(UnsortedKeywords.version(pkg, keywords));
         }
     }
 }

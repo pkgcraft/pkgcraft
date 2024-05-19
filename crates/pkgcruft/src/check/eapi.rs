@@ -3,15 +3,15 @@ use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
-    Report, ReportKind,
-    VersionReport::{EapiBanned, EapiDeprecated},
+    Report,
+    ReportKind::{EapiBanned, EapiDeprecated},
 };
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgCheckKind};
 
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
     Check::build(CheckKind::EbuildPkg(EbuildPkgCheckKind::Eapi))
-        .reports([ReportKind::Version(EapiBanned), ReportKind::Version(EapiDeprecated)])
+        .reports([EapiBanned, EapiDeprecated])
 });
 
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl<'a> CheckRun<&Pkg<'a>> for EapiCheck<'a> {
             .eapis_deprecated()
             .contains(pkg.eapi().as_ref())
         {
-            reports.push(EapiDeprecated.report(pkg, pkg.eapi()));
+            reports.push(EapiDeprecated.version(pkg, pkg.eapi()));
         } else if self
             .repo
             .metadata()
@@ -42,7 +42,7 @@ impl<'a> CheckRun<&Pkg<'a>> for EapiCheck<'a> {
             .eapis_banned()
             .contains(pkg.eapi().as_ref())
         {
-            reports.push(EapiBanned.report(pkg, pkg.eapi()));
+            reports.push(EapiBanned.version(pkg, pkg.eapi()));
         }
     }
 }

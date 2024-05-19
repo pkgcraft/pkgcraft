@@ -97,10 +97,10 @@ fn file_targets() {
 #[test]
 fn checks() {
     let reports = indoc::indoc! {r#"
-        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
-        {"scope":{"Version":"x11-wm/mutter-45.1"},"kind":{"Version":"DroppedKeywords"},"description":"ppc64"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"description":"x86"}
+        {"kind":"DroppedKeywords","scope":{"Version":"x11-wm/mutter-45.1"},"description":"ppc64"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
@@ -142,9 +142,9 @@ fn checks() {
 #[test]
 fn levels() {
     let reports = indoc::indoc! {r#"
-        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"description":"x86"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
@@ -186,9 +186,9 @@ fn levels() {
 #[test]
 fn reports() {
     let reports = indoc::indoc! {r#"
-        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"description":"x86"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
@@ -240,9 +240,9 @@ fn reports() {
 #[test]
 fn pkgs() {
     let reports = indoc::indoc! {r#"
-        {"scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"kind":{"Version":"DroppedKeywords"},"description":"alpha, hppa, ia64, m68k, ppc"}
-        {"scope":{"Version":"x11-wm/mutter-45.1"},"kind":{"Version":"DroppedKeywords"},"description":"ppc64"}
-        {"scope":{"Package":"x11-wm/mutter"},"kind":{"Package":"UnstableOnly"},"description":"arm, ppc64"}
+        {"kind":"DroppedKeywords","scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"description":"alpha, hppa, ia64, m68k, ppc"}
+        {"kind":"DroppedKeywords","scope":{"Version":"x11-wm/mutter-45.1"},"description":"ppc64"}
+        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/mutter"},"description":"arm, ppc64"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
@@ -281,9 +281,9 @@ fn pkgs() {
 fn sort() {
     // serialized reports in reversed sorting order
     let reports = indoc::indoc! {r#"
-        {"scope":{"Package":"x11-wm/qtile"},"kind":{"Package":"UnstableOnly"},"description":"x86"}
-        {"scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"kind":{"Version":"DeprecatedDependency"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"description":"x86"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"description":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"description":"BDEPEND: media-sound/pulseaudio"}
     "#};
     let mut expected: Vec<_> = reports.lines().collect();
     expected.reverse();

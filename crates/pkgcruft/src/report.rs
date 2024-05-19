@@ -1,11 +1,8 @@
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
-use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader};
-use std::str::FromStr;
 
 use camino::Utf8Path;
 use colored::Color;
@@ -20,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::check::{Check, CHECKS};
+use crate::scope::Scope;
 use crate::Error;
 
 /// The severity of the report.
@@ -61,7 +59,7 @@ impl From<ReportLevel> for Color {
     }
 }
 
-/// Report variants that relate to ebuild packages.
+/// Report variants.
 #[derive(
     Serialize,
     Deserialize,
@@ -78,7 +76,7 @@ impl From<ReportLevel> for Color {
     Copy,
     Clone,
 )]
-pub enum VersionReport {
+pub enum ReportKind {
     DeprecatedDependency,
     DroppedKeywords,
     EapiBanned,
@@ -89,22 +87,55 @@ pub enum VersionReport {
     OverlappingKeywords,
     SourcingError,
     UnsortedKeywords,
+    UnstableOnly,
 }
 
-impl VersionReport {
-    pub(crate) fn report<P, S>(self, pkg: P, description: S) -> Report
+impl ReportKind {
+    /// Create a version scope report.
+    pub(crate) fn version<P, S>(self, pkg: P, description: S) -> Report
     where
         P: Package,
         S: fmt::Display,
     {
         Report {
+            kind: self,
             scope: ReportScope::Version(pkg.cpv().clone()),
-            kind: ReportKind::Version(self),
             description: description.to_string(),
         }
     }
 
-    fn level(&self) -> ReportLevel {
+    /// Create a package scope report.
+    pub(crate) fn package<P, S>(self, pkgs: &[P], description: S) -> Report
+    where
+        P: Package,
+        S: fmt::Display,
+    {
+        Report {
+            kind: self,
+            scope: ReportScope::Package(pkgs[0].cpn().clone()),
+            description: description.to_string(),
+        }
+    }
+
+    /// Return the scope of the report variant.
+    pub fn scope(&self) -> Scope {
+        match self {
+            Self::DeprecatedDependency => Scope::Version,
+            Self::DroppedKeywords => Scope::Version,
+            Self::EapiBanned => Scope::Version,
+            Self::EapiDeprecated => Scope::Version,
+            Self::InvalidDependencySet => Scope::Version,
+            Self::MissingMetadata => Scope::Version,
+            Self::MissingRevision => Scope::Version,
+            Self::OverlappingKeywords => Scope::Version,
+            Self::SourcingError => Scope::Version,
+            Self::UnsortedKeywords => Scope::Version,
+            Self::UnstableOnly => Scope::Package,
+        }
+    }
+
+    /// Return the severity level of the report variant.
+    pub fn level(&self) -> ReportLevel {
         use ReportLevel::*;
         match self {
             Self::DeprecatedDependency => Warning,
@@ -117,127 +148,8 @@ impl VersionReport {
             Self::OverlappingKeywords => Warning,
             Self::SourcingError => Critical,
             Self::UnsortedKeywords => Style,
-        }
-    }
-}
-
-/// Report variants that relate to ebuild package sets.
-#[derive(
-    Serialize,
-    Deserialize,
-    AsRefStr,
-    Display,
-    EnumIter,
-    EnumString,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Copy,
-    Clone,
-)]
-pub enum PackageReport {
-    UnstableOnly,
-}
-
-impl PackageReport {
-    pub(crate) fn report<P, S>(self, pkgs: &[P], description: S) -> Report
-    where
-        P: Package,
-        S: fmt::Display,
-    {
-        Report {
-            scope: ReportScope::Package(pkgs[0].cpn().clone()),
-            kind: ReportKind::Package(self),
-            description: description.to_string(),
-        }
-    }
-
-    fn level(&self) -> ReportLevel {
-        use ReportLevel::*;
-        match self {
             Self::UnstableOnly => Info,
         }
-    }
-}
-
-/// All report variants separated by scope.
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub enum ReportKind {
-    Version(VersionReport),
-    Package(PackageReport),
-}
-
-impl ReportKind {
-    /// The severity of the report variant.
-    pub fn level(&self) -> ReportLevel {
-        match self {
-            Self::Version(k) => k.level(),
-            Self::Package(k) => k.level(),
-        }
-    }
-}
-
-impl FromStr for ReportKind {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        REPORTS
-            .get(s)
-            .ok_or_else(|| Error::InvalidValue(format!("invalid report variant: {s}")))
-            .copied()
-    }
-}
-
-impl fmt::Display for ReportKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Version(k) => write!(f, "{k}"),
-            Self::Package(k) => write!(f, "{k}"),
-        }
-    }
-}
-
-impl AsRef<str> for ReportKind {
-    fn as_ref(&self) -> &str {
-        match self {
-            Self::Version(r) => r.as_ref(),
-            Self::Package(r) => r.as_ref(),
-        }
-    }
-}
-
-impl PartialEq for ReportKind {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_ref() == other.as_ref()
-    }
-}
-
-impl Eq for ReportKind {}
-
-impl Hash for ReportKind {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_ref().hash(state)
-    }
-}
-
-impl Borrow<str> for ReportKind {
-    fn borrow(&self) -> &str {
-        self.as_ref()
-    }
-}
-
-impl Ord for ReportKind {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for ReportKind {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -258,20 +170,20 @@ impl fmt::Display for ReportScope {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Report {
-    scope: ReportScope,
     kind: ReportKind,
+    scope: ReportScope,
     description: String,
 }
 
 impl Report {
-    /// The scope the report relates to, e.g. a specific package version or package name.
-    pub fn scope(&self) -> &ReportScope {
-        &self.scope
-    }
-
     /// The report variant.
     pub fn kind(&self) -> &ReportKind {
         &self.kind
+    }
+
+    /// The scope the report relates to, e.g. a specific package version or package name.
+    pub fn scope(&self) -> &ReportScope {
+        &self.scope
     }
 
     /// The description of the report.

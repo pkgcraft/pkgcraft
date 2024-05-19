@@ -7,7 +7,7 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{PackageReport::UnstableOnly, Report, ReportKind};
+use crate::report::{Report, ReportKind::UnstableOnly};
 use crate::scope::Scope;
 
 use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
@@ -15,7 +15,7 @@ use super::{Check, CheckKind, CheckRun, EbuildPkgSetCheckKind};
 pub(super) static CHECK: Lazy<Check> = Lazy::new(|| {
     Check::build(CheckKind::EbuildPkgSet(EbuildPkgSetCheckKind::UnstableOnly))
         .scope(Scope::Package)
-        .reports([ReportKind::Package(UnstableOnly)])
+        .reports([UnstableOnly])
 });
 
 #[derive(Debug)]
@@ -52,7 +52,7 @@ impl<'a> CheckRun<&[Pkg<'a>]> for UnstableOnlyCheck<'a> {
 
         if !arches.is_empty() {
             let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            reports.push(UnstableOnly.report(pkgs, arches));
+            reports.push(UnstableOnly.package(pkgs, arches));
         }
     }
 }
