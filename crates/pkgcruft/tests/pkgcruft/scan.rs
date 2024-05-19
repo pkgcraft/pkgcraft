@@ -213,6 +213,22 @@ fn repo() {
         let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
         assert_eq!(&expected, &reports);
     }
+
+    // implicit target set to all packages when targeting a repo
+    let qa_overlay = TEST_DATA.ebuild_repo("qa-secondary").unwrap();
+    env::set_current_dir(qa_overlay.path()).unwrap();
+    let output = cmd("pkgcruft scan -j1 -R json")
+        .args(["--repo", repo_path.as_str()])
+        .output()
+        .unwrap()
+        .stdout;
+    let data = String::from_utf8(output).unwrap();
+    let reports: Vec<_> = data
+        .lines()
+        .map(|s| Report::from_json(s).unwrap())
+        .collect();
+    let expected = glob_reports!("{repo_path}/**/reports.json");
+    assert_eq!(&expected, &reports);
 }
 
 #[test]
