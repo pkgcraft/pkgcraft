@@ -51,7 +51,7 @@ impl Command {
         let (checks, reports) = self.checks.collapse();
 
         // determine reporter
-        let mut reporter = self.reporter.collapse()?;
+        let mut reporter = self.reporter.collapse();
 
         // determine target restrictions
         let targets = TargetRestrictions::new(config)

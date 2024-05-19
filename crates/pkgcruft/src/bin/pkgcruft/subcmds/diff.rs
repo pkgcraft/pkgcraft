@@ -93,7 +93,7 @@ impl Command {
 
         // TODO: output context for reports from the first file vs the second file
         let mut stdout = io::stdout().lock();
-        let mut reporter = self.options.reporter.collapse()?;
+        let mut reporter = self.options.reporter.collapse();
         for report in reports {
             reporter.report(report, &mut stdout)?;
         }
