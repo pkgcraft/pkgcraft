@@ -10,12 +10,11 @@ pub(crate) struct ReporterOptions {
     #[arg(
         short = 'R',
         long,
-        default_value = "fancy",
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(Reporter::VARIANTS)
             .map(|s| s.parse::<Reporter>().unwrap()),
     )]
-    reporter: Reporter,
+    reporter: Option<Reporter>,
 
     /// Format string for the format reporter
     #[arg(long, required_if_eq("reporter", "format"))]
@@ -23,11 +22,13 @@ pub(crate) struct ReporterOptions {
 }
 
 impl ReporterOptions {
-    pub(crate) fn collapse(mut self) -> Reporter {
-        if let Reporter::Format(r) = &mut self.reporter {
+    pub(crate) fn collapse(self) -> Reporter {
+        let mut reporter = self.reporter.unwrap_or_default();
+
+        if let Reporter::Format(r) = &mut reporter {
             r.format = self.format.unwrap_or_default();
         }
 
-        self.reporter
+        reporter
     }
 }
