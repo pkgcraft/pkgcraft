@@ -18,6 +18,7 @@ use crate::Error;
 
 pub mod dependency;
 pub mod dropped_keywords;
+pub mod eapi;
 pub mod keywords;
 pub mod metadata;
 pub mod unstable_only;
@@ -28,6 +29,7 @@ pub mod unstable_only;
 )]
 pub enum EbuildPkgCheckKind {
     Dependency,
+    Eapi,
     Keywords,
 }
 
@@ -35,6 +37,7 @@ impl EbuildPkgCheckKind {
     pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgCheck {
         match self {
             Self::Dependency => EbuildPkgCheck::Dependency(dependency::DependencyCheck::new(repo)),
+            Self::Eapi => EbuildPkgCheck::Eapi(eapi::EapiCheck::new(repo)),
             Self::Keywords => EbuildPkgCheck::Keywords(keywords::KeywordsCheck::new(repo)),
         }
     }
@@ -152,6 +155,7 @@ impl PartialOrd for CheckKind {
 #[derive(Debug)]
 pub(crate) enum EbuildPkgCheck<'a> {
     Dependency(dependency::DependencyCheck<'a>),
+    Eapi(eapi::EapiCheck<'a>),
     Keywords(keywords::KeywordsCheck<'a>),
 }
 
@@ -159,6 +163,7 @@ impl<'a> CheckRun<&ebuild::Pkg<'a>> for EbuildPkgCheck<'a> {
     fn run(&self, pkg: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) {
         match self {
             Self::Dependency(c) => c.run(pkg, reports),
+            Self::Eapi(c) => c.run(pkg, reports),
             Self::Keywords(c) => c.run(pkg, reports),
         }
     }
@@ -297,6 +302,7 @@ pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
     [
         dependency::CHECK,
         dropped_keywords::CHECK,
+        eapi::CHECK,
         keywords::CHECK,
         metadata::CHECK,
         unstable_only::CHECK,
