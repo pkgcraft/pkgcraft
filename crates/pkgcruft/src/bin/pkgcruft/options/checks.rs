@@ -85,7 +85,7 @@ impl Checks {
                     .get(s)
                     .unwrap_or_else(|| panic!("no checks for source variant: {s}"))
                     .into_iter()
-                    .flat_map(|x| x.reports())
+                    .flat_map(|x| x.reports)
             }));
             default_reports = false;
         }
@@ -96,7 +96,7 @@ impl Checks {
                 CHECKS
                     .get(x)
                     .unwrap_or_else(|| panic!("no check: {x}"))
-                    .reports()
+                    .reports
             }));
             default_reports = false;
         }

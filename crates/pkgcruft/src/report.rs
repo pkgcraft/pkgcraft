@@ -418,7 +418,7 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 
 /// The ordered set of all report variants.
 pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
-    let mut reports: IndexSet<_> = CHECKS.iter().flat_map(|c| c.reports()).copied().collect();
+    let mut reports: IndexSet<_> = CHECKS.iter().flat_map(|c| c.reports).copied().collect();
     reports.sort();
     reports
 });
@@ -427,7 +427,7 @@ pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
 pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::new(|| {
     let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS
         .iter()
-        .flat_map(|c| c.reports().iter().copied().map(|r| (r, *c)))
+        .flat_map(|c| c.reports.iter().copied().map(|r| (r, *c)))
         .collect();
     map.sort_keys();
     map

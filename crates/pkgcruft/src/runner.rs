@@ -30,7 +30,7 @@ impl<'a> SyncCheckRunner<'a> {
         I: IntoIterator<Item = Check>,
     {
         for check in checks {
-            let source = check.source();
+            let source = check.source;
             self.runners
                 .entry(source)
                 .or_insert_with(|| match source {
@@ -103,7 +103,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: &Check) {
         use CheckKind::*;
-        match check.kind() {
+        match check.kind {
             EbuildPkg(k) => self.pkg_checks.push(k.to_check(self.repo)),
             EbuildPkgSet(k) => self.pkg_set_checks.push(k.to_check(self.repo)),
             _ => panic!("{check} invalid for ebuild pkg check runner"),
@@ -149,7 +149,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: &Check) {
         use CheckKind::*;
-        match check.kind() {
+        match check.kind {
             EbuildRawPkg(k) => self.pkg_checks.push(k.to_check(self.repo)),
             _ => panic!("{check} invalid for ebuild raw pkg check runner"),
         }
