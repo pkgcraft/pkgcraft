@@ -9,11 +9,11 @@ use pkgcruft::test::glob_reports;
 use predicates::prelude::*;
 use predicates::str::contains;
 
-trait IntoReports {
+trait ToReports {
     fn to_reports(&mut self) -> Vec<Report>;
 }
 
-impl IntoReports for Command {
+impl ToReports for Command {
     fn to_reports(&mut self) -> Vec<Report> {
         let output = self.output().unwrap().stdout;
         let data = String::from_utf8(output).unwrap();
