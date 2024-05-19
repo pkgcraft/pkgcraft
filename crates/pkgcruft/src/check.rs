@@ -18,6 +18,7 @@ use crate::Error;
 
 pub mod dependency;
 pub mod dropped_keywords;
+pub mod keywords;
 pub mod metadata;
 pub mod unstable_only;
 
@@ -27,12 +28,14 @@ pub mod unstable_only;
 )]
 pub enum EbuildPkgCheckKind {
     Dependency,
+    Keywords,
 }
 
 impl EbuildPkgCheckKind {
     pub(crate) fn to_check(self, repo: &Repo) -> EbuildPkgCheck {
         match self {
             Self::Dependency => EbuildPkgCheck::Dependency(dependency::DependencyCheck::new(repo)),
+            Self::Keywords => EbuildPkgCheck::Keywords(keywords::KeywordsCheck::new(repo)),
         }
     }
 }
@@ -149,12 +152,14 @@ impl PartialOrd for CheckKind {
 #[derive(Debug)]
 pub(crate) enum EbuildPkgCheck<'a> {
     Dependency(dependency::DependencyCheck<'a>),
+    Keywords(keywords::KeywordsCheck<'a>),
 }
 
 impl<'a> CheckRun<&ebuild::Pkg<'a>> for EbuildPkgCheck<'a> {
     fn run(&self, pkg: &ebuild::Pkg<'a>, reports: &mut Vec<Report>) {
         match self {
             Self::Dependency(c) => c.run(pkg, reports),
+            Self::Keywords(c) => c.run(pkg, reports),
         }
     }
 }
@@ -289,9 +294,15 @@ impl std::fmt::Display for Check {
 
 /// The ordered set of all check variants.
 pub static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
-    [dependency::CHECK, dropped_keywords::CHECK, metadata::CHECK, unstable_only::CHECK]
-        .into_iter()
-        .collect()
+    [
+        dependency::CHECK,
+        dropped_keywords::CHECK,
+        keywords::CHECK,
+        metadata::CHECK,
+        unstable_only::CHECK,
+    ]
+    .into_iter()
+    .collect()
 });
 
 /// The ordered map of all source variants to the checks that use them.

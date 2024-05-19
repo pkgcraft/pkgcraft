@@ -84,6 +84,7 @@ pub enum VersionReport {
     MissingMetadata,
     MissingRevision,
     SourcingError,
+    UnsortedKeywords,
 }
 
 impl VersionReport {
@@ -108,6 +109,7 @@ impl VersionReport {
             Self::MissingMetadata => Critical,
             Self::MissingRevision => Warning,
             Self::SourcingError => Critical,
+            Self::UnsortedKeywords => Style,
         }
     }
 }
