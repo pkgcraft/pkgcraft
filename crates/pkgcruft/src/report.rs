@@ -67,6 +67,7 @@ impl From<ReportLevel> for Color {
     Display,
     EnumIter,
     EnumString,
+    VariantNames,
     Debug,
     PartialEq,
     Eq,

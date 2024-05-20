@@ -8,7 +8,7 @@ use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::{AsRefStr, Display, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::report::{Report, ReportKind};
 use crate::scope::Scope;
@@ -35,6 +35,7 @@ pub(crate) enum CheckValue {
     Display,
     EnumIter,
     EnumString,
+    VariantNames,
     Debug,
     PartialEq,
     Eq,

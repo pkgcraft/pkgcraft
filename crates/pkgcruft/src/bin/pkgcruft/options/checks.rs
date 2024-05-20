@@ -18,7 +18,7 @@ pub(crate) struct Checks {
         value_name = "CHECK[,...]",
         value_delimiter = ',',
         hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(CHECKS.iter().map(|r| r.as_ref()))
+        value_parser = PossibleValuesParser::new(CheckKind::VARIANTS)
             .map(|s| s.parse::<CheckKind>().unwrap()),
     )]
     checks: Vec<CheckKind>,
@@ -42,7 +42,7 @@ pub(crate) struct Checks {
         value_name = "REPORT[,...]",
         value_delimiter = ',',
         hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(REPORTS.iter().map(|r| r.as_ref()))
+        value_parser = PossibleValuesParser::new(ReportKind::VARIANTS)
             .map(|s| s.parse::<ReportKind>().unwrap()),
     )]
     reports: Vec<ReportKind>,
