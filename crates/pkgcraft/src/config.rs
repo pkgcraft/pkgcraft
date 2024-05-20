@@ -279,11 +279,14 @@ impl Config {
 
     /// Add a repo to the config.
     pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<Repo> {
-        let repos = self.repos.extend([repo], &self.settings, external)?;
-        repos
-            .into_iter()
-            .next()
-            .ok_or_else(|| panic!("nonexistent repo: {repo}"))
+        self.repos
+            .extend([repo], &self.settings, external)
+            .map(|repos| {
+                repos
+                    .into_iter()
+                    .next()
+                    .unwrap_or_else(|| panic!("failed adding repo: {repo}"))
+            })
     }
 
     /// Return the repo for a given name or path, potentially adding it to the config.
