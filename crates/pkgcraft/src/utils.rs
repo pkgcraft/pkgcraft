@@ -1,6 +1,5 @@
-use std::collections::hash_map::DefaultHasher;
 use std::env;
-use std::hash::{Hash, Hasher};
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{is_separator, Component, Path, PathBuf};
 
 use camino::{Utf8Path, Utf8PathBuf};
