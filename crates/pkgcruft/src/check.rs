@@ -8,7 +8,7 @@ use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::report::{Report, ReportKind};
 use crate::scope::Scope;
@@ -47,26 +47,32 @@ pub(crate) enum CheckValue {
 )]
 pub enum CheckKind {
     Dependency,
+    DroppedKeywords,
     Eapi,
     Keywords,
     Metadata,
-    DroppedKeywords,
     UnstableOnly,
 }
 
 impl CheckKind {
-    pub fn reports(&self) -> &IndexSet<ReportKind> {
-        let check: &'static Check = (*self).into();
-        &check.reports
+    pub fn check(self) -> &'static Check {
+        match self {
+            Self::Dependency => &dependency::CHECK,
+            Self::DroppedKeywords => &dropped_keywords::CHECK,
+            Self::Eapi => &eapi::CHECK,
+            Self::Keywords => &keywords::CHECK,
+            Self::Metadata => &metadata::CHECK,
+            Self::UnstableOnly => &unstable_only::CHECK,
+        }
     }
 
     pub(crate) fn value(&self) -> CheckValue {
         match self {
             Self::Dependency => CheckValue::Pkg,
+            Self::DroppedKeywords => CheckValue::PkgSet,
             Self::Eapi => CheckValue::Pkg,
             Self::Keywords => CheckValue::Pkg,
             Self::Metadata => CheckValue::RawPkg,
-            Self::DroppedKeywords => CheckValue::PkgSet,
             Self::UnstableOnly => CheckValue::PkgSet,
         }
     }
@@ -253,9 +259,7 @@ impl PartialOrd for Check {
 
 impl From<CheckKind> for &'static Check {
     fn from(kind: CheckKind) -> Self {
-        CHECKS
-            .get(&kind)
-            .unwrap_or_else(|| unreachable!("unregistered check: {kind}"))
+        kind.check()
     }
 }
 
@@ -265,23 +269,10 @@ impl std::fmt::Display for Check {
     }
 }
 
-/// The ordered set of all check variants.
-pub static CHECKS: Lazy<IndexSet<&'static Check>> = Lazy::new(|| {
-    [
-        &*dependency::CHECK,
-        &*dropped_keywords::CHECK,
-        &*eapi::CHECK,
-        &*keywords::CHECK,
-        &*metadata::CHECK,
-        &*unstable_only::CHECK,
-    ]
-    .into_iter()
-    .collect()
-});
-
 /// The ordered map of all source variants to the checks that use them.
 pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
-    let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS.iter().map(|c| (c.source, c.kind)).collect();
+    let mut map: OrderedMap<_, OrderedSet<_>> =
+        CheckKind::iter().map(|c| (c.check().source, c)).collect();
     map.sort_keys();
     map
 });

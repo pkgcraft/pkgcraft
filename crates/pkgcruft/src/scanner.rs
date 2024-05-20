@@ -7,8 +7,9 @@ use indexmap::IndexSet;
 use pkgcraft::repo::{ebuild, Repo};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
+use strum::IntoEnumIterator;
 
-use crate::check::{Check, CHECKS};
+use crate::check::{Check, CheckKind};
 use crate::report::{Report, ReportKind, REPORTS};
 use crate::runner::SyncCheckRunner;
 
@@ -23,7 +24,7 @@ impl Default for Scanner {
     fn default() -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: CHECKS.clone(),
+            checks: CheckKind::iter().map(Into::into).collect(),
             reports: REPORTS.clone(),
         }
     }
@@ -48,8 +49,6 @@ impl Scanner {
         T: Into<&'static Check>,
     {
         self.checks = checks.into_iter().map(Into::into).collect();
-        // Sort checks by priority so they run in the correct order.
-        self.checks.sort();
         self
     }
 

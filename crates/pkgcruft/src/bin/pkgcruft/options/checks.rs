@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcruft::check::{CheckKind, CHECKS, SOURCE_CHECKS};
+use pkgcruft::check::{CheckKind, SOURCE_CHECKS};
 use pkgcruft::report::{ReportKind, ReportLevel, REPORTS, REPORT_CHECKS};
 use pkgcruft::source::SourceKind;
 use strum::VariantNames;
@@ -85,19 +85,14 @@ impl Checks {
                     .get(s)
                     .unwrap_or_else(|| unreachable!("no checks for source variant: {s}"))
                     .into_iter()
-                    .flat_map(|x| x.reports())
+                    .flat_map(|x| &x.check().reports)
             }));
             default_reports = false;
         }
 
         // enable reports related to checks
         if !self.checks.is_empty() {
-            reports.extend(self.checks.iter().flat_map(|x| {
-                &CHECKS
-                    .get(x)
-                    .unwrap_or_else(|| unreachable!("no check: {x}"))
-                    .reports
-            }));
+            reports.extend(self.checks.iter().flat_map(|x| &x.check().reports));
             default_reports = false;
         }
 

@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use itertools::Itertools;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 
@@ -23,13 +24,13 @@ impl<'a> SyncCheckRunner<'a> {
 
     /// Add checks to the runner.
     ///
-    /// This creates new sources and checkrunner variants on the fly. Note that the iterator of
-    /// checks should be pre-sorted so the runners get inserted in their running order.
+    /// This creates new sources and checkrunner variants on the fly.
     pub(super) fn checks<I>(mut self, checks: I) -> Self
     where
         I: IntoIterator<Item = &'static Check>,
     {
-        for check in checks {
+        // sort checks by priority so they run in the correct order
+        for check in checks.into_iter().sorted() {
             self.runners
                 .entry(check.source)
                 .or_insert_with(|| CheckRunner::new(check.source, self.repo))

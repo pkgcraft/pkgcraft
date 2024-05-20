@@ -14,9 +14,9 @@ use pkgcraft::pkg::Package;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
-use crate::check::{CheckKind, CHECKS};
+use crate::check::CheckKind;
 use crate::scope::Scope;
 use crate::Error;
 
@@ -341,16 +341,18 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 
 /// The ordered set of all report variants.
 pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
-    let mut reports: IndexSet<_> = CHECKS.iter().flat_map(|c| &c.reports).copied().collect();
+    let mut reports: IndexSet<_> = CheckKind::iter()
+        .flat_map(|c| c.check().reports.iter())
+        .copied()
+        .collect();
     reports.sort();
     reports
 });
 
 /// The ordered map of all report variants to the checks that can generate them.
 pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
-    let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS
-        .iter()
-        .flat_map(|c| c.reports.iter().copied().map(|r| (r, c.kind)))
+    let mut map: OrderedMap<_, OrderedSet<_>> = CheckKind::iter()
+        .flat_map(|c| c.check().reports.iter().copied().map(move |r| (r, c)))
         .collect();
     map.sort_keys();
     map
