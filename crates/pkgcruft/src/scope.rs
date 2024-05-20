@@ -16,6 +16,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
     Copy,
     Clone,
 )]
+#[strum(serialize_all = "kebab-case")]
 pub enum Scope {
     #[default]
     Version,
