@@ -240,13 +240,35 @@ fn checks() {
 fn reports() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
-    let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+    let single_expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+    let multiple_expected = glob_reports!(
+        "{repo_path}/Dependency/DeprecatedDependency/reports.json",
+        "{repo_path}/Eapi/EapiBanned/reports.json",
+    );
 
     for opt in ["-r", "--reports"] {
+        // invalid
+        cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "invalid"])
+            .arg(repo.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("--reports"))
+            .failure()
+            .code(2);
+
+        // single
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "DeprecatedDependency"])
             .arg(repo.path())
             .to_reports();
-        assert_eq!(&expected, &reports);
+        assert_eq!(&single_expected, &reports);
+
+        // multiple
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "DeprecatedDependency,EapiBanned"])
+            .arg(repo.path())
+            .to_reports();
+        assert_eq!(&multiple_expected, &reports);
     }
 }
