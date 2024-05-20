@@ -13,12 +13,12 @@ use crate::report::{Report, ReportKind};
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-pub mod dependency;
-pub mod dropped_keywords;
-pub mod eapi;
-pub mod keywords;
-pub mod metadata;
-pub mod unstable_only;
+mod dependency;
+mod dropped_keywords;
+mod eapi;
+mod keywords;
+mod metadata;
+mod unstable_only;
 
 /// All checks separated by source type.
 #[derive(Debug, Copy, Clone)]
