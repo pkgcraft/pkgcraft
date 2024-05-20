@@ -237,14 +237,36 @@ fn reporter() {
 fn checks() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
-    let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
+    let single_expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
+    let multiple_expected = glob_reports!(
+        "{repo_path}/Dependency/**/reports.json",
+        "{repo_path}/Eapi/**/reports.json",
+    );
 
     for opt in ["-c", "--checks"] {
+        // invalid
+        cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "invalid"])
+            .arg(repo.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("--checks"))
+            .failure()
+            .code(2);
+
+        // single
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "Dependency"])
             .arg(repo.path())
             .to_reports();
-        assert_eq!(&expected, &reports);
+        assert_eq!(&single_expected, &reports);
+
+        // multiple
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "Dependency,Eapi"])
+            .arg(repo.path())
+            .to_reports();
+        assert_eq!(&multiple_expected, &reports);
     }
 }
 
