@@ -80,9 +80,16 @@ impl From<ReportLevel> for Color {
 pub enum ReportKind {
     DeprecatedDependency,
     DroppedKeywords,
+
+    /// Package has a banned EAPI.
     EapiBanned,
+
+    /// Package has a deprecated EAPI.
     EapiDeprecated,
+
+    /// Package has stable keywords with an unstable EAPI.
     EapiUnstable,
+
     InvalidDependencySet,
     MissingMetadata,
     MissingRevision,
