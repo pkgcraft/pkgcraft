@@ -128,27 +128,47 @@ fn path_targets() {
         .failure()
         .code(2);
 
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    let repo_path = repo.path();
+    let primary = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let primary_path = primary.path();
+    let secondary = TEST_DATA.ebuild_repo("qa-secondary").unwrap();
+    let secondary_path = secondary.path();
 
     // repo dir
-    let expected = glob_reports!("{repo_path}/**/reports.json");
+    let expected = glob_reports!("{primary_path}/**/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(repo.path())
+        .arg(primary_path)
+        .to_reports();
+    assert_eq!(&expected, &reports);
+
+    // overlay dir
+    let expected = glob_reports!("{secondary_path}/**/reports.json");
+    let reports = cmd("pkgcruft scan -j1 -R json")
+        .arg(secondary_path)
         .to_reports();
     assert_eq!(&expected, &reports);
 
     // category dir
-    let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
+    let expected = glob_reports!("{primary_path}/Dependency/**/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(repo.path().join("Dependency"))
+        .arg(primary_path.join("Dependency"))
         .to_reports();
     assert_eq!(&expected, &reports);
 
     // package dir
-    let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+    let expected = glob_reports!("{primary_path}/Dependency/DeprecatedDependency/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(repo.path().join("Dependency/DeprecatedDependency"))
+        .arg(primary_path.join("Dependency/DeprecatedDependency"))
+        .to_reports();
+    assert_eq!(&expected, &reports);
+
+    // multiple paths in the same repo
+    let expected = glob_reports!(
+        "{primary_path}/Dependency/**/reports.json",
+        "{primary_path}/Eapi/**/reports.json",
+    );
+    let reports = cmd("pkgcruft scan -j1 -R json")
+        .arg(primary_path.join("Dependency"))
+        .arg(primary_path.join("Eapi"))
         .to_reports();
     assert_eq!(&expected, &reports);
 }
