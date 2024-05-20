@@ -41,7 +41,7 @@ pub struct SimpleReporter {}
 
 impl SimpleReporter {
     fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
-        writeln!(output, "{}: {}: {}", report.scope(), report.kind(), report.description())?;
+        writeln!(output, "{report}")?;
         Ok(())
     }
 }

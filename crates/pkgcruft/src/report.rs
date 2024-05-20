@@ -240,6 +240,12 @@ impl PartialOrd for Report {
     }
 }
 
+impl fmt::Display for Report {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: {}: {}", self.scope, self.kind, self.description)
+    }
+}
+
 impl Restriction<&Report> for Restrict {
     fn matches(&self, report: &Report) -> bool {
         match &report.scope {
