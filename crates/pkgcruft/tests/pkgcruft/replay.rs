@@ -141,11 +141,8 @@ fn checks() {
 fn levels() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
-    let single_expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-    let multiple_expected = glob_reports!(
-        "{repo_path}/Dependency/**/reports.json",
-        "{repo_path}/UnstableOnly/**/reports.json",
-    );
+    let single_expected = glob_reports!("{repo_path}/Eapi/EapiDeprecated/reports.json");
+    let multiple_expected = glob_reports!("{repo_path}/Eapi/**/reports.json");
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     for opt in ["-l", "--levels"] {
@@ -168,7 +165,7 @@ fn levels() {
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "warning,info"])
+            .args([opt, "warning,error"])
             .write_stdin(data.as_str())
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
