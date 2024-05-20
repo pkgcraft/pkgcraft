@@ -12,7 +12,7 @@ use strum::{IntoEnumIterator, VariantNames};
 #[derive(Debug, Args)]
 #[clap(next_help_heading = Some("Report selection"))]
 pub(crate) struct Checks {
-    /// Limit to specific checks
+    /// Restrict by check
     #[arg(
         short,
         long,
@@ -24,7 +24,7 @@ pub(crate) struct Checks {
     )]
     checks: Vec<CheckKind>,
 
-    /// Limit to specific report levels
+    /// Restrict by level
     #[arg(
         short,
         long,
@@ -36,7 +36,7 @@ pub(crate) struct Checks {
     )]
     levels: Vec<ReportLevel>,
 
-    /// Limit to specific report variants
+    /// Restrict by report
     #[arg(
         short,
         long,
@@ -48,7 +48,7 @@ pub(crate) struct Checks {
     )]
     reports: Vec<ReportKind>,
 
-    /// Limit to specific scope variants
+    /// Restrict by scope
     #[arg(
         short,
         long,
@@ -60,7 +60,7 @@ pub(crate) struct Checks {
     )]
     scopes: Vec<Scope>,
 
-    /// Limit to specific source variants
+    /// Restrict by source
     #[arg(
         short = 'S',
         long,
