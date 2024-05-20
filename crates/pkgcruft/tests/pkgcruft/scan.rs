@@ -40,7 +40,7 @@ fn dep_restrict_targets() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
 
-    // valid
+    // single
     for s in ["DroppedKeywords/*", "DroppedKeywords"] {
         cmd("pkgcruft scan -R simple")
             .args(["--repo", repo_path.as_str()])
@@ -50,6 +50,22 @@ fn dep_restrict_targets() {
             .stderr("")
             .success();
     }
+
+    // multiple matching restricts output the same reports
+    let reports = indoc::indoc! {r#"
+        DroppedKeywords/DroppedKeywords-2: DroppedKeywords: x86
+        DroppedKeywords/DroppedKeywords-2: DroppedKeywords: x86
+    "#};
+    let expected: Vec<_> = reports.lines().collect();
+    let output = cmd("pkgcruft scan -R simple")
+        .args(["--repo", repo_path.as_str()])
+        .args(["DroppedKeywords/*", "DroppedKeywords"])
+        .output()
+        .unwrap()
+        .stdout;
+    let data = String::from_utf8(output).unwrap();
+    let data: Vec<_> = data.lines().collect();
+    assert_eq!(&expected, &data);
 
     // nonexistent
     cmd("pkgcruft scan -R simple")
