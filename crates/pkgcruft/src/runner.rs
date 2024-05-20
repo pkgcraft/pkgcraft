@@ -65,10 +65,10 @@ impl<'a> CheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind) {
+    fn add_check(&mut self, check: CheckKind) {
         match self {
-            Self::EbuildPkg(r) => r.add_check(kind),
-            Self::EbuildRawPkg(r) => r.add_check(kind),
+            Self::EbuildPkg(r) => r.add_check(check),
+            Self::EbuildRawPkg(r) => r.add_check(check),
         }
     }
 
@@ -101,11 +101,11 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind) {
-        match kind.value() {
-            CheckValue::Pkg => self.pkg_checks.push(kind.ebuild(self.repo)),
-            CheckValue::PkgSet => self.pkg_set_checks.push(kind.ebuild_pkg_set(self.repo)),
-            _ => unreachable!("{kind} invalid for ebuild pkg check runner"),
+    fn add_check(&mut self, check: CheckKind) {
+        match check.value() {
+            CheckValue::Pkg => self.pkg_checks.push(check.ebuild(self.repo)),
+            CheckValue::PkgSet => self.pkg_set_checks.push(check.ebuild_pkg_set(self.repo)),
+            _ => unreachable!("{check} invalid for ebuild pkg check runner"),
         }
     }
 
@@ -146,10 +146,10 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind) {
-        match kind.value() {
-            CheckValue::RawPkg => self.pkg_checks.push(kind.ebuild_raw(self.repo)),
-            _ => unreachable!("{kind} invalid for ebuild raw pkg check runner"),
+    fn add_check(&mut self, check: CheckKind) {
+        match check.value() {
+            CheckValue::RawPkg => self.pkg_checks.push(check.ebuild_raw(self.repo)),
+            _ => unreachable!("{check} invalid for ebuild raw pkg check runner"),
         }
     }
 
