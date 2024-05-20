@@ -189,10 +189,11 @@ fn reporter() {
             .args([opt, "invalid"])
             .assert()
             .stdout("")
-            .stderr(predicate::str::is_empty().not())
+            .stderr(contains("--reporter"))
             .failure()
             .code(2);
 
+        // valid
         for reporter in ["simple", "fancy", "json"] {
             cmd("pkgcruft scan -j1")
                 .args([opt, reporter])
@@ -211,6 +212,17 @@ fn reporter() {
             .failure()
             .code(2);
 
+        // invalid format string
+        cmd("pkgcruft scan -j1")
+            .args([opt, "format"])
+            .args(["--format", "{format}"])
+            .assert()
+            .stdout("")
+            .stderr(contains("invalid output format"))
+            .failure()
+            .code(2);
+
+        // valid format string
         cmd("pkgcruft scan -j1")
             .args([opt, "format"])
             .args(["--format", "{package}"])
