@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
@@ -229,18 +228,6 @@ impl Hash for Check {
 impl AsRef<str> for Check {
     fn as_ref(&self) -> &str {
         self.kind.as_ref()
-    }
-}
-
-impl Borrow<str> for &'static Check {
-    fn borrow(&self) -> &str {
-        self.kind.as_ref()
-    }
-}
-
-impl Borrow<CheckKind> for &'static Check {
-    fn borrow(&self) -> &CheckKind {
-        &self.kind
     }
 }
 
