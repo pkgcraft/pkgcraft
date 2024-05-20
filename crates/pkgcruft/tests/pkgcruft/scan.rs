@@ -6,6 +6,7 @@ use pkgcraft::utils::current_dir;
 use pkgcruft::test::glob_reports;
 use predicates::prelude::*;
 use predicates::str::contains;
+use pretty_assertions::assert_eq;
 
 use crate::ToReports;
 

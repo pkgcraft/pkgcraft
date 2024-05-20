@@ -183,6 +183,7 @@ mod tests {
     use pkgcraft::dep::Dep;
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
+    use pretty_assertions::assert_eq;
 
     use crate::check::CheckKind;
     use crate::report::ReportKind;

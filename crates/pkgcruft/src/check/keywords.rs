@@ -90,6 +90,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
 mod tests {
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
+    use pretty_assertions::assert_eq;
 
     use crate::scanner::Scanner;
     use crate::test::glob_reports;

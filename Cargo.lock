@@ -1949,6 +1949,7 @@ dependencies = [
  "once_cell",
  "pkgcraft",
  "predicates",
+ "pretty_assertions",
  "scallop",
  "serde",
  "serde_json",

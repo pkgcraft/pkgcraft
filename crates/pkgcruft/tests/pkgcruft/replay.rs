@@ -8,6 +8,7 @@ use pkgcraft::test::{cmd, TEST_DATA};
 use pkgcruft::test::glob_reports;
 use predicates::prelude::*;
 use predicates::str::contains;
+use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
 
 use crate::ToReports;
