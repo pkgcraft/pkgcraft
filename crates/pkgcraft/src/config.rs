@@ -228,8 +228,7 @@ impl Config {
         external: bool,
     ) -> crate::Result<Repo> {
         let r = Repo::from_path(name, path, priority, false)?;
-        self.add_repo(&r, external)?;
-        Ok(r)
+        self.add_repo(&r, external)
     }
 
     /// Add local repo of a specific format from a filesystem path.
@@ -242,8 +241,7 @@ impl Config {
         format: RepoFormat,
     ) -> crate::Result<Repo> {
         let r = format.load_from_path(name, path, priority, false)?;
-        self.add_repo(&r, external)?;
-        Ok(r)
+        self.add_repo(&r, external)
     }
 
     /// Add local repo from a potentially nested filesystem path.
@@ -253,8 +251,7 @@ impl Config {
         priority: i32,
     ) -> crate::Result<Repo> {
         let r = Repo::from_nested_path(path, priority, false)?;
-        self.add_repo(&r, true)?;
-        Ok(r)
+        self.add_repo(&r, true)
     }
 
     /// Add local repo of a specific format from a potentially nested filesystem path.
@@ -270,23 +267,23 @@ impl Config {
                 Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
             }
             Err(e) => Err(e),
-            Ok(r) => {
-                self.add_repo(&r, true)?;
-                Ok(r)
-            }
+            Ok(r) => self.add_repo(&r, true),
         }
     }
 
     /// Add external repo from a URI.
     pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
-        self.add_repo(&r, false)?;
-        Ok(r)
+        self.add_repo(&r, false)
     }
 
     /// Add a repo to the config.
-    pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<()> {
-        self.repos.extend([repo], &self.settings, external)
+    pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<Repo> {
+        let repos = self.repos.extend([repo], &self.settings, external)?;
+        repos
+            .into_iter()
+            .next()
+            .ok_or_else(|| panic!("nonexistent repo: {repo}"))
     }
 
     /// Return the repo for a given name or path, potentially adding it to the config.
@@ -304,8 +301,7 @@ impl Config {
     /// Create a new repo.
     pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
         let r = self.repos.create(name, priority)?;
-        self.add_repo(&r, false)?;
-        Ok(r)
+        self.add_repo(&r, false)
     }
 
     /// Remove configured repos.
@@ -498,8 +494,8 @@ mod tests {
         config.load_portage_conf(Some(conf_path)).unwrap();
         assert_ordered_eq(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
 
-        // reloading directory fails
-        let r = config.load_portage_conf(Some(conf_path));
-        assert_err_re!(r, "existing repos: r3, r1, r2");
+        // reloading directory succeeds
+        config.load_portage_conf(Some(conf_path)).unwrap();
+        assert_ordered_eq(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
     }
 }

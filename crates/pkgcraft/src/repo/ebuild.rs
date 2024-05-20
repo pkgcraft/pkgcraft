@@ -172,7 +172,7 @@ impl fmt::Debug for Repo {
 
 impl PartialEq for Repo {
     fn eq(&self, other: &Self) -> bool {
-        self.path() == other.path()
+        self.id() == other.id() && self.repo_config() == other.repo_config()
     }
 }
 

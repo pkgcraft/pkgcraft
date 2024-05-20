@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
-use itertools::{Either, Itertools};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use tracing::warn;
@@ -255,39 +255,51 @@ impl Config {
         repos: I,
         settings: &Arc<super::Settings>,
         external: bool,
-    ) -> crate::Result<()> {
-        // check for existing repos since duplicate repo names aren't allowed
-        let (mut existing, repos): (Vec<_>, Vec<_>) = repos.into_iter().partition_map(|r| {
+    ) -> crate::Result<Vec<Repo>> {
+        let mut existing_repos = vec![];
+        let mut overriding_repos = vec![];
+        let mut new_repos = IndexMap::new();
+
+        // split repos into existing, overriding, and new variants
+        for repo in repos {
             // use path names for external repos
-            let path = r.path().as_str();
+            let path = repo.path().as_str();
             let name = if external && !path.is_empty() {
                 path
             } else {
-                r.name()
+                repo.name()
             };
 
-            if self.repos.get(name).is_some() {
-                Either::Left(r)
+            if let Some(existing) = self.repos.get(name) {
+                if existing == repo {
+                    existing_repos.push(existing.clone());
+                } else {
+                    overriding_repos.push(repo);
+                }
             } else {
-                Either::Right((name, r))
+                new_repos.insert(name, repo);
             }
-        });
+        }
 
-        if !existing.is_empty() {
-            existing.sort();
-            let existing = existing.iter().map(|r| r.id()).join(", ");
-            return Err(Error::Config(format!("can't override existing repos: {existing}")));
+        // error out on overriding repos
+        if !overriding_repos.is_empty() {
+            overriding_repos.sort();
+            let repos = overriding_repos.iter().map(|r| r.id()).join(", ");
+            return Err(Error::Config(format!("can't override existing repos: {repos}")));
         }
 
         // copy original repos so they can be reverted to if an error occurs during finalization
         let orig_repos = self.repos.clone();
         let orig_configured = self.configured.clone();
 
-        // add repos to config so finalization works for overlays
-        self.repos
-            .extend(repos.iter().map(|(s, r)| (s.to_string(), (*r).clone())));
+        // add new repos to config so finalization works for overlays
+        self.repos.extend(
+            new_repos
+                .iter()
+                .map(|(name, repo)| (name.to_string(), (*repo).clone())),
+        );
 
-        for (_, repo) in &repos {
+        for repo in new_repos.values() {
             // finalize repos, reverting to the previous set if errors occur
             if let Err(e) = repo.finalize(&self.repos) {
                 self.repos = orig_repos;
@@ -306,7 +318,11 @@ impl Config {
         self.repos.sort_by(|_, r1, _, r2| r1.cmp(r2));
         self.configured.sort();
 
-        Ok(())
+        // combine and return existing and new repos
+        Ok(existing_repos
+            .into_iter()
+            .chain(new_repos.into_values().cloned())
+            .collect())
     }
 
     pub fn iter(&self) -> ReposIter<'_> {
