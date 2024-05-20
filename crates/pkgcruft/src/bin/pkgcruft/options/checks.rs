@@ -5,6 +5,7 @@ use clap::Args;
 use indexmap::IndexSet;
 use pkgcruft::check::{CheckKind, REPORT_CHECKS, SOURCE_CHECKS};
 use pkgcruft::report::{ReportKind, ReportLevel};
+use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
 use strum::{IntoEnumIterator, VariantNames};
 
@@ -47,6 +48,18 @@ pub(crate) struct Checks {
     )]
     reports: Vec<ReportKind>,
 
+    /// Limit to specific scope variants
+    #[arg(
+        short,
+        long,
+        value_name = "SCOPE[,...]",
+        value_delimiter = ',',
+        hide_possible_values = true,
+        value_parser = PossibleValuesParser::new(Scope::VARIANTS)
+            .map(|s| s.parse::<Scope>().unwrap()),
+    )]
+    scopes: Vec<Scope>,
+
     /// Limit to specific source variants
     #[arg(
         short = 'S',
@@ -75,6 +88,13 @@ impl Checks {
         if !self.levels.is_empty() {
             let levels: HashSet<_> = self.levels.into_iter().collect();
             reports.extend(ReportKind::iter().filter(|r| levels.contains(&r.level())));
+            default_reports = false;
+        }
+
+        // enable reports related to scopes
+        if !self.scopes.is_empty() {
+            let scopes: HashSet<_> = self.scopes.into_iter().collect();
+            reports.extend(ReportKind::iter().filter(|r| scopes.contains(&r.scope())));
             default_reports = false;
         }
 

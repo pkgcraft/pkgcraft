@@ -1,9 +1,11 @@
-use strum::{AsRefStr, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 #[derive(
     AsRefStr,
+    Display,
     EnumIter,
     EnumString,
+    VariantNames,
     Debug,
     Default,
     PartialEq,
