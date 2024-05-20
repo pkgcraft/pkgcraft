@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcruft::check::{Check, CheckKind, CHECKS, SOURCE_CHECKS};
+use pkgcruft::check::{CheckKind, CHECKS, SOURCE_CHECKS};
 use pkgcruft::report::{ReportKind, ReportLevel, REPORTS, REPORT_CHECKS};
 use pkgcruft::source::SourceKind;
 use strum::VariantNames;
@@ -61,7 +61,7 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(self) -> (IndexSet<&'static Check>, IndexSet<ReportKind>) {
+    pub(crate) fn collapse(self) -> (IndexSet<CheckKind>, IndexSet<ReportKind>) {
         // determine enabled report set
         let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
@@ -85,7 +85,7 @@ impl Checks {
                     .get(s)
                     .unwrap_or_else(|| panic!("no checks for source variant: {s}"))
                     .into_iter()
-                    .flat_map(|x| &x.reports)
+                    .flat_map(|x| x.reports())
             }));
             default_reports = false;
         }
@@ -108,7 +108,7 @@ impl Checks {
 
         // determine enabled check set
         let checks = if !self.checks.is_empty() {
-            self.checks.into_iter().map(Into::into).collect()
+            self.checks.into_iter().collect()
         } else {
             reports
                 .iter()

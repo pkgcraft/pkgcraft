@@ -16,7 +16,7 @@ use pkgcraft::types::{OrderedMap, OrderedSet};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
-use crate::check::{Check, CHECKS};
+use crate::check::{CheckKind, CHECKS};
 use crate::scope::Scope;
 use crate::Error;
 
@@ -337,12 +337,11 @@ pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
 });
 
 /// The ordered map of all report variants to the checks that can generate them.
-pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<&'static Check>>> =
-    Lazy::new(|| {
-        let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS
-            .iter()
-            .flat_map(|c| c.reports.iter().copied().map(|r| (r, *c)))
-            .collect();
-        map.sort_keys();
-        map
-    });
+pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
+    let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS
+        .iter()
+        .flat_map(|c| c.reports.iter().copied().map(|r| (r, c.kind)))
+        .collect();
+    map.sort_keys();
+    map
+});

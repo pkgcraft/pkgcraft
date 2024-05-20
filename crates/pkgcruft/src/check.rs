@@ -55,6 +55,11 @@ pub enum CheckKind {
 }
 
 impl CheckKind {
+    pub fn reports(&self) -> &IndexSet<ReportKind> {
+        let check: &'static Check = self.into();
+        &check.reports
+    }
+
     pub(crate) fn value(&self) -> CheckValue {
         match self {
             Self::Dependency => CheckValue::Pkg,
@@ -246,10 +251,10 @@ impl PartialOrd for Check {
     }
 }
 
-impl From<CheckKind> for &'static Check {
-    fn from(kind: CheckKind) -> Self {
+impl From<&CheckKind> for &'static Check {
+    fn from(kind: &CheckKind) -> Self {
         CHECKS
-            .get(&kind)
+            .get(kind)
             .unwrap_or_else(|| panic!("unregistered check: {kind}"))
     }
 }
@@ -275,9 +280,8 @@ pub static CHECKS: Lazy<IndexSet<&'static Check>> = Lazy::new(|| {
 });
 
 /// The ordered map of all source variants to the checks that use them.
-pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<&'static Check>>> =
-    Lazy::new(|| {
-        let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS.iter().map(|c| (c.source, *c)).collect();
-        map.sort_keys();
-        map
-    });
+pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
+    let mut map: OrderedMap<_, OrderedSet<_>> = CHECKS.iter().map(|c| (c.source, c.kind)).collect();
+    map.sort_keys();
+    map
+});
