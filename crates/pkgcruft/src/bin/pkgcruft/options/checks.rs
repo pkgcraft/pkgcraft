@@ -83,7 +83,7 @@ impl Checks {
             reports.extend(self.sources.iter().flat_map(|s| {
                 SOURCE_CHECKS
                     .get(s)
-                    .unwrap_or_else(|| panic!("no checks for source variant: {s}"))
+                    .unwrap_or_else(|| unreachable!("no checks for source variant: {s}"))
                     .into_iter()
                     .flat_map(|x| x.reports())
             }));
@@ -95,7 +95,7 @@ impl Checks {
             reports.extend(self.checks.iter().flat_map(|x| {
                 &CHECKS
                     .get(x)
-                    .unwrap_or_else(|| panic!("no check: {x}"))
+                    .unwrap_or_else(|| unreachable!("no check: {x}"))
                     .reports
             }));
             default_reports = false;
@@ -115,7 +115,7 @@ impl Checks {
                 .flat_map(|r| {
                     REPORT_CHECKS
                         .get(r)
-                        .unwrap_or_else(|| panic!("no checks for report variant: {r}"))
+                        .unwrap_or_else(|| unreachable!("no checks for report variant: {r}"))
                 })
                 .copied()
                 .collect()

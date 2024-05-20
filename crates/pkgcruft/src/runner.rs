@@ -105,7 +105,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         match kind.value() {
             CheckValue::Pkg => self.pkg_checks.push(kind.ebuild(self.repo)),
             CheckValue::PkgSet => self.pkg_set_checks.push(kind.ebuild_pkg_set(self.repo)),
-            _ => panic!("{kind} invalid for ebuild pkg check runner"),
+            _ => unreachable!("{kind} invalid for ebuild pkg check runner"),
         }
     }
 
@@ -149,7 +149,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     fn add_check(&mut self, kind: CheckKind) {
         match kind.value() {
             CheckValue::RawPkg => self.pkg_checks.push(kind.ebuild_raw(self.repo)),
-            _ => panic!("{kind} invalid for ebuild raw pkg check runner"),
+            _ => unreachable!("{kind} invalid for ebuild raw pkg check runner"),
         }
     }
 

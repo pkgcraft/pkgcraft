@@ -77,7 +77,7 @@ impl CheckKind {
             Self::Dependency => Dependency(dependency::Check::new(repo)),
             Self::Eapi => Eapi(eapi::Check::new(repo)),
             Self::Keywords => Keywords(keywords::Check::new(repo)),
-            _ => panic!("{self} is not an ebuild check"),
+            _ => unreachable!("{self} is not an ebuild check"),
         }
     }
 
@@ -85,7 +85,7 @@ impl CheckKind {
         use EbuildRawPkgCheck::*;
         match self {
             Self::Metadata => Metadata(metadata::Check::new(repo)),
-            _ => panic!("{self} is not a raw ebuild check"),
+            _ => unreachable!("{self} is not a raw ebuild check"),
         }
     }
 
@@ -94,7 +94,7 @@ impl CheckKind {
         match self {
             Self::DroppedKeywords => DroppedKeywords(dropped_keywords::Check::new(repo)),
             Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
-            _ => panic!("{self} is not an ebuild pkg set check"),
+            _ => unreachable!("{self} is not an ebuild pkg set check"),
         }
     }
 }
@@ -255,7 +255,7 @@ impl From<&CheckKind> for &'static Check {
     fn from(kind: &CheckKind) -> Self {
         CHECKS
             .get(kind)
-            .unwrap_or_else(|| panic!("unregistered check: {kind}"))
+            .unwrap_or_else(|| unreachable!("unregistered check: {kind}"))
     }
 }
 
