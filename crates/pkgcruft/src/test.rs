@@ -2,7 +2,7 @@ use glob::glob;
 
 use crate::report::{Iter, Report};
 
-/// Return an iterator of reports from a globbed file path pattern.
+/// Return an iterator of reports from a globbed path pattern.
 pub fn glob_reports_iter<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Report> {
     glob(pattern.as_ref())
         .unwrap()
@@ -17,11 +17,19 @@ pub fn glob_reports_iter<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Repo
         })
 }
 
-/// Return a vector of reports for a globbed file path pattern.
+/// Return a vector of reports for the given globbed path patterns.
 #[macro_export]
 macro_rules! glob_reports {
-    ($pattern:expr) => {
-        $crate::test::glob_reports_iter(format!($pattern)).collect::<Vec<_>>()
-    };
+    // handle comma-separated patterns with a trailing comma
+    ($($pattern:expr,)+) => {{
+        let mut reports = vec![];
+        $(reports.extend($crate::test::glob_reports_iter(format!($pattern)));)+
+        reports
+    }};
+
+    // rewrite pattern args to use a trailing comma
+    ($($pattern:expr),+) => {{
+        glob_reports!($($pattern,)+)
+    }};
 }
 pub use glob_reports;

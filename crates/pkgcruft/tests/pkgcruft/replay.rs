@@ -103,8 +103,10 @@ fn checks() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
     let single_check_reports = glob_reports!("{repo_path}/Dependency/**/reports.json");
-    let mut multiple_check_reports = single_check_reports.clone();
-    multiple_check_reports.extend(glob_reports!("{repo_path}/UnstableOnly/**/reports.json"));
+    let multiple_check_reports = glob_reports!(
+        "{repo_path}/Dependency/**/reports.json",
+        "{repo_path}/UnstableOnly/**/reports.json",
+    );
     let data = multiple_check_reports
         .iter()
         .map(|x| x.to_json())
