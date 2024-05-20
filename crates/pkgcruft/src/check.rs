@@ -56,7 +56,7 @@ pub enum CheckKind {
 
 impl CheckKind {
     pub fn reports(&self) -> &IndexSet<ReportKind> {
-        let check: &'static Check = self.into();
+        let check: &'static Check = (*self).into();
         &check.reports
     }
 
@@ -251,10 +251,10 @@ impl PartialOrd for Check {
     }
 }
 
-impl From<&CheckKind> for &'static Check {
-    fn from(kind: &CheckKind) -> Self {
+impl From<CheckKind> for &'static Check {
+    fn from(kind: CheckKind) -> Self {
         CHECKS
-            .get(kind)
+            .get(&kind)
             .unwrap_or_else(|| unreachable!("unregistered check: {kind}"))
     }
 }
