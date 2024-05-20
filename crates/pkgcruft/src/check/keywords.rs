@@ -1,28 +1,33 @@
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Stable;
+use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{
     Report,
-    ReportKind::{OverlappingKeywords, UnsortedKeywords},
+    ReportKind::{EapiUnstable, OverlappingKeywords, UnsortedKeywords},
 };
 
 use super::{CheckBuilder, CheckKind, CheckRun};
 
 pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
-    CheckBuilder::new(CheckKind::Keywords).reports([OverlappingKeywords, UnsortedKeywords])
+    CheckBuilder::new(CheckKind::Keywords).reports([
+        EapiUnstable,
+        OverlappingKeywords,
+        UnsortedKeywords,
+    ])
 });
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
-    _repo: &'a Repo,
+    repo: &'a Repo,
 }
 
 impl<'a> Check<'a> {
-    pub(super) fn new(_repo: &'a Repo) -> Self {
-        Self { _repo }
+    pub(super) fn new(repo: &'a Repo) -> Self {
+        Self { repo }
     }
 }
 
@@ -44,6 +49,28 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
                 .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
             reports.push(OverlappingKeywords.version(pkg, keywords));
+        }
+
+        if self
+            .repo
+            .metadata()
+            .config()
+            .eapis_testing()
+            .contains(pkg.eapi().as_ref())
+        {
+            let keywords: Vec<_> = pkg
+                .keywords()
+                .iter()
+                .filter(|k| k.status() == Stable)
+                .collect();
+            if !keywords.is_empty() {
+                let msg = format!(
+                    "unstable EAPI {} with stable keywords: {}",
+                    pkg.eapi(),
+                    keywords.iter().join(" ")
+                );
+                reports.push(EapiUnstable.version(pkg, msg));
+            }
         }
 
         // ignore overlapping keywords when checking order
