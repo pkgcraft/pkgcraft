@@ -6,7 +6,6 @@ use std::io::{BufRead, BufReader};
 
 use camino::Utf8Path;
 use colored::Color;
-use indexmap::IndexSet;
 use once_cell::sync::Lazy;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::macros::cmp_not_equal;
@@ -338,16 +337,6 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
         }
     }
 }
-
-/// The ordered set of all report variants.
-pub static REPORTS: Lazy<IndexSet<ReportKind>> = Lazy::new(|| {
-    let mut reports: IndexSet<_> = CheckKind::iter()
-        .flat_map(|c| c.check().reports.iter())
-        .copied()
-        .collect();
-    reports.sort();
-    reports
-});
 
 /// The ordered map of all report variants to the checks that can generate them.
 pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<CheckKind>>> = Lazy::new(|| {

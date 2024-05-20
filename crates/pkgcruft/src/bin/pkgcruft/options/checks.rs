@@ -4,9 +4,9 @@ use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
 use pkgcruft::check::{CheckKind, SOURCE_CHECKS};
-use pkgcruft::report::{ReportKind, ReportLevel, REPORTS, REPORT_CHECKS};
+use pkgcruft::report::{ReportKind, ReportLevel, REPORT_CHECKS};
 use pkgcruft::source::SourceKind;
-use strum::VariantNames;
+use strum::{IntoEnumIterator, VariantNames};
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = Some("Report selection"))]
@@ -74,7 +74,7 @@ impl Checks {
         // enable reports related to levels
         if !self.levels.is_empty() {
             let levels: HashSet<_> = self.levels.into_iter().collect();
-            reports.extend(REPORTS.iter().filter(|r| levels.contains(&r.level())));
+            reports.extend(ReportKind::iter().filter(|r| levels.contains(&r.level())));
             default_reports = false;
         }
 
@@ -98,7 +98,7 @@ impl Checks {
 
         // default to enabling all report variants
         if default_reports {
-            reports.clone_from(&REPORTS);
+            reports.extend(ReportKind::iter());
         }
 
         // determine enabled check set

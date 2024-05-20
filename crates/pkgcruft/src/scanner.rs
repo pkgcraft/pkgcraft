@@ -10,7 +10,7 @@ use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 
 use crate::check::{Check, CheckKind};
-use crate::report::{Report, ReportKind, REPORTS};
+use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl Default for Scanner {
         Self {
             jobs: bounded_jobs(0),
             checks: CheckKind::iter().map(Into::into).collect(),
-            reports: REPORTS.clone(),
+            reports: ReportKind::iter().collect(),
         }
     }
 }

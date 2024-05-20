@@ -5,9 +5,8 @@ use std::process::ExitCode;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use colored::Colorize;
+use pkgcruft::report::{ReportKind, ReportLevel};
 use strum::{IntoEnumIterator, VariantNames};
-
-use pkgcruft::report::{ReportLevel, REPORTS};
 
 #[derive(Debug, Args)]
 pub(super) struct Subcommand {
@@ -31,7 +30,7 @@ impl Subcommand {
         };
 
         let mut stdout = io::stdout().lock();
-        for report in &*REPORTS {
+        for report in ReportKind::iter() {
             if levels.contains(&report.level()) {
                 writeln!(stdout, "{}", report.as_ref().color(report.level()))?;
             }
