@@ -336,6 +336,18 @@ fn reporter() {
             .failure()
             .code(2);
 
+        // invalid format string
+        cmd("pkgcruft replay")
+            .args([opt, "format"])
+            .args(["--format", "{format}"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("invalid output format"))
+            .failure()
+            .code(2);
+
+        // valid format string
         cmd("pkgcruft replay")
             .args([opt, "format"])
             .args(["--format", "{package}"])
