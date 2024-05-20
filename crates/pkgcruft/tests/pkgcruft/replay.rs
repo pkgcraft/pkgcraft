@@ -117,7 +117,7 @@ fn checks() {
             .arg(QA_PRIMARY_FILE.path())
             .assert()
             .stdout("")
-            .stderr(predicate::str::is_empty().not())
+            .stderr(contains("--checks"))
             .failure()
             .code(2);
 
@@ -155,7 +155,7 @@ fn levels() {
             .arg(QA_PRIMARY_FILE.path())
             .assert()
             .stdout("")
-            .stderr(predicate::str::is_empty().not())
+            .stderr(contains("--levels"))
             .failure()
             .code(2);
 
@@ -193,7 +193,7 @@ fn reports() {
             .arg(QA_PRIMARY_FILE.path())
             .assert()
             .stdout("")
-            .stderr(predicate::str::is_empty().not())
+            .stderr(contains("--reports"))
             .failure()
             .code(2);
 
@@ -230,7 +230,7 @@ fn sources() {
             .arg(QA_PRIMARY_FILE.path())
             .assert()
             .stdout("")
-            .stderr(predicate::str::is_empty().not())
+            .stderr(contains("--sources"))
             .failure()
             .code(2);
 
@@ -315,7 +315,7 @@ fn reporter() {
             .arg(QA_PRIMARY_FILE.path())
             .assert()
             .stdout("")
-            .stderr(predicate::str::is_empty().not())
+            .stderr(contains("--reporter"))
             .failure()
             .code(2);
 
