@@ -102,15 +102,12 @@ fn file_targets() {
 fn checks() {
     let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo_path = repo.path();
-    let single_check_reports = glob_reports!("{repo_path}/Dependency/**/reports.json");
-    let multiple_check_reports = glob_reports!(
+    let single_expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
+    let multiple_expected = glob_reports!(
         "{repo_path}/Dependency/**/reports.json",
         "{repo_path}/UnstableOnly/**/reports.json",
     );
-    let data = multiple_check_reports
-        .iter()
-        .map(|x| x.to_json())
-        .join("\n");
+    let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     for opt in ["-c", "--checks"] {
         // invalid
@@ -123,30 +120,32 @@ fn checks() {
             .failure()
             .code(2);
 
-        // valid
+        // single
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "Dependency"])
             .write_stdin(data.as_str())
             .to_reports();
-        assert_eq!(&single_check_reports, &reports);
+        assert_eq!(&single_expected, &reports);
 
-        // multiple values
+        // multiple
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "Dependency,UnstableOnly"])
             .write_stdin(data.as_str())
             .to_reports();
-        assert_eq!(&multiple_check_reports, &reports);
+        assert_eq!(&multiple_expected, &reports);
     }
 }
 
 #[test]
 fn levels() {
-    let reports = indoc::indoc! {r#"
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"description":"x86"}
-    "#};
-    let expected: Vec<_> = reports.lines().collect();
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+    let single_expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
+    let multiple_expected = glob_reports!(
+        "{repo_path}/Dependency/**/reports.json",
+        "{repo_path}/UnstableOnly/**/reports.json",
+    );
+    let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     for opt in ["-l", "--levels"] {
         // invalid
@@ -159,38 +158,32 @@ fn levels() {
             .failure()
             .code(2);
 
-        // valid
-        let output = cmd("pkgcruft replay -R json -")
+        // single
+        let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "warning"])
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&data, &expected[0..2]);
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&single_expected, &reports);
 
-        // multiple values
-        let output = cmd("pkgcruft replay -R json -")
+        // multiple
+        let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "warning,info"])
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&data, &expected[0..3]);
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&multiple_expected, &reports);
     }
 }
 
 #[test]
 fn reports() {
-    let reports = indoc::indoc! {r#"
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"description":"x86"}
-    "#};
-    let expected: Vec<_> = reports.lines().collect();
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+    let single_expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+    let multiple_expected = glob_reports!(
+        "{repo_path}/Dependency/DeprecatedDependency/reports.json",
+        "{repo_path}/UnstableOnly/UnstableOnly/reports.json",
+    );
+    let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     for opt in ["-r", "--reports"] {
         // invalid
@@ -203,37 +196,19 @@ fn reports() {
             .failure()
             .code(2);
 
-        // single match
-        let output = cmd("pkgcruft replay -R json -")
-            .args([opt, "UnstableOnly"])
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        assert_eq!(data.trim(), expected[2]);
-
-        // multiple matches
-        let output = cmd("pkgcruft replay -R json -")
+        // single
+        let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "DeprecatedDependency"])
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&data, &expected[0..2]);
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&single_expected, &reports);
 
-        // multiple values
-        let output = cmd("pkgcruft replay -R json -")
+        // multiple
+        let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "DeprecatedDependency,UnstableOnly"])
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&data, &expected);
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&multiple_expected, &reports);
     }
 }
 
