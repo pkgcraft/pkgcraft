@@ -17,7 +17,7 @@ pub(crate) struct Options {
     pkgs: Option<String>,
 
     /// Sort reports
-    #[arg(short, long)]
+    #[arg(long)]
     sort: bool,
 
     #[clap(flatten)]
