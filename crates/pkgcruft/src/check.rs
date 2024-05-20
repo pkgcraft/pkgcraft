@@ -269,6 +269,15 @@ impl std::fmt::Display for Check {
     }
 }
 
+/// The ordered map of all report variants to the checks that can generate them.
+pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
+    let mut map: OrderedMap<_, OrderedSet<_>> = CheckKind::iter()
+        .flat_map(|c| c.check().reports.iter().copied().map(move |r| (r, c)))
+        .collect();
+    map.sort_keys();
+    map
+});
+
 /// The ordered map of all source variants to the checks that use them.
 pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
     let mut map: OrderedMap<_, OrderedSet<_>> =

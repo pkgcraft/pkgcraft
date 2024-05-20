@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcruft::check::{CheckKind, SOURCE_CHECKS};
-use pkgcruft::report::{ReportKind, ReportLevel, REPORT_CHECKS};
+use pkgcruft::check::{CheckKind, REPORT_CHECKS, SOURCE_CHECKS};
+use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::source::SourceKind;
 use strum::{IntoEnumIterator, VariantNames};
 
