@@ -213,6 +213,38 @@ fn reports() {
 }
 
 #[test]
+fn sources() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+    let expected = glob_reports!(
+        "{repo_path}/Dependency/DeprecatedDependency/reports.json",
+        "{repo_path}/UnstableOnly/UnstableOnly/reports.json",
+    );
+    let data = expected.iter().map(|x| x.to_json()).join("\n");
+
+    for opt in ["-S", "--sources"] {
+        // invalid
+        cmd("pkgcruft replay")
+            .args([opt, "invalid"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
+        // single
+        let reports = cmd("pkgcruft replay -R json -")
+            .args([opt, "ebuild"])
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&expected, &reports);
+
+        // TODO: add test for multiple args once issue #178 is fixed
+    }
+}
+
+#[test]
 fn pkgs() {
     let reports = indoc::indoc! {r#"
         {"kind":"DroppedKeywords","scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"description":"alpha, hppa, ia64, m68k, ppc"}
