@@ -1,12 +1,16 @@
 use std::fs;
 use std::io::Write;
 
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcruft::test::glob_reports;
 use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::NamedTempFile;
+
+use crate::ToReports;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
 pub(crate) static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
@@ -96,13 +100,15 @@ fn file_targets() {
 
 #[test]
 fn checks() {
-    let reports = indoc::indoc! {r#"
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"description":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"description":"x86"}
-        {"kind":"DroppedKeywords","scope":{"Version":"x11-wm/mutter-45.1"},"description":"ppc64"}
-    "#};
-    let expected: Vec<_> = reports.lines().collect();
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+    let single_check_reports = glob_reports!("{repo_path}/Dependency/**/reports.json");
+    let mut multiple_check_reports = single_check_reports.clone();
+    multiple_check_reports.extend(glob_reports!("{repo_path}/UnstableOnly/**/reports.json"));
+    let data = multiple_check_reports
+        .iter()
+        .map(|x| x.to_json())
+        .join("\n");
 
     for opt in ["-c", "--checks"] {
         // invalid
@@ -116,26 +122,18 @@ fn checks() {
             .code(2);
 
         // valid
-        let output = cmd("pkgcruft replay -R json -")
+        let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "Dependency"])
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&data, &expected[0..2]);
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&single_check_reports, &reports);
 
         // multiple values
-        let output = cmd("pkgcruft replay -R json -")
+        let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "Dependency,UnstableOnly"])
-            .write_stdin(reports)
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&data, &expected[0..3]);
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&multiple_check_reports, &reports);
     }
 }
 
