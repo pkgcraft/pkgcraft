@@ -340,3 +340,42 @@ fn reports() {
         assert_eq!(&multiple_expected, &reports);
     }
 }
+
+#[test]
+fn scopes() {
+    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo_path = repo.path();
+    let single_expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+    let multiple_expected = glob_reports!(
+        "{repo_path}/Dependency/DeprecatedDependency/reports.json",
+        "{repo_path}/UnstableOnly/UnstableOnly/reports.json",
+    );
+
+    for opt in ["-s", "--scopes"] {
+        // invalid
+        cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "invalid"])
+            .arg(repo.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("--scopes"))
+            .failure()
+            .code(2);
+
+        // single
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "version"])
+            .arg(repo.path().join("Dependency/DeprecatedDependency"))
+            .arg(repo.path().join("UnstableOnly/UnstableOnly"))
+            .to_reports();
+        assert_eq!(&single_expected, &reports);
+
+        // multiple
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "version,package"])
+            .arg(repo.path().join("Dependency/DeprecatedDependency"))
+            .arg(repo.path().join("UnstableOnly/UnstableOnly"))
+            .to_reports();
+        assert_eq!(&multiple_expected, &reports);
+    }
+}
