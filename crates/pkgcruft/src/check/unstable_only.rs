@@ -51,8 +51,8 @@ impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
             .collect();
 
         if !arches.is_empty() {
-            let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            reports.push(UnstableOnly.package(pkgs, arches));
+            let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
+            reports.push(UnstableOnly.package(pkgs, message));
         }
     }
 }

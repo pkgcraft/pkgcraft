@@ -88,8 +88,8 @@ impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
         }
 
         for (pkg, arches) in &dropped {
-            let arches = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            reports.push(DroppedKeywords.version(pkg, arches));
+            let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
+            reports.push(DroppedKeywords.version(pkg, message));
         }
     }
 }

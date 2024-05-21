@@ -44,11 +44,11 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
             .collect::<Vec<_>>();
 
         if !overlapping.is_empty() {
-            let keywords = overlapping
+            let message = overlapping
                 .iter()
                 .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
-            reports.push(OverlappingKeywords.version(pkg, keywords));
+            reports.push(OverlappingKeywords.version(pkg, message));
         }
 
         if self
@@ -64,12 +64,12 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
                 .filter(|k| k.status() == Stable)
                 .collect();
             if !keywords.is_empty() {
-                let msg = format!(
+                let message = format!(
                     "unstable EAPI {} with stable keywords: {}",
                     pkg.eapi(),
                     keywords.iter().join(" ")
                 );
-                reports.push(EapiUnstable.version(pkg, msg));
+                reports.push(EapiUnstable.version(pkg, message));
             }
         }
 
@@ -80,8 +80,8 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
         sorted_keywords.sort();
 
         if sorted_keywords != flattened_keywords {
-            let keywords = pkg.keywords().iter().join(" ");
-            reports.push(UnsortedKeywords.version(pkg, keywords));
+            let message = pkg.keywords().iter().join(" ");
+            reports.push(UnsortedKeywords.version(pkg, message));
         }
     }
 }

@@ -77,7 +77,7 @@ impl FancyReporter {
         if let ReportScope::Version(cpv) = report.scope() {
             write!(output, "version {}: ", cpv.version())?;
         }
-        writeln!(output, "{}", report.description())?;
+        writeln!(output, "{}", report.message())?;
 
         Ok(())
     }

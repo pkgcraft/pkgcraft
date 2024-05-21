@@ -97,7 +97,7 @@ pub enum ReportKind {
 
 impl ReportKind {
     /// Create a version scope report.
-    pub(crate) fn version<P, S>(self, pkg: P, description: S) -> Report
+    pub(crate) fn version<P, S>(self, pkg: P, message: S) -> Report
     where
         P: Package,
         S: fmt::Display,
@@ -105,12 +105,12 @@ impl ReportKind {
         Report {
             kind: self,
             scope: ReportScope::Version(pkg.cpv().clone()),
-            description: description.to_string(),
+            message: message.to_string(),
         }
     }
 
     /// Create a package scope report.
-    pub(crate) fn package<P, S>(self, pkgs: &[P], description: S) -> Report
+    pub(crate) fn package<P, S>(self, pkgs: &[P], message: S) -> Report
     where
         P: Package,
         S: fmt::Display,
@@ -118,7 +118,7 @@ impl ReportKind {
         Report {
             kind: self,
             scope: ReportScope::Package(pkgs[0].cpn().clone()),
-            description: description.to_string(),
+            message: message.to_string(),
         }
     }
 
@@ -179,7 +179,7 @@ impl fmt::Display for ReportScope {
 pub struct Report {
     kind: ReportKind,
     scope: ReportScope,
-    description: String,
+    message: String,
 }
 
 impl Report {
@@ -193,9 +193,9 @@ impl Report {
         &self.scope
     }
 
-    /// The description of the report.
-    pub fn description(&self) -> &str {
-        &self.description
+    /// The report message.
+    pub fn message(&self) -> &str {
+        &self.message
     }
 
     /// The severity of the report.
@@ -230,7 +230,7 @@ impl Ord for Report {
             (s1, s2) => cmp_not_equal!(s1, s2),
         }
         cmp_not_equal!(&self.kind, &other.kind);
-        self.description.cmp(&other.description)
+        self.message.cmp(&other.message)
     }
 }
 
@@ -242,7 +242,7 @@ impl PartialOrd for Report {
 
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}: {}", self.scope, self.kind, self.description)
+        write!(f, "{}: {}: {}", self.scope, self.kind, self.message)
     }
 }
 

@@ -41,13 +41,14 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
                 }
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
-                    reports.push(MissingRevision.version(pkg, format!("{key}: {dep}")));
+                    let message = format!("{key}: {dep}");
+                    reports.push(MissingRevision.version(pkg, message));
                 }
             }
 
             if !deprecated.is_empty() {
-                let msg = format!("{key}: {}", deprecated.iter().sorted().join(", "));
-                reports.push(DeprecatedDependency.version(pkg, msg));
+                let message = format!("{key}: {}", deprecated.iter().sorted().join(", "));
+                reports.push(DeprecatedDependency.version(pkg, message));
             }
         }
     }
