@@ -177,7 +177,7 @@ impl Workers {
                             let mut reports = vec![];
 
                             // report processing callback
-                            let report = |report: Report| {
+                            let mut report = |report: Report| {
                                 if filter.contains(report.kind()) {
                                     if exit.contains(report.kind()) {
                                         failed.store(true, Ordering::Relaxed);
@@ -187,7 +187,7 @@ impl Workers {
                             };
 
                             // run checks
-                            runner.run(&restrict, report);
+                            runner.run(&restrict, &mut report);
 
                             // sort and send reports
                             if !reports.is_empty() {
