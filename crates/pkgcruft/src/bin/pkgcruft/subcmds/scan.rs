@@ -1,11 +1,13 @@
 use std::io;
 use std::process::ExitCode;
 
-use clap::builder::ArgPredicate;
+use clap::builder::{ArgPredicate, PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use pkgcraft::cli::TargetRestrictions;
 use pkgcraft::config::Config;
+use pkgcruft::report::ReportKind;
 use pkgcruft::scanner::Scanner;
+use strum::VariantNames;
 
 use crate::args::StdinOrArgs;
 use crate::options;
@@ -20,6 +22,17 @@ pub(crate) struct Command {
     /// Target repo
     #[arg(long)]
     repo: Option<String>,
+
+    /// Exit status triggers
+    #[arg(
+        long,
+        value_name = "REPORT[,...]",
+        value_delimiter = ',',
+        hide_possible_values = true,
+        value_parser = PossibleValuesParser::new(ReportKind::VARIANTS)
+            .map(|s| s.parse::<ReportKind>().unwrap()),
+    )]
+    exit: Vec<ReportKind>,
 
     #[clap(flatten)]
     reporter: options::reporter::ReporterOptions,
@@ -62,7 +75,8 @@ impl Command {
         let scanner = Scanner::new()
             .jobs(self.jobs.unwrap_or_default())
             .checks(checks)
-            .reports(reports);
+            .reports(reports)
+            .exit(self.exit);
 
         // run scanner for all targets
         let mut stdout = io::stdout().lock();
@@ -74,6 +88,7 @@ impl Command {
             }
         }
 
-        Ok(ExitCode::SUCCESS)
+        let failed: u8 = scanner.failed().into();
+        Ok(failed.into())
     }
 }

@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
@@ -18,6 +19,8 @@ pub struct Scanner {
     jobs: usize,
     checks: IndexSet<&'static Check>,
     reports: IndexSet<ReportKind>,
+    exit: IndexSet<ReportKind>,
+    failed: Arc<AtomicBool>,
 }
 
 impl Default for Scanner {
@@ -26,6 +29,8 @@ impl Default for Scanner {
             jobs: bounded_jobs(0),
             checks: CheckKind::iter().map(Into::into).collect(),
             reports: ReportKind::iter().collect(),
+            exit: Default::default(),
+            failed: Arc::new(Default::default()),
         }
     }
 }
@@ -62,6 +67,21 @@ impl Scanner {
         self
     }
 
+    /// Set report variants that trigger exit code failures.
+    pub fn exit<I, T>(mut self, values: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<ReportKind>,
+    {
+        self.exit = values.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// Return true if the scanning process failed, false otherwise.
+    pub fn failed(&self) -> bool {
+        self.failed.load(Ordering::Relaxed)
+    }
+
     /// Run the scanner returning an iterator of reports.
     pub fn run<I, R>(&self, repo: &Repo, restricts: I) -> impl Iterator<Item = Report>
     where
@@ -79,11 +99,20 @@ impl Scanner {
                 let (reports_tx, reports_rx) = unbounded();
                 let runner = Arc::new(sync_runner);
                 let filter = Arc::new(self.reports.clone());
+                let exit = Arc::new(self.exit.clone());
 
                 Iter {
                     reports_rx,
                     _producer: Producer::new(repo, restricts, restrict_tx),
-                    _workers: Workers::new(self.jobs, &runner, &filter, &restrict_rx, &reports_tx),
+                    _workers: Workers::new(
+                        self.jobs,
+                        &runner,
+                        &filter,
+                        &exit,
+                        &self.failed,
+                        &restrict_rx,
+                        &reports_tx,
+                    ),
                     reports: VecDeque::new(),
                 }
             }
@@ -129,6 +158,8 @@ impl Workers {
         jobs: usize,
         runner: &Arc<SyncCheckRunner<'static>>,
         filter: &Arc<IndexSet<ReportKind>>,
+        exit: &Arc<IndexSet<ReportKind>>,
+        failed: &Arc<AtomicBool>,
         rx: &Receiver<Restrict>,
         tx: &Sender<Vec<Report>>,
     ) -> Self {
@@ -137,6 +168,8 @@ impl Workers {
                 .map(|_| {
                     let runner = runner.clone();
                     let filter = filter.clone();
+                    let exit = exit.clone();
+                    let failed = failed.clone();
                     let rx = rx.clone();
                     let tx = tx.clone();
                     thread::spawn(move || {
@@ -146,6 +179,9 @@ impl Workers {
                             // report processing callback
                             let report = |report: Report| {
                                 if filter.contains(report.kind()) {
+                                    if exit.contains(report.kind()) {
+                                        failed.store(true, Ordering::Relaxed);
+                                    }
                                     reports.push(report);
                                 }
                             };
