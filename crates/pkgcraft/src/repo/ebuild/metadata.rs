@@ -61,16 +61,34 @@ impl Ini {
 
 /// Ebuild repo configuration as defined by GLEP 82.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[non_exhaustive]
 pub struct Config {
-    cache_formats: OrderedSet<CacheFormat>,
-    eapis_banned: OrderedSet<String>,
-    eapis_deprecated: OrderedSet<String>,
-    eapis_testing: OrderedSet<String>,
-    manifest_hashes: OrderedSet<HashType>,
-    manifest_required_hashes: OrderedSet<HashType>,
-    masters: OrderedSet<String>,
-    properties_allowed: OrderedSet<String>,
-    restrict_allowed: OrderedSet<String>,
+    /// The ordered set of metadata cache types.
+    pub cache_formats: OrderedSet<CacheFormat>,
+
+    /// The ordered set of banned EAPIs.
+    pub eapis_banned: OrderedSet<String>,
+
+    /// The ordered set of deprecated EAPIs.
+    pub eapis_deprecated: OrderedSet<String>,
+
+    /// The ordered set of unstable EAPIs.
+    pub eapis_testing: OrderedSet<String>,
+
+    /// The ordered set of hash types that should be used for Manifest entries.
+    pub manifest_hashes: OrderedSet<HashType>,
+
+    /// The ordered set of hash types that must be used for Manifest entries.
+    pub manifest_required_hashes: OrderedSet<HashType>,
+
+    /// The ordered set of inherited repo ids.
+    pub masters: OrderedSet<String>,
+
+    /// Allowed values for ebuild PROPERTIES.
+    pub properties_allowed: OrderedSet<String>,
+
+    /// Allowed values for ebuild RESTRICT.
+    pub restrict_allowed: OrderedSet<String>,
 }
 
 macro_rules! ordered_set {
@@ -100,51 +118,6 @@ impl Config {
             properties_allowed: ordered_set!(ini, "properties-allowed")?,
             restrict_allowed: ordered_set!(ini, "restrict-allowed")?,
         })
-    }
-
-    /// Return the ordered set of metadata cache types.
-    pub fn cache_formats(&self) -> &OrderedSet<CacheFormat> {
-        &self.cache_formats
-    }
-
-    /// Return the ordered set of banned EAPIs.
-    pub fn eapis_banned(&self) -> &OrderedSet<String> {
-        &self.eapis_banned
-    }
-
-    /// Return the ordered set of deprecated EAPIs.
-    pub fn eapis_deprecated(&self) -> &OrderedSet<String> {
-        &self.eapis_deprecated
-    }
-
-    /// Return the ordered set of unstable EAPIs.
-    pub fn eapis_testing(&self) -> &OrderedSet<String> {
-        &self.eapis_testing
-    }
-
-    /// Return the ordered set of hash types that must be used for Manifest entries.
-    pub fn manifest_required_hashes(&self) -> &OrderedSet<HashType> {
-        &self.manifest_required_hashes
-    }
-
-    /// Return the ordered set of hash types that should be used for Manifest entries.
-    pub fn manifest_hashes(&self) -> &OrderedSet<HashType> {
-        &self.manifest_hashes
-    }
-
-    /// Return the ordered set of inherited repo ids.
-    pub fn masters(&self) -> &OrderedSet<String> {
-        &self.masters
-    }
-
-    /// Allowed values for ebuild PROPERTIES.
-    pub fn properties_allowed(&self) -> &OrderedSet<String> {
-        &self.properties_allowed
-    }
-
-    /// Allowed values for ebuild RESTRICT.
-    pub fn restrict_allowed(&self) -> &OrderedSet<String> {
-        &self.restrict_allowed
     }
 
     /// The config file contains no settings or is nonexistent.
@@ -239,7 +212,7 @@ pub struct Metadata {
     pub(super) id: String,
     pub(super) name: String,
     pub(super) eapi: &'static Eapi,
-    config: Config,
+    pub config: Config,
     path: Utf8PathBuf,
     arches: OnceLock<IndexSet<String>>,
     arches_desc: OnceLock<HashMap<ArchStatus, HashSet<String>>>,
@@ -307,10 +280,6 @@ impl Metadata {
         })
     }
 
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
     /// Return a repo's known architectures from `profiles/arch.list`.
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
@@ -365,7 +334,7 @@ impl Metadata {
             // TODO: support multiple cache formats?
             let format = self
                 .config
-                .cache_formats()
+                .cache_formats
                 .first()
                 .copied()
                 .unwrap_or_default();
@@ -705,7 +674,7 @@ mod tests {
         // empty config
         fs::write(repo.path().join("metadata/layout.conf"), "").unwrap();
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert!(metadata.config().is_empty());
+        assert!(metadata.config.is_empty());
 
         // invalid config
         fs::write(repo.path().join("metadata/layout.conf"), "data").unwrap();
@@ -719,8 +688,8 @@ mod tests {
 
         // empty
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert!(metadata.config().properties_allowed().is_empty());
-        assert!(metadata.config().restrict_allowed().is_empty());
+        assert!(metadata.config.properties_allowed.is_empty());
+        assert!(metadata.config.restrict_allowed.is_empty());
 
         // existing
         let data = indoc::indoc! {r#"
@@ -729,8 +698,8 @@ mod tests {
         "#};
         fs::write(repo.path().join("metadata/layout.conf"), data).unwrap();
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert_unordered_eq(metadata.config().properties_allowed(), ["live", "interactive"]);
-        assert_unordered_eq(metadata.config().restrict_allowed(), ["fetch", "mirror"]);
+        assert_unordered_eq(&metadata.config.properties_allowed, ["live", "interactive"]);
+        assert_unordered_eq(&metadata.config.restrict_allowed, ["fetch", "mirror"]);
     }
 
     #[test]
@@ -843,7 +812,7 @@ mod tests {
     fn test_eclasses() {
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
         // uninherited eclasses
-        assert_ordered_eq(repo.metadata().eclasses().iter().map(|e| e.name()), ["b", "c"]);
+        assert_ordered_eq(repo.metadata.eclasses().iter().map(|e| e.name()), ["b", "c"]);
         // inherited eclasses
         assert_ordered_eq(repo.eclasses().keys(), ["a", "b", "c"]);
     }

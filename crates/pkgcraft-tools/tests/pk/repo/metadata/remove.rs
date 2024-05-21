@@ -9,7 +9,7 @@ use crate::predicates::lines_contain;
 fn run() {
     let t = TempRepo::new("test", None, 0, None).unwrap();
     t.create_pkg("cat/a-1", &[]).unwrap();
-    let path = t.ebuild_repo().metadata().cache().path();
+    let path = t.ebuild_repo().metadata.cache().path();
 
     // generate cache
     cmd("pk repo metadata regen")

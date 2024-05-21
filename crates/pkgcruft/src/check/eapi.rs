@@ -27,17 +27,17 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
     fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
         if self
             .repo
-            .metadata()
-            .config()
-            .eapis_deprecated()
+            .metadata
+            .config
+            .eapis_deprecated
             .contains(pkg.eapi().as_ref())
         {
             reports.push(EapiDeprecated.version(pkg, pkg.eapi()));
         } else if self
             .repo
-            .metadata()
-            .config()
-            .eapis_banned()
+            .metadata
+            .config
+            .eapis_banned
             .contains(pkg.eapi().as_ref())
         {
             reports.push(EapiBanned.version(pkg, pkg.eapi()));

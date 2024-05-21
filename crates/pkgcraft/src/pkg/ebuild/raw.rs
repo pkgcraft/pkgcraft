@@ -40,7 +40,7 @@ impl<'a> Pkg<'a> {
             err: e.to_string(),
         })?;
 
-        let chksum = repo.metadata().cache().chksum(&data);
+        let chksum = repo.metadata.cache().chksum(&data);
         Ok(Self { cpv, repo, eapi, data, chksum })
     }
 
@@ -83,7 +83,7 @@ impl<'a> Pkg<'a> {
     /// Load raw metadata from the cache if valid, otherwise source it from the ebuild.
     pub fn metadata_raw(&self) -> crate::Result<MetadataRaw> {
         self.repo
-            .metadata()
+            .metadata
             .cache()
             .get(self)
             .map(|c| c.into_metadata_raw())
@@ -97,7 +97,7 @@ impl<'a> Pkg<'a> {
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata<'a>> {
         self.repo
-            .metadata()
+            .metadata
             .cache()
             .get(self)
             .and_then(|c| c.to_metadata(self))

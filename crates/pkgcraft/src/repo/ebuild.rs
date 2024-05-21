@@ -147,7 +147,7 @@ where
 pub struct Repo {
     id: String,
     config: RepoConfig,
-    metadata: Metadata,
+    pub metadata: Metadata,
     masters: OnceLock<Vec<Weak<Self>>>,
     trees: OnceLock<Vec<Weak<Self>>>,
     arches: OnceLock<IndexSet<String>>,
@@ -225,11 +225,12 @@ impl Repo {
             return Ok(());
         }
 
-        let repo_ids = self.metadata().config().masters().iter();
         let (masters, nonexistent): (Vec<_>, Vec<_>) =
-            repo_ids.partition_map(|id| match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
-                Some(r) => Either::Left(Arc::downgrade(r)),
-                None => Either::Right(id.as_str()),
+            self.metadata.config.masters.iter().partition_map(|id| {
+                match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
+                    Some(r) => Either::Left(Arc::downgrade(r)),
+                    None => Either::Right(id.as_str()),
+                }
             });
 
         if nonexistent.is_empty() {
@@ -265,14 +266,9 @@ impl Repo {
         &self.config
     }
 
-    /// Return the repo metadata.
-    pub fn metadata(&self) -> &Metadata {
-        &self.metadata
-    }
-
     /// Return the repo EAPI (set in profiles/eapi).
     pub fn eapi(&self) -> &'static Eapi {
-        self.metadata().eapi
+        self.metadata.eapi
     }
 
     /// Return the repo inheritance sequence.
@@ -308,7 +304,7 @@ impl Repo {
         self.eclasses.get_or_init(|| {
             let mut eclasses: IndexMap<_, _> = self
                 .trees()
-                .flat_map(|r| r.metadata().eclasses().clone().into_iter())
+                .flat_map(|r| r.metadata.eclasses().clone().into_iter())
                 .map(|e| (e.name().to_string(), e))
                 .collect();
             eclasses.sort_keys();
@@ -411,7 +407,7 @@ impl Repo {
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
             self.trees()
-                .flat_map(|r| r.metadata().arches().clone().into_iter())
+                .flat_map(|r| r.metadata.arches().clone().into_iter())
                 .collect()
         })
     }
@@ -421,7 +417,7 @@ impl Repo {
         self.licenses.get_or_init(|| {
             let mut licenses: IndexSet<_> = self
                 .trees()
-                .flat_map(|r| r.metadata().licenses().clone().into_iter())
+                .flat_map(|r| r.metadata.licenses().clone().into_iter())
                 .collect();
             licenses.sort();
             licenses
@@ -431,9 +427,9 @@ impl Repo {
     /// Return the mapping of license groups merged via inheritance.
     pub fn license_groups(&self) -> &HashMap<String, HashSet<String>> {
         self.license_groups.get_or_init(|| {
-            let mut group_map = self.metadata().license_groups().clone();
+            let mut group_map = self.metadata.license_groups().clone();
             self.masters()
-                .flat_map(|r| r.metadata().license_groups().clone().into_iter())
+                .flat_map(|r| r.metadata.license_groups().clone().into_iter())
                 .for_each(|(name, set)| {
                     group_map.entry(name).or_default().extend(set);
                 });
@@ -445,7 +441,7 @@ impl Repo {
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
         self.mirrors.get_or_init(|| {
             self.trees()
-                .flat_map(|r| r.metadata().mirrors().clone().into_iter())
+                .flat_map(|r| r.metadata.mirrors().clone().into_iter())
                 .collect()
         })
     }
@@ -534,7 +530,7 @@ impl Repo {
     pub fn deprecated(&self, dep: &Dep<String>) -> Option<&Dep<String>> {
         if dep.blocker().is_none() {
             if let Some(pkg) = self
-                .metadata()
+                .metadata
                 .pkg_deprecated()
                 .iter()
                 .find(|x| x.intersects(dep))
@@ -574,7 +570,7 @@ impl PkgRepository for Repo {
         // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories: IndexSet<_> = self
             .trees()
-            .flat_map(|r| r.metadata().categories().clone())
+            .flat_map(|r| r.metadata.categories().clone())
             .collect();
         categories.sort();
         if categories.is_empty() {
@@ -665,11 +661,11 @@ impl Repository for Repo {
     }
 
     fn id(&self) -> &str {
-        &self.metadata().id
+        &self.metadata.id
     }
 
     fn name(&self) -> &str {
-        &self.metadata().name
+        &self.metadata.name
     }
 
     fn priority(&self) -> i32 {

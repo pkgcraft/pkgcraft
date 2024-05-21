@@ -72,7 +72,7 @@ mod tests {
     #[test]
     fn try_new() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
-        let cache = repo.metadata().cache();
+        let cache = repo.metadata.cache();
 
         // nonexistent path
         assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass"), cache).is_err());

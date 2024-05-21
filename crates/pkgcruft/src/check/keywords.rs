@@ -53,9 +53,9 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
 
         if self
             .repo
-            .metadata()
-            .config()
-            .eapis_testing()
+            .metadata
+            .config
+            .eapis_testing
             .contains(pkg.eapi().as_ref())
         {
             let keywords: Vec<_> = pkg

@@ -25,7 +25,7 @@ pub(crate) struct Check<'a> {
 
 impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
-        let arches = if let Some(arches) = repo.metadata().arches_desc().get("stable") {
+        let arches = if let Some(arches) = repo.metadata.arches_desc().get("stable") {
             arches.iter().map(|s| s.as_str()).collect()
         } else {
             Default::default()
