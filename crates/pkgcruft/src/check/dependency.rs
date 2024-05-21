@@ -55,7 +55,7 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
-    use crate::check::Check::Dependency;
+    use crate::check::CheckKind::Dependency;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
 

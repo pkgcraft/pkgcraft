@@ -36,7 +36,7 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
-    use crate::check::Check::Eapi;
+    use crate::check::CheckKind::Eapi;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
 

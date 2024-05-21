@@ -10,14 +10,14 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 
-use crate::check::Check;
+use crate::check::CheckKind;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 
 #[derive(Debug)]
 pub struct Scanner {
     jobs: usize,
-    checks: IndexSet<Check>,
+    checks: IndexSet<CheckKind>,
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
@@ -27,7 +27,7 @@ impl Default for Scanner {
     fn default() -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: Check::iter().collect(),
+            checks: CheckKind::iter().collect(),
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
             failed: Arc::new(Default::default()),
@@ -50,7 +50,7 @@ impl Scanner {
     /// Set the checks to run.
     pub fn checks<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = Check>,
+        I: IntoIterator<Item = CheckKind>,
     {
         self.checks = values.into_iter().collect();
         self
@@ -243,7 +243,7 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // specific checks
-        let scanner = Scanner::new().jobs(1).checks([Check::Dependency]);
+        let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

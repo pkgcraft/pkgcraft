@@ -59,7 +59,7 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
-    use crate::check::Check::UnstableOnly;
+    use crate::check::CheckKind::UnstableOnly;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
 

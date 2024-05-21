@@ -83,7 +83,7 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
-    use crate::check::Check::Keywords;
+    use crate::check::CheckKind::Keywords;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
 

@@ -19,14 +19,6 @@ mod metadata;
 mod unstable_only;
 
 /// All checks separated by source type.
-#[derive(Debug, Copy, Clone)]
-pub(crate) enum CheckValue {
-    Pkg,
-    RawPkg,
-    PkgSet,
-}
-
-/// All checks separated by source type.
 #[derive(
     AsRefStr,
     Display,
@@ -42,7 +34,7 @@ pub(crate) enum CheckValue {
     Copy,
     Clone,
 )]
-pub enum Check {
+pub enum CheckKind {
     Dependency,
     DroppedKeywords,
     Eapi,
@@ -51,7 +43,7 @@ pub enum Check {
     UnstableOnly,
 }
 
-impl Check {
+impl CheckKind {
     /// The priority of the check for enabling a deterministic running order.
     pub(crate) fn priority(&self) -> i64 {
         match self {
@@ -64,17 +56,6 @@ impl Check {
     pub(crate) fn prioritized(left: &Self, right: &Self) -> Ordering {
         cmp_not_equal!(&left.priority(), &right.priority());
         left.cmp(right)
-    }
-
-    pub(crate) fn value(&self) -> CheckValue {
-        match self {
-            Self::Dependency => CheckValue::Pkg,
-            Self::DroppedKeywords => CheckValue::PkgSet,
-            Self::Eapi => CheckValue::Pkg,
-            Self::Keywords => CheckValue::Pkg,
-            Self::Metadata => CheckValue::RawPkg,
-            Self::UnstableOnly => CheckValue::PkgSet,
-        }
     }
 
     /// The scope the check runs in.
@@ -112,76 +93,57 @@ impl Check {
             Self::UnstableOnly => unstable_only::REPORTS,
         }
     }
-
-    pub(crate) fn ebuild(self, repo: &Repo) -> EbuildPkgCheck {
-        use EbuildPkgCheck::*;
-        match self {
-            Self::Dependency => Dependency(dependency::Check::new(repo)),
-            Self::Eapi => Eapi(eapi::Check::new(repo)),
-            Self::Keywords => Keywords(keywords::Check::new(repo)),
-            _ => unreachable!("{self} is not an ebuild check"),
-        }
-    }
-
-    pub(crate) fn ebuild_raw(self, repo: &Repo) -> EbuildRawPkgCheck {
-        use EbuildRawPkgCheck::*;
-        match self {
-            Self::Metadata => Metadata(metadata::Check::new(repo)),
-            _ => unreachable!("{self} is not a raw ebuild check"),
-        }
-    }
-
-    pub(crate) fn ebuild_pkg_set(self, repo: &Repo) -> EbuildPkgSetCheck {
-        use EbuildPkgSetCheck::*;
-        match self {
-            Self::DroppedKeywords => DroppedKeywords(dropped_keywords::Check::new(repo)),
-            Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
-            _ => unreachable!("{self} is not an ebuild pkg set check"),
-        }
-    }
 }
 
-#[derive(Debug)]
-pub(crate) enum EbuildPkgCheck<'a> {
+#[derive(Display, Debug)]
+pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
+    DroppedKeywords(dropped_keywords::Check<'a>),
     Eapi(eapi::Check<'a>),
     Keywords(keywords::Check<'a>),
+    Metadata(metadata::Check<'a>),
+    UnstableOnly(unstable_only::Check<'a>),
 }
 
-impl<'a> CheckRun<&ebuild::Pkg<'a>> for EbuildPkgCheck<'a> {
+impl<'a> Check<'a> {
+    pub(crate) fn new(kind: CheckKind, repo: &'a Repo) -> Self {
+        match kind {
+            CheckKind::Dependency => Self::Dependency(dependency::Check::new(repo)),
+            CheckKind::DroppedKeywords => Self::DroppedKeywords(dropped_keywords::Check::new(repo)),
+            CheckKind::Eapi => Self::Eapi(eapi::Check::new(repo)),
+            CheckKind::Keywords => Self::Keywords(keywords::Check::new(repo)),
+            CheckKind::Metadata => Self::Metadata(metadata::Check::new(repo)),
+            CheckKind::UnstableOnly => Self::UnstableOnly(unstable_only::Check::new(repo)),
+        }
+    }
+}
+
+impl<'a> CheckRun<&ebuild::Pkg<'a>> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkg: &ebuild::Pkg<'a>, report: F) {
         match self {
             Self::Dependency(c) => c.run(pkg, report),
             Self::Eapi(c) => c.run(pkg, report),
             Self::Keywords(c) => c.run(pkg, report),
+            _ => unreachable!("{self} is not an ebuild check"),
         }
     }
 }
 
-#[derive(Debug)]
-pub(crate) enum EbuildRawPkgCheck<'a> {
-    Metadata(metadata::Check<'a>),
-}
-
-impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for EbuildRawPkgCheck<'a> {
+impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkg: &ebuild::raw::Pkg<'a>, report: F) {
         match self {
             Self::Metadata(c) => c.run(pkg, report),
+            _ => unreachable!("{self} is not a raw ebuild check"),
         }
     }
 }
 
-#[derive(Debug)]
-pub(crate) enum EbuildPkgSetCheck<'a> {
-    DroppedKeywords(dropped_keywords::Check<'a>),
-    UnstableOnly(unstable_only::Check<'a>),
-}
-
-impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for EbuildPkgSetCheck<'a> {
+impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[ebuild::Pkg<'a>], report: F) {
         match self {
             Self::DroppedKeywords(c) => c.run(pkgs, report),
             Self::UnstableOnly(c) => c.run(pkgs, report),
+            _ => unreachable!("{self} is not an ebuild pkg set check"),
         }
     }
 }
@@ -192,8 +154,8 @@ pub(crate) trait CheckRun<T> {
 }
 
 /// The ordered map of all report variants to the checks that can generate them.
-pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::new(|| {
-    let mut map: OrderedMap<_, OrderedSet<_>> = Check::iter()
+pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
+    let mut map: OrderedMap<_, OrderedSet<_>> = CheckKind::iter()
         .flat_map(|c| c.reports().iter().copied().map(move |r| (r, c)))
         .collect();
     map.sort_keys();
@@ -201,8 +163,9 @@ pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy
 });
 
 /// The ordered map of all source variants to the checks that use them.
-pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<Check>>> = Lazy::new(|| {
-    let mut map: OrderedMap<_, OrderedSet<_>> = Check::iter().map(|c| (c.source(), c)).collect();
+pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
+    let mut map: OrderedMap<_, OrderedSet<_>> =
+        CheckKind::iter().map(|c| (c.source(), c)).collect();
     map.sort_keys();
     map
 });
