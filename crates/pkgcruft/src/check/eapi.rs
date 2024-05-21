@@ -24,7 +24,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
         if self
             .repo
             .metadata
@@ -32,7 +32,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
             .eapis_deprecated
             .contains(pkg.eapi().as_ref())
         {
-            reports.push(EapiDeprecated.version(pkg, pkg.eapi()));
+            report(EapiDeprecated.version(pkg, pkg.eapi()));
         } else if self
             .repo
             .metadata
@@ -40,7 +40,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
             .eapis_banned
             .contains(pkg.eapi().as_ref())
         {
-            reports.push(EapiBanned.version(pkg, pkg.eapi()));
+            report(EapiBanned.version(pkg, pkg.eapi()));
         }
     }
 }

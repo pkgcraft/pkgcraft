@@ -32,7 +32,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
         let keywords_map = pkg
             .keywords()
             .iter()
@@ -48,7 +48,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
                 .iter()
                 .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
-            reports.push(OverlappingKeywords.version(pkg, message));
+            report(OverlappingKeywords.version(pkg, message));
         }
 
         if self
@@ -69,7 +69,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
                     pkg.eapi(),
                     keywords.iter().join(" ")
                 );
-                reports.push(EapiUnstable.version(pkg, message));
+                report(EapiUnstable.version(pkg, message));
             }
         }
 
@@ -81,7 +81,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
 
         if sorted_keywords != flattened_keywords {
             let message = pkg.keywords().iter().join(" ");
-            reports.push(UnsortedKeywords.version(pkg, message));
+            report(UnsortedKeywords.version(pkg, message));
         }
     }
 }

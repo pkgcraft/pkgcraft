@@ -40,12 +40,10 @@ impl<'a> SyncCheckRunner<'a> {
     }
 
     /// Run all check runners in order of priority.
-    pub(super) fn run(&self, restrict: &Restrict) -> Vec<Report> {
-        let mut reports = vec![];
+    pub(super) fn run<F: FnMut(Report)>(&self, restrict: &Restrict, mut report: F) {
         for runner in self.runners.values() {
-            runner.run(restrict, &mut reports);
+            runner.run(restrict, &mut report);
         }
-        reports
     }
 }
 
@@ -73,10 +71,10 @@ impl<'a> CheckRunner<'a> {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, restrict: &Restrict, report: F) {
         match self {
-            Self::EbuildPkg(r) => r.run(restrict, reports),
-            Self::EbuildRawPkg(r) => r.run(restrict, reports),
+            Self::EbuildPkg(r) => r.run(restrict, report),
+            Self::EbuildRawPkg(r) => r.run(restrict, report),
         }
     }
 }
@@ -110,19 +108,19 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Run the check runner for a given restriction.
-    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, restrict: &Restrict, mut report: F) {
         let mut pkgs = vec![];
 
         for pkg in self.source.iter_restrict(restrict) {
             for check in &self.pkg_checks {
-                check.run(&pkg, reports);
+                check.run(&pkg, &mut report);
             }
             pkgs.push(pkg);
         }
 
         if !pkgs.is_empty() {
             for check in &self.pkg_set_checks {
-                check.run(&pkgs, reports);
+                check.run(&pkgs, &mut report);
             }
         }
     }
@@ -154,10 +152,10 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     }
 
     /// Run the check runner for a given restriction.
-    fn run<R: Into<Restrict>>(&self, restrict: R, reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, restrict: &Restrict, mut report: F) {
         for pkg in self.source.iter_restrict(restrict) {
             for check in &self.pkg_checks {
-                check.run(&pkg, reports);
+                check.run(&pkg, &mut report);
             }
         }
     }

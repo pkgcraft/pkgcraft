@@ -43,22 +43,22 @@ impl Scanner {
     }
 
     /// Set the checks to run.
-    pub fn checks<I, T>(mut self, checks: I) -> Self
+    pub fn checks<I, T>(mut self, values: I) -> Self
     where
         I: IntoIterator<Item = T>,
         T: Into<&'static Check>,
     {
-        self.checks = checks.into_iter().map(Into::into).collect();
+        self.checks = values.into_iter().map(Into::into).collect();
         self
     }
 
     /// Set enabled report variants.
-    pub fn reports<I, T>(mut self, reports: I) -> Self
+    pub fn reports<I, T>(mut self, values: I) -> Self
     where
         I: IntoIterator<Item = T>,
         T: Into<ReportKind>,
     {
-        self.reports = reports.into_iter().map(Into::into).collect();
+        self.reports = values.into_iter().map(Into::into).collect();
         self
     }
 
@@ -141,9 +141,17 @@ impl Workers {
                     let tx = tx.clone();
                     thread::spawn(move || {
                         for restrict in rx {
-                            // run checks and filter reports
-                            let mut reports = runner.run(&restrict);
-                            reports.retain(|r| filter.contains(r.kind()));
+                            let mut reports = vec![];
+
+                            // report processing callback
+                            let report = |report: Report| {
+                                if filter.contains(report.kind()) {
+                                    reports.push(report);
+                                }
+                            };
+
+                            // run checks
+                            runner.run(&restrict, report);
 
                             // sort and send reports
                             if !reports.is_empty() {

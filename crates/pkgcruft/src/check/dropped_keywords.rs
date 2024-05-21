@@ -30,7 +30,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         // ignore packages lacking keywords
         let pkgs: Vec<_> = pkgs.iter().filter(|p| !p.keywords().is_empty()).collect();
         if pkgs.len() <= 1 {
@@ -89,7 +89,7 @@ impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         for (pkg, arches) in &dropped {
             let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            reports.push(DroppedKeywords.version(pkg, message));
+            report(DroppedKeywords.version(pkg, message));
         }
     }
 }

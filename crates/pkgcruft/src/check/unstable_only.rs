@@ -35,7 +35,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run(&self, pkgs: &[Pkg<'a>], reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         let arches: Vec<_> = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())
@@ -52,7 +52,7 @@ impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         if !arches.is_empty() {
             let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            reports.push(UnstableOnly.package(pkgs, message));
+            report(UnstableOnly.package(pkgs, message));
         }
     }
 }

@@ -30,7 +30,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
         for key in pkg.eapi().dep_keys() {
             let mut deprecated = HashSet::new();
 
@@ -42,13 +42,13 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
                     let message = format!("{key}: {dep}");
-                    reports.push(MissingRevision.version(pkg, message));
+                    report(MissingRevision.version(pkg, message));
                 }
             }
 
             if !deprecated.is_empty() {
                 let message = format!("{key}: {}", deprecated.iter().sorted().join(", "));
-                reports.push(DeprecatedDependency.version(pkg, message));
+                report(DeprecatedDependency.version(pkg, message));
             }
         }
     }

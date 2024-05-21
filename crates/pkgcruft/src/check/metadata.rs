@@ -34,7 +34,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run(&self, pkg: &Pkg<'a>, reports: &mut Vec<Report>) {
+    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
         let eapi = pkg.eapi();
 
         match pkg.metadata_raw() {
@@ -49,7 +49,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
 
                 if !missing.is_empty() {
                     let message = missing.iter().join(", ");
-                    reports.push(MissingMetadata.version(pkg, message));
+                    report(MissingMetadata.version(pkg, message));
                 }
 
                 // verify depset parsing
@@ -58,7 +58,7 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
                     if let Some(val) = raw.get(key) {
                         if let Err(e) = dep::parse::package_dependency_set(val, eapi) {
                             let message = format!("{key}: {e}");
-                            reports.push(InvalidDependencySet.version(pkg, message));
+                            report(InvalidDependencySet.version(pkg, message));
                         }
                     }
                 }
@@ -66,33 +66,33 @@ impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
                 if let Some(val) = raw.get(&Key::LICENSE) {
                     if let Err(e) = dep::parse::license_dependency_set(val) {
                         let message = format!("{}: {e}", Key::LICENSE);
-                        reports.push(InvalidDependencySet.version(pkg, message));
+                        report(InvalidDependencySet.version(pkg, message));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::PROPERTIES) {
                     if let Err(e) = dep::parse::properties_dependency_set(val) {
                         let message = format!("{}: {e}", Key::PROPERTIES);
-                        reports.push(InvalidDependencySet.version(pkg, message));
+                        report(InvalidDependencySet.version(pkg, message));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::REQUIRED_USE) {
                     if let Err(e) = dep::parse::required_use_dependency_set(val, eapi) {
                         let message = format!("{}: {e}", Key::REQUIRED_USE);
-                        reports.push(InvalidDependencySet.version(pkg, message));
+                        report(InvalidDependencySet.version(pkg, message));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::RESTRICT) {
                     if let Err(e) = dep::parse::restrict_dependency_set(val) {
                         let message = format!("{}: {e}", Key::RESTRICT);
-                        reports.push(InvalidDependencySet.version(pkg, message));
+                        report(InvalidDependencySet.version(pkg, message));
                     }
                 }
             }
             Err(InvalidPkg { id: _, err }) => {
-                reports.push(SourcingError.version(pkg, err));
+                report(SourcingError.version(pkg, err));
             }
             // no other pkgcraft error types should occur
             Err(e) => panic!("MetadataCheck failed: {e}"),
