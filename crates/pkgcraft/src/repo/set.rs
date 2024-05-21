@@ -16,24 +16,21 @@ use crate::types::OrderedSet;
 
 use super::{PkgRepository, Repo, Repository};
 
-/// Ordered set of repos
+/// Ordered set of repos.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RepoSet(OrderedSet<Repo>);
+pub struct RepoSet {
+    pub repos: OrderedSet<Repo>,
+}
 
 impl RepoSet {
     /// Construct a new, empty `RepoSet`.
     pub fn new() -> Self {
-        Self(OrderedSet::new())
-    }
-
-    /// Return the ordered set of all repos in the set.
-    pub fn repos(&self) -> &OrderedSet<Repo> {
-        &self.0
+        Self { repos: OrderedSet::new() }
     }
 
     /// Iterate over all ebuild repos in the set.
     pub fn ebuild(&self) -> impl Iterator<Item = &Arc<EbuildRepo>> {
-        self.0.iter().filter_map(|r| r.as_ebuild())
+        self.repos.iter().filter_map(|r| r.as_ebuild())
     }
 
     /// Filter a repo set using repo restrictions.
@@ -72,7 +69,7 @@ impl<R: Into<Repo>> FromIterator<R> for RepoSet {
     fn from_iter<I: IntoIterator<Item = R>>(iterable: I) -> Self {
         let mut repos: OrderedSet<_> = iterable.into_iter().map(Into::into).collect();
         repos.sort();
-        Self(repos)
+        Self { repos }
     }
 }
 
@@ -95,19 +92,23 @@ impl PkgRepository for RepoSet {
     type IterRestrict<'a> = Iter<'a> where Self: 'a;
 
     fn categories(&self) -> IndexSet<String> {
-        let mut cats: IndexSet<_> = self.0.iter().flat_map(|r| r.categories()).collect();
+        let mut cats: IndexSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
         cats.sort();
         cats
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
-        let mut pkgs: IndexSet<_> = self.0.iter().flat_map(|r| r.packages(cat)).collect();
+        let mut pkgs: IndexSet<_> = self.repos.iter().flat_map(|r| r.packages(cat)).collect();
         pkgs.sort();
         pkgs
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
-        let mut versions: IndexSet<_> = self.0.iter().flat_map(|r| r.versions(cat, pkg)).collect();
+        let mut versions: IndexSet<_> = self
+            .repos
+            .iter()
+            .flat_map(|r| r.versions(cat, pkg))
+            .collect();
         versions.sort();
         versions
     }
@@ -117,7 +118,7 @@ impl PkgRepository for RepoSet {
     }
 
     fn iter_cpv(&self) -> Self::IterCpv<'_> {
-        let mut cpvs: IndexSet<_> = self.0.iter().flat_map(|r| r.iter_cpv()).collect();
+        let mut cpvs: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpv()).collect();
         cpvs.sort();
         IterCpv(cpvs.into_iter())
     }
@@ -153,7 +154,7 @@ impl PkgRepository for RepoSet {
         };
 
         Iter(Box::new(
-            self.0
+            self.repos
                 .iter()
                 .filter(move |r| repo_restrict.matches(r.id()))
                 .flat_map(move |r| r.iter_restrict(restrict.clone())),
@@ -163,19 +164,19 @@ impl PkgRepository for RepoSet {
 
 impl Contains<&Cpn<String>> for RepoSet {
     fn contains(&self, value: &Cpn<String>) -> bool {
-        self.0.iter().any(|r| r.contains(value))
+        self.repos.iter().any(|r| r.contains(value))
     }
 }
 
 impl Contains<&Cpv<String>> for RepoSet {
     fn contains(&self, value: &Cpv<String>) -> bool {
-        self.0.iter().any(|r| r.contains(value))
+        self.repos.iter().any(|r| r.contains(value))
     }
 }
 
 impl Contains<&Dep<String>> for RepoSet {
     fn contains(&self, value: &Dep<String>) -> bool {
-        self.0.iter().any(|r| r.contains(value))
+        self.repos.iter().any(|r| r.contains(value))
     }
 }
 
@@ -194,7 +195,7 @@ impl IntoIterator for RepoSet {
     type IntoIter = indexmap::set::IntoIter<Repo>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.repos.into_iter()
     }
 }
 
@@ -209,7 +210,7 @@ impl<'a> IntoIterator for &'a RepoSet {
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter(Box::new(self.0.iter().flat_map(|r| r.into_iter())))
+        Iter(Box::new(self.repos.iter().flat_map(|r| r.into_iter())))
     }
 }
 
@@ -232,7 +233,7 @@ impl BitAnd<&Self> for RepoSet {
 
 impl BitAndAssign<&Self> for RepoSet {
     fn bitand_assign(&mut self, other: &Self) {
-        self.0 &= &other.0;
+        self.repos &= &other.repos;
     }
 }
 
@@ -247,8 +248,8 @@ impl BitOr<&Self> for RepoSet {
 
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
-        self.0 |= &other.0;
-        self.0.sort();
+        self.repos |= &other.repos;
+        self.repos.sort();
     }
 }
 
@@ -263,8 +264,8 @@ impl BitXor<&Self> for RepoSet {
 
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
-        self.0 ^= &other.0;
-        self.0.sort();
+        self.repos ^= &other.repos;
+        self.repos.sort();
     }
 }
 
@@ -279,7 +280,7 @@ impl Sub<&Self> for RepoSet {
 
 impl SubAssign<&Self> for RepoSet {
     fn sub_assign(&mut self, other: &Self) {
-        self.0 -= &other.0;
+        self.repos -= &other.repos;
     }
 }
 
@@ -295,7 +296,7 @@ impl BitAnd<&Repo> for RepoSet {
 impl BitAndAssign<&Repo> for RepoSet {
     fn bitand_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.0 &= &set;
+        self.repos &= &set;
     }
 }
 
@@ -311,8 +312,8 @@ impl BitOr<&Repo> for RepoSet {
 impl BitOrAssign<&Repo> for RepoSet {
     fn bitor_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.0 |= &set;
-        self.0.sort();
+        self.repos |= &set;
+        self.repos.sort();
     }
 }
 
@@ -328,8 +329,8 @@ impl BitXor<&Repo> for RepoSet {
 impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.0 ^= &set;
-        self.0.sort();
+        self.repos ^= &set;
+        self.repos.sort();
     }
 }
 
@@ -345,7 +346,7 @@ impl Sub<&Repo> for RepoSet {
 impl SubAssign<&Repo> for RepoSet {
     fn sub_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
-        self.0 -= &set;
+        self.repos -= &set;
     }
 }
 
@@ -387,21 +388,21 @@ mod tests {
     #[test]
     fn test_repos() {
         let s = RepoSet::new();
-        assert!(s.repos().is_empty());
+        assert!(s.repos.is_empty());
 
         let r1: Repo = fake::Repo::new("r1", 0).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
         let s = RepoSet::from_iter([&r1, &r2]);
-        assert_ordered_eq(s.repos(), [&r1, &r2]);
+        assert_ordered_eq(&s.repos, [&r1, &r2]);
         // different parameter order are still sorted lexically by repo id
         let s = RepoSet::from_iter([&r2, &r1]);
-        assert_ordered_eq(s.repos(), [&r1, &r2]);
+        assert_ordered_eq(&s.repos, [&r1, &r2]);
 
         // higher priority repos come before lower priority ones
         let r1: Repo = fake::Repo::new("r1", -1).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
         let s = RepoSet::from_iter([&r1, &r2]);
-        assert_ordered_eq(s.repos(), [&r2, &r1]);
+        assert_ordered_eq(&s.repos, [&r2, &r1]);
     }
 
     #[test]

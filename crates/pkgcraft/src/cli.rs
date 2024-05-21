@@ -84,7 +84,7 @@ impl<'a> TargetRestrictions<'a> {
 
                             // add external repo to the config if it doesn't exist
                             let repo = if let Some(repo) =
-                                self.repo_set.repos().iter().find(|r| r.path() == path)
+                                self.repo_set.repos.iter().find(|r| r.path() == path)
                             {
                                 repo.clone()
                             } else {
@@ -99,7 +99,7 @@ impl<'a> TargetRestrictions<'a> {
 
                             return Ok((repo.into(), Restrict::and(restricts)));
                         }
-                        [id] if !self.repo_set.repos().iter().any(|r| r.id() == id) => {
+                        [id] if !self.repo_set.repos.iter().any(|r| r.id() == id) => {
                             return Err(Error::InvalidValue(format!("unknown repo: {id}")));
                         }
                         _ => (),
@@ -111,7 +111,7 @@ impl<'a> TargetRestrictions<'a> {
             (_, Ok(path)) if path.exists() => {
                 if let Some((repo, restrict)) = self
                     .repo_set
-                    .repos()
+                    .repos
                     .iter()
                     .find_map(|repo| repo.restrict_from_path(&path).map(|r| (repo, r)))
                 {
@@ -176,7 +176,7 @@ pub fn target_restriction(
     if let Ok(path) = &path_target {
         if path.exists() {
             if let Some((repo, restrict)) = repo_set
-                .repos()
+                .repos
                 .iter()
                 .find_map(|repo| repo.restrict_from_path(path).map(|r| (repo, r)))
             {
@@ -215,19 +215,18 @@ pub fn target_restriction(
                         })?;
 
                         // add external repo to the config if it doesn't exist
-                        let repo = if let Some(repo) =
-                            repo_set.repos().iter().find(|r| r.path() == path)
-                        {
-                            repo.clone()
-                        } else {
-                            let repo = repo_format.load_from_path(&path, &path, 0, true)?;
-                            config.add_repo(&repo, true)?;
-                            repo
-                        };
+                        let repo =
+                            if let Some(repo) = repo_set.repos.iter().find(|r| r.path() == path) {
+                                repo.clone()
+                            } else {
+                                let repo = repo_format.load_from_path(&path, &path, 0, true)?;
+                                config.add_repo(&repo, true)?;
+                                repo
+                            };
 
                         return Ok((repo.into(), Restrict::and(restricts)));
                     }
-                    [id] if !repo_set.repos().iter().any(|r| r.id() == id) => {
+                    [id] if !repo_set.repos.iter().any(|r| r.id() == id) => {
                         return Err(Error::InvalidValue(format!("unknown repo: {id}")));
                     }
                     _ => (),

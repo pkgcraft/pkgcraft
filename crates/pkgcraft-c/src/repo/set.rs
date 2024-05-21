@@ -98,7 +98,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_repos(
     len: *mut usize,
 ) -> *mut *const Repo {
     let s = try_ref_from_ptr!(s);
-    iter_to_array!(s.repos().iter(), len, |r| { r as *const _ })
+    iter_to_array!(s.repos.iter(), len, |r| { r as *const _ })
 }
 
 /// Compare two repo sets returning -1, 0, or 1 if the first set is less than, equal to, or greater
