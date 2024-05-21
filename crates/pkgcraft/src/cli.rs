@@ -6,7 +6,7 @@ use itertools::Itertools;
 
 use crate::config::Config;
 use crate::repo::set::RepoSet;
-use crate::repo::{RepoFormat, Repository};
+use crate::repo::{Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
@@ -37,20 +37,17 @@ impl<'a> TargetRestrictions<'a> {
 
     pub fn repo(mut self, value: Option<String>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
+            let path = Utf8Path::new(s);
             let repo = if let Some(repo) = self.config.repos.get(s) {
                 Ok(repo.clone())
-            } else if Utf8Path::new(s).exists() {
-                self.config
-                    .add_format_repo_path(s, s, 0, true, self.repo_format)
+            } else if path.exists() {
+                self.repo_from_path(path)
             } else {
                 Err(Error::InvalidValue(format!("unknown repo: {s}")))
             }?;
             self.repo_set = repo.into();
         } else if let Ok(path) = current_dir() {
-            if let Ok(repo) = self
-                .config
-                .add_format_repo_nested_path(&path, 0, self.repo_format)
-            {
+            if let Ok(repo) = self.repo_from_nested_path(&path) {
                 self.repo_set = repo.into();
             }
         }
@@ -58,11 +55,32 @@ impl<'a> TargetRestrictions<'a> {
         Ok(self)
     }
 
+    fn repo_from_path(&mut self, path: &Utf8Path) -> crate::Result<Repo> {
+        self.config
+            .add_format_repo_path(path, path, 0, true, self.repo_format)
+    }
+
+    fn repo_from_nested_path(&mut self, path: &Utf8Path) -> crate::Result<Repo> {
+        self.config
+            .add_format_repo_nested_path(path, 0, self.repo_format)
+    }
+
     /// Convert a target into a path or dep restriction.
     fn target_restriction(&mut self, target: &str) -> crate::Result<(RepoSet, Restrict)> {
-        let path_target = Utf8Path::new(target).canonicalize_utf8();
-        match (restrict::parse::dep(target), path_target) {
-            (Ok(restrict), _) => {
+        let path_target = Utf8Path::new(target)
+            .canonicalize_utf8()
+            .map_err(|e| Error::InvalidValue(format!("invalid path target: {target}: {e}")));
+        let repo_target = path_target
+            .as_ref()
+            .ok()
+            .map(|path| self.repo_from_nested_path(path));
+
+        match (restrict::parse::dep(target), path_target, repo_target) {
+            (_, Ok(path), Some(Ok(repo))) => {
+                let restrict = repo.restrict_from_path(path).expect("invalid repo");
+                Ok((repo.into(), restrict))
+            }
+            (Ok(restrict), _, _) => {
                 // support external repo path restrictions
                 if let Restrict::And(vals) = &restrict {
                     use DepRestrict::Repo;
@@ -88,13 +106,7 @@ impl<'a> TargetRestrictions<'a> {
                             {
                                 repo.clone()
                             } else {
-                                self.config.add_format_repo_path(
-                                    &path,
-                                    &path,
-                                    0,
-                                    true,
-                                    self.repo_format,
-                                )?
+                                self.repo_from_path(&path)?
                             };
 
                             return Ok((repo.into(), Restrict::and(restricts)));
@@ -108,33 +120,9 @@ impl<'a> TargetRestrictions<'a> {
 
                 Ok(self.repo_set.clone().filter(restrict))
             }
-            (_, Ok(path)) if path.exists() => {
-                if let Some((repo, restrict)) = self
-                    .repo_set
-                    .repos
-                    .iter()
-                    .find_map(|repo| repo.restrict_from_path(&path).map(|r| (repo, r)))
-                {
-                    // configured repo path restrict
-                    Ok((repo.into(), restrict))
-                } else {
-                    match self
-                        .config
-                        .add_format_repo_nested_path(&path, 0, self.repo_format)
-                    {
-                        Ok(repo) => {
-                            // external repo path restrict
-                            let restrict = repo.restrict_from_path(&path).expect("invalid repo");
-                            Ok((repo.into(), restrict))
-                        }
-                        Err(e) => Err(e),
-                    }
-                }
-            }
-            (_, Err(e)) if target.contains('/') => {
-                Err(Error::InvalidValue(format!("invalid path target: {target}: {e}")))
-            }
-            (Err(e), _) => Err(e),
+            (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
+            (_, Err(e), _) if target.contains('/') => Err(e),
+            (Err(e), _, _) => Err(e),
         }
     }
 
