@@ -3,7 +3,7 @@ use itertools::Itertools;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 
-use crate::check::{self, Check, CheckKind, CheckRun, CheckValue};
+use crate::check::{self, Check, CheckRun, CheckValue};
 use crate::report::Report;
 use crate::source::{self, IterRestrict, SourceKind};
 
@@ -25,17 +25,16 @@ impl<'a> SyncCheckRunner<'a> {
     /// Add checks to the runner.
     ///
     /// This creates new sources and checkrunner variants on the fly.
-    pub(super) fn checks<I, T>(mut self, checks: I) -> Self
+    pub(super) fn checks<I>(mut self, checks: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: Into<&'static Check>,
+        I: IntoIterator<Item = Check>,
     {
         // sort checks by priority so they run in the correct order
-        for check in checks.into_iter().map(Into::into).sorted() {
+        for check in checks.into_iter().sorted_by(Check::prioritized) {
             self.runners
-                .entry(check.source)
-                .or_insert_with(|| CheckRunner::new(check.source, self.repo))
-                .add_check(check.kind);
+                .entry(check.source())
+                .or_insert_with(|| CheckRunner::new(check.source(), self.repo))
+                .add_check(check);
         }
         self
     }
@@ -64,7 +63,7 @@ impl<'a> CheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: CheckKind) {
+    fn add_check(&mut self, check: Check) {
         match self {
             Self::EbuildPkg(r) => r.add_check(check),
             Self::EbuildRawPkg(r) => r.add_check(check),
@@ -100,7 +99,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: CheckKind) {
+    fn add_check(&mut self, check: Check) {
         match check.value() {
             CheckValue::Pkg => self.pkg_checks.push(check.ebuild(self.repo)),
             CheckValue::PkgSet => self.pkg_set_checks.push(check.ebuild_pkg_set(self.repo)),
@@ -145,7 +144,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: CheckKind) {
+    fn add_check(&mut self, check: Check) {
         match check.value() {
             CheckValue::RawPkg => self.pkg_checks.push(check.ebuild_raw(self.repo)),
             _ => unreachable!("{check} invalid for ebuild raw pkg check runner"),

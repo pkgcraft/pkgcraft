@@ -12,7 +12,6 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
     EnumString,
     VariantNames,
     Debug,
-    Default,
     PartialEq,
     Eq,
     PartialOrd,
@@ -23,7 +22,6 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum SourceKind {
-    #[default]
     Ebuild,
     EbuildRaw,
 }

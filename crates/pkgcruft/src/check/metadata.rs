@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use pkgcraft::dep;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::metadata::Key;
@@ -9,18 +8,10 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{InvalidDependencySet, MissingMetadata, SourcingError},
+    ReportKind::{self, InvalidDependencySet, MissingMetadata, SourcingError},
 };
-use crate::source::SourceKind;
 
-use super::{CheckBuilder, CheckKind, CheckRun};
-
-pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
-    CheckBuilder::new(CheckKind::Metadata)
-        .source(SourceKind::EbuildRaw)
-        .priority(-9999)
-        .reports([InvalidDependencySet, MissingMetadata, SourcingError])
-});
+pub(super) static REPORTS: &[ReportKind] = &[InvalidDependencySet, MissingMetadata, SourcingError];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -33,7 +24,7 @@ impl<'a> Check<'a> {
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
+impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
         let eapi = pkg.eapi();
 

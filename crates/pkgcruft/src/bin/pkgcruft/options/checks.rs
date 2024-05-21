@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcruft::check::{CheckKind, REPORT_CHECKS, SOURCE_CHECKS};
+use pkgcruft::check::{Check, REPORT_CHECKS, SOURCE_CHECKS};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
@@ -19,10 +19,10 @@ pub(crate) struct Checks {
         value_name = "CHECK[,...]",
         value_delimiter = ',',
         hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(CheckKind::VARIANTS)
-            .map(|s| s.parse::<CheckKind>().unwrap()),
+        value_parser = PossibleValuesParser::new(Check::VARIANTS)
+            .map(|s| s.parse::<Check>().unwrap()),
     )]
-    checks: Vec<CheckKind>,
+    checks: Vec<Check>,
 
     /// Restrict by level
     #[arg(
@@ -74,7 +74,7 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(self) -> (IndexSet<CheckKind>, IndexSet<ReportKind>) {
+    pub(crate) fn collapse(self) -> (IndexSet<Check>, IndexSet<ReportKind>) {
         // determine enabled report set
         let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
@@ -105,14 +105,14 @@ impl Checks {
                     .get(s)
                     .unwrap_or_else(|| unreachable!("no checks for source variant: {s}"))
                     .into_iter()
-                    .flat_map(|x| &x.check().reports)
+                    .flat_map(|x| x.reports())
             }));
             default_reports = false;
         }
 
         // enable reports related to checks
         if !self.checks.is_empty() {
-            reports.extend(self.checks.iter().flat_map(|x| &x.check().reports));
+            reports.extend(self.checks.iter().flat_map(|x| x.reports()));
             default_reports = false;
         }
 

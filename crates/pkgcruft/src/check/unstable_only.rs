@@ -1,22 +1,17 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{Report, ReportKind::UnstableOnly};
-use crate::scope::Scope;
+use crate::report::{
+    Report,
+    ReportKind::{self, UnstableOnly},
+};
 
-use super::{CheckBuilder, CheckKind, CheckRun};
-
-pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
-    CheckBuilder::new(CheckKind::UnstableOnly)
-        .scope(Scope::Package)
-        .reports([UnstableOnly])
-});
+pub(super) static REPORTS: &[ReportKind] = &[UnstableOnly];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -34,7 +29,7 @@ impl<'a> Check<'a> {
     }
 }
 
-impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
+impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         let arches: Vec<_> = pkgs
             .iter()
@@ -64,16 +59,15 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
+    use crate::check::Check::UnstableOnly;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
-
-    use super::*;
 
     #[test]
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(CHECK.as_ref());
-        let scanner = Scanner::new().jobs(1).checks([&*CHECK]);
+        let check_dir = repo.path().join(UnstableOnly.as_ref());
+        let scanner = Scanner::new().jobs(1).checks([UnstableOnly]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction

@@ -1,16 +1,12 @@
-use once_cell::sync::Lazy;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{EapiBanned, EapiDeprecated},
+    ReportKind::{self, EapiBanned, EapiDeprecated},
 };
 
-use super::{CheckBuilder, CheckKind, CheckRun};
-
-pub(super) static CHECK: Lazy<super::Check> =
-    Lazy::new(|| CheckBuilder::new(CheckKind::Eapi).reports([EapiBanned, EapiDeprecated]));
+pub(super) static REPORTS: &[ReportKind] = &[EapiBanned, EapiDeprecated];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -23,7 +19,7 @@ impl<'a> Check<'a> {
     }
 }
 
-impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
+impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
         let eapi = pkg.eapi().as_ref();
         if self.repo.metadata.config.eapis_deprecated.contains(eapi) {
@@ -40,16 +36,15 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
+    use crate::check::Check::Eapi;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
-
-    use super::*;
 
     #[test]
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(CHECK.as_ref());
-        let scanner = Scanner::new().jobs(1).checks([&*CHECK]);
+        let check_dir = repo.path().join(Eapi.as_ref());
+        let scanner = Scanner::new().jobs(1).checks([Eapi]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction

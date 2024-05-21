@@ -10,14 +10,14 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 
-use crate::check::CheckKind;
+use crate::check::Check;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 
 #[derive(Debug)]
 pub struct Scanner {
     jobs: usize,
-    checks: IndexSet<CheckKind>,
+    checks: IndexSet<Check>,
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
@@ -27,7 +27,7 @@ impl Default for Scanner {
     fn default() -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: CheckKind::iter().collect(),
+            checks: Check::iter().collect(),
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
             failed: Arc::new(Default::default()),
@@ -48,12 +48,11 @@ impl Scanner {
     }
 
     /// Set the checks to run.
-    pub fn checks<I, T>(mut self, values: I) -> Self
+    pub fn checks<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: Into<CheckKind>,
+        I: IntoIterator<Item = Check>,
     {
-        self.checks = values.into_iter().map(Into::into).collect();
+        self.checks = values.into_iter().collect();
         self
     }
 
@@ -93,7 +92,7 @@ impl Scanner {
                 // TODO: drop this hack once lifetime handling is improved for thread usage
                 let repo: &'static ebuild::Repo = Box::leak(Box::new(r.clone()));
 
-                let sync_runner = SyncCheckRunner::new(repo).checks(&self.checks);
+                let sync_runner = SyncCheckRunner::new(repo).checks(self.checks.iter().copied());
                 let (restrict_tx, restrict_rx) = unbounded();
                 let (reports_tx, reports_rx) = unbounded();
                 let runner = Arc::new(sync_runner);
@@ -244,7 +243,7 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // specific checks
-        let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
+        let scanner = Scanner::new().jobs(1).checks([Check::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

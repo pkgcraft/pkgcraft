@@ -2,21 +2,16 @@ use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{Report, ReportKind::DroppedKeywords};
-use crate::scope::Scope;
+use crate::report::{
+    Report,
+    ReportKind::{self, DroppedKeywords},
+};
 
-use super::{CheckBuilder, CheckKind, CheckRun};
-
-pub(super) static CHECK: Lazy<super::Check> = Lazy::new(|| {
-    CheckBuilder::new(CheckKind::DroppedKeywords)
-        .scope(Scope::Package)
-        .reports([DroppedKeywords])
-});
+pub(super) static REPORTS: &[ReportKind] = &[DroppedKeywords];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -29,7 +24,7 @@ impl<'a> Check<'a> {
     }
 }
 
-impl<'a> CheckRun<&[Pkg<'a>]> for Check<'a> {
+impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         // ignore packages lacking keywords
         let pkgs: Vec<_> = pkgs.iter().filter(|p| !p.keywords().is_empty()).collect();
@@ -100,16 +95,15 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
+    use crate::check::Check::DroppedKeywords;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
-
-    use super::*;
 
     #[test]
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(CHECK.as_ref());
-        let scanner = Scanner::new().jobs(1).checks([&*CHECK]);
+        let check_dir = repo.path().join(DroppedKeywords.as_ref());
+        let scanner = Scanner::new().jobs(1).checks([DroppedKeywords]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction
