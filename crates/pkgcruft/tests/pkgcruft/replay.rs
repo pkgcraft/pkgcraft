@@ -208,6 +208,43 @@ fn reports() {
 }
 
 #[test]
+fn scopes() {
+    let repo = qa_repo("qa-primary");
+    let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+    let multiple_expected = glob_reports!(
+        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/UnstableOnly/UnstableOnly/reports.json",
+    );
+    let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
+
+    for opt in ["-s", "--scopes"] {
+        // invalid
+        cmd("pkgcruft replay")
+            .args([opt, "invalid"])
+            .arg(QA_PRIMARY_FILE.path())
+            .assert()
+            .stdout("")
+            .stderr(contains("--scopes"))
+            .failure()
+            .code(2);
+
+        // single
+        let reports = cmd("pkgcruft replay -R json -")
+            .args([opt, "version"])
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&single_expected, &reports);
+
+        // multiple
+        let reports = cmd("pkgcruft replay -R json -")
+            .args([opt, "version,package"])
+            .write_stdin(data.as_str())
+            .to_reports();
+        assert_eq!(&multiple_expected, &reports);
+    }
+}
+
+#[test]
 fn sources() {
     let repo = qa_repo("qa-primary");
     let expected = glob_reports!(
