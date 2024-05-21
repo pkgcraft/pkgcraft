@@ -25,22 +25,11 @@ impl<'a> Check<'a> {
 
 impl<'a> CheckRun<&Pkg<'a>> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
-        if self
-            .repo
-            .metadata
-            .config
-            .eapis_deprecated
-            .contains(pkg.eapi().as_ref())
-        {
-            report(EapiDeprecated.version(pkg, pkg.eapi()));
-        } else if self
-            .repo
-            .metadata
-            .config
-            .eapis_banned
-            .contains(pkg.eapi().as_ref())
-        {
-            report(EapiBanned.version(pkg, pkg.eapi()));
+        let eapi = pkg.eapi().as_ref();
+        if self.repo.metadata.config.eapis_deprecated.contains(eapi) {
+            report(EapiDeprecated.version(pkg, eapi));
+        } else if self.repo.metadata.config.eapis_banned.contains(eapi) {
+            report(EapiBanned.version(pkg, eapi));
         }
     }
 }
