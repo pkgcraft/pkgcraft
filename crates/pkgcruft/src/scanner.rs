@@ -10,14 +10,14 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 
-use crate::check::{Check, CheckKind};
+use crate::check::CheckKind;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 
 #[derive(Debug)]
 pub struct Scanner {
     jobs: usize,
-    checks: IndexSet<&'static Check>,
+    checks: IndexSet<CheckKind>,
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
@@ -27,7 +27,7 @@ impl Default for Scanner {
     fn default() -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: CheckKind::iter().map(Into::into).collect(),
+            checks: CheckKind::iter().collect(),
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
             failed: Arc::new(Default::default()),
@@ -51,7 +51,7 @@ impl Scanner {
     pub fn checks<I, T>(mut self, values: I) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: Into<&'static Check>,
+        T: Into<CheckKind>,
     {
         self.checks = values.into_iter().map(Into::into).collect();
         self
@@ -88,13 +88,12 @@ impl Scanner {
         I: IntoIterator<Item = R>,
         R: Into<Restrict>,
     {
-        let checks = self.checks.iter().copied();
         match repo {
             Repo::Ebuild(r) => {
                 // TODO: drop this hack once lifetime handling is improved for thread usage
                 let repo: &'static ebuild::Repo = Box::leak(Box::new(r.clone()));
 
-                let sync_runner = SyncCheckRunner::new(repo).checks(checks);
+                let sync_runner = SyncCheckRunner::new(repo).checks(&self.checks);
                 let (restrict_tx, restrict_rx) = unbounded();
                 let (reports_tx, reports_rx) = unbounded();
                 let runner = Arc::new(sync_runner);

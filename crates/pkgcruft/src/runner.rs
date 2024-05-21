@@ -25,12 +25,13 @@ impl<'a> SyncCheckRunner<'a> {
     /// Add checks to the runner.
     ///
     /// This creates new sources and checkrunner variants on the fly.
-    pub(super) fn checks<I>(mut self, checks: I) -> Self
+    pub(super) fn checks<I, T>(mut self, checks: I) -> Self
     where
-        I: IntoIterator<Item = &'static Check>,
+        I: IntoIterator<Item = T>,
+        T: Into<&'static Check>,
     {
         // sort checks by priority so they run in the correct order
-        for check in checks.into_iter().sorted() {
+        for check in checks.into_iter().map(Into::into).sorted() {
             self.runners
                 .entry(check.source)
                 .or_insert_with(|| CheckRunner::new(check.source, self.repo))

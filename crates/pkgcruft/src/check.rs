@@ -250,6 +250,18 @@ impl From<CheckKind> for &'static Check {
     }
 }
 
+impl From<&CheckKind> for &'static Check {
+    fn from(kind: &CheckKind) -> Self {
+        kind.check()
+    }
+}
+
+impl From<&'static Check> for CheckKind {
+    fn from(check: &'static Check) -> Self {
+        check.kind
+    }
+}
+
 impl std::fmt::Display for Check {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.kind)
