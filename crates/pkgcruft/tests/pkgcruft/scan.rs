@@ -128,47 +128,48 @@ fn path_targets() {
         .failure()
         .code(2);
 
-    let primary = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    let primary_path = primary.path();
-    let secondary = TEST_DATA.ebuild_repo("qa-secondary").unwrap();
-    let secondary_path = secondary.path();
+    let primary = TEST_DATA.ebuild_repo("qa-primary").unwrap().path();
+    let secondary = TEST_DATA.ebuild_repo("qa-secondary").unwrap().path();
 
     // repo dir
-    let expected = glob_reports!("{primary_path}/**/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(primary_path)
-        .to_reports();
+    let expected = glob_reports!("{primary}/**/reports.json");
+    let reports = cmd("pkgcruft scan -j1 -R json").arg(primary).to_reports();
     assert_eq!(&expected, &reports);
 
     // overlay dir
-    let expected = glob_reports!("{secondary_path}/**/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(secondary_path)
-        .to_reports();
+    let expected = glob_reports!("{secondary}/**/reports.json");
+    let reports = cmd("pkgcruft scan -j1 -R json").arg(secondary).to_reports();
     assert_eq!(&expected, &reports);
 
     // category dir
-    let expected = glob_reports!("{primary_path}/Dependency/**/reports.json");
+    let expected = glob_reports!("{primary}/Dependency/**/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(primary_path.join("Dependency"))
+        .arg(primary.join("Dependency"))
         .to_reports();
     assert_eq!(&expected, &reports);
 
     // package dir
-    let expected = glob_reports!("{primary_path}/Dependency/DeprecatedDependency/reports.json");
+    let expected = glob_reports!("{primary}/Dependency/DeprecatedDependency/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(primary_path.join("Dependency/DeprecatedDependency"))
+        .arg(primary.join("Dependency/DeprecatedDependency"))
         .to_reports();
     assert_eq!(&expected, &reports);
 
-    // multiple paths in the same repo
-    let expected = glob_reports!(
-        "{primary_path}/Dependency/**/reports.json",
-        "{primary_path}/Eapi/**/reports.json",
-    );
+    // multiple absolute paths in the same repo
+    let expected =
+        glob_reports!("{primary}/Dependency/**/reports.json", "{primary}/Eapi/**/reports.json",);
+
     let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(primary_path.join("Dependency"))
-        .arg(primary_path.join("Eapi"))
+        .arg(primary.join("Dependency"))
+        .arg(primary.join("Eapi"))
+        .to_reports();
+    assert_eq!(&expected, &reports);
+
+    // multiple relative paths in the same repo
+    env::set_current_dir(primary).unwrap();
+    let reports = cmd("pkgcruft scan -j1 -R json")
+        .arg("Dependency")
+        .arg("Eapi")
         .to_reports();
     assert_eq!(&expected, &reports);
 }
