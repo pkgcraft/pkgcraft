@@ -3,22 +3,20 @@ use std::io::Write;
 
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::cmd;
 use pkgcruft::test::glob_reports;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
 
-use crate::ToReports;
+use crate::*;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
 pub(crate) static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
     let mut file = NamedTempFile::new().unwrap();
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let output = cmd("pkgcruft scan -R json")
-        .arg(repo.path())
+        .arg(qa_repo("qa-primary"))
         .output()
         .unwrap()
         .stdout;
@@ -101,12 +99,12 @@ fn file_targets() {
 
 #[test]
 fn checks() {
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    let repo_path = repo.path();
-    let single_expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
+    let repo = qa_repo("qa-primary");
+    let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
-        "{repo_path}/Dependency/**/reports.json",
-        "{repo_path}/UnstableOnly/**/reports.json",
+        "{repo}/Dependency/**/reports.json",
+        "{repo}/Eapi/**/reports.json",
+        "{repo}/Keywords/**/reports.json",
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
@@ -130,7 +128,7 @@ fn checks() {
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "Dependency,UnstableOnly"])
+            .args([opt, "Dependency,Eapi,Keywords"])
             .write_stdin(data.as_str())
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
@@ -139,10 +137,9 @@ fn checks() {
 
 #[test]
 fn levels() {
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    let repo_path = repo.path();
-    let single_expected = glob_reports!("{repo_path}/Eapi/EapiDeprecated/reports.json");
-    let multiple_expected = glob_reports!("{repo_path}/Eapi/**/reports.json");
+    let repo = qa_repo("qa-primary");
+    let single_expected = glob_reports!("{repo}/Eapi/EapiDeprecated/reports.json");
+    let multiple_expected = glob_reports!("{repo}/Eapi/**/reports.json");
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     for opt in ["-l", "--levels"] {
@@ -174,12 +171,12 @@ fn levels() {
 
 #[test]
 fn reports() {
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    let repo_path = repo.path();
-    let single_expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+    let repo = qa_repo("qa-primary");
+    let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
     let multiple_expected = glob_reports!(
-        "{repo_path}/Dependency/DeprecatedDependency/reports.json",
-        "{repo_path}/UnstableOnly/UnstableOnly/reports.json",
+        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/Eapi/EapiBanned/reports.json",
+        "{repo}/Keywords/UnsortedKeywords/reports.json",
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
@@ -203,7 +200,7 @@ fn reports() {
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "DeprecatedDependency,UnstableOnly"])
+            .args([opt, "DeprecatedDependency,EapiBanned,UnsortedKeywords"])
             .write_stdin(data.as_str())
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
@@ -212,11 +209,10 @@ fn reports() {
 
 #[test]
 fn sources() {
-    let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    let repo_path = repo.path();
+    let repo = qa_repo("qa-primary");
     let expected = glob_reports!(
-        "{repo_path}/Dependency/DeprecatedDependency/reports.json",
-        "{repo_path}/UnstableOnly/UnstableOnly/reports.json",
+        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/UnstableOnly/UnstableOnly/reports.json",
     );
     let data = expected.iter().map(|x| x.to_json()).join("\n");
 
