@@ -109,24 +109,21 @@ impl FormatReporter {
                 let category = cpv.category().to_string();
                 let package = cpv.package().to_string();
                 let version = cpv.version().to_string();
+                let ebuild = format!("{package}-{version}.ebuild");
                 attrs.extend([
-                    (
-                        "path".to_string(),
-                        format!("{category}/{package}/{package}-{version}.ebuild"),
-                    ),
-                    ("ebuild".to_string(), format!("{package}-{version}.ebuild")),
+                    ("path".to_string(), format!("{category}/{package}/{ebuild}")),
+                    ("ebuild".to_string(), ebuild),
                     ("category".to_string(), category),
                     ("package".to_string(), package),
                     ("version".to_string(), version),
+                    ("cpv".to_string(), cpv.to_string()),
                 ]);
             }
             ReportScope::Package(cpn) => {
-                let category = cpn.category().to_string();
-                let package = cpn.package().to_string();
                 attrs.extend([
-                    ("path".to_string(), format!("{category}/{package}")),
                     ("category".to_string(), cpn.category().to_string()),
                     ("package".to_string(), cpn.package().to_string()),
+                    ("cpn".to_string(), cpn.to_string()),
                 ]);
             }
         }
