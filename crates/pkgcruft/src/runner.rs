@@ -20,16 +20,12 @@ impl SyncCheckRunner {
     pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<CheckKind>) -> Self {
         let repo = Box::leak(Box::new(repo.clone()));
         let mut runners = IndexMap::new();
-        for (source, check) in checks
-            .iter()
-            .map(|kind| (kind.source(), kind.create(repo)))
-            // sort checks by priority so they run in the correct order
-            .sorted_by(|a, b| a.1.cmp(&b.1))
-        {
+        // sort checks by priority so they run in the correct order
+        for check in checks.iter().copied().sorted_by(CheckKind::prioritized) {
             runners
-                .entry(source)
-                .or_insert_with(|| CheckRunner::new(source, repo))
-                .add_check(check);
+                .entry(check.source())
+                .or_insert_with(|| CheckRunner::new(check.source(), repo))
+                .add_check(check.create(repo));
         }
 
         Self { runners }
