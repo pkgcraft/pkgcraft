@@ -559,6 +559,10 @@ impl<S: Stringable, T: Ordered> DependencySet<S, T> {
         self.0.is_superset(&other.0)
     }
 
+    pub fn intersection<'a>(&'a self, other: &'a Self) -> Iter<'a, S, T> {
+        self.0.intersection(&other.0).collect()
+    }
+
     pub fn iter(&self) -> Iter<S, T> {
         self.into_iter()
     }
