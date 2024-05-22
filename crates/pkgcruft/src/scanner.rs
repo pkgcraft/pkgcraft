@@ -241,4 +241,21 @@ mod tests {
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
         assert!(scanner.run(repo, [&dep]).next().is_none());
     }
+
+    #[test]
+    fn failed() {
+        let repo = TEST_DATA.repo("qa-primary").unwrap();
+
+        // no reports flagged for failures
+        let scanner = Scanner::new().jobs(1);
+        scanner.run(repo, [repo]).count();
+        assert!(!scanner.failed());
+
+        // fail on specified report variant
+        let scanner = Scanner::new()
+            .jobs(1)
+            .exit([ReportKind::DeprecatedDependency]);
+        scanner.run(repo, [repo]).count();
+        assert!(scanner.failed());
+    }
 }
