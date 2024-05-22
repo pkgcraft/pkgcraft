@@ -54,7 +54,6 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::config::Config;
     use pkgcraft::repo::Repository;
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
@@ -80,9 +79,7 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // empty repo
-        let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
+        let repo = TEST_DATA.repo("empty").unwrap();
         assert!(scanner.run(repo, [repo]).next().is_none());
     }
 }
