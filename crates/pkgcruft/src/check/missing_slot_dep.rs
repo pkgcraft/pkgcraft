@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(MissingSlotDep.as_ref());
+        let check_dir = repo.path().join(MissingSlotDep);
         let scanner = Scanner::new().jobs(1).checks([MissingSlotDep]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 

@@ -43,7 +43,7 @@ mod tests {
     #[test]
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(Eapi.as_ref());
+        let check_dir = repo.path().join(Eapi);
         let scanner = Scanner::new().jobs(1).checks([Eapi]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 

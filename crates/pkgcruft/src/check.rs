@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use camino::Utf8Path;
 use once_cell::sync::Lazy;
 use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::ebuild;
@@ -43,6 +44,13 @@ pub enum CheckKind {
     Metadata,
     MissingSlotDep,
     UnstableOnly,
+}
+
+impl AsRef<Utf8Path> for CheckKind {
+    fn as_ref(&self) -> &Utf8Path {
+        let s: &str = self.as_ref();
+        Utf8Path::new(s)
+    }
 }
 
 impl CheckKind {
