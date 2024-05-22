@@ -16,6 +16,7 @@ mod dropped_keywords;
 mod eapi;
 mod keywords;
 mod metadata;
+mod missing_slot_dep;
 mod unstable_only;
 
 /// Check variants.
@@ -40,6 +41,7 @@ pub enum CheckKind {
     Eapi,
     Keywords,
     Metadata,
+    MissingSlotDep,
     UnstableOnly,
 }
 
@@ -66,6 +68,7 @@ impl CheckKind {
             Self::Eapi => Scope::Version,
             Self::Keywords => Scope::Version,
             Self::Metadata => Scope::Version,
+            Self::MissingSlotDep => Scope::Version,
             Self::UnstableOnly => Scope::Package,
         }
     }
@@ -78,6 +81,7 @@ impl CheckKind {
             Self::Eapi => SourceKind::Ebuild,
             Self::Keywords => SourceKind::Ebuild,
             Self::Metadata => SourceKind::EbuildRaw,
+            Self::MissingSlotDep => SourceKind::Ebuild,
             Self::UnstableOnly => SourceKind::Ebuild,
         }
     }
@@ -90,6 +94,7 @@ impl CheckKind {
             Self::Eapi => eapi::REPORTS,
             Self::Keywords => keywords::REPORTS,
             Self::Metadata => metadata::REPORTS,
+            Self::MissingSlotDep => missing_slot_dep::REPORTS,
             Self::UnstableOnly => unstable_only::REPORTS,
         }
     }
@@ -103,6 +108,7 @@ impl CheckKind {
             Self::Eapi => Eapi(eapi::Check::new(repo)),
             Self::Keywords => Keywords(keywords::Check::new(repo)),
             Self::Metadata => Metadata(metadata::Check::new(repo)),
+            Self::MissingSlotDep => MissingSlotDep(missing_slot_dep::Check::new(repo)),
             Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
         }
     }
@@ -116,6 +122,7 @@ pub(crate) enum Check<'a> {
     Eapi(eapi::Check<'a>),
     Keywords(keywords::Check<'a>),
     Metadata(metadata::Check<'a>),
+    MissingSlotDep(missing_slot_dep::Check<'a>),
     UnstableOnly(unstable_only::Check<'a>),
 }
 
@@ -133,6 +140,7 @@ impl<'a> CheckRun<&ebuild::Pkg<'a>> for Check<'a> {
             Self::Dependency(c) => c.run(pkg, report),
             Self::Eapi(c) => c.run(pkg, report),
             Self::Keywords(c) => c.run(pkg, report),
+            Self::MissingSlotDep(c) => c.run(pkg, report),
             _ => unreachable!("{self} is not an ebuild check"),
         }
     }
