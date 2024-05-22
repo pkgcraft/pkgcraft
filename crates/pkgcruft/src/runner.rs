@@ -14,33 +14,25 @@ use crate::source::{self, IterRestrict, SourceKind};
 #[derive(Debug)]
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, CheckRunner<'static>>,
-    repo: &'static Repo,
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(repo: &Arc<Repo>) -> Self {
-        Self {
-            runners: Default::default(),
-            repo: Box::leak(Box::new(repo.clone())),
-        }
-    }
-
-    /// Add checks to the runner.
-    ///
-    /// This creates new sources and checkrunner variants on the fly.
-    pub(super) fn checks(mut self, checks: &IndexSet<CheckKind>) -> Self {
-        // sort checks by priority so they run in the correct order
-        for check in checks
-            .into_iter()
-            .map(|kind| kind.create(self.repo))
-            .sorted()
+    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<CheckKind>) -> Self {
+        let repo = Box::leak(Box::new(repo.clone()));
+        let mut runners = IndexMap::new();
+        for (source, check) in checks
+            .iter()
+            .map(|kind| (kind.source(), kind.create(repo)))
+            // sort checks by priority so they run in the correct order
+            .sorted_by(|a, b| a.1.cmp(&b.1))
         {
-            self.runners
-                .entry(check.kind().source())
-                .or_insert_with(|| CheckRunner::new(check.kind().source(), self.repo))
+            runners
+                .entry(source)
+                .or_insert_with(|| CheckRunner::new(source, repo))
                 .add_check(check);
         }
-        self
+
+        Self { runners }
     }
 
     /// Run all check runners in order of priority.

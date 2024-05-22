@@ -89,7 +89,7 @@ impl Scanner {
             Repo::Ebuild(r) => {
                 let (restrict_tx, restrict_rx) = unbounded();
                 let (reports_tx, reports_rx) = unbounded();
-                let runner = Arc::new(SyncCheckRunner::new(r).checks(&self.checks));
+                let runner = Arc::new(SyncCheckRunner::new(r, &self.checks));
                 let filter = Arc::new(self.reports.clone());
                 let exit = Arc::new(self.exit.clone());
 
