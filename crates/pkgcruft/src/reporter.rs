@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::Write;
 
 use colored::{Color, Colorize};
+use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use strfmt::strfmt;
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
@@ -129,7 +130,11 @@ impl FormatReporter {
         }
 
         let s = strfmt(&self.format, &attrs).map_err(|e| {
-            Error::InvalidValue(format!("{}: invalid output format: {e}", report.kind()))
+            let supported = attrs.keys().sorted().join(", ");
+            Error::InvalidValue(format!(
+                "{}: invalid output format: {e}\n  [possible attributes: {supported}]",
+                report.kind()
+            ))
         })?;
         if !s.is_empty() {
             writeln!(output, "{s}")?;
