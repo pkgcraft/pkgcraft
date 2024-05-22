@@ -44,20 +44,6 @@ pub enum CheckKind {
 }
 
 impl CheckKind {
-    /// The priority of the check for enabling a deterministic running order.
-    pub(crate) fn priority(&self) -> i64 {
-        match self {
-            Self::Metadata => -9999,
-            _ => 0,
-        }
-    }
-
-    /// Sort checks via priority, then by name.
-    pub(crate) fn prioritized(left: &Self, right: &Self) -> Ordering {
-        cmp_not_equal!(&left.priority(), &right.priority());
-        left.cmp(right)
-    }
-
     /// The scope the check runs in.
     pub fn scope(&self) -> Scope {
         match self {
@@ -95,7 +81,7 @@ impl CheckKind {
     }
 }
 
-#[derive(Display, Debug)]
+#[derive(AsRefStr, Display, Debug)]
 pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
     DroppedKeywords(dropped_keywords::Check<'a>),
@@ -115,6 +101,41 @@ impl<'a> Check<'a> {
             CheckKind::Metadata => Self::Metadata(metadata::Check::new(repo)),
             CheckKind::UnstableOnly => Self::UnstableOnly(unstable_only::Check::new(repo)),
         }
+    }
+
+    pub(crate) fn kind(&self) -> CheckKind {
+        self.as_ref()
+            .parse()
+            .unwrap_or_else(|_| panic!("{self} name doesn't match CheckKind"))
+    }
+
+    /// The priority of the check for enabling a deterministic running order.
+    fn priority(&self) -> i64 {
+        match self {
+            Self::Metadata(_) => -9999,
+            _ => 0,
+        }
+    }
+}
+
+impl PartialEq for Check<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind() == other.kind()
+    }
+}
+
+impl Eq for Check<'_> {}
+
+impl Ord for Check<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        cmp_not_equal!(&self.priority(), &other.priority());
+        self.kind().cmp(&other.kind())
+    }
+}
+
+impl PartialOrd for Check<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 

@@ -33,11 +33,15 @@ impl SyncCheckRunner {
         I: IntoIterator<Item = CheckKind>,
     {
         // sort checks by priority so they run in the correct order
-        for kind in values.into_iter().sorted_by(CheckKind::prioritized) {
+        for check in values
+            .into_iter()
+            .map(|kind| Check::new(kind, self.repo))
+            .sorted()
+        {
             self.runners
-                .entry(kind.source())
-                .or_insert_with(|| CheckRunner::new(kind.source(), self.repo))
-                .add_check(kind);
+                .entry(check.kind().source())
+                .or_insert_with(|| CheckRunner::new(check.kind().source(), self.repo))
+                .add_check(check);
         }
         self
     }
@@ -66,10 +70,10 @@ impl<'a> CheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind) {
+    fn add_check(&mut self, check: Check<'a>) {
         match self {
-            Self::EbuildPkg(r) => r.add_check(kind),
-            Self::EbuildRawPkg(r) => r.add_check(kind),
+            Self::EbuildPkg(r) => r.add_check(check),
+            Self::EbuildRawPkg(r) => r.add_check(check),
         }
     }
 
@@ -87,7 +91,6 @@ impl<'a> CheckRunner<'a> {
 struct EbuildPkgCheckRunner<'a> {
     checks: IndexMap<Scope, Vec<Check<'a>>>,
     source: source::Ebuild<'a>,
-    repo: &'a Repo,
 }
 
 impl<'a> EbuildPkgCheckRunner<'a> {
@@ -95,16 +98,15 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         Self {
             checks: Default::default(),
             source: source::Ebuild { repo },
-            repo,
         }
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind) {
+    fn add_check(&mut self, check: Check<'a>) {
         self.checks
-            .entry(kind.scope())
+            .entry(check.kind().scope())
             .or_default()
-            .push(Check::new(kind, self.repo));
+            .push(check)
     }
 
     /// Run the check runner for a given restriction.
@@ -135,7 +137,6 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 struct EbuildRawPkgCheckRunner<'a> {
     checks: IndexMap<Scope, Vec<Check<'a>>>,
     source: source::EbuildRaw<'a>,
-    repo: &'a Repo,
 }
 
 impl<'a> EbuildRawPkgCheckRunner<'a> {
@@ -143,16 +144,15 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
         Self {
             checks: Default::default(),
             source: source::EbuildRaw { repo },
-            repo,
         }
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind) {
+    fn add_check(&mut self, check: Check<'a>) {
         self.checks
-            .entry(kind.scope())
+            .entry(check.kind().scope())
             .or_default()
-            .push(Check::new(kind, self.repo));
+            .push(check)
     }
 
     /// Run the check runner for a given restriction.
