@@ -18,7 +18,7 @@ mod keywords;
 mod metadata;
 mod unstable_only;
 
-/// All checks separated by source type.
+/// Check variants.
 #[derive(
     AsRefStr,
     Display,
@@ -79,8 +79,22 @@ impl CheckKind {
             Self::UnstableOnly => unstable_only::REPORTS,
         }
     }
+
+    /// Create a check runner for a given variant.
+    pub(crate) fn create(self, repo: &Repo) -> Check {
+        use Check::*;
+        match self {
+            Self::Dependency => Dependency(dependency::Check::new(repo)),
+            Self::DroppedKeywords => DroppedKeywords(dropped_keywords::Check::new(repo)),
+            Self::Eapi => Eapi(eapi::Check::new(repo)),
+            Self::Keywords => Keywords(keywords::Check::new(repo)),
+            Self::Metadata => Metadata(metadata::Check::new(repo)),
+            Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
+        }
+    }
 }
 
+/// Check runner variants.
 #[derive(AsRefStr, Display, Debug)]
 pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
@@ -92,17 +106,6 @@ pub(crate) enum Check<'a> {
 }
 
 impl<'a> Check<'a> {
-    pub(crate) fn new(kind: CheckKind, repo: &'a Repo) -> Self {
-        match kind {
-            CheckKind::Dependency => Self::Dependency(dependency::Check::new(repo)),
-            CheckKind::DroppedKeywords => Self::DroppedKeywords(dropped_keywords::Check::new(repo)),
-            CheckKind::Eapi => Self::Eapi(eapi::Check::new(repo)),
-            CheckKind::Keywords => Self::Keywords(keywords::Check::new(repo)),
-            CheckKind::Metadata => Self::Metadata(metadata::Check::new(repo)),
-            CheckKind::UnstableOnly => Self::UnstableOnly(unstable_only::Check::new(repo)),
-        }
-    }
-
     pub(crate) fn kind(&self) -> CheckKind {
         self.as_ref()
             .parse()

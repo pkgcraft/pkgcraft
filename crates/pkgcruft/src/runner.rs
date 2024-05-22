@@ -35,7 +35,7 @@ impl SyncCheckRunner {
         // sort checks by priority so they run in the correct order
         for check in values
             .into_iter()
-            .map(|kind| Check::new(kind, self.repo))
+            .map(|kind| kind.create(self.repo))
             .sorted()
         {
             self.runners
