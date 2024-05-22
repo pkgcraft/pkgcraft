@@ -214,6 +214,10 @@ mod tests {
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
+        // no checks
+        let scanner = Scanner::new().jobs(1).checks([]);
+        assert!(scanner.run(repo, [repo]).next().is_none());
+
         // specific checks
         let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
@@ -227,6 +231,10 @@ mod tests {
         let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
+
+        // no reports
+        let scanner = Scanner::new().jobs(1).reports([]);
+        assert!(scanner.run(repo, [repo]).next().is_none());
 
         // non-matching restriction
         let scanner = Scanner::new().jobs(1);
