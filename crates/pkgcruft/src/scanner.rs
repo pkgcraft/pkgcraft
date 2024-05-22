@@ -98,16 +98,19 @@ impl Scanner {
 
                 Iter {
                     reports_rx,
-                    _producer: Producer::new(r, restricts, restrict_tx),
-                    _workers: Workers::new(
-                        self.jobs,
-                        &runner,
-                        &filter,
-                        &exit,
-                        &self.failed,
-                        &restrict_rx,
-                        &reports_tx,
-                    ),
+                    _producer: producer(r.clone(), restricts, restrict_tx),
+                    _workers: (0..self.jobs)
+                        .map(|_| {
+                            worker(
+                                runner.clone(),
+                                filter.clone(),
+                                exit.clone(),
+                                self.failed.clone(),
+                                restrict_rx.clone(),
+                                reports_tx.clone(),
+                            )
+                        })
+                        .collect(),
                     reports: VecDeque::new(),
                 }
             }
@@ -117,91 +120,65 @@ impl Scanner {
 }
 
 // TODO: use multiple producers to push restrictions
-/// Restriction producer thread that helps parallelize check running.
-struct Producer {
-    _thread: thread::JoinHandle<()>,
+/// Create a producer thread that sends restrictions over the channel to the workers.
+fn producer<I, R>(
+    repo: Arc<ebuild::Repo>,
+    restricts: I,
+    tx: Sender<Restrict>,
+) -> thread::JoinHandle<()>
+where
+    I: IntoIterator<Item = R>,
+    R: Into<Restrict>,
+{
+    let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
+    thread::spawn(move || {
+        for r in restricts {
+            for cpn in repo.iter_cpn_restrict(r) {
+                tx.send(Restrict::from(&cpn)).ok();
+            }
+        }
+    })
 }
 
-impl Producer {
-    /// Create a producer that sends restrictions over the channel to the workers.
-    fn new<I, R>(repo: &Arc<ebuild::Repo>, restricts: I, tx: Sender<Restrict>) -> Self
-    where
-        I: IntoIterator<Item = R>,
-        R: Into<Restrict>,
-    {
-        let repo = repo.clone();
-        let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
-        Self {
-            _thread: thread::spawn(move || {
-                for r in restricts {
-                    for cpn in repo.iter_cpn_restrict(r) {
-                        tx.send(Restrict::from(&cpn)).ok();
+/// Create worker thread that receives restrictions and send reports over the channel.
+fn worker(
+    runner: Arc<SyncCheckRunner>,
+    filter: Arc<IndexSet<ReportKind>>,
+    exit: Arc<IndexSet<ReportKind>>,
+    failed: Arc<AtomicBool>,
+    rx: Receiver<Restrict>,
+    tx: Sender<Vec<Report>>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        for restrict in rx {
+            let mut reports = vec![];
+
+            // report processing callback
+            let mut report = |report: Report| {
+                if filter.contains(report.kind()) {
+                    if exit.contains(report.kind()) {
+                        failed.store(true, Ordering::Relaxed);
                     }
+                    reports.push(report);
                 }
-            }),
+            };
+
+            // run checks
+            runner.run(&restrict, &mut report);
+
+            // sort and send reports
+            if !reports.is_empty() {
+                reports.sort();
+                tx.send(reports).ok();
+            }
         }
-    }
-}
-
-/// Worker threads that parallelize check running.
-struct Workers {
-    _threads: Vec<thread::JoinHandle<()>>,
-}
-
-impl Workers {
-    /// Create workers that receive restrictions and send reports over the channel.
-    fn new(
-        jobs: usize,
-        runner: &Arc<SyncCheckRunner>,
-        filter: &Arc<IndexSet<ReportKind>>,
-        exit: &Arc<IndexSet<ReportKind>>,
-        failed: &Arc<AtomicBool>,
-        rx: &Receiver<Restrict>,
-        tx: &Sender<Vec<Report>>,
-    ) -> Self {
-        Self {
-            _threads: (0..jobs)
-                .map(|_| {
-                    let runner = runner.clone();
-                    let filter = filter.clone();
-                    let exit = exit.clone();
-                    let failed = failed.clone();
-                    let rx = rx.clone();
-                    let tx = tx.clone();
-                    thread::spawn(move || {
-                        for restrict in rx {
-                            let mut reports = vec![];
-
-                            // report processing callback
-                            let mut report = |report: Report| {
-                                if filter.contains(report.kind()) {
-                                    if exit.contains(report.kind()) {
-                                        failed.store(true, Ordering::Relaxed);
-                                    }
-                                    reports.push(report);
-                                }
-                            };
-
-                            // run checks
-                            runner.run(&restrict, &mut report);
-
-                            // sort and send reports
-                            if !reports.is_empty() {
-                                reports.sort();
-                                tx.send(reports).ok();
-                            }
-                        }
-                    })
-                })
-                .collect(),
-        }
-    }
+    })
 }
 
 struct Iter {
     reports_rx: Receiver<Vec<Report>>,
-    _producer: Producer,
-    _workers: Workers,
+    _producer: thread::JoinHandle<()>,
+    _workers: Vec<thread::JoinHandle<()>>,
     reports: VecDeque<Report>,
 }
 
