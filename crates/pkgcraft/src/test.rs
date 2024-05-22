@@ -156,7 +156,7 @@ impl TestData {
         self.config
             .repos
             .get(name)
-            .ok_or_else(|| Error::InvalidValue(format!("unknown repo: {name}")))
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
     }
 
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&Arc<crate::repo::ebuild::Repo>> {
