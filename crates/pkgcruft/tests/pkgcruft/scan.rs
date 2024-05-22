@@ -218,6 +218,39 @@ fn repo() {
 }
 
 #[test]
+fn exit() {
+    let repo = qa_repo("qa-primary");
+
+    // none
+    cmd("pkgcruft scan -j1")
+        .arg(repo)
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // single
+    cmd("pkgcruft scan -j1")
+        .args(["--exit", "DeprecatedDependency"])
+        .arg(repo)
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .failure()
+        .code(1);
+
+    // multiple
+    cmd("pkgcruft scan -j1")
+        .args(["--exit", "DeprecatedDependency,EapiBanned"])
+        .arg(repo)
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .failure()
+        .code(1);
+}
+
+#[test]
 fn reporter() {
     let repo = qa_repo("qa-primary");
     env::set_current_dir(repo).unwrap();
