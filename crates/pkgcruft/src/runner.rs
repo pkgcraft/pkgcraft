@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
@@ -28,12 +28,9 @@ impl SyncCheckRunner {
     /// Add checks to the runner.
     ///
     /// This creates new sources and checkrunner variants on the fly.
-    pub(super) fn checks<I>(mut self, values: I) -> Self
-    where
-        I: IntoIterator<Item = CheckKind>,
-    {
+    pub(super) fn checks(mut self, checks: &IndexSet<CheckKind>) -> Self {
         // sort checks by priority so they run in the correct order
-        for check in values
+        for check in checks
             .into_iter()
             .map(|kind| kind.create(self.repo))
             .sorted()
@@ -106,7 +103,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
         self.checks
             .entry(check.kind().scope())
             .or_default()
-            .push(check)
+            .push(check);
     }
 
     /// Run the check runner for a given restriction.
@@ -158,7 +155,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
         self.checks
             .entry(check.kind().scope())
             .or_default()
-            .push(check)
+            .push(check);
     }
 
     /// Run the check runner for a given restriction.

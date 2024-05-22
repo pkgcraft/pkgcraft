@@ -87,10 +87,9 @@ impl Scanner {
     {
         match repo {
             Repo::Ebuild(r) => {
-                let sync_runner = SyncCheckRunner::new(r).checks(self.checks.iter().copied());
                 let (restrict_tx, restrict_rx) = unbounded();
                 let (reports_tx, reports_rx) = unbounded();
-                let runner = Arc::new(sync_runner);
+                let runner = Arc::new(SyncCheckRunner::new(r).checks(&self.checks));
                 let filter = Arc::new(self.reports.clone());
                 let exit = Arc::new(self.exit.clone());
 
@@ -128,7 +127,7 @@ where
     I: IntoIterator<Item = R>,
     R: Into<Restrict>,
 {
-    let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
+    let restricts: Vec<_> = restricts.into_iter().map(Into::into).collect();
     thread::spawn(move || {
         for r in restricts {
             for cpn in repo.iter_cpn_restrict(r) {
