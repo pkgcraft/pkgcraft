@@ -89,10 +89,7 @@ impl Scanner {
     {
         match repo {
             Repo::Ebuild(r) => {
-                // TODO: drop this hack once lifetime handling is improved for thread usage
-                let repo: &'static ebuild::Repo = Box::leak(Box::new(r.clone()));
-
-                let sync_runner = SyncCheckRunner::new(repo).checks(self.checks.iter().copied());
+                let sync_runner = SyncCheckRunner::new(r).checks(self.checks.iter().copied());
                 let (restrict_tx, restrict_rx) = unbounded();
                 let (reports_tx, reports_rx) = unbounded();
                 let runner = Arc::new(sync_runner);
@@ -101,7 +98,7 @@ impl Scanner {
 
                 Iter {
                     reports_rx,
-                    _producer: Producer::new(repo, restricts, restrict_tx),
+                    _producer: Producer::new(r, restricts, restrict_tx),
                     _workers: Workers::new(
                         self.jobs,
                         &runner,
@@ -127,11 +124,12 @@ struct Producer {
 
 impl Producer {
     /// Create a producer that sends restrictions over the channel to the workers.
-    fn new<I, R>(repo: &'static ebuild::Repo, restricts: I, tx: Sender<Restrict>) -> Self
+    fn new<I, R>(repo: &Arc<ebuild::Repo>, restricts: I, tx: Sender<Restrict>) -> Self
     where
         I: IntoIterator<Item = R>,
         R: Into<Restrict>,
     {
+        let repo = repo.clone();
         let restricts: Vec<_> = restricts.into_iter().map(|r| r.into()).collect();
         Self {
             _thread: thread::spawn(move || {
@@ -154,7 +152,7 @@ impl Workers {
     /// Create workers that receive restrictions and send reports over the channel.
     fn new(
         jobs: usize,
-        runner: &Arc<SyncCheckRunner<'static>>,
+        runner: &Arc<SyncCheckRunner>,
         filter: &Arc<IndexSet<ReportKind>>,
         exit: &Arc<IndexSet<ReportKind>>,
         failed: &Arc<AtomicBool>,

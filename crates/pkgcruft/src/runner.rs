@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use indexmap::IndexMap;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::Repo;
@@ -10,16 +12,16 @@ use crate::source::{self, IterRestrict, SourceKind};
 
 /// Check runner for synchronous checks.
 #[derive(Debug)]
-pub(super) struct SyncCheckRunner<'a> {
-    runners: IndexMap<SourceKind, CheckRunner<'a>>,
-    repo: &'a Repo,
+pub(super) struct SyncCheckRunner {
+    runners: IndexMap<SourceKind, CheckRunner<'static>>,
+    repo: &'static Repo,
 }
 
-impl<'a> SyncCheckRunner<'a> {
-    pub(super) fn new(repo: &'a Repo) -> Self {
+impl SyncCheckRunner {
+    pub(super) fn new(repo: &Arc<Repo>) -> Self {
         Self {
             runners: Default::default(),
-            repo,
+            repo: Box::leak(Box::new(repo.clone())),
         }
     }
 
