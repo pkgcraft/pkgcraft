@@ -106,20 +106,34 @@ impl FormatReporter {
 
         match report.scope() {
             ReportScope::Version(cpv) => {
+                let category = cpv.category().to_string();
+                let package = cpv.package().to_string();
+                let version = cpv.version().to_string();
                 attrs.extend([
-                    ("category".to_string(), cpv.category().to_string()),
-                    ("package".to_string(), cpv.package().to_string()),
-                    ("version".to_string(), cpv.version().to_string()),
+                    (
+                        "path".to_string(),
+                        format!("{category}/{package}/{package}-{version}.ebuild"),
+                    ),
+                    ("ebuild".to_string(), format!("{package}-{version}.ebuild")),
+                    ("category".to_string(), category),
+                    ("package".to_string(), package),
+                    ("version".to_string(), version),
                 ]);
             }
-            ReportScope::Package(cpn) => attrs.extend([
-                ("category".to_string(), cpn.category().to_string()),
-                ("package".to_string(), cpn.package().to_string()),
-            ]),
+            ReportScope::Package(cpn) => {
+                let category = cpn.category().to_string();
+                let package = cpn.package().to_string();
+                attrs.extend([
+                    ("path".to_string(), format!("{category}/{package}")),
+                    ("category".to_string(), cpn.category().to_string()),
+                    ("package".to_string(), cpn.package().to_string()),
+                ]);
+            }
         }
 
-        let s = strfmt(&self.format, &attrs)
-            .map_err(|e| Error::InvalidValue(format!("invalid output format: {e}")))?;
+        let s = strfmt(&self.format, &attrs).map_err(|e| {
+            Error::InvalidValue(format!("{}: invalid output format: {e}", report.kind()))
+        })?;
         if !s.is_empty() {
             writeln!(output, "{s}")?;
         }
