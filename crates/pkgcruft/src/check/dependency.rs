@@ -1,17 +1,18 @@
 use std::collections::HashSet;
 
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::{Flatten, Operator};
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::{ebuild::Repo, PkgRepository};
 
 use crate::report::{
     Report,
-    ReportKind::{self, DeprecatedDependency, MissingRevision},
+    ReportKind::{self, DeprecatedDependency, MissingRevision, MissingSlotDep},
 };
 
-pub(super) static REPORTS: &[ReportKind] = &[DeprecatedDependency, MissingRevision];
+pub(super) static REPORTS: &[ReportKind] = &[DeprecatedDependency, MissingRevision, MissingSlotDep];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -44,6 +45,26 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
             if !deprecated.is_empty() {
                 let message = format!("{key}: {}", deprecated.iter().sorted().join(", "));
                 report(DeprecatedDependency.version(pkg, message));
+            }
+        }
+
+        for dep in pkg
+            .rdepend()
+            .intersection(pkg.depend())
+            .flat_map(|x| x.iter_flatten())
+        {
+            if dep.blocker().is_none() && dep.slot_dep().is_none() {
+                // TODO: use cached lookup instead of searching for each dep
+                let slots: IndexSet<_> = self
+                    .repo
+                    .iter_restrict(dep.no_use_deps().as_ref())
+                    .map(|pkg| pkg.slot().to_string())
+                    .collect();
+                if slots.len() > 1 {
+                    let message =
+                        format!("{dep} matches multiple slots: {}", slots.iter().join(", "));
+                    report(MissingSlotDep.version(pkg, message));
+                }
             }
         }
     }
