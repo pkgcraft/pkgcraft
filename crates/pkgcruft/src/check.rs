@@ -115,6 +115,7 @@ impl CheckKind {
 }
 
 /// Check runner variants.
+#[deny(dead_code)]
 #[derive(AsRefStr, Display, Debug)]
 pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
