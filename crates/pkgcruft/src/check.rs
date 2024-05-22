@@ -171,19 +171,13 @@ pub(crate) trait CheckRun<T> {
     fn run<F: FnMut(Report)>(&self, item: T, report: F);
 }
 
-/// The ordered map of all report variants to the checks that can generate them.
+/// The mapping of all report variants to the checks that can generate them.
 pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
-    let mut map: OrderedMap<_, OrderedSet<_>> = CheckKind::iter()
+    CheckKind::iter()
         .flat_map(|c| c.reports().iter().copied().map(move |r| (r, c)))
-        .collect();
-    map.sort_keys();
-    map
+        .collect()
 });
 
-/// The ordered map of all source variants to the checks that use them.
-pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<CheckKind>>> = Lazy::new(|| {
-    let mut map: OrderedMap<_, OrderedSet<_>> =
-        CheckKind::iter().map(|c| (c.source(), c)).collect();
-    map.sort_keys();
-    map
-});
+/// The mapping of all source variants to the checks that use them.
+pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<CheckKind>>> =
+    Lazy::new(|| CheckKind::iter().map(|c| (c.source(), c)).collect());
