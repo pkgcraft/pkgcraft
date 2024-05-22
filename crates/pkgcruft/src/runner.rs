@@ -111,7 +111,10 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 
     /// Run the check runner for a given restriction.
     fn run<F: FnMut(Report)>(&self, restrict: &Restrict, mut report: F) {
-        let mut pkgs = vec![];
+        let mut pkg_set = self
+            .checks
+            .get(&Scope::Package)
+            .map(|checks| (checks, vec![]));
 
         for pkg in self.source.iter_restrict(restrict) {
             if let Some(checks) = self.checks.get(&Scope::Version) {
@@ -119,11 +122,14 @@ impl<'a> EbuildPkgCheckRunner<'a> {
                     check.run(&pkg, &mut report);
                 }
             }
-            pkgs.push(pkg);
+
+            if let Some((_, pkgs)) = &mut pkg_set {
+                pkgs.push(pkg);
+            }
         }
 
-        if !pkgs.is_empty() {
-            if let Some(checks) = self.checks.get(&Scope::Package) {
+        if let Some((checks, pkgs)) = pkg_set {
+            if !pkgs.is_empty() {
                 for check in checks {
                     check.run(&pkgs[..], &mut report);
                 }
