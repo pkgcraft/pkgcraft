@@ -57,22 +57,20 @@ impl Scanner {
     }
 
     /// Set enabled report variants.
-    pub fn reports<I, T>(mut self, values: I) -> Self
+    pub fn reports<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: Into<ReportKind>,
+        I: IntoIterator<Item = ReportKind>,
     {
-        self.reports = values.into_iter().map(Into::into).collect();
+        self.reports = values.into_iter().collect();
         self
     }
 
     /// Set report variants that trigger exit code failures.
-    pub fn exit<I, T>(mut self, values: I) -> Self
+    pub fn exit<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: Into<ReportKind>,
+        I: IntoIterator<Item = ReportKind>,
     {
-        self.exit = values.into_iter().map(Into::into).collect();
+        self.exit = values.into_iter().collect();
         self
     }
 
