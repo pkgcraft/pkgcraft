@@ -102,6 +102,9 @@ impl ReportKind {
         P: Package,
         S: fmt::Display,
     {
+        // verify report scope
+        debug_assert!(self.scope() == Scope::Version);
+
         Report {
             kind: self,
             scope: ReportScope::Version(pkg.cpv().clone()),
@@ -115,6 +118,9 @@ impl ReportKind {
         P: Package,
         S: fmt::Display,
     {
+        // verify report scope
+        debug_assert!(self.scope() == Scope::Package);
+
         Report {
             kind: self,
             scope: ReportScope::Package(pkgs[0].cpn().clone()),
