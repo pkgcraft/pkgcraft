@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -47,6 +48,12 @@ impl Eclass {
     /// Return the MD5 checksum of the eclass.
     pub(crate) fn chksum(&self) -> &str {
         &self.chksum
+    }
+}
+
+impl Borrow<str> for Eclass {
+    fn borrow(&self) -> &str {
+        &self.name
     }
 }
 
