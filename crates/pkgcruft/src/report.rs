@@ -83,7 +83,7 @@ pub enum ReportKind {
     /// Package has a deprecated EAPI.
     EapiDeprecated,
 
-    /// Package using an older EAPI than the previous release in the same SLOT.
+    /// Package has an older EAPI than the previous release in the same SLOT.
     EapiStale,
 
     /// Package has stable keywords with an unstable EAPI.
