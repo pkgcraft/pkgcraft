@@ -263,6 +263,12 @@ impl<S: Stringable, T: Ordered> Contains<&Self> for Dependency<S, T> {
     }
 }
 
+impl<S: Stringable, T: Ordered + AsRef<str>> Contains<&str> for Dependency<S, T> {
+    fn contains(&self, obj: &str) -> bool {
+        self.iter_flatten().any(|x| x.as_ref() == obj)
+    }
+}
+
 impl<S: Stringable, T: Ordered> Contains<&T> for Dependency<S, T> {
     fn contains(&self, obj: &T) -> bool {
         self.iter_flatten().any(|x| x == obj)
@@ -678,6 +684,12 @@ impl<S: Stringable, T: Ordered> SubAssign<&Self> for DependencySet<S, T> {
 impl<S: Stringable, T: Ordered> Contains<&Dependency<S, T>> for DependencySet<S, T> {
     fn contains(&self, dep: &Dependency<S, T>) -> bool {
         self.0.contains(dep)
+    }
+}
+
+impl<S: Stringable, T: Ordered + AsRef<str>> Contains<&str> for DependencySet<S, T> {
+    fn contains(&self, obj: &str) -> bool {
+        self.iter_flatten().any(|x| x.as_ref() == obj)
     }
 }
 
