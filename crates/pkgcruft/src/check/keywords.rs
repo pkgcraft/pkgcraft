@@ -29,14 +29,13 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
             .iter()
             .map(|k| (k.arch(), k))
             .collect::<OrderedMap<_, OrderedSet<_>>>();
-        let overlapping = keywords_map
+        let mut overlapping = keywords_map
             .values()
             .filter(|keywords| keywords.len() > 1)
-            .collect::<Vec<_>>();
+            .peekable();
 
-        if !overlapping.is_empty() {
+        if overlapping.peek().is_some() {
             let message = overlapping
-                .iter()
                 .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
             report(OverlappingKeywords.version(pkg, message));
@@ -49,16 +48,16 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
             .eapis_testing
             .contains(pkg.eapi().as_ref())
         {
-            let keywords = pkg
+            let mut keywords = pkg
                 .keywords()
                 .iter()
                 .filter(|k| k.status() == Stable)
-                .collect::<Vec<_>>();
-            if !keywords.is_empty() {
+                .peekable();
+            if keywords.peek().is_some() {
                 let message = format!(
                     "unstable EAPI {} with stable keywords: {}",
                     pkg.eapi(),
-                    keywords.iter().join(" ")
+                    keywords.join(" ")
                 );
                 report(EapiUnstable.version(pkg, message));
             }
