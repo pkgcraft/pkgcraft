@@ -31,14 +31,15 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
         match pkg.metadata_raw() {
             Ok(raw) => {
                 // check for required metadata
-                let mut missing = eapi
+                let missing = eapi
                     .mandatory_keys()
                     .iter()
                     .filter(|k| raw.get(k).is_none())
-                    .peekable();
+                    .sorted()
+                    .collect::<Vec<_>>();
 
-                if missing.peek().is_some() {
-                    let message = missing.sorted().join(", ");
+                if !missing.is_empty() {
+                    let message = missing.into_iter().join(", ");
                     report(MissingMetadata.version(pkg, message));
                 }
 
