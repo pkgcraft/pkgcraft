@@ -208,8 +208,7 @@ pub fn target_restriction(
                                 repo.clone()
                             } else {
                                 let repo = repo_format.load_from_path(&path, &path, 0, true)?;
-                                config.add_repo(&repo, true)?;
-                                repo
+                                config.add_repo(&repo, true)?
                             };
 
                         return Ok((repo.into(), Restrict::and(restricts)));
