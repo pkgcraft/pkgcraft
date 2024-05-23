@@ -27,7 +27,10 @@ impl<'a> Check<'a> {
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         // ignore packages lacking keywords
-        let pkgs: Vec<_> = pkgs.iter().filter(|p| !p.keywords().is_empty()).collect();
+        let pkgs = pkgs
+            .iter()
+            .filter(|p| !p.keywords().is_empty())
+            .collect::<Vec<_>>();
         if pkgs.len() <= 1 {
             return;
         };
@@ -37,7 +40,11 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
         let mut changes = HashMap::<_, Vec<_>>::new();
 
         for pkg in &pkgs {
-            let arches: HashSet<_> = pkg.keywords().iter().map(|k| k.arch()).collect();
+            let arches = pkg
+                .keywords()
+                .iter()
+                .map(|k| k.arch())
+                .collect::<HashSet<_>>();
 
             // globbed arches override all dropped keywords
             let drops = if arches.contains("*") {
@@ -57,13 +64,16 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
             // ignore missing arches on previous versions that were re-enabled
             if !changes.is_empty() {
-                let disabled: HashSet<_> = pkg
+                let disabled = pkg
                     .keywords()
                     .iter()
                     .filter(|k| k.status() == Disabled)
                     .map(|k| k.arch())
-                    .collect();
-                let adds: HashSet<_> = arches.difference(&previous).copied().collect();
+                    .collect::<HashSet<_>>();
+                let adds = arches
+                    .difference(&previous)
+                    .copied()
+                    .collect::<HashSet<_>>();
                 for arch in adds.difference(&disabled) {
                     changes.remove(*arch);
                 }

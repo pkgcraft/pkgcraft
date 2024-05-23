@@ -31,7 +31,7 @@ impl<'a> Check<'a> {
 
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
-        let arches: Vec<_> = pkgs
+        let arches = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())
             // select keywords allowed stable in the repo
@@ -43,7 +43,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
             // find arches that only have unstable keywords
             .filter(|(_, v)| v.iter().all(|k| k.status() == Unstable))
             .map(|(k, _)| k)
-            .collect();
+            .collect::<Vec<_>>();
 
         if !arches.is_empty() {
             let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");

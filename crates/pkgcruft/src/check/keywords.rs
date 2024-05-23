@@ -49,11 +49,11 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
             .eapis_testing
             .contains(pkg.eapi().as_ref())
         {
-            let keywords: Vec<_> = pkg
+            let keywords = pkg
                 .keywords()
                 .iter()
                 .filter(|k| k.status() == Stable)
-                .collect();
+                .collect::<Vec<_>>();
             if !keywords.is_empty() {
                 let message = format!(
                     "unstable EAPI {} with stable keywords: {}",
@@ -65,8 +65,10 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
         }
 
         // ignore overlapping keywords when checking order
-        let flattened_keywords: OrderedSet<_> =
-            keywords_map.values().filter_map(|x| x.first()).collect();
+        let flattened_keywords = keywords_map
+            .values()
+            .filter_map(|x| x.first())
+            .collect::<OrderedSet<_>>();
         let mut sorted_keywords = flattened_keywords.clone();
         sorted_keywords.sort();
 

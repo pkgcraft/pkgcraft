@@ -30,11 +30,11 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
             .filter(|x| x.blocker().is_none() && x.slot_dep().is_none())
         {
             // TODO: use cached lookup instead of searching for each dep
-            let slots: IndexSet<_> = self
+            let slots = self
                 .repo
                 .iter_restrict(dep.no_use_deps().as_ref())
                 .map(|pkg| pkg.slot().to_string())
-                .collect();
+                .collect::<IndexSet<_>>();
             if slots.len() > 1 {
                 let message = format!("{dep} matches multiple slots: {}", slots.iter().join(", "));
                 report(MissingSlotDep.version(pkg, message));
