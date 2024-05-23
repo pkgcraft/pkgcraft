@@ -15,6 +15,7 @@ use crate::source::SourceKind;
 mod dependency;
 mod dropped_keywords;
 mod eapi;
+mod eapi_stale;
 mod keywords;
 mod metadata;
 mod missing_slot_dep;
@@ -40,6 +41,7 @@ pub enum CheckKind {
     Dependency,
     DroppedKeywords,
     Eapi,
+    EapiStale,
     Keywords,
     Metadata,
     MissingSlotDep,
@@ -74,6 +76,7 @@ impl CheckKind {
             Self::Dependency => Scope::Version,
             Self::DroppedKeywords => Scope::Package,
             Self::Eapi => Scope::Version,
+            Self::EapiStale => Scope::Package,
             Self::Keywords => Scope::Version,
             Self::Metadata => Scope::Version,
             Self::MissingSlotDep => Scope::Version,
@@ -87,6 +90,7 @@ impl CheckKind {
             Self::Dependency => SourceKind::Ebuild,
             Self::DroppedKeywords => SourceKind::Ebuild,
             Self::Eapi => SourceKind::Ebuild,
+            Self::EapiStale => SourceKind::Ebuild,
             Self::Keywords => SourceKind::Ebuild,
             Self::Metadata => SourceKind::EbuildRaw,
             Self::MissingSlotDep => SourceKind::Ebuild,
@@ -100,6 +104,7 @@ impl CheckKind {
             Self::Dependency => dependency::REPORTS,
             Self::DroppedKeywords => dropped_keywords::REPORTS,
             Self::Eapi => eapi::REPORTS,
+            Self::EapiStale => eapi_stale::REPORTS,
             Self::Keywords => keywords::REPORTS,
             Self::Metadata => metadata::REPORTS,
             Self::MissingSlotDep => missing_slot_dep::REPORTS,
@@ -114,6 +119,7 @@ impl CheckKind {
             Self::Dependency => Dependency(dependency::Check::new(repo)),
             Self::DroppedKeywords => DroppedKeywords(dropped_keywords::Check::new(repo)),
             Self::Eapi => Eapi(eapi::Check::new(repo)),
+            Self::EapiStale => EapiStale(eapi_stale::Check::new(repo)),
             Self::Keywords => Keywords(keywords::Check::new(repo)),
             Self::Metadata => Metadata(metadata::Check::new(repo)),
             Self::MissingSlotDep => MissingSlotDep(missing_slot_dep::Check::new(repo)),
@@ -129,6 +135,7 @@ pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
     DroppedKeywords(dropped_keywords::Check<'a>),
     Eapi(eapi::Check<'a>),
+    EapiStale(eapi_stale::Check<'a>),
     Keywords(keywords::Check<'a>),
     Metadata(metadata::Check<'a>),
     MissingSlotDep(missing_slot_dep::Check<'a>),
@@ -168,6 +175,7 @@ impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[ebuild::Pkg<'a>], report: F) {
         match self {
             Self::DroppedKeywords(c) => c.run(pkgs, report),
+            Self::EapiStale(c) => c.run(pkgs, report),
             Self::UnstableOnly(c) => c.run(pkgs, report),
             _ => unreachable!("{self} is not an ebuild pkg set check"),
         }

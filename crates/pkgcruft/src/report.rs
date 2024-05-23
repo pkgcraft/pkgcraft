@@ -83,6 +83,9 @@ pub enum ReportKind {
     /// Package has a deprecated EAPI.
     EapiDeprecated,
 
+    /// Package using an older EAPI than the previous release in the same SLOT.
+    EapiStale,
+
     /// Package has stable keywords with an unstable EAPI.
     EapiUnstable,
 
@@ -136,6 +139,7 @@ impl ReportKind {
             Self::DroppedKeywords => Scope::Version,
             Self::EapiBanned => Scope::Version,
             Self::EapiDeprecated => Scope::Version,
+            Self::EapiStale => Scope::Version,
             Self::EapiUnstable => Scope::Version,
             Self::InvalidDependencySet => Scope::Version,
             Self::MissingMetadata => Scope::Version,
@@ -156,6 +160,7 @@ impl ReportKind {
             Self::DroppedKeywords => Warning,
             Self::EapiBanned => Error,
             Self::EapiDeprecated => Warning,
+            Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
             Self::InvalidDependencySet => Critical,
             Self::MissingMetadata => Critical,
