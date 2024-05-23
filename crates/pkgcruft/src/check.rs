@@ -19,6 +19,7 @@ mod eapi_stale;
 mod keywords;
 mod metadata;
 mod missing_slot_dep;
+mod missing_test_restrict;
 mod unstable_only;
 
 /// Check variants.
@@ -45,6 +46,7 @@ pub enum CheckKind {
     Keywords,
     Metadata,
     MissingSlotDep,
+    MissingTestRestrict,
     UnstableOnly,
 }
 
@@ -80,6 +82,7 @@ impl CheckKind {
             Self::Keywords => Scope::Version,
             Self::Metadata => Scope::Version,
             Self::MissingSlotDep => Scope::Version,
+            Self::MissingTestRestrict => Scope::Version,
             Self::UnstableOnly => Scope::Package,
         }
     }
@@ -94,6 +97,7 @@ impl CheckKind {
             Self::Keywords => SourceKind::Ebuild,
             Self::Metadata => SourceKind::EbuildRaw,
             Self::MissingSlotDep => SourceKind::Ebuild,
+            Self::MissingTestRestrict => SourceKind::Ebuild,
             Self::UnstableOnly => SourceKind::Ebuild,
         }
     }
@@ -108,11 +112,13 @@ impl CheckKind {
             Self::Keywords => keywords::REPORTS,
             Self::Metadata => metadata::REPORTS,
             Self::MissingSlotDep => missing_slot_dep::REPORTS,
+            Self::MissingTestRestrict => missing_test_restrict::REPORTS,
             Self::UnstableOnly => unstable_only::REPORTS,
         }
     }
 
     /// Create a check runner for a given variant.
+    #[rustfmt::skip]
     pub(crate) fn create(self, repo: &Repo) -> Check {
         use Check::*;
         match self {
@@ -123,6 +129,7 @@ impl CheckKind {
             Self::Keywords => Keywords(keywords::Check::new(repo)),
             Self::Metadata => Metadata(metadata::Check::new(repo)),
             Self::MissingSlotDep => MissingSlotDep(missing_slot_dep::Check::new(repo)),
+            Self::MissingTestRestrict => MissingTestRestrict(missing_test_restrict::Check::new(repo)),
             Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
         }
     }
@@ -139,6 +146,7 @@ pub(crate) enum Check<'a> {
     Keywords(keywords::Check<'a>),
     Metadata(metadata::Check<'a>),
     MissingSlotDep(missing_slot_dep::Check<'a>),
+    MissingTestRestrict(missing_test_restrict::Check<'a>),
     UnstableOnly(unstable_only::Check<'a>),
 }
 
@@ -157,6 +165,7 @@ impl<'a> CheckRun<&ebuild::Pkg<'a>> for Check<'a> {
             Self::Eapi(c) => c.run(pkg, report),
             Self::Keywords(c) => c.run(pkg, report),
             Self::MissingSlotDep(c) => c.run(pkg, report),
+            Self::MissingTestRestrict(c) => c.run(pkg, report),
             _ => unreachable!("{self} is not an ebuild check"),
         }
     }
