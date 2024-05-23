@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 
 use crate::dep::{self, Stringable};
@@ -73,6 +74,12 @@ impl<S: Stringable> Ord for Iuse<S> {
 impl<S1: Stringable, S2: Stringable> PartialOrd<Iuse<S1>> for Iuse<S2> {
     fn partial_cmp(&self, other: &Iuse<S1>) -> Option<Ordering> {
         Some(cmp(self, other))
+    }
+}
+
+impl<S: Stringable> Borrow<str> for Iuse<S> {
+    fn borrow(&self) -> &str {
+        self.flag()
     }
 }
 
