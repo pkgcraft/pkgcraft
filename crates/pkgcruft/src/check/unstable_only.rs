@@ -64,10 +64,17 @@ mod tests {
     use crate::test::glob_reports;
 
     #[test]
-    fn check() {
-        let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(UnstableOnly);
+    fn empty() {
         let scanner = Scanner::new().jobs(1).checks([UnstableOnly]);
+        let repo = TEST_DATA.repo("empty").unwrap();
+        assert!(scanner.run(repo, [repo]).next().is_none());
+    }
+
+    #[test]
+    fn gentoo() {
+        let repo = TEST_DATA.repo("gentoo").unwrap();
+        let scanner = Scanner::new().jobs(1).checks([UnstableOnly]);
+        let check_dir = repo.path().join(UnstableOnly);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction
@@ -78,9 +85,21 @@ mod tests {
         // repo restriction
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
+    }
 
-        // empty repo
-        let repo = TEST_DATA.repo("empty").unwrap();
-        assert!(scanner.run(repo, [repo]).next().is_none());
+    #[test]
+    fn non_gentoo() {
+        // TODO: scan with check selected vs unselected once #194 is fixed
+        let repo = TEST_DATA.repo("qa-primary").unwrap();
+        let scanner = Scanner::new().jobs(1).checks([UnstableOnly]);
+        let check_dir = repo.path().join(UnstableOnly);
+        let expected = glob_reports!("{check_dir}/*/reports.json");
+        // check dir restriction
+        let restrict = repo.restrict_from_path(&check_dir).unwrap();
+        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
+        assert_eq!(&reports, &expected);
+        // repo restriction
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
     }
 }
