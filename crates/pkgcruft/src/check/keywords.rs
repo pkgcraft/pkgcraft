@@ -83,7 +83,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::TEST_DATA;
+    use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
     use crate::check::CheckKind::Keywords;
@@ -105,5 +105,13 @@ mod tests {
         // repo restriction
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
+    }
+
+    #[test]
+    fn patched() {
+        let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
+        let scanner = Scanner::new().jobs(1).checks([Keywords]);
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
     }
 }
