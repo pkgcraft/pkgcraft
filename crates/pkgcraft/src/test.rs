@@ -250,13 +250,16 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
     let tmpdir = TempDir::new().unwrap();
     let tmppath = Utf8Path::from_path(tmpdir.path()).unwrap();
     let mut config = Config::new("pkgcraft", "");
-    // create temporary repos for patchable repos
+    let mut repos = vec![];
+
+    // generate temporary repos for with patches applied
     for (name, repo) in &TEST_DATA.config.repos {
-        if WalkDir::new(repo.path())
+        let patches_exist = WalkDir::new(repo.path())
             .into_iter()
             .filter_map(|e| e.ok())
-            .any(|x| is_patch(&x))
-        {
+            .any(|x| is_patch(&x));
+
+        if patches_exist {
             let old_repo = repo.path();
             let new_repo = tmppath.join(name);
 
@@ -278,21 +281,26 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
                 let entry = entry.unwrap();
                 let path = entry.path();
                 if is_patch(&entry) {
-                    env::set_current_dir(path.parent().unwrap()).unwrap();
-                    process::Command::new("git")
-                        .arg("apply")
-                        .arg(path)
-                        .output()
+                    let status = process::Command::new("patch")
+                        .arg("-p1")
+                        .stdin(fs::File::open(path).unwrap())
+                        .current_dir(path.parent().unwrap())
+                        .status()
                         .unwrap();
+                    assert!(status.success());
                     fs::remove_file(path).unwrap();
                 }
             }
 
             let repo = config.add_repo_path(name, new_repo, 0, false).unwrap();
-            let repo = repo.as_ebuild().unwrap();
-            // TODO: improve API for cache regen
-            repo.metadata.cache().regen().run(repo).unwrap();
+            repos.push(repo);
         }
+    }
+
+    // TODO: remove this once implicit metadata regen issues are fixed (#178)
+    // explicitly regen metadata caches for patched repos
+    for repo in repos.iter().filter_map(|r| r.as_ebuild()) {
+        repo.metadata.cache().regen().run(repo).unwrap();
     }
 
     TestDataPatched { tmpdir, config }
