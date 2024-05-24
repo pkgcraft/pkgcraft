@@ -485,32 +485,48 @@ mod tests {
         let r3: Repo = fake::Repo::new("3", 0).pkgs([&cpv3]).into();
         let r4: Repo = fake::Repo::new("4", 0).pkgs([&cpv4]).into();
 
-        let mut s = RepoSet::new();
-        assert!(!s.contains(&cpv1));
+        // intersection
+        // repo set and repo
+        let mut s = RepoSet::from_iter([&r1, &r2]);
+        s &= &r1;
+        assert!(s.contains(&cpv1));
+        // repo set and repo set
+        let mut s = RepoSet::from_iter([&r1, &r2]);
+        s &= &RepoSet::from_iter([&r2]);
+        assert!(s.contains(&cpv2));
+        // repo set and repo
+        let s = RepoSet::from_iter([&r3]) & &r3;
+        assert!(s.contains(&cpv3));
+        // repo set and repo set
+        let mut s = RepoSet::from_iter([&r1, &r4]) & &RepoSet::from_iter([&r4]);
+        assert!(s.contains(&cpv4));
 
-        // combine repo set and repo
+        // union
+        let mut s = RepoSet::new();
+        // repo set and repo
         s |= &r1;
         assert!(s.contains(&cpv1));
-        // combine repo set and repo set
+        // repo set and repo set
         s |= &RepoSet::from_iter([&r2]);
         assert!(s.contains(&cpv2));
-        // combine repo set and repo
+        // repo set and repo
         let s = s | &r3;
         assert!(s.contains(&cpv3));
-        // combine repo set and repo set
+        // repo set and repo set
         let s = s | &RepoSet::from_iter([&r4]);
         assert!(s.contains(&cpv4));
 
-        // subtract repo set and repo set
+        // difference
+        // repo set and repo set
         let s = s - &RepoSet::from_iter([&r4]);
         assert!(!s.contains(&cpv4));
-        // subtract repo set and repo
+        // repo set and repo
         let mut s = s - &r3;
         assert!(!s.contains(&cpv3));
-        // subtract repo set and repo set
+        // repo set and repo set
         s -= &RepoSet::from_iter([&r2]);
         assert!(!s.contains(&cpv2));
-        // subtract repo set and repo
+        // repo set and repo
         s -= &r1;
         assert!(!s.contains(&cpv1));
     }
