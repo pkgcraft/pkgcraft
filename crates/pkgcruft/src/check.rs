@@ -72,6 +72,7 @@ impl CheckContext {
     Copy,
     Clone,
 )]
+#[strum(serialize_all = "kebab-case")]
 pub enum CheckKind {
     Dependency,
     DroppedKeywords,
@@ -181,6 +182,7 @@ impl CheckKind {
 /// Check runner variants.
 #[deny(dead_code)]
 #[derive(AsRefStr, Display, Debug)]
+#[strum(serialize_all = "kebab-case")]
 pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
     DroppedKeywords(dropped_keywords::Check<'a>),

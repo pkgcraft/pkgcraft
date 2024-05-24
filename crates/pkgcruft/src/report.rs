@@ -73,6 +73,7 @@ impl From<ReportLevel> for Color {
     Copy,
     Clone,
 )]
+#[strum(serialize_all = "kebab-case")]
 pub enum ReportKind {
     DeprecatedDependency,
     DroppedKeywords,

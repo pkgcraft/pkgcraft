@@ -220,7 +220,7 @@ mod tests {
 
         // specific checks
         let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
-        let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
+        let expected = glob_reports!("{repo_path}/dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
@@ -228,7 +228,7 @@ mod tests {
         let scanner = Scanner::new()
             .jobs(1)
             .reports([ReportKind::DeprecatedDependency]);
-        let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+        let expected = glob_reports!("{repo_path}/dependency/deprecated-dependency/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
