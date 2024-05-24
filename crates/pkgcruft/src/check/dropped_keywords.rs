@@ -37,7 +37,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         let mut seen = HashSet::new();
         let mut previous = HashSet::new();
-        let mut changes = HashMap::<_, Vec<_>>::new();
+        let mut changes = HashMap::<_, _>::new();
 
         for pkg in &pkgs {
             let arches = pkg
@@ -58,7 +58,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
             for arch in drops {
                 if self.arches.contains(*arch) {
-                    changes.entry(arch.to_string()).or_default().push(pkg);
+                    changes.insert(arch.to_string(), pkg);
                 }
             }
 
@@ -85,10 +85,9 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         #[allow(clippy::mutable_key_type)] // false positive due to ebuild pkg OnceLock usage
         let mut dropped = HashMap::<_, Vec<_>>::new();
-        for (arch, pkgs) in &changes {
+        for (arch, pkg) in &changes {
             // TODO: report all pkgs with dropped keywords in verbose mode?
             // only report the latest pkg with dropped keywords
-            let pkg = pkgs.last().unwrap();
             dropped.entry(pkg).or_default().push(arch);
         }
 
