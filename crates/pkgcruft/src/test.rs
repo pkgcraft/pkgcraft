@@ -5,7 +5,7 @@ use pkgcraft::test::TEST_DATA;
 
 use crate::report::{Iter, Report};
 
-/// Return the path to a given QA repo.
+/// Return the ebuild repo object for a given shared test data repo.
 pub fn qa_repo(name: &str) -> &Repo {
     TEST_DATA.ebuild_repo(name).unwrap()
 }
