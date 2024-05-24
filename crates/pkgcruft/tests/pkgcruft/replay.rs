@@ -3,14 +3,13 @@ use std::io::Write;
 
 use itertools::Itertools;
 use once_cell::sync::Lazy;
+use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
-use pkgcruft::test::glob_reports;
+use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
-
-use crate::*;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
 pub(crate) static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
@@ -99,7 +98,7 @@ fn file_targets() {
 
 #[test]
 fn checks() {
-    let repo = qa_repo("qa-primary");
+    let repo = qa_repo("qa-primary").path();
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/**/reports.json",
@@ -137,7 +136,7 @@ fn checks() {
 
 #[test]
 fn levels() {
-    let repo = qa_repo("qa-primary");
+    let repo = qa_repo("qa-primary").path();
     let single_expected = glob_reports!("{repo}/Eapi/EapiDeprecated/reports.json");
     let multiple_expected = glob_reports!("{repo}/Eapi/**/reports.json");
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
@@ -171,7 +170,7 @@ fn levels() {
 
 #[test]
 fn reports() {
-    let repo = qa_repo("qa-primary");
+    let repo = qa_repo("qa-primary").path();
     let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DeprecatedDependency/reports.json",
@@ -209,7 +208,7 @@ fn reports() {
 
 #[test]
 fn scopes() {
-    let repo = qa_repo("qa-primary");
+    let repo = qa_repo("qa-primary").path();
     let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DeprecatedDependency/reports.json",
@@ -246,7 +245,7 @@ fn scopes() {
 
 #[test]
 fn sources() {
-    let repo = qa_repo("qa-primary");
+    let repo = qa_repo("qa-primary").path();
     let expected = glob_reports!(
         "{repo}/Dependency/DeprecatedDependency/reports.json",
         "{repo}/UnstableOnly/UnstableOnly/reports.json",

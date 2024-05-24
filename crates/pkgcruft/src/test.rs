@@ -1,6 +1,28 @@
+use assert_cmd::Command;
 use glob::glob;
+use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::test::TEST_DATA;
 
 use crate::report::{Iter, Report};
+
+/// Return the path to a given QA repo.
+pub fn qa_repo(name: &str) -> &Repo {
+    TEST_DATA.ebuild_repo(name).unwrap()
+}
+
+pub trait ToReports {
+    fn to_reports(&mut self) -> Vec<Report>;
+}
+
+impl ToReports for Command {
+    fn to_reports(&mut self) -> Vec<Report> {
+        let output = self.output().unwrap().stdout;
+        let data = String::from_utf8(output).unwrap();
+        data.lines()
+            .map(|s| Report::from_json(s).unwrap())
+            .collect()
+    }
+}
 
 /// Return an iterator of reports from a globbed path pattern.
 pub fn glob_reports_iter<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Report> {
