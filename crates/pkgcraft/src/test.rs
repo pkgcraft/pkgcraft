@@ -279,11 +279,10 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
                 let path = entry.path();
                 if is_patch(&entry) {
                     env::set_current_dir(path.parent().unwrap()).unwrap();
-                    let patch = fs::File::open(path).unwrap();
-                    process::Command::new("patch")
-                        .arg("-p1")
-                        .stdin(patch)
-                        .spawn()
+                    process::Command::new("git")
+                        .arg("apply")
+                        .arg(path)
+                        .output()
                         .unwrap();
                     fs::remove_file(path).unwrap();
                 }
