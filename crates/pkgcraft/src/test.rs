@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::{env, fmt, fs};
+use std::{env, fmt, fs, process};
 
 use assert_cmd::Command;
 use camino::{Utf8Path, Utf8PathBuf};
@@ -7,11 +7,13 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
-use walkdir::WalkDir;
+use tempfile::TempDir;
+use walkdir::{DirEntry, WalkDir};
 
 use crate::config::Config;
 use crate::dep::{Blocker, Cpv, Dep, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
+use crate::repo::Repository;
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -207,6 +209,94 @@ pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
         dep_toml: DepToml::load(&path.join("toml/dep.toml")).unwrap(),
         version_toml: VersionToml::load(&path.join("toml/version.toml")).unwrap(),
     }
+});
+
+#[derive(Debug)]
+pub struct TestDataPatched {
+    tmpdir: TempDir,
+    config: Config,
+}
+
+impl TestDataPatched {
+    pub fn path(&self) -> &Utf8Path {
+        Utf8Path::from_path(self.tmpdir.path()).unwrap()
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    pub fn repo(&self, name: &str) -> crate::Result<&crate::repo::Repo> {
+        self.config
+            .repos
+            .get(name)
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
+    }
+
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&Arc<crate::repo::ebuild::Repo>> {
+        self.repo(name).and_then(|repo| {
+            repo.as_ebuild()
+                .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
+        })
+    }
+}
+
+fn is_patch(entry: &DirEntry) -> bool {
+    let path = entry.path();
+    path.is_file() && path.extension().map(|s| s == "patch").unwrap_or_default()
+}
+
+pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
+    let tmpdir = TempDir::new().unwrap();
+    let tmppath = Utf8Path::from_path(tmpdir.path()).unwrap();
+    let mut config = Config::new("pkgcraft", "");
+    // create temporary repos for patchable repos
+    for (name, repo) in &TEST_DATA.config.repos {
+        if WalkDir::new(repo.path())
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .any(|x| is_patch(&x))
+        {
+            let old_repo = repo.path();
+            let new_repo = tmppath.join(name);
+
+            for entry in WalkDir::new(old_repo) {
+                let entry = entry.unwrap();
+                let src = Utf8Path::from_path(entry.path()).unwrap();
+                let dest = new_repo.join(src.strip_prefix(old_repo).unwrap());
+
+                // create directories and copy files
+                if src.is_dir() {
+                    fs::create_dir(dest).unwrap();
+                } else if src.is_file() {
+                    fs::copy(src, dest).unwrap();
+                }
+            }
+
+            // apply and remove patches
+            for entry in WalkDir::new(&new_repo) {
+                let entry = entry.unwrap();
+                let path = entry.path();
+                if is_patch(&entry) {
+                    env::set_current_dir(path.parent().unwrap()).unwrap();
+                    let patch = fs::File::open(path).unwrap();
+                    process::Command::new("patch")
+                        .arg("-p1")
+                        .stdin(patch)
+                        .spawn()
+                        .unwrap();
+                    fs::remove_file(path).unwrap();
+                }
+            }
+
+            let repo = config.add_repo_path(name, new_repo, 0, false).unwrap();
+            let repo = repo.as_ebuild().unwrap();
+            // TODO: improve API for cache regen
+            repo.metadata.cache().regen().run(repo).unwrap();
+        }
+    }
+
+    TestDataPatched { tmpdir, config }
 });
 
 /// Verify two, unordered iterables contain the same elements.
