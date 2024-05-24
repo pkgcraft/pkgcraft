@@ -67,7 +67,8 @@ mod tests {
     fn empty() {
         let scanner = Scanner::new().jobs(1).checks([UnstableOnly]);
         let repo = TEST_DATA.repo("empty").unwrap();
-        assert!(scanner.run(repo, [repo]).next().is_none());
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
     }
 
     #[test]

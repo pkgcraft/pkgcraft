@@ -216,7 +216,8 @@ mod tests {
 
         // no checks
         let scanner = Scanner::new().jobs(1).checks([]);
-        assert!(scanner.run(repo, [repo]).next().is_none());
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
 
         // specific checks
         let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
@@ -234,12 +235,14 @@ mod tests {
 
         // no reports
         let scanner = Scanner::new().jobs(1).reports([]);
-        assert!(scanner.run(repo, [repo]).next().is_none());
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
 
         // non-matching restriction
         let scanner = Scanner::new().jobs(1);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        assert!(scanner.run(repo, [&dep]).next().is_none());
+        let reports: Vec<_> = scanner.run(repo, [&dep]).collect();
+        assert_eq!(&reports, &[]);
     }
 
     #[test]
