@@ -46,7 +46,6 @@ mod tests {
         let check_dir = repo.path().join(Eapi);
         let scanner = Scanner::new().jobs(1).checks([Eapi]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
-        assert!(!expected.is_empty());
 
         // check dir restriction
         let restrict = repo.restrict_from_path(&check_dir).unwrap();

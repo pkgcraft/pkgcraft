@@ -134,9 +134,8 @@ fn path_targets() {
     assert_eq!(&expected, &reports);
 
     // overlay dir
-    let expected = glob_reports!("{overlay}/**/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json").arg(overlay).to_reports();
-    assert_eq!(&expected, &reports);
+    assert_eq!(&reports, &[]);
 
     // category dir
     let expected = glob_reports!("{repo}/Dependency/**/reports.json");
@@ -212,8 +211,7 @@ fn repo() {
     let reports = cmd("pkgcruft scan -j1 -R json")
         .args(["--repo", overlay.as_ref()])
         .to_reports();
-    let expected = glob_reports!("{overlay}/**/reports.json");
-    assert_eq!(&expected, &reports);
+    assert_eq!(&reports, &[]);
 }
 
 #[test]

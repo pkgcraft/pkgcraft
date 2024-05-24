@@ -46,6 +46,7 @@ macro_rules! glob_reports {
     ($($pattern:expr,)+) => {{
         let mut reports = vec![];
         $(reports.extend($crate::test::glob_reports_iter(format!($pattern)));)+
+        assert!(!reports.is_empty());
         reports
     }};
 
