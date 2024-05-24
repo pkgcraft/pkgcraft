@@ -38,6 +38,7 @@ mod unstable_only;
     Copy,
     Clone,
 )]
+#[strum(serialize_all = "kebab-case")]
 pub enum CheckContext {
     Gentoo,
     Optional,
