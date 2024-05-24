@@ -22,7 +22,9 @@ impl<'a> Check<'a> {
             _repo,
             restricts: ["test", "!test? ( test )"]
                 .iter()
-                .map(|s| restrict_dependency(s).unwrap())
+                .map(|s| {
+                    restrict_dependency(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
+                })
                 .collect(),
         }
     }
