@@ -12,12 +12,12 @@ use pretty_assertions::assert_eq;
 fn stdin_targets() {
     let repo = qa_repo("qa-primary").path();
 
-    for arg in ["dropped-keywords", "dropped-keywords/dropped-keywords"] {
+    for arg in ["DroppedKeywords", "DroppedKeywords/DroppedKeywords"] {
         cmd("pkgcruft scan -R simple -")
             .args(["--repo", repo.as_ref()])
             .write_stdin(format!("{arg}\n"))
             .assert()
-            .stdout(contains("dropped-keywords: x86"))
+            .stdout(contains("DroppedKeywords: x86"))
             .stderr("")
             .success();
     }
@@ -39,25 +39,25 @@ fn dep_restrict_targets() {
     }
 
     // single
-    for s in ["dropped-keywords/*", "dropped-keywords"] {
+    for s in ["DroppedKeywords/*", "DroppedKeywords"] {
         cmd("pkgcruft scan -R simple")
             .args(["--repo", repo.as_ref()])
             .arg(s)
             .assert()
-            .stdout(contains("dropped-keywords: x86"))
+            .stdout(contains("DroppedKeywords: x86"))
             .stderr("")
             .success();
     }
 
     // multiple matching restricts output the same reports
     let reports = indoc::indoc! {r#"
-        dropped-keywords/dropped-keywords-2: dropped-keywords: x86
-        dropped-keywords/dropped-keywords-2: dropped-keywords: x86
+        DroppedKeywords/DroppedKeywords-2: DroppedKeywords: x86
+        DroppedKeywords/DroppedKeywords-2: DroppedKeywords: x86
     "#};
     let expected: Vec<_> = reports.lines().collect();
     let output = cmd("pkgcruft scan -R simple")
         .args(["--repo", repo.as_ref()])
-        .args(["dropped-keywords/*", "dropped-keywords"])
+        .args(["DroppedKeywords/*", "DroppedKeywords"])
         .output()
         .unwrap()
         .stdout;
@@ -95,14 +95,14 @@ fn current_dir_targets() {
     assert_eq!(&expected, &reports);
 
     // category dir
-    env::set_current_dir(repo.join("dependency")).unwrap();
-    let expected = glob_reports!("{repo}/dependency/**/reports.json");
+    env::set_current_dir(repo.join("Dependency")).unwrap();
+    let expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json").to_reports();
     assert_eq!(&expected, &reports);
 
     // package dir
-    env::set_current_dir(repo.join("dependency/deprecated-dependency")).unwrap();
-    let expected = glob_reports!("{repo}/dependency/deprecated-dependency/reports.json");
+    env::set_current_dir(repo.join("Dependency/DeprecatedDependency")).unwrap();
+    let expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json").to_reports();
     assert_eq!(&expected, &reports);
 }
@@ -230,7 +230,7 @@ fn exit() {
 
     // single
     cmd("pkgcruft scan -j1")
-        .args(["--exit", "deprecated-dependency"])
+        .args(["--exit", "DeprecatedDependency"])
         .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
@@ -240,7 +240,7 @@ fn exit() {
 
     // multiple
     cmd("pkgcruft scan -j1")
-        .args(["--exit", "deprecated-dependency,eapi-banned"])
+        .args(["--exit", "DeprecatedDependency,EapiBanned"])
         .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
