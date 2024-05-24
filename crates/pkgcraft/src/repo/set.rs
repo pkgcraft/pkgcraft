@@ -498,7 +498,7 @@ mod tests {
         let s = RepoSet::from_iter([&r3]) & &r3;
         assert!(s.contains(&cpv3));
         // repo set and repo set
-        let mut s = RepoSet::from_iter([&r1, &r4]) & &RepoSet::from_iter([&r4]);
+        let s = RepoSet::from_iter([&r1, &r4]) & &RepoSet::from_iter([&r4]);
         assert!(s.contains(&cpv4));
 
         // union
@@ -529,5 +529,24 @@ mod tests {
         // repo set and repo
         s -= &r1;
         assert!(!s.contains(&cpv1));
+
+        // exclusive or
+        // repo set and repo
+        let mut s = RepoSet::from_iter([&r1, &r2]);
+        s ^= &r1;
+        assert!(!s.contains(&cpv1));
+        assert!(s.contains(&cpv2));
+        // repo set and repo set
+        let mut s = RepoSet::from_iter([&r1, &r2]);
+        s ^= &RepoSet::from_iter([&r2]);
+        assert!(s.contains(&cpv1));
+        assert!(!s.contains(&cpv2));
+        // repo set and repo
+        let s = RepoSet::from_iter([&r3]) ^ &r3;
+        assert!(!s.contains(&cpv3));
+        // repo set and repo set
+        let s = RepoSet::from_iter([&r1, &r4]) ^ &RepoSet::from_iter([&r4]);
+        assert!(s.contains(&cpv1));
+        assert!(!s.contains(&cpv4));
     }
 }
