@@ -88,13 +88,13 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return the absolute path of the package's ebuild file.
-    pub fn abspath(&self) -> Utf8PathBuf {
+    pub fn path(&self) -> Utf8PathBuf {
         self.repo.path().join(self.relpath())
     }
 
     /// Return a package's ebuild file content.
     pub fn ebuild(&self) -> crate::Result<String> {
-        fs::read_to_string(self.abspath()).map_err(|e| Error::IO(e.to_string()))
+        fs::read_to_string(self.path()).map_err(|e| Error::IO(e.to_string()))
     }
 
     /// Return a package's description.
@@ -854,7 +854,7 @@ mod tests {
         let manifest = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("Manifest"), manifest).unwrap();
+        fs::write(pkg1.path().parent().unwrap().join("Manifest"), manifest).unwrap();
         let pkg2 = t.create_pkg_from_str("cat1/pkg-2", data).unwrap();
         for pkg in [pkg1, pkg2] {
             let dist = pkg.distfiles();
@@ -878,7 +878,7 @@ mod tests {
             DIST b.tar.gz 2 BLAKE2B c SHA512 d
             DIST c.tar.gz 3 BLAKE2B c SHA512 d
         "#};
-        fs::write(pkg1.abspath().parent().unwrap().join("Manifest"), manifest).unwrap();
+        fs::write(pkg1.path().parent().unwrap().join("Manifest"), manifest).unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing distfiles"

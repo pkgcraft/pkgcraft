@@ -376,7 +376,7 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // pkg with long description
         let r = Restrict::LongDescription(Some(StrRestrict::regex(".").unwrap()));
@@ -397,7 +397,7 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple repo matches
         let r = Restrict::LongDescription(Some(StrRestrict::regex("desc").unwrap()));
@@ -426,7 +426,7 @@ mod tests {
                 </maintainer>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple
         let raw_pkg = t.create_raw_pkg("cat/pkg-b-1", &[]).unwrap();
@@ -444,7 +444,7 @@ mod tests {
                 </maintainer>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.abspath().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // pkgs with no maintainers
         let r: BaseRestrict = Restrict::Maintainers(None).into();

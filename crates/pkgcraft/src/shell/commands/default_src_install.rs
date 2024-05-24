@@ -51,7 +51,7 @@ mod tests {
         let pkg = t.create_pkg_from_str("cat/pkg-1", data).unwrap();
 
         // create docs file
-        let filesdir = pkg.abspath().parent().unwrap().join("files");
+        let filesdir = pkg.path().parent().unwrap().join("files");
         fs::create_dir(&filesdir).unwrap();
         fs::write(filesdir.join("readme"), "data").unwrap();
 

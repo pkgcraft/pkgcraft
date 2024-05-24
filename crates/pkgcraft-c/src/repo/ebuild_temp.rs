@@ -59,7 +59,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
             data.push(try_str_from_ptr!(*ptr));
         }
         let raw_pkg = unwrap_or_panic!(repo.create_raw_pkg(cpv, &data));
-        try_ptr_from_str!(raw_pkg.abspath().as_str())
+        try_ptr_from_str!(raw_pkg.path().as_str())
     }
 }
 
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_raw(
         let cpv = try_str_from_ptr!(cpv);
         let data = try_str_from_ptr!(data);
         let raw_pkg = unwrap_or_panic!(repo.create_raw_pkg_from_str(cpv, data));
-        try_ptr_from_str!(raw_pkg.abspath().as_str())
+        try_ptr_from_str!(raw_pkg.path().as_str())
     }
 }
 

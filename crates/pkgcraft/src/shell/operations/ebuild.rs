@@ -15,7 +15,7 @@ use super::OperationKind;
 impl<'a> Build for ebuild::Pkg<'a> {
     fn build(&self) -> scallop::Result<()> {
         get_build_mut()
-            .source_ebuild(&self.abspath())
+            .source_ebuild(&self.path())
             .map_err(|e| self.invalid_pkg_err(e))?;
 
         for phase in self.eapi().operation(OperationKind::Build)? {
@@ -85,7 +85,7 @@ impl<'a> Source for ebuild::raw::Pkg<'a> {
 impl<'a> Source for ebuild::Pkg<'a> {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
-        get_build_mut().source_ebuild(&self.abspath())
+        get_build_mut().source_ebuild(&self.path())
     }
 }
 

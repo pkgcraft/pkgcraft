@@ -66,7 +66,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return the absolute path of the package's ebuild.
-    pub fn abspath(&self) -> Utf8PathBuf {
+    pub fn path(&self) -> Utf8PathBuf {
         self.repo.path().join(self.relpath())
     }
 
@@ -144,12 +144,12 @@ mod tests {
     }
 
     #[test]
-    fn abspath() {
+    fn path() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         let pkg = TEST_DATA
             .ebuild_raw_pkg("=optional/none-8::metadata")
             .unwrap();
-        assert_eq!(pkg.abspath(), repo.path().join("optional/none/none-8.ebuild"));
+        assert_eq!(pkg.path(), repo.path().join("optional/none/none-8.ebuild"));
     }
 
     #[test]
