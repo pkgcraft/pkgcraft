@@ -412,7 +412,9 @@ mod tests {
         let fake_repo = fake::Repo::new("fake", 0);
 
         let f_repo: Repo = fake_repo.into();
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        let dep = Dep::try_new("=cat/pkg-1").unwrap();
 
         // empty repo set
         let s = RepoSet::new();
@@ -422,7 +424,9 @@ mod tests {
         assert!(s.iter_cpv().next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
+        assert!(!s.contains(&cpn));
         assert!(!s.contains(&cpv));
+        assert!(!s.contains(&dep));
 
         // repo set with no pkgs
         let s = RepoSet::from_iter([t.repo(), &f_repo]);
@@ -432,7 +436,9 @@ mod tests {
         assert!(s.iter_cpv().next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
+        assert!(!s.contains(&cpn));
         assert!(!s.contains(&cpv));
+        assert!(!s.contains(&dep));
 
         // single ebuild
         t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -444,7 +450,9 @@ mod tests {
         assert_ordered_eq(s.iter_cpv(), [cpv.clone()]);
         assert!(s.iter().next().is_some());
         assert!(s.iter_restrict(&cpv).next().is_some());
+        assert!(s.contains(&cpn));
         assert!(s.contains(&cpv));
+        assert!(s.contains(&dep));
 
         // multiple pkgs of different types
         let fake_repo = fake::Repo::new("fake", 0).pkgs(["cat/pkg-1"]);
@@ -454,7 +462,9 @@ mod tests {
         assert_ordered_eq(s.packages("cat"), ["pkg"]);
         assert_ordered_eq(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
         assert_eq!(s.len(), 2);
+        assert!(s.contains(&cpn));
         assert!(s.contains(&cpv));
+        assert!(s.contains(&dep));
         assert_ordered_eq(s.iter_cpv(), [cpv.clone()]);
         assert_eq!(s.iter().count(), 2);
         assert_eq!(s.iter_restrict(&cpv).count(), 2);
