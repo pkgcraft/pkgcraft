@@ -657,6 +657,30 @@ macro_rules! make_repo_traits {
             }
         }
 
+        impl AsRef<Utf8Path> for $x {
+            fn as_ref(&self) -> &Utf8Path {
+                self.path()
+            }
+        }
+
+        impl AsRef<std::ffi::OsStr> for $x {
+            fn as_ref(&self) -> &std::ffi::OsStr {
+                self.path().as_ref()
+            }
+        }
+
+        impl AsRef<std::path::Path> for $x {
+            fn as_ref(&self) -> &std::path::Path {
+                self.path().as_ref()
+            }
+        }
+
+        impl AsRef<str> for $x {
+            fn as_ref(&self) -> &str {
+                self.path().as_ref()
+            }
+        }
+
         impl From<&$x> for crate::restrict::dep::Restrict {
             fn from(r: &$x) -> Self {
                 crate::restrict::dep::Restrict::repo(Some(r.id()))
