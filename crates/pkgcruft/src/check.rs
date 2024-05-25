@@ -17,6 +17,7 @@ mod dropped_keywords;
 mod eapi;
 mod eapi_stale;
 mod keywords;
+mod local_use;
 mod metadata;
 mod missing_slot_dep;
 mod missing_test_restrict;
@@ -78,6 +79,7 @@ pub enum CheckKind {
     Eapi,
     EapiStale,
     Keywords,
+    LocalUse,
     Metadata,
     MissingSlotDep,
     MissingTestRestrict,
@@ -114,6 +116,7 @@ impl CheckKind {
             Self::Eapi => Scope::Version,
             Self::EapiStale => Scope::Package,
             Self::Keywords => Scope::Version,
+            Self::LocalUse => Scope::Package,
             Self::Metadata => Scope::Version,
             Self::MissingSlotDep => Scope::Version,
             Self::MissingTestRestrict => Scope::Version,
@@ -129,6 +132,7 @@ impl CheckKind {
             Self::Eapi => SourceKind::Ebuild,
             Self::EapiStale => SourceKind::Ebuild,
             Self::Keywords => SourceKind::Ebuild,
+            Self::LocalUse => SourceKind::Ebuild,
             Self::Metadata => SourceKind::EbuildRaw,
             Self::MissingSlotDep => SourceKind::Ebuild,
             Self::MissingTestRestrict => SourceKind::Ebuild,
@@ -144,6 +148,7 @@ impl CheckKind {
             Self::Eapi => eapi::REPORTS,
             Self::EapiStale => eapi_stale::REPORTS,
             Self::Keywords => keywords::REPORTS,
+            Self::LocalUse => local_use::REPORTS,
             Self::Metadata => metadata::REPORTS,
             Self::MissingSlotDep => missing_slot_dep::REPORTS,
             Self::MissingTestRestrict => missing_test_restrict::REPORTS,
@@ -161,6 +166,7 @@ impl CheckKind {
             Self::Eapi => Eapi(eapi::Check::new(repo)),
             Self::EapiStale => EapiStale(eapi_stale::Check::new(repo)),
             Self::Keywords => Keywords(keywords::Check::new(repo)),
+            Self::LocalUse => LocalUse(local_use::Check::new(repo)),
             Self::Metadata => Metadata(metadata::Check::new(repo)),
             Self::MissingSlotDep => MissingSlotDep(missing_slot_dep::Check::new(repo)),
             Self::MissingTestRestrict => MissingTestRestrict(missing_test_restrict::Check::new(repo)),
@@ -187,6 +193,7 @@ pub(crate) enum Check<'a> {
     Eapi(eapi::Check<'a>),
     EapiStale(eapi_stale::Check<'a>),
     Keywords(keywords::Check<'a>),
+    LocalUse(local_use::Check<'a>),
     Metadata(metadata::Check<'a>),
     MissingSlotDep(missing_slot_dep::Check<'a>),
     MissingTestRestrict(missing_test_restrict::Check<'a>),
@@ -228,6 +235,7 @@ impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for Check<'a> {
         match self {
             Self::DroppedKeywords(c) => c.run(pkgs, report),
             Self::EapiStale(c) => c.run(pkgs, report),
+            Self::LocalUse(c) => c.run(pkgs, report),
             Self::UnstableOnly(c) => c.run(pkgs, report),
             _ => unreachable!("{self} is not an ebuild pkg set check"),
         }

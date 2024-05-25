@@ -98,6 +98,12 @@ pub enum ReportKind {
     SourcingError,
     UnsortedKeywords,
     UnstableOnly,
+
+    /// Local USE flag missing description.
+    UseLocalDescMissing,
+
+    /// Unused local USE flag.
+    UseLocalUnused,
 }
 
 impl ReportKind {
@@ -151,6 +157,8 @@ impl ReportKind {
             Self::SourcingError => Scope::Version,
             Self::UnsortedKeywords => Scope::Version,
             Self::UnstableOnly => Scope::Package,
+            Self::UseLocalDescMissing => Scope::Package,
+            Self::UseLocalUnused => Scope::Package,
         }
     }
 
@@ -173,6 +181,8 @@ impl ReportKind {
             Self::SourcingError => Critical,
             Self::UnsortedKeywords => Style,
             Self::UnstableOnly => Info,
+            Self::UseLocalDescMissing => Warning,
+            Self::UseLocalUnused => Warning,
         }
     }
 }
