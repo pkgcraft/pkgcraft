@@ -25,12 +25,12 @@ impl<'a> Check<'a> {
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         let local_use = pkgs[0].local_use();
-        let local_use_flags = local_use.keys().collect::<Vec<_>>();
+        let local_flags = local_use.keys().map(|s| s.as_str()).collect::<Vec<_>>();
+        let mut sorted_flags = local_flags.clone();
+        sorted_flags.sort();
 
-        let mut sorted_local_use = local_use_flags.clone();
-        sorted_local_use.sort();
-        if sorted_local_use != local_use_flags {
-            let message = local_use_flags.iter().join(", ");
+        if sorted_flags != local_flags {
+            let message = local_flags.iter().join(", ");
             report(UseLocalUnsorted.package(pkgs, message));
         }
 
@@ -52,10 +52,9 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
             .flat_map(|pkg| pkg.iuse())
             .map(|iuse| iuse.flag())
             .collect::<HashSet<_>>();
-        let unused = local_use_flags
+        let unused = sorted_flags
             .iter()
-            .filter(|x| !used.contains(x.as_str()))
-            .sorted()
+            .filter(|&x| !used.contains(x))
             .collect::<Vec<_>>();
 
         if !unused.is_empty() {
