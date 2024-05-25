@@ -102,8 +102,11 @@ pub enum ReportKind {
     /// Local USE flag missing description.
     UseLocalDescMissing,
 
-    /// Unused local USE flag.
+    /// Unused local USE flags.
     UseLocalUnused,
+
+    /// Unsorted local USE flags.
+    UseLocalUnsorted,
 }
 
 impl ReportKind {
@@ -159,6 +162,7 @@ impl ReportKind {
             Self::UnstableOnly => Scope::Package,
             Self::UseLocalDescMissing => Scope::Package,
             Self::UseLocalUnused => Scope::Package,
+            Self::UseLocalUnsorted => Scope::Package,
         }
     }
 
@@ -183,6 +187,7 @@ impl ReportKind {
             Self::UnstableOnly => Info,
             Self::UseLocalDescMissing => Warning,
             Self::UseLocalUnused => Warning,
+            Self::UseLocalUnsorted => Style,
         }
     }
 }
