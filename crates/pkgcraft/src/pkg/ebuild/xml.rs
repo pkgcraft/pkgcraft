@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use roxmltree::Node;
 use strum::{AsRefStr, Display, EnumString};
@@ -252,10 +252,10 @@ impl TryFrom<Node<'_, '_>> for Upstream {
 pub(crate) struct Metadata {
     pub(super) maintainers: Vec<Maintainer>,
     pub(super) upstream: Option<Upstream>,
-    pub(super) slots: HashMap<String, String>,
+    pub(super) slots: IndexMap<String, String>,
     pub(super) subslots: Option<String>,
     pub(super) stabilize_allarches: bool,
-    pub(super) local_use: HashMap<String, String>,
+    pub(super) local_use: IndexMap<String, String>,
     pub(super) long_desc: Option<String>,
 }
 

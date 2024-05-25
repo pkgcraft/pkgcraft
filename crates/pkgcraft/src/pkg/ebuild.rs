@@ -1,8 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
+use indexmap::IndexMap;
 use itertools::Either;
 
 use crate::dep::{Cpv, Dep};
@@ -236,7 +237,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's slot descriptions.
-    pub fn slots(&self) -> &HashMap<String, String> {
+    pub fn slots(&self) -> &IndexMap<String, String> {
         &self.xml().slots
     }
 
@@ -251,7 +252,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's local USE flag mapping.
-    pub fn local_use(&self) -> &HashMap<String, String> {
+    pub fn local_use(&self) -> &IndexMap<String, String> {
         &self.xml().local_use
     }
 
