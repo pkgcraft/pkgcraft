@@ -1,7 +1,6 @@
 use pkgcraft::dep::parse::restrict_dependency;
 use pkgcraft::dep::DependencySet;
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
@@ -11,15 +10,13 @@ use crate::report::{
 pub(super) static REPORTS: &[ReportKind] = &[RestrictMissing];
 
 #[derive(Debug)]
-pub(crate) struct Check<'a> {
-    _repo: &'a Repo,
+pub(crate) struct Check {
     restricts: DependencySet<String, String>,
 }
 
-impl<'a> Check<'a> {
-    pub(super) fn new(_repo: &'a Repo) -> Self {
+impl Check {
+    pub(super) fn new() -> Self {
         Self {
-            _repo,
             restricts: ["test", "!test? ( test )"]
                 .iter()
                 .map(|s| {
@@ -30,8 +27,8 @@ impl<'a> Check<'a> {
     }
 }
 
-impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
+impl super::CheckRun<&Pkg<'_>> for Check {
+    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'_>, mut report: F) {
         if pkg.iuse().contains("test")
             && pkg
                 .restrict()

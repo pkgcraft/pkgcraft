@@ -1,6 +1,5 @@
 use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::traits::Contains;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
@@ -12,18 +11,10 @@ use crate::report::{
 pub(super) static REPORTS: &[ReportKind] = &[EapiStale];
 
 #[derive(Debug)]
-pub(crate) struct Check<'a> {
-    _repo: &'a Repo,
-}
+pub(crate) struct Check;
 
-impl<'a> Check<'a> {
-    pub(super) fn new(_repo: &'a Repo) -> Self {
-        Self { _repo }
-    }
-}
-
-impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
+impl super::CheckRun<&[Pkg<'_>]> for Check {
+    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'_>], mut report: F) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))
             .collect::<OrderedMap<_, OrderedSet<_>>>()
