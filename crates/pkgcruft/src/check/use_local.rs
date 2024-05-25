@@ -25,12 +25,12 @@ impl<'a> Check<'a> {
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         let local_use = pkgs[0].local_use();
-        let local_flags = local_use.keys().map(|s| s.as_str()).collect::<Vec<_>>();
-        let mut sorted_flags = local_flags.clone();
+        let mut sorted_flags = local_use.keys().map(|s| s.as_str()).collect::<Vec<_>>();
         sorted_flags.sort();
 
-        if sorted_flags != local_flags {
-            let message = local_flags.iter().join(", ");
+        if let Some((unsorted, sorted)) = local_use.keys().zip(&sorted_flags).find(|(a, b)| a != b)
+        {
+            let message = format!("unsorted flag: {unsorted} (sorted: {sorted})");
             report(UseLocalUnsorted.package(pkgs, message));
         }
 
