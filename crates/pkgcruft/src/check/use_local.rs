@@ -1,24 +1,28 @@
 use std::collections::HashSet;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, UseLocalDescMissing, UseLocalUnsorted, UseLocalUnused},
+    ReportKind::{self, UseGlobalMatching, UseLocalDescMissing, UseLocalUnsorted, UseLocalUnused},
 };
 
-pub(super) static REPORTS: &[ReportKind] = &[UseLocalDescMissing, UseLocalUnused, UseLocalUnsorted];
+pub(super) static REPORTS: &[ReportKind] =
+    &[UseGlobalMatching, UseLocalDescMissing, UseLocalUnused, UseLocalUnsorted];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
-    _repo: &'a Repo,
+    global_use: &'a IndexMap<String, String>,
 }
 
 impl<'a> Check<'a> {
-    pub(super) fn new(_repo: &'a Repo) -> Self {
-        Self { _repo }
+    pub(super) fn new(repo: &'a Repo) -> Self {
+        Self {
+            global_use: repo.metadata.use_desc(),
+        }
     }
 }
 
@@ -35,9 +39,15 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
         }
 
         let mut missing_desc = vec![];
-        for (flag, desc) in local_use {
-            if desc.is_empty() {
+        for (flag, local_desc) in local_use {
+            if local_use.is_empty() {
                 missing_desc.push(flag);
+            }
+
+            if let Some(global_desc) = self.global_use.get(flag) {
+                if global_desc == local_desc {
+                    report(UseGlobalMatching.package(pkgs, flag));
+                }
             }
         }
 
