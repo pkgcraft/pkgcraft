@@ -13,12 +13,12 @@ pub(super) static REPORTS: &[ReportKind] = &[UseLocalDescMissing, UseLocalUnused
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
-    repo: &'a Repo,
+    _repo: &'a Repo,
 }
 
 impl<'a> Check<'a> {
-    pub(super) fn new(repo: &'a Repo) -> Self {
-        Self { repo }
+    pub(super) fn new(_repo: &'a Repo) -> Self {
+        Self { _repo }
     }
 }
 
