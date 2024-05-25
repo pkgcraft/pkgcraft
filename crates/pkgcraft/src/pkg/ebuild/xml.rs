@@ -302,13 +302,21 @@ impl Metadata {
     fn parse_use(node: Node, data: &mut Self) {
         let nodes = node.children().filter(|n| n.tag_name().name() == "flag");
         for n in nodes {
-            if let (Some(name), Some(desc)) = (n.attribute("name"), n.text()) {
-                data.local_use.insert(name.to_string(), desc.to_string());
+            if let Some(name) = n.attribute("name") {
+                let desc = n
+                    .children()
+                    .filter_map(|x| x.text().map(|s| s.split_whitespace().join(" ")))
+                    .join("");
+                data.local_use.insert(name.to_string(), desc);
             }
         }
     }
 
     fn parse_long_desc(node: Node, data: &mut Self) {
-        data.long_desc = node.text().map(|s| s.split_whitespace().join(" "));
+        data.long_desc = node.text().map(|_| {
+            node.children()
+                .filter_map(|x| x.text().map(|s| s.split_whitespace().join(" ")))
+                .join("")
+        })
     }
 }
