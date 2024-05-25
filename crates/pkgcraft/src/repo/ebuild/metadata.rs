@@ -225,9 +225,9 @@ pub struct Metadata {
     pkg_deprecated: OnceLock<IndexSet<Dep<String>>>,
     pkg_mask: OnceLock<IndexSet<Dep<String>>>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
-    use_desc: OnceLock<IndexMap<String, String>>,
-    use_expand_desc: OnceLock<IndexMap<String, IndexMap<String, String>>>,
-    use_local_desc: OnceLock<OrderedMap<String, OrderedMap<String, String>>>,
+    use_global: OnceLock<IndexMap<String, String>>,
+    use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
+    use_local: OnceLock<OrderedMap<String, OrderedMap<String, String>>>,
 }
 
 impl Metadata {
@@ -581,8 +581,8 @@ impl Metadata {
     }
 
     /// Return the ordered map of global USE flags.
-    pub fn use_desc(&self) -> &IndexMap<String, String> {
-        self.use_desc.get_or_init(|| {
+    pub fn use_global(&self) -> &IndexMap<String, String> {
+        self.use_global.get_or_init(|| {
             self.read_path("profiles/use.desc")
                 .filter_lines()
                 .filter_map(|(i, s)| {
@@ -597,8 +597,8 @@ impl Metadata {
     }
 
     /// Return the ordered map of USE_EXPAND flags.
-    pub fn use_expand_desc(&self) -> &IndexMap<String, IndexMap<String, String>> {
-        self.use_expand_desc.get_or_init(|| {
+    pub fn use_expand(&self) -> &IndexMap<String, IndexMap<String, String>> {
+        self.use_expand.get_or_init(|| {
             sorted_dir_list(self.path.join("profiles/desc"))
                 .into_iter()
                 .filter_entry(|e| is_file(e) && !is_hidden(e))
@@ -628,7 +628,7 @@ impl Metadata {
     }
 
     /// Return the ordered map of local USE flags.
-    pub fn use_local_desc(&self) -> &OrderedMap<String, OrderedMap<String, String>> {
+    pub fn use_local(&self) -> &OrderedMap<String, OrderedMap<String, String>> {
         // parse a use.local.desc line
         let parse = |s: &str| -> crate::Result<(String, (String, String))> {
             let (cpn, use_desc) = s
@@ -638,7 +638,7 @@ impl Metadata {
             Ok((cpn.to_string(), parse_use_desc(use_desc)?))
         };
 
-        self.use_local_desc.get_or_init(|| {
+        self.use_local.get_or_init(|| {
             self.read_path("profiles/use.local.desc")
                 .filter_lines()
                 .filter_map(|(i, s)| {
@@ -1083,18 +1083,18 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_use_desc() {
+    fn test_use_global() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert!(metadata.use_desc().is_empty());
+        assert!(metadata.use_global().is_empty());
 
         // empty
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), "").unwrap();
-        assert!(metadata.use_desc().is_empty());
+        assert!(metadata.use_global().is_empty());
 
         // multiple with invalid
         let data = indoc::indoc! {r#"
@@ -1109,25 +1109,25 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), data).unwrap();
-        assert_eq!(metadata.use_desc().get("a").unwrap(), "a flag description");
+        assert_eq!(metadata.use_global().get("a").unwrap(), "a flag description");
         assert_logs_re!(".+ line 5: invalid format: b: b flag description$");
         assert_logs_re!(".+ line 8: .+?: invalid USE flag: @c$");
     }
 
     #[traced_test]
     #[test]
-    fn test_use_local_desc() {
+    fn test_use_local() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
         // nonexistent
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert!(metadata.use_local_desc().is_empty());
+        assert!(metadata.use_local().is_empty());
 
         // empty
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.local.desc"), "").unwrap();
-        assert!(metadata.use_local_desc().is_empty());
+        assert!(metadata.use_local().is_empty());
 
         // multiple with invalid
         let data = indoc::indoc! {r#"
@@ -1144,7 +1144,7 @@ mod tests {
         fs::write(metadata.path.join("profiles/use.local.desc"), data).unwrap();
         assert_eq!(
             metadata
-                .use_local_desc()
+                .use_local()
                 .get("cat/pkg")
                 .unwrap()
                 .get("a")

@@ -41,7 +41,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
                 missing_desc.push(flag);
             }
 
-            if let Some(global_desc) = self.repo.metadata.use_desc().get(flag) {
+            if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
                 if global_desc == local_desc {
                     report(UseGlobalMatching.package(pkgs, flag));
                 }
