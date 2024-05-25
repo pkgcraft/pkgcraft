@@ -5,7 +5,7 @@ use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
+use crossbeam_channel::{bounded, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use once_cell::sync::Lazy;
@@ -54,12 +54,11 @@ where
     T: ArcCacheData + Send + Sync,
 {
     thread: Option<thread::JoinHandle<()>>,
-    tx: Sender<Msg>,
-    rx: Receiver<Arc<T>>,
+    tx: Sender<Msg<T>>,
 }
 
-enum Msg {
-    Key(String),
+enum Msg<T: ArcCacheData + Send + Sync> {
+    Key(String, Sender<Arc<T>>),
     Stop,
 }
 
@@ -68,16 +67,15 @@ where
     T: ArcCacheData + Send + Sync + 'static,
 {
     fn new(repo: Arc<Repo>) -> ArcCache<T> {
-        let (path_tx, path_rx) = bounded::<Msg>(10);
-        let (meta_tx, meta_rx) = bounded::<Arc<T>>(10);
+        let (tx, rx) = bounded::<Msg<T>>(10);
 
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
             let mut cache = HashMap::<_, (_, Arc<T>)>::new();
             loop {
-                match path_rx.recv() {
+                match rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
-                    Ok(Msg::Key(s)) => {
+                    Ok(Msg::Key(s, tx)) => {
                         let path = build_path!(repo.path(), &s, T::RELPATH);
                         let data = fs::read_to_string(&path)
                             .map_err(|e| {
@@ -102,30 +100,27 @@ where
 
                                 // insert Arc-wrapped value into the cache and return a copy
                                 let val = Arc::new(val);
-                                cache.insert(s, (hash, val.clone()));
+                                cache.insert(s.clone(), (hash, val.clone()));
                                 val
                             }
                         };
 
-                        meta_tx.send(val).expect("failed sending shared pkg data");
+                        tx.send(val).expect("failed sending shared pkg data");
                     }
                 }
             }
         });
 
-        Self {
-            thread: Some(thread),
-            tx: path_tx,
-            rx: meta_rx,
-        }
+        Self { thread: Some(thread), tx }
     }
 
     /// Get the cache data related to a given package Cpv.
     fn get(&self, cpv: &Cpv<String>) -> Arc<T> {
+        let (tx, rx) = bounded::<Arc<T>>(1);
         self.tx
-            .send(Msg::Key(cpv.cpn().to_string()))
+            .send(Msg::Key(cpv.cpn().to_string(), tx))
             .expect("failed requesting pkg manifest data");
-        self.rx.recv().expect("failed receiving pkg manifest data")
+        rx.recv().expect("failed receiving pkg manifest data")
     }
 }
 
