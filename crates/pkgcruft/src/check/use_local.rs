@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use indexmap::IndexMap;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
@@ -15,14 +14,12 @@ pub(super) static REPORTS: &[ReportKind] =
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
-    global_use: &'a IndexMap<String, String>,
+    repo: &'a Repo,
 }
 
 impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
-        Self {
-            global_use: repo.metadata.use_desc(),
-        }
+        Self { repo }
     }
 }
 
@@ -44,7 +41,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
                 missing_desc.push(flag);
             }
 
-            if let Some(global_desc) = self.global_use.get(flag) {
+            if let Some(global_desc) = self.repo.metadata.use_desc().get(flag) {
                 if global_desc == local_desc {
                     report(UseGlobalMatching.package(pkgs, flag));
                 }
