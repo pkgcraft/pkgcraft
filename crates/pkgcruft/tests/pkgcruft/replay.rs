@@ -171,11 +171,11 @@ fn levels() {
 #[test]
 fn reports() {
     let repo = qa_repo("qa-primary").path();
-    let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+    let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
-        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/Dependency/DependencyDeprecated/reports.json",
         "{repo}/Eapi/EapiBanned/reports.json",
-        "{repo}/Keywords/UnsortedKeywords/reports.json",
+        "{repo}/Keywords/KeywordsUnsorted/reports.json",
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
@@ -192,14 +192,14 @@ fn reports() {
 
         // single
         let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "DeprecatedDependency"])
+            .args([opt, "DependencyDeprecated"])
             .write_stdin(data.as_str())
             .to_reports();
         assert_eq!(&single_expected, &reports);
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "DeprecatedDependency,EapiBanned,UnsortedKeywords"])
+            .args([opt, "DependencyDeprecated,EapiBanned,KeywordsUnsorted"])
             .write_stdin(data.as_str())
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
@@ -209,9 +209,9 @@ fn reports() {
 #[test]
 fn scopes() {
     let repo = qa_repo("qa-primary").path();
-    let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+    let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
-        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/Dependency/DependencyDeprecated/reports.json",
         "{repo}/UnstableOnly/UnstableOnly/reports.json",
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
@@ -247,7 +247,7 @@ fn scopes() {
 fn sources() {
     let repo = qa_repo("qa-primary").path();
     let expected = glob_reports!(
-        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/Dependency/DependencyDeprecated/reports.json",
         "{repo}/UnstableOnly/UnstableOnly/reports.json",
     );
     let data = expected.iter().map(|x| x.to_json()).join("\n");
@@ -277,8 +277,8 @@ fn sources() {
 #[test]
 fn pkgs() {
     let reports = indoc::indoc! {r#"
-        {"kind":"DroppedKeywords","scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"message":"alpha, hppa, ia64, m68k, ppc"}
-        {"kind":"DroppedKeywords","scope":{"Version":"x11-wm/mutter-45.1"},"message":"ppc64"}
+        {"kind":"KeywordsDropped","scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"message":"alpha, hppa, ia64, m68k, ppc"}
+        {"kind":"KeywordsDropped","scope":{"Version":"x11-wm/mutter-45.1"},"message":"ppc64"}
         {"kind":"UnstableOnly","scope":{"Package":"x11-wm/mutter"},"message":"arm, ppc64"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
@@ -319,8 +319,8 @@ fn sort() {
     // serialized reports in reversed sorting order
     let reports = indoc::indoc! {r#"
         {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"message":"x86"}
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"message":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"DeprecatedDependency","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"message":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DependencyDeprecated","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"message":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DependencyDeprecated","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"message":"BDEPEND: media-sound/pulseaudio"}
     "#};
     let mut expected: Vec<_> = reports.lines().collect();
     expected.reverse();

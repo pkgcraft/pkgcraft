@@ -13,15 +13,15 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 mod dependency;
-mod dropped_keywords;
+mod dependency_slot_missing;
 mod eapi;
 mod eapi_stale;
 mod keywords;
-mod local_use;
+mod keywords_dropped;
 mod metadata;
-mod missing_slot_dep;
-mod missing_test_restrict;
+mod restrict_test_missing;
 mod unstable_only;
+mod use_local;
 
 /// Check contexts.
 #[derive(
@@ -75,15 +75,15 @@ impl CheckContext {
 )]
 pub enum CheckKind {
     Dependency,
-    DroppedKeywords,
     Eapi,
     EapiStale,
     Keywords,
-    LocalUse,
+    KeywordsDropped,
     Metadata,
-    MissingSlotDep,
-    MissingTestRestrict,
+    DependencySlotMissing,
+    RestrictTestMissing,
     UnstableOnly,
+    UseLocal,
 }
 
 impl AsRef<Utf8Path> for CheckKind {
@@ -112,15 +112,15 @@ impl CheckKind {
     pub fn scope(&self) -> Scope {
         match self {
             Self::Dependency => Scope::Version,
-            Self::DroppedKeywords => Scope::Package,
+            Self::DependencySlotMissing => Scope::Version,
             Self::Eapi => Scope::Version,
             Self::EapiStale => Scope::Package,
             Self::Keywords => Scope::Version,
-            Self::LocalUse => Scope::Package,
+            Self::KeywordsDropped => Scope::Package,
             Self::Metadata => Scope::Version,
-            Self::MissingSlotDep => Scope::Version,
-            Self::MissingTestRestrict => Scope::Version,
+            Self::RestrictTestMissing => Scope::Version,
             Self::UnstableOnly => Scope::Package,
+            Self::UseLocal => Scope::Package,
         }
     }
 
@@ -128,15 +128,15 @@ impl CheckKind {
     pub fn source(&self) -> SourceKind {
         match self {
             Self::Dependency => SourceKind::Ebuild,
-            Self::DroppedKeywords => SourceKind::Ebuild,
+            Self::DependencySlotMissing => SourceKind::Ebuild,
             Self::Eapi => SourceKind::Ebuild,
             Self::EapiStale => SourceKind::Ebuild,
             Self::Keywords => SourceKind::Ebuild,
-            Self::LocalUse => SourceKind::Ebuild,
+            Self::KeywordsDropped => SourceKind::Ebuild,
             Self::Metadata => SourceKind::EbuildRaw,
-            Self::MissingSlotDep => SourceKind::Ebuild,
-            Self::MissingTestRestrict => SourceKind::Ebuild,
+            Self::RestrictTestMissing => SourceKind::Ebuild,
             Self::UnstableOnly => SourceKind::Ebuild,
+            Self::UseLocal => SourceKind::Ebuild,
         }
     }
 
@@ -144,15 +144,15 @@ impl CheckKind {
     pub fn reports(self) -> &'static [ReportKind] {
         match self {
             Self::Dependency => dependency::REPORTS,
-            Self::DroppedKeywords => dropped_keywords::REPORTS,
+            Self::DependencySlotMissing => dependency_slot_missing::REPORTS,
             Self::Eapi => eapi::REPORTS,
             Self::EapiStale => eapi_stale::REPORTS,
             Self::Keywords => keywords::REPORTS,
-            Self::LocalUse => local_use::REPORTS,
+            Self::KeywordsDropped => keywords_dropped::REPORTS,
             Self::Metadata => metadata::REPORTS,
-            Self::MissingSlotDep => missing_slot_dep::REPORTS,
-            Self::MissingTestRestrict => missing_test_restrict::REPORTS,
+            Self::RestrictTestMissing => restrict_test_missing::REPORTS,
             Self::UnstableOnly => unstable_only::REPORTS,
+            Self::UseLocal => use_local::REPORTS,
         }
     }
 
@@ -162,15 +162,15 @@ impl CheckKind {
         use Check::*;
         match self {
             Self::Dependency => Dependency(dependency::Check::new(repo)),
-            Self::DroppedKeywords => DroppedKeywords(dropped_keywords::Check::new(repo)),
+            Self::DependencySlotMissing => DependencySlotMissing(dependency_slot_missing::Check::new(repo)),
             Self::Eapi => Eapi(eapi::Check::new(repo)),
             Self::EapiStale => EapiStale(eapi_stale::Check::new(repo)),
             Self::Keywords => Keywords(keywords::Check::new(repo)),
-            Self::LocalUse => LocalUse(local_use::Check::new(repo)),
+            Self::KeywordsDropped => KeywordsDropped(keywords_dropped::Check::new(repo)),
             Self::Metadata => Metadata(metadata::Check::new(repo)),
-            Self::MissingSlotDep => MissingSlotDep(missing_slot_dep::Check::new(repo)),
-            Self::MissingTestRestrict => MissingTestRestrict(missing_test_restrict::Check::new(repo)),
+            Self::RestrictTestMissing => RestrictTestMissing(restrict_test_missing::Check::new(repo)),
             Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
+            Self::UseLocal => UseLocal(use_local::Check::new(repo)),
         }
     }
 
@@ -189,15 +189,15 @@ impl CheckKind {
 #[derive(AsRefStr, Display, Debug)]
 pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
-    DroppedKeywords(dropped_keywords::Check<'a>),
+    DependencySlotMissing(dependency_slot_missing::Check<'a>),
     Eapi(eapi::Check<'a>),
     EapiStale(eapi_stale::Check<'a>),
     Keywords(keywords::Check<'a>),
-    LocalUse(local_use::Check<'a>),
+    KeywordsDropped(keywords_dropped::Check<'a>),
     Metadata(metadata::Check<'a>),
-    MissingSlotDep(missing_slot_dep::Check<'a>),
-    MissingTestRestrict(missing_test_restrict::Check<'a>),
+    RestrictTestMissing(restrict_test_missing::Check<'a>),
     UnstableOnly(unstable_only::Check<'a>),
+    UseLocal(use_local::Check<'a>),
 }
 
 impl<'a> Check<'a> {
@@ -212,10 +212,10 @@ impl<'a> CheckRun<&ebuild::Pkg<'a>> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkg: &ebuild::Pkg<'a>, report: F) {
         match self {
             Self::Dependency(c) => c.run(pkg, report),
+            Self::DependencySlotMissing(c) => c.run(pkg, report),
             Self::Eapi(c) => c.run(pkg, report),
             Self::Keywords(c) => c.run(pkg, report),
-            Self::MissingSlotDep(c) => c.run(pkg, report),
-            Self::MissingTestRestrict(c) => c.run(pkg, report),
+            Self::RestrictTestMissing(c) => c.run(pkg, report),
             _ => unreachable!("{self} is not an ebuild check"),
         }
     }
@@ -233,10 +233,10 @@ impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for Check<'a> {
 impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[ebuild::Pkg<'a>], report: F) {
         match self {
-            Self::DroppedKeywords(c) => c.run(pkgs, report),
             Self::EapiStale(c) => c.run(pkgs, report),
-            Self::LocalUse(c) => c.run(pkgs, report),
+            Self::KeywordsDropped(c) => c.run(pkgs, report),
             Self::UnstableOnly(c) => c.run(pkgs, report),
+            Self::UseLocal(c) => c.run(pkgs, report),
             _ => unreachable!("{self} is not an ebuild pkg set check"),
         }
     }

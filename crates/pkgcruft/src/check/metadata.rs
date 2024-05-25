@@ -8,10 +8,21 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, InvalidDependencySet, MissingMetadata, SourcingError},
+    ReportKind::{
+        self, DependencyInvalid, LicenseInvalid, MetadataMissing, PropertiesInvalid,
+        RequiredUseInvalid, RestrictInvalid, SourcingError,
+    },
 };
 
-pub(super) static REPORTS: &[ReportKind] = &[InvalidDependencySet, MissingMetadata, SourcingError];
+pub(super) static REPORTS: &[ReportKind] = &[
+    DependencyInvalid,
+    LicenseInvalid,
+    PropertiesInvalid,
+    RequiredUseInvalid,
+    RestrictInvalid,
+    MetadataMissing,
+    SourcingError,
+];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -40,7 +51,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
 
                 if !missing.is_empty() {
                     let message = missing.into_iter().join(", ");
-                    report(MissingMetadata.version(pkg, message));
+                    report(MetadataMissing.version(pkg, message));
                 }
 
                 // verify depset parsing
@@ -49,36 +60,32 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
                     if let Some(val) = raw.get(key) {
                         if let Err(e) = dep::parse::package_dependency_set(val, eapi) {
                             let message = format!("{key}: {e}");
-                            report(InvalidDependencySet.version(pkg, message));
+                            report(DependencyInvalid.version(pkg, message));
                         }
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::LICENSE) {
                     if let Err(e) = dep::parse::license_dependency_set(val) {
-                        let message = format!("{}: {e}", Key::LICENSE);
-                        report(InvalidDependencySet.version(pkg, message));
+                        report(LicenseInvalid.version(pkg, e));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::PROPERTIES) {
                     if let Err(e) = dep::parse::properties_dependency_set(val) {
-                        let message = format!("{}: {e}", Key::PROPERTIES);
-                        report(InvalidDependencySet.version(pkg, message));
+                        report(PropertiesInvalid.version(pkg, e));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::REQUIRED_USE) {
                     if let Err(e) = dep::parse::required_use_dependency_set(val, eapi) {
-                        let message = format!("{}: {e}", Key::REQUIRED_USE);
-                        report(InvalidDependencySet.version(pkg, message));
+                        report(RequiredUseInvalid.version(pkg, e));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::RESTRICT) {
                     if let Err(e) = dep::parse::restrict_dependency_set(val) {
-                        let message = format!("{}: {e}", Key::RESTRICT);
-                        report(InvalidDependencySet.version(pkg, message));
+                        report(RestrictInvalid.version(pkg, e));
                     }
                 }
             }

@@ -228,8 +228,8 @@ mod tests {
         // specific reports
         let scanner = Scanner::new()
             .jobs(1)
-            .reports([ReportKind::DeprecatedDependency]);
-        let expected = glob_reports!("{repo_path}/Dependency/DeprecatedDependency/reports.json");
+            .reports([ReportKind::DependencyDeprecated]);
+        let expected = glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
@@ -257,7 +257,7 @@ mod tests {
         // fail on specified report variant
         let scanner = Scanner::new()
             .jobs(1)
-            .exit([ReportKind::DeprecatedDependency]);
+            .exit([ReportKind::DependencyDeprecated]);
         scanner.run(repo, [repo]).count();
         assert!(scanner.failed());
     }

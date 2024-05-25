@@ -8,10 +8,10 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, DeprecatedDependency, MissingRevision},
+    ReportKind::{self, DependencyDeprecated, RevisionMissing},
 };
 
-pub(super) static REPORTS: &[ReportKind] = &[DeprecatedDependency, MissingRevision];
+pub(super) static REPORTS: &[ReportKind] = &[DependencyDeprecated, RevisionMissing];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -37,13 +37,13 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
                     let message = format!("{key}: {dep}");
-                    report(MissingRevision.version(pkg, message));
+                    report(RevisionMissing.version(pkg, message));
                 }
             }
 
             if !deprecated.is_empty() {
                 let message = format!("{key}: {}", deprecated.iter().sorted().join(", "));
-                report(DeprecatedDependency.version(pkg, message));
+                report(DependencyDeprecated.version(pkg, message));
             }
         }
     }

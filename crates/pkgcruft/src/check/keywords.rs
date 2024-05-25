@@ -6,10 +6,10 @@ use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{
     Report,
-    ReportKind::{self, EapiUnstable, OverlappingKeywords, UnsortedKeywords},
+    ReportKind::{self, EapiUnstable, KeywordsOverlapping, KeywordsUnsorted},
 };
 
-pub(super) static REPORTS: &[ReportKind] = &[EapiUnstable, OverlappingKeywords, UnsortedKeywords];
+pub(super) static REPORTS: &[ReportKind] = &[EapiUnstable, KeywordsOverlapping, KeywordsUnsorted];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -39,7 +39,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
                 .into_iter()
                 .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
-            report(OverlappingKeywords.version(pkg, message));
+            report(KeywordsOverlapping.version(pkg, message));
         }
 
         if self
@@ -75,7 +75,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
 
         if sorted_keywords != flattened_keywords {
             let message = pkg.keywords().iter().join(" ");
-            report(UnsortedKeywords.version(pkg, message));
+            report(KeywordsUnsorted.version(pkg, message));
         }
     }
 }

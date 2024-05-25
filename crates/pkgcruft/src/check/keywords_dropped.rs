@@ -8,10 +8,10 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, DroppedKeywords},
+    ReportKind::{self, KeywordsDropped},
 };
 
-pub(super) static REPORTS: &[ReportKind] = &[DroppedKeywords];
+pub(super) static REPORTS: &[ReportKind] = &[KeywordsDropped];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -93,7 +93,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         for (pkg, arches) in &dropped {
             let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            report(DroppedKeywords.version(pkg, message));
+            report(KeywordsDropped.version(pkg, message));
         }
     }
 }
@@ -104,15 +104,15 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::DroppedKeywords;
+    use crate::check::CheckKind::KeywordsDropped;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
 
     #[test]
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(DroppedKeywords);
-        let scanner = Scanner::new().jobs(1).checks([DroppedKeywords]);
+        let check_dir = repo.path().join(KeywordsDropped);
+        let scanner = Scanner::new().jobs(1).checks([KeywordsDropped]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn patched() {
         let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
-        let scanner = Scanner::new().jobs(1).checks([DroppedKeywords]);
+        let scanner = Scanner::new().jobs(1).checks([KeywordsDropped]);
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
     }

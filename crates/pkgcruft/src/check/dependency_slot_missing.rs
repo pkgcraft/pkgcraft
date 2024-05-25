@@ -5,10 +5,10 @@ use pkgcraft::repo::{ebuild::Repo, PkgRepository};
 
 use crate::report::{
     Report,
-    ReportKind::{self, MissingSlotDep},
+    ReportKind::{self, DependencySlotMissing},
 };
 
-pub(super) static REPORTS: &[ReportKind] = &[MissingSlotDep];
+pub(super) static REPORTS: &[ReportKind] = &[DependencySlotMissing];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -37,7 +37,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
                 .collect::<IndexSet<_>>();
             if slots.len() > 1 {
                 let message = format!("{dep} matches multiple slots: {}", slots.iter().join(", "));
-                report(MissingSlotDep.version(pkg, message));
+                report(DependencySlotMissing.version(pkg, message));
             }
         }
     }
@@ -49,15 +49,15 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::MissingSlotDep;
+    use crate::check::CheckKind::DependencySlotMissing;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
 
     #[test]
     fn check() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(MissingSlotDep);
-        let scanner = Scanner::new().jobs(1).checks([MissingSlotDep]);
+        let check_dir = repo.path().join(DependencySlotMissing);
+        let scanner = Scanner::new().jobs(1).checks([DependencySlotMissing]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
 
         // check dir restriction
@@ -73,7 +73,7 @@ mod tests {
     #[test]
     fn patched() {
         let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
-        let scanner = Scanner::new().jobs(1).checks([MissingSlotDep]);
+        let scanner = Scanner::new().jobs(1).checks([DependencySlotMissing]);
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
     }

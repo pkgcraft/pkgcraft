@@ -12,12 +12,12 @@ use pretty_assertions::assert_eq;
 fn stdin_targets() {
     let repo = qa_repo("qa-primary").path();
 
-    for arg in ["DroppedKeywords", "DroppedKeywords/DroppedKeywords"] {
+    for arg in ["KeywordsDropped", "KeywordsDropped/KeywordsDropped"] {
         cmd("pkgcruft scan -R simple -")
             .args(["--repo", repo.as_ref()])
             .write_stdin(format!("{arg}\n"))
             .assert()
-            .stdout(contains("DroppedKeywords: x86"))
+            .stdout(contains("KeywordsDropped: x86"))
             .stderr("")
             .success();
     }
@@ -39,25 +39,25 @@ fn dep_restrict_targets() {
     }
 
     // single
-    for s in ["DroppedKeywords/*", "DroppedKeywords"] {
+    for s in ["KeywordsDropped/*", "KeywordsDropped"] {
         cmd("pkgcruft scan -R simple")
             .args(["--repo", repo.as_ref()])
             .arg(s)
             .assert()
-            .stdout(contains("DroppedKeywords: x86"))
+            .stdout(contains("KeywordsDropped: x86"))
             .stderr("")
             .success();
     }
 
     // multiple matching restricts output the same reports
     let reports = indoc::indoc! {r#"
-        DroppedKeywords/DroppedKeywords-2: DroppedKeywords: x86
-        DroppedKeywords/DroppedKeywords-2: DroppedKeywords: x86
+        KeywordsDropped/KeywordsDropped-2: KeywordsDropped: x86
+        KeywordsDropped/KeywordsDropped-2: KeywordsDropped: x86
     "#};
     let expected: Vec<_> = reports.lines().collect();
     let output = cmd("pkgcruft scan -R simple")
         .args(["--repo", repo.as_ref()])
-        .args(["DroppedKeywords/*", "DroppedKeywords"])
+        .args(["KeywordsDropped/*", "KeywordsDropped"])
         .output()
         .unwrap()
         .stdout;
@@ -101,8 +101,8 @@ fn current_dir_targets() {
     assert_eq!(&expected, &reports);
 
     // package dir
-    env::set_current_dir(repo.join("Dependency/DeprecatedDependency")).unwrap();
-    let expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+    env::set_current_dir(repo.join("Dependency/DependencyDeprecated")).unwrap();
+    let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json").to_reports();
     assert_eq!(&expected, &reports);
 }
@@ -145,9 +145,9 @@ fn path_targets() {
     assert_eq!(&expected, &reports);
 
     // package dir
-    let expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+    let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(repo.join("Dependency/DeprecatedDependency"))
+        .arg(repo.join("Dependency/DependencyDeprecated"))
         .to_reports();
     assert_eq!(&expected, &reports);
 
@@ -200,9 +200,9 @@ fn repo() {
         // pkg target
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args(["--repo", path])
-            .arg("DeprecatedDependency")
+            .arg("DependencyDeprecated")
             .to_reports();
-        let expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+        let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
         assert_eq!(&expected, &reports);
     }
 
@@ -228,7 +228,7 @@ fn exit() {
 
     // single
     cmd("pkgcruft scan -j1")
-        .args(["--exit", "DeprecatedDependency"])
+        .args(["--exit", "DependencyDeprecated"])
         .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
@@ -238,7 +238,7 @@ fn exit() {
 
     // multiple
     cmd("pkgcruft scan -j1")
-        .args(["--exit", "DeprecatedDependency,EapiBanned"])
+        .args(["--exit", "DependencyDeprecated,EapiBanned"])
         .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
@@ -375,11 +375,11 @@ fn levels() {
 #[test]
 fn reports() {
     let repo = qa_repo("qa-primary").path();
-    let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+    let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
-        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/Dependency/DependencyDeprecated/reports.json",
         "{repo}/Eapi/EapiBanned/reports.json",
-        "{repo}/Keywords/UnsortedKeywords/reports.json",
+        "{repo}/Keywords/KeywordsUnsorted/reports.json",
     );
 
     for opt in ["-r", "--reports"] {
@@ -395,14 +395,14 @@ fn reports() {
 
         // single
         let reports = cmd("pkgcruft scan -j1 -R json")
-            .args([opt, "DeprecatedDependency"])
+            .args([opt, "DependencyDeprecated"])
             .arg(repo)
             .to_reports();
         assert_eq!(&single_expected, &reports);
 
         // multiple
         let reports = cmd("pkgcruft scan -j1 -R json")
-            .args([opt, "DeprecatedDependency,EapiBanned,UnsortedKeywords"])
+            .args([opt, "DependencyDeprecated,EapiBanned,KeywordsUnsorted"])
             .arg(repo)
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
@@ -412,9 +412,9 @@ fn reports() {
 #[test]
 fn scopes() {
     let repo = qa_repo("qa-primary").path();
-    let single_expected = glob_reports!("{repo}/Dependency/DeprecatedDependency/reports.json");
+    let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
-        "{repo}/Dependency/DeprecatedDependency/reports.json",
+        "{repo}/Dependency/DependencyDeprecated/reports.json",
         "{repo}/UnstableOnly/UnstableOnly/reports.json",
     );
 
@@ -432,7 +432,7 @@ fn scopes() {
         // single
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "version"])
-            .arg(repo.join("Dependency/DeprecatedDependency"))
+            .arg(repo.join("Dependency/DependencyDeprecated"))
             .arg(repo.join("UnstableOnly/UnstableOnly"))
             .to_reports();
         assert_eq!(&single_expected, &reports);
@@ -440,7 +440,7 @@ fn scopes() {
         // multiple
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "version,package"])
-            .arg(repo.join("Dependency/DeprecatedDependency"))
+            .arg(repo.join("Dependency/DependencyDeprecated"))
             .arg(repo.join("UnstableOnly/UnstableOnly"))
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
