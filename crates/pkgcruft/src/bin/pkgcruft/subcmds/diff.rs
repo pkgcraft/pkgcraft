@@ -12,9 +12,9 @@ use crate::options;
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Diff options")]
 pub(crate) struct Options {
-    /// Package restriction
-    #[arg(short, long)]
-    pkgs: Option<String>,
+    /// Package restrictions
+    #[arg(short, long, value_name = "PKG[,...]", value_delimiter = ',')]
+    pkgs: Vec<String>,
 
     /// Sort reports
     #[arg(long)]
@@ -60,10 +60,21 @@ impl Replay {
         self
     }
 
-    fn pkgs(mut self, restrict: Option<String>) -> anyhow::Result<Self> {
-        if let Some(s) = restrict.as_deref() {
-            self.pkgs = Some(restrict::parse::dep(s)?);
+    fn pkgs<I>(mut self, restricts: I) -> anyhow::Result<Self>
+    where
+        I: IntoIterator<Item = String>,
+    {
+        let restricts: Vec<_> = restricts
+            .into_iter()
+            .map(|x| restrict::parse::dep(&x))
+            .try_collect()?;
+
+        self.pkgs = if restricts.is_empty() {
+            None
+        } else {
+            Some(Restrict::or(restricts))
         };
+
         Ok(self)
     }
 
