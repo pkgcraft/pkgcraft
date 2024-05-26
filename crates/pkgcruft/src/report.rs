@@ -23,8 +23,6 @@ use crate::Error;
     EnumIter,
     EnumString,
     VariantNames,
-    Serialize,
-    Deserialize,
     Debug,
     PartialEq,
     Eq,
