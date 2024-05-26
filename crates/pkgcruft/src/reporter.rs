@@ -38,7 +38,7 @@ impl Reporter {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct SimpleReporter {}
+pub struct SimpleReporter;
 
 impl SimpleReporter {
     fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
@@ -85,7 +85,7 @@ impl FancyReporter {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct JsonReporter {}
+pub struct JsonReporter;
 
 impl JsonReporter {
     fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
@@ -172,7 +172,7 @@ mod tests {
             cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
         "};
 
-        let reporter = Reporter::Simple(SimpleReporter::default());
+        let reporter = Reporter::Simple(SimpleReporter);
         let output = report(reporter);
         assert_eq!(expected, &output);
     }
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn json() {
-        let reporter = Reporter::Json(JsonReporter::default());
+        let reporter = Reporter::Json(JsonReporter);
         let output = report(reporter);
         assert_eq!(REPORTS, &output);
     }
