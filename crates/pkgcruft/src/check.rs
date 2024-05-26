@@ -18,6 +18,7 @@ mod eapi;
 mod eapi_stale;
 mod keywords;
 mod keywords_dropped;
+mod live_only;
 mod metadata;
 mod restrict_test_missing;
 mod unstable_only;
@@ -65,6 +66,7 @@ pub enum CheckKind {
     EapiStale,
     Keywords,
     KeywordsDropped,
+    LiveOnly,
     Metadata,
     DependencySlotMissing,
     RestrictTestMissing,
@@ -103,6 +105,7 @@ impl CheckKind {
             Self::EapiStale => Scope::Package,
             Self::Keywords => Scope::Version,
             Self::KeywordsDropped => Scope::Package,
+            Self::LiveOnly => Scope::Package,
             Self::Metadata => Scope::Version,
             Self::RestrictTestMissing => Scope::Version,
             Self::UnstableOnly => Scope::Package,
@@ -119,6 +122,7 @@ impl CheckKind {
             Self::EapiStale => SourceKind::Ebuild,
             Self::Keywords => SourceKind::Ebuild,
             Self::KeywordsDropped => SourceKind::Ebuild,
+            Self::LiveOnly => SourceKind::Ebuild,
             Self::Metadata => SourceKind::EbuildRaw,
             Self::RestrictTestMissing => SourceKind::Ebuild,
             Self::UnstableOnly => SourceKind::Ebuild,
@@ -135,6 +139,7 @@ impl CheckKind {
             Self::EapiStale => eapi_stale::REPORTS,
             Self::Keywords => keywords::REPORTS,
             Self::KeywordsDropped => keywords_dropped::REPORTS,
+            Self::LiveOnly => live_only::REPORTS,
             Self::Metadata => metadata::REPORTS,
             Self::RestrictTestMissing => restrict_test_missing::REPORTS,
             Self::UnstableOnly => unstable_only::REPORTS,
@@ -153,6 +158,7 @@ impl CheckKind {
             Self::EapiStale => EapiStale(eapi_stale::Check),
             Self::Keywords => Keywords(keywords::Check::new(repo)),
             Self::KeywordsDropped => KeywordsDropped(keywords_dropped::Check::new(repo)),
+            Self::LiveOnly => LiveOnly(live_only::Check),
             Self::Metadata => Metadata(metadata::Check::new(repo)),
             Self::RestrictTestMissing => RestrictTestMissing(restrict_test_missing::Check::new()),
             Self::UnstableOnly => UnstableOnly(unstable_only::Check::new(repo)),
@@ -164,7 +170,7 @@ impl CheckKind {
     pub fn context(&self) -> &[CheckContext] {
         use CheckContext::*;
         match self {
-            Self::UnstableOnly => &[Gentoo],
+            Self::LiveOnly | Self::UnstableOnly => &[Gentoo],
             _ => &[],
         }
     }
@@ -180,6 +186,7 @@ pub(crate) enum Check<'a> {
     EapiStale(eapi_stale::Check),
     Keywords(keywords::Check<'a>),
     KeywordsDropped(keywords_dropped::Check<'a>),
+    LiveOnly(live_only::Check),
     Metadata(metadata::Check<'a>),
     RestrictTestMissing(restrict_test_missing::Check),
     UnstableOnly(unstable_only::Check<'a>),
@@ -221,6 +228,7 @@ impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for Check<'a> {
         match self {
             Self::EapiStale(c) => c.run(pkgs, report),
             Self::KeywordsDropped(c) => c.run(pkgs, report),
+            Self::LiveOnly(c) => c.run(pkgs, report),
             Self::UnstableOnly(c) => c.run(pkgs, report),
             Self::UseLocal(c) => c.run(pkgs, report),
             _ => unreachable!("{self} is not an ebuild pkg set check"),

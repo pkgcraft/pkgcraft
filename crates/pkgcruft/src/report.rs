@@ -92,6 +92,10 @@ pub enum ReportKind {
     KeywordsOverlapping,
     KeywordsUnsorted,
     LicenseInvalid,
+
+    /// Package only has live ebuilds.
+    LiveOnly,
+
     MetadataMissing,
     PropertiesInvalid,
     RequiredUseInvalid,
@@ -161,6 +165,7 @@ impl ReportKind {
             Self::KeywordsOverlapping => Scope::Version,
             Self::KeywordsUnsorted => Scope::Version,
             Self::LicenseInvalid => Scope::Version,
+            Self::LiveOnly => Scope::Package,
             Self::MetadataMissing => Scope::Version,
             Self::PropertiesInvalid => Scope::Version,
             Self::RequiredUseInvalid => Scope::Version,
@@ -191,6 +196,7 @@ impl ReportKind {
             Self::KeywordsOverlapping => Warning,
             Self::KeywordsUnsorted => Style,
             Self::LicenseInvalid => Critical,
+            Self::LiveOnly => Warning,
             Self::MetadataMissing => Critical,
             Self::PropertiesInvalid => Critical,
             Self::RequiredUseInvalid => Critical,
