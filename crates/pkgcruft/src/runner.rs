@@ -33,7 +33,7 @@ impl SyncCheckRunner {
             runners
                 .entry(check.source())
                 .or_insert_with(|| CheckRunner::new(check.source(), repo))
-                .add_check(check.create(repo));
+                .add_check(check, check.create(repo));
         }
 
         Self { runners }
@@ -63,10 +63,10 @@ impl<'a> CheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: Check<'a>) {
+    fn add_check(&mut self, kind: CheckKind, check: Check<'a>) {
         match self {
-            Self::EbuildPkg(r) => r.add_check(check),
-            Self::EbuildRawPkg(r) => r.add_check(check),
+            Self::EbuildPkg(r) => r.add_check(kind, check),
+            Self::EbuildRawPkg(r) => r.add_check(kind, check),
         }
     }
 
@@ -95,11 +95,8 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: Check<'a>) {
-        self.checks
-            .entry(check.kind().scope())
-            .or_default()
-            .push(check);
+    fn add_check(&mut self, kind: CheckKind, check: Check<'a>) {
+        self.checks.entry(kind.scope()).or_default().push(check);
     }
 
     /// Run the check runner for a given restriction.
@@ -147,11 +144,8 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: Check<'a>) {
-        self.checks
-            .entry(check.kind().scope())
-            .or_default()
-            .push(check);
+    fn add_check(&mut self, kind: CheckKind, check: Check<'a>) {
+        self.checks.entry(kind.scope()).or_default().push(check);
     }
 
     /// Run the check runner for a given restriction.

@@ -178,7 +178,7 @@ impl CheckKind {
 
 /// Check runner variants.
 #[deny(dead_code)]
-#[derive(AsRefStr, Display, Debug)]
+#[derive(Display, Debug)]
 pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
     DependencySlotMissing(dependency_slot_missing::Check<'a>),
@@ -191,14 +191,6 @@ pub(crate) enum Check<'a> {
     RestrictTestMissing(restrict_test_missing::Check),
     UnstableOnly(unstable_only::Check<'a>),
     UseLocal(use_local::Check<'a>),
-}
-
-impl<'a> Check<'a> {
-    pub(crate) fn kind(&self) -> CheckKind {
-        self.as_ref()
-            .parse()
-            .unwrap_or_else(|_| panic!("{self} name doesn't match CheckKind"))
-    }
 }
 
 impl<'a> CheckRun<&ebuild::Pkg<'a>> for Check<'a> {
