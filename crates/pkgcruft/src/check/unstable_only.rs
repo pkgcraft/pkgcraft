@@ -15,17 +15,19 @@ pub(super) static REPORTS: &[ReportKind] = &[UnstableOnly];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
-    arches: HashSet<&'a str>,
+    stable: HashSet<&'a str>,
 }
 
 impl<'a> Check<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
-        let arches = if let Some(arches) = repo.metadata.arches_desc().get("stable") {
-            arches.iter().map(|s| s.as_str()).collect()
-        } else {
-            Default::default()
-        };
-        Self { arches }
+        Self {
+            stable: repo
+                .metadata
+                .arches_desc()
+                .get("stable")
+                .map(|x| x.iter().map(|s| s.as_str()).collect())
+                .unwrap_or_default(),
+        }
     }
 }
 
@@ -35,7 +37,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
             .iter()
             .flat_map(|pkg| pkg.keywords())
             // select keywords allowed stable in the repo
-            .filter(|kw| self.arches.contains(kw.arch()))
+            .filter(|kw| self.stable.contains(kw.arch()))
             .map(|kw| (kw.arch(), kw))
             // collapse keywords into an arch->keyword mapping
             .collect::<OrderedMap<_, OrderedSet<_>>>()
