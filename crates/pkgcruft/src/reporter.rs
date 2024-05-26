@@ -143,3 +143,77 @@ impl FormatReporter {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    static REPORTS: &str = indoc::indoc! {r#"
+        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
+        {"kind":"DependencyDeprecated","scope":{"Version":"cat/pkg-1-r2"},"message":"BDEPEND: cat/deprecated"}
+    "#};
+
+    fn report(mut reporter: Reporter) -> String {
+        let mut output = Vec::new();
+        let reports = REPORTS.lines().map(|x| Report::from_json(x).unwrap());
+        for report in reports {
+            reporter.report(&report, &mut output).unwrap();
+        }
+
+        String::from_utf8(output).unwrap()
+    }
+
+    #[test]
+    fn simple() {
+        let expected = indoc::indoc! {"
+            cat/pkg: UnstableOnly: arch
+            cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
+        "};
+
+        let reporter = Reporter::Simple(SimpleReporter::default());
+        let output = report(reporter);
+        assert_eq!(expected, &output);
+    }
+
+    #[test]
+    fn fancy() {
+        let expected = indoc::indoc! {"
+            cat/pkg
+              UnstableOnly: arch
+              DependencyDeprecated: version 1-r2: BDEPEND: cat/deprecated
+        "};
+
+        let reporter = Reporter::Fancy(FancyReporter::default());
+        let output = report(reporter);
+        assert_eq!(expected, &output);
+    }
+
+    #[test]
+    fn json() {
+        let reporter = Reporter::Json(JsonReporter::default());
+        let output = report(reporter);
+        assert_eq!(REPORTS, &output);
+    }
+
+    #[test]
+    fn format() {
+        let mut format_reporter = FormatReporter::default();
+
+        // empty format string
+        let reporter = Reporter::Format(format_reporter.clone());
+        let output = report(reporter);
+        assert_eq!("", &output);
+
+        // existing format strings
+        let expected = indoc::indoc! {"
+            pkg
+            pkg
+        "};
+        format_reporter.format = "{package}".to_string();
+        let reporter = Reporter::Format(format_reporter.clone());
+        let output = report(reporter);
+        assert_eq!(expected, &output);
+    }
+}
