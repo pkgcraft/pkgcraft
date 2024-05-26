@@ -387,3 +387,30 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[rustfmt::skip]
+    #[test]
+    fn cmp() {
+        let pkg_r1 = Report::from_json(r#"{"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}"#).unwrap();
+        let pkg_r2 = Report::from_json(r#"{"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}"#).unwrap();
+        let ver_r3 = Report::from_json(r#"{"kind":"DependencyDeprecated","scope":{"Version":"cat/pkg1-2-r3"},"message":"BDEPEND: cat/deprecated"}"#).unwrap();
+        let ver_r4 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":"cat/pkg1-2-r3"},"message":"6"}"#).unwrap();
+        let ver_r5 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":"cat/pkg2-1-r2"},"message":"6"}"#).unwrap();
+
+        assert!(pkg_r1 == pkg_r1);
+        // message ordering
+        assert!(pkg_r1 < pkg_r2);
+        // scope ordering
+        assert!(ver_r3 < pkg_r2);
+        assert!(pkg_r2 > ver_r4);
+        // package ordering
+        assert!(ver_r5 > pkg_r2);
+        assert!(ver_r5 > ver_r4);
+        // report ordering
+        assert!(ver_r3 < ver_r4);
+    }
+}
