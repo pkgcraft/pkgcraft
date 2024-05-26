@@ -85,14 +85,15 @@ impl Scanner {
         I: IntoIterator<Item = R>,
         R: Into<Restrict>,
     {
+        let restricts = restricts.into_iter().map(Into::into).collect();
+        let (restrict_tx, restrict_rx) = unbounded();
+        let (reports_tx, reports_rx) = unbounded();
+        let filter = Arc::new(self.reports.clone());
+        let exit = Arc::new(self.exit.clone());
+
         match repo {
             Repo::Ebuild(r) => {
-                let (restrict_tx, restrict_rx) = unbounded();
-                let (reports_tx, reports_rx) = unbounded();
                 let runner = Arc::new(SyncCheckRunner::new(r, &self.checks));
-                let filter = Arc::new(self.reports.clone());
-                let exit = Arc::new(self.exit.clone());
-
                 Iter {
                     reports_rx,
                     _producer: producer(r.clone(), restricts, restrict_tx),
@@ -118,16 +119,11 @@ impl Scanner {
 
 // TODO: use multiple producers to push restrictions
 /// Create a producer thread that sends restrictions over the channel to the workers.
-fn producer<I, R>(
+fn producer(
     repo: Arc<ebuild::Repo>,
-    restricts: I,
+    restricts: Vec<Restrict>,
     tx: Sender<Restrict>,
-) -> thread::JoinHandle<()>
-where
-    I: IntoIterator<Item = R>,
-    R: Into<Restrict>,
-{
-    let restricts: Vec<_> = restricts.into_iter().map(Into::into).collect();
+) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for r in restricts {
             for cpn in repo.iter_cpn_restrict(r) {
