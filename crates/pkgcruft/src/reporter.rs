@@ -40,6 +40,12 @@ impl Reporter {
 #[derive(Debug, Default, Clone)]
 pub struct SimpleReporter;
 
+impl From<SimpleReporter> for Reporter {
+    fn from(value: SimpleReporter) -> Self {
+        Self::Simple(value)
+    }
+}
+
 impl SimpleReporter {
     fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         writeln!(output, "{report}")?;
@@ -50,6 +56,12 @@ impl SimpleReporter {
 #[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
     prev_cpn: Option<Cpn<String>>,
+}
+
+impl From<FancyReporter> for Reporter {
+    fn from(value: FancyReporter) -> Self {
+        Self::Fancy(value)
+    }
 }
 
 impl FancyReporter {
@@ -87,6 +99,12 @@ impl FancyReporter {
 #[derive(Debug, Default, Clone)]
 pub struct JsonReporter;
 
+impl From<JsonReporter> for Reporter {
+    fn from(value: JsonReporter) -> Self {
+        Self::Json(value)
+    }
+}
+
 impl JsonReporter {
     fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         writeln!(output, "{}", report.to_json())?;
@@ -97,6 +115,12 @@ impl JsonReporter {
 #[derive(Debug, Default, Clone)]
 pub struct FormatReporter {
     pub format: String,
+}
+
+impl From<FormatReporter> for Reporter {
+    fn from(value: FormatReporter) -> Self {
+        Self::Format(value)
+    }
 }
 
 impl FormatReporter {
@@ -155,9 +179,11 @@ mod tests {
         {"kind":"DependencyDeprecated","scope":{"Version":"cat/pkg-1-r2"},"message":"BDEPEND: cat/deprecated"}
     "#};
 
-    fn report(mut reporter: Reporter) -> String {
-        let mut output = Vec::new();
+    fn report<R: Into<Reporter>>(reporter: R) -> String {
+        let mut reporter = reporter.into();
         let reports = REPORTS.lines().map(|x| Report::from_json(x).unwrap());
+        let mut output = Vec::new();
+
         for report in reports {
             reporter.report(&report, &mut output).unwrap();
         }
@@ -172,8 +198,7 @@ mod tests {
             cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
         "};
 
-        let reporter = Reporter::Simple(SimpleReporter);
-        let output = report(reporter);
+        let output = report(SimpleReporter);
         assert_eq!(expected, &output);
     }
 
@@ -185,15 +210,13 @@ mod tests {
               DependencyDeprecated: version 1-r2: BDEPEND: cat/deprecated
         "};
 
-        let reporter = Reporter::Fancy(FancyReporter::default());
-        let output = report(reporter);
+        let output = report(FancyReporter::default());
         assert_eq!(expected, &output);
     }
 
     #[test]
     fn json() {
-        let reporter = Reporter::Json(JsonReporter);
-        let output = report(reporter);
+        let output = report(JsonReporter);
         assert_eq!(REPORTS, &output);
     }
 
@@ -202,8 +225,7 @@ mod tests {
         let mut format_reporter = FormatReporter::default();
 
         // empty format string
-        let reporter = Reporter::Format(format_reporter.clone());
-        let output = report(reporter);
+        let output = report(format_reporter.clone());
         assert_eq!("", &output);
 
         // existing format strings
@@ -212,8 +234,7 @@ mod tests {
             pkg
         "};
         format_reporter.format = "{package}".to_string();
-        let reporter = Reporter::Format(format_reporter.clone());
-        let output = report(reporter);
+        let output = report(format_reporter.clone());
         assert_eq!(expected, &output);
     }
 }
