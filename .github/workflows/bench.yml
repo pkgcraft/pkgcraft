@@ -72,7 +72,7 @@ jobs:
     - name: Download gentoo repo
       run: |
         mkdir gentoo
-        curl -L https://github.com/gentoo-mirror/gentoo/archive/73d0ee59ebd9.tar.gz | tar -xvz --strip-components=1 -C gentoo
+        curl -L https://github.com/gentoo-mirror/gentoo/archive/73d0ee59ebd9.tar.gz | tar -xz --strip-components=1 -C gentoo
         echo "PKGCRUFT_GENTOO_REPO=${GITHUB_WORKSPACE}/gentoo" >> $GITHUB_ENV
 
     - name: Benchmark pkgcruft
