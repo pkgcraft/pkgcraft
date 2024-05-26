@@ -24,21 +24,7 @@ mod unstable_only;
 mod use_local;
 
 /// Check contexts.
-#[derive(
-    AsRefStr,
-    Display,
-    EnumIter,
-    EnumString,
-    VariantNames,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Copy,
-    Clone,
-)]
+#[derive(Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub enum CheckContext {
     Gentoo,
