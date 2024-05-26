@@ -161,7 +161,7 @@ impl CheckKind {
     }
 
     /// Check variant contexts.
-    pub(crate) fn context(&self) -> &[CheckContext] {
+    pub fn context(&self) -> &[CheckContext] {
         use CheckContext::*;
         match self {
             Self::UnstableOnly => &[Gentoo],
