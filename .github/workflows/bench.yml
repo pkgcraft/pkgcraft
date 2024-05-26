@@ -70,7 +70,12 @@ jobs:
       run: cargo criterion --all-features -p pkgcraft --color always --output-format quiet
 
     - name: Benchmark pkgcruft
-      run: cargo criterion --all-features -p pkgcruft --color always --output-format quiet
+      run: |
+        # clone gentoo repo with pre-generated metadata for check benchmarks
+        git clone https://github.com/gentoo-mirror/gentoo.git
+        echo PKGCRUFT_GENTOO_REPO=${GITHUB_WORKSPACE}/gentoo >> $GITHUB_ENV
+        # run benchmarks
+        cargo criterion --all-features -p pkgcruft --color always --output-format quiet
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
