@@ -221,82 +221,82 @@ mod tests {
 
     #[test]
     fn test_restrict_methods() {
-        let unversioned = Dep::try_new("cat/pkg").unwrap();
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
         let blocker = Dep::try_new("!cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let full = Dep::try_new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
 
         // category
         let r = Restrict::category("cat");
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // package
         let r = Restrict::package("pkg");
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // blocker
         let r = Restrict::Blocker(None);
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(!r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
         let r = Restrict::Blocker(Some(Blocker::Weak));
-        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // no version
         let r = Restrict::Version(None);
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // version
         let r = Restrict::version("1").unwrap();
-        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpn));
         assert!(!r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no slot
         let r = Restrict::slot(None);
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // slot
         let r = Restrict::slot(Some("2"));
-        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpn));
         assert!(!r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no subslot
         let r = Restrict::subslot(None);
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // subslot
         let r = Restrict::subslot(Some("3"));
-        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpn));
         assert!(!r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
 
         // no use deps specified
         let r = Restrict::UseDeps(None);
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
@@ -304,7 +304,7 @@ mod tests {
         // use deps specified
         for s in ["u1", "u1,u2"] {
             let r = Restrict::use_deps(s).unwrap();
-            assert!(!r.matches(&unversioned));
+            assert!(!r.matches(&cpn));
             assert!(!r.matches(&blocker));
             assert!(!r.matches(&cpv));
             assert!(r.matches(&full));
@@ -312,14 +312,14 @@ mod tests {
 
         // no repo
         let r = Restrict::repo(None);
-        assert!(r.matches(&unversioned));
+        assert!(r.matches(&cpn));
         assert!(r.matches(&blocker));
         assert!(r.matches(&cpv));
         assert!(!r.matches(&full));
 
         // repo
         let r = Restrict::repo(Some("repo"));
-        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpn));
         assert!(!r.matches(&blocker));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
@@ -327,25 +327,25 @@ mod tests {
 
     #[test]
     fn test_restrict_conversion() {
-        let unversioned = Dep::try_new("cat/pkg").unwrap();
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let full = Dep::try_new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
 
-        // unversioned restriction
-        let r = BaseRestrict::from(&unversioned);
-        assert!(r.matches(&unversioned));
+        // cpn restriction
+        let r = BaseRestrict::from(&cpn);
+        assert!(r.matches(&cpn));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // cpv restriction
         let r = BaseRestrict::from(&cpv);
-        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpn));
         assert!(r.matches(&cpv));
         assert!(r.matches(&full));
 
         // full restriction
         let r = BaseRestrict::from(&full);
-        assert!(!r.matches(&unversioned));
+        assert!(!r.matches(&cpn));
         assert!(!r.matches(&cpv));
         assert!(r.matches(&full));
     }
