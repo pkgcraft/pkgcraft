@@ -151,6 +151,12 @@ impl Restriction<&Dep<String>> for BaseRestrict {
     }
 }
 
+impl From<Cpn<String>> for BaseRestrict {
+    fn from(cpn: Cpn<String>) -> Self {
+        BaseRestrict::and([Restrict::category(cpn.category), Restrict::package(cpn.package)])
+    }
+}
+
 impl From<&Cpn<String>> for BaseRestrict {
     fn from(cpn: &Cpn<String>) -> Self {
         BaseRestrict::and([Restrict::category(cpn.category()), Restrict::package(cpn.package())])
