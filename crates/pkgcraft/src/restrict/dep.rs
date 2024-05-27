@@ -163,6 +163,16 @@ impl From<&Cpn<String>> for BaseRestrict {
     }
 }
 
+impl From<Cpv<String>> for BaseRestrict {
+    fn from(cpv: Cpv<String>) -> Self {
+        BaseRestrict::and([
+            Restrict::category(cpv.cpn.category),
+            Restrict::package(cpv.cpn.package),
+            Restrict::Version(Some(cpv.version)),
+        ])
+    }
+}
+
 impl From<&Cpv<String>> for BaseRestrict {
     fn from(cpv: &Cpv<String>) -> Self {
         BaseRestrict::and([
