@@ -41,7 +41,7 @@ mod tests {
     use crate::test::glob_reports;
 
     #[test]
-    fn check() {
+    fn primary() {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(Eapi);
         let scanner = Scanner::new().jobs(1).checks([Eapi]);
@@ -58,8 +58,17 @@ mod tests {
     }
 
     #[test]
-    fn patched() {
+    fn primary_patched() {
         let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
+        let scanner = Scanner::new().jobs(1).checks([Eapi]);
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
+    }
+
+    #[test]
+    fn secondary() {
+        let repo = TEST_DATA.repo("qa-secondary").unwrap();
+        assert!(repo.path().join(Eapi).exists());
         let scanner = Scanner::new().jobs(1).checks([Eapi]);
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
