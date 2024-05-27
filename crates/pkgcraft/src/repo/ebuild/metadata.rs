@@ -7,6 +7,7 @@ use std::{fmt, fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
 use tracing::{error, warn};
 
@@ -91,14 +92,15 @@ pub struct Config {
     pub restrict_allowed: OrderedSet<String>,
 }
 
-macro_rules! ordered_set {
+/// Parse a setting from an [`Ini`] object.
+macro_rules! parse {
     ($ini:expr, $key:expr) => {
         $ini.iter($key)
             .map(|s| {
                 s.parse()
                     .map_err(|_| Error::InvalidValue(format!("{}: unsupported value: {s}", $key)))
             })
-            .collect::<crate::Result<OrderedSet<_>>>()
+            .try_collect()
     };
 }
 
@@ -108,15 +110,15 @@ impl Config {
         let ini = Ini::load(&path)?;
 
         Ok(Self {
-            cache_formats: ordered_set!(ini, "cache-formats")?,
-            eapis_banned: ordered_set!(ini, "eapis-banned")?,
-            eapis_deprecated: ordered_set!(ini, "eapis-deprecated")?,
-            eapis_testing: ordered_set!(ini, "eapis-testing")?,
-            manifest_hashes: ordered_set!(ini, "manifest-hashes")?,
-            manifest_required_hashes: ordered_set!(ini, "manifest-required-hashes")?,
-            masters: ordered_set!(ini, "masters")?,
-            properties_allowed: ordered_set!(ini, "properties-allowed")?,
-            restrict_allowed: ordered_set!(ini, "restrict-allowed")?,
+            cache_formats: parse!(ini, "cache-formats")?,
+            eapis_banned: parse!(ini, "eapis-banned")?,
+            eapis_deprecated: parse!(ini, "eapis-deprecated")?,
+            eapis_testing: parse!(ini, "eapis-testing")?,
+            manifest_hashes: parse!(ini, "manifest-hashes")?,
+            manifest_required_hashes: parse!(ini, "manifest-required-hashes")?,
+            masters: parse!(ini, "masters")?,
+            properties_allowed: parse!(ini, "properties-allowed")?,
+            restrict_allowed: parse!(ini, "restrict-allowed")?,
         })
     }
 
