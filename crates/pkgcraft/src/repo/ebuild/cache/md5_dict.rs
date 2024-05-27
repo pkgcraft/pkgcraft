@@ -18,7 +18,6 @@ use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::shell::phase::Phase;
 use crate::traits::Contains;
-use crate::types::OrderedSet;
 use crate::utils::digest;
 use crate::Error;
 
@@ -123,36 +122,18 @@ fn deserialize<'a>(
         DEFINED_PHASES => {
             // PMS specifies if no phase functions are defined, a single hyphen is used.
             if val != "-" {
-                meta.defined_phases = val
-                    .split_whitespace()
-                    .map(phase)
-                    .collect::<crate::Result<OrderedSet<_>>>()?
+                meta.defined_phases = val.split_whitespace().map(phase).try_collect()?
             }
         }
-        KEYWORDS => {
-            meta.keywords = val
-                .split_whitespace()
-                .map(keyword)
-                .collect::<crate::Result<OrderedSet<_>>>()?
-        }
-        IUSE => {
-            meta.iuse = val
-                .split_whitespace()
-                .map(Iuse::try_new)
-                .collect::<crate::Result<OrderedSet<_>>>()?
-        }
-        INHERIT => {
-            meta.inherit = val
-                .split_whitespace()
-                .map(eclass)
-                .collect::<crate::Result<OrderedSet<_>>>()?
-        }
+        KEYWORDS => meta.keywords = val.split_whitespace().map(keyword).try_collect()?,
+        IUSE => meta.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
+        INHERIT => meta.inherit = val.split_whitespace().map(eclass).try_collect()?,
         INHERITED => {
             meta.inherited = val
                 .split_whitespace()
                 .tuples()
                 .map(|(name, _chksum)| eclass(name))
-                .collect::<crate::Result<OrderedSet<_>>>()?
+                .try_collect()?
         }
         EAPI => {
             let sourced: &Eapi = val.try_into()?;

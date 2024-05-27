@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::dep::{self, Dep, DependencySet, Slot, Uri};
@@ -137,18 +138,8 @@ impl<'a> Metadata<'a> {
             RESTRICT => self.restrict = dep::parse::restrict_dependency_set(val)?,
             SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
-            KEYWORDS => {
-                self.keywords = val
-                    .split_whitespace()
-                    .map(keyword)
-                    .collect::<crate::Result<OrderedSet<_>>>()?
-            }
-            IUSE => {
-                self.iuse = val
-                    .split_whitespace()
-                    .map(Iuse::try_new)
-                    .collect::<crate::Result<OrderedSet<_>>>()?
-            }
+            KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
+            IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
             EAPI => {
                 let sourced: &Eapi = val.try_into()?;
                 if sourced != eapi {
