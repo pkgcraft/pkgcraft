@@ -127,7 +127,7 @@ fn producer(
     thread::spawn(move || {
         for r in restricts {
             for cpn in repo.iter_cpn_restrict(r) {
-                tx.send(Restrict::from(&cpn)).ok();
+                tx.send(cpn.into()).ok();
             }
         }
     })
