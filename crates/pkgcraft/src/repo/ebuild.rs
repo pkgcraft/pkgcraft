@@ -116,7 +116,7 @@ where
 
     /// Get the cache data related to a given package Cpv.
     fn get(&self, cpv: &Cpv<String>) -> Arc<T> {
-        let (tx, rx) = bounded::<Arc<T>>(1);
+        let (tx, rx) = bounded::<Arc<T>>(0);
         self.tx
             .send(Msg::Key(cpv.cpn().to_string(), tx))
             .expect("failed requesting pkg manifest data");
