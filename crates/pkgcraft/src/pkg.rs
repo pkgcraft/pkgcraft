@@ -28,10 +28,10 @@ pub trait Package: fmt::Debug + fmt::Display {
     fn eapi(&self) -> &'static Eapi;
 
     /// Return a package's Cpv.
-    fn cpv(&self) -> &Cpv<String>;
+    fn cpv(&self) -> &Cpv;
 
     /// Return the unversioned package.
-    fn cpn(&self) -> &Cpn<String> {
+    fn cpn(&self) -> &Cpn {
         self.cpv().cpn()
     }
 
@@ -46,7 +46,7 @@ pub trait Package: fmt::Debug + fmt::Display {
     }
 
     /// Return a package's version.
-    fn version(&self) -> &Version<String> {
+    fn version(&self) -> &Version {
         self.cpv().version()
     }
 
@@ -157,7 +157,7 @@ impl<'a> Package for Pkg<'a> {
         }
     }
 
-    fn cpv(&self) -> &Cpv<String> {
+    fn cpv(&self) -> &Cpv {
         match self {
             Self::Configured(pkg, _) => pkg.cpv(),
             Self::Ebuild(pkg, _) => pkg.cpv(),
@@ -185,7 +185,7 @@ where
     fn eapi(&self) -> &'static Eapi {
         (*self).eapi()
     }
-    fn cpv(&self) -> &Cpv<String> {
+    fn cpv(&self) -> &Cpv {
         (*self).cpv()
     }
 }

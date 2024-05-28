@@ -28,7 +28,7 @@ pub(crate) enum Key {
 }
 
 impl<'a> EnumVariable<'a> for Key {
-    type Object = Version<&'a str>;
+    type Object = Version;
 
     fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
@@ -45,7 +45,7 @@ impl<'a> EnumVariable<'a> for Key {
 }
 
 impl<'a> FormatString<'a> for Command {
-    type Object = Version<&'a str>;
+    type Object = Version;
     type FormatKey = Key;
 }
 
@@ -56,7 +56,7 @@ impl Command {
 
         let values = mem::take(&mut self.values);
         for s in values.stdin_or_args().split_whitespace() {
-            if let Ok(ver) = Version::parse(&s) {
+            if let Ok(ver) = Version::try_new(&s) {
                 if let Some(fmt) = &self.format {
                     writeln!(stdout, "{}", self.format_str(fmt, &ver)?)?;
                 }

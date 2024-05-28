@@ -11,7 +11,7 @@ pub(super) static REPORTS: &[ReportKind] = &[RestrictMissing];
 
 #[derive(Debug)]
 pub(crate) struct Check {
-    restricts: DependencySet<String, String>,
+    restricts: DependencySet<String>,
 }
 
 impl Check {

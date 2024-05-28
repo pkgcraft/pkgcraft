@@ -6,9 +6,7 @@ use std::ops::{
 };
 use std::{fmt, ptr, slice};
 
-use pkgcraft::dep::{
-    self, Conditionals, Evaluate, EvaluateForce, Flatten, Recursive, Stringable, Uri,
-};
+use pkgcraft::dep::{self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, Recursive, Uri};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::traits::{Contains, IntoOwned};
 use pkgcraft::types::Ordered;
@@ -18,7 +16,7 @@ use crate::eapi::eapi_or_default;
 use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::{Dep, SetOp};
+use crate::types::SetOp;
 use crate::utils::boxed;
 
 pub mod cpn;
@@ -44,9 +42,9 @@ pub enum DependencySetKind {
 /// Opaque wrapper for pkgcraft::dep::DependencySet.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DependencySetWrapper {
-    Dep(dep::DependencySet<String, Dep>),
-    String(dep::DependencySet<String, String>),
-    Uri(dep::DependencySet<String, Uri>),
+    Dep(dep::DependencySet<Dep>),
+    String(dep::DependencySet<String>),
+    Uri(dep::DependencySet<Uri>),
 }
 
 impl fmt::Display for DependencySetWrapper {
@@ -86,24 +84,21 @@ impl Drop for DependencySet {
 }
 
 impl DependencySet {
-    pub(crate) fn new_dep(d: dep::DependencySet<String, Dep>) -> Self {
+    pub(crate) fn new_dep(d: dep::DependencySet<Dep>) -> Self {
         Self {
             set: DependencySetKind::Package,
             dep: Box::into_raw(Box::new(DependencySetWrapper::Dep(d))),
         }
     }
 
-    pub(crate) fn new_string(
-        d: dep::DependencySet<String, String>,
-        set: DependencySetKind,
-    ) -> Self {
+    pub(crate) fn new_string(d: dep::DependencySet<String>, set: DependencySetKind) -> Self {
         Self {
             set,
             dep: Box::into_raw(Box::new(DependencySetWrapper::String(d))),
         }
     }
 
-    pub(crate) fn new_uri(d: dep::DependencySet<String, Uri>) -> Self {
+    pub(crate) fn new_uri(d: dep::DependencySet<Uri>) -> Self {
         Self {
             set: DependencySetKind::SrcUri,
             dep: Box::into_raw(Box::new(DependencySetWrapper::Uri(d))),
@@ -253,12 +248,12 @@ impl SubAssign<&DependencySet> for DependencySet {
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::spec::IntoIter<String, T>.
+/// Opaque wrapper for pkgcraft::dep::IntoIter<T>.
 #[derive(Debug)]
 pub enum DependencyIntoIter {
-    Dep(DependencySetKind, dep::IntoIter<String, Dep>),
-    String(DependencySetKind, dep::IntoIter<String, String>),
-    Uri(DependencySetKind, dep::IntoIter<String, Uri>),
+    Dep(DependencySetKind, dep::IntoIter<Dep>),
+    String(DependencySetKind, dep::IntoIter<String>),
+    Uri(DependencySetKind, dep::IntoIter<Uri>),
 }
 
 impl Iterator for DependencyIntoIter {
@@ -286,9 +281,9 @@ impl DoubleEndedIterator for DependencyIntoIter {
 /// Opaque wrapper for pkgcraft::dep::Dependency.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DependencyWrapper {
-    Dep(dep::Dependency<String, Dep>),
-    String(dep::Dependency<String, String>),
-    Uri(dep::Dependency<String, Uri>),
+    Dep(dep::Dependency<Dep>),
+    String(dep::Dependency<String>),
+    Uri(dep::Dependency<Uri>),
 }
 
 impl fmt::Display for DependencyWrapper {
@@ -314,8 +309,8 @@ pub enum DependencyKind {
     Conditional,
 }
 
-impl<S: Stringable, T: Ordered> From<&dep::Dependency<S, T>> for DependencyKind {
-    fn from(d: &dep::Dependency<S, T>) -> Self {
+impl<T: Ordered> From<&dep::Dependency<T>> for DependencyKind {
+    fn from(d: &dep::Dependency<T>) -> Self {
         use dep::Dependency::*;
         match d {
             Enabled(_) => Self::Enabled,
@@ -347,7 +342,7 @@ impl Drop for Dependency {
 }
 
 impl Dependency {
-    pub(crate) fn new_dep(d: dep::Dependency<String, Dep>) -> Self {
+    pub(crate) fn new_dep(d: dep::Dependency<Dep>) -> Self {
         Self {
             set: DependencySetKind::Package,
             kind: DependencyKind::from(&d),
@@ -355,7 +350,7 @@ impl Dependency {
         }
     }
 
-    pub(crate) fn new_string(d: dep::Dependency<String, String>, set: DependencySetKind) -> Self {
+    pub(crate) fn new_string(d: dep::Dependency<String>, set: DependencySetKind) -> Self {
         Self {
             set,
             kind: DependencyKind::from(&d),
@@ -363,7 +358,7 @@ impl Dependency {
         }
     }
 
-    pub(crate) fn new_uri(d: dep::Dependency<String, Uri>) -> Self {
+    pub(crate) fn new_uri(d: dep::Dependency<Uri>) -> Self {
         Self {
             set: DependencySetKind::SrcUri,
             kind: DependencyKind::from(&d),
@@ -418,12 +413,12 @@ impl fmt::Display for Dependency {
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::IntoIterFlatten<String, T>.
+/// Opaque wrapper for pkgcraft::dep::IntoIterFlatten<T>.
 #[derive(Debug)]
 pub enum DependencyIntoIterFlatten {
-    Dep(dep::IntoIterFlatten<String, Dep>),
-    String(dep::IntoIterFlatten<String, String>),
-    Uri(dep::IntoIterFlatten<String, Uri>),
+    Dep(dep::IntoIterFlatten<Dep>),
+    String(dep::IntoIterFlatten<String>),
+    Uri(dep::IntoIterFlatten<Uri>),
 }
 
 impl Iterator for DependencyIntoIterFlatten {
@@ -444,12 +439,12 @@ impl Iterator for DependencyIntoIterFlatten {
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::IntoIterRecursive<String, T>.
+/// Opaque wrapper for pkgcraft::dep::IntoIterRecursive<T>.
 #[derive(Debug)]
 pub enum DependencyIntoIterRecursive {
-    Dep(DependencySetKind, dep::IntoIterRecursive<String, Dep>),
-    String(DependencySetKind, dep::IntoIterRecursive<String, String>),
-    Uri(DependencySetKind, dep::IntoIterRecursive<String, Uri>),
+    Dep(DependencySetKind, dep::IntoIterRecursive<Dep>),
+    String(DependencySetKind, dep::IntoIterRecursive<String>),
+    Uri(DependencySetKind, dep::IntoIterRecursive<Uri>),
 }
 
 impl Iterator for DependencyIntoIterRecursive {
@@ -464,16 +459,16 @@ impl Iterator for DependencyIntoIterRecursive {
     }
 }
 
-/// Opaque wrapper for pkgcraft::dep::IntoIterConditionals<String, T>.
+/// Opaque wrapper for pkgcraft::dep::IntoIterConditionals<T>.
 #[derive(Debug)]
 pub enum DependencyIntoIterConditionals {
-    Dep(dep::IntoIterConditionals<String, Dep>),
-    String(dep::IntoIterConditionals<String, String>),
-    Uri(dep::IntoIterConditionals<String, Uri>),
+    Dep(dep::IntoIterConditionals<Dep>),
+    String(dep::IntoIterConditionals<String>),
+    Uri(dep::IntoIterConditionals<Uri>),
 }
 
 impl Iterator for DependencyIntoIterConditionals {
-    type Item = dep::UseDep<String>;
+    type Item = dep::UseDep;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {

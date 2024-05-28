@@ -9,14 +9,14 @@ use super::{make_pkg_traits, Package, RepoPackage};
 
 #[derive(Debug, Clone)]
 pub struct Pkg<'a> {
-    cpv: Cpv<String>,
+    cpv: Cpv,
     repo: &'a Repo,
 }
 
 make_pkg_traits!(Pkg<'_>);
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn new(cpv: &'a Cpv<String>, repo: &'a Repo) -> Self {
+    pub(crate) fn new(cpv: &'a Cpv, repo: &'a Repo) -> Self {
         Self { cpv: cpv.clone(), repo }
     }
 }
@@ -26,7 +26,7 @@ impl<'a> Package for Pkg<'a> {
         &EAPI_LATEST_OFFICIAL
     }
 
-    fn cpv(&self) -> &Cpv<String> {
+    fn cpv(&self) -> &Cpv {
         &self.cpv
     }
 }

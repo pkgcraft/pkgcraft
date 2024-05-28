@@ -271,7 +271,7 @@ pub enum IterCpv<'a> {
 }
 
 impl Iterator for IterCpv<'_> {
-    type Item = Cpv<String>;
+    type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -346,15 +346,15 @@ pub trait PkgRepository:
     + PartialOrd
     + Ord
     + Hash
-    + for<'a> Contains<&'a Cpn<String>>
-    + for<'a> Contains<&'a Cpv<String>>
-    + for<'a> Contains<&'a Dep<String>>
+    + for<'a> Contains<&'a Cpn>
+    + for<'a> Contains<&'a Cpv>
+    + for<'a> Contains<&'a Dep>
 {
     type Pkg<'a>: Package
     where
         Self: 'a;
 
-    type IterCpv<'a>: Iterator<Item = Cpv<String>>
+    type IterCpv<'a>: Iterator<Item = Cpv>
     where
         Self: 'a;
 
@@ -368,7 +368,7 @@ pub trait PkgRepository:
 
     fn categories(&self) -> IndexSet<String>;
     fn packages(&self, cat: &str) -> IndexSet<String>;
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>>;
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version>;
     fn len(&self) -> usize {
         let mut count = 0;
         for c in self.categories() {
@@ -419,7 +419,7 @@ where
     fn packages(&self, cat: &str) -> IndexSet<String> {
         (*self).packages(cat)
     }
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         (*self).versions(cat, pkg)
     }
     fn len(&self) -> usize {
@@ -492,7 +492,7 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         match self {
             Self::Configured(repo) => repo.versions(cat, pkg),
             Self::Ebuild(repo) => repo.versions(cat, pkg),
@@ -533,8 +533,8 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpn<String>> for Repo {
-    fn contains(&self, value: &Cpn<String>) -> bool {
+impl Contains<&Cpn> for Repo {
+    fn contains(&self, value: &Cpn) -> bool {
         match self {
             Self::Configured(repo) => repo.contains(value),
             Self::Ebuild(repo) => repo.contains(value),
@@ -544,8 +544,8 @@ impl Contains<&Cpn<String>> for Repo {
     }
 }
 
-impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, value: &Cpv<String>) -> bool {
+impl Contains<&Cpv> for Repo {
+    fn contains(&self, value: &Cpv) -> bool {
         match self {
             Self::Configured(repo) => repo.contains(value),
             Self::Ebuild(repo) => repo.contains(value),
@@ -555,8 +555,8 @@ impl Contains<&Cpv<String>> for Repo {
     }
 }
 
-impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, value: &Dep<String>) -> bool {
+impl Contains<&Dep> for Repo {
+    fn contains(&self, value: &Dep) -> bool {
         match self {
             Self::Configured(repo) => repo.contains(value),
             Self::Ebuild(repo) => repo.contains(value),

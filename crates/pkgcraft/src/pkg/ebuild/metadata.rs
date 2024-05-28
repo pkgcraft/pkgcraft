@@ -76,21 +76,21 @@ impl MetadataRaw {
 pub struct Metadata<'a> {
     pub(crate) eapi: &'static Eapi,
     pub(crate) description: String,
-    pub(crate) slot: Slot<String>,
-    pub(crate) bdepend: DependencySet<String, Dep<String>>,
-    pub(crate) depend: DependencySet<String, Dep<String>>,
-    pub(crate) idepend: DependencySet<String, Dep<String>>,
-    pub(crate) pdepend: DependencySet<String, Dep<String>>,
-    pub(crate) rdepend: DependencySet<String, Dep<String>>,
-    pub(crate) license: DependencySet<String, String>,
-    pub(crate) properties: DependencySet<String, String>,
-    pub(crate) required_use: DependencySet<String, String>,
-    pub(crate) restrict: DependencySet<String, String>,
-    pub(crate) src_uri: DependencySet<String, Uri>,
+    pub(crate) slot: Slot,
+    pub(crate) bdepend: DependencySet<Dep>,
+    pub(crate) depend: DependencySet<Dep>,
+    pub(crate) idepend: DependencySet<Dep>,
+    pub(crate) pdepend: DependencySet<Dep>,
+    pub(crate) rdepend: DependencySet<Dep>,
+    pub(crate) license: DependencySet<String>,
+    pub(crate) properties: DependencySet<String>,
+    pub(crate) required_use: DependencySet<String>,
+    pub(crate) restrict: DependencySet<String>,
+    pub(crate) src_uri: DependencySet<Uri>,
     pub(crate) homepage: OrderedSet<String>,
     pub(crate) defined_phases: OrderedSet<&'a Phase>,
-    pub(crate) keywords: OrderedSet<Keyword<String>>,
-    pub(crate) iuse: OrderedSet<Iuse<String>>,
+    pub(crate) keywords: OrderedSet<Keyword>,
+    pub(crate) iuse: OrderedSet<Iuse>,
     pub(crate) inherit: OrderedSet<&'a Eclass>,
     pub(crate) inherited: OrderedSet<&'a Eclass>,
     pub(crate) chksum: String,
@@ -106,7 +106,7 @@ impl<'a> Metadata<'a> {
         val: &str,
     ) -> crate::Result<()> {
         // return the Keyword for a given identifier if it exists
-        let keyword = |s: &str| -> crate::Result<Keyword<String>> {
+        let keyword = |s: &str| -> crate::Result<Keyword> {
             let keyword = Keyword::try_new(s)?;
             let arch = keyword.arch();
             if arch != "*" && !repo.arches().contains(arch) {

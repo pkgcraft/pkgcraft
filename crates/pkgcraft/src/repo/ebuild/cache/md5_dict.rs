@@ -79,7 +79,7 @@ fn deserialize<'a>(
     };
 
     // return the Keyword for a given identifier if it exists
-    let keyword = |s: &str| -> crate::Result<Keyword<String>> {
+    let keyword = |s: &str| -> crate::Result<Keyword> {
         let keyword = Keyword::try_new(s)?;
         let arch = keyword.arch();
         if arch != "*" && !repo.arches().contains(arch) {
@@ -362,10 +362,7 @@ impl Cache for Md5Dict {
             .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))
     }
 
-    fn clean<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
-        &self,
-        collection: C,
-    ) -> crate::Result<()> {
+    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
         // TODO: replace with parallelized cache iterator
         let entries: Vec<_> = WalkDir::new(self.path())
             .min_depth(2)

@@ -8,14 +8,11 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::macros::{
-    cmp_not_equal, equivalent, partial_cmp_not_equal, partial_cmp_not_equal_opt, partial_cmp_opt,
-    partial_eq_opt,
-};
-use crate::traits::{Intersects, IntoOwned, ToRef};
+use crate::macros::{cmp_not_equal, partial_cmp_not_equal};
+use crate::traits::Intersects;
 use crate::Error;
 
-use super::{parse, Stringable};
+use super::parse;
 
 /// Modify or create a new type by adding a version operator.
 pub trait WithOp {
@@ -24,34 +21,12 @@ pub trait WithOp {
 }
 
 #[derive(Debug, Default, Clone)]
-pub(crate) struct Number<S: Stringable> {
-    pub(crate) raw: S,
+pub(crate) struct Number {
+    pub(crate) raw: String,
     pub(crate) value: u64,
 }
 
-impl IntoOwned for Number<&str> {
-    type Owned = Number<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Number {
-            raw: self.raw.to_string(),
-            value: self.value,
-        }
-    }
-}
-
-impl<'a> ToRef<'a> for Number<String> {
-    type Ref = Number<&'a str>;
-
-    fn to_ref(&'a self) -> Self::Ref {
-        Number {
-            raw: self.raw.as_ref(),
-            value: self.value,
-        }
-    }
-}
-
-impl<S: Stringable> Number<S> {
+impl Number {
     /// Determine if a number is represented by an empty string.
     pub(crate) fn is_empty(&self) -> bool {
         self.as_str().is_empty()
@@ -59,114 +34,96 @@ impl<S: Stringable> Number<S> {
 
     /// Return the raw string value for a number.
     pub(crate) fn as_str(&self) -> &str {
-        self.raw.as_ref()
+        &self.raw
     }
 
     /// Determine if a Number starts with another Number using string representation.
-    fn starts_with<T: Stringable>(&self, other: &Number<T>) -> bool {
-        self.as_str().starts_with(other.as_str())
+    fn starts_with(&self, other: &Number) -> bool {
+        self.raw.starts_with(&other.raw)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialEq<Number<S1>> for Number<S2> {
-    fn eq(&self, other: &Number<S1>) -> bool {
+impl PartialEq for Number {
+    fn eq(&self, other: &Number) -> bool {
         self.value == other.value
     }
 }
 
-impl<S: Stringable> Eq for Number<S> {}
+impl Eq for Number {}
 
-impl<S: Stringable> PartialEq<u64> for Number<S> {
+impl PartialEq<u64> for Number {
     fn eq(&self, other: &u64) -> bool {
         &self.value == other
     }
 }
 
-impl<S: Stringable> PartialEq<str> for Number<S> {
+impl PartialEq<str> for Number {
     fn eq(&self, other: &str) -> bool {
-        self.as_str() == other
+        self.raw == other
     }
 }
 
-impl<S: Stringable> PartialEq<&str> for Number<S> {
+impl PartialEq<&str> for Number {
     fn eq(&self, other: &&str) -> bool {
-        self.as_str() == *other
+        self.raw == *other
     }
 }
 
-impl<S: Stringable> PartialEq<Number<S>> for u64 {
-    fn eq(&self, other: &Number<S>) -> bool {
+impl PartialEq<Number> for u64 {
+    fn eq(&self, other: &Number) -> bool {
         other == self
     }
 }
 
-impl<S: Stringable> PartialEq<Number<S>> for str {
-    fn eq(&self, other: &Number<S>) -> bool {
+impl PartialEq<Number> for str {
+    fn eq(&self, other: &Number) -> bool {
         other == self
     }
 }
 
-impl<S: Stringable> PartialEq<Number<S>> for &str {
-    fn eq(&self, other: &Number<S>) -> bool {
+impl PartialEq<Number> for &str {
+    fn eq(&self, other: &Number) -> bool {
         other == *self
     }
 }
 
-impl<S: Stringable> Hash for Number<S> {
+impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.value.hash(state);
     }
 }
 
-impl<S: Stringable> Ord for Number<S> {
+impl Ord for Number {
     fn cmp(&self, other: &Self) -> Ordering {
         self.value.cmp(&other.value)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialOrd<Number<S1>> for Number<S2> {
-    fn partial_cmp(&self, other: &Number<S1>) -> Option<Ordering> {
-        Some(self.value.cmp(&other.value))
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Number) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
-impl<S: Stringable> fmt::Display for Number<S> {
+impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        write!(f, "{}", self.raw)
     }
 }
 
-#[derive(Debug, Default, Eq, Ord, Hash, Clone)]
-pub struct Revision<S: Stringable>(pub(crate) Number<S>);
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct Revision(pub(crate) Number);
 
-impl IntoOwned for Revision<&str> {
-    type Owned = Revision<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Revision(self.0.into_owned())
-    }
-}
-
-impl<'a> ToRef<'a> for Revision<String> {
-    type Ref = Revision<&'a str>;
-
-    fn to_ref(&'a self) -> Self::Ref {
-        Revision(self.0.to_ref())
-    }
-}
-
-impl Revision<String> {
+impl Revision {
     /// Create a new Revision from a given string.
     pub fn try_new(s: &str) -> crate::Result<Self> {
         if s.is_empty() {
             Ok(Self::default())
         } else {
-            Ok(Self(parse::number(s)?.into_owned()))
+            Ok(parse::revision(s)?)
         }
     }
-}
 
-impl<S: Stringable> Revision<S> {
     /// Determine if a revision is represented by an empty string.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -178,60 +135,48 @@ impl<S: Stringable> Revision<S> {
     }
 
     /// Determine if a Revision starts with another Revision using string representation.
-    fn starts_with<T: Stringable>(&self, other: &Revision<T>) -> bool {
+    fn starts_with(&self, other: &Revision) -> bool {
         self.0.starts_with(&other.0)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialEq<Revision<S1>> for Revision<S2> {
-    fn eq(&self, other: &Revision<S1>) -> bool {
-        self.0 == other.0
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialOrd<Revision<S1>> for Revision<S2> {
-    fn partial_cmp(&self, other: &Revision<S1>) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
-
-impl<S: Stringable> PartialEq<u64> for Revision<S> {
+impl PartialEq<u64> for Revision {
     fn eq(&self, other: &u64) -> bool {
         &self.0.value == other
     }
 }
 
-impl<S: Stringable> PartialEq<str> for Revision<S> {
+impl PartialEq<str> for Revision {
     fn eq(&self, other: &str) -> bool {
         self.as_str() == other
     }
 }
 
-impl<S: Stringable> PartialEq<&str> for Revision<S> {
+impl PartialEq<&str> for Revision {
     fn eq(&self, other: &&str) -> bool {
         self.as_str() == *other
     }
 }
 
-impl<S: Stringable> PartialEq<Revision<S>> for u64 {
-    fn eq(&self, other: &Revision<S>) -> bool {
+impl PartialEq<Revision> for u64 {
+    fn eq(&self, other: &Revision) -> bool {
         other == self
     }
 }
 
-impl<S: Stringable> PartialEq<Revision<S>> for str {
-    fn eq(&self, other: &Revision<S>) -> bool {
+impl PartialEq<Revision> for str {
+    fn eq(&self, other: &Revision) -> bool {
         other == self
     }
 }
 
-impl<S: Stringable> PartialEq<Revision<S>> for &str {
-    fn eq(&self, other: &Revision<S>) -> bool {
+impl PartialEq<Revision> for &str {
+    fn eq(&self, other: &Revision) -> bool {
         other == *self
     }
 }
 
-impl FromStr for Revision<String> {
+impl FromStr for Revision {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -239,7 +184,7 @@ impl FromStr for Revision<String> {
     }
 }
 
-impl<S: Stringable> fmt::Display for Revision<S> {
+impl fmt::Display for Revision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -255,48 +200,13 @@ pub(crate) enum SuffixKind {
     P,
 }
 
-#[derive(Debug, Eq, Ord, Hash, Clone)]
-pub(crate) struct Suffix<S: Stringable> {
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub(crate) struct Suffix {
     pub(crate) kind: SuffixKind,
-    pub(crate) version: Option<Number<S>>,
+    pub(crate) version: Option<Number>,
 }
 
-impl IntoOwned for Suffix<&str> {
-    type Owned = Suffix<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Suffix {
-            kind: self.kind,
-            version: self.version.into_owned(),
-        }
-    }
-}
-
-impl<'a> ToRef<'a> for Suffix<String> {
-    type Ref = Suffix<&'a str>;
-
-    fn to_ref(&'a self) -> Self::Ref {
-        Suffix {
-            kind: self.kind,
-            version: self.version.as_ref().map(|x| x.to_ref()),
-        }
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialEq<Suffix<S1>> for Suffix<S2> {
-    fn eq(&self, other: &Suffix<S1>) -> bool {
-        self.kind == other.kind && partial_eq_opt!(&self.version, &other.version)
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialOrd<Suffix<S1>> for Suffix<S2> {
-    fn partial_cmp(&self, other: &Suffix<S1>) -> Option<Ordering> {
-        partial_cmp_not_equal_opt!(&self.kind, &other.kind);
-        partial_cmp_opt!(&self.version, &other.version)
-    }
-}
-
-impl<S: Stringable> fmt::Display for Suffix<S> {
+impl fmt::Display for Suffix {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.kind)?;
         if let Some(ver) = self.version.as_ref() {
@@ -342,11 +252,7 @@ pub enum Operator {
 
 impl Operator {
     /// Determine if two versions intersect for an operator.
-    fn intersects<S1, S2>(&self, lhs: &Version<S1>, rhs: &Version<S2>) -> bool
-    where
-        S1: Stringable,
-        S2: Stringable,
-    {
+    fn intersects(&self, lhs: &Version, rhs: &Version) -> bool {
         use Operator::*;
         match self {
             Less => NonOpVersion(rhs) < NonOpVersion(lhs),
@@ -361,22 +267,22 @@ impl Operator {
 }
 
 #[derive(SerializeDisplay, DeserializeFromStr, Clone)]
-pub struct Version<S: Stringable> {
+pub struct Version {
     pub(crate) op: Option<Operator>,
-    pub(crate) numbers: Vec<Number<S>>,
+    pub(crate) numbers: Vec<Number>,
     pub(crate) letter: Option<char>,
-    pub(crate) suffixes: Vec<Suffix<S>>,
-    pub(crate) revision: Revision<S>,
+    pub(crate) suffixes: Vec<Suffix>,
+    pub(crate) revision: Revision,
 }
 
-impl<S: Stringable> fmt::Debug for Version<S> {
+impl fmt::Debug for Version {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Version {{ {self} }}")
     }
 }
 
-impl<S: Stringable> WithOp for Version<S> {
-    type WithOp = Version<S>;
+impl WithOp for Version {
+    type WithOp = Version;
 
     fn with_op(mut self, op: Operator) -> Result<Self::WithOp, &'static str> {
         if op == Operator::Approximate && !self.revision.is_empty() {
@@ -388,37 +294,10 @@ impl<S: Stringable> WithOp for Version<S> {
     }
 }
 
-impl IntoOwned for Version<&str> {
-    type Owned = Version<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Version {
-            op: self.op,
-            numbers: self.numbers.into_iter().map(|x| x.into_owned()).collect(),
-            letter: self.letter,
-            suffixes: self.suffixes.into_iter().map(|x| x.into_owned()).collect(),
-            revision: self.revision.into_owned(),
-        }
-    }
-}
-
-impl<'a> ToRef<'a> for Version<String> {
-    type Ref = Version<&'a str>;
-
-    fn to_ref(&'a self) -> Self::Ref {
-        Version {
-            op: self.op,
-            numbers: self.numbers.iter().map(|x| x.to_ref()).collect(),
-            letter: self.letter,
-            suffixes: self.suffixes.iter().map(|x| x.to_ref()).collect(),
-            revision: self.revision.to_ref(),
-        }
-    }
-}
-
-impl<'a> Version<&'a str> {
-    /// Create a borrowed [`Version`] from a given string with or without an [`Operator`].
-    pub fn parse(s: &'a str) -> crate::Result<Self> {
+impl Version {
+    /// Create a [`Version`] from a given string with or without an [`Operator`].
+    pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        let s = s.as_ref();
         if s.starts_with(|c| Operator::iter().any(|op| op.as_ref().starts_with(c))) {
             parse::version_with_op(s)
         } else {
@@ -426,42 +305,25 @@ impl<'a> Version<&'a str> {
         }
     }
 
-    /// Create a borrowed [`Version`] with an [`Operator`].
-    pub fn parse_with_op(s: &'a str) -> crate::Result<Self> {
-        parse::version_with_op(s)
-    }
-
-    /// Create a borrowed [`Version`] without an [`Operator`].
-    pub fn parse_without_op(s: &'a str) -> crate::Result<Self> {
-        parse::version(s)
-    }
-}
-
-impl Version<String> {
-    /// Create an owned [`Version`] from a given string with or without an [`Operator`].
-    pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        Version::parse(s.as_ref()).into_owned()
-    }
-
-    /// Create an owned [`Version`] with an [`Operator`].
+    /// Create a [`Version`] with an [`Operator`].
     pub fn try_new_with_op<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        Version::parse_with_op(s.as_ref()).into_owned()
+        parse::version_with_op(s.as_ref())
     }
 
-    /// Create an owned [`Version`] without an [`Operator`].
+    /// Create a [`Version`] without an [`Operator`].
     pub fn try_new_without_op<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        Version::parse_without_op(s.as_ref()).into_owned()
+        parse::version(s.as_ref())
     }
 }
 
-impl<S: Stringable> Version<S> {
+impl Version {
     /// Return a version's operator, if one exists.
     pub fn op(&self) -> Option<Operator> {
         self.op
     }
 
     /// Return a version's revision.
-    pub fn revision(&self) -> Option<&Revision<S>> {
+    pub fn revision(&self) -> Option<&Revision> {
         if self.revision.is_empty() {
             None
         } else {
@@ -480,7 +342,7 @@ impl<S: Stringable> Version<S> {
     }
 
     /// Determine if a Version starts with another Version, disregarding the operator.
-    fn starts_with<T: Stringable>(&self, other: &Version<T>) -> bool {
+    fn starts_with(&self, other: &Version) -> bool {
         // flag denoting the lhs has more components than the rhs
         let mut unmatched = false;
 
@@ -592,8 +454,8 @@ macro_rules! ranged {
     };
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<Version<S1>> for Version<S2> {
-    fn intersects(&self, other: &Version<S1>) -> bool {
+impl Intersects<Version> for Version {
+    fn intersects(&self, other: &Version) -> bool {
         use Operator::*;
         match (self.op, other.op) {
             // intersects if both are unbounded in the same direction
@@ -628,14 +490,14 @@ impl<S1: Stringable, S2: Stringable> Intersects<Version<S1>> for Version<S2> {
     }
 }
 
-impl<S: Stringable> fmt::Display for Version<S> {
+impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt(f, self, true, true)
     }
 }
 
 /// Format a [`Version`] into a [`String`], optionally ignoring the revision and/or operator.
-fn fmt<S: Stringable>(f: &mut fmt::Formatter, v: &Version<S>, rev: bool, op: bool) -> fmt::Result {
+fn fmt(f: &mut fmt::Formatter, v: &Version, rev: bool, op: bool) -> fmt::Result {
     let mut s = String::new();
 
     write!(s, "{}", v.numbers[0])?;
@@ -673,15 +535,15 @@ fn fmt<S: Stringable>(f: &mut fmt::Formatter, v: &Version<S>, rev: bool, op: boo
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialEq<Version<S1>> for Version<S2> {
-    fn eq(&self, other: &Version<S1>) -> bool {
+impl PartialEq for Version {
+    fn eq(&self, other: &Version) -> bool {
         cmp(self, other, true, true) == Ordering::Equal
     }
 }
 
-impl<S: Stringable> Eq for Version<S> {}
+impl Eq for Version {}
 
-impl<S: Stringable> Hash for Version<S> {
+impl Hash for Version {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.numbers[0].hash(state);
         for n in &self.numbers[1..] {
@@ -698,11 +560,7 @@ impl<S: Stringable> Hash for Version<S> {
 }
 
 /// Compare two versions, optionally ignoring the revision and/or operator.
-fn cmp<S1, S2>(v1: &Version<S1>, v2: &Version<S2>, rev: bool, op: bool) -> Ordering
-where
-    S1: Stringable,
-    S2: Stringable,
-{
+fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
     // compare major versions
     partial_cmp_not_equal!(&v1.numbers[0], &v2.numbers[0]);
 
@@ -756,19 +614,19 @@ where
     Ordering::Equal
 }
 
-impl<S: Stringable> Ord for Version<S> {
+impl Ord for Version {
     fn cmp(&self, other: &Self) -> Ordering {
         cmp(self, other, true, true)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialOrd<Version<S1>> for Version<S2> {
-    fn partial_cmp(&self, other: &Version<S1>) -> Option<Ordering> {
-        Some(cmp(self, other, true, true))
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Version) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
-impl FromStr for Version<String> {
+impl FromStr for Version {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -776,51 +634,47 @@ impl FromStr for Version<String> {
     }
 }
 
-equivalent!(Version);
-
 /// Version wrapper that ignores revisions and operators during comparisons.
-struct NonRevisionVersion<'a, S: Stringable>(&'a Version<S>);
+struct NonRevisionVersion<'a>(&'a Version);
 
-impl<S1: Stringable, S2: Stringable> PartialEq<NonRevisionVersion<'_, S1>>
-    for NonRevisionVersion<'_, S2>
-{
-    fn eq(&self, other: &NonRevisionVersion<'_, S1>) -> bool {
+impl PartialEq for NonRevisionVersion<'_> {
+    fn eq(&self, other: &NonRevisionVersion<'_>) -> bool {
         cmp(self.0, other.0, false, false) == Ordering::Equal
     }
 }
 
-impl<S: Stringable> Eq for NonRevisionVersion<'_, S> {}
+impl Eq for NonRevisionVersion<'_> {}
 
-impl<S: Stringable> fmt::Display for NonRevisionVersion<'_, S> {
+impl fmt::Display for NonRevisionVersion<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt(f, self.0, false, false)
     }
 }
 
 /// Version wrapper that ignores operators during comparisons.
-struct NonOpVersion<'a, S: Stringable>(&'a Version<S>);
+struct NonOpVersion<'a>(&'a Version);
 
-impl<S1: Stringable, S2: Stringable> PartialEq<NonOpVersion<'_, S1>> for NonOpVersion<'_, S2> {
-    fn eq(&self, other: &NonOpVersion<'_, S1>) -> bool {
+impl PartialEq for NonOpVersion<'_> {
+    fn eq(&self, other: &NonOpVersion<'_>) -> bool {
         cmp(self.0, other.0, true, false) == Ordering::Equal
     }
 }
 
-impl<S: Stringable> Eq for NonOpVersion<'_, S> {}
+impl Eq for NonOpVersion<'_> {}
 
-impl<S: Stringable> Ord for NonOpVersion<'_, S> {
+impl Ord for NonOpVersion<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         cmp(self.0, other.0, true, false)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialOrd<NonOpVersion<'_, S1>> for NonOpVersion<'_, S2> {
-    fn partial_cmp(&self, other: &NonOpVersion<'_, S1>) -> Option<Ordering> {
-        Some(cmp(self.0, other.0, true, false))
+impl PartialOrd for NonOpVersion<'_> {
+    fn partial_cmp(&self, other: &NonOpVersion<'_>) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
-impl<S: Stringable> fmt::Display for NonOpVersion<'_, S> {
+impl fmt::Display for NonOpVersion<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt(f, self.0, true, false)
     }
@@ -841,29 +695,21 @@ mod tests {
     fn ver_new_and_parse() {
         // invalid
         for s in &TEST_DATA.version_toml.invalid {
-            let result = Version::parse(s);
-            assert!(result.is_err(), "{s:?} is valid");
             let result = Version::try_new(s);
             assert!(result.is_err(), "{s:?} didn't fail");
         }
 
         // valid
         for s in &TEST_DATA.version_toml.valid {
-            let result = Version::parse(s);
-            assert!(result.is_ok(), "{s:?} is invalid");
             let result = Version::try_new(s);
             assert!(result.is_ok(), "{s:?} failed");
             assert_eq!(result.unwrap().to_string(), s.as_str());
         }
 
         // forced with and without operators
-        assert!(Version::parse_with_op(">1").is_ok());
         assert!(Version::try_new_with_op(">1").is_ok());
-        assert!(Version::parse_with_op("1").is_err());
         assert!(Version::try_new_with_op("1").is_err());
-        assert!(Version::parse_without_op(">1").is_err());
         assert!(Version::try_new_without_op(">1").is_err());
-        assert!(Version::parse_without_op("1").is_ok());
         assert!(Version::try_new_without_op("1").is_ok());
     }
 
@@ -871,13 +717,9 @@ mod tests {
     fn ver_op() {
         let ver = Version::try_new("1").unwrap();
         assert!(ver.op().is_none());
-        let ver = Version::parse("1").unwrap();
-        assert!(ver.op().is_none());
 
         for op in Operator::iter() {
             let ver = Version::try_new("1").unwrap().with_op(op).unwrap();
-            assert_eq!(ver.op(), Some(op));
-            let ver = Version::parse("1").unwrap().with_op(op).unwrap();
             assert_eq!(ver.op(), Some(op));
         }
     }
@@ -886,7 +728,7 @@ mod tests {
     fn rev_new_and_parse() {
         // invalid
         for s in ["a", "a1", "1.1", ".1"] {
-            assert!(s.parse::<Revision<_>>().is_err());
+            assert!(s.parse::<Revision>().is_err());
             assert!(Revision::try_new(s).is_err());
         }
 
@@ -896,7 +738,7 @@ mod tests {
         assert_eq!(0, rev);
         assert_eq!(rev, "");
         assert_eq!("", rev);
-        assert_eq!(rev, Revision::<String>::default());
+        assert_eq!(rev, Revision::default());
         assert_eq!(rev.to_string(), "");
 
         // simple integer
@@ -925,61 +767,20 @@ mod tests {
                 .collect();
 
         for (expr, (s1, op, s2)) in TEST_DATA.version_toml.compares() {
-            let v1_owned = Version::try_new(s1).unwrap();
-            let v1_borrowed = Version::parse(s1).unwrap();
-            let v2_owned = Version::try_new(s2).unwrap();
-            let v2_borrowed = Version::parse(s2).unwrap();
+            let v1 = Version::try_new(s1).unwrap();
+            let v2 = Version::try_new(s2).unwrap();
             if op == "!=" {
-                assert_ne!(v1_owned, v2_owned, "failed comparing: {expr}");
-                assert_ne!(v1_borrowed, v2_borrowed, "failed comparing: {expr}");
-                assert_ne!(v1_owned, v2_borrowed, "failed comparing: {expr}");
-                assert_ne!(v1_borrowed, v2_owned, "failed comparing: {expr}");
-                assert_ne!(v2_owned, v1_owned, "failed comparing: {expr}");
-                assert_ne!(v2_borrowed, v1_borrowed, "failed comparing: {expr}");
-                assert_ne!(v2_owned, v1_borrowed, "failed comparing: {expr}");
-                assert_ne!(v2_borrowed, v1_owned, "failed comparing: {expr}");
+                assert_ne!(v1, v2, "failed comparing: {expr}");
+                assert_ne!(v2, v1, "failed comparing: {expr}");
             } else {
                 let op = op_map[op];
-                assert_eq!(v1_owned.cmp(&v2_owned), op, "failed comparing: {expr}");
-                assert_eq!(v1_borrowed.cmp(&v2_borrowed), op, "failed comparing: {expr}");
-                assert_eq!(
-                    v1_owned.partial_cmp(&v2_borrowed),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    v1_borrowed.partial_cmp(&v2_owned),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    v2_owned.cmp(&v1_owned),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_borrowed.cmp(&v1_borrowed),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_owned.partial_cmp(&v1_borrowed),
-                    Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_borrowed.partial_cmp(&v1_owned),
-                    Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
-                );
+                assert_eq!(v1.cmp(&v2), op, "failed comparing: {expr}");
+                assert_eq!(v2.cmp(&v1), op.reverse(), "failed comparing inverted: {expr}");
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)
                 if op == Ordering::Equal {
-                    assert_eq!(hash(&v1_owned), hash(&v2_owned), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_borrowed), hash(&v2_borrowed), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_owned), hash(&v2_borrowed), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_borrowed), hash(&v2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&v1), hash(&v2), "failed hash: {expr}");
                 }
             }
         }
@@ -996,32 +797,18 @@ mod tests {
                 .permutations(2)
                 .map(|val| val.into_iter().collect_tuple().unwrap());
             for (s1, s2) in permutations {
-                let v1_owned = Version::try_new(s1).unwrap();
-                let v1_borrowed = Version::parse(s1).unwrap();
-                let v2_owned = Version::try_new(s2).unwrap();
-                let v2_borrowed = Version::parse(s2).unwrap();
+                let v1 = Version::try_new(s1).unwrap();
+                let v2 = Version::try_new(s2).unwrap();
 
                 // self intersection
-                assert!(v1_owned.intersects(&v1_owned), "{s1} doesn't intersect {s2}");
-                assert!(v1_borrowed.intersects(&v1_borrowed), "{s1} doesn't intersect {s2}");
-                assert!(v1_owned.intersects(&v1_borrowed), "{s1} doesn't intersect {s2}");
-                assert!(v1_borrowed.intersects(&v1_owned), "{s1} doesn't intersect {s2}");
-                assert!(v2_owned.intersects(&v2_owned), "{s2} doesn't intersect {s2}");
-                assert!(v2_borrowed.intersects(&v2_borrowed), "{s2} doesn't intersect {s2}");
-                assert!(v2_owned.intersects(&v2_borrowed), "{s2} doesn't intersect {s2}");
-                assert!(v2_borrowed.intersects(&v2_owned), "{s2} doesn't intersect {s2}");
+                assert!(v1.intersects(&v1), "{s1} doesn't intersect {s2}");
+                assert!(v2.intersects(&v2), "{s2} doesn't intersect {s2}");
 
                 // intersects depending on status
                 if d.status {
-                    assert!(v1_owned.intersects(&v2_owned), "{s1} doesn't intersect {s2}");
-                    assert!(v1_borrowed.intersects(&v2_borrowed), "{s1} doesn't intersect {s2}");
-                    assert!(v1_owned.intersects(&v2_borrowed), "{s1} doesn't intersect {s2}");
-                    assert!(v1_borrowed.intersects(&v2_owned), "{s1} doesn't intersect {s2}");
+                    assert!(v1.intersects(&v2), "{s1} doesn't intersect {s2}");
                 } else {
-                    assert!(!v1_owned.intersects(&v2_owned), "{s1} intersects {s2}");
-                    assert!(!v1_borrowed.intersects(&v2_borrowed), "{s1} intersects {s2}");
-                    assert!(!v1_owned.intersects(&v2_borrowed), "{s1} intersects {s2}");
-                    assert!(!v1_borrowed.intersects(&v2_owned), "{s1} intersects {s2}");
+                    assert!(!v1.intersects(&v2), "{s1} intersects {s2}");
                 }
             }
         }
@@ -1030,7 +817,7 @@ mod tests {
     #[test]
     fn ver_sorting() {
         for d in &TEST_DATA.version_toml.sorting {
-            let mut reversed: Vec<Version<_>> =
+            let mut reversed: Vec<Version> =
                 d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
             reversed.sort();
             let mut sorted: Vec<_> = reversed.iter().map(|x| x.to_string()).collect();
@@ -1045,7 +832,7 @@ mod tests {
     #[test]
     fn ver_hashing() {
         for d in &TEST_DATA.version_toml.hashing {
-            let set: HashSet<Version<_>> = d.versions.iter().map(|s| s.parse().unwrap()).collect();
+            let set: HashSet<Version> = d.versions.iter().map(|s| s.parse().unwrap()).collect();
             if d.equal {
                 assert_eq!(set.len(), 1, "failed hashing versions: {set:?}");
             } else {

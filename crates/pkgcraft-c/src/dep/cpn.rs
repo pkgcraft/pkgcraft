@@ -1,13 +1,12 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 
-use pkgcraft::dep;
+use pkgcraft::dep::Cpn;
 use pkgcraft::restrict::{Restrict, Restriction};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::Cpn;
 
 /// Parse a string into a Cpn object.
 ///
@@ -34,7 +33,7 @@ pub unsafe extern "C" fn pkgcraft_cpn_new(s: *const c_char) -> *mut Cpn {
 pub unsafe extern "C" fn pkgcraft_cpn_parse(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
-        unwrap_or_panic!(dep::Cpn::parse(val));
+        unwrap_or_panic!(Cpn::try_new(val));
         s
     }
 }

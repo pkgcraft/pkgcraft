@@ -115,7 +115,7 @@ where
     }
 
     /// Get the cache data related to a given package Cpv.
-    fn get(&self, cpv: &Cpv<String>) -> Arc<T> {
+    fn get(&self, cpv: &Cpv) -> Arc<T> {
         let (tx, rx) = bounded::<Arc<T>>(0);
         self.tx
             .send(Msg::Key(cpv.cpn().to_string(), tx))
@@ -375,7 +375,7 @@ impl Repo {
     }
 
     /// Convert an ebuild file path into a Cpv.
-    fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv<String>> {
+    fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv> {
         let err =
             |s: &str| -> Error { Error::InvalidValue(format!("invalid ebuild path: {path}: {s}")) };
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
@@ -442,21 +442,21 @@ impl Repo {
     }
 
     /// Return the shared XML metadata for a given package.
-    pub(crate) fn pkg_xml(&self, cpv: &Cpv<String>) -> Arc<xml::Metadata> {
+    pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<xml::Metadata> {
         self.xml_cache
             .get_or_init(|| ArcCache::<xml::Metadata>::new(self.arc()))
             .get(cpv)
     }
 
     /// Return the shared manifest data for a given package.
-    pub(crate) fn pkg_manifest(&self, cpv: &Cpv<String>) -> Arc<Manifest> {
+    pub(crate) fn pkg_manifest(&self, cpv: &Cpv) -> Arc<Manifest> {
         self.manifest_cache
             .get_or_init(|| ArcCache::<Manifest>::new(self.arc()))
             .get(cpv)
     }
 
     /// Return the sorted set of Cpvs from a given category.
-    pub fn cpvs_from_category(&self, category: &str) -> IndexSet<Cpv<String>> {
+    pub fn cpvs_from_category(&self, category: &str) -> IndexSet<Cpv> {
         let path = build_path!(self.path(), category);
         if let Ok(entries) = path.read_dir_utf8() {
             let mut cpvs: IndexSet<_> = entries
@@ -471,7 +471,7 @@ impl Repo {
     }
 
     /// Return the sorted set of Cpvs from a given package.
-    fn cpvs_from_package(&self, category: &str, package: &str) -> IndexSet<Cpv<String>> {
+    fn cpvs_from_package(&self, category: &str, package: &str) -> IndexSet<Cpv> {
         let path = build_path!(self.path(), category, package);
         if let Ok(entries) = path.read_dir_utf8() {
             let mut cpvs: IndexSet<_> = entries
@@ -522,7 +522,7 @@ impl Repo {
     }
 
     /// Scan the deprecated package list returning the first match for a given dependency.
-    pub fn deprecated(&self, dep: &Dep<String>) -> Option<&Dep<String>> {
+    pub fn deprecated(&self, dep: &Dep) -> Option<&Dep> {
         if dep.blocker().is_none() {
             if let Some(pkg) = self
                 .metadata
@@ -601,7 +601,7 @@ impl PkgRepository for Repo {
             .collect()
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         let path = build_path!(self.path(), cat, pkg);
         let entries = match sorted_dir_list_utf8(&path) {
             Ok(vals) => vals,
@@ -710,20 +710,20 @@ impl Repository for Repo {
     }
 }
 
-impl Contains<&Cpn<String>> for Repo {
-    fn contains(&self, cpn: &Cpn<String>) -> bool {
+impl Contains<&Cpn> for Repo {
+    fn contains(&self, cpn: &Cpn) -> bool {
         self.path().join(cpn.to_string()).exists()
     }
 }
 
-impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, cpv: &Cpv<String>) -> bool {
+impl Contains<&Cpv> for Repo {
+    fn contains(&self, cpv: &Cpv) -> bool {
         self.path().join(cpv.relpath()).exists()
     }
 }
 
-impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, dep: &Dep<String>) -> bool {
+impl Contains<&Dep> for Repo {
+    fn contains(&self, dep: &Dep) -> bool {
         self.iter_restrict(dep).next().is_some()
     }
 }
@@ -793,7 +793,7 @@ impl<'a> Iterator for IterRaw<'a> {
 
 /// Iterable of [`Cpn`] objects.
 pub struct IterCpn<'a> {
-    iter: Box<dyn Iterator<Item = Cpn<String>> + 'a>,
+    iter: Box<dyn Iterator<Item = Cpn> + 'a>,
 }
 
 impl<'a> IterCpn<'a> {
@@ -917,7 +917,7 @@ impl<'a> IterCpn<'a> {
 }
 
 impl<'a> Iterator for IterCpn<'a> {
-    type Item = Cpn<String>;
+    type Item = Cpn;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
@@ -926,7 +926,7 @@ impl<'a> Iterator for IterCpn<'a> {
 
 /// Iterable of [`Cpv`] objects.
 pub struct IterCpv<'a> {
-    iter: Box<dyn Iterator<Item = Cpv<String>> + 'a>,
+    iter: Box<dyn Iterator<Item = Cpv> + 'a>,
 }
 
 impl<'a> IterCpv<'a> {
@@ -1060,7 +1060,7 @@ impl<'a> IterCpv<'a> {
 }
 
 impl<'a> Iterator for IterCpv<'a> {
-    type Item = Cpv<String>;
+    type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
@@ -1088,7 +1088,7 @@ pub struct IterCpnRestrict<'a> {
 }
 
 impl<'a> Iterator for IterCpnRestrict<'a> {
-    type Item = Cpn<String>;
+    type Item = Cpn;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|cpn| self.restrict.matches(cpn))
@@ -1102,7 +1102,7 @@ pub struct IterCpvRestrict<'a> {
 }
 
 impl<'a> Iterator for IterCpvRestrict<'a> {
-    type Item = Cpv<String>;
+    type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|cpv| self.restrict.matches(cpv))

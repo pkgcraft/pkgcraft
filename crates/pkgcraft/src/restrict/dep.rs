@@ -10,10 +10,10 @@ pub enum Restrict {
     Category(StrRestrict),
     Package(StrRestrict),
     Blocker(Option<Blocker>),
-    Version(Option<Version<String>>),
+    Version(Option<Version>),
     Slot(Option<StrRestrict>),
     Subslot(Option<StrRestrict>),
-    UseDeps(Option<SortedSet<UseDep<String>>>),
+    UseDeps(Option<SortedSet<UseDep>>),
     Repo(Option<StrRestrict>),
 }
 
@@ -47,8 +47,8 @@ impl Restrict {
     }
 }
 
-impl Restriction<&Cpn<String>> for Restrict {
-    fn matches(&self, cpn: &Cpn<String>) -> bool {
+impl Restriction<&Cpn> for Restrict {
+    fn matches(&self, cpn: &Cpn) -> bool {
         use self::Restrict::*;
         match self {
             Category(r) => r.matches(cpn.category()),
@@ -64,8 +64,8 @@ impl Restriction<&Cpn<String>> for Restrict {
     }
 }
 
-impl Restriction<&Cpv<String>> for Restrict {
-    fn matches(&self, cpv: &Cpv<String>) -> bool {
+impl Restriction<&Cpv> for Restrict {
+    fn matches(&self, cpv: &Cpv) -> bool {
         use self::Restrict::*;
         match self {
             Category(r) => r.matches(cpv.category()),
@@ -81,8 +81,8 @@ impl Restriction<&Cpv<String>> for Restrict {
     }
 }
 
-impl Restriction<&Dep<String>> for Restrict {
-    fn matches(&self, dep: &Dep<String>) -> bool {
+impl Restriction<&Dep> for Restrict {
+    fn matches(&self, dep: &Dep) -> bool {
         use self::Restrict::*;
         match self {
             Category(r) => r.matches(dep.category()),
@@ -127,44 +127,44 @@ impl From<Restrict> for BaseRestrict {
     }
 }
 
-impl Restriction<&Cpn<String>> for BaseRestrict {
-    fn matches(&self, cpn: &Cpn<String>) -> bool {
+impl Restriction<&Cpn> for BaseRestrict {
+    fn matches(&self, cpn: &Cpn) -> bool {
         crate::restrict::restrict_match! {self, cpn,
             Self::Dep(r) => r.matches(cpn),
         }
     }
 }
 
-impl Restriction<&Cpv<String>> for BaseRestrict {
-    fn matches(&self, cpv: &Cpv<String>) -> bool {
+impl Restriction<&Cpv> for BaseRestrict {
+    fn matches(&self, cpv: &Cpv) -> bool {
         crate::restrict::restrict_match! {self, cpv,
             Self::Dep(r) => r.matches(cpv),
         }
     }
 }
 
-impl Restriction<&Dep<String>> for BaseRestrict {
-    fn matches(&self, dep: &Dep<String>) -> bool {
+impl Restriction<&Dep> for BaseRestrict {
+    fn matches(&self, dep: &Dep) -> bool {
         crate::restrict::restrict_match! {self, dep,
             Self::Dep(r) => r.matches(dep),
         }
     }
 }
 
-impl From<Cpn<String>> for BaseRestrict {
-    fn from(cpn: Cpn<String>) -> Self {
+impl From<Cpn> for BaseRestrict {
+    fn from(cpn: Cpn) -> Self {
         BaseRestrict::and([Restrict::category(cpn.category), Restrict::package(cpn.package)])
     }
 }
 
-impl From<&Cpn<String>> for BaseRestrict {
-    fn from(cpn: &Cpn<String>) -> Self {
+impl From<&Cpn> for BaseRestrict {
+    fn from(cpn: &Cpn) -> Self {
         BaseRestrict::and([Restrict::category(cpn.category()), Restrict::package(cpn.package())])
     }
 }
 
-impl From<Cpv<String>> for BaseRestrict {
-    fn from(cpv: Cpv<String>) -> Self {
+impl From<Cpv> for BaseRestrict {
+    fn from(cpv: Cpv) -> Self {
         BaseRestrict::and([
             Restrict::category(cpv.cpn.category),
             Restrict::package(cpv.cpn.package),
@@ -173,8 +173,8 @@ impl From<Cpv<String>> for BaseRestrict {
     }
 }
 
-impl From<&Cpv<String>> for BaseRestrict {
-    fn from(cpv: &Cpv<String>) -> Self {
+impl From<&Cpv> for BaseRestrict {
+    fn from(cpv: &Cpv) -> Self {
         BaseRestrict::and([
             Restrict::category(cpv.category()),
             Restrict::package(cpv.package()),
@@ -183,8 +183,8 @@ impl From<&Cpv<String>> for BaseRestrict {
     }
 }
 
-impl From<&Dep<String>> for BaseRestrict {
-    fn from(dep: &Dep<String>) -> Self {
+impl From<&Dep> for BaseRestrict {
+    fn from(dep: &Dep) -> Self {
         let mut restricts = vec![
             Restrict::category(dep.category()),
             Restrict::package(dep.package()),

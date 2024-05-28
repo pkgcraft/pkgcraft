@@ -12,7 +12,7 @@ use crate::utils::boxed;
 
 /// Opaque wrapper for pkgcraft::dep::UseDep.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct UseDepWrapper(dep::UseDep<String>);
+pub struct UseDepWrapper(dep::UseDep);
 
 /// C-compatible wrapper for pkgcraft::dep::UseDep.
 #[derive(Debug, Clone)]
@@ -24,8 +24,8 @@ pub struct UseDep {
     dep: *mut UseDepWrapper,
 }
 
-impl From<dep::UseDep<String>> for UseDep {
-    fn from(u: dep::UseDep<String>) -> Self {
+impl From<dep::UseDep> for UseDep {
+    fn from(u: dep::UseDep) -> Self {
         UseDep {
             kind: u.kind(),
             flag: try_ptr_from_str!(u.flag()),
@@ -36,7 +36,7 @@ impl From<dep::UseDep<String>> for UseDep {
 }
 
 impl Deref for UseDep {
-    type Target = dep::UseDep<String>;
+    type Target = dep::UseDep;
 
     fn deref(&self) -> &Self::Target {
         let wrapper = try_ref_from_ptr!(self.dep);

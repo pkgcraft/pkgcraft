@@ -106,21 +106,21 @@ macro_rules! p {
 
 /// Dependency specification variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Dependency<S: Stringable, T: Ordered> {
+pub enum Dependency<T: Ordered> {
     /// Enabled dependency.
     Enabled(T),
     /// Disabled dependency (REQUIRED_USE only).
     Disabled(T),
     /// All of a given dependency set.
-    AllOf(SortedSet<Box<Dependency<S, T>>>),
+    AllOf(SortedSet<Box<Dependency<T>>>),
     /// Any of a given dependency set.
-    AnyOf(OrderedSet<Box<Dependency<S, T>>>),
+    AnyOf(OrderedSet<Box<Dependency<T>>>),
     /// Exactly one of a given dependency set (REQUIRED_USE only).
-    ExactlyOneOf(OrderedSet<Box<Dependency<S, T>>>),
+    ExactlyOneOf(OrderedSet<Box<Dependency<T>>>),
     /// At most one of a given dependency set (REQUIRED_USE only).
-    AtMostOneOf(OrderedSet<Box<Dependency<S, T>>>),
+    AtMostOneOf(OrderedSet<Box<Dependency<T>>>),
     /// Conditional dependency.
-    Conditional(UseDep<S>, SortedSet<Box<Dependency<S, T>>>),
+    Conditional(UseDep, SortedSet<Box<Dependency<T>>>),
 }
 
 macro_rules! box_owned {
@@ -143,8 +143,8 @@ macro_rules! sort_set {
     };
 }
 
-impl<T: Ordered> IntoOwned for Dependency<&str, &T> {
-    type Owned = Dependency<String, T>;
+impl<T: Ordered> IntoOwned for Dependency<&T> {
+    type Owned = Dependency<T>;
 
     fn into_owned(self) -> Self::Owned {
         use Dependency::*;
@@ -155,7 +155,7 @@ impl<T: Ordered> IntoOwned for Dependency<&str, &T> {
             AnyOf(vals) => AnyOf(box_owned!(vals)),
             ExactlyOneOf(vals) => ExactlyOneOf(box_owned!(vals)),
             AtMostOneOf(vals) => AtMostOneOf(box_owned!(vals)),
-            Conditional(u, vals) => Conditional(u.into_owned(), box_owned!(vals)),
+            Conditional(u, vals) => Conditional(u.clone(), box_owned!(vals)),
         }
     }
 }
@@ -169,8 +169,8 @@ macro_rules! box_ref {
     };
 }
 
-impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<String, T> {
-    type Ref = Dependency<&'a str, &'a T>;
+impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<T> {
+    type Ref = Dependency<&'a T>;
 
     fn to_ref(&'a self) -> Self::Ref {
         use Dependency::*;
@@ -181,12 +181,13 @@ impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<String, T> {
             AnyOf(ref vals) => AnyOf(box_ref!(vals)),
             ExactlyOneOf(ref vals) => ExactlyOneOf(box_ref!(vals)),
             AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
-            Conditional(u, ref vals) => Conditional(u.to_ref(), box_ref!(vals)),
+            // TODO: replace clone with borrowed ref when dep evaluation is reworked
+            Conditional(ref u, ref vals) => Conditional(u.clone(), box_ref!(vals)),
         }
     }
 }
 
-impl<S: Stringable, T: Ordered> Dependency<S, T> {
+impl<T: Ordered> Dependency<T> {
     pub fn is_empty(&self) -> bool {
         use Dependency::*;
         match self {
@@ -213,19 +214,19 @@ impl<S: Stringable, T: Ordered> Dependency<S, T> {
         }
     }
 
-    pub fn iter(&self) -> Iter<S, T> {
+    pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
 
-    pub fn iter_flatten(&self) -> IterFlatten<S, T> {
+    pub fn iter_flatten(&self) -> IterFlatten<T> {
         self.into_iter_flatten()
     }
 
-    pub fn iter_recursive(&self) -> IterRecursive<S, T> {
+    pub fn iter_recursive(&self) -> IterRecursive<T> {
         self.into_iter_recursive()
     }
 
-    pub fn iter_conditionals(&self) -> IterConditionals<S, T> {
+    pub fn iter_conditionals(&self) -> IterConditionals<T> {
         self.into_iter_conditionals()
     }
 
@@ -240,7 +241,7 @@ impl<S: Stringable, T: Ordered> Dependency<S, T> {
     }
 }
 
-impl FromStr for Dependency<String, Dep<String>> {
+impl FromStr for Dependency<Dep> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -249,7 +250,7 @@ impl FromStr for Dependency<String, Dep<String>> {
     }
 }
 
-impl<S: Stringable, T: Ordered> Contains<&Self> for Dependency<S, T> {
+impl<T: Ordered> Contains<&Self> for Dependency<T> {
     fn contains(&self, dep: &Self) -> bool {
         use Dependency::*;
         match self {
@@ -263,21 +264,21 @@ impl<S: Stringable, T: Ordered> Contains<&Self> for Dependency<S, T> {
     }
 }
 
-impl<S: Stringable, T: Ordered + AsRef<str>> Contains<&str> for Dependency<S, T> {
+impl<T: Ordered + AsRef<str>> Contains<&str> for Dependency<T> {
     fn contains(&self, obj: &str) -> bool {
         self.iter_flatten().any(|x| x.as_ref() == obj)
     }
 }
 
-impl<S: Stringable, T: Ordered> Contains<&T> for Dependency<S, T> {
+impl<T: Ordered> Contains<&T> for Dependency<T> {
     fn contains(&self, obj: &T) -> bool {
         self.iter_flatten().any(|x| x == obj)
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> IntoIterator for &'a Dependency<S, T> {
-    type Item = &'a Dependency<S, T>;
-    type IntoIter = Iter<'a, S, T>;
+impl<'a, T: Ordered> IntoIterator for &'a Dependency<T> {
+    type Item = &'a Dependency<T>;
+    type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         use Dependency::*;
@@ -292,13 +293,13 @@ impl<'a, S: Stringable, T: Ordered> IntoIterator for &'a Dependency<S, T> {
     }
 }
 
-impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a Dependency<String, T> {
-    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a Dependency<T> {
+    type Evaluated = SortedSet<Dependency<&'a T>>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluate = IterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IterEvaluate {
@@ -308,13 +309,13 @@ impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a Dependency<Stri
     }
 }
 
-impl<'a, T: Ordered> EvaluateForce for &'a Dependency<String, T> {
-    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
+impl<'a, T: Ordered> EvaluateForce for &'a Dependency<T> {
+    type Evaluated = SortedSet<Dependency<&'a T>>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluateForce = IterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IterEvaluateForce {
@@ -324,13 +325,13 @@ impl<'a, T: Ordered> EvaluateForce for &'a Dependency<String, T> {
     }
 }
 
-impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a str, &'a T> {
-    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a T> {
+    type Evaluated = SortedSet<Dependency<&'a T>>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluate = IntoIterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IntoIterEvaluate {
@@ -340,13 +341,13 @@ impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for Dependency<&'a str,
     }
 }
 
-impl<'a, T: Ordered> EvaluateForce for Dependency<&'a str, &'a T> {
-    type Evaluated = SortedSet<Dependency<&'a str, &'a T>>;
+impl<'a, T: Ordered> EvaluateForce for Dependency<&'a T> {
+    type Evaluated = SortedSet<Dependency<&'a T>>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluateForce = IntoIterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IntoIterEvaluateForce {
@@ -356,9 +357,9 @@ impl<'a, T: Ordered> EvaluateForce for Dependency<&'a str, &'a T> {
     }
 }
 
-impl<S: Stringable, T: Ordered> IntoIterator for Dependency<S, T> {
-    type Item = Dependency<S, T>;
-    type IntoIter = IntoIter<S, T>;
+impl<T: Ordered> IntoIterator for Dependency<T> {
+    type Item = Dependency<T>;
+    type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
         use Dependency::*;
@@ -373,61 +374,61 @@ impl<S: Stringable, T: Ordered> IntoIterator for Dependency<S, T> {
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> Flatten for &'a Dependency<S, T> {
+impl<'a, T: Ordered> Flatten for &'a Dependency<T> {
     type Item = &'a T;
-    type IntoIterFlatten = IterFlatten<'a, S, T>;
+    type IntoIterFlatten = IterFlatten<'a, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IterFlatten([self].into_iter().collect())
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> Recursive for &'a Dependency<S, T> {
-    type Item = &'a Dependency<S, T>;
-    type IntoIterRecursive = IterRecursive<'a, S, T>;
+impl<'a, T: Ordered> Recursive for &'a Dependency<T> {
+    type Item = &'a Dependency<T>;
+    type IntoIterRecursive = IterRecursive<'a, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IterRecursive([self].into_iter().collect())
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> Conditionals for &'a Dependency<S, T> {
-    type Item = &'a UseDep<S>;
-    type IntoIterConditionals = IterConditionals<'a, S, T>;
+impl<'a, T: Ordered> Conditionals for &'a Dependency<T> {
+    type Item = &'a UseDep;
+    type IntoIterConditionals = IterConditionals<'a, T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
         IterConditionals([self].into_iter().collect())
     }
 }
 
-impl<S: Stringable, T: Ordered> Flatten for Dependency<S, T> {
+impl<T: Ordered> Flatten for Dependency<T> {
     type Item = T;
-    type IntoIterFlatten = IntoIterFlatten<S, T>;
+    type IntoIterFlatten = IntoIterFlatten<T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IntoIterFlatten([self].into_iter().collect())
     }
 }
 
-impl<S: Stringable, T: Ordered> Recursive for Dependency<S, T> {
-    type Item = Dependency<S, T>;
-    type IntoIterRecursive = IntoIterRecursive<S, T>;
+impl<T: Ordered> Recursive for Dependency<T> {
+    type Item = Dependency<T>;
+    type IntoIterRecursive = IntoIterRecursive<T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IntoIterRecursive([self].into_iter().collect())
     }
 }
 
-impl<S: Stringable, T: Ordered> Conditionals for Dependency<S, T> {
-    type Item = UseDep<S>;
-    type IntoIterConditionals = IntoIterConditionals<S, T>;
+impl<T: Ordered> Conditionals for Dependency<T> {
+    type Item = UseDep;
+    type IntoIterConditionals = IntoIterConditionals<T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
         IntoIterConditionals([self].into_iter().collect())
     }
 }
 
-impl<S: Stringable, T: Display + Ordered> Display for Dependency<S, T> {
+impl<T: Display + Ordered> Display for Dependency<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use Dependency::*;
         match self {
@@ -444,26 +445,26 @@ impl<S: Stringable, T: Display + Ordered> Display for Dependency<S, T> {
 
 /// Set of dependency objects.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DependencySet<S: Stringable, T: Ordered>(SortedSet<Dependency<S, T>>);
+pub struct DependencySet<T: Ordered>(SortedSet<Dependency<T>>);
 
-impl<S: Stringable, T: Ordered> DependencySet<S, T> {
-    /// Construct a new, empty `DependencySet<S, T>`.
+impl<T: Ordered> DependencySet<T> {
+    /// Construct a new, empty `DependencySet`.
     pub fn new() -> Self {
         Self(SortedSet::new())
     }
 
     /// Return the `Dependency` for a given index.
-    pub fn get_index(&self, index: usize) -> Option<&Dependency<S, T>> {
+    pub fn get_index(&self, index: usize) -> Option<&Dependency<T>> {
         self.0.get_index(index)
     }
 
     /// Insert a `Dependency` into the `DependencySet`.
-    pub fn insert(&mut self, value: Dependency<S, T>) -> bool {
+    pub fn insert(&mut self, value: Dependency<T>) -> bool {
         self.0.insert(value)
     }
 
     /// Remove the last value.
-    pub fn pop(&mut self) -> Option<Dependency<S, T>> {
+    pub fn pop(&mut self) -> Option<Dependency<T>> {
         self.0.pop()
     }
 
@@ -479,9 +480,9 @@ impl<S: Stringable, T: Ordered> DependencySet<S, T> {
     /// all of those elements!**
     pub fn shift_replace(
         &mut self,
-        key: &Dependency<S, T>,
-        value: Dependency<S, T>,
-    ) -> Option<Dependency<S, T>> {
+        key: &Dependency<T>,
+        value: Dependency<T>,
+    ) -> Option<Dependency<T>> {
         self.0
             .get_index_of(key)
             .and_then(|i| self.shift_replace_index(i, value))
@@ -494,9 +495,9 @@ impl<S: Stringable, T: Ordered> DependencySet<S, T> {
     /// to be the last element!**
     pub fn swap_replace(
         &mut self,
-        key: &Dependency<S, T>,
-        value: Dependency<S, T>,
-    ) -> Option<Dependency<S, T>> {
+        key: &Dependency<T>,
+        value: Dependency<T>,
+    ) -> Option<Dependency<T>> {
         self.0
             .get_index_of(key)
             .and_then(|i| self.swap_replace_index(i, value))
@@ -510,8 +511,8 @@ impl<S: Stringable, T: Ordered> DependencySet<S, T> {
     pub fn shift_replace_index(
         &mut self,
         index: usize,
-        value: Dependency<S, T>,
-    ) -> Option<Dependency<S, T>> {
+        value: Dependency<T>,
+    ) -> Option<Dependency<T>> {
         if index < self.0.len() {
             match self.0.insert_full(value) {
                 (_, true) => return self.0.swap_remove_index(index),
@@ -531,8 +532,8 @@ impl<S: Stringable, T: Ordered> DependencySet<S, T> {
     pub fn swap_replace_index(
         &mut self,
         index: usize,
-        value: Dependency<S, T>,
-    ) -> Option<Dependency<S, T>> {
+        value: Dependency<T>,
+    ) -> Option<Dependency<T>> {
         if index < self.0.len() {
             match self.0.insert_full(value) {
                 (_, true) => return self.0.swap_remove_index(index),
@@ -565,54 +566,52 @@ impl<S: Stringable, T: Ordered> DependencySet<S, T> {
         self.0.is_superset(&other.0)
     }
 
-    pub fn intersection<'a>(&'a self, other: &'a Self) -> Iter<'a, S, T> {
+    pub fn intersection<'a>(&'a self, other: &'a Self) -> Iter<'a, T> {
         self.0.intersection(&other.0).collect()
     }
 
-    pub fn iter(&self) -> Iter<S, T> {
+    pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
 
-    pub fn iter_flatten(&self) -> IterFlatten<S, T> {
+    pub fn iter_flatten(&self) -> IterFlatten<T> {
         self.into_iter_flatten()
     }
 
-    pub fn iter_recursive(&self) -> IterRecursive<S, T> {
+    pub fn iter_recursive(&self) -> IterRecursive<T> {
         self.into_iter_recursive()
     }
 
-    pub fn iter_conditionals(&self) -> IterConditionals<S, T> {
+    pub fn iter_conditionals(&self) -> IterConditionals<T> {
         self.into_iter_conditionals()
     }
 }
 
-impl<S: Stringable, T: Ordered> Default for DependencySet<S, T> {
+impl<T: Ordered> Default for DependencySet<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<S: Stringable, T: Display + Ordered> Display for DependencySet<S, T> {
+impl<T: Display + Ordered> Display for DependencySet<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", p!(self))
     }
 }
 
-impl<S: Stringable, T: Ordered> FromIterator<Dependency<S, T>> for DependencySet<S, T> {
-    fn from_iter<I: IntoIterator<Item = Dependency<S, T>>>(iterable: I) -> Self {
+impl<T: Ordered> FromIterator<Dependency<T>> for DependencySet<T> {
+    fn from_iter<I: IntoIterator<Item = Dependency<T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
     }
 }
 
-impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<String, T>>
-    for DependencySet<&'a str, &'a T>
-{
-    fn from_iter<I: IntoIterator<Item = &'a Dependency<String, T>>>(iterable: I) -> Self {
+impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<T>> for DependencySet<&'a T> {
+    fn from_iter<I: IntoIterator<Item = &'a Dependency<T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().map(|d| d.to_ref()).collect())
     }
 }
 
-impl FromStr for DependencySet<String, Dep<String>> {
+impl FromStr for DependencySet<Dep> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -621,7 +620,7 @@ impl FromStr for DependencySet<String, Dep<String>> {
     }
 }
 
-impl<S: Stringable, T: Ordered> BitAnd<&Self> for DependencySet<S, T> {
+impl<T: Ordered> BitAnd<&Self> for DependencySet<T> {
     type Output = Self;
 
     fn bitand(mut self, other: &Self) -> Self::Output {
@@ -630,13 +629,13 @@ impl<S: Stringable, T: Ordered> BitAnd<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: Stringable, T: Ordered> BitAndAssign<&Self> for DependencySet<S, T> {
+impl<T: Ordered> BitAndAssign<&Self> for DependencySet<T> {
     fn bitand_assign(&mut self, other: &Self) {
         self.0 &= &other.0;
     }
 }
 
-impl<S: Stringable, T: Ordered> BitOr<&Self> for DependencySet<S, T> {
+impl<T: Ordered> BitOr<&Self> for DependencySet<T> {
     type Output = Self;
 
     fn bitor(mut self, other: &Self) -> Self::Output {
@@ -645,13 +644,13 @@ impl<S: Stringable, T: Ordered> BitOr<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: Stringable, T: Ordered> BitOrAssign<&Self> for DependencySet<S, T> {
+impl<T: Ordered> BitOrAssign<&Self> for DependencySet<T> {
     fn bitor_assign(&mut self, other: &Self) {
         self.0 |= &other.0;
     }
 }
 
-impl<S: Stringable, T: Ordered> BitXor<&Self> for DependencySet<S, T> {
+impl<T: Ordered> BitXor<&Self> for DependencySet<T> {
     type Output = Self;
 
     fn bitxor(mut self, other: &Self) -> Self::Output {
@@ -660,13 +659,13 @@ impl<S: Stringable, T: Ordered> BitXor<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: Stringable, T: Ordered> BitXorAssign<&Self> for DependencySet<S, T> {
+impl<T: Ordered> BitXorAssign<&Self> for DependencySet<T> {
     fn bitxor_assign(&mut self, other: &Self) {
         self.0 ^= &other.0;
     }
 }
 
-impl<S: Stringable, T: Ordered> Sub<&Self> for DependencySet<S, T> {
+impl<T: Ordered> Sub<&Self> for DependencySet<T> {
     type Output = Self;
 
     fn sub(mut self, other: &Self) -> Self::Output {
@@ -675,37 +674,37 @@ impl<S: Stringable, T: Ordered> Sub<&Self> for DependencySet<S, T> {
     }
 }
 
-impl<S: Stringable, T: Ordered> SubAssign<&Self> for DependencySet<S, T> {
+impl<T: Ordered> SubAssign<&Self> for DependencySet<T> {
     fn sub_assign(&mut self, other: &Self) {
         self.0 -= &other.0;
     }
 }
 
-impl<S: Stringable, T: Ordered> Contains<&Dependency<S, T>> for DependencySet<S, T> {
-    fn contains(&self, dep: &Dependency<S, T>) -> bool {
+impl<T: Ordered> Contains<&Dependency<T>> for DependencySet<T> {
+    fn contains(&self, dep: &Dependency<T>) -> bool {
         self.0.contains(dep)
     }
 }
 
-impl<S: Stringable, T: Ordered + AsRef<str>> Contains<&str> for DependencySet<S, T> {
+impl<T: Ordered + AsRef<str>> Contains<&str> for DependencySet<T> {
     fn contains(&self, obj: &str) -> bool {
         self.iter_flatten().any(|x| x.as_ref() == obj)
     }
 }
 
-impl<S: Stringable, T: Ordered> Contains<&T> for DependencySet<S, T> {
+impl<T: Ordered> Contains<&T> for DependencySet<T> {
     fn contains(&self, obj: &T) -> bool {
         self.iter_flatten().any(|x| x == obj)
     }
 }
 
-impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a DependencySet<String, T> {
-    type Evaluated = DependencySet<&'a str, &'a T>;
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a DependencySet<T> {
+    type Evaluated = DependencySet<&'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluate = IterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IterEvaluate {
@@ -715,13 +714,13 @@ impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for &'a DependencySet<S
     }
 }
 
-impl<'a, T: Ordered> EvaluateForce for &'a DependencySet<String, T> {
-    type Evaluated = DependencySet<&'a str, &'a T>;
+impl<'a, T: Ordered> EvaluateForce for &'a DependencySet<T> {
+    type Evaluated = DependencySet<&'a T>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluateForce = IterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IterEvaluateForce {
@@ -731,13 +730,13 @@ impl<'a, T: Ordered> EvaluateForce for &'a DependencySet<String, T> {
     }
 }
 
-impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a str, &'a T> {
-    type Evaluated = DependencySet<&'a str, &'a T>;
+impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a T> {
+    type Evaluated = DependencySet<&'a T>;
     fn evaluate(self, options: &'a IndexSet<S>) -> Self::Evaluated {
         self.into_iter_evaluate(options).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluate = IntoIterEvaluate<'a, S, T>;
     fn into_iter_evaluate(self, options: &'a IndexSet<S>) -> Self::IntoIterEvaluate {
         IntoIterEvaluate {
@@ -747,13 +746,13 @@ impl<'a, S: Stringable + 'a, T: Ordered> Evaluate<'a, S> for DependencySet<&'a s
     }
 }
 
-impl<'a, T: Ordered> EvaluateForce for DependencySet<&'a str, &'a T> {
-    type Evaluated = DependencySet<&'a str, &'a T>;
+impl<'a, T: Ordered> EvaluateForce for DependencySet<&'a T> {
+    type Evaluated = DependencySet<&'a T>;
     fn evaluate_force(self, force: bool) -> Self::Evaluated {
         self.into_iter_evaluate_force(force).collect()
     }
 
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
     type IntoIterEvaluateForce = IntoIterEvaluateForce<'a, T>;
     fn into_iter_evaluate_force(self, force: bool) -> Self::IntoIterEvaluateForce {
         IntoIterEvaluateForce {
@@ -763,8 +762,8 @@ impl<'a, T: Ordered> EvaluateForce for DependencySet<&'a str, &'a T> {
     }
 }
 
-impl<T: Ordered> IntoOwned for DependencySet<&str, &T> {
-    type Owned = DependencySet<String, T>;
+impl<T: Ordered> IntoOwned for DependencySet<&T> {
+    type Owned = DependencySet<T>;
 
     fn into_owned(self) -> Self::Owned {
         self.into_iter().map(|d| d.into_owned()).collect()
@@ -772,58 +771,58 @@ impl<T: Ordered> IntoOwned for DependencySet<&str, &T> {
 }
 
 #[derive(Debug)]
-pub struct Iter<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct Iter<'a, T: Ordered>(Deque<&'a Dependency<T>>);
 
-impl<'a, S: Stringable, T: Ordered> FromIterator<&'a Dependency<S, T>> for Iter<'a, S, T> {
-    fn from_iter<I: IntoIterator<Item = &'a Dependency<S, T>>>(iterable: I) -> Self {
+impl<'a, T: Ordered> FromIterator<&'a Dependency<T>> for Iter<'a, T> {
+    fn from_iter<I: IntoIterator<Item = &'a Dependency<T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> Iterator for Iter<'a, S, T> {
-    type Item = &'a Dependency<S, T>;
+impl<'a, T: Ordered> Iterator for Iter<'a, T> {
+    type Item = &'a Dependency<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front()
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> DoubleEndedIterator for Iter<'a, S, T> {
+impl<'a, T: Ordered> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.pop_back()
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> IntoIterator for &'a DependencySet<S, T> {
-    type Item = &'a Dependency<S, T>;
-    type IntoIter = Iter<'a, S, T>;
+impl<'a, T: Ordered> IntoIterator for &'a DependencySet<T> {
+    type Item = &'a Dependency<T>;
+    type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter().collect()
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> Flatten for &'a DependencySet<S, T> {
+impl<'a, T: Ordered> Flatten for &'a DependencySet<T> {
     type Item = &'a T;
-    type IntoIterFlatten = IterFlatten<'a, S, T>;
+    type IntoIterFlatten = IterFlatten<'a, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IterFlatten(self.0.iter().collect())
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> Recursive for &'a DependencySet<S, T> {
-    type Item = &'a Dependency<S, T>;
-    type IntoIterRecursive = IterRecursive<'a, S, T>;
+impl<'a, T: Ordered> Recursive for &'a DependencySet<T> {
+    type Item = &'a Dependency<T>;
+    type IntoIterRecursive = IterRecursive<'a, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IterRecursive(self.0.iter().collect())
     }
 }
 
-impl<'a, S: Stringable, T: Ordered> Conditionals for &'a DependencySet<S, T> {
-    type Item = &'a UseDep<S>;
-    type IntoIterConditionals = IterConditionals<'a, S, T>;
+impl<'a, T: Ordered> Conditionals for &'a DependencySet<T> {
+    type Item = &'a UseDep;
+    type IntoIterConditionals = IterConditionals<'a, T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
         IterConditionals(self.0.iter().collect())
@@ -848,12 +847,12 @@ macro_rules! iter_eval {
 
 #[derive(Debug)]
 pub struct IterEvaluate<'a, S: Stringable, T: Ordered> {
-    q: Deque<&'a Dependency<String, T>>,
+    q: Deque<&'a Dependency<T>>,
     options: &'a IndexSet<S>,
 }
 
 impl<'a, S: Stringable, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -894,12 +893,12 @@ macro_rules! iter_eval_force {
 
 #[derive(Debug)]
 pub struct IterEvaluateForce<'a, T: Ordered> {
-    q: Deque<&'a Dependency<String, T>>,
+    q: Deque<&'a Dependency<T>>,
     force: bool,
 }
 
 impl<'a, T: Ordered> Iterator for IterEvaluateForce<'a, T> {
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -923,9 +922,9 @@ impl<'a, T: Ordered> Iterator for IterEvaluateForce<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IterFlatten<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct IterFlatten<'a, T: Ordered>(Deque<&'a Dependency<T>>);
 
-impl<'a, S: Stringable, T: Ordered> Iterator for IterFlatten<'a, S, T> {
+impl<'a, T: Ordered> Iterator for IterFlatten<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -945,58 +944,58 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterFlatten<'a, S, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIter<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIter<T: Ordered>(Deque<Dependency<T>>);
 
-impl<S: Stringable, T: Ordered> FromIterator<Dependency<S, T>> for IntoIter<S, T> {
-    fn from_iter<I: IntoIterator<Item = Dependency<S, T>>>(iterable: I) -> Self {
+impl<T: Ordered> FromIterator<Dependency<T>> for IntoIter<T> {
+    fn from_iter<I: IntoIterator<Item = Dependency<T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
     }
 }
 
-impl<S: Stringable, T: Ordered> Iterator for IntoIter<S, T> {
-    type Item = Dependency<S, T>;
+impl<T: Ordered> Iterator for IntoIter<T> {
+    type Item = Dependency<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front()
     }
 }
 
-impl<S: Stringable, T: Ordered> DoubleEndedIterator for IntoIter<S, T> {
+impl<T: Ordered> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.pop_back()
     }
 }
 
-impl<S: Stringable, T: Ordered> IntoIterator for DependencySet<S, T> {
-    type Item = Dependency<S, T>;
-    type IntoIter = IntoIter<S, T>;
+impl<T: Ordered> IntoIterator for DependencySet<T> {
+    type Item = Dependency<T>;
+    type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter().collect()
     }
 }
 
-impl<S: Stringable, T: Ordered> Flatten for DependencySet<S, T> {
+impl<T: Ordered> Flatten for DependencySet<T> {
     type Item = T;
-    type IntoIterFlatten = IntoIterFlatten<S, T>;
+    type IntoIterFlatten = IntoIterFlatten<T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
         IntoIterFlatten(self.0.into_iter().collect())
     }
 }
 
-impl<S: Stringable, T: Ordered> Recursive for DependencySet<S, T> {
-    type Item = Dependency<S, T>;
-    type IntoIterRecursive = IntoIterRecursive<S, T>;
+impl<T: Ordered> Recursive for DependencySet<T> {
+    type Item = Dependency<T>;
+    type IntoIterRecursive = IntoIterRecursive<T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
         IntoIterRecursive(self.0.into_iter().collect())
     }
 }
 
-impl<S: Stringable, T: Ordered> Conditionals for DependencySet<S, T> {
-    type Item = UseDep<S>;
-    type IntoIterConditionals = IntoIterConditionals<S, T>;
+impl<T: Ordered> Conditionals for DependencySet<T> {
+    type Item = UseDep;
+    type IntoIterConditionals = IntoIterConditionals<T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
         IntoIterConditionals(self.0.into_iter().collect())
@@ -1005,12 +1004,12 @@ impl<S: Stringable, T: Ordered> Conditionals for DependencySet<S, T> {
 
 #[derive(Debug)]
 pub struct IntoIterEvaluate<'a, S: Stringable, T: Ordered> {
-    q: Deque<Dependency<&'a str, &'a T>>,
+    q: Deque<Dependency<&'a T>>,
     options: &'a IndexSet<S>,
 }
 
 impl<'a, S: Stringable, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1035,12 +1034,12 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
 
 #[derive(Debug)]
 pub struct IntoIterEvaluateForce<'a, T: Ordered> {
-    q: Deque<Dependency<&'a str, &'a T>>,
+    q: Deque<Dependency<&'a T>>,
     force: bool,
 }
 
 impl<'a, T: Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
-    type Item = Dependency<&'a str, &'a T>;
+    type Item = Dependency<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1064,9 +1063,9 @@ impl<'a, T: Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterFlatten<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIterFlatten<T: Ordered>(Deque<Dependency<T>>);
 
-impl<S: Stringable, T: Ordered> Iterator for IntoIterFlatten<S, T> {
+impl<T: Ordered> Iterator for IntoIterFlatten<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1086,10 +1085,10 @@ impl<S: Stringable, T: Ordered> Iterator for IntoIterFlatten<S, T> {
 }
 
 #[derive(Debug)]
-pub struct IterRecursive<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct IterRecursive<'a, T: Ordered>(Deque<&'a Dependency<T>>);
 
-impl<'a, S: Stringable, T: Ordered> Iterator for IterRecursive<'a, S, T> {
-    type Item = &'a Dependency<S, T>;
+impl<'a, T: Ordered> Iterator for IterRecursive<'a, T> {
+    type Item = &'a Dependency<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1110,10 +1109,10 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterRecursive<'a, S, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterRecursive<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIterRecursive<T: Ordered>(Deque<Dependency<T>>);
 
-impl<S: Stringable, T: Ordered> Iterator for IntoIterRecursive<S, T> {
-    type Item = Dependency<S, T>;
+impl<T: Ordered> Iterator for IntoIterRecursive<T> {
+    type Item = Dependency<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1134,10 +1133,10 @@ impl<S: Stringable, T: Ordered> Iterator for IntoIterRecursive<S, T> {
 }
 
 #[derive(Debug)]
-pub struct IterConditionals<'a, S: Stringable, T: Ordered>(Deque<&'a Dependency<S, T>>);
+pub struct IterConditionals<'a, T: Ordered>(Deque<&'a Dependency<T>>);
 
-impl<'a, S: Stringable, T: Ordered> Iterator for IterConditionals<'a, S, T> {
-    type Item = &'a UseDep<S>;
+impl<'a, T: Ordered> Iterator for IterConditionals<'a, T> {
+    type Item = &'a UseDep;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1159,10 +1158,10 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterConditionals<'a, S, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterConditionals<S: Stringable, T: Ordered>(Deque<Dependency<S, T>>);
+pub struct IntoIterConditionals<T: Ordered>(Deque<Dependency<T>>);
 
-impl<S: Stringable, T: Ordered> Iterator for IntoIterConditionals<S, T> {
-    type Item = UseDep<S>;
+impl<T: Ordered> Iterator for IntoIterConditionals<T> {
+    type Item = UseDep;
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -1183,16 +1182,16 @@ impl<S: Stringable, T: Ordered> Iterator for IntoIterConditionals<S, T> {
     }
 }
 
-impl Restriction<&Dependency<String, Dep<String>>> for BaseRestrict {
-    fn matches(&self, val: &Dependency<String, Dep<String>>) -> bool {
+impl Restriction<&Dependency<Dep>> for BaseRestrict {
+    fn matches(&self, val: &Dependency<Dep>) -> bool {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
 
-impl Restriction<&DependencySet<String, Dep<String>>> for BaseRestrict {
-    fn matches(&self, val: &DependencySet<String, Dep<String>>) -> bool {
+impl Restriction<&DependencySet<Dep>> for BaseRestrict {
+    fn matches(&self, val: &DependencySet<Dep>) -> bool {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
@@ -1208,7 +1207,7 @@ mod tests {
         let dep = Dep::try_new("cat/pkg").unwrap();
         let spec = Dependency::from_str("cat/pkg").unwrap();
         for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
-            let d: Dependency<String, Dep<_>> = s.parse().unwrap();
+            let d: Dependency<Dep> = s.parse().unwrap();
             assert!(d.contains(&dep), "{d} doesn't contain {dep}");
             assert!(!d.contains(&d), "{d} contains itself");
             assert!(d.contains(&spec), "{d} doesn't contain {spec}");
@@ -1225,7 +1224,7 @@ mod tests {
             ("u? ( c/d a/b )", "u? ( a/b c/d )"),
             ("!u? ( c/d a/b )", "!u? ( a/b c/d )"),
         ] {
-            let mut spec: Dependency<String, Dep<_>> = s.parse().unwrap();
+            let mut spec: Dependency<Dep> = s.parse().unwrap();
             spec.sort();
             assert_eq!(spec.to_string(), expected);
         }
@@ -1254,7 +1253,7 @@ mod tests {
         let dep = Dep::try_new("cat/pkg").unwrap();
         let spec = Dependency::from_str("cat/pkg").unwrap();
         for s in ["cat/pkg", "a/b cat/pkg"] {
-            let set: DependencySet<String, Dep<_>> = s.parse().unwrap();
+            let set: DependencySet<Dep> = s.parse().unwrap();
             assert!(set.contains(&dep), "{set} doesn't contain {dep}");
             assert!(set.contains(&spec), "{set} doesn't contain {spec}");
         }
@@ -1270,7 +1269,7 @@ mod tests {
             ("u? ( c/d a/b ) z/z", "z/z u? ( a/b c/d )"),
             ("!u? ( c/d a/b ) z/z", "z/z !u? ( a/b c/d )"),
         ] {
-            let mut set: DependencySet<String, Dep<_>> = s.parse().unwrap();
+            let mut set: DependencySet<Dep> = s.parse().unwrap();
             set.sort();
             assert_eq!(set.to_string(), expected);
         }

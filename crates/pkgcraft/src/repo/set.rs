@@ -103,7 +103,7 @@ impl PkgRepository for RepoSet {
         pkgs
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         let mut versions: IndexSet<_> = self
             .repos
             .iter()
@@ -162,28 +162,28 @@ impl PkgRepository for RepoSet {
     }
 }
 
-impl Contains<&Cpn<String>> for RepoSet {
-    fn contains(&self, value: &Cpn<String>) -> bool {
+impl Contains<&Cpn> for RepoSet {
+    fn contains(&self, value: &Cpn) -> bool {
         self.repos.iter().any(|r| r.contains(value))
     }
 }
 
-impl Contains<&Cpv<String>> for RepoSet {
-    fn contains(&self, value: &Cpv<String>) -> bool {
+impl Contains<&Cpv> for RepoSet {
+    fn contains(&self, value: &Cpv) -> bool {
         self.repos.iter().any(|r| r.contains(value))
     }
 }
 
-impl Contains<&Dep<String>> for RepoSet {
-    fn contains(&self, value: &Dep<String>) -> bool {
+impl Contains<&Dep> for RepoSet {
+    fn contains(&self, value: &Dep) -> bool {
         self.repos.iter().any(|r| r.contains(value))
     }
 }
 
-pub struct IterCpv(indexmap::set::IntoIter<Cpv<String>>);
+pub struct IterCpv(indexmap::set::IntoIter<Cpv>);
 
 impl Iterator for IterCpv {
-    type Item = Cpv<String>;
+    type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()

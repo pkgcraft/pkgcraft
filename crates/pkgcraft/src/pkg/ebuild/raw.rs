@@ -13,7 +13,7 @@ use crate::Error;
 use super::metadata::{Metadata, MetadataRaw};
 
 pub struct Pkg<'a> {
-    pub(super) cpv: Cpv<String>,
+    pub(super) cpv: Cpv,
     pub(super) repo: &'a Repo,
     pub(super) eapi: &'static Eapi,
     data: String,
@@ -29,7 +29,7 @@ impl fmt::Debug for Pkg<'_> {
 }
 
 impl<'a> Pkg<'a> {
-    pub(crate) fn try_new(cpv: Cpv<String>, repo: &'a Repo) -> crate::Result<Self> {
+    pub(crate) fn try_new(cpv: Cpv, repo: &'a Repo) -> crate::Result<Self> {
         let relpath = cpv.relpath();
         let data = fs::read_to_string(repo.path().join(&relpath)).map_err(|e| {
             Error::IO(format!("{}: failed reading ebuild: {relpath}: {e}", repo.id()))
@@ -114,7 +114,7 @@ impl<'a> Package for Pkg<'a> {
         self.eapi
     }
 
-    fn cpv(&self) -> &Cpv<String> {
+    fn cpv(&self) -> &Cpv {
         &self.cpv
     }
 }

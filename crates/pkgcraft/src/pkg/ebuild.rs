@@ -50,7 +50,7 @@ where
 }
 
 pub struct Pkg<'a> {
-    cpv: Cpv<String>,
+    cpv: Cpv,
     repo: &'a Repo,
     meta: Metadata<'a>,
     iuse_effective: OnceLock<OrderedSet<String>>,
@@ -109,7 +109,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&str, &Dep<String>> {
+    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&Dep> {
         use Key::*;
 
         // default to all dependency types defined by the package EAPI if no keys are passed
@@ -135,52 +135,52 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's BDEPEND.
-    pub fn bdepend(&self) -> &DependencySet<String, Dep<String>> {
+    pub fn bdepend(&self) -> &DependencySet<Dep> {
         &self.meta.bdepend
     }
 
     /// Return a package's DEPEND.
-    pub fn depend(&self) -> &DependencySet<String, Dep<String>> {
+    pub fn depend(&self) -> &DependencySet<Dep> {
         &self.meta.depend
     }
 
     /// Return a package's IDEPEND.
-    pub fn idepend(&self) -> &DependencySet<String, Dep<String>> {
+    pub fn idepend(&self) -> &DependencySet<Dep> {
         &self.meta.idepend
     }
 
     /// Return a package's PDEPEND.
-    pub fn pdepend(&self) -> &DependencySet<String, Dep<String>> {
+    pub fn pdepend(&self) -> &DependencySet<Dep> {
         &self.meta.pdepend
     }
 
     /// Return a package's RDEPEND.
-    pub fn rdepend(&self) -> &DependencySet<String, Dep<String>> {
+    pub fn rdepend(&self) -> &DependencySet<Dep> {
         &self.meta.rdepend
     }
 
     /// Return a package's LICENSE.
-    pub fn license(&self) -> &DependencySet<String, String> {
+    pub fn license(&self) -> &DependencySet<String> {
         &self.meta.license
     }
 
     /// Return a package's PROPERTIES.
-    pub fn properties(&self) -> &DependencySet<String, String> {
+    pub fn properties(&self) -> &DependencySet<String> {
         &self.meta.properties
     }
 
     /// Return a package's REQUIRED_USE.
-    pub fn required_use(&self) -> &DependencySet<String, String> {
+    pub fn required_use(&self) -> &DependencySet<String> {
         &self.meta.required_use
     }
 
     /// Return a package's RESTRICT.
-    pub fn restrict(&self) -> &DependencySet<String, String> {
+    pub fn restrict(&self) -> &DependencySet<String> {
         &self.meta.restrict
     }
 
     /// Return a package's SRC_URI.
-    pub fn src_uri(&self) -> &DependencySet<String, Uri> {
+    pub fn src_uri(&self) -> &DependencySet<Uri> {
         &self.meta.src_uri
     }
 
@@ -195,12 +195,12 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's keywords.
-    pub fn keywords(&self) -> &OrderedSet<keyword::Keyword<String>> {
+    pub fn keywords(&self) -> &OrderedSet<keyword::Keyword> {
         &self.meta.keywords
     }
 
     /// Return a package's IUSE.
-    pub fn iuse(&self) -> &OrderedSet<iuse::Iuse<String>> {
+    pub fn iuse(&self) -> &OrderedSet<iuse::Iuse> {
         &self.meta.iuse
     }
 
@@ -291,7 +291,7 @@ impl<'a> Package for Pkg<'a> {
         self.meta.eapi
     }
 
-    fn cpv(&self) -> &Cpv<String> {
+    fn cpv(&self) -> &Cpv {
         &self.cpv
     }
 }

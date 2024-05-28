@@ -9,24 +9,24 @@ pub enum Restrict<T> {
 }
 
 // TODO: combine these Restriction implementations using generics
-impl Restriction<&DependencySet<String, Dep<String>>> for Restrict<DepRestrict> {
-    fn matches(&self, val: &DependencySet<String, Dep<String>>) -> bool {
+impl Restriction<&DependencySet<Dep>> for Restrict<DepRestrict> {
+    fn matches(&self, val: &DependencySet<Dep>) -> bool {
         match self {
             Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
 
-impl Restriction<&DependencySet<String, String>> for Restrict<StrRestrict> {
-    fn matches(&self, val: &DependencySet<String, String>) -> bool {
+impl Restriction<&DependencySet<String>> for Restrict<StrRestrict> {
+    fn matches(&self, val: &DependencySet<String>) -> bool {
         match self {
             Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
     }
 }
 
-impl Restriction<&DependencySet<String, Uri>> for Restrict<StrRestrict> {
-    fn matches(&self, val: &DependencySet<String, Uri>) -> bool {
+impl Restriction<&DependencySet<Uri>> for Restrict<StrRestrict> {
+    fn matches(&self, val: &DependencySet<Uri>) -> bool {
         match self {
             Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v.as_ref())),
         }

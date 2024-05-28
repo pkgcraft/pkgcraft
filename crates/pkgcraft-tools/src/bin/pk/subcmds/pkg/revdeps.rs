@@ -33,7 +33,7 @@ impl Command {
 
         // convert targets to Cpv or Dep objects
         let targets: Vec<_> = self.targets.stdin_or_args().split_whitespace().collect();
-        let targets: Vec<_> = targets.iter().map(|s| CpvOrDep::parse(s)).try_collect()?;
+        let targets: Vec<_> = targets.iter().map(|s| CpvOrDep::try_new(s)).try_collect()?;
 
         // TODO: use a revdeps cache for queries (#120)
         // TODO: parallelize while generating metadata on the fly (#121)

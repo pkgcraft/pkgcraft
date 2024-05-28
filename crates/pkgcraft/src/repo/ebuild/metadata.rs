@@ -175,8 +175,8 @@ impl Borrow<str> for ArchStatus {
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum PkgUpdate {
-    Move(Cpn<String>, Cpn<String>),
-    SlotMove(Dep<String>, String, String),
+    Move(Cpn, Cpn),
+    SlotMove(Dep, String, String),
 }
 
 impl FromStr for PkgUpdate {
@@ -224,8 +224,8 @@ pub struct Metadata {
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<HashMap<String, HashSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
-    pkg_deprecated: OnceLock<IndexSet<Dep<String>>>,
-    pkg_mask: OnceLock<IndexSet<Dep<String>>>,
+    pkg_deprecated: OnceLock<IndexSet<Dep>>,
+    pkg_mask: OnceLock<IndexSet<Dep>>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
     use_global: OnceLock<IndexMap<String, String>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
@@ -525,7 +525,7 @@ impl Metadata {
     }
 
     /// Return a repo's globally deprecated packages.
-    pub fn pkg_deprecated(&self) -> &IndexSet<Dep<String>> {
+    pub fn pkg_deprecated(&self) -> &IndexSet<Dep> {
         self.pkg_deprecated.get_or_init(|| {
             self.read_path("profiles/package.deprecated")
                 .filter_lines()
@@ -541,7 +541,7 @@ impl Metadata {
     }
 
     /// Return a repo's globally masked packages.
-    pub fn pkg_mask(&self) -> &IndexSet<Dep<String>> {
+    pub fn pkg_mask(&self) -> &IndexSet<Dep> {
         self.pkg_mask.get_or_init(|| {
             self.read_path("profiles/package.mask")
                 .filter_lines()

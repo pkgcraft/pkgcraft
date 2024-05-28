@@ -215,8 +215,8 @@ impl ReportKind {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub enum ReportScope {
-    Version(Cpv<String>),
-    Package(Cpn<String>),
+    Version(Cpv),
+    Package(Cpn),
 }
 
 impl fmt::Display for ReportScope {

@@ -16,16 +16,16 @@ pub struct Pkg<'a> {
     repo: &'a Repo,
     settings: &'a Settings,
     raw: super::Pkg<'a>,
-    bdepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
-    depend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
-    idepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
-    pdepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
-    rdepend: OnceLock<DependencySet<&'a str, &'a Dep<String>>>,
-    license: OnceLock<DependencySet<&'a str, &'a String>>,
-    properties: OnceLock<DependencySet<&'a str, &'a String>>,
-    required_use: OnceLock<DependencySet<&'a str, &'a String>>,
-    restrict: OnceLock<DependencySet<&'a str, &'a String>>,
-    uris: OnceLock<DependencySet<&'a str, &'a Uri>>,
+    bdepend: OnceLock<DependencySet<&'a Dep>>,
+    depend: OnceLock<DependencySet<&'a Dep>>,
+    idepend: OnceLock<DependencySet<&'a Dep>>,
+    pdepend: OnceLock<DependencySet<&'a Dep>>,
+    rdepend: OnceLock<DependencySet<&'a Dep>>,
+    license: OnceLock<DependencySet<&'a String>>,
+    properties: OnceLock<DependencySet<&'a String>>,
+    required_use: OnceLock<DependencySet<&'a String>>,
+    restrict: OnceLock<DependencySet<&'a String>>,
+    uris: OnceLock<DependencySet<&'a Uri>>,
     iuse_effective: OnceLock<OrderedSet<String>>,
 }
 
@@ -58,68 +58,68 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's evaluated dependencies for a given iterable of descriptors.
-    pub fn dependencies(&'a self, keys: &[Key]) -> DependencySet<&'a str, &'a Dep<String>> {
+    pub fn dependencies(&'a self, keys: &[Key]) -> DependencySet<&'a Dep> {
         self.raw
             .dependencies(keys)
             .evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated BDEPEND.
-    pub fn bdepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
+    pub fn bdepend(&'a self) -> &DependencySet<&'a Dep> {
         self.bdepend
             .get_or_init(|| self.raw.bdepend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated DEPEND.
-    pub fn depend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
+    pub fn depend(&'a self) -> &DependencySet<&'a Dep> {
         self.depend
             .get_or_init(|| self.raw.depend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated IDEPEND.
-    pub fn idepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
+    pub fn idepend(&'a self) -> &DependencySet<&'a Dep> {
         self.idepend
             .get_or_init(|| self.raw.idepend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated PDEPEND.
-    pub fn pdepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
+    pub fn pdepend(&'a self) -> &DependencySet<&'a Dep> {
         self.pdepend
             .get_or_init(|| self.raw.pdepend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated RDEPEND.
-    pub fn rdepend(&'a self) -> &DependencySet<&'a str, &'a Dep<String>> {
+    pub fn rdepend(&'a self) -> &DependencySet<&'a Dep> {
         self.rdepend
             .get_or_init(|| self.raw.rdepend().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated LICENSE.
-    pub fn license(&'a self) -> &DependencySet<&'a str, &'a String> {
+    pub fn license(&'a self) -> &DependencySet<&'a String> {
         self.license
             .get_or_init(|| self.raw.license().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated PROPERTIES.
-    pub fn properties(&'a self) -> &DependencySet<&'a str, &'a String> {
+    pub fn properties(&'a self) -> &DependencySet<&'a String> {
         self.properties
             .get_or_init(|| self.raw.properties().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated RESTRICT.
-    pub fn required_use(&'a self) -> &DependencySet<&'a str, &'a String> {
+    pub fn required_use(&'a self) -> &DependencySet<&'a String> {
         self.required_use
             .get_or_init(|| self.raw.required_use().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated RESTRICT.
-    pub fn restrict(&'a self) -> &DependencySet<&'a str, &'a String> {
+    pub fn restrict(&'a self) -> &DependencySet<&'a String> {
         self.restrict
             .get_or_init(|| self.raw.restrict().evaluate(self.settings.options()))
     }
 
     /// Return a configured package's evaluated SRC_URI.
-    pub fn src_uri(&'a self) -> &DependencySet<&'a str, &'a Uri> {
+    pub fn src_uri(&'a self) -> &DependencySet<&'a Uri> {
         self.uris
             .get_or_init(|| self.raw.src_uri().evaluate(self.settings.options()))
     }
@@ -130,7 +130,7 @@ impl<'a> Package for Pkg<'a> {
         self.raw.eapi()
     }
 
-    fn cpv(&self) -> &Cpv<String> {
+    fn cpv(&self) -> &Cpv {
         self.raw.cpv()
     }
 }

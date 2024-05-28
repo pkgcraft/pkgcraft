@@ -4,8 +4,7 @@ use pkgcraft::dep::Version;
 use pkgcraft::traits::Intersects;
 
 pub fn bench_pkg_versions(c: &mut Criterion) {
-    c.bench_function("version-parse", |b| b.iter(|| Version::parse(">=1.2.3a_beta4-r5")));
-    c.bench_function("version-new", |b| b.iter(|| Version::try_new("1.2.3_alpha4-r5")));
+    c.bench_function("version-parse", |b| b.iter(|| Version::try_new("1.2.3_alpha4-r5")));
 
     c.bench_function("version-cmp-eq", |b| {
         let v1 = Version::try_new("1.2.3a_beta4-r5").unwrap();

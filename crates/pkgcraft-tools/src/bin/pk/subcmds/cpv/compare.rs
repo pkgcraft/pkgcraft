@@ -40,8 +40,8 @@ impl Command {
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
-            let lhs = Cpv::parse(lhs)?;
-            let rhs = Cpv::parse(rhs)?;
+            let lhs = Cpv::try_new(lhs)?;
+            let rhs = Cpv::try_new(rhs)?;
             let result = match op {
                 "<" => lhs < rhs,
                 "<=" => lhs <= rhs,

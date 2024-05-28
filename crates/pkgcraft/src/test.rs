@@ -49,15 +49,15 @@ pub struct ValidDep {
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub blocker: Option<Blocker>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub version: Option<Version<String>>,
+    pub version: Option<Version>,
     #[serde_as(as = "Option<DisplayFromStr>")]
-    pub revision: Option<Revision<String>>,
+    pub revision: Option<Revision>,
     pub slot: Option<String>,
     pub subslot: Option<String>,
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub slot_op: Option<SlotOperator>,
     #[serde(rename = "use")]
-    pub use_deps: Option<SortedSet<UseDep<String>>>,
+    pub use_deps: Option<SortedSet<UseDep>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -172,7 +172,7 @@ impl TestData {
         &'a self,
         s: &str,
     ) -> crate::Result<crate::pkg::ebuild::raw::Pkg<'a>> {
-        let dep: Dep<_> = s.parse()?;
+        let dep: Dep = s.parse()?;
         let repo_name = dep
             .repo()
             .ok_or_else(|| Error::InvalidValue(format!("dep missing repo: {s}")))?;

@@ -1,8 +1,7 @@
 use std::cmp::Ordering;
 
-use crate::dep::{self, Stringable};
-use crate::macros::{cmp_not_equal, equivalent};
-use crate::traits::{IntoOwned, ToRef};
+use crate::dep::parse;
+use crate::macros::cmp_not_equal;
 
 /// Package keyword type.
 #[repr(C)]
@@ -13,93 +12,26 @@ pub enum KeywordStatus {
     Stable,   // arch
 }
 
-#[derive(Debug, Eq, Hash, Clone)]
-pub struct Keyword<S: Stringable> {
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct Keyword {
     pub(crate) status: KeywordStatus,
-    pub(crate) arch: S,
+    pub(crate) arch: String,
 }
 
-impl IntoOwned for Keyword<&str> {
-    type Owned = Keyword<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Keyword {
-            status: self.status,
-            arch: self.arch.to_string(),
-        }
-    }
-}
-
-impl<'a> ToRef<'a> for Keyword<String> {
-    type Ref = Keyword<&'a str>;
-
-    fn to_ref(&'a self) -> Self::Ref {
-        Keyword {
-            status: self.status,
-            arch: self.arch.as_ref(),
-        }
-    }
-}
-
-impl Keyword<String> {
-    /// Create an owned [`Keyword`] from a given string.
+impl Keyword {
+    /// Create a [`Keyword`] from a given string.
     pub fn try_new(s: &str) -> crate::Result<Self> {
-        Keyword::parse(s).into_owned()
+        parse::keyword(s)
     }
-}
 
-impl<'a> Keyword<&'a str> {
-    /// Create a borrowed [`Keyword`] from a given string.
-    pub fn parse(s: &'a str) -> crate::Result<Self> {
-        dep::parse::keyword(s)
-    }
-}
-
-impl<S: Stringable> Keyword<S> {
     /// Return the architecture for a keyword without its status.
     pub fn arch(&self) -> &str {
-        self.arch.as_ref()
+        &self.arch
     }
 
     /// Return the keyword status.
     pub fn status(&self) -> KeywordStatus {
         self.status
-    }
-
-    /// Disable a keyword, returning its borrowed form.
-    pub fn disable(&self) -> Keyword<&str> {
-        Keyword {
-            status: KeywordStatus::Disabled,
-            arch: self.arch(),
-        }
-    }
-
-    /// Stabilize a keyword, returning its borrowed form while skipping disabled variants.
-    pub fn stable(&self) -> Keyword<&str> {
-        let status = if self.status != KeywordStatus::Disabled {
-            KeywordStatus::Stable
-        } else {
-            KeywordStatus::Disabled
-        };
-
-        Keyword { status, arch: self.arch() }
-    }
-
-    /// Destabilize a keyword, returning its borrowed form while skipping disabled variants.
-    pub fn unstable(&self) -> Keyword<&str> {
-        let status = if self.status != KeywordStatus::Disabled {
-            KeywordStatus::Unstable
-        } else {
-            KeywordStatus::Disabled
-        };
-
-        Keyword { status, arch: self.arch() }
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialEq<Keyword<S1>> for Keyword<S2> {
-    fn eq(&self, other: &Keyword<S1>) -> bool {
-        self.status == other.status && self.arch() == other.arch()
     }
 }
 
@@ -123,34 +55,23 @@ where
     Ordering::Equal
 }
 
-/// Compare two keywords, making unprefixed arches less than prefixed arches.
-fn cmp<S1, S2>(kw1: &Keyword<S1>, kw2: &Keyword<S2>) -> Ordering
-where
-    S1: Stringable,
-    S2: Stringable,
-{
-    let cmp = cmp_arches(kw1.arch(), kw2.arch());
-    if cmp != Ordering::Equal {
-        return cmp;
-    }
-    kw1.status.cmp(&kw2.status)
-}
-
-impl<S: Stringable> Ord for Keyword<S> {
+impl Ord for Keyword {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp(self, other)
+        let cmp = cmp_arches(self.arch(), other.arch());
+        if cmp != Ordering::Equal {
+            return cmp;
+        }
+        self.status.cmp(&other.status)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialOrd<Keyword<S1>> for Keyword<S2> {
-    fn partial_cmp(&self, other: &Keyword<S1>) -> Option<Ordering> {
-        Some(cmp(self, other))
+impl PartialOrd for Keyword {
+    fn partial_cmp(&self, other: &Keyword) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
-equivalent!(Keyword);
-
-impl std::str::FromStr for Keyword<String> {
+impl std::str::FromStr for Keyword {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -158,7 +79,7 @@ impl std::str::FromStr for Keyword<String> {
     }
 }
 
-impl<S: Stringable> std::fmt::Display for Keyword<S> {
+impl std::fmt::Display for Keyword {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let arch = &self.arch;
         match &self.status {
@@ -173,7 +94,6 @@ impl<S: Stringable> std::fmt::Display for Keyword<S> {
 mod tests {
     use std::collections::HashMap;
 
-    use indexmap::Equivalent;
     use itertools::Itertools;
 
     use crate::utils::hash;
@@ -181,28 +101,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_and_parse() {
+    fn try_new() {
         // invalid
         for s in ["", "-", "-@", "--arch", "-~arch", "~-arch"] {
-            assert!(Keyword::parse(s).is_err(), "{s} didn't fail");
             assert!(Keyword::try_new(s).is_err(), "{s} didn't fail");
         }
 
         // valid
         for s in ["arch", "-arch", "~arch", "-*", "_", "-_", "~_"] {
-            let borrowed = Keyword::parse(s);
-            let owned = Keyword::try_new(s);
-            assert!(borrowed.is_ok(), "{s} failed");
-            assert!(owned.is_ok(), "{s} failed");
-            let borrowed = borrowed.unwrap();
-            let owned = owned.unwrap();
-            assert_eq!(borrowed, owned);
-            assert_eq!(owned, borrowed);
-            assert_eq!(owned, s.parse().unwrap());
-            assert!(owned.equivalent(&borrowed));
-            assert!(borrowed.equivalent(&owned));
-            assert_eq!(borrowed.to_string(), s);
-            assert_eq!(owned.to_string(), s);
+            let kw = Keyword::try_new(s);
+            assert!(kw.is_ok(), "{s} failed");
+            let kw = kw.unwrap();
+            assert_eq!(kw, s.parse().unwrap());
+            assert_eq!(kw.to_string(), s);
         }
     }
 
@@ -217,34 +128,10 @@ mod tests {
             ("~_", "_", Unstable),
             ("~arch-linux", "arch-linux", Unstable),
         ] {
-            let borrowed = Keyword::parse(s).unwrap();
-            let owned = Keyword::try_new(s).unwrap();
-            assert_eq!(owned.arch(), arch);
-            assert_eq!(owned.status(), status);
-            assert_eq!(borrowed.arch(), arch);
-            assert_eq!(borrowed.status(), status);
+            let kw = Keyword::try_new(s).unwrap();
+            assert_eq!(kw.arch(), arch);
+            assert_eq!(kw.status(), status);
         }
-    }
-
-    #[test]
-    fn alter_status() {
-        let disabled = Keyword::parse("-arch").unwrap();
-        let unstable = Keyword::parse("~arch").unwrap();
-        let stable = Keyword::parse("arch").unwrap();
-
-        assert_eq!(disabled.disable(), disabled);
-        assert_eq!(unstable.disable(), disabled);
-        assert_eq!(stable.disable(), disabled);
-
-        // unstable() does not alter keywords with disabled status
-        assert_eq!(disabled.unstable(), disabled);
-        assert_eq!(unstable.unstable(), unstable);
-        assert_eq!(stable.unstable(), unstable);
-
-        // stable() does not alter keywords with disabled status
-        assert_eq!(disabled.stable(), disabled);
-        assert_eq!(unstable.stable(), stable);
-        assert_eq!(stable.stable(), stable);
     }
 
     #[test]
@@ -274,63 +161,22 @@ mod tests {
 
         for expr in exprs {
             let (s1, op, s2) = expr.split_whitespace().collect_tuple().unwrap();
-            let v1_owned = Keyword::try_new(s1).unwrap();
-            let v1_borrowed = Keyword::parse(s1).unwrap();
-            let v2_owned = Keyword::try_new(s2).unwrap();
-            let v2_borrowed = Keyword::parse(s2).unwrap();
+            let kw1 = Keyword::try_new(s1).unwrap();
+            let kw2 = Keyword::try_new(s2).unwrap();
             if op != "==" {
-                assert_ne!(v1_owned, v2_owned, "failed comparing: {expr}");
-                assert_ne!(v1_borrowed, v2_borrowed, "failed comparing: {expr}");
-                assert_ne!(v1_owned, v2_borrowed, "failed comparing: {expr}");
-                assert_ne!(v1_borrowed, v2_owned, "failed comparing: {expr}");
-                assert_ne!(v2_owned, v1_owned, "failed comparing: {expr}");
-                assert_ne!(v2_borrowed, v1_borrowed, "failed comparing: {expr}");
-                assert_ne!(v2_owned, v1_borrowed, "failed comparing: {expr}");
-                assert_ne!(v2_borrowed, v1_owned, "failed comparing: {expr}");
+                assert_ne!(kw1, kw2, "failed comparing: {expr}");
+                assert_ne!(kw2, kw1, "failed comparing: {expr}");
             }
 
             if op != "!=" {
                 let op = op_map[op];
-                assert_eq!(v1_owned.cmp(&v2_owned), op, "failed comparing: {expr}");
-                assert_eq!(v1_borrowed.cmp(&v2_borrowed), op, "failed comparing: {expr}");
-                assert_eq!(
-                    v1_owned.partial_cmp(&v2_borrowed),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    v1_borrowed.partial_cmp(&v2_owned),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    v2_owned.cmp(&v1_owned),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_borrowed.cmp(&v1_borrowed),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_owned.partial_cmp(&v1_borrowed),
-                    Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_borrowed.partial_cmp(&v1_owned),
-                    Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
-                );
+                assert_eq!(kw1.cmp(&kw2), op, "failed comparing: {expr}");
+                assert_eq!(kw2.cmp(&kw1), op.reverse(), "failed comparing inverted: {expr}");
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)
                 if op == Ordering::Equal {
-                    assert_eq!(hash(&v1_owned), hash(&v2_owned), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_borrowed), hash(&v2_borrowed), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_owned), hash(&v2_borrowed), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_borrowed), hash(&v2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&kw1), hash(&kw2), "failed hash: {expr}");
                 }
             }
         }

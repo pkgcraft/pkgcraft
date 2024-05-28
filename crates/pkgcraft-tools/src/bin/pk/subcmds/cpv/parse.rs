@@ -36,8 +36,8 @@ pub(crate) enum Key {
     CPV,
 }
 
-impl<'a> EnumVariable<'a> for Key {
-    type Object = Cpv<&'a str>;
+impl EnumVariable<'_> for Key {
+    type Object = Cpv;
 
     fn value(&self, obj: &Self::Object) -> String {
         use Key::*;
@@ -56,7 +56,7 @@ impl<'a> EnumVariable<'a> for Key {
 }
 
 impl<'a> FormatString<'a> for Command {
-    type Object = Cpv<&'a str>;
+    type Object = Cpv;
     type FormatKey = Key;
 }
 
@@ -67,7 +67,7 @@ impl Command {
 
         let values = mem::take(&mut self.values);
         for s in values.stdin_or_args().split_whitespace() {
-            if let Ok(cpv) = Cpv::parse(&s) {
+            if let Ok(cpv) = Cpv::try_new(&s) {
                 if let Some(fmt) = &self.format {
                     writeln!(stdout, "{}", self.format_str(fmt, &cpv)?)?;
                 }

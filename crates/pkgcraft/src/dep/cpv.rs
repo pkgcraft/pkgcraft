@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::cmp::Ordering;
 use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
@@ -7,47 +6,28 @@ use std::str::FromStr;
 use camino::Utf8PathBuf;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::macros::{equivalent, partial_cmp_not_equal_opt};
-use crate::traits::{Intersects, IntoOwned, ToRef};
+use crate::traits::Intersects;
 use crate::Error;
 
 use super::cpn::Cpn;
+use super::parse;
 use super::pkg::Dep;
 use super::version::{Operator, Revision, Version, WithOp};
-use super::{parse, Stringable};
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub enum CpvOrDep<S: Stringable> {
-    Cpv(Cpv<S>),
-    Dep(Dep<S>),
+pub enum CpvOrDep {
+    Cpv(Cpv),
+    Dep(Dep),
 }
 
-impl<'a> IntoOwned for CpvOrDep<&'a str> {
-    type Owned = CpvOrDep<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        match self {
-            CpvOrDep::Cpv(val) => CpvOrDep::Cpv(val.into_owned()),
-            CpvOrDep::Dep(val) => CpvOrDep::Dep(val.into_owned()),
-        }
-    }
-}
-
-impl CpvOrDep<String> {
-    /// Create an owned [`CpvOrDep`] from a given string.
+impl CpvOrDep {
+    /// Create a [`CpvOrDep`] from a given string.
     pub fn try_new(s: &str) -> crate::Result<Self> {
-        CpvOrDep::parse(s).into_owned()
-    }
-}
-
-impl<'a> CpvOrDep<&'a str> {
-    /// Create a borrowed [`CpvOrDep`] from a given string.
-    pub fn parse(s: &'a str) -> crate::Result<Self> {
         parse::cpv_or_dep(s)
     }
 }
 
-impl FromStr for CpvOrDep<String> {
+impl FromStr for CpvOrDep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -55,7 +35,7 @@ impl FromStr for CpvOrDep<String> {
     }
 }
 
-impl<S: Stringable> fmt::Display for CpvOrDep<S> {
+impl fmt::Display for CpvOrDep {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Cpv(val) => write!(f, "{val}"),
@@ -64,8 +44,8 @@ impl<S: Stringable> fmt::Display for CpvOrDep<S> {
     }
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for CpvOrDep<S2> {
-    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
+impl Intersects<CpvOrDep> for CpvOrDep {
+    fn intersects(&self, other: &CpvOrDep) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), Cpv(obj2)) => obj1.intersects(obj2),
@@ -76,8 +56,8 @@ impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for CpvOrDep<S2> {
     }
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for CpvOrDep<S2> {
-    fn intersects(&self, other: &Cpv<S1>) -> bool {
+impl Intersects<Cpv> for CpvOrDep {
+    fn intersects(&self, other: &Cpv) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
@@ -86,14 +66,14 @@ impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for CpvOrDep<S2> {
     }
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Cpv<S2> {
-    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
+impl Intersects<CpvOrDep> for Cpv {
+    fn intersects(&self, other: &CpvOrDep) -> bool {
         other.intersects(self)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for CpvOrDep<S2> {
-    fn intersects(&self, other: &Dep<S1>) -> bool {
+impl Intersects<Dep> for CpvOrDep {
+    fn intersects(&self, other: &Dep) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
@@ -102,14 +82,14 @@ impl<S1: Stringable, S2: Stringable> Intersects<Dep<S1>> for CpvOrDep<S2> {
     }
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Dep<S2> {
-    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
+impl Intersects<CpvOrDep> for Dep {
+    fn intersects(&self, other: &CpvOrDep) -> bool {
         other.intersects(self)
     }
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<Cow<'_, Dep<S1>>> for CpvOrDep<S2> {
-    fn intersects(&self, other: &Cow<'_, Dep<S1>>) -> bool {
+impl Intersects<Cow<'_, Dep>> for CpvOrDep {
+    fn intersects(&self, other: &Cow<'_, Dep>) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), obj2) => obj1.intersects(obj2),
@@ -118,21 +98,23 @@ impl<S1: Stringable, S2: Stringable> Intersects<Cow<'_, Dep<S1>>> for CpvOrDep<S
     }
 }
 
-impl<S1: Stringable, S2: Stringable> Intersects<CpvOrDep<S1>> for Cow<'_, Dep<S2>> {
-    fn intersects(&self, other: &CpvOrDep<S1>) -> bool {
+impl Intersects<CpvOrDep> for Cow<'_, Dep> {
+    fn intersects(&self, other: &CpvOrDep) -> bool {
         other.intersects(self)
     }
 }
 
 /// Versioned package.
-#[derive(SerializeDisplay, DeserializeFromStr, Debug, Eq, Ord, Clone, Hash)]
-pub struct Cpv<S: Stringable> {
-    pub(crate) cpn: Cpn<S>,
-    pub(crate) version: Version<S>,
+#[derive(
+    SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash,
+)]
+pub struct Cpv {
+    pub(crate) cpn: Cpn,
+    pub(crate) version: Version,
 }
 
-impl<S: Stringable> WithOp for Cpv<S> {
-    type WithOp = Dep<S>;
+impl WithOp for Cpv {
+    type WithOp = Dep;
 
     fn with_op(self, op: Operator) -> Result<Self::WithOp, &'static str> {
         Ok(Dep {
@@ -146,45 +128,14 @@ impl<S: Stringable> WithOp for Cpv<S> {
     }
 }
 
-impl<'a> IntoOwned for Cpv<&'a str> {
-    type Owned = Cpv<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        Cpv {
-            cpn: self.cpn.into_owned(),
-            version: self.version.into_owned(),
-        }
-    }
-}
-
-impl<'a> ToRef<'a> for Cpv<String> {
-    type Ref = Cpv<&'a str>;
-
-    fn to_ref(&'a self) -> Self::Ref {
-        Cpv {
-            cpn: self.cpn.to_ref(),
-            version: self.version.to_ref(),
-        }
-    }
-}
-
-impl Cpv<String> {
-    /// Create an owned [`Cpv`] from a given string.
+impl Cpv {
+    /// Create a [`Cpv`] from a given string.
     pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
-        Cpv::parse(s.as_ref()).into_owned()
+        parse::cpv(s.as_ref())
     }
-}
 
-impl<'a> Cpv<&'a str> {
-    /// Create a borrowed [`Cpv`] from a given string.
-    pub fn parse(s: &'a str) -> crate::Result<Self> {
-        parse::cpv(s)
-    }
-}
-
-impl<S: Stringable> Cpv<S> {
     /// Return the [`Cpn`].
-    pub fn cpn(&self) -> &Cpn<S> {
+    pub fn cpn(&self) -> &Cpn {
         &self.cpn
     }
 
@@ -199,12 +150,12 @@ impl<S: Stringable> Cpv<S> {
     }
 
     /// Return a Cpv's version.
-    pub fn version(&self) -> &Version<S> {
+    pub fn version(&self) -> &Version {
         &self.version
     }
 
     /// Return a Cpv's revision.
-    pub fn revision(&self) -> Option<&Revision<S>> {
+    pub fn revision(&self) -> Option<&Revision> {
         self.version.revision()
     }
 
@@ -239,23 +190,7 @@ impl<S: Stringable> Cpv<S> {
     }
 }
 
-impl<S1: Stringable, S2: Stringable> PartialEq<Cpv<S1>> for Cpv<S2> {
-    fn eq(&self, other: &Cpv<S1>) -> bool {
-        self.category() == other.category()
-            && self.package() == other.package()
-            && self.version == other.version
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialOrd<Cpv<S1>> for Cpv<S2> {
-    fn partial_cmp(&self, other: &Cpv<S1>) -> Option<Ordering> {
-        partial_cmp_not_equal_opt!(self.category(), other.category());
-        partial_cmp_not_equal_opt!(self.package(), other.package());
-        self.version.partial_cmp(&other.version)
-    }
-}
-
-impl FromStr for Cpv<String> {
+impl FromStr for Cpv {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -264,7 +199,7 @@ impl FromStr for Cpv<String> {
 }
 
 /// Try converting a (category, package, version) string tuple into a Cpv.
-impl<T1, T2, T3> TryFrom<(T1, T2, T3)> for Cpv<String>
+impl<T1, T2, T3> TryFrom<(T1, T2, T3)> for Cpv
 where
     T1: fmt::Display,
     T2: fmt::Display,
@@ -278,45 +213,44 @@ where
     }
 }
 
-impl<S: Stringable> fmt::Display for Cpv<S> {
+impl fmt::Display for Cpv {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}-{}", self.cpn, self.version)
     }
 }
 
 /// Determine if two Cpvs intersect.
-impl<S1: Stringable, S2: Stringable> Intersects<Cpv<S1>> for Cpv<S2> {
-    fn intersects(&self, other: &Cpv<S1>) -> bool {
+impl Intersects<Cpv> for Cpv {
+    fn intersects(&self, other: &Cpv) -> bool {
         self == other
     }
 }
 
-impl<S: Stringable> From<Cpv<S>> for Cpn<S> {
-    fn from(cpv: Cpv<S>) -> Self {
+impl From<Cpv> for Cpn {
+    fn from(cpv: Cpv) -> Self {
         cpv.cpn.clone()
     }
 }
 
-impl TryFrom<&str> for Cpv<String> {
+impl TryFrom<&str> for Cpv {
     type Error = Error;
 
-    fn try_from(value: &str) -> crate::Result<Cpv<String>> {
-        value.parse()
+    fn try_from(value: &str) -> crate::Result<Self> {
+        Cpv::try_new(value)
     }
 }
 
-impl TryFrom<&Cpv<String>> for Cpv<String> {
+impl TryFrom<&Cpv> for Cpv {
     type Error = Error;
 
-    fn try_from(value: &Cpv<String>) -> crate::Result<Cpv<String>> {
+    fn try_from(value: &Cpv) -> crate::Result<Self> {
         Ok(value.clone())
     }
 }
 
-equivalent!(Cpv);
-
 #[cfg(test)]
 mod tests {
+    use std::cmp::Ordering;
     use std::collections::HashMap;
 
     use crate::test::TEST_DATA;
@@ -328,27 +262,13 @@ mod tests {
     fn new_and_parse() {
         // invalid
         for s in ["a/b", "a/b-1a-1", "a/b1", "a/b-1aa", "a/b-1.a", "a/b-1-r2-3-r4"] {
-            assert!(Cpv::parse(s).is_err(), "{s} is valid");
             assert!(Cpv::try_new(s).is_err(), "{s} is valid");
         }
 
         // valid
         for s in ["a/b--1", "a/b-r1-2", "a/b-r0-1-r2", "a/b-3-c-4-r5"] {
-            let borrowed = Cpv::parse(s);
-            assert!(borrowed.is_ok(), "{s} isn't valid");
-            let owned = Cpv::try_new(s);
-            assert!(owned.is_ok(), "{s} isn't valid");
-
-            // verify owned and borrowed types are equal
-            let borrowed = borrowed.unwrap();
-            let owned = owned.unwrap();
-            assert_eq!(borrowed, owned);
-            assert_eq!(owned, borrowed);
-
-            // verify string parsing
-            let cpv = s.parse().unwrap();
-            assert_eq!(borrowed, cpv);
-            assert_eq!(owned, cpv);
+            let cpv = Cpv::try_new(s);
+            assert!(cpv.is_ok(), "{s} isn't valid");
         }
     }
 
@@ -360,74 +280,31 @@ mod tests {
                 .collect();
 
         for (expr, (s1, op, s2)) in TEST_DATA.version_toml.compares() {
-            let cpv1 = format!("a/b-{s1}");
-            let cpv2 = format!("a/b-{s2}");
-            let v1_owned = Cpv::try_new(&cpv1).unwrap();
-            let v1_borrowed = Cpv::parse(&cpv1).unwrap();
-            let v2_owned = Cpv::try_new(&cpv2).unwrap();
-            let v2_borrowed = Cpv::parse(&cpv2).unwrap();
+            let cpv_str1 = format!("a/b-{s1}");
+            let cpv_str2 = format!("a/b-{s2}");
+            let cpv1 = Cpv::try_new(&cpv_str1).unwrap();
+            let cpv2 = Cpv::try_new(&cpv_str2).unwrap();
             if op == "!=" {
-                assert_ne!(v1_owned, v2_owned, "failed comparing: {expr}");
-                assert_ne!(v1_borrowed, v2_borrowed, "failed comparing: {expr}");
-                assert_ne!(v1_owned, v2_borrowed, "failed comparing: {expr}");
-                assert_ne!(v1_borrowed, v2_owned, "failed comparing: {expr}");
-                assert_ne!(v2_owned, v1_owned, "failed comparing: {expr}");
-                assert_ne!(v2_borrowed, v1_borrowed, "failed comparing: {expr}");
-                assert_ne!(v2_owned, v1_borrowed, "failed comparing: {expr}");
-                assert_ne!(v2_borrowed, v1_owned, "failed comparing: {expr}");
+                assert_ne!(cpv1, cpv2, "failed comparing: {expr}");
+                assert_ne!(cpv2, cpv1, "failed comparing: {expr}");
             } else {
                 let op = op_map[op];
-                assert_eq!(v1_owned.cmp(&v2_owned), op, "failed comparing: {expr}");
-                assert_eq!(v1_borrowed.cmp(&v2_borrowed), op, "failed comparing: {expr}");
-                assert_eq!(
-                    v1_owned.partial_cmp(&v2_borrowed),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    v1_borrowed.partial_cmp(&v2_owned),
-                    Some(op),
-                    "failed comparing: {expr}"
-                );
-                assert_eq!(
-                    v2_owned.cmp(&v1_owned),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_borrowed.cmp(&v1_borrowed),
-                    op.reverse(),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_owned.partial_cmp(&v1_borrowed),
-                    Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
-                );
-                assert_eq!(
-                    v2_borrowed.partial_cmp(&v1_owned),
-                    Some(op.reverse()),
-                    "failed comparing inverted: {expr}"
-                );
+                assert_eq!(cpv1.cmp(&cpv2), op, "failed comparing: {expr}");
+                assert_eq!(cpv2.cmp(&cpv1), op.reverse(), "failed comparing inverted: {expr}");
 
                 // package and category names take priority over versions for comparisons
-                let cpv3 = format!("a/z-{s2}");
-                let cpv4 = format!("z/b-{s2}");
-                let v3 = Cpv::try_new(&cpv3).unwrap();
-                let v4 = Cpv::try_new(&cpv4).unwrap();
-                assert!(v3 > v1_owned);
-                assert!(v3 > v1_borrowed);
-                assert!(v3 > v2_owned);
-                assert!(v3 > v2_borrowed);
-                assert!(v4 > v3);
+                let cpv_str3 = format!("a/z-{s2}");
+                let cpv_str4 = format!("z/b-{s2}");
+                let cpv3 = Cpv::try_new(&cpv_str3).unwrap();
+                let cpv4 = Cpv::try_new(&cpv_str4).unwrap();
+                assert!(cpv3 > cpv1);
+                assert!(cpv3 > cpv2);
+                assert!(cpv4 > cpv3);
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)
                 if op == Ordering::Equal {
-                    assert_eq!(hash(&v1_owned), hash(&v2_owned), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_borrowed), hash(&v2_borrowed), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_owned), hash(&v2_borrowed), "failed hash: {expr}");
-                    assert_eq!(hash(&v1_borrowed), hash(&v2_owned), "failed hash: {expr}");
+                    assert_eq!(hash(&cpv1), hash(&cpv2), "failed hash: {expr}");
                 }
             }
         }
@@ -435,53 +312,32 @@ mod tests {
 
     #[test]
     fn cpv_or_dep() {
-        let cpv_owned = Cpv::try_new("cat/pkg-1").unwrap();
-        let cpv_borrowed = Cpv::parse("cat/pkg-1").unwrap();
-        let dep_owned = Dep::try_new(">=cat/pkg-1").unwrap();
-        let dep_borrowed = Dep::parse(">=cat/pkg-1", None).unwrap();
-        let dep_cow = dep_owned.without([]).unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        let dep = Dep::try_new(">=cat/pkg-1").unwrap();
+        let dep_cow = dep.without([]).unwrap();
 
         // valid
         for s in ["cat/pkg", "cat/pkg-1", ">=cat/pkg-1"] {
-            let owned = CpvOrDep::try_new(s).unwrap();
-            let borrowed = CpvOrDep::parse(s).unwrap();
-            assert_eq!(owned.to_string(), s);
-            assert_eq!(borrowed.to_string(), s);
-            assert_eq!(owned, s.parse().unwrap());
+            let cpv_or_dep = CpvOrDep::try_new(s).unwrap();
+            assert_eq!(cpv_or_dep.to_string(), s);
+            assert_eq!(cpv_or_dep, s.parse().unwrap());
 
             // intersects with itself
-            assert!(owned.intersects(&owned));
-            assert!(borrowed.intersects(&borrowed));
-            assert!(owned.intersects(&borrowed));
-            assert!(borrowed.intersects(&owned));
+            assert!(cpv_or_dep.intersects(&cpv_or_dep));
 
             // intersects with Cpv
-            assert!(owned.intersects(&cpv_owned));
-            assert!(owned.intersects(&cpv_borrowed));
-            assert!(borrowed.intersects(&cpv_owned));
-            assert!(borrowed.intersects(&cpv_borrowed));
-            assert!(cpv_owned.intersects(&owned));
-            assert!(cpv_owned.intersects(&borrowed));
-            assert!(cpv_borrowed.intersects(&owned));
-            assert!(cpv_borrowed.intersects(&borrowed));
+            assert!(cpv_or_dep.intersects(&cpv));
+            assert!(cpv.intersects(&cpv_or_dep));
 
             // intersects with Dep
-            assert!(owned.intersects(&dep_owned));
-            assert!(owned.intersects(&dep_borrowed));
-            assert!(owned.intersects(&dep_cow));
-            assert!(borrowed.intersects(&dep_owned));
-            assert!(borrowed.intersects(&dep_borrowed));
-            assert!(borrowed.intersects(&dep_cow));
-            assert!(dep_owned.intersects(&owned));
-            assert!(dep_owned.intersects(&borrowed));
-            assert!(dep_borrowed.intersects(&owned));
-            assert!(dep_borrowed.intersects(&borrowed));
-            assert!(dep_cow.intersects(&owned));
-            assert!(dep_cow.intersects(&borrowed));
+            assert!(cpv_or_dep.intersects(&dep));
+            assert!(cpv_or_dep.intersects(&dep_cow));
+            assert!(dep.intersects(&cpv_or_dep));
+            assert!(dep_cow.intersects(&cpv_or_dep));
         }
 
         // invalid
-        assert!(CpvOrDep::parse("cat/pkg-1a-1").is_err());
-        assert!(CpvOrDep::parse("cat").is_err());
+        assert!(CpvOrDep::try_new("cat/pkg-1a-1").is_err());
+        assert!(CpvOrDep::try_new("cat").is_err());
     }
 }

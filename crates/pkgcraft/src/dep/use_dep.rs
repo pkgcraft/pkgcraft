@@ -1,12 +1,9 @@
-use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
 use indexmap::IndexSet;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::macros::{partial_cmp_not_equal_opt, partial_cmp_opt};
-use crate::traits::{IntoOwned, ToRef};
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -33,52 +30,16 @@ pub enum UseDepDefault {
 }
 
 /// Package USE dependency.
-#[derive(DeserializeFromStr, SerializeDisplay, Debug, Eq, Ord, Hash, Clone)]
-pub struct UseDep<S: Stringable> {
+#[derive(
+    DeserializeFromStr, SerializeDisplay, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone,
+)]
+pub struct UseDep {
+    pub(crate) flag: String,
     pub(crate) kind: UseDepKind,
-    pub(crate) flag: S,
     pub(crate) default: Option<UseDepDefault>,
 }
 
-impl IntoOwned for UseDep<&str> {
-    type Owned = UseDep<String>;
-
-    fn into_owned(self) -> Self::Owned {
-        UseDep {
-            kind: self.kind,
-            flag: self.flag.to_string(),
-            default: self.default,
-        }
-    }
-}
-
-impl<'a, S: Stringable> ToRef<'a> for UseDep<S> {
-    type Ref = UseDep<&'a str>;
-
-    fn to_ref(&'a self) -> Self::Ref {
-        UseDep {
-            kind: self.kind,
-            flag: self.flag.as_ref(),
-            default: self.default,
-        }
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialEq<UseDep<S1>> for UseDep<S2> {
-    fn eq(&self, other: &UseDep<S1>) -> bool {
-        self.kind == other.kind && self.flag() == other.flag() && self.default == other.default
-    }
-}
-
-impl<S1: Stringable, S2: Stringable> PartialOrd<UseDep<S1>> for UseDep<S2> {
-    fn partial_cmp(&self, other: &UseDep<S1>) -> Option<Ordering> {
-        partial_cmp_not_equal_opt!(self.flag(), other.flag());
-        partial_cmp_not_equal_opt!(&self.kind, &other.kind);
-        partial_cmp_opt!(&self.default, &other.default)
-    }
-}
-
-impl<S: Stringable> fmt::Display for UseDep<S> {
+impl fmt::Display for UseDep {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let default = match &self.default {
             Some(UseDepDefault::Enabled) => "(+)",
@@ -98,7 +59,7 @@ impl<S: Stringable> fmt::Display for UseDep<S> {
     }
 }
 
-impl FromStr for UseDep<String> {
+impl FromStr for UseDep {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -106,7 +67,7 @@ impl FromStr for UseDep<String> {
     }
 }
 
-impl FromStr for SortedSet<UseDep<String>> {
+impl FromStr for SortedSet<UseDep> {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -114,7 +75,12 @@ impl FromStr for SortedSet<UseDep<String>> {
     }
 }
 
-impl<S: Stringable> UseDep<S> {
+impl UseDep {
+    /// Create a new UseDep from a given string.
+    pub fn try_new(s: &str) -> crate::Result<Self> {
+        parse::use_dep(s)
+    }
+
     /// Return the USE dependency type.
     pub fn kind(&self) -> UseDepKind {
         self.kind
@@ -122,7 +88,7 @@ impl<S: Stringable> UseDep<S> {
 
     /// Return the flag value for the USE dependency.
     pub fn flag(&self) -> &str {
-        self.flag.as_ref()
+        &self.flag
     }
 
     /// Return the USE dependency default.
@@ -131,19 +97,12 @@ impl<S: Stringable> UseDep<S> {
     }
 
     /// Determine if a USE dependency matches a set of enabled flags.
-    pub(crate) fn matches<F: Stringable>(&self, options: &IndexSet<F>) -> bool {
+    pub(crate) fn matches<S: Stringable>(&self, options: &IndexSet<S>) -> bool {
         use UseDepKind::*;
         match &self.kind {
-            EnabledConditional => options.contains(self.flag()),
-            DisabledConditional => !options.contains(self.flag()),
+            EnabledConditional => options.contains(self.flag.as_str()),
+            DisabledConditional => !options.contains(self.flag.as_str()),
             _ => todo!(),
         }
-    }
-}
-
-impl UseDep<String> {
-    /// Create a new UseDep from a given string.
-    pub fn try_new(s: &str) -> crate::Result<Self> {
-        parse::use_dep(s).into_owned()
     }
 }

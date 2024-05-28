@@ -71,7 +71,7 @@ impl PkgRepository for Repo {
         self.raw.packages(cat)
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         self.raw.versions(cat, pkg)
     }
 
@@ -95,20 +95,20 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpn<String>> for Repo {
-    fn contains(&self, cpn: &Cpn<String>) -> bool {
+impl Contains<&Cpn> for Repo {
+    fn contains(&self, cpn: &Cpn) -> bool {
         self.raw.contains(cpn)
     }
 }
 
-impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, cpv: &Cpv<String>) -> bool {
+impl Contains<&Cpv> for Repo {
+    fn contains(&self, cpv: &Cpv) -> bool {
         self.raw.contains(cpv)
     }
 }
 
-impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, dep: &Dep<String>) -> bool {
+impl Contains<&Dep> for Repo {
+    fn contains(&self, dep: &Dep) -> bool {
         self.raw.contains(dep)
     }
 }

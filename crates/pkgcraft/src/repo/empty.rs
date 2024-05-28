@@ -76,7 +76,7 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = iter::Empty<Cpv<String>> where Self: 'a;
+    type IterCpv<'a> = iter::Empty<Cpv> where Self: 'a;
     type Iter<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
     type IterRestrict<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
 
@@ -88,7 +88,7 @@ impl PkgRepository for Repo {
         IndexSet::new()
     }
 
-    fn versions(&self, _cat: &str, _pkg: &str) -> IndexSet<Version<String>> {
+    fn versions(&self, _cat: &str, _pkg: &str) -> IndexSet<Version> {
         IndexSet::new()
     }
 
@@ -97,7 +97,7 @@ impl PkgRepository for Repo {
     }
 
     fn iter_cpv(&self) -> Self::IterCpv<'_> {
-        iter::empty::<Cpv<String>>()
+        iter::empty::<Cpv>()
     }
 
     fn iter(&self) -> Self::Iter<'_> {
@@ -109,20 +109,20 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpn<String>> for Repo {
-    fn contains(&self, _: &Cpn<String>) -> bool {
+impl Contains<&Cpn> for Repo {
+    fn contains(&self, _: &Cpn) -> bool {
         false
     }
 }
 
-impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, _: &Cpv<String>) -> bool {
+impl Contains<&Cpv> for Repo {
+    fn contains(&self, _: &Cpv) -> bool {
         false
     }
 }
 
-impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, _: &Dep<String>) -> bool {
+impl Contains<&Dep> for Repo {
+    fn contains(&self, _: &Dep) -> bool {
         false
     }
 }

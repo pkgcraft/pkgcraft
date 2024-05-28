@@ -11,7 +11,7 @@ use crate::utils::boxed;
 
 /// Opaque wrapper for pkgcraft::pkg::ebuild::keyword::Keyword.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct KeywordWrapper(keyword::Keyword<String>);
+pub struct KeywordWrapper(keyword::Keyword);
 
 /// C-compatible wrapper for pkgcraft::pkg::ebuild::keyword::Keyword.
 #[derive(Debug, Clone)]
@@ -22,8 +22,8 @@ pub struct Keyword {
     keyword: *mut KeywordWrapper,
 }
 
-impl From<keyword::Keyword<String>> for Keyword {
-    fn from(value: keyword::Keyword<String>) -> Self {
+impl From<keyword::Keyword> for Keyword {
+    fn from(value: keyword::Keyword) -> Self {
         Keyword {
             status: value.status(),
             arch: try_ptr_from_str!(value.arch()),
@@ -33,7 +33,7 @@ impl From<keyword::Keyword<String>> for Keyword {
 }
 
 impl Deref for Keyword {
-    type Target = keyword::Keyword<String>;
+    type Target = keyword::Keyword;
 
     fn deref(&self) -> &Self::Target {
         let wrapper = try_ref_from_ptr!(self.keyword);

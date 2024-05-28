@@ -15,7 +15,7 @@ use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
-type VersionMap = IndexMap<String, IndexSet<Version<String>>>;
+type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
 #[derive(Debug, Default)]
@@ -23,7 +23,7 @@ pub struct Repo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
-    cpvs: OrderedSet<Cpv<String>>,
+    cpvs: OrderedSet<Cpv>,
 }
 
 impl PartialEq for Repo {
@@ -56,8 +56,8 @@ impl Repo {
     pub fn pkgs<I, T>(mut self, iter: I) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: TryInto<Cpv<String>>,
-        <T as TryInto<Cpv<String>>>::Error: std::fmt::Display,
+        T: TryInto<Cpv>,
+        <T as TryInto<Cpv>>::Error: std::fmt::Display,
     {
         self.extend(iter);
         self
@@ -96,8 +96,8 @@ impl Repo {
 
 impl<T> Extend<T> for Repo
 where
-    T: TryInto<Cpv<String>>,
-    <T as TryInto<Cpv<String>>>::Error: std::fmt::Display,
+    T: TryInto<Cpv>,
+    <T as TryInto<Cpv>>::Error: std::fmt::Display,
 {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         let orig_len = self.cpvs.len();
@@ -152,7 +152,7 @@ impl PkgRepository for Repo {
             .unwrap_or_default()
     }
 
-    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version<String>> {
+    fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         self.pkgmap
             .get(cat)
             .and_then(|pkgs| pkgs.get(pkg))
@@ -180,20 +180,20 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpn<String>> for Repo {
-    fn contains(&self, cpn: &Cpn<String>) -> bool {
+impl Contains<&Cpn> for Repo {
+    fn contains(&self, cpn: &Cpn) -> bool {
         self.iter_restrict(cpn).next().is_some()
     }
 }
 
-impl Contains<&Cpv<String>> for Repo {
-    fn contains(&self, cpv: &Cpv<String>) -> bool {
+impl Contains<&Cpv> for Repo {
+    fn contains(&self, cpv: &Cpv) -> bool {
         self.cpvs.contains(cpv)
     }
 }
 
-impl Contains<&Dep<String>> for Repo {
-    fn contains(&self, dep: &Dep<String>) -> bool {
+impl Contains<&Dep> for Repo {
+    fn contains(&self, dep: &Dep) -> bool {
         self.iter_restrict(dep).next().is_some()
     }
 }
@@ -234,11 +234,11 @@ impl<'a> IntoIterator for &'a Repo {
 
 #[derive(Debug)]
 pub struct IterCpv<'a> {
-    iter: indexmap::set::Iter<'a, Cpv<String>>,
+    iter: indexmap::set::Iter<'a, Cpv>,
 }
 
 impl<'a> Iterator for IterCpv<'a> {
-    type Item = Cpv<String>;
+    type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().cloned()
@@ -247,7 +247,7 @@ impl<'a> Iterator for IterCpv<'a> {
 
 #[derive(Debug)]
 pub struct Iter<'a> {
-    iter: indexmap::set::Iter<'a, Cpv<String>>,
+    iter: indexmap::set::Iter<'a, Cpv>,
     repo: &'a Repo,
 }
 

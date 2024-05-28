@@ -29,8 +29,8 @@ where
 }
 
 /// Determine if two objects intersect.
-pub trait Intersects<T> {
-    fn intersects(&self, obj: &T) -> bool;
+pub trait Intersects<Rhs = Self> {
+    fn intersects(&self, obj: &Rhs) -> bool;
 }
 
 /// Convert a borrowed type into an owned type.

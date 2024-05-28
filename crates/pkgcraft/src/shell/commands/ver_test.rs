@@ -2,7 +2,6 @@ use scallop::{Error, ExecStatus};
 
 use crate::dep::Version;
 use crate::shell::get_build_mut;
-use crate::traits::ToRef;
 
 use super::make_builtin;
 
@@ -10,22 +9,27 @@ const LONG_DOC: &str = "Perform comparisons on package version strings.";
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let parse = Version::parse_without_op;
-    let ver = get_build_mut().cpv()?.version();
-
-    let (lhs, op, rhs) = match args[..] {
-        [op, rhs] => (ver.to_ref(), op, parse(rhs)?),
-        [lhs, op, rhs] => (parse(lhs)?, op, parse(rhs)?),
+    let (op, cmp) = match args[..] {
+        [op, rhs] => {
+            let lhs = get_build_mut().cpv()?.version();
+            let rhs = Version::try_new_without_op(rhs)?;
+            (op, lhs.cmp(&rhs))
+        }
+        [lhs, op, rhs] => {
+            let lhs = Version::try_new_without_op(lhs)?;
+            let rhs = Version::try_new_without_op(rhs)?;
+            (op, lhs.cmp(&rhs))
+        }
         _ => return Err(Error::Base(format!("only accepts 2 or 3 args, got {}", args.len()))),
     };
 
     let ret = match op {
-        "-eq" => lhs == rhs,
-        "-ne" => lhs != rhs,
-        "-lt" => lhs < rhs,
-        "-gt" => lhs > rhs,
-        "-le" => lhs <= rhs,
-        "-ge" => lhs >= rhs,
+        "-eq" => cmp.is_eq(),
+        "-ne" => cmp.is_ne(),
+        "-lt" => cmp.is_lt(),
+        "-gt" => cmp.is_gt(),
+        "-le" => cmp.is_le(),
+        "-ge" => cmp.is_ge(),
         _ => return Err(Error::Base(format!("invalid operator: {op}"))),
     };
 

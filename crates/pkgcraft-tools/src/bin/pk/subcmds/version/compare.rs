@@ -41,8 +41,8 @@ impl Command {
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
 
-            let lhs = Version::parse(lhs)?;
-            let rhs = Version::parse(rhs)?;
+            let lhs = Version::try_new(lhs)?;
+            let rhs = Version::try_new(rhs)?;
 
             let result = match op {
                 "<" => lhs < rhs,

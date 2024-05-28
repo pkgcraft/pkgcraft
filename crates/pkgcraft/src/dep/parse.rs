@@ -11,7 +11,6 @@ use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::pkg::ebuild::iuse::Iuse;
 use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
-use crate::traits::IntoOwned;
 use crate::types::Ordered;
 
 peg::parser!(grammar depspec() for str {
@@ -24,11 +23,15 @@ peg::parser!(grammar depspec() for str {
         { s }
 
     // The "-*" keyword is allowed in KEYWORDS for package metadata.
-    pub(super) rule keyword() -> Keyword<&'input str>
-        = arch:keyword_name() { Keyword { status: KeywordStatus::Stable, arch } }
-        / "~" arch:keyword_name() { Keyword { status: KeywordStatus::Unstable, arch } }
-        / "-" arch:keyword_name() { Keyword { status: KeywordStatus::Disabled, arch } }
-        / "-*" { Keyword { status: KeywordStatus::Disabled, arch: "*" } }
+    pub(super) rule keyword() -> Keyword
+        = arch:keyword_name()
+            { Keyword { status: KeywordStatus::Stable, arch: arch.to_string() } }
+        / "~" arch:keyword_name()
+            { Keyword { status: KeywordStatus::Unstable, arch: arch.to_string() } }
+        / "-" arch:keyword_name()
+            { Keyword { status: KeywordStatus::Disabled, arch: arch.to_string() } }
+        / "-*"
+            { Keyword { status: KeywordStatus::Disabled, arch: "*".to_string() } }
 
     // License names must not begin with a hyphen, dot, or plus sign.
     pub(super) rule license_name() -> &'input str
@@ -68,10 +71,10 @@ peg::parser!(grammar depspec() for str {
         } / expected!("package name"))
         { s }
 
-    pub(super) rule number() -> Number<&'input str>
+    pub(super) rule number() -> Number
         = s:$(['0'..='9']+) {?
             let value = s.parse().map_err(|_| "integer overflow")?;
-            Ok(Number { raw: s, value })
+            Ok(Number { raw: s.to_string(), value })
         }
 
     rule suffix() -> SuffixKind
@@ -81,10 +84,10 @@ peg::parser!(grammar depspec() for str {
         / "rc" { SuffixKind::Rc }
         / "p" { SuffixKind::P }
 
-    rule version_suffix() -> Suffix<&'input str>
+    rule version_suffix() -> Suffix
         = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
-    pub(super) rule version() -> Version<&'input str>
+    pub(super) rule version() -> Version
         = numbers:number() ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()* revision:revision()? {
             Version {
@@ -96,7 +99,7 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    pub(super) rule version_with_op() -> Version<&'input str>
+    pub(super) rule version_with_op() -> Version
         = v:with_op(<version()>) { v }
 
     rule with_op<T: WithOp>(expr: rule<T>) -> T::WithOp
@@ -112,7 +115,7 @@ peg::parser!(grammar depspec() for str {
             }
         } / "~" v:expr() {? v.with_op(Operator::Approximate) }
 
-    rule revision() -> Revision<&'input str>
+    rule revision() -> Revision
         = "-r" rev:number() { Revision(rev) }
 
     // Slot names must not begin with a hyphen, dot, or plus sign.
@@ -123,10 +126,10 @@ peg::parser!(grammar depspec() for str {
         } / expected!("slot name")
         ) { s }
 
-    pub(super) rule slot() -> Slot<&'input str>
-        = name:$(slot_name() ("/" slot_name())?) { Slot { name } }
+    pub(super) rule slot() -> Slot
+        = name:$(slot_name() ("/" slot_name())?) { Slot { name: name.to_string() } }
 
-    pub(super) rule slot_dep() -> SlotDep<&'input str>
+    pub(super) rule slot_dep() -> SlotDep
         = "=" { SlotDep { slot: None, op: Some(SlotOperator::Equal) } }
         / "*" { SlotDep { slot: None, op: Some(SlotOperator::Star) } }
         / slot:slot() op:$("=")? {
@@ -134,7 +137,7 @@ peg::parser!(grammar depspec() for str {
             SlotDep { slot: Some(slot), op }
         }
 
-    rule slot_dep_str() -> SlotDep<&'input str>
+    rule slot_dep_str() -> SlotDep
         = ":" slot_dep:slot_dep() { slot_dep }
 
     rule blocker() -> Blocker
@@ -149,16 +152,16 @@ peg::parser!(grammar depspec() for str {
         } / expected!("USE flag name")
         ) { s }
 
-    pub(super) rule iuse() -> Iuse<&'input str>
-        = flag:use_flag() { Iuse { flag, default: None } }
-        / "+" flag:use_flag() { Iuse { flag, default: Some(true) } }
-        / "-" flag:use_flag() { Iuse { flag, default: Some(false) } }
+    pub(super) rule iuse() -> Iuse
+        = flag:use_flag() { Iuse { flag: flag.to_string(), default: None } }
+        / "+" flag:use_flag() { Iuse { flag: flag.to_string(), default: Some(true) } }
+        / "-" flag:use_flag() { Iuse { flag: flag.to_string(), default: Some(false) } }
 
     rule use_dep_default() -> UseDepDefault
         = "(+)" { UseDepDefault::Enabled }
         / "(-)" { UseDepDefault::Disabled }
 
-    pub(super) rule use_dep() -> UseDep<&'input str>
+    pub(super) rule use_dep() -> UseDep
         = flag:use_flag() default:use_dep_default()? kind:$(['=' | '?'])? {
             let kind = match kind {
                 Some("=") => UseDepKind::Equal,
@@ -166,19 +169,19 @@ peg::parser!(grammar depspec() for str {
                 None => UseDepKind::Enabled,
                 _ => unreachable!("invalid use dep kind"),
             };
-            UseDep { kind, flag, default }
+            UseDep { kind, flag: flag.to_string(), default }
         } / "-" flag:use_flag() default:use_dep_default()? {
-            UseDep { kind: UseDepKind::Disabled, flag, default }
+            UseDep { kind: UseDepKind::Disabled, flag: flag.to_string(), default }
         } / "!" flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
             let kind = match kind {
                 "=" => UseDepKind::NotEqual,
                 "?" => UseDepKind::DisabledConditional,
                 _ => unreachable!("invalid use dep kind"),
             };
-            UseDep { kind, flag, default }
+            UseDep { kind, flag: flag.to_string(), default }
         } / expected!("use dep")
 
-    rule use_deps() -> Vec<UseDep<&'input str>>
+    rule use_deps() -> Vec<UseDep>
         = "[" use_deps:use_dep() ++ "," "]" { use_deps }
 
     // repo must not begin with a hyphen and must also be a valid package name
@@ -198,23 +201,24 @@ peg::parser!(grammar depspec() for str {
             }
         }
 
-    pub(super) rule cpn() -> Cpn<&'input str>
-        = category:category() "/" package:package() { Cpn { category, package } }
+    pub(super) rule cpn() -> Cpn
+        = category:category() "/" package:package()
+            { Cpn { category: category.to_string(), package: package.to_string() } }
 
-    pub(super) rule cpv() -> Cpv<&'input str>
+    pub(super) rule cpv() -> Cpv
         = cpn:cpn() "-" version:version() { Cpv { cpn, version } }
 
-    rule dep_pkg() -> Dep<&'input str>
+    rule dep_pkg() -> Dep
         = cpn:cpn() { cpn.into() }
         / dep:with_op(<cpv()>) { dep }
 
-    pub(super) rule dep(eapi: &'static Eapi) -> Dep<&'input str>
+    pub(super) rule dep(eapi: &'static Eapi) -> Dep
         = blocker:blocker()? dep:dep_pkg() slot:slot_dep_str()?
                 repo:repo_dep(eapi)? use_deps:use_deps()? {
             dep.with(blocker, slot, use_deps, repo)
         }
 
-    pub(super) rule cpv_or_dep() -> CpvOrDep<&'input str>
+    pub(super) rule cpv_or_dep() -> CpvOrDep
         = cpv:cpv() { CpvOrDep::Cpv(cpv) }
         / dep:dep(Default::default()) { CpvOrDep::Dep(dep) }
 
@@ -224,15 +228,15 @@ peg::parser!(grammar depspec() for str {
     rule parens<T>(expr: rule<T>) -> Vec<T>
         = "(" __ v:expr() ++ __ __ ")" { v }
 
-    rule all_of<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
+    rule all_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = vals:parens(<expr()>)
         { Dependency::AllOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule any_of<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
+    rule any_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = "||" __ vals:parens(<expr()>)
         { Dependency::AnyOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule conditional<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
+    rule conditional<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = disabled:"!"? flag:use_flag() "?" __ vals:parens(<expr()>) {
             let kind = if disabled.is_none() {
                 UseDepKind::EnabledConditional
@@ -244,21 +248,21 @@ peg::parser!(grammar depspec() for str {
             Dependency::Conditional(use_dep, deps)
         }
 
-    rule exactly_one_of<T: Ordered>(expr: rule<Dependency<String, T>>) -> Dependency<String, T>
+    rule exactly_one_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = "^^" __ vals:parens(<expr()>)
         { Dependency::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<Dependency<String, T>>) -> Dependency<String, T>
+    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<Dependency<T>>) -> Dependency<T>
         = "??" __ vals:parens(<expr()>)
         { Dependency::AtMostOneOf(vals.into_iter().map(Box::new).collect()) }
 
-    pub(super) rule license_dependency() -> Dependency<String, String>
+    pub(super) rule license_dependency() -> Dependency<String>
         = conditional(<license_dependency()>)
         / any_of(<license_dependency()>)
         / all_of(<license_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
-    pub(super) rule src_uri_dependency(eapi: &'static Eapi) -> Dependency<String, Uri>
+    pub(super) rule src_uri_dependency(eapi: &'static Eapi) -> Dependency<Uri>
         = conditional(<src_uri_dependency(eapi)>)
         / all_of(<src_uri_dependency(eapi)>)
         / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {?
@@ -268,12 +272,12 @@ peg::parser!(grammar depspec() for str {
 
     // Technically RESTRICT tokens have no restrictions, but license
     // restrictions are currently used in order to properly parse use restrictions.
-    pub(super) rule properties_dependency() -> Dependency<String, String>
+    pub(super) rule properties_dependency() -> Dependency<String>
         = conditional(<properties_dependency()>)
         / all_of(<properties_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
-    pub(super) rule required_use_dependency(eapi: &'static Eapi) -> Dependency<String, String>
+    pub(super) rule required_use_dependency(eapi: &'static Eapi) -> Dependency<String>
         = conditional(<required_use_dependency(eapi)>)
         / any_of(<required_use_dependency(eapi)>)
         / all_of(<required_use_dependency(eapi)>)
@@ -284,33 +288,33 @@ peg::parser!(grammar depspec() for str {
 
     // Technically RESTRICT tokens have no restrictions, but license
     // restrictions are currently used in order to properly parse use restrictions.
-    pub(super) rule restrict_dependency() -> Dependency<String, String>
+    pub(super) rule restrict_dependency() -> Dependency<String>
         = conditional(<restrict_dependency()>)
         / all_of(<restrict_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
-    pub(super) rule package_dependency(eapi: &'static Eapi) -> Dependency<String, Dep<String>>
+    pub(super) rule package_dependency(eapi: &'static Eapi) -> Dependency<Dep>
         = conditional(<package_dependency(eapi)>)
         / any_of(<package_dependency(eapi)>)
         / all_of(<package_dependency(eapi)>)
-        / dep:dep(eapi) { Dependency::Enabled(dep.into_owned()) }
+        / dep:dep(eapi) { Dependency::Enabled(dep) }
 
-    pub(super) rule license_dependency_set() -> DependencySet<String, String>
+    pub(super) rule license_dependency_set() -> DependencySet<String>
         = v:license_dependency() ** __ { v.into_iter().collect() }
 
-    pub(super) rule src_uri_dependency_set(eapi: &'static Eapi) -> DependencySet<String, Uri>
+    pub(super) rule src_uri_dependency_set(eapi: &'static Eapi) -> DependencySet<Uri>
         = v:src_uri_dependency(eapi) ** __ { v.into_iter().collect() }
 
-    pub(super) rule properties_dependency_set() -> DependencySet<String, String>
+    pub(super) rule properties_dependency_set() -> DependencySet<String>
         = v:properties_dependency() ** __ { v.into_iter().collect() }
 
-    pub(super) rule required_use_dependency_set(eapi: &'static Eapi) -> DependencySet<String, String>
+    pub(super) rule required_use_dependency_set(eapi: &'static Eapi) -> DependencySet<String>
         = v:required_use_dependency(eapi) ** __ { v.into_iter().collect() }
 
-    pub(super) rule restrict_dependency_set() -> DependencySet<String, String>
+    pub(super) rule restrict_dependency_set() -> DependencySet<String>
         = v:restrict_dependency() ** __ { v.into_iter().collect() }
 
-    pub(super) rule package_dependency_set(eapi: &'static Eapi) -> DependencySet<String, Dep<String>>
+    pub(super) rule package_dependency_set(eapi: &'static Eapi) -> DependencySet<Dep>
         = v:package_dependency(eapi) ** __ { v.into_iter().collect() }
 });
 
@@ -322,11 +326,11 @@ pub fn package(s: &str) -> crate::Result<&str> {
     depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))
 }
 
-pub(super) fn version(s: &str) -> crate::Result<Version<&str>> {
+pub(super) fn version(s: &str) -> crate::Result<Version> {
     depspec::version(s).map_err(|e| peg_error("invalid version", s, e))
 }
 
-pub(super) fn version_with_op(s: &str) -> crate::Result<Version<&str>> {
+pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
     depspec::version_with_op(s).map_err(|e| peg_error("invalid version", s, e))
 }
 
@@ -338,15 +342,15 @@ pub fn eclass_name(s: &str) -> crate::Result<&str> {
     depspec::eclass_name(s).map_err(|e| peg_error("invalid eclass name", s, e))
 }
 
-pub fn slot(s: &str) -> crate::Result<Slot<&str>> {
+pub fn slot(s: &str) -> crate::Result<Slot> {
     depspec::slot(s).map_err(|e| peg_error("invalid slot", s, e))
 }
 
-pub(super) fn use_dep(s: &str) -> crate::Result<UseDep<&str>> {
+pub(super) fn use_dep(s: &str) -> crate::Result<UseDep> {
     depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e))
 }
 
-pub(super) fn slot_dep(s: &str) -> crate::Result<SlotDep<&str>> {
+pub(super) fn slot_dep(s: &str) -> crate::Result<SlotDep> {
     depspec::slot_dep(s).map_err(|e| peg_error("invalid slot", s, e))
 }
 
@@ -354,16 +358,18 @@ pub fn use_flag(s: &str) -> crate::Result<&str> {
     depspec::use_flag(s).map_err(|e| peg_error("invalid USE flag", s, e))
 }
 
-pub(crate) fn iuse(s: &str) -> crate::Result<Iuse<&str>> {
+pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
     depspec::iuse(s).map_err(|e| peg_error("invalid IUSE", s, e))
 }
 
-pub(crate) fn keyword(s: &str) -> crate::Result<Keyword<&str>> {
+pub(crate) fn keyword(s: &str) -> crate::Result<Keyword> {
     depspec::keyword(s).map_err(|e| peg_error("invalid KEYWORD", s, e))
 }
 
-pub(crate) fn number(s: &str) -> crate::Result<Number<&str>> {
-    depspec::number(s).map_err(|e| peg_error("invalid IUSE", s, e))
+pub(crate) fn revision(s: &str) -> crate::Result<Revision> {
+    depspec::number(s)
+        .map_err(|e| peg_error("invalid revision", s, e))
+        .map(Revision)
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
@@ -371,94 +377,78 @@ pub fn repo(s: &str) -> crate::Result<&str> {
 }
 
 /// Parse a string into a [`Cpv`].
-pub(super) fn cpv(s: &str) -> crate::Result<Cpv<&str>> {
+pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
     depspec::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
 }
 
 /// Parse a string into a [`CpvOrDep`].
-pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep<&str>> {
+pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
     depspec::cpv_or_dep(s).map_err(|e| peg_error("invalid cpv or dep", s, e))
 }
 
-pub(super) fn dep_str<'a>(s: &'a str, eapi: &'static Eapi) -> crate::Result<Dep<&'a str>> {
-    depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
-}
-
 #[cached(
-    ty = "SizedCache<(String, &Eapi), crate::Result<Dep<String>>>",
+    ty = "SizedCache<(String, &Eapi), crate::Result<Dep>>",
     create = "{ SizedCache::with_size(1000) }",
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
-pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep<String>> {
-    dep_str(s, eapi).into_owned()
+pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
+    depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
 }
 
-pub(super) fn cpn(s: &str) -> crate::Result<Cpn<&str>> {
+pub(super) fn cpn(s: &str) -> crate::Result<Cpn> {
     depspec::cpn(s).map_err(|e| peg_error("invalid cpn", s, e))
 }
 
-pub fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String, String>> {
+pub fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
     depspec::license_dependency_set(s).map_err(|e| peg_error("invalid LICENSE", s, e))
 }
 
-pub fn license_dependency(s: &str) -> crate::Result<Dependency<String, String>> {
+pub fn license_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::license_dependency(s).map_err(|e| peg_error("invalid LICENSE dependency", s, e))
 }
 
-pub fn src_uri_dependency_set(
-    s: &str,
-    eapi: &'static Eapi,
-) -> crate::Result<DependencySet<String, Uri>> {
+pub fn src_uri_dependency_set(s: &str, eapi: &'static Eapi) -> crate::Result<DependencySet<Uri>> {
     depspec::src_uri_dependency_set(s, eapi).map_err(|e| peg_error("invalid SRC_URI", s, e))
 }
 
-pub fn src_uri_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<String, Uri>> {
+pub fn src_uri_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<Uri>> {
     depspec::src_uri_dependency(s, eapi).map_err(|e| peg_error("invalid SRC_URI dependency", s, e))
 }
 
-pub fn properties_dependency_set(s: &str) -> crate::Result<DependencySet<String, String>> {
+pub fn properties_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
     depspec::properties_dependency_set(s).map_err(|e| peg_error("invalid PROPERTIES", s, e))
 }
 
-pub fn properties_dependency(s: &str) -> crate::Result<Dependency<String, String>> {
+pub fn properties_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::properties_dependency(s).map_err(|e| peg_error("invalid PROPERTIES dependency", s, e))
 }
 
 pub fn required_use_dependency_set(
     s: &str,
     eapi: &'static Eapi,
-) -> crate::Result<DependencySet<String, String>> {
+) -> crate::Result<DependencySet<String>> {
     depspec::required_use_dependency_set(s, eapi)
         .map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
 }
 
-pub fn required_use_dependency(
-    s: &str,
-    eapi: &'static Eapi,
-) -> crate::Result<Dependency<String, String>> {
+pub fn required_use_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<String>> {
     depspec::required_use_dependency(s, eapi)
         .map_err(|e| peg_error("invalid REQUIRED_USE dependency", s, e))
 }
 
-pub fn restrict_dependency_set(s: &str) -> crate::Result<DependencySet<String, String>> {
+pub fn restrict_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
     depspec::restrict_dependency_set(s).map_err(|e| peg_error("invalid RESTRICT", s, e))
 }
 
-pub fn restrict_dependency(s: &str) -> crate::Result<Dependency<String, String>> {
+pub fn restrict_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::restrict_dependency(s).map_err(|e| peg_error("invalid RESTRICT dependency", s, e))
 }
 
-pub fn package_dependency_set(
-    s: &str,
-    eapi: &'static Eapi,
-) -> crate::Result<DependencySet<String, Dep<String>>> {
+pub fn package_dependency_set(s: &str, eapi: &'static Eapi) -> crate::Result<DependencySet<Dep>> {
     depspec::package_dependency_set(s, eapi).map_err(|e| peg_error("invalid dependency", s, e))
 }
 
-pub fn package_dependency(
-    s: &str,
-    eapi: &'static Eapi,
-) -> crate::Result<Dependency<String, Dep<String>>> {
+pub fn package_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<Dep>> {
     depspec::package_dependency(s, eapi).map_err(|e| peg_error("invalid package dependency", s, e))
 }
 

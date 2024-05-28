@@ -41,8 +41,8 @@ impl Command {
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
 
-            let lhs = Dep::parse(lhs, Default::default())?;
-            let rhs = Dep::parse(rhs, Default::default())?;
+            let lhs = Dep::try_new(lhs)?;
+            let rhs = Dep::try_new(rhs)?;
 
             let result = match op {
                 "<" => lhs < rhs,

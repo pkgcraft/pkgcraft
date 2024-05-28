@@ -4,7 +4,6 @@ use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restrict as BaseRestrict;
-use crate::traits::IntoOwned;
 
 // Convert globbed string to regex restriction, escaping all meta characters except '*'.
 fn str_to_regex_restrict(s: &str) -> Result<StrRestrict, &'static str> {
@@ -29,10 +28,10 @@ peg::parser!(grammar restrict() for str {
                 ("-" !(version() ("-" version())? (__ / "*" / ":" / "[" / ![_]))))*})
         { s }
 
-    rule number() -> Number<&'input str>
+    rule number() -> Number
         = s:$(['0'..='9']+) {?
             let value = s.parse().map_err(|_| "integer overflow")?;
-            Ok(Number { raw: s, value })
+            Ok(Number { raw: s.to_string(), value })
         }
 
     rule suffix() -> SuffixKind
@@ -42,10 +41,10 @@ peg::parser!(grammar restrict() for str {
         / "rc" { SuffixKind::Rc }
         / "p" { SuffixKind::P }
 
-    rule version_suffix() -> Suffix<&'input str>
+    rule version_suffix() -> Suffix
         = "_" kind:suffix() version:number()? { Suffix { kind, version } }
 
-    pub(super) rule version() -> Version<&'input str>
+    pub(super) rule version() -> Version
         = numbers:number() ++ "." letter:['a'..='z']?
                 suffixes:version_suffix()* revision:revision()? {
             Version {
@@ -57,7 +56,7 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    rule revision() -> Revision<&'input str>
+    rule revision() -> Revision
         = "-r" rev:number() { Revision(rev) }
 
     rule cp_restricts() -> Vec<DepRestrict>
@@ -101,7 +100,7 @@ peg::parser!(grammar restrict() for str {
             Ok(restricts)
         }
 
-    rule pkg_restricts() -> (Vec<DepRestrict>, Option<Version<&'input str>>)
+    rule pkg_restricts() -> (Vec<DepRestrict>, Option<Version>)
         = r:cp_restricts() ver:("-" v:version() { v })? { (r, ver) }
         / "<=" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::LessOrEqual)?))) }
         / "<" r:cp_restricts() "-" v:version() {? Ok((r, Some(v.with_op(Operator::Less)?))) }
@@ -165,7 +164,7 @@ peg::parser!(grammar restrict() for str {
         = "(+)" { UseDepDefault::Enabled }
         / "(-)" { UseDepDefault::Disabled }
 
-    pub(super) rule use_dep() -> UseDep<&'input str>
+    pub(super) rule use_dep() -> UseDep
         = flag:use_flag() default:use_dep_default()? kind:$(['=' | '?'])? {
             let kind = match kind {
                 Some("=") => UseDepKind::Equal,
@@ -173,23 +172,20 @@ peg::parser!(grammar restrict() for str {
                 None => UseDepKind::Enabled,
                 _ => panic!("invalid use dep kind"),
             };
-            UseDep { kind, flag, default }
+            UseDep { kind, flag: flag.to_string(), default }
         } / "-" flag:use_flag() default:use_dep_default()? {
-            UseDep { kind: UseDepKind::Disabled, flag, default }
+            UseDep { kind: UseDepKind::Disabled, flag: flag.to_string(), default }
         } / "!" flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
             let kind = match kind {
                 "=" => UseDepKind::NotEqual,
                 "?" => UseDepKind::DisabledConditional,
                 _ => panic!("invalid use dep kind"),
             };
-            UseDep { kind, flag, default }
+            UseDep { kind, flag: flag.to_string(), default }
         } / expected!("use dep")
 
     rule use_restricts() -> DepRestrict
-        = "[" u:use_dep() ++ "," "]" {
-            let use_deps = u.into_iter().map(|u| u.into_owned()).collect();
-            DepRestrict::UseDeps(Some(use_deps))
-        }
+        = "[" u:use_dep() ++ "," "]" { DepRestrict::UseDeps(Some(u.into_iter().collect())) }
 
     rule repo_restrict() -> DepRestrict
         = "::" s:$(_+) {?
@@ -211,7 +207,7 @@ peg::parser!(grammar restrict() for str {
             }
         }
 
-    pub(super) rule dep() -> (Vec<DepRestrict>, Option<Version<&'input str>>)
+    pub(super) rule dep() -> (Vec<DepRestrict>, Option<Version>)
         = blocker_r:blocker_restrict()? pkg_r:pkg_restricts()
             slot_r:slot_restricts()? use_r:use_restricts()? repo_r:repo_restrict()?
         {
@@ -243,7 +239,7 @@ pub(crate) fn restricts(s: &str) -> crate::Result<Vec<DepRestrict>> {
         restrict::dep(s).map_err(|e| peg_error("invalid dep restriction", s, e))?;
 
     if let Some(v) = ver {
-        restricts.push(DepRestrict::Version(Some(v.into_owned())));
+        restricts.push(DepRestrict::Version(Some(v)));
     }
 
     Ok(restricts)
@@ -290,7 +286,7 @@ mod tests {
         ];
         let deps: Vec<_> = dep_strs.iter().map(|s| Dep::try_new(s).unwrap()).collect();
 
-        let filter = |r: BaseRestrict, deps: &[Dep<String>]| -> Vec<String> {
+        let filter = |r: BaseRestrict, deps: &[Dep]| -> Vec<String> {
             deps.iter()
                 .filter(|&a| r.matches(a))
                 .map(|a| a.to_string())

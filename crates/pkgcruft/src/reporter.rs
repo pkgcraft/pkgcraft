@@ -55,7 +55,7 @@ impl SimpleReporter {
 
 #[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
-    prev_cpn: Option<Cpn<String>>,
+    prev_cpn: Option<Cpn>,
 }
 
 impl From<FancyReporter> for Reporter {

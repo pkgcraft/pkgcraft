@@ -3,13 +3,12 @@ use std::ffi::{c_char, c_int};
 use std::ptr;
 
 use pkgcraft::dep::version::WithOp;
-use pkgcraft::dep::{self, Operator};
+use pkgcraft::dep::{Operator, Revision, Version};
 use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
-use crate::types::{Revision, Version};
 
 /// Parse a string into a revision.
 ///
@@ -99,7 +98,7 @@ pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version 
 pub unsafe extern "C" fn pkgcraft_version_parse(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
-        unwrap_or_panic!(dep::Version::parse(val));
+        unwrap_or_panic!(Version::try_new(val));
         s
     }
 }

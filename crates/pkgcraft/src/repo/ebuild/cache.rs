@@ -42,10 +42,7 @@ pub trait Cache {
     /// Forcibly remove the entire cache.
     fn remove(&self, repo: &Repo) -> crate::Result<()>;
     /// Remove outdated entries from the cache.
-    fn clean<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
-        &self,
-        collection: C,
-    ) -> crate::Result<()>;
+    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()>;
 }
 
 #[derive(
@@ -149,10 +146,7 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn clean<C: for<'a> Contains<&'a Cpv<String>> + Sync>(
-        &self,
-        collection: C,
-    ) -> crate::Result<()> {
+    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
         match self {
             Self::Md5Dict(cache) => cache.clean(collection),
         }
@@ -186,7 +180,7 @@ pub struct MetadataCacheRegen<'a> {
     clean: bool,
     verify: bool,
     targeted: bool,
-    targets: IndexSet<Cpv<String>>,
+    targets: IndexSet<Cpv>,
 }
 
 impl MetadataCacheRegen<'_> {
@@ -224,7 +218,7 @@ impl MetadataCacheRegen<'_> {
     /// Specify package targets for cache regeneration.
     pub fn targets<I>(mut self, value: I) -> Self
     where
-        I: IntoIterator<Item = Cpv<String>>,
+        I: IntoIterator<Item = Cpv>,
     {
         self.targeted = true;
         self.clean = false;
@@ -238,7 +232,7 @@ impl MetadataCacheRegen<'_> {
         repo.collapse_cache_regen();
 
         // initialize pool first to minimize forked process memory pages
-        let func = |cpv: Cpv<String>| -> scallop::Result<()> {
+        let func = |cpv: Cpv| -> scallop::Result<()> {
             let pkg = Pkg::try_new(cpv, repo)?;
             let meta = Metadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
             if !self.verify {

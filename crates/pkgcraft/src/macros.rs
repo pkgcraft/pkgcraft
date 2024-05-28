@@ -102,18 +102,6 @@ macro_rules! bool_not_equal {
 }
 pub(crate) use bool_not_equal;
 
-// Return true if two Option-wrapped values are equal, false otherwise.
-macro_rules! partial_eq_opt {
-    ($x:expr, $y:expr) => {
-        if let (Some(v1), Some(v2)) = ($x, $y) {
-            v1 == v2
-        } else {
-            false
-        }
-    };
-}
-pub(crate) use partial_eq_opt;
-
 // Return Option<Ordering> for two Option-wrapped arguments.
 macro_rules! partial_cmp_opt {
     ($x:expr, $y:expr) => {
@@ -138,33 +126,3 @@ macro_rules! partial_cmp_opt_not_equal {
     };
 }
 pub(crate) use partial_cmp_opt_not_equal;
-
-// Return Option<Ordering> if two Option-wrapped arguments are not equal.
-macro_rules! partial_cmp_opt_not_equal_opt {
-    ($x:expr, $y:expr) => {
-        if let Some(cmp) = $crate::macros::partial_cmp_opt!($x, $y) {
-            if cmp != Ordering::Equal {
-                return Some(cmp);
-            }
-        }
-    };
-}
-pub(crate) use partial_cmp_opt_not_equal_opt;
-
-// Implement the Equivalent trait between owned and borrowed types.
-macro_rules! equivalent {
-    ($x:tt) => {
-        impl indexmap::Equivalent<$x<&str>> for $x<String> {
-            fn equivalent(&self, key: &$x<&str>) -> bool {
-                self == key
-            }
-        }
-
-        impl indexmap::Equivalent<$x<String>> for $x<&str> {
-            fn equivalent(&self, key: &$x<String>) -> bool {
-                self == key
-            }
-        }
-    };
-}
-pub(crate) use equivalent;
