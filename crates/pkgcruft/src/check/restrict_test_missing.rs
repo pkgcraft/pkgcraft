@@ -1,5 +1,6 @@
 use pkgcraft::dep::parse::restrict_dependency;
 use pkgcraft::dep::DependencySet;
+use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::Pkg;
 
 use crate::report::{
@@ -12,6 +13,7 @@ pub(super) static REPORTS: &[ReportKind] = &[RestrictMissing];
 #[derive(Debug)]
 pub(crate) struct Check {
     restricts: DependencySet<String>,
+    iuse: Iuse,
 }
 
 impl Check {
@@ -23,13 +25,14 @@ impl Check {
                     restrict_dependency(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
                 })
                 .collect(),
+            iuse: Iuse::try_new("test").unwrap(),
         }
     }
 }
 
 impl super::CheckRun<&Pkg<'_>> for Check {
     fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'_>, mut report: F) {
-        if pkg.iuse().contains("test")
+        if pkg.iuse().contains(&self.iuse)
             && pkg
                 .restrict()
                 .intersection(&self.restricts)
