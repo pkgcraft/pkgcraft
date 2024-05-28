@@ -9,7 +9,7 @@ use itertools::Itertools;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::macros::{bool_not_equal, cmp_not_equal, partial_cmp_opt_not_equal};
+use crate::macros::bool_not_equal;
 use crate::traits::Intersects;
 use crate::types::SortedSet;
 use crate::Error;
@@ -183,19 +183,19 @@ impl From<Dep> for Cpn {
 
 impl PartialEq for Dep {
     fn eq(&self, other: &Dep) -> bool {
-        cmp(self, other) == Ordering::Equal
+        self.key() == other.key()
     }
 }
 
 impl PartialEq<Cow<'_, Dep>> for Dep {
     fn eq(&self, other: &Cow<'_, Dep>) -> bool {
-        cmp(self, other) == Ordering::Equal
+        self == other.as_ref()
     }
 }
 
 impl PartialEq<Dep> for Cow<'_, Dep> {
     fn eq(&self, other: &Dep) -> bool {
-        cmp(self, other) == Ordering::Equal
+        self.as_ref() == other
     }
 }
 
@@ -221,13 +221,13 @@ impl PartialOrd for Dep {
 
 impl PartialOrd<Cow<'_, Dep>> for Dep {
     fn partial_cmp(&self, other: &Cow<'_, Dep>) -> Option<Ordering> {
-        Some(cmp(self, other))
+        Some(self.cmp(other.as_ref()))
     }
 }
 
 impl PartialOrd<Dep> for Cow<'_, Dep> {
     fn partial_cmp(&self, other: &Dep) -> Option<Ordering> {
-        Some(cmp(self, other))
+        Some(self.as_ref().cmp(other))
     }
 }
 
@@ -528,18 +528,6 @@ impl Dep {
     fn key(&self) -> DepKey {
         (self.cpn(), self.version(), self.blocker(), self.slot_dep(), self.use_deps(), self.repo())
     }
-}
-
-/// Compare two package dependencies.
-fn cmp(d1: &Dep, d2: &Dep) -> Ordering {
-    cmp_not_equal!(d1.category(), d2.category());
-    cmp_not_equal!(d1.package(), d2.package());
-    partial_cmp_opt_not_equal!(&d1.version, &d2.version);
-    cmp_not_equal!(&d1.blocker, &d2.blocker);
-    partial_cmp_opt_not_equal!(&d1.slot_dep, &d2.slot_dep);
-    partial_cmp_opt_not_equal!(&d1.use_deps, &d2.use_deps);
-    cmp_not_equal!(&d1.repo(), &d2.repo());
-    Ordering::Equal
 }
 
 impl fmt::Display for Dep {

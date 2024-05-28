@@ -101,28 +101,3 @@ macro_rules! bool_not_equal {
     };
 }
 pub(crate) use bool_not_equal;
-
-// Return Option<Ordering> for two Option-wrapped arguments.
-macro_rules! partial_cmp_opt {
-    ($x:expr, $y:expr) => {
-        match ($x, $y) {
-            (Some(x), Some(y)) => x.partial_cmp(y),
-            (Some(_), None) => Some(Ordering::Greater),
-            (None, Some(_)) => Some(Ordering::Less),
-            (None, None) => Some(Ordering::Equal),
-        }
-    };
-}
-pub(crate) use partial_cmp_opt;
-
-// Return Ordering if two Option-wrapped arguments are not equal.
-macro_rules! partial_cmp_opt_not_equal {
-    ($x:expr, $y:expr) => {
-        if let Some(cmp) = $crate::macros::partial_cmp_opt!($x, $y) {
-            if cmp != Ordering::Equal {
-                return cmp;
-            }
-        }
-    };
-}
-pub(crate) use partial_cmp_opt_not_equal;
