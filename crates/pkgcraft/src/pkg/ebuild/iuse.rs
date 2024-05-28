@@ -24,6 +24,12 @@ impl Iuse {
     }
 }
 
+impl AsRef<str> for Iuse {
+    fn as_ref(&self) -> &str {
+        &self.flag
+    }
+}
+
 impl std::str::FromStr for Iuse {
     type Err = crate::Error;
 
