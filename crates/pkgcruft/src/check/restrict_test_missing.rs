@@ -39,7 +39,7 @@ impl super::CheckRun<&Pkg<'_>> for Check {
                 .next()
                 .is_none()
         {
-            let message = r#"missing RESTRICT="!test? ( test )" with IUSE=test'"#;
+            let message = r#"missing RESTRICT="!test? ( test )" with IUSE=test"#;
             report(RestrictMissing.version(pkg, message));
         }
     }
