@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use crate::dep::parse;
 
 /// Package IUSE.
@@ -23,12 +21,6 @@ impl Iuse {
     /// Return the default status, if it exists.
     pub fn default(&self) -> Option<bool> {
         self.default
-    }
-}
-
-impl Borrow<str> for Iuse {
-    fn borrow(&self) -> &str {
-        &self.flag
     }
 }
 
