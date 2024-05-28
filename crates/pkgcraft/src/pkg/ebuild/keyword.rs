@@ -1,4 +1,6 @@
 use std::cmp::Ordering;
+use std::fmt;
+use std::str::FromStr;
 
 use crate::dep::parse;
 use crate::macros::cmp_not_equal;
@@ -71,7 +73,7 @@ impl PartialOrd for Keyword {
     }
 }
 
-impl std::str::FromStr for Keyword {
+impl FromStr for Keyword {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -79,8 +81,8 @@ impl std::str::FromStr for Keyword {
     }
 }
 
-impl std::fmt::Display for Keyword {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for Keyword {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let arch = &self.arch;
         match &self.status {
             KeywordStatus::Stable => write!(f, "{arch}"),

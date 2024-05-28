@@ -1,3 +1,6 @@
+use std::fmt;
+use std::str::FromStr;
+
 use crate::dep::parse;
 
 /// Package IUSE.
@@ -24,13 +27,7 @@ impl Iuse {
     }
 }
 
-impl AsRef<str> for Iuse {
-    fn as_ref(&self) -> &str {
-        &self.flag
-    }
-}
-
-impl std::str::FromStr for Iuse {
+impl FromStr for Iuse {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -38,8 +35,8 @@ impl std::str::FromStr for Iuse {
     }
 }
 
-impl std::fmt::Display for Iuse {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for Iuse {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let flag = &self.flag;
         match &self.default {
             Some(true) => write!(f, "+{flag}"),
