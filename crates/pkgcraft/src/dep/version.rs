@@ -125,7 +125,7 @@ impl Revision {
 
     /// Return the raw string value for a revision.
     pub fn as_str(&self) -> &str {
-        &self.0.as_str()
+        self.0.as_str()
     }
 
     /// Determine if a Revision starts with another Revision using string representation.
