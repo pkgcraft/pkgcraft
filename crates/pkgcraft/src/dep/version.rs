@@ -75,12 +75,6 @@ impl PartialEq<Number> for u64 {
     }
 }
 
-impl PartialEq<Number> for str {
-    fn eq(&self, other: &Number) -> bool {
-        other == self
-    }
-}
-
 impl PartialEq<Number> for &str {
     fn eq(&self, other: &Number) -> bool {
         other == *self
@@ -159,12 +153,6 @@ impl PartialEq<&str> for Revision {
 }
 
 impl PartialEq<Revision> for u64 {
-    fn eq(&self, other: &Revision) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<Revision> for str {
     fn eq(&self, other: &Revision) -> bool {
         other == self
     }
