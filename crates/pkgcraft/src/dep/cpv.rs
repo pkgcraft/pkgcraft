@@ -226,12 +226,6 @@ impl Intersects for Cpv {
     }
 }
 
-impl From<Cpv> for Cpn {
-    fn from(cpv: Cpv) -> Self {
-        cpv.cpn.clone()
-    }
-}
-
 impl TryFrom<&str> for Cpv {
     type Error = Error;
 
