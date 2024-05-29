@@ -154,13 +154,13 @@ impl PartialEq<&str> for Revision {
 
 impl PartialEq<Revision> for u64 {
     fn eq(&self, other: &Revision) -> bool {
-        other.0 == *self
+        *self == other.0
     }
 }
 
 impl PartialEq<Revision> for &str {
     fn eq(&self, other: &Revision) -> bool {
-        other.0 == *self
+        *self == other.0
     }
 }
 
