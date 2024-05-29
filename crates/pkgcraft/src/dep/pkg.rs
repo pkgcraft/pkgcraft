@@ -343,7 +343,7 @@ impl Dep {
                 }
                 DepField::Blocker => {
                     if let Some(s) = s {
-                        let val: Blocker = s
+                        let val = s
                             .parse()
                             .map_err(|_| Error::InvalidValue(format!("invalid blocker: {s}")))?;
                         if !dep.blocker.as_ref().map(|v| v == &val).unwrap_or_default() {
