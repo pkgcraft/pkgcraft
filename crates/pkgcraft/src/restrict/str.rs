@@ -21,7 +21,7 @@ impl Deref for Regex {
 impl Eq for Regex {}
 
 impl PartialEq for Regex {
-    fn eq(&self, other: &Regex) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.0.as_str() == other.0.as_str()
     }
 }

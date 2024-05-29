@@ -182,7 +182,7 @@ impl From<Dep> for Cpn {
 }
 
 impl PartialEq for Dep {
-    fn eq(&self, other: &Dep) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.key() == other.key()
     }
 }
@@ -214,7 +214,7 @@ impl Ord for Dep {
 }
 
 impl PartialOrd for Dep {
-    fn partial_cmp(&self, other: &Dep) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }

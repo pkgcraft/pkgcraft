@@ -44,7 +44,7 @@ impl Number {
 }
 
 impl PartialEq for Number {
-    fn eq(&self, other: &Number) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.value == other.value
     }
 }
@@ -100,7 +100,7 @@ impl Ord for Number {
 }
 
 impl PartialOrd for Number {
-    fn partial_cmp(&self, other: &Number) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -536,7 +536,7 @@ fn fmt(f: &mut fmt::Formatter, v: &Version, rev: bool, op: bool) -> fmt::Result 
 }
 
 impl PartialEq for Version {
-    fn eq(&self, other: &Version) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         cmp(self, other, true, true) == Ordering::Equal
     }
 }
@@ -621,7 +621,7 @@ impl Ord for Version {
 }
 
 impl PartialOrd for Version {
-    fn partial_cmp(&self, other: &Version) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -638,7 +638,7 @@ impl FromStr for Version {
 struct NonRevisionVersion<'a>(&'a Version);
 
 impl PartialEq for NonRevisionVersion<'_> {
-    fn eq(&self, other: &NonRevisionVersion<'_>) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         cmp(self.0, other.0, false, false) == Ordering::Equal
     }
 }
@@ -655,7 +655,7 @@ impl fmt::Display for NonRevisionVersion<'_> {
 struct NonOpVersion<'a>(&'a Version);
 
 impl PartialEq for NonOpVersion<'_> {
-    fn eq(&self, other: &NonOpVersion<'_>) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         cmp(self.0, other.0, true, false) == Ordering::Equal
     }
 }
@@ -669,7 +669,7 @@ impl Ord for NonOpVersion<'_> {
 }
 
 impl PartialOrd for NonOpVersion<'_> {
-    fn partial_cmp(&self, other: &NonOpVersion<'_>) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
