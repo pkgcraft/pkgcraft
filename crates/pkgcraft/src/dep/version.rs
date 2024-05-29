@@ -29,7 +29,7 @@ pub(crate) struct Number {
 impl Number {
     /// Determine if a number is represented by an empty string.
     pub(crate) fn is_empty(&self) -> bool {
-        self.as_str().is_empty()
+        self.raw.is_empty()
     }
 
     /// Return the raw string value for a number.
@@ -131,7 +131,7 @@ impl Revision {
 
     /// Return the raw string value for a revision.
     pub fn as_str(&self) -> &str {
-        self.0.as_str()
+        &self.0.raw
     }
 
     /// Determine if a Revision starts with another Revision using string representation.
@@ -148,13 +148,13 @@ impl PartialEq<u64> for Revision {
 
 impl PartialEq<str> for Revision {
     fn eq(&self, other: &str) -> bool {
-        self.as_str() == other
+        self.0.raw == other
     }
 }
 
 impl PartialEq<&str> for Revision {
     fn eq(&self, other: &&str) -> bool {
-        self.as_str() == *other
+        self.0.raw == *other
     }
 }
 
