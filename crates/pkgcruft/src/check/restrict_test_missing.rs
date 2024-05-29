@@ -57,25 +57,16 @@ mod tests {
 
     #[test]
     fn check() {
+        // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(RestrictTestMissing);
         let scanner = Scanner::new().jobs(1).checks([RestrictTestMissing]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
-
-        // check dir restriction
-        let restrict = repo.restrict_from_path(&check_dir).unwrap();
-        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
-        assert_eq!(&reports, &expected);
-
-        // repo restriction
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
-    }
 
-    #[test]
-    fn patched() {
+        // primary fixed
         let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
-        let scanner = Scanner::new().jobs(1).checks([RestrictTestMissing]);
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
     }

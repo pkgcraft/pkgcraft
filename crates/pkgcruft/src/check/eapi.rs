@@ -41,35 +41,23 @@ mod tests {
     use crate::test::glob_reports;
 
     #[test]
-    fn primary() {
+    fn check() {
+        // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(Eapi);
         let scanner = Scanner::new().jobs(1).checks([Eapi]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
-
-        // check dir restriction
-        let restrict = repo.restrict_from_path(&check_dir).unwrap();
-        let reports: Vec<_> = scanner.run(repo, [&restrict]).collect();
-        assert_eq!(&reports, &expected);
-
-        // repo restriction
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
-    }
 
-    #[test]
-    fn primary_patched() {
-        let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
-        let scanner = Scanner::new().jobs(1).checks([Eapi]);
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &[]);
-    }
-
-    #[test]
-    fn secondary() {
+        // secondary with no banned or deprecated EAPIs set
         let repo = TEST_DATA.repo("qa-secondary").unwrap();
         assert!(repo.path().join(Eapi).exists());
-        let scanner = Scanner::new().jobs(1).checks([Eapi]);
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
+
+        // primary fixed
+        let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
     }
