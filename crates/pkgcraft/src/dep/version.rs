@@ -125,7 +125,7 @@ impl Revision {
 
     /// Return the raw string value for a revision.
     pub fn as_str(&self) -> &str {
-        &self.0.raw
+        &self.0.as_str()
     }
 
     /// Determine if a Revision starts with another Revision using string representation.
@@ -136,19 +136,19 @@ impl Revision {
 
 impl PartialEq<u64> for Revision {
     fn eq(&self, other: &u64) -> bool {
-        &self.0.value == other
+        &self.0 == other
     }
 }
 
 impl PartialEq<str> for Revision {
     fn eq(&self, other: &str) -> bool {
-        self.0.raw == other
+        self.0 == other
     }
 }
 
 impl PartialEq<&str> for Revision {
     fn eq(&self, other: &&str) -> bool {
-        self.0.raw == *other
+        self.0 == *other
     }
 }
 
