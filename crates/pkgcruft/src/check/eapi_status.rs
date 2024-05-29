@@ -36,7 +36,7 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::Eapi;
+    use crate::check::CheckKind::EapiStatus;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
 
@@ -44,15 +44,15 @@ mod tests {
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(Eapi);
-        let scanner = Scanner::new().jobs(1).checks([Eapi]);
+        let check_dir = repo.path().join(EapiStatus);
+        let scanner = Scanner::new().jobs(1).checks([EapiStatus]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
         // secondary with no banned or deprecated EAPIs set
         let repo = TEST_DATA.repo("qa-secondary").unwrap();
-        assert!(repo.path().join(Eapi).exists());
+        assert!(repo.path().join(EapiStatus).exists());
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
 

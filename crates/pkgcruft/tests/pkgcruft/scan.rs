@@ -154,13 +154,13 @@ fn path_targets() {
     // multiple absolute paths in the same repo
     let expected = glob_reports!(
         "{repo}/Dependency/**/reports.json",
-        "{repo}/Eapi/**/reports.json",
+        "{repo}/EapiStatus/**/reports.json",
         "{repo}/Keywords/**/reports.json",
     );
 
     let reports = cmd("pkgcruft scan -j1 -R json")
         .arg(repo.join("Dependency"))
-        .arg(repo.join("Eapi"))
+        .arg(repo.join("EapiStatus"))
         .arg(repo.join("Keywords"))
         .to_reports();
     assert_eq!(&expected, &reports);
@@ -169,7 +169,7 @@ fn path_targets() {
     env::set_current_dir(repo).unwrap();
     let reports = cmd("pkgcruft scan -j1 -R json")
         .arg("Dependency")
-        .arg("Eapi")
+        .arg("EapiStatus")
         .arg("Keywords")
         .to_reports();
     assert_eq!(&expected, &reports);
@@ -308,7 +308,7 @@ fn checks() {
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/**/reports.json",
-        "{repo}/Eapi/**/reports.json",
+        "{repo}/EapiStatus/**/reports.json",
         "{repo}/Keywords/**/reports.json",
     );
 
@@ -332,7 +332,7 @@ fn checks() {
 
         // multiple
         let reports = cmd("pkgcruft scan -j1 -R json")
-            .args([opt, "Dependency,Eapi,Keywords"])
+            .args([opt, "Dependency,EapiStatus,Keywords"])
             .arg(repo)
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
@@ -342,8 +342,8 @@ fn checks() {
 #[test]
 fn levels() {
     let repo = qa_repo("qa-primary").path();
-    let single_expected = glob_reports!("{repo}/Eapi/EapiDeprecated/reports.json");
-    let multiple_expected = glob_reports!("{repo}/Eapi/**/reports.json");
+    let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
+    let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
 
     for opt in ["-l", "--levels"] {
         // invalid
@@ -359,14 +359,14 @@ fn levels() {
         // single
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "warning"])
-            .arg(repo.join("Eapi"))
+            .arg(repo.join("EapiStatus"))
             .to_reports();
         assert_eq!(&single_expected, &reports);
 
         // multiple
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "warning,error"])
-            .arg(repo.join("Eapi"))
+            .arg(repo.join("EapiStatus"))
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
     }
@@ -378,7 +378,7 @@ fn reports() {
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",
-        "{repo}/Eapi/EapiBanned/reports.json",
+        "{repo}/EapiStatus/EapiBanned/reports.json",
         "{repo}/Keywords/KeywordsUnsorted/reports.json",
     );
 

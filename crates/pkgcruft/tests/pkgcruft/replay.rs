@@ -102,7 +102,7 @@ fn checks() {
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/**/reports.json",
-        "{repo}/Eapi/**/reports.json",
+        "{repo}/EapiStatus/**/reports.json",
         "{repo}/Keywords/**/reports.json",
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
@@ -127,7 +127,7 @@ fn checks() {
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "Dependency,Eapi,Keywords"])
+            .args([opt, "Dependency,EapiStatus,Keywords"])
             .write_stdin(data.as_str())
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
@@ -137,8 +137,8 @@ fn checks() {
 #[test]
 fn levels() {
     let repo = qa_repo("qa-primary").path();
-    let single_expected = glob_reports!("{repo}/Eapi/EapiDeprecated/reports.json");
-    let multiple_expected = glob_reports!("{repo}/Eapi/**/reports.json");
+    let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
+    let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     for opt in ["-l", "--levels"] {
@@ -174,7 +174,7 @@ fn reports() {
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",
-        "{repo}/Eapi/EapiBanned/reports.json",
+        "{repo}/EapiStatus/EapiBanned/reports.json",
         "{repo}/Keywords/KeywordsUnsorted/reports.json",
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");

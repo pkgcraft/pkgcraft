@@ -14,8 +14,8 @@ use crate::source::SourceKind;
 
 mod dependency;
 mod dependency_slot_missing;
-mod eapi;
 mod eapi_stale;
+mod eapi_status;
 mod keywords;
 mod keywords_dropped;
 mod live_only;
@@ -62,8 +62,8 @@ impl CheckContext {
 )]
 pub enum CheckKind {
     Dependency,
-    Eapi,
     EapiStale,
+    EapiStatus,
     Keywords,
     KeywordsDropped,
     LiveOnly,
@@ -101,8 +101,8 @@ impl CheckKind {
         match self {
             Self::Dependency => Scope::Version,
             Self::DependencySlotMissing => Scope::Version,
-            Self::Eapi => Scope::Version,
             Self::EapiStale => Scope::Package,
+            Self::EapiStatus => Scope::Version,
             Self::Keywords => Scope::Version,
             Self::KeywordsDropped => Scope::Package,
             Self::LiveOnly => Scope::Package,
@@ -118,8 +118,8 @@ impl CheckKind {
         match self {
             Self::Dependency => SourceKind::Ebuild,
             Self::DependencySlotMissing => SourceKind::Ebuild,
-            Self::Eapi => SourceKind::Ebuild,
             Self::EapiStale => SourceKind::Ebuild,
+            Self::EapiStatus => SourceKind::Ebuild,
             Self::Keywords => SourceKind::Ebuild,
             Self::KeywordsDropped => SourceKind::Ebuild,
             Self::LiveOnly => SourceKind::Ebuild,
@@ -135,8 +135,8 @@ impl CheckKind {
         match self {
             Self::Dependency => dependency::REPORTS,
             Self::DependencySlotMissing => dependency_slot_missing::REPORTS,
-            Self::Eapi => eapi::REPORTS,
             Self::EapiStale => eapi_stale::REPORTS,
+            Self::EapiStatus => eapi_status::REPORTS,
             Self::Keywords => keywords::REPORTS,
             Self::KeywordsDropped => keywords_dropped::REPORTS,
             Self::LiveOnly => live_only::REPORTS,
@@ -154,8 +154,8 @@ impl CheckKind {
         match self {
             Self::Dependency => Dependency(dependency::Check::new(repo)),
             Self::DependencySlotMissing => DependencySlotMissing(dependency_slot_missing::Check::new(repo)),
-            Self::Eapi => Eapi(eapi::Check::new(repo)),
             Self::EapiStale => EapiStale(eapi_stale::Check),
+            Self::EapiStatus => EapiStatus(eapi_status::Check::new(repo)),
             Self::Keywords => Keywords(keywords::Check::new(repo)),
             Self::KeywordsDropped => KeywordsDropped(keywords_dropped::Check::new(repo)),
             Self::LiveOnly => LiveOnly(live_only::Check),
@@ -182,8 +182,8 @@ impl CheckKind {
 pub(crate) enum Check<'a> {
     Dependency(dependency::Check<'a>),
     DependencySlotMissing(dependency_slot_missing::Check<'a>),
-    Eapi(eapi::Check<'a>),
     EapiStale(eapi_stale::Check),
+    EapiStatus(eapi_status::Check<'a>),
     Keywords(keywords::Check<'a>),
     KeywordsDropped(keywords_dropped::Check<'a>),
     LiveOnly(live_only::Check),
@@ -198,8 +198,8 @@ impl<'a> CheckRun<&ebuild::Pkg<'a>> for Check<'a> {
         match self {
             Self::Dependency(c) => c.run(pkg, report),
             Self::DependencySlotMissing(c) => c.run(pkg, report),
-            Self::Eapi(c) => c.run(pkg, report),
             Self::Keywords(c) => c.run(pkg, report),
+            Self::EapiStatus(c) => c.run(pkg, report),
             Self::RestrictTestMissing(c) => c.run(pkg, report),
             _ => unreachable!("{self} is not an ebuild check"),
         }
