@@ -426,7 +426,7 @@ macro_rules! unbounded {
     };
 }
 
-// handle remaining ranged intersections
+/// Determine if two ranged versions intersect.
 macro_rules! ranged {
     ($ranged:expr, $ranged_op:expr, $other:expr, $other_op:expr) => {
         match ($ranged_op, $other_op) {
@@ -449,7 +449,7 @@ macro_rules! ranged {
             (_, EqualGlob) => $ranged.starts_with($other),
 
             // remaining variants should never occur
-            (_, op) => unreachable!("{op:?} operator should be previously handled"),
+            (_, op) => unreachable!("operator should be previously handled: {op:?}"),
         }
     };
 }
