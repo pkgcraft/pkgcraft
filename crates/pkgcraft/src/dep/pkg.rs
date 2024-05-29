@@ -572,8 +572,7 @@ impl fmt::Display for Dep {
 
 /// Determine if a package dependency intersects with a Cpv.
 fn dep_intersects_cpv(dep: &Dep, cpv: &Cpv) -> bool {
-    bool_not_equal!(dep.category(), cpv.category());
-    bool_not_equal!(dep.package(), cpv.package());
+    bool_not_equal!(dep.cpn(), cpv.cpn());
     dep.version()
         .map(|v| v.intersects(cpv.version()))
         .unwrap_or(true)
@@ -605,8 +604,7 @@ impl Intersects<Cow<'_, Dep>> for Cpv {
 
 /// Determine if two package dependencies intersect ignoring blockers.
 fn dep_intersects(dep1: &Dep, dep2: &Dep) -> bool {
-    bool_not_equal!(&dep1.category(), &dep2.category());
-    bool_not_equal!(&dep1.package(), &dep2.package());
+    bool_not_equal!(dep1.cpn(), dep2.cpn());
 
     if let (Some(x), Some(y)) = (dep1.slot(), dep2.slot()) {
         bool_not_equal!(x, y);
