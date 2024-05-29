@@ -330,6 +330,12 @@ mod tests {
             assert!(dep_cow.intersects(&cpv_or_dep));
         }
 
+        // variants intersect
+        let cpv_or_dep1 = CpvOrDep::try_new("cat/pkg-1").unwrap();
+        let cpv_or_dep2 = CpvOrDep::try_new(">=cat/pkg-1").unwrap();
+        assert!(cpv_or_dep1.intersects(&cpv_or_dep2));
+        assert!(cpv_or_dep2.intersects(&cpv_or_dep1));
+
         // invalid
         assert!(CpvOrDep::try_new("cat/pkg-1a-1").is_err());
         assert!(CpvOrDep::try_new("cat").is_err());
