@@ -641,7 +641,7 @@ fn dep_intersects(dep1: &Dep, dep2: &Dep) -> bool {
 }
 
 impl Intersects for Dep {
-    fn intersects(&self, other: &Dep) -> bool {
+    fn intersects(&self, other: &Self) -> bool {
         dep_intersects(self, other)
     }
 }

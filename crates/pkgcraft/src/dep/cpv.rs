@@ -44,8 +44,8 @@ impl fmt::Display for CpvOrDep {
     }
 }
 
-impl Intersects<CpvOrDep> for CpvOrDep {
-    fn intersects(&self, other: &CpvOrDep) -> bool {
+impl Intersects for CpvOrDep {
+    fn intersects(&self, other: &Self) -> bool {
         use CpvOrDep::*;
         match (self, other) {
             (Cpv(obj1), Cpv(obj2)) => obj1.intersects(obj2),
@@ -220,8 +220,8 @@ impl fmt::Display for Cpv {
 }
 
 /// Determine if two Cpvs intersect.
-impl Intersects<Cpv> for Cpv {
-    fn intersects(&self, other: &Cpv) -> bool {
+impl Intersects for Cpv {
+    fn intersects(&self, other: &Self) -> bool {
         self == other
     }
 }
