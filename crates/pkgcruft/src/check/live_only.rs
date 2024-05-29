@@ -22,7 +22,7 @@ impl super::CheckRun<&[Pkg<'_>]> for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::TEST_DATA;
+    use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
     use crate::check::CheckKind::LiveOnly;
@@ -41,6 +41,11 @@ mod tests {
 
         // empty repo
         let repo = TEST_DATA.repo("empty").unwrap();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
+
+        // gentoo fixed
+        let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
     }
