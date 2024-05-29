@@ -29,8 +29,8 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
         let mut sorted_flags = local_use.keys().map(|s| s.as_str()).collect::<Vec<_>>();
         sorted_flags.sort();
 
-        if let Some((unsorted, sorted)) = local_use.keys().zip(&sorted_flags).find(|(a, b)| a != b)
-        {
+        let sorted_diff = local_use.keys().zip(&sorted_flags).find(|(a, b)| a != b);
+        if let Some((unsorted, sorted)) = sorted_diff {
             let message = format!("unsorted flag: {unsorted} (sorted: {sorted})");
             report(UseLocalUnsorted.package(pkgs, message));
         }
