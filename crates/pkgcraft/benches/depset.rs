@@ -9,7 +9,7 @@ use pkgcraft::restrict::{Restrict, Restriction};
 pub fn bench_depsets(c: &mut Criterion) {
     c.bench_function("depset-parse-required-use", |b| {
         b.iter(|| {
-            dep::parse::required_use_dependency_set("u1? ( u2 )", &EAPI_LATEST_OFFICIAL).unwrap();
+            dep::parse::required_use_dependency_set("u1? ( u2 )").unwrap();
         })
     });
 

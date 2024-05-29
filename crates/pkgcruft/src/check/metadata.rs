@@ -78,7 +78,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
                 }
 
                 if let Some(val) = raw.get(&Key::REQUIRED_USE) {
-                    if let Err(e) = dep::parse::required_use_dependency_set(val, eapi) {
+                    if let Err(e) = dep::parse::required_use_dependency_set(val) {
                         report(RequiredUseInvalid.version(pkg, e));
                     }
                 }

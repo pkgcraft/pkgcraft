@@ -115,9 +115,9 @@ fn deserialize<'a>(
             }
         }
         PROPERTIES => meta.properties = dep::parse::properties_dependency_set(val)?,
-        REQUIRED_USE => meta.required_use = dep::parse::required_use_dependency_set(val, eapi)?,
+        REQUIRED_USE => meta.required_use = dep::parse::required_use_dependency_set(val)?,
         RESTRICT => meta.restrict = dep::parse::restrict_dependency_set(val)?,
-        SRC_URI => meta.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
+        SRC_URI => meta.src_uri = dep::parse::src_uri_dependency_set(val)?,
         HOMEPAGE => meta.homepage = val.split_whitespace().map(String::from).collect(),
         DEFINED_PHASES => {
             // PMS specifies if no phase functions are defined, a single hyphen is used.

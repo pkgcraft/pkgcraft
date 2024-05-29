@@ -134,9 +134,9 @@ impl<'a> Metadata<'a> {
                 }
             }
             PROPERTIES => self.properties = dep::parse::properties_dependency_set(val)?,
-            REQUIRED_USE => self.required_use = dep::parse::required_use_dependency_set(val, eapi)?,
+            REQUIRED_USE => self.required_use = dep::parse::required_use_dependency_set(val)?,
             RESTRICT => self.restrict = dep::parse::restrict_dependency_set(val)?,
-            SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val, eapi)?,
+            SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
             KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
             IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,

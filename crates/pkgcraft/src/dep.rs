@@ -1230,7 +1230,6 @@ mod tests {
         }
 
         // REQUIRED_USE
-        let eapi = Default::default();
         for (s, expected) in [
             ("a", "a"),
             ("!a", "!a"),
@@ -1242,7 +1241,7 @@ mod tests {
             ("u? ( b a )", "u? ( a b )"),
             ("!u? ( b a )", "!u? ( a b )"),
         ] {
-            let mut spec = parse::required_use_dependency(s, eapi).unwrap();
+            let mut spec = parse::required_use_dependency(s).unwrap();
             spec.sort();
             assert_eq!(spec.to_string(), expected);
         }
@@ -1275,7 +1274,6 @@ mod tests {
         }
 
         // REQUIRED_USE
-        let eapi = Default::default();
         for (s, expected) in [
             ("b a", "a b"),
             ("b !a", "b !a"),
@@ -1287,7 +1285,7 @@ mod tests {
             ("u? ( b a ) z", "z u? ( a b )"),
             ("!u? ( b a ) z", "z !u? ( a b )"),
         ] {
-            let mut set = parse::required_use_dependency_set(s, eapi).unwrap();
+            let mut set = parse::required_use_dependency_set(s).unwrap();
             set.sort();
             assert_eq!(set.to_string(), expected);
         }

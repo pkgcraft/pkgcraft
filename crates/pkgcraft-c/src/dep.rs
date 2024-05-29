@@ -562,7 +562,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_parse(
                 DependencySet::new_dep(opt_dep)
             },
             SrcUri => {
-                let opt_dep = unwrap_or_panic!(dep::parse::src_uri_dependency_set(s, eapi));
+                let opt_dep = unwrap_or_panic!(dep::parse::src_uri_dependency_set(s));
                 DependencySet::new_uri(opt_dep)
             },
             License => {
@@ -574,7 +574,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_parse(
                 DependencySet::new_string(opt_dep, kind)
             },
             RequiredUse => {
-                let opt_dep = unwrap_or_panic!(dep::parse::required_use_dependency_set(s, eapi));
+                let opt_dep = unwrap_or_panic!(dep::parse::required_use_dependency_set(s));
                 DependencySet::new_string(opt_dep, kind)
             },
             Restrict => {
@@ -610,7 +610,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_parse(
                 Dependency::new_dep(dep)
             },
             SrcUri => {
-                let dep = unwrap_or_panic!(dep::parse::src_uri_dependency(s, eapi));
+                let dep = unwrap_or_panic!(dep::parse::src_uri_dependency(s));
                 Dependency::new_uri(dep)
             },
             License => {
@@ -622,7 +622,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_parse(
                 Dependency::new_string(dep, kind)
             },
             RequiredUse => {
-                let dep = unwrap_or_panic!(dep::parse::required_use_dependency(s, eapi));
+                let dep = unwrap_or_panic!(dep::parse::required_use_dependency(s));
                 Dependency::new_string(dep, kind)
             },
             Restrict => {

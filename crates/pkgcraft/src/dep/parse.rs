@@ -252,7 +252,7 @@ peg::parser!(grammar depspec() for str {
         = "^^" __ vals:parens(<expr()>)
         { Dependency::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
 
-    rule at_most_one_of<T: Ordered>(eapi: &'static Eapi, expr: rule<Dependency<T>>) -> Dependency<T>
+    rule at_most_one_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = "??" __ vals:parens(<expr()>)
         { Dependency::AtMostOneOf(vals.into_iter().map(Box::new).collect()) }
 
@@ -262,9 +262,9 @@ peg::parser!(grammar depspec() for str {
         / all_of(<license_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
-    pub(super) rule src_uri_dependency(eapi: &'static Eapi) -> Dependency<Uri>
-        = conditional(<src_uri_dependency(eapi)>)
-        / all_of(<src_uri_dependency(eapi)>)
+    pub(super) rule src_uri_dependency() -> Dependency<Uri>
+        = conditional(<src_uri_dependency()>)
+        / all_of(<src_uri_dependency()>)
         / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {?
             let uri = Uri::try_new(s, rename).map_err(|_| "invalid URI")?;
             Ok(Dependency::Enabled(uri))
@@ -277,12 +277,12 @@ peg::parser!(grammar depspec() for str {
         / all_of(<properties_dependency()>)
         / s:license_name() { Dependency::Enabled(s.to_string()) }
 
-    pub(super) rule required_use_dependency(eapi: &'static Eapi) -> Dependency<String>
-        = conditional(<required_use_dependency(eapi)>)
-        / any_of(<required_use_dependency(eapi)>)
-        / all_of(<required_use_dependency(eapi)>)
-        / exactly_one_of(<required_use_dependency(eapi)>)
-        / at_most_one_of(eapi, <required_use_dependency(eapi)>)
+    pub(super) rule required_use_dependency() -> Dependency<String>
+        = conditional(<required_use_dependency()>)
+        / any_of(<required_use_dependency()>)
+        / all_of(<required_use_dependency()>)
+        / exactly_one_of(<required_use_dependency()>)
+        / at_most_one_of(<required_use_dependency()>)
         / "!" s:use_flag() { Dependency::Disabled(s.to_string()) }
         / s:use_flag() { Dependency::Enabled(s.to_string()) }
 
@@ -302,14 +302,14 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule license_dependency_set() -> DependencySet<String>
         = v:license_dependency() ** __ { v.into_iter().collect() }
 
-    pub(super) rule src_uri_dependency_set(eapi: &'static Eapi) -> DependencySet<Uri>
-        = v:src_uri_dependency(eapi) ** __ { v.into_iter().collect() }
+    pub(super) rule src_uri_dependency_set() -> DependencySet<Uri>
+        = v:src_uri_dependency() ** __ { v.into_iter().collect() }
 
     pub(super) rule properties_dependency_set() -> DependencySet<String>
         = v:properties_dependency() ** __ { v.into_iter().collect() }
 
-    pub(super) rule required_use_dependency_set(eapi: &'static Eapi) -> DependencySet<String>
-        = v:required_use_dependency(eapi) ** __ { v.into_iter().collect() }
+    pub(super) rule required_use_dependency_set() -> DependencySet<String>
+        = v:required_use_dependency() ** __ { v.into_iter().collect() }
 
     pub(super) rule restrict_dependency_set() -> DependencySet<String>
         = v:restrict_dependency() ** __ { v.into_iter().collect() }
@@ -407,12 +407,12 @@ pub fn license_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::license_dependency(s).map_err(|e| peg_error("invalid LICENSE dependency", s, e))
 }
 
-pub fn src_uri_dependency_set(s: &str, eapi: &'static Eapi) -> crate::Result<DependencySet<Uri>> {
-    depspec::src_uri_dependency_set(s, eapi).map_err(|e| peg_error("invalid SRC_URI", s, e))
+pub fn src_uri_dependency_set(s: &str) -> crate::Result<DependencySet<Uri>> {
+    depspec::src_uri_dependency_set(s).map_err(|e| peg_error("invalid SRC_URI", s, e))
 }
 
-pub fn src_uri_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<Uri>> {
-    depspec::src_uri_dependency(s, eapi).map_err(|e| peg_error("invalid SRC_URI dependency", s, e))
+pub fn src_uri_dependency(s: &str) -> crate::Result<Dependency<Uri>> {
+    depspec::src_uri_dependency(s).map_err(|e| peg_error("invalid SRC_URI dependency", s, e))
 }
 
 pub fn properties_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
@@ -423,16 +423,12 @@ pub fn properties_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::properties_dependency(s).map_err(|e| peg_error("invalid PROPERTIES dependency", s, e))
 }
 
-pub fn required_use_dependency_set(
-    s: &str,
-    eapi: &'static Eapi,
-) -> crate::Result<DependencySet<String>> {
-    depspec::required_use_dependency_set(s, eapi)
-        .map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
+pub fn required_use_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
+    depspec::required_use_dependency_set(s).map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
 }
 
-pub fn required_use_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<String>> {
-    depspec::required_use_dependency(s, eapi)
+pub fn required_use_dependency(s: &str) -> crate::Result<Dependency<String>> {
+    depspec::required_use_dependency(s)
         .map_err(|e| peg_error("invalid REQUIRED_USE dependency", s, e))
 }
 
@@ -627,14 +623,12 @@ mod tests {
     fn src_uri() {
         // invalid
         for s in ["http://", "https://a/uri/with/no/filename/"] {
-            assert!(src_uri_dependency_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
-            assert!(src_uri_dependency(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
+            assert!(src_uri_dependency_set(s).is_err(), "{s:?} didn't fail");
+            assert!(src_uri_dependency(s).is_err(), "{s:?} didn't fail");
         }
 
         // empty set
-        assert!(src_uri_dependency_set("", &EAPI_LATEST_OFFICIAL)
-            .unwrap()
-            .is_empty());
+        assert!(src_uri_dependency_set("").unwrap().is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -644,12 +638,10 @@ mod tests {
             ("( http://uri1 http://uri2 )", vec!["http://uri1", "http://uri2"]),
             ("u1? ( http://uri1 !u2? ( http://uri2 ) )", vec!["http://uri1", "http://uri2"]),
         ] {
-            for eapi in &*EAPIS {
-                let depset = src_uri_dependency_set(s, eapi).unwrap();
-                assert_eq!(depset.to_string(), s);
-                let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
-                assert_eq!(flatten, expected_flatten);
-            }
+            let depset = src_uri_dependency_set(s).unwrap();
+            assert_eq!(depset.to_string(), s);
+            let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
+            assert_eq!(flatten, expected_flatten);
         }
 
         // renames
@@ -657,12 +649,10 @@ mod tests {
             ("http://uri -> file", vec!["http://uri -> file"]),
             ("u? ( http://uri -> file )", vec!["http://uri -> file"]),
         ] {
-            for eapi in &*EAPIS {
-                let depset = src_uri_dependency_set(s, eapi).unwrap();
-                assert_eq!(depset.to_string(), s);
-                let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
-                assert_eq!(flatten, expected_flatten);
-            }
+            let depset = src_uri_dependency_set(s).unwrap();
+            assert_eq!(depset.to_string(), s);
+            let flatten: Vec<_> = depset.iter_flatten().map(|x| x.to_string()).collect();
+            assert_eq!(flatten, expected_flatten);
         }
     }
 
@@ -670,20 +660,12 @@ mod tests {
     fn required_use() {
         // invalid
         for s in ["(", ")", "( )", "( u)", "| ( u )", "|| ( )", "^^ ( )", "?? ( )"] {
-            assert!(
-                required_use_dependency_set(s, &EAPI_LATEST_OFFICIAL).is_err(),
-                "{s:?} didn't fail"
-            );
-            assert!(
-                required_use_dependency(s, &EAPI_LATEST_OFFICIAL).is_err(),
-                "{s:?} didn't fail"
-            );
+            assert!(required_use_dependency_set(s).is_err(), "{s:?} didn't fail");
+            assert!(required_use_dependency(s).is_err(), "{s:?} didn't fail");
         }
 
         // empty set
-        assert!(required_use_dependency_set("", &EAPI_LATEST_OFFICIAL)
-            .unwrap()
-            .is_empty());
+        assert!(required_use_dependency_set("").unwrap().is_empty());
 
         // valid
         for (s, expected_flatten) in [
@@ -699,21 +681,18 @@ mod tests {
             ("u1? ( u2 !u3 )", vec!["u2", "u3"]),
             ("!u1? ( || ( u2 u3 ) )", vec!["u2", "u3"]),
         ] {
-            let depset = required_use_dependency_set(s, &EAPI_LATEST_OFFICIAL).unwrap();
+            let depset = required_use_dependency_set(s).unwrap();
             assert_eq!(depset.to_string(), s);
             let flatten: Vec<_> = depset.iter_flatten().collect();
             assert_eq!(flatten, expected_flatten);
         }
 
         // ?? operator
-        for (s, expected_flatten) in [("?? ( u1 u2 )", vec!["u1", "u2"])] {
-            for eapi in &*EAPIS {
-                let depset = required_use_dependency_set(s, eapi).unwrap();
-                assert_eq!(depset.to_string(), s);
-                let flatten: Vec<_> = depset.iter_flatten().collect();
-                assert_eq!(flatten, expected_flatten);
-            }
-        }
+        let (s, expected_flatten) = ("?? ( u1 u2 )", vec!["u1", "u2"]);
+        let depset = required_use_dependency_set(s).unwrap();
+        assert_eq!(depset.to_string(), s);
+        let flatten: Vec<_> = depset.iter_flatten().collect();
+        assert_eq!(flatten, expected_flatten);
     }
 
     #[test]
