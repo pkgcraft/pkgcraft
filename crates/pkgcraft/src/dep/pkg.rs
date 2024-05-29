@@ -524,7 +524,7 @@ impl Dep {
         self.repo.as_ref().map(|s| s.as_ref())
     }
 
-    /// Return a key value used to implement various traits, e.g. Eq, Hash, etc.
+    /// Return a key value used to implement various traits, e.g. Eq, Ord, and Hash.
     fn key(&self) -> DepKey {
         (self.cpn(), self.version(), self.blocker(), self.slot_dep(), self.use_deps(), self.repo())
     }
