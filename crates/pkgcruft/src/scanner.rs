@@ -210,11 +210,6 @@ mod tests {
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
-        // no checks
-        let scanner = Scanner::new().jobs(1).checks([]);
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &[]);
-
         // specific checks
         let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
@@ -229,6 +224,11 @@ mod tests {
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
+        // no checks
+        let scanner = Scanner::new().jobs(1).checks([]);
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
+
         // no reports
         let scanner = Scanner::new().jobs(1).reports([]);
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
@@ -238,6 +238,11 @@ mod tests {
         let scanner = Scanner::new().jobs(1);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
         let reports: Vec<_> = scanner.run(repo, [&dep]).collect();
+        assert_eq!(&reports, &[]);
+
+        // empty repo
+        let repo = TEST_DATA.repo("empty").unwrap();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
     }
 
