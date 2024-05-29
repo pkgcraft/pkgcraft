@@ -175,12 +175,6 @@ impl From<Cpn> for Dep {
     }
 }
 
-impl From<Dep> for Cpn {
-    fn from(dep: Dep) -> Self {
-        dep.cpn.clone()
-    }
-}
-
 impl PartialEq for Dep {
     fn eq(&self, other: &Self) -> bool {
         self.key() == other.key()
