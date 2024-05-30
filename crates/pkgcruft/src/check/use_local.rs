@@ -26,8 +26,11 @@ impl<'a> Check<'a> {
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
     fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
         let local_use = pkgs[0].local_use();
-        let mut sorted_flags = local_use.keys().map(|s| s.as_str()).collect::<Vec<_>>();
-        sorted_flags.sort();
+        let sorted_flags = local_use
+            .keys()
+            .map(|s| s.as_str())
+            .sorted()
+            .collect::<Vec<_>>();
 
         let sorted_diff = local_use.keys().zip(&sorted_flags).find(|(a, b)| a != b);
         if let Some((unsorted, sorted)) = sorted_diff {
