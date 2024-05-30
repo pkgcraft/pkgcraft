@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 
 use camino::Utf8Path;
 use once_cell::sync::Lazy;
-use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::{ebuild::Repo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
@@ -92,8 +91,9 @@ impl CheckKind {
 
     /// Compare check variants by priority, then by name.
     pub(crate) fn prioritized(left: &Self, right: &Self) -> Ordering {
-        cmp_not_equal!(&left.priority(), &right.priority());
-        left.cmp(right)
+        left.priority()
+            .cmp(&right.priority())
+            .then_with(|| left.cmp(right))
     }
 
     /// The scope the check runs in.
