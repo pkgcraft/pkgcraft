@@ -12,7 +12,6 @@ use serde_with::{serde_as, DisplayFromStr};
 use tracing::warn;
 
 use crate::eapi::Eapi;
-use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::temp::Repo as TempRepo;
 use crate::repo::set::RepoSet;
 use crate::repo::{Repo, RepoFormat, Repository};
@@ -57,8 +56,9 @@ impl PartialOrd for RepoConfig {
 
 impl Ord for RepoConfig {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.priority, &other.priority);
-        self.location.cmp(&other.location)
+        self.priority
+            .cmp(&other.priority)
+            .then_with(|| self.location.cmp(&other.location))
     }
 }
 

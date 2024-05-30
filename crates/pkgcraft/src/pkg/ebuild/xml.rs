@@ -6,7 +6,6 @@ use itertools::Itertools;
 use roxmltree::Node;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::macros::cmp_not_equal;
 use crate::repo::ebuild::ArcCacheData;
 use crate::types::OrderedSet;
 use crate::xml::parse_xml_with_dtd;
@@ -70,8 +69,9 @@ impl Eq for Maintainer {}
 
 impl Ord for Maintainer {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.email, &other.email);
-        self.name.cmp(&other.name)
+        self.email
+            .cmp(&other.email)
+            .then_with(|| self.name.cmp(&other.name))
     }
 }
 

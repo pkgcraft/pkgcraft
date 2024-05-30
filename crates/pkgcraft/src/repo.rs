@@ -650,8 +650,7 @@ macro_rules! make_repo_traits {
                     Less => Greater,
                     Greater => Less,
                     Equal => {
-                        $crate::macros::cmp_not_equal!(self.id(), other.id());
-                        self.format().cmp(&other.format())
+                        self.id().cmp(other.id()).then_with(|| self.format().cmp(&other.format()))
                     }
                 }
             }

@@ -125,8 +125,7 @@ macro_rules! make_pkg_traits {
 
         impl Ord for $x {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                crate::macros::cmp_not_equal!(self.cpv(), other.cpv());
-                self.repo().cmp(&other.repo())
+                self.cpv().cmp(other.cpv()).then_with(|| self.repo().cmp(other.repo()))
             }
         }
 

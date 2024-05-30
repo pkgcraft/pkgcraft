@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 
 use scallop::ExecStatus;
 
-use crate::macros::cmp_not_equal;
 use crate::shell::BuildData;
 
 use super::phase::PhaseKind;
@@ -29,9 +28,9 @@ pub(crate) struct Hook {
 
 impl Ord for Hook {
     fn cmp(&self, other: &Self) -> Ordering {
-        cmp_not_equal!(&self.priority, &other.priority);
-        cmp_not_equal!(&self.name, &other.name);
-        Ordering::Equal
+        self.priority
+            .cmp(&other.priority)
+            .then_with(|| self.name.cmp(&other.name))
     }
 }
 
