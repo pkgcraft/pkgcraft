@@ -66,15 +66,17 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
         }
 
         // ignore overlapping keywords when checking order
-        let flattened_keywords = keywords_map
+        let unsorted_keywords = keywords_map
             .values()
             .filter_map(|x| x.first())
-            .collect::<OrderedSet<_>>();
-        let mut sorted_keywords = flattened_keywords.clone();
-        sorted_keywords.sort();
-
-        if sorted_keywords != flattened_keywords {
-            let message = pkg.keywords().iter().join(" ");
+            .collect::<Vec<_>>();
+        let sorted_keywords = unsorted_keywords.iter().sorted().collect::<Vec<_>>();
+        let sorted_diff = unsorted_keywords
+            .iter()
+            .zip(sorted_keywords)
+            .find(|(a, b)| a != b);
+        if let Some((unsorted, sorted)) = sorted_diff {
+            let message = format!("unsorted KEYWORD: {unsorted} (sorted: {sorted})");
             report(KeywordsUnsorted.version(pkg, message));
         }
     }
