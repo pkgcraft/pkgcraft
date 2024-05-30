@@ -222,10 +222,27 @@ impl ReportKind {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub enum ReportScope {
     Version(Cpv),
     Package(Cpn),
+}
+
+impl Ord for ReportScope {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Self::Version(cpv1), Self::Version(cpv2)) => cpv1.cmp(cpv2),
+            (Self::Package(cpn1), Self::Package(cpn2)) => cpn1.cmp(cpn2),
+            (Self::Version(cpv), Self::Package(cpn)) => cpv.cpn().cmp(cpn).then(Ordering::Less),
+            (Self::Package(cpn), Self::Version(cpv)) => cpn.cmp(cpv.cpn()).then(Ordering::Greater),
+        }
+    }
+}
+
+impl PartialOrd for ReportScope {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl fmt::Display for ReportScope {
@@ -279,18 +296,10 @@ impl Report {
 
 impl Ord for Report {
     fn cmp(&self, other: &Self) -> Ordering {
-        match (&self.scope, &other.scope) {
-            (ReportScope::Version(cpv), ReportScope::Package(cpn)) => {
-                cpv.cpn().cmp(cpn).then(Ordering::Less)
-            }
-            (ReportScope::Package(cpn), ReportScope::Version(cpv)) => {
-                cpn.cmp(cpv.cpn()).then(Ordering::Greater)
-            }
-            (s1, s2) => s1
-                .cmp(s2)
-                .then_with(|| self.kind.cmp(&other.kind))
-                .then_with(|| self.message.cmp(&other.message)),
-        }
+        self.scope
+            .cmp(&other.scope)
+            .then_with(|| self.kind.cmp(&other.kind))
+            .then_with(|| self.message.cmp(&other.message))
     }
 }
 
