@@ -7,7 +7,6 @@ use std::io::{BufRead, BufReader};
 use camino::Utf8Path;
 use colored::Color;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::macros::cmp_not_equal;
 use pkgcraft::pkg::Package;
 use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
@@ -280,22 +279,18 @@ impl Report {
 
 impl Ord for Report {
     fn cmp(&self, other: &Self) -> Ordering {
-        use ReportScope::*;
         match (&self.scope, &other.scope) {
-            (Version(cpv), Package(dep)) => {
-                cmp_not_equal!(&cpv.category(), &dep.category());
-                cmp_not_equal!(&cpv.package(), &dep.package());
-                return Ordering::Less;
+            (ReportScope::Version(cpv), ReportScope::Package(cpn)) => {
+                cpv.cpn().cmp(cpn).then(Ordering::Less)
             }
-            (Package(dep), Version(cpv)) => {
-                cmp_not_equal!(&dep.category(), &cpv.category());
-                cmp_not_equal!(&dep.package(), &cpv.package());
-                return Ordering::Greater;
+            (ReportScope::Package(cpn), ReportScope::Version(cpv)) => {
+                cpn.cmp(cpv.cpn()).then(Ordering::Greater)
             }
-            (s1, s2) => cmp_not_equal!(s1, s2),
+            (s1, s2) => s1
+                .cmp(s2)
+                .then_with(|| self.kind.cmp(&other.kind))
+                .then_with(|| self.message.cmp(&other.message)),
         }
-        cmp_not_equal!(&self.kind, &other.kind);
-        self.message.cmp(&other.message)
     }
 }
 
