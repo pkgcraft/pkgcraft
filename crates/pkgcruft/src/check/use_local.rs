@@ -38,10 +38,9 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
             report(UseLocalUnsorted.package(pkgs, message));
         }
 
-        let mut missing_desc = vec![];
         for (flag, desc) in local_use {
             if desc.is_empty() {
-                missing_desc.push(flag);
+                report(UseLocalDescMissing.package(pkgs, flag));
             }
 
             if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
@@ -49,12 +48,6 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
                     report(UseGlobalMatching.package(pkgs, flag));
                 }
             }
-        }
-
-        if !missing_desc.is_empty() {
-            missing_desc.sort();
-            let message = missing_desc.iter().join(", ");
-            report(UseLocalDescMissing.package(pkgs, message));
         }
 
         let used = pkgs
