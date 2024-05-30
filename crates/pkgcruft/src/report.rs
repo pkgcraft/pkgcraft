@@ -65,8 +65,6 @@ impl From<ReportLevel> for Color {
     Debug,
     PartialEq,
     Eq,
-    PartialOrd,
-    Ord,
     Hash,
     Copy,
     Clone,
@@ -111,11 +109,23 @@ pub enum ReportKind {
     /// Local USE flag description matching a global USE flag.
     UseLocalGlobal,
 
-    /// Local USE flag this is unused.
-    UseLocalUnused,
-
     /// Local USE flag that is unsorted.
     UseLocalUnsorted,
+
+    /// Local USE flag this is unused.
+    UseLocalUnused,
+}
+
+impl Ord for ReportKind {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+
+impl PartialOrd for ReportKind {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl ReportKind {
