@@ -193,7 +193,7 @@ impl ReportKind {
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
             Self::KeywordsDropped => Warning,
-            Self::KeywordsOverlapping => Warning,
+            Self::KeywordsOverlapping => Error,
             Self::KeywordsUnsorted => Style,
             Self::LicenseInvalid => Critical,
             Self::LiveOnly => Warning,
@@ -206,7 +206,7 @@ impl ReportKind {
             Self::SourcingError => Critical,
             Self::UnstableOnly => Info,
             Self::UseGlobalMatching => Warning,
-            Self::UseLocalDescMissing => Warning,
+            Self::UseLocalDescMissing => Error,
             Self::UseLocalUnused => Warning,
             Self::UseLocalUnsorted => Style,
         }
