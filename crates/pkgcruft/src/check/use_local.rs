@@ -6,11 +6,11 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, UseGlobalMatching, UseLocalDescMissing, UseLocalUnsorted, UseLocalUnused},
+    ReportKind::{self, UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused},
 };
 
 pub(super) static REPORTS: &[ReportKind] =
-    &[UseGlobalMatching, UseLocalDescMissing, UseLocalUnused, UseLocalUnsorted];
+    &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted];
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
@@ -46,7 +46,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
             if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
                 if global_desc == desc {
-                    report(UseGlobalMatching.package(pkgs, flag));
+                    report(UseLocalGlobal.package(pkgs, flag));
                 }
             }
         }

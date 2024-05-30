@@ -105,16 +105,16 @@ pub enum ReportKind {
     SourcingError,
     UnstableOnly,
 
-    /// Local USE flag description matching a global USE flag.
-    UseGlobalMatching,
-
     /// Local USE flag missing description.
     UseLocalDescMissing,
 
-    /// Unused local USE flags.
+    /// Local USE flag description matching a global USE flag.
+    UseLocalGlobal,
+
+    /// Local USE flag this is unused.
     UseLocalUnused,
 
-    /// Unsorted local USE flags.
+    /// Local USE flag that is unsorted.
     UseLocalUnsorted,
 }
 
@@ -174,8 +174,8 @@ impl ReportKind {
             Self::RevisionMissing => Scope::Version,
             Self::SourcingError => Scope::Version,
             Self::UnstableOnly => Scope::Package,
-            Self::UseGlobalMatching => Scope::Package,
             Self::UseLocalDescMissing => Scope::Package,
+            Self::UseLocalGlobal => Scope::Package,
             Self::UseLocalUnused => Scope::Package,
             Self::UseLocalUnsorted => Scope::Package,
         }
@@ -205,8 +205,8 @@ impl ReportKind {
             Self::RevisionMissing => Warning,
             Self::SourcingError => Critical,
             Self::UnstableOnly => Info,
-            Self::UseGlobalMatching => Warning,
             Self::UseLocalDescMissing => Error,
+            Self::UseLocalGlobal => Warning,
             Self::UseLocalUnused => Warning,
             Self::UseLocalUnsorted => Style,
         }
