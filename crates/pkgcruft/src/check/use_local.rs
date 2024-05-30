@@ -67,3 +67,25 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::repo::Repository;
+    use pkgcraft::test::TEST_DATA;
+    use pretty_assertions::assert_eq;
+
+    use crate::check::CheckKind::UseLocal;
+    use crate::scanner::Scanner;
+    use crate::test::glob_reports;
+
+    #[test]
+    fn check() {
+        // primary unfixed
+        let repo = TEST_DATA.repo("qa-primary").unwrap();
+        let check_dir = repo.path().join(UseLocal);
+        let scanner = Scanner::new().jobs(1).checks([UseLocal]);
+        let expected = glob_reports!("{check_dir}/*/reports.json");
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+    }
+}
