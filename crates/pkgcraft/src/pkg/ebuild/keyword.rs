@@ -3,7 +3,6 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::dep::parse;
-use crate::macros::cmp_not_equal;
 
 /// Package keyword type.
 #[repr(C)]
@@ -45,16 +44,13 @@ where
 {
     let (arch1, arch2) = (arch1.as_ref(), arch2.as_ref());
     match (arch1.split_once('-'), arch2.split_once('-')) {
-        (None, Some(_)) => return Ordering::Less,
-        (Some(_), None) => return Ordering::Greater,
+        (None, Some(_)) => Ordering::Less,
+        (Some(_), None) => Ordering::Greater,
         (Some((arch1, platform1)), Some((arch2, platform2))) => {
-            cmp_not_equal!(platform1, platform2);
-            cmp_not_equal!(arch1, arch2)
+            platform1.cmp(platform2).then_with(|| arch1.cmp(arch2))
         }
-        (None, None) => cmp_not_equal!(arch1, arch2),
+        (None, None) => arch1.cmp(arch2),
     }
-
-    Ordering::Equal
 }
 
 impl Ord for Keyword {
