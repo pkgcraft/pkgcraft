@@ -32,15 +32,16 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
             .sorted()
             .collect::<Vec<_>>();
 
-        let sorted_diff = local_use.keys().zip(&sorted_flags).find(|(a, b)| a != b);
-        if let Some((unsorted, sorted)) = sorted_diff {
-            let message = format!("unsorted flag: {unsorted} (sorted: {sorted})");
-            report(UseLocalUnsorted.package(pkgs, message));
-        }
-
-        for (flag, desc) in local_use {
+        let mut unsorted = false;
+        for ((flag, desc), sorted) in local_use.iter().zip(&sorted_flags) {
             if desc.is_empty() {
                 report(UseLocalDescMissing.package(pkgs, flag));
+            }
+
+            if !unsorted && flag != sorted {
+                let message = format!("unsorted flag: {flag} (sorted: {sorted})");
+                report(UseLocalUnsorted.package(pkgs, message));
+                unsorted = true;
             }
 
             if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
