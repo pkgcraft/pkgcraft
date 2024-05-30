@@ -45,19 +45,7 @@ impl CheckContext {
 
 /// Check variants.
 #[derive(
-    AsRefStr,
-    Display,
-    EnumIter,
-    EnumString,
-    VariantNames,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Copy,
-    Clone,
+    AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Hash, Copy, Clone,
 )]
 pub enum CheckKind {
     Dependency,
@@ -75,8 +63,22 @@ pub enum CheckKind {
 
 impl AsRef<Utf8Path> for CheckKind {
     fn as_ref(&self) -> &Utf8Path {
-        let s: &str = self.as_ref();
-        Utf8Path::new(s)
+        let name: &str = self.as_ref();
+        Utf8Path::new(name)
+    }
+}
+
+impl Ord for CheckKind {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let self_name: &str = self.as_ref();
+        let other_name: &str = other.as_ref();
+        self_name.cmp(other_name)
+    }
+}
+
+impl PartialOrd for CheckKind {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
