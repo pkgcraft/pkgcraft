@@ -39,13 +39,13 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
         }
 
         let mut missing_desc = vec![];
-        for (flag, local_desc) in local_use {
-            if local_use.is_empty() {
+        for (flag, desc) in local_use {
+            if desc.is_empty() {
                 missing_desc.push(flag);
             }
 
             if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
-                if global_desc == local_desc {
+                if global_desc == desc {
                     report(UseGlobalMatching.package(pkgs, flag));
                 }
             }
