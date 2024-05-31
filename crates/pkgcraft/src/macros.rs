@@ -57,7 +57,7 @@ macro_rules! cmp_not_equal {
         $crate::macros::cmp_not_equal!($x.cmp($y))
     };
 }
-pub use cmp_not_equal;
+pub(crate) use cmp_not_equal;
 
 // Return Ordering if the arguments or expression are not equal.
 macro_rules! partial_cmp_not_equal {
