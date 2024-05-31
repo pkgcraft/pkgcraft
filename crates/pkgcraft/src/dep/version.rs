@@ -4,6 +4,8 @@ use std::hash::{Hash, Hasher};
 use std::str;
 use std::str::FromStr;
 
+use itertools::EitherOrBoth::{Both, Left, Right};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
@@ -553,11 +555,9 @@ fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
     cmp_not_equal!(&v1.numbers[0], &v2.numbers[0]);
 
     // compare remaining version components
-    let mut v1_numbers = v1.numbers[1..].iter();
-    let mut v2_numbers = v2.numbers[1..].iter();
-    loop {
-        match (v1_numbers.next(), v2_numbers.next()) {
-            (Some(n1), Some(n2)) => {
+    for numbers in v1.numbers[1..].iter().zip_longest(&v2.numbers[1..]) {
+        match numbers {
+            Both(n1, n2) => {
                 // compare as strings if a component starts with "0", otherwise as integers
                 let (s1, s2) = (n1.as_str(), n2.as_str());
                 if s1.starts_with('0') || s2.starts_with('0') {
@@ -566,9 +566,8 @@ fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
                     cmp_not_equal!(n1, n2);
                 }
             }
-            (Some(_), None) => return Ordering::Greater,
-            (None, Some(_)) => return Ordering::Less,
-            (None, None) => break,
+            Left(_) => return Ordering::Greater,
+            Right(_) => return Ordering::Less,
         }
     }
 
@@ -576,16 +575,13 @@ fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
     cmp_not_equal!(&v1.letter, &v2.letter);
 
     // compare suffixes
-    let mut v1_suffixes = v1.suffixes.iter();
-    let mut v2_suffixes = v2.suffixes.iter();
-    loop {
-        match (v1_suffixes.next(), v2_suffixes.next()) {
-            (Some(s1), Some(s2)) => cmp_not_equal!(s1, s2),
-            (Some(Suffix { kind: SuffixKind::P, .. }), None) => return Ordering::Greater,
-            (Some(_), None) => return Ordering::Less,
-            (None, Some(Suffix { kind: SuffixKind::P, .. })) => return Ordering::Less,
-            (None, Some(_)) => return Ordering::Greater,
-            (None, None) => break,
+    for suffixes in v1.suffixes.iter().zip_longest(&v2.suffixes) {
+        match suffixes {
+            Both(s1, s2) => cmp_not_equal!(s1, s2),
+            Left(s) if s.kind == SuffixKind::P => return Ordering::Greater,
+            Left(_) => return Ordering::Less,
+            Right(s) if s.kind == SuffixKind::P => return Ordering::Less,
+            Right(_) => return Ordering::Greater,
         }
     }
 
