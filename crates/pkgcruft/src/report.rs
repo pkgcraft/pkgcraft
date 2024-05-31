@@ -8,6 +8,7 @@ use camino::Utf8Path;
 use colored::Color;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::Package;
+use pkgcraft::repo::Repository;
 use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
@@ -160,6 +161,22 @@ impl ReportKind {
         }
     }
 
+    /// Create a repo scope report.
+    pub(crate) fn repo<R, S>(self, repo: R, message: S) -> Report
+    where
+        R: Repository,
+        S: fmt::Display,
+    {
+        // verify report scope
+        debug_assert!(self.scope() == Scope::Repo);
+
+        Report {
+            kind: self,
+            scope: ReportScope::Repo(repo.name().to_string()),
+            message: message.to_string(),
+        }
+    }
+
     /// Return the scope of the report variant.
     pub fn scope(&self) -> Scope {
         match self {
@@ -226,6 +243,7 @@ impl ReportKind {
 pub enum ReportScope {
     Version(Cpv),
     Package(Cpn),
+    Repo(String),
 }
 
 impl Ord for ReportScope {
@@ -233,8 +251,11 @@ impl Ord for ReportScope {
         match (self, other) {
             (Self::Version(cpv1), Self::Version(cpv2)) => cpv1.cmp(cpv2),
             (Self::Package(cpn1), Self::Package(cpn2)) => cpn1.cmp(cpn2),
+            (Self::Repo(repo1), Self::Repo(repo2)) => repo1.cmp(repo2),
             (Self::Version(cpv), Self::Package(cpn)) => cpv.cpn().cmp(cpn).then(Ordering::Less),
             (Self::Package(cpn), Self::Version(cpv)) => cpn.cmp(cpv.cpn()).then(Ordering::Greater),
+            (_, Self::Repo(_)) => Ordering::Less,
+            (Self::Repo(_), _) => Ordering::Greater,
         }
     }
 }
@@ -250,6 +271,7 @@ impl fmt::Display for ReportScope {
         match self {
             Self::Version(cpv) => write!(f, "{cpv}"),
             Self::Package(cpn) => write!(f, "{cpn}"),
+            Self::Repo(repo) => write!(f, "{repo}"),
         }
     }
 }
@@ -320,6 +342,7 @@ impl Restriction<&Report> for Restrict {
         match &report.scope {
             ReportScope::Version(cpv) => self.matches(cpv),
             ReportScope::Package(cpn) => self.matches(cpn),
+            _ => false,
         }
     }
 }

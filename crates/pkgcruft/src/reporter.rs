@@ -3,7 +3,6 @@ use std::io::Write;
 
 use colored::{Color, Colorize};
 use itertools::Itertools;
-use pkgcraft::dep::Cpn;
 use strfmt::strfmt;
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
@@ -55,7 +54,7 @@ impl SimpleReporter {
 
 #[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
-    prev_cpn: Option<Cpn>,
+    prev_key: Option<String>,
 }
 
 impl From<FancyReporter> for Reporter {
@@ -66,22 +65,23 @@ impl From<FancyReporter> for Reporter {
 
 impl FancyReporter {
     fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
-        let cpn = match report.scope() {
-            ReportScope::Version(cpv) => cpv.cpn().clone(),
-            ReportScope::Package(cpn) => cpn.clone(),
+        let key = match report.scope() {
+            ReportScope::Version(cpv) => cpv.cpn().to_string(),
+            ReportScope::Package(cpn) => cpn.to_string(),
+            ReportScope::Repo(repo) => repo.to_string(),
         };
 
         if !self
-            .prev_cpn
+            .prev_key
             .as_ref()
-            .map(|prev| prev == &cpn)
+            .map(|prev| prev == &key)
             .unwrap_or_default()
         {
-            if self.prev_cpn.is_some() {
+            if self.prev_key.is_some() {
                 writeln!(output)?;
             }
-            writeln!(output, "{}", cpn.to_string().color(Color::Blue).bold())?;
-            self.prev_cpn = Some(cpn);
+            writeln!(output, "{}", key.color(Color::Blue).bold())?;
+            self.prev_key = Some(key);
         }
 
         write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
@@ -150,6 +150,9 @@ impl FormatReporter {
                     ("package".to_string(), cpn.package().to_string()),
                     ("cpn".to_string(), cpn.to_string()),
                 ]);
+            }
+            ReportScope::Repo(repo) => {
+                attrs.extend([("repo".to_string(), repo.to_string())]);
             }
         }
 
