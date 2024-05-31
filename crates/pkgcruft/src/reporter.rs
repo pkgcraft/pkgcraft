@@ -68,6 +68,7 @@ impl FancyReporter {
         let key = match report.scope() {
             ReportScope::Version(cpv) => cpv.cpn().to_string(),
             ReportScope::Package(cpn) => cpn.to_string(),
+            ReportScope::Category(cat) => cat.to_string(),
             ReportScope::Repo(repo) => repo.to_string(),
         };
 
@@ -150,6 +151,9 @@ impl FormatReporter {
                     ("package".to_string(), cpn.package().to_string()),
                     ("cpn".to_string(), cpn.to_string()),
                 ]);
+            }
+            ReportScope::Category(cat) => {
+                attrs.extend([("category".to_string(), cat.to_string())]);
             }
             ReportScope::Repo(repo) => {
                 attrs.extend([("repo".to_string(), repo.to_string())]);

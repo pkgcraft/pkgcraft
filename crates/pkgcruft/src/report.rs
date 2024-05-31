@@ -239,23 +239,33 @@ impl ReportKind {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(AsRefStr, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ReportScope {
     Version(Cpv),
     Package(Cpn),
+    Category(String),
     Repo(String),
+}
+
+impl ReportScope {
+    fn scope(&self) -> Scope {
+        let name = self.as_ref();
+        name.parse()
+            .unwrap_or_else(|_| panic!("unknown scope: {name}"))
+    }
 }
 
 impl Ord for ReportScope {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (Self::Version(cpv1), Self::Version(cpv2)) => cpv1.cmp(cpv2),
-            (Self::Package(cpn1), Self::Package(cpn2)) => cpn1.cmp(cpn2),
             (Self::Repo(repo1), Self::Repo(repo2)) => repo1.cmp(repo2),
+            (Self::Category(cat1), Self::Category(cat2)) => cat1.cmp(cat2),
+            (Self::Package(cpn1), Self::Package(cpn2)) => cpn1.cmp(cpn2),
+            (Self::Version(cpv1), Self::Version(cpv2)) => cpv1.cmp(cpv2),
             (Self::Version(cpv), Self::Package(cpn)) => cpv.cpn().cmp(cpn).then(Ordering::Less),
             (Self::Package(cpn), Self::Version(cpv)) => cpn.cmp(cpv.cpn()).then(Ordering::Greater),
-            (_, Self::Repo(_)) => Ordering::Less,
-            (Self::Repo(_), _) => Ordering::Greater,
+            _ => self.scope().cmp(&other.scope()),
         }
     }
 }
@@ -271,6 +281,7 @@ impl fmt::Display for ReportScope {
         match self {
             Self::Version(cpv) => write!(f, "{cpv}"),
             Self::Package(cpn) => write!(f, "{cpn}"),
+            Self::Category(cat) => write!(f, "{cat}"),
             Self::Repo(repo) => write!(f, "{repo}"),
         }
     }

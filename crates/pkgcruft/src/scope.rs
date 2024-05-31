@@ -19,5 +19,6 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 pub enum Scope {
     Version,
     Package,
+    Category,
     Repo,
 }
