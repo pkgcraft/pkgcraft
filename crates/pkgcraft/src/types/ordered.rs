@@ -13,6 +13,7 @@ use std::ops::{
 };
 
 use indexmap::{IndexMap, IndexSet};
+use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
 use serde::{Deserialize, Deserializer};
 
@@ -155,16 +156,14 @@ where
     T2: Ordered + PartialOrd<T1>,
 {
     fn partial_cmp(&self, other: &SortedSet<T1>) -> Option<Ordering> {
-        let mut self_iter = self.iter().sorted();
-        let mut other_iter = other.iter().sorted();
-        loop {
-            match (self_iter.next(), other_iter.next()) {
-                (Some(v1), Some(v2)) => partial_cmp_not_equal_opt!(v1, v2),
-                (Some(_), None) => return Some(Ordering::Greater),
-                (None, Some(_)) => return Some(Ordering::Less),
-                (None, None) => return Some(Ordering::Equal),
+        for item in self.iter().sorted().zip_longest(other.iter().sorted()) {
+            match item {
+                Both(v1, v2) => partial_cmp_not_equal_opt!(v1, v2),
+                Left(_) => return Some(Ordering::Greater),
+                Right(_) => return Some(Ordering::Less),
             }
         }
+        Some(Ordering::Equal)
     }
 }
 
