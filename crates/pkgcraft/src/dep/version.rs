@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::macros::{cmp_not_equal, partial_cmp_not_equal};
+use crate::macros::cmp_not_equal;
 use crate::traits::Intersects;
 use crate::Error;
 
@@ -550,7 +550,7 @@ impl Hash for Version {
 /// Compare two versions, optionally ignoring the revision and/or operator.
 fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
     // compare major versions
-    partial_cmp_not_equal!(&v1.numbers[0], &v2.numbers[0]);
+    cmp_not_equal!(&v1.numbers[0], &v2.numbers[0]);
 
     // compare remaining version components
     let mut v1_numbers = v1.numbers[1..].iter();
@@ -563,7 +563,7 @@ fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
                 if s1.starts_with('0') || s2.starts_with('0') {
                     cmp_not_equal!(s1.trim_end_matches('0'), s2.trim_end_matches('0'));
                 } else {
-                    partial_cmp_not_equal!(n1, n2);
+                    cmp_not_equal!(n1, n2);
                 }
             }
             (Some(_), None) => return Ordering::Greater,
@@ -580,7 +580,7 @@ fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
     let mut v2_suffixes = v2.suffixes.iter();
     loop {
         match (v1_suffixes.next(), v2_suffixes.next()) {
-            (Some(s1), Some(s2)) => partial_cmp_not_equal!(s1, s2),
+            (Some(s1), Some(s2)) => cmp_not_equal!(s1, s2),
             (Some(Suffix { kind: SuffixKind::P, .. }), None) => return Ordering::Greater,
             (Some(_), None) => return Ordering::Less,
             (None, Some(Suffix { kind: SuffixKind::P, .. })) => return Ordering::Less,
@@ -591,7 +591,7 @@ fn cmp(v1: &Version, v2: &Version, rev: bool, op: bool) -> Ordering {
 
     // compare revisions
     if rev {
-        partial_cmp_not_equal!(&v1.revision, &v2.revision);
+        cmp_not_equal!(&v1.revision, &v2.revision);
     }
 
     // compare operators
