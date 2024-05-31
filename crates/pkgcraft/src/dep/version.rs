@@ -337,29 +337,25 @@ impl Version {
         let mut unmatched = false;
 
         // compare components
-        let mut v1_numbers = self.numbers.iter();
-        let mut v2_numbers = other.numbers.iter();
-        loop {
-            match (v1_numbers.next(), v2_numbers.next()) {
-                (Some(n1), Some(n2)) => {
+        for numbers in self.numbers.iter().zip_longest(&other.numbers) {
+            match numbers {
+                Both(n1, n2) => {
                     if !n1.starts_with(n2) {
                         return false;
                     }
                 }
-                (None, Some(_)) => return false,
-                (Some(_), None) => {
+                Left(_) => {
                     unmatched = true;
                     break;
                 }
-                (None, None) => break,
+                Right(_) => return false,
             }
         }
 
         // compare letters
         match (&self.letter, &other.letter) {
-            (_, Some(_)) if unmatched => return false,
             (Some(c1), Some(c2)) => {
-                if c1 != c2 {
+                if unmatched || c1 != c2 {
                     return false;
                 }
             }
@@ -369,13 +365,10 @@ impl Version {
         }
 
         // compare suffixes
-        let mut v1_suffixes = self.suffixes.iter();
-        let mut v2_suffixes = other.suffixes.iter();
-        loop {
-            match (v1_suffixes.next(), v2_suffixes.next()) {
-                (_, Some(_)) if unmatched => return false,
-                (Some(s1), Some(s2)) => {
-                    if s1.kind != s2.kind {
+        for suffixes in self.suffixes.iter().zip_longest(&other.suffixes) {
+            match suffixes {
+                Both(s1, s2) => {
+                    if unmatched || s1.kind != s2.kind {
                         return false;
                     }
 
@@ -391,12 +384,11 @@ impl Version {
                         (None, None) => (),
                     }
                 }
-                (None, Some(_)) => return false,
-                (Some(_), None) => {
+                Left(_) => {
                     unmatched = true;
                     break;
                 }
-                (None, None) => break,
+                Right(_) => return false,
             }
         }
 
