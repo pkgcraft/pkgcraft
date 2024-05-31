@@ -239,8 +239,7 @@ impl ReportKind {
     }
 }
 
-#[derive(AsRefStr, Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
-#[strum(serialize_all = "kebab-case")]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub enum ReportScope {
     Version(Cpv),
     Package(Cpn),
@@ -250,9 +249,12 @@ pub enum ReportScope {
 
 impl ReportScope {
     fn scope(&self) -> Scope {
-        let name = self.as_ref();
-        name.parse()
-            .unwrap_or_else(|_| panic!("unknown scope: {name}"))
+        match self {
+            Self::Version(_) => Scope::Version,
+            Self::Package(_) => Scope::Package,
+            Self::Category(_) => Scope::Category,
+            Self::Repo(_) => Scope::Repo,
+        }
     }
 }
 
