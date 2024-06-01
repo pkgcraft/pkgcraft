@@ -19,14 +19,13 @@ Install from git:
 
 # Benchmarking
 
-Benchmarks can be run individually for every check against a specified external
-repo:
+Benchmarks can be run individually for every check against a repo target:
 
-    # set the repo to target for benchmarking
+    # set repo target
     export PKGCRUFT_BENCH_REPO=path/to/repo
 
-    # make sure the repo's metadata cache is up to date
+    # update repo metadata
     pk repo metadata regen path/to/repo
 
-    # run the benchmarks from the root directory of the pkgcraft git repo
+    # run benchmarks
     cargo criterion Check --features test -p pkgcruft
