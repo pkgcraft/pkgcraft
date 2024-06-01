@@ -20,13 +20,13 @@ Install from git:
 # Benchmarking
 
 Benchmarks can be run individually for every check against a specified external
-repo. For example, to run them against the gentoo repo:
+repo:
 
     # set the repo to target for benchmarking
-    export PKGCRUFT_BENCH_REPO=path/to/gentoo/repo
+    export PKGCRUFT_BENCH_REPO=path/to/repo
 
     # make sure the repo's metadata cache is up to date
-    pk repo metadata regen path/to/gentoo/repo
+    pk repo metadata regen path/to/repo
 
     # run the benchmarks from the root directory of the pkgcraft git repo
     cargo criterion Check --features test -p pkgcruft
