@@ -73,7 +73,7 @@ jobs:
       run: |
         mkdir gentoo
         curl -L https://github.com/gentoo-mirror/gentoo/archive/73d0ee59ebd9.tar.gz | tar -xz --strip-components=1 -C gentoo
-        echo "PKGCRUFT_GENTOO_REPO=${GITHUB_WORKSPACE}/gentoo" >> $GITHUB_ENV
+        echo "PKGCRUFT_BENCH_REPO=${GITHUB_WORKSPACE}/gentoo" >> $GITHUB_ENV
 
     - name: Benchmark pkgcruft
       run: cargo criterion --all-features -p pkgcruft --color always --output-format quiet

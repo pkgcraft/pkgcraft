@@ -10,8 +10,8 @@ pub fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Check");
     group.sample_size(10);
 
-    if let Ok(path) = env::var("PKGCRUFT_GENTOO_REPO") {
-        let repo = Repo::from_path("gentoo", path, 0, true).unwrap();
+    if let Ok(path) = env::var("PKGCRUFT_BENCH_REPO") {
+        let repo = Repo::from_path(&path, &path, 0, true).unwrap();
         // TODO: checkout a specific commit
 
         // run benchmark for every check
@@ -22,6 +22,6 @@ pub fn bench(c: &mut Criterion) {
             });
         }
     } else {
-        eprintln!("skipping check benchmarks: $PKGCRUFT_GENTOO_REPO unset");
+        eprintln!("skipping check benchmarks: PKGCRUFT_BENCH_REPO unset");
     }
 }
