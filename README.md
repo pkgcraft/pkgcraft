@@ -39,6 +39,7 @@ channel on libera.
 
 [scallop]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop>
 [pkgcraft]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft>
+[pkgcraft-c]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-c>
 [pkgcraft-tools]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools>
 [pkgcruft]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft>
 [arcanist]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/arcanist>
