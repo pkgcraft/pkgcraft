@@ -16,3 +16,17 @@ Install from crates.io:
 Install from git:
 
     cargo install pkgcruft --git https://github.com/pkgcraft/pkgcraft.git
+
+# Benchmarking
+
+Benchmarks can be run individually for every check against a specified external
+repo. For example, to run them against the gentoo repo:
+
+    # set the repo to target for benchmarking
+    export PKGCRUFT_BENCH_REPO=path/to/gentoo/repo
+
+    # make sure the repo's metadata cache is up to date
+    pk repo metadata regen path/to/gentoo/repo
+
+    # run the benchmarks from the root directory of the pkgcraft git repo
+    cargo criterion Check --features test -p pkgcruft
