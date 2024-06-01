@@ -5,12 +5,12 @@
 
 Highly experimental tooling ecosystem for Gentoo comprised of the following:
 
-- scallop: bash library
-- pkgcraft: core library
-- pkgcraft-c: C bindings
-- pkgcraft-tools: command-line tools
-- pkgcruft: QA library and tools
-- arcanist: package-building daemon
+- [scallop]: bash library
+- [pkgcraft]: core library
+- [pkgcraft-c]: C bindings
+- [pkgcraft-tools]: command-line tools
+- [pkgcruft]: QA library and tools
+- [arcanist]: package-building daemon
 
 More information about the project can be found on its [FAQ] and
 [development blog][website].
@@ -36,3 +36,9 @@ channel on libera.
 [cargo-nextest]: <https://nexte.st/>
 [issue]: <https://github.com/pkgcraft/pkgcraft/issues>
 [discussions]: <https://github.com/pkgcraft/pkgcraft/discussions>
+
+[scallop]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop>
+[pkgcraft]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft>
+[pkgcraft-tools]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools>
+[pkgcruft]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft>
+[arcanist]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/arcanist>
