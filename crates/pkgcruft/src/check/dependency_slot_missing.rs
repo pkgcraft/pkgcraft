@@ -3,12 +3,17 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
 use pkgcraft::repo::{ebuild::Repo, PkgRepository};
 
-use crate::report::{
-    Report,
-    ReportKind::{self, DependencySlotMissing},
-};
+use crate::report::{Report, ReportKind::DependencySlotMissing};
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[DependencySlotMissing];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Version,
+    source: SourceKind::Ebuild,
+    reports: &[DependencySlotMissing],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {

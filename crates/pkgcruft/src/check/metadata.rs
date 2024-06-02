@@ -9,20 +9,28 @@ use pkgcraft::repo::ebuild::Repo;
 use crate::report::{
     Report,
     ReportKind::{
-        self, DependencyInvalid, LicenseInvalid, MetadataMissing, PropertiesInvalid,
-        RequiredUseInvalid, RestrictInvalid, SourcingError,
+        DependencyInvalid, LicenseInvalid, MetadataMissing, PropertiesInvalid, RequiredUseInvalid,
+        RestrictInvalid, SourcingError,
     },
 };
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[
-    DependencyInvalid,
-    LicenseInvalid,
-    PropertiesInvalid,
-    RequiredUseInvalid,
-    RestrictInvalid,
-    MetadataMissing,
-    SourcingError,
-];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Version,
+    source: SourceKind::EbuildRaw,
+    reports: &[
+        DependencyInvalid,
+        LicenseInvalid,
+        PropertiesInvalid,
+        RequiredUseInvalid,
+        RestrictInvalid,
+        MetadataMissing,
+        SourcingError,
+    ],
+    context: &[],
+    priority: -9999,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {

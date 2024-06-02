@@ -3,12 +3,17 @@ use pkgcraft::pkg::Package;
 use pkgcraft::traits::Contains;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{
-    Report,
-    ReportKind::{self, EapiStale},
-};
+use crate::report::{Report, ReportKind::EapiStale};
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[EapiStale];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Package,
+    source: SourceKind::Ebuild,
+    reports: &[EapiStale],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check;

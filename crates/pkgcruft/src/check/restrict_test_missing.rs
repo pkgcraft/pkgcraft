@@ -3,12 +3,17 @@ use pkgcraft::dep::DependencySet;
 use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::Pkg;
 
-use crate::report::{
-    Report,
-    ReportKind::{self, RestrictMissing},
-};
+use crate::report::{Report, ReportKind::RestrictMissing};
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[RestrictMissing];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Version,
+    source: SourceKind::Ebuild,
+    reports: &[RestrictMissing],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check {

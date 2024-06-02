@@ -1,12 +1,19 @@
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::traits::Contains;
 
-use crate::report::{
-    Report,
-    ReportKind::{self, LiveOnly},
-};
+use crate::report::{Report, ReportKind::LiveOnly};
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[LiveOnly];
+use super::{CheckContext, CheckInfo};
+
+pub(super) static CHECK: CheckInfo = CheckInfo {
+    scope: Scope::Package,
+    source: SourceKind::Ebuild,
+    reports: &[LiveOnly],
+    context: &[CheckContext::Gentoo],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check;

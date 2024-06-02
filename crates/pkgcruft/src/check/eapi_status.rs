@@ -3,10 +3,18 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, EapiBanned, EapiDeprecated},
+    ReportKind::{EapiBanned, EapiDeprecated},
 };
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[EapiBanned, EapiDeprecated];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Version,
+    source: SourceKind::Ebuild,
+    reports: &[EapiBanned, EapiDeprecated],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {

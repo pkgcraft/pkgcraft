@@ -6,11 +6,18 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused},
+    ReportKind::{UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused},
 };
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] =
-    &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Package,
+    source: SourceKind::Ebuild,
+    reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {

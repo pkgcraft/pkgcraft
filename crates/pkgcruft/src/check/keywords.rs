@@ -6,10 +6,18 @@ use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::{
     Report,
-    ReportKind::{self, EapiUnstable, KeywordsOverlapping, KeywordsUnsorted},
+    ReportKind::{EapiUnstable, KeywordsOverlapping, KeywordsUnsorted},
 };
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[EapiUnstable, KeywordsOverlapping, KeywordsUnsorted];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Version,
+    source: SourceKind::Ebuild,
+    reports: &[EapiUnstable, KeywordsOverlapping, KeywordsUnsorted],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {

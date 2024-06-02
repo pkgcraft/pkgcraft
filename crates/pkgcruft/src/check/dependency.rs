@@ -8,10 +8,18 @@ use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::{
     Report,
-    ReportKind::{self, DependencyDeprecated, RevisionMissing},
+    ReportKind::{DependencyDeprecated, RevisionMissing},
 };
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[DependencyDeprecated, RevisionMissing];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Version,
+    source: SourceKind::Ebuild,
+    reports: &[DependencyDeprecated, RevisionMissing],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {

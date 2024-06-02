@@ -6,12 +6,17 @@ use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{
-    Report,
-    ReportKind::{self, KeywordsDropped},
-};
+use crate::report::{Report, ReportKind::KeywordsDropped};
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[KeywordsDropped];
+pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+    scope: Scope::Package,
+    source: SourceKind::Ebuild,
+    reports: &[KeywordsDropped],
+    context: &[],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {

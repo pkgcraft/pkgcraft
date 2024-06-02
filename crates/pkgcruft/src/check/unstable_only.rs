@@ -6,12 +6,19 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{
-    Report,
-    ReportKind::{self, UnstableOnly},
-};
+use crate::report::{Report, ReportKind::UnstableOnly};
+use crate::scope::Scope;
+use crate::source::SourceKind;
 
-pub(super) static REPORTS: &[ReportKind] = &[UnstableOnly];
+use super::{CheckContext, CheckInfo};
+
+pub(super) static CHECK: CheckInfo = CheckInfo {
+    scope: Scope::Package,
+    source: SourceKind::Ebuild,
+    reports: &[UnstableOnly],
+    context: &[CheckContext::Gentoo],
+    priority: 0,
+};
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
