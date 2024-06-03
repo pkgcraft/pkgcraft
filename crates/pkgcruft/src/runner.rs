@@ -101,8 +101,8 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: &'static Check) {
         match &check.scope {
-            Scope::Version => self.ver_checks.push(check.create(self.repo)),
-            Scope::Package => self.pkg_checks.push(check.create(self.repo)),
+            Scope::Version => self.ver_checks.push((check.create)(self.repo)),
+            Scope::Package => self.pkg_checks.push((check.create)(self.repo)),
             _ => panic!("unsupported check: {check}"),
         }
     }
@@ -149,7 +149,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: &'static Check) {
         match &check.scope {
-            Scope::Version => self.ver_checks.push(check.create(self.repo)),
+            Scope::Version => self.ver_checks.push((check.create)(self.repo)),
             _ => panic!("unsupported check: {check}"),
         }
     }

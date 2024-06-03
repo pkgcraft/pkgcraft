@@ -2,6 +2,7 @@ use pkgcraft::dep::parse::restrict_dependency;
 use pkgcraft::dep::DependencySet;
 use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::ReportKind::RestrictMissing;
 use crate::scanner::ReportFilter;
@@ -15,26 +16,25 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[RestrictMissing],
     context: &[],
     priority: 0,
+    create,
 };
+
+fn create(_repo: &Repo) -> super::Runner {
+    super::Runner::RestrictTestMissing(Check {
+        restricts: ["test", "!test? ( test )"]
+            .iter()
+            .map(|s| {
+                restrict_dependency(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
+            })
+            .collect(),
+        iuse: Iuse::try_new("test").unwrap(),
+    })
+}
 
 #[derive(Debug)]
 pub(crate) struct Check {
     restricts: DependencySet<String>,
     iuse: Iuse,
-}
-
-impl Check {
-    pub(super) fn new() -> Self {
-        Self {
-            restricts: ["test", "!test? ( test )"]
-                .iter()
-                .map(|s| {
-                    restrict_dependency(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
-                })
-                .collect(),
-            iuse: Iuse::try_new("test").unwrap(),
-        }
-    }
 }
 
 impl super::CheckRun<&Pkg<'_>> for Check {

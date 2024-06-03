@@ -1,5 +1,6 @@
 use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
 use pkgcraft::pkg::Package;
+use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::traits::Contains;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
@@ -15,7 +16,12 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[EapiStale],
     context: &[],
     priority: 0,
+    create,
 };
+
+fn create(_repo: &Repo) -> super::Runner {
+    super::Runner::EapiStale(Check)
+}
 
 #[derive(Debug)]
 pub(crate) struct Check;

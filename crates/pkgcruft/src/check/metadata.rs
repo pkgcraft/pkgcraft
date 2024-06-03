@@ -29,21 +29,18 @@ pub(super) static CHECK: super::Check = super::Check {
     ],
     context: &[],
     priority: -9999,
+    create,
 };
 
+fn create(_repo: &Repo) -> super::Runner {
+    super::Runner::Metadata(Check)
+}
+
 #[derive(Debug)]
-pub(crate) struct Check<'a> {
-    _repo: &'a Repo,
-}
+pub(crate) struct Check;
 
-impl<'a> Check<'a> {
-    pub(super) fn new(repo: &'a Repo) -> Self {
-        Self { _repo: repo }
-    }
-}
-
-impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run(&self, pkg: &Pkg<'a>, filter: &mut ReportFilter) {
+impl super::CheckRun<&Pkg<'_>> for Check {
+    fn run(&self, pkg: &Pkg<'_>, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 
         match pkg.metadata_raw() {

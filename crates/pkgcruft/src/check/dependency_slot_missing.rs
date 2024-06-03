@@ -15,17 +15,16 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[DependencySlotMissing],
     context: &[],
     priority: 0,
+    create,
 };
+
+fn create(repo: &Repo) -> super::Runner {
+    super::Runner::DependencySlotMissing(Check { repo })
+}
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
     repo: &'a Repo,
-}
-
-impl<'a> Check<'a> {
-    pub(super) fn new(repo: &'a Repo) -> Self {
-        Self { repo }
-    }
 }
 
 impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {

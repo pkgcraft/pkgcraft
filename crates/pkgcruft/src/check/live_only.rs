@@ -1,4 +1,5 @@
 use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::traits::Contains;
 
 use crate::report::ReportKind::LiveOnly;
@@ -15,7 +16,12 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[LiveOnly],
     context: &[CheckContext::Gentoo],
     priority: 0,
+    create,
 };
+
+fn create(_repo: &Repo) -> super::Runner {
+    super::Runner::LiveOnly(Check)
+}
 
 #[derive(Debug)]
 pub(crate) struct Check;

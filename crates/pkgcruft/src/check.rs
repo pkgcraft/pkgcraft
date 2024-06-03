@@ -60,7 +60,7 @@ pub(crate) enum Runner<'a> {
     Keywords(keywords::Check<'a>),
     KeywordsDropped(keywords_dropped::Check<'a>),
     LiveOnly(live_only::Check),
-    Metadata(metadata::Check<'a>),
+    Metadata(metadata::Check),
     RestrictTestMissing(restrict_test_missing::Check),
     UnstableOnly(unstable_only::Check<'a>),
     UseLocal(use_local::Check<'a>),
@@ -125,32 +125,15 @@ pub struct Check {
 
     /// The priority of the check for enabling a deterministic running order.
     priority: i64,
+
+    /// Function to create the related check runner.
+    pub(crate) create: fn(&Repo) -> Runner,
 }
 
 impl Check {
     /// Return an iterator of all registered checks.
     pub fn iter() -> impl Iterator<Item = &'static Check> {
         CHECKS.iter().copied()
-    }
-
-    /// Create a check runner for a given variant.
-    #[rustfmt::skip]
-    pub(crate) fn create<'a>(&self, repo: &'a Repo) -> Runner<'a> {
-        use Runner::*;
-        match self.name {
-            "Dependency" => Dependency(dependency::Check::new(repo)),
-            "DependencySlotMissing" => DependencySlotMissing(dependency_slot_missing::Check::new(repo)),
-            "EapiStale" => EapiStale(eapi_stale::Check),
-            "EapiStatus" => EapiStatus(eapi_status::Check::new(repo)),
-            "Keywords" => Keywords(keywords::Check::new(repo)),
-            "KeywordsDropped" => KeywordsDropped(keywords_dropped::Check::new(repo)),
-            "LiveOnly" => LiveOnly(live_only::Check),
-            "Metadata" => Metadata(metadata::Check::new(repo)),
-            "RestrictTestMissing" => RestrictTestMissing(restrict_test_missing::Check::new()),
-            "UnstableOnly" => UnstableOnly(unstable_only::Check::new(repo)),
-            "UseLocal" => UseLocal(use_local::Check::new(repo)),
-            _ => panic!("unknown check: {}", self.name),
-        }
     }
 }
 
