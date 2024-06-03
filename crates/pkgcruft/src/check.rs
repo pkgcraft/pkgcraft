@@ -51,7 +51,7 @@ impl CheckContext {
 }
 
 /// Check runner variants.
-#[derive(Display, Debug)]
+#[derive(Debug)]
 pub(crate) enum Runner<'a> {
     Dependency(dependency::Check<'a>),
     DependencySlotMissing(dependency_slot_missing::Check<'a>),
@@ -74,7 +74,7 @@ impl<'a> CheckRun<&ebuild::Pkg<'a>> for Runner<'a> {
             Self::Keywords(c) => c.run(pkg, filter),
             Self::EapiStatus(c) => c.run(pkg, filter),
             Self::RestrictTestMissing(c) => c.run(pkg, filter),
-            _ => unreachable!("{self} is not an ebuild check"),
+            _ => unreachable!("not an ebuild check: {self:?}"),
         }
     }
 }
@@ -83,7 +83,7 @@ impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for Runner<'a> {
     fn run(&self, pkg: &ebuild::raw::Pkg<'a>, filter: &mut ReportFilter) {
         match self {
             Self::Metadata(c) => c.run(pkg, filter),
-            _ => unreachable!("{self} is not a raw ebuild check"),
+            _ => unreachable!("not a raw ebuild check: {self:?}"),
         }
     }
 }
@@ -96,7 +96,7 @@ impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for Runner<'a> {
             Self::LiveOnly(c) => c.run(pkgs, filter),
             Self::UnstableOnly(c) => c.run(pkgs, filter),
             Self::UseLocal(c) => c.run(pkgs, filter),
-            _ => unreachable!("{self} is not an ebuild pkg set check"),
+            _ => unreachable!("not an ebuild pkg set check: {self:?}"),
         }
     }
 }
