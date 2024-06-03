@@ -141,12 +141,23 @@ pub(crate) struct ReportFilter<'a> {
 }
 
 impl ReportFilter<'_> {
+    /// Add a report.
     pub(crate) fn report(&mut self, report: Report) {
         if self.filter.contains(report.kind()) {
             if self.exit.contains(report.kind()) {
                 self.failed.store(true, Ordering::Relaxed);
             }
             self.reports.push(report);
+        }
+    }
+
+    /// Process reports for output.
+    fn process(mut self) -> Option<Vec<Report>> {
+        if !self.reports.is_empty() {
+            self.reports.sort();
+            Some(self.reports)
+        } else {
+            None
         }
     }
 }
@@ -172,10 +183,9 @@ fn worker(
             // run checks
             runner.run(&restrict, &mut filter);
 
-            // sort and send reports
-            if !filter.reports.is_empty() {
-                filter.reports.sort();
-                tx.send(filter.reports).ok();
+            // send reports to iterator
+            if let Some(reports) = filter.process() {
+                tx.send(reports).ok();
             }
         }
     })
