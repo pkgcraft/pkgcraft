@@ -135,6 +135,24 @@ impl Check {
     pub fn iter() -> impl Iterator<Item = &'static Check> {
         CHECKS.iter().copied()
     }
+
+    /// Return an iterator of checks that generate a given report.
+    pub fn iter_report(report: &ReportKind) -> impl Iterator<Item = &'static Check> {
+        REPORT_CHECKS
+            .get(report)
+            .unwrap_or_else(|| panic!("no checks for report: {report}"))
+            .iter()
+            .copied()
+    }
+
+    /// Return an iterator of checks that use a given source.
+    pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = &'static Check> {
+        SOURCE_CHECKS
+            .get(source)
+            .unwrap_or_else(|| panic!("no checks for source: {source}"))
+            .iter()
+            .copied()
+    }
 }
 
 impl fmt::Debug for Check {
@@ -200,6 +218,7 @@ impl AsRef<Utf8Path> for Check {
     }
 }
 
+/// The set of all registered checks.
 static CHECKS: Lazy<IndexSet<&'static Check>> = Lazy::new(|| {
     [
         &dependency::CHECK,
@@ -219,14 +238,13 @@ static CHECKS: Lazy<IndexSet<&'static Check>> = Lazy::new(|| {
 });
 
 /// The mapping of all report variants to the checks that can generate them.
-pub static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<&'static Check>>> =
-    Lazy::new(|| {
-        CHECKS
-            .iter()
-            .flat_map(|c| c.reports.iter().copied().map(move |r| (r, *c)))
-            .collect()
-    });
+static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<&'static Check>>> = Lazy::new(|| {
+    CHECKS
+        .iter()
+        .flat_map(|c| c.reports.iter().copied().map(move |r| (r, *c)))
+        .collect()
+});
 
 /// The mapping of all source variants to the checks that use them.
-pub static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<&'static Check>>> =
+static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<&'static Check>>> =
     Lazy::new(|| CHECKS.iter().map(|c| (c.source, *c)).collect());

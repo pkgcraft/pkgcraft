@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcruft::check::{Check, REPORT_CHECKS, SOURCE_CHECKS};
+use pkgcruft::check::Check;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
@@ -100,13 +100,11 @@ impl Checks {
 
         // enable reports related to sources
         if !self.sources.is_empty() {
-            reports.extend(self.sources.iter().flat_map(|s| {
-                SOURCE_CHECKS
-                    .get(s)
-                    .unwrap_or_else(|| unreachable!("no checks for source variant: {s}"))
-                    .into_iter()
-                    .flat_map(|x| x.reports)
-            }));
+            reports.extend(
+                self.sources
+                    .iter()
+                    .flat_map(|s| Check::iter_source(s).flat_map(|x| x.reports)),
+            );
             default_reports = false;
         }
 
@@ -125,15 +123,7 @@ impl Checks {
         let checks = if !self.checks.is_empty() {
             self.checks.into_iter().collect()
         } else {
-            reports
-                .iter()
-                .flat_map(|r| {
-                    REPORT_CHECKS
-                        .get(r)
-                        .unwrap_or_else(|| unreachable!("no checks for report variant: {r}"))
-                })
-                .copied()
-                .collect()
+            reports.iter().flat_map(Check::iter_report).collect()
         };
 
         (checks, reports)
