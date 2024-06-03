@@ -18,20 +18,21 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted],
     context: &[],
     priority: 0,
-    create,
 };
-
-fn create(repo: &Repo) -> super::Runner {
-    super::Runner::UseLocal(Check { repo })
-}
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
     repo: &'a Repo,
 }
 
-impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run(&self, pkgs: &[Pkg<'a>], filter: &mut ReportFilter) {
+impl<'a> Check<'a> {
+    pub(crate) fn new(repo: &'a Repo) -> Self {
+        Self { repo }
+    }
+}
+
+impl super::PackageCheckRun for Check<'_> {
+    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let local_use = pkgs[0].local_use();
         let sorted_flags = local_use
             .keys()

@@ -5,13 +5,11 @@ use itertools::Itertools;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 
-use crate::check::{Check, CheckRun, Runner};
+use crate::check::*;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::{self, IterRestrict, SourceKind};
 
 /// Check runner for synchronous checks.
-#[derive(Debug)]
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, CheckRunner<'static>>,
 }
@@ -48,7 +46,6 @@ impl SyncCheckRunner {
 }
 
 /// Generic check runners.
-#[derive(Debug)]
 enum CheckRunner<'a> {
     EbuildPkg(EbuildPkgCheckRunner<'a>),
     EbuildRawPkg(EbuildRawPkgCheckRunner<'a>),
@@ -80,10 +77,9 @@ impl<'a> CheckRunner<'a> {
 }
 
 /// Check runner for ebuild package checks.
-#[derive(Debug)]
 struct EbuildPkgCheckRunner<'a> {
-    ver_checks: Vec<Runner<'a>>,
-    pkg_checks: Vec<Runner<'a>>,
+    ver_checks: Vec<Box<dyn VersionCheckRun + Send + Sync + 'a>>,
+    pkg_checks: Vec<Box<dyn PackageCheckRun + Send + Sync + 'a>>,
     source: source::Ebuild<'a>,
     repo: &'a Repo,
 }
@@ -99,11 +95,20 @@ impl<'a> EbuildPkgCheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
+    #[rustfmt::skip]
     fn add_check(&mut self, check: &'static Check) {
-        match &check.scope {
-            Scope::Version => self.ver_checks.push((check.create)(self.repo)),
-            Scope::Package => self.pkg_checks.push((check.create)(self.repo)),
-            _ => panic!("unsupported check: {check}"),
+        match check.name {
+            "Dependency" => self.ver_checks.push(Box::new(dependency::Check::new(self.repo))),
+            "DependencySlotMissing" => self.ver_checks.push(Box::new(dependency_slot_missing::Check::new(self.repo))),
+            "EapiStale" => self.pkg_checks.push(Box::new(eapi_stale::Check)),
+            "EapiStatus" => self.ver_checks.push(Box::new(eapi_status::Check::new(self.repo))),
+            "Keywords" => self.ver_checks.push(Box::new(keywords::Check::new(self.repo))),
+            "KeywordsDropped" => self.pkg_checks.push(Box::new(keywords_dropped::Check::new(self.repo))),
+            "LiveOnly" => self.pkg_checks.push(Box::new(live_only::Check)),
+            "RestrictTestMissing" => self.ver_checks.push(Box::new(restrict_test_missing::Check::new())),
+            "UnstableOnly" => self.pkg_checks.push(Box::new(unstable_only::Check::new(self.repo))),
+            "UseLocal" => self.pkg_checks.push(Box::new(use_local::Check::new(self.repo))),
+            _ => unreachable!("unsupported check: {check}"),
         }
     }
 
@@ -130,11 +135,9 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 }
 
 /// Check runner for raw ebuild package checks.
-#[derive(Debug)]
 struct EbuildRawPkgCheckRunner<'a> {
-    ver_checks: Vec<Runner<'a>>,
+    ver_checks: Vec<Box<dyn RawVersionCheckRun + Send + Sync + 'a>>,
     source: source::EbuildRaw<'a>,
-    repo: &'a Repo,
 }
 
 impl<'a> EbuildRawPkgCheckRunner<'a> {
@@ -142,15 +145,15 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
         Self {
             ver_checks: Default::default(),
             source: source::EbuildRaw { repo },
-            repo,
         }
     }
 
     /// Add a check to the check runner.
+    #[rustfmt::skip]
     fn add_check(&mut self, check: &'static Check) {
-        match &check.scope {
-            Scope::Version => self.ver_checks.push((check.create)(self.repo)),
-            _ => panic!("unsupported check: {check}"),
+        match check.name {
+            "Metadata" => self.ver_checks.push(Box::new(metadata::Check)),
+            _ => unreachable!("unsupported check: {check}"),
         }
     }
 

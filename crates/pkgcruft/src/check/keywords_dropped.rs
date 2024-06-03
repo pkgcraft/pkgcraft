@@ -18,20 +18,21 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[KeywordsDropped],
     context: &[],
     priority: 0,
-    create,
 };
-
-fn create(repo: &Repo) -> super::Runner {
-    super::Runner::KeywordsDropped(Check { arches: repo.arches() })
-}
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
     arches: &'a IndexSet<String>,
 }
 
-impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run(&self, pkgs: &[Pkg<'a>], filter: &mut ReportFilter) {
+impl<'a> Check<'a> {
+    pub(crate) fn new(repo: &'a Repo) -> Self {
+        Self { arches: repo.arches() }
+    }
+}
+
+impl super::PackageCheckRun for Check<'_> {
+    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs
             .iter()

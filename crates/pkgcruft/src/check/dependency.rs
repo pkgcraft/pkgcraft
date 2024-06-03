@@ -18,20 +18,21 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[DependencyDeprecated, RevisionMissing],
     context: &[],
     priority: 0,
-    create,
 };
-
-fn create(repo: &Repo) -> super::Runner {
-    super::Runner::Dependency(Check { repo })
-}
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
     repo: &'a Repo,
 }
 
-impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run(&self, pkg: &Pkg<'a>, filter: &mut ReportFilter) {
+impl<'a> Check<'a> {
+    pub(crate) fn new(repo: &'a Repo) -> Self {
+        Self { repo }
+    }
+}
+
+impl super::VersionCheckRun for Check<'_> {
+    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys() {
             let mut deprecated = HashSet::new();
 

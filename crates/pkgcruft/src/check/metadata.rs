@@ -4,7 +4,6 @@ use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::ebuild::raw::Pkg;
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::ebuild::Repo;
 
 use crate::report::ReportKind::{
     DependencyInvalid, LicenseInvalid, MetadataMissing, PropertiesInvalid, RequiredUseInvalid,
@@ -29,18 +28,13 @@ pub(super) static CHECK: super::Check = super::Check {
     ],
     context: &[],
     priority: -9999,
-    create,
 };
-
-fn create(_repo: &Repo) -> super::Runner {
-    super::Runner::Metadata(Check)
-}
 
 #[derive(Debug)]
 pub(crate) struct Check;
 
-impl super::CheckRun<&Pkg<'_>> for Check {
-    fn run(&self, pkg: &Pkg<'_>, filter: &mut ReportFilter) {
+impl super::RawVersionCheckRun for Check {
+    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 
         match pkg.metadata_raw() {

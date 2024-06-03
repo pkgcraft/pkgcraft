@@ -1,5 +1,4 @@
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::traits::Contains;
 
 use crate::report::ReportKind::LiveOnly;
@@ -16,18 +15,13 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[LiveOnly],
     context: &[CheckContext::Gentoo],
     priority: 0,
-    create,
 };
-
-fn create(_repo: &Repo) -> super::Runner {
-    super::Runner::LiveOnly(Check)
-}
 
 #[derive(Debug)]
 pub(crate) struct Check;
 
-impl super::CheckRun<&[Pkg<'_>]> for Check {
-    fn run(&self, pkgs: &[Pkg<'_>], filter: &mut ReportFilter) {
+impl super::PackageCheckRun for Check {
+    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         if pkgs.iter().all(|pkg| pkg.properties().contains("live")) {
             filter.report(LiveOnly.package(pkgs, "all versions are VCS-based"))
         }

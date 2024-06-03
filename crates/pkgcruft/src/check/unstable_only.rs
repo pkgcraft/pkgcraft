@@ -20,27 +20,28 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[UnstableOnly],
     context: &[CheckContext::Gentoo],
     priority: 0,
-    create,
 };
-
-fn create(repo: &Repo) -> super::Runner {
-    super::Runner::UnstableOnly(Check {
-        stable: repo
-            .metadata
-            .arches_desc()
-            .get("stable")
-            .map(|x| x.iter().map(|s| s.as_str()).collect())
-            .unwrap_or_default(),
-    })
-}
 
 #[derive(Debug)]
 pub(crate) struct Check<'a> {
     stable: HashSet<&'a str>,
 }
 
-impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run(&self, pkgs: &[Pkg<'a>], filter: &mut ReportFilter) {
+impl<'a> Check<'a> {
+    pub(crate) fn new(repo: &'a Repo) -> Self {
+        Self {
+            stable: repo
+                .metadata
+                .arches_desc()
+                .get("stable")
+                .map(|x| x.iter().map(|s| s.as_str()).collect())
+                .unwrap_or_default(),
+        }
+    }
+}
+
+impl super::PackageCheckRun for Check<'_> {
+    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let arches = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())

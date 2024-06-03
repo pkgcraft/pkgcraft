@@ -18,17 +18,17 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 
-mod dependency;
-mod dependency_slot_missing;
-mod eapi_stale;
-mod eapi_status;
-mod keywords;
-mod keywords_dropped;
-mod live_only;
-mod metadata;
-mod restrict_test_missing;
-mod unstable_only;
-mod use_local;
+pub(crate) mod dependency;
+pub(crate) mod dependency_slot_missing;
+pub(crate) mod eapi_stale;
+pub(crate) mod eapi_status;
+pub(crate) mod keywords;
+pub(crate) mod keywords_dropped;
+pub(crate) mod live_only;
+pub(crate) mod metadata;
+pub(crate) mod restrict_test_missing;
+pub(crate) mod unstable_only;
+pub(crate) mod use_local;
 
 /// Check contexts.
 #[derive(Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -50,60 +50,19 @@ impl CheckContext {
     }
 }
 
-/// Check runner variants.
-#[derive(Debug)]
-pub(crate) enum Runner<'a> {
-    Dependency(dependency::Check<'a>),
-    DependencySlotMissing(dependency_slot_missing::Check<'a>),
-    EapiStale(eapi_stale::Check),
-    EapiStatus(eapi_status::Check<'a>),
-    Keywords(keywords::Check<'a>),
-    KeywordsDropped(keywords_dropped::Check<'a>),
-    LiveOnly(live_only::Check),
-    Metadata(metadata::Check),
-    RestrictTestMissing(restrict_test_missing::Check),
-    UnstableOnly(unstable_only::Check<'a>),
-    UseLocal(use_local::Check<'a>),
+/// Run a check against a given ebuild package version.
+pub(crate) trait VersionCheckRun {
+    fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
 }
 
-impl<'a> CheckRun<&ebuild::Pkg<'a>> for Runner<'a> {
-    fn run(&self, pkg: &ebuild::Pkg<'a>, filter: &mut ReportFilter) {
-        match self {
-            Self::Dependency(c) => c.run(pkg, filter),
-            Self::DependencySlotMissing(c) => c.run(pkg, filter),
-            Self::Keywords(c) => c.run(pkg, filter),
-            Self::EapiStatus(c) => c.run(pkg, filter),
-            Self::RestrictTestMissing(c) => c.run(pkg, filter),
-            _ => unreachable!("not an ebuild check: {self:?}"),
-        }
-    }
+/// Run a check against a given ebuild package set.
+pub(crate) trait PackageCheckRun {
+    fn run(&self, pkg: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
 
-impl<'a> CheckRun<&ebuild::raw::Pkg<'a>> for Runner<'a> {
-    fn run(&self, pkg: &ebuild::raw::Pkg<'a>, filter: &mut ReportFilter) {
-        match self {
-            Self::Metadata(c) => c.run(pkg, filter),
-            _ => unreachable!("not a raw ebuild check: {self:?}"),
-        }
-    }
-}
-
-impl<'a> CheckRun<&[ebuild::Pkg<'a>]> for Runner<'a> {
-    fn run(&self, pkgs: &[ebuild::Pkg<'a>], filter: &mut ReportFilter) {
-        match self {
-            Self::EapiStale(c) => c.run(pkgs, filter),
-            Self::KeywordsDropped(c) => c.run(pkgs, filter),
-            Self::LiveOnly(c) => c.run(pkgs, filter),
-            Self::UnstableOnly(c) => c.run(pkgs, filter),
-            Self::UseLocal(c) => c.run(pkgs, filter),
-            _ => unreachable!("not an ebuild pkg set check: {self:?}"),
-        }
-    }
-}
-
-/// Run a check for a given item sending back any generated reports.
-pub(crate) trait CheckRun<T> {
-    fn run(&self, item: T, filter: &mut ReportFilter);
+/// Run a check against a given raw ebuild package version.
+pub(crate) trait RawVersionCheckRun {
+    fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
 }
 
 /// Registered check.
@@ -125,9 +84,6 @@ pub struct Check {
 
     /// The priority of the check for enabling a deterministic running order.
     priority: i64,
-
-    /// Function to create the related check runner.
-    pub(crate) create: fn(&Repo) -> Runner,
 }
 
 impl Check {
