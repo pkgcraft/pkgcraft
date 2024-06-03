@@ -17,7 +17,7 @@ use crate::runner::SyncCheckRunner;
 #[derive(Debug)]
 pub struct Scanner {
     jobs: usize,
-    checks: IndexSet<&'static Check>,
+    checks: IndexSet<Check>,
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
@@ -50,7 +50,7 @@ impl Scanner {
     /// Set the checks to run.
     pub fn checks<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = &'static Check>,
+        I: IntoIterator<Item = Check>,
     {
         self.checks = values.into_iter().collect();
         self

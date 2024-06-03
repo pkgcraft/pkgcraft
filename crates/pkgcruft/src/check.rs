@@ -66,6 +66,7 @@ pub(crate) trait RawVersionCheckRun {
 }
 
 /// Registered check.
+#[derive(Copy, Clone)]
 pub struct Check {
     /// The check identifier.
     pub name: &'static str,
@@ -88,12 +89,12 @@ pub struct Check {
 
 impl Check {
     /// Return an iterator of all registered checks.
-    pub fn iter() -> impl Iterator<Item = &'static Check> {
+    pub fn iter() -> impl Iterator<Item = Check> {
         CHECKS.iter().copied()
     }
 
     /// Return an iterator of checks that generate a given report.
-    pub fn iter_report(report: &ReportKind) -> impl Iterator<Item = &'static Check> {
+    pub fn iter_report(report: &ReportKind) -> impl Iterator<Item = Check> {
         REPORT_CHECKS
             .get(report)
             .unwrap_or_else(|| panic!("no checks for report: {report}"))
@@ -102,7 +103,7 @@ impl Check {
     }
 
     /// Return an iterator of checks that use a given source.
-    pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = &'static Check> {
+    pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> {
         SOURCE_CHECKS
             .get(source)
             .unwrap_or_else(|| panic!("no checks for source: {source}"))
@@ -123,7 +124,7 @@ impl fmt::Display for Check {
     }
 }
 
-impl FromStr for &'static Check {
+impl FromStr for Check {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -148,7 +149,7 @@ impl Hash for Check {
     }
 }
 
-impl Borrow<str> for &Check {
+impl Borrow<str> for Check {
     fn borrow(&self) -> &str {
         self.name
     }
@@ -175,26 +176,26 @@ impl AsRef<Utf8Path> for Check {
 }
 
 /// The set of all registered checks.
-static CHECKS: Lazy<IndexSet<&'static Check>> = Lazy::new(|| {
+static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
     [
-        &dependency::CHECK,
-        &dependency_slot_missing::CHECK,
-        &eapi_stale::CHECK,
-        &eapi_status::CHECK,
-        &keywords::CHECK,
-        &keywords_dropped::CHECK,
-        &live_only::CHECK,
-        &metadata::CHECK,
-        &restrict_test_missing::CHECK,
-        &unstable_only::CHECK,
-        &use_local::CHECK,
+        dependency::CHECK,
+        dependency_slot_missing::CHECK,
+        eapi_stale::CHECK,
+        eapi_status::CHECK,
+        keywords::CHECK,
+        keywords_dropped::CHECK,
+        live_only::CHECK,
+        metadata::CHECK,
+        restrict_test_missing::CHECK,
+        unstable_only::CHECK,
+        use_local::CHECK,
     ]
     .into_iter()
     .collect()
 });
 
 /// The mapping of all report variants to the checks that can generate them.
-static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<&'static Check>>> = Lazy::new(|| {
+static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::new(|| {
     CHECKS
         .iter()
         .flat_map(|c| c.reports.iter().copied().map(move |r| (r, *c)))
@@ -202,5 +203,5 @@ static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<&'static Check>>> =
 });
 
 /// The mapping of all source variants to the checks that use them.
-static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<&'static Check>>> =
+static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<Check>>> =
     Lazy::new(|| CHECKS.iter().map(|c| (c.source, *c)).collect());

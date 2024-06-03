@@ -20,9 +20,9 @@ pub(crate) struct Checks {
         value_delimiter = ',',
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(Check::iter().map(|c| c.name))
-            .map(|s| s.parse::<&'static Check>().unwrap()),
+            .map(|s| s.parse::<Check>().unwrap()),
     )]
-    checks: Vec<&'static Check>,
+    checks: Vec<Check>,
 
     /// Restrict by level
     #[arg(
@@ -74,7 +74,7 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(self) -> (IndexSet<&'static Check>, IndexSet<ReportKind>) {
+    pub(crate) fn collapse(self) -> (IndexSet<Check>, IndexSet<ReportKind>) {
         // determine enabled report set
         let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {

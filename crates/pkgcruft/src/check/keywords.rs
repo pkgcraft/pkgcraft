@@ -104,8 +104,8 @@ mod tests {
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(&CHECK);
-        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
+        let check_dir = repo.path().join(CHECK);
+        let scanner = Scanner::new().jobs(1).checks([CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

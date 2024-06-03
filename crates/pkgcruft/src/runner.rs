@@ -15,7 +15,7 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<&'static Check>) -> Self {
+    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<Check>) -> Self {
         let repo = Box::leak(Box::new(repo.clone()));
         let mut runners = IndexMap::new();
 
@@ -60,7 +60,7 @@ impl<'a> CheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, check: &'static Check) {
+    fn add_check(&mut self, check: Check) {
         match self {
             Self::EbuildPkg(r) => r.add_check(check),
             Self::EbuildRawPkg(r) => r.add_check(check),
@@ -96,7 +96,7 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 
     /// Add a check to the check runner.
     #[rustfmt::skip]
-    fn add_check(&mut self, check: &'static Check) {
+    fn add_check(&mut self, check: Check) {
         match check.name {
             "Dependency" => self.ver_checks.push(Box::new(dependency::Check::new(self.repo))),
             "DependencySlotMissing" => self.ver_checks.push(Box::new(dependency_slot_missing::Check::new(self.repo))),
@@ -150,7 +150,7 @@ impl<'a> EbuildRawPkgCheckRunner<'a> {
 
     /// Add a check to the check runner.
     #[rustfmt::skip]
-    fn add_check(&mut self, check: &'static Check) {
+    fn add_check(&mut self, check: Check) {
         match check.name {
             "Metadata" => self.ver_checks.push(Box::new(metadata::Check)),
             _ => unreachable!("unsupported check: {check}"),
