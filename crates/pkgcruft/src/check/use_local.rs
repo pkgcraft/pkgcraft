@@ -12,7 +12,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "UseLocal",
+    kind: super::CheckKind::UseLocal,
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted],

@@ -9,7 +9,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "EapiStale",
+    kind: super::CheckKind::EapiStale,
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[EapiStale],

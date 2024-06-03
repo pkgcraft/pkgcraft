@@ -14,7 +14,7 @@ use crate::source::SourceKind;
 use super::CheckContext;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "UnstableOnly",
+    kind: super::CheckKind::UnstableOnly,
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[UnstableOnly],

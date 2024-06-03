@@ -12,7 +12,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "Dependency",
+    kind: super::CheckKind::Dependency,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[DependencyDeprecated, RevisionMissing],

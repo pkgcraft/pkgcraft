@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::{ebuild::Repo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::Display;
+use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::report::ReportKind;
 use crate::scanner::ReportFilter;
@@ -29,6 +29,33 @@ pub(crate) mod metadata;
 pub(crate) mod restrict_test_missing;
 pub(crate) mod unstable_only;
 pub(crate) mod use_local;
+
+/// Check variants.
+#[derive(
+    AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Hash, Copy, Clone,
+)]
+pub enum CheckKind {
+    Dependency,
+    EapiStale,
+    EapiStatus,
+    Keywords,
+    KeywordsDropped,
+    LiveOnly,
+    Metadata,
+    DependencySlotMissing,
+    RestrictTestMissing,
+    UnstableOnly,
+    UseLocal,
+}
+
+impl From<CheckKind> for Check {
+    fn from(value: CheckKind) -> Self {
+        CHECKS
+            .get(&value)
+            .copied()
+            .unwrap_or_else(|| panic!("unknown check: {value}"))
+    }
+}
 
 /// Check contexts.
 #[derive(Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -68,8 +95,8 @@ pub(crate) trait RawVersionCheckRun {
 /// Registered check.
 #[derive(Copy, Clone)]
 pub struct Check {
-    /// The check identifier.
-    pub name: &'static str,
+    /// The check variant.
+    pub(crate) kind: CheckKind,
 
     /// The scope the check runs in.
     pub scope: Scope,
@@ -88,6 +115,11 @@ pub struct Check {
 }
 
 impl Check {
+    /// Return the name of the check.
+    pub fn name(&self) -> &str {
+        self.kind.as_ref()
+    }
+
     /// Return an iterator of all registered checks.
     pub fn iter() -> impl Iterator<Item = Check> {
         CHECKS.iter().copied()
@@ -114,13 +146,13 @@ impl Check {
 
 impl fmt::Debug for Check {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Check {{ {} }}", self.name)
+        write!(f, "Check {{ {} }}", self.kind)
     }
 }
 
 impl fmt::Display for Check {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.kind)
     }
 }
 
@@ -128,8 +160,11 @@ impl FromStr for Check {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
+        let kind: CheckKind = s
+            .parse()
+            .map_err(|_| Error::InvalidValue(format!("unknown check: {s}")))?;
         CHECKS
-            .get(s)
+            .get(&kind)
             .copied()
             .ok_or_else(|| Error::InvalidValue(format!("unknown check: {s}")))
     }
@@ -137,7 +172,7 @@ impl FromStr for Check {
 
 impl PartialEq for Check {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.kind == other.kind
     }
 }
 
@@ -145,13 +180,13 @@ impl Eq for Check {}
 
 impl Hash for Check {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
+        self.kind.hash(state);
     }
 }
 
-impl Borrow<str> for Check {
-    fn borrow(&self) -> &str {
-        self.name
+impl Borrow<CheckKind> for Check {
+    fn borrow(&self) -> &CheckKind {
+        &self.kind
     }
 }
 
@@ -159,7 +194,7 @@ impl Ord for Check {
     fn cmp(&self, other: &Self) -> Ordering {
         self.priority
             .cmp(&other.priority)
-            .then_with(|| self.name.cmp(other.name))
+            .then_with(|| self.name().cmp(other.name()))
     }
 }
 
@@ -171,7 +206,7 @@ impl PartialOrd for Check {
 
 impl AsRef<Utf8Path> for Check {
     fn as_ref(&self) -> &Utf8Path {
-        Utf8Path::new(self.name)
+        Utf8Path::new(self.name())
     }
 }
 

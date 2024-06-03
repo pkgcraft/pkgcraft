@@ -14,7 +14,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "Metadata",
+    kind: super::CheckKind::Metadata,
     scope: Scope::Version,
     source: SourceKind::EbuildRaw,
     reports: &[

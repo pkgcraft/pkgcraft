@@ -7,7 +7,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "EapiStatus",
+    kind: super::CheckKind::EapiStatus,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[EapiBanned, EapiDeprecated],

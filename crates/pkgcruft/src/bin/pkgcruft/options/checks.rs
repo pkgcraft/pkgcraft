@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcruft::check::Check;
+use pkgcruft::check::{Check, CheckKind};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
@@ -19,7 +19,7 @@ pub(crate) struct Checks {
         value_name = "CHECK[,...]",
         value_delimiter = ',',
         hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(Check::iter().map(|c| c.name))
+        value_parser = PossibleValuesParser::new(CheckKind::VARIANTS)
             .map(|s| s.parse::<Check>().unwrap()),
     )]
     checks: Vec<Check>,

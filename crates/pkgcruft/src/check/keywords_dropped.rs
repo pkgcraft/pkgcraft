@@ -12,7 +12,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "KeywordsDropped",
+    kind: super::CheckKind::KeywordsDropped,
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[KeywordsDropped],

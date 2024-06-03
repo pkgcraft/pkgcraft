@@ -9,7 +9,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 
 pub(super) static CHECK: super::Check = super::Check {
-    name: "DependencySlotMissing",
+    kind: super::CheckKind::DependencySlotMissing,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[DependencySlotMissing],

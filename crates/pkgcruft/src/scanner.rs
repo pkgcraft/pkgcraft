@@ -52,7 +52,7 @@ impl Scanner {
     where
         I: IntoIterator<Item = Check>,
     {
-        self.checks = values.into_iter().collect();
+        self.checks = values.into_iter().map(Into::into).collect();
         self
     }
 
@@ -218,6 +218,7 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
+    use crate::check::CheckKind;
     use crate::test::glob_reports;
 
     use super::*;
@@ -234,7 +235,7 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // specific checks
-        let check = "Dependency".parse().unwrap();
+        let check = CheckKind::Dependency.into();
         let scanner = Scanner::new().jobs(1).checks([check]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
