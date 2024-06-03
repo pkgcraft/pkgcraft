@@ -4,14 +4,13 @@ use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{
-    Report,
-    ReportKind::{EapiUnstable, KeywordsOverlapping, KeywordsUnsorted},
-};
+use crate::report::ReportKind::{EapiUnstable, KeywordsOverlapping, KeywordsUnsorted};
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "Keywords",
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[EapiUnstable, KeywordsOverlapping, KeywordsUnsorted],
@@ -31,7 +30,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
+    fn run(&self, pkg: &Pkg<'a>, filter: &mut ReportFilter) {
         let keywords_map = pkg
             .keywords()
             .iter()
@@ -47,7 +46,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
                 .into_iter()
                 .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
                 .join(", ");
-            report(KeywordsOverlapping.version(pkg, message));
+            filter.report(KeywordsOverlapping.version(pkg, message));
         }
 
         if self
@@ -69,7 +68,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
                     pkg.eapi(),
                     keywords.into_iter().join(" ")
                 );
-                report(EapiUnstable.version(pkg, message));
+                filter.report(EapiUnstable.version(pkg, message));
             }
         }
 
@@ -85,7 +84,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
             .find(|(a, b)| a != b);
         if let Some((unsorted, sorted)) = sorted_diff {
             let message = format!("unsorted KEYWORD: {unsorted} (sorted: {sorted})");
-            report(KeywordsUnsorted.version(pkg, message));
+            filter.report(KeywordsUnsorted.version(pkg, message));
         }
     }
 }
@@ -96,16 +95,17 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::Keywords;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
+
+    use super::*;
 
     #[test]
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(Keywords);
-        let scanner = Scanner::new().jobs(1).checks([Keywords]);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

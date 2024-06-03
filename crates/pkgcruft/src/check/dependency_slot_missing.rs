@@ -3,11 +3,13 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
 use pkgcraft::repo::{ebuild::Repo, PkgRepository};
 
-use crate::report::{Report, ReportKind::DependencySlotMissing};
+use crate::report::ReportKind::DependencySlotMissing;
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "DependencySlotMissing",
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[DependencySlotMissing],
@@ -27,7 +29,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
-    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'a>, mut report: F) {
+    fn run(&self, pkg: &Pkg<'a>, filter: &mut ReportFilter) {
         for dep in pkg
             .rdepend()
             .intersection(pkg.depend())
@@ -42,7 +44,7 @@ impl<'a> super::CheckRun<&Pkg<'a>> for Check<'a> {
                 .collect::<IndexSet<_>>();
             if slots.len() > 1 {
                 let message = format!("{dep} matches multiple slots: {}", slots.iter().join(", "));
-                report(DependencySlotMissing.version(pkg, message));
+                filter.report(DependencySlotMissing.version(pkg, message));
             }
         }
     }
@@ -54,16 +56,17 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::DependencySlotMissing;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
+
+    use super::*;
 
     #[test]
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(DependencySlotMissing);
-        let scanner = Scanner::new().jobs(1).checks([DependencySlotMissing]);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

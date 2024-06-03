@@ -4,14 +4,15 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{
-    Report,
-    ReportKind::{UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused},
+use crate::report::ReportKind::{
+    UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
 };
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "UseLocal",
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted],
@@ -31,7 +32,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
+    fn run(&self, pkgs: &[Pkg<'a>], filter: &mut ReportFilter) {
         let local_use = pkgs[0].local_use();
         let sorted_flags = local_use
             .keys()
@@ -42,18 +43,18 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
         let mut unsorted = false;
         for ((flag, desc), sorted) in local_use.iter().zip(&sorted_flags) {
             if desc.is_empty() {
-                report(UseLocalDescMissing.package(pkgs, flag));
+                filter.report(UseLocalDescMissing.package(pkgs, flag));
             }
 
             if !unsorted && flag != sorted {
                 let message = format!("unsorted flag: {flag} (sorted: {sorted})");
-                report(UseLocalUnsorted.package(pkgs, message));
+                filter.report(UseLocalUnsorted.package(pkgs, message));
                 unsorted = true;
             }
 
             if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
                 if global_desc == desc {
-                    report(UseLocalGlobal.package(pkgs, flag));
+                    filter.report(UseLocalGlobal.package(pkgs, flag));
                 }
             }
         }
@@ -70,7 +71,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         if !unused.is_empty() {
             let message = unused.iter().join(", ");
-            report(UseLocalUnused.package(pkgs, message));
+            filter.report(UseLocalUnused.package(pkgs, message));
         }
     }
 }
@@ -81,16 +82,17 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::UseLocal;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
+
+    use super::*;
 
     #[test]
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(UseLocal);
-        let scanner = Scanner::new().jobs(1).checks([UseLocal]);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

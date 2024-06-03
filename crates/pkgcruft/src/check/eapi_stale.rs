@@ -3,11 +3,13 @@ use pkgcraft::pkg::Package;
 use pkgcraft::traits::Contains;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{Report, ReportKind::EapiStale};
+use crate::report::ReportKind::EapiStale;
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "EapiStale",
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[EapiStale],
@@ -19,7 +21,7 @@ pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
 pub(crate) struct Check;
 
 impl super::CheckRun<&[Pkg<'_>]> for Check {
-    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'_>], mut report: F) {
+    fn run(&self, pkgs: &[Pkg<'_>], filter: &mut ReportFilter) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))
             .collect::<OrderedMap<_, OrderedSet<_>>>()
@@ -32,7 +34,7 @@ impl super::CheckRun<&[Pkg<'_>]> for Check {
                 if let Some(latest_release) = release.last() {
                     for pkg in live {
                         if pkg.eapi() < latest_release.eapi() {
-                            report(EapiStale.version(pkg, pkg.eapi()));
+                            filter.report(EapiStale.version(pkg, pkg.eapi()));
                         }
                     }
                 }
@@ -46,16 +48,17 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::EapiStale;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
+
+    use super::*;
 
     #[test]
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(EapiStale);
-        let scanner = Scanner::new().jobs(1).checks([EapiStale]);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

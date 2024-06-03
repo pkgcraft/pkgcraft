@@ -3,11 +3,13 @@ use pkgcraft::dep::DependencySet;
 use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::Pkg;
 
-use crate::report::{Report, ReportKind::RestrictMissing};
+use crate::report::ReportKind::RestrictMissing;
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "RestrictTestMissing",
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[RestrictMissing],
@@ -36,7 +38,7 @@ impl Check {
 }
 
 impl super::CheckRun<&Pkg<'_>> for Check {
-    fn run<F: FnMut(Report)>(&self, pkg: &Pkg<'_>, mut report: F) {
+    fn run(&self, pkg: &Pkg<'_>, filter: &mut ReportFilter) {
         if pkg.iuse().contains(&self.iuse)
             && pkg
                 .restrict()
@@ -45,7 +47,7 @@ impl super::CheckRun<&Pkg<'_>> for Check {
                 .is_none()
         {
             let message = r#"missing RESTRICT="!test? ( test )" with IUSE=test"#;
-            report(RestrictMissing.version(pkg, message));
+            filter.report(RestrictMissing.version(pkg, message));
         }
     }
 }
@@ -56,16 +58,17 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::RestrictTestMissing;
     use crate::scanner::Scanner;
     use crate::test::*;
+
+    use super::*;
 
     #[test]
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(RestrictTestMissing);
-        let scanner = Scanner::new().jobs(1).checks([RestrictTestMissing]);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

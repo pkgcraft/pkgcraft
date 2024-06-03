@@ -10,14 +10,14 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 
-use crate::check::CheckKind;
+use crate::check::Check;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 
 #[derive(Debug)]
 pub struct Scanner {
     jobs: usize,
-    checks: IndexSet<CheckKind>,
+    checks: IndexSet<&'static Check>,
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
@@ -27,7 +27,7 @@ impl Default for Scanner {
     fn default() -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: CheckKind::iter().collect(),
+            checks: Check::iter().collect(),
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
             failed: Arc::new(Default::default()),
@@ -50,7 +50,7 @@ impl Scanner {
     /// Set the checks to run.
     pub fn checks<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = CheckKind>,
+        I: IntoIterator<Item = &'static Check>,
     {
         self.checks = values.into_iter().collect();
         self
@@ -133,6 +133,24 @@ fn producer(
     })
 }
 
+pub(crate) struct ReportFilter<'a> {
+    reports: Vec<Report>,
+    filter: &'a IndexSet<ReportKind>,
+    exit: &'a IndexSet<ReportKind>,
+    failed: &'a AtomicBool,
+}
+
+impl ReportFilter<'_> {
+    pub(crate) fn report(&mut self, report: Report) {
+        if self.filter.contains(report.kind()) {
+            if self.exit.contains(report.kind()) {
+                self.failed.store(true, Ordering::Relaxed);
+            }
+            self.reports.push(report);
+        }
+    }
+}
+
 /// Create worker thread that receives restrictions and send reports over the channel.
 fn worker(
     runner: Arc<SyncCheckRunner>,
@@ -144,25 +162,20 @@ fn worker(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for restrict in rx {
-            let mut reports = vec![];
-
-            // report processing callback
-            let mut report = |report: Report| {
-                if filter.contains(report.kind()) {
-                    if exit.contains(report.kind()) {
-                        failed.store(true, Ordering::Relaxed);
-                    }
-                    reports.push(report);
-                }
+            let mut filter = ReportFilter {
+                reports: Default::default(),
+                filter: &filter,
+                exit: &exit,
+                failed: &failed,
             };
 
             // run checks
-            runner.run(&restrict, &mut report);
+            runner.run(&restrict, &mut filter);
 
             // sort and send reports
-            if !reports.is_empty() {
-                reports.sort();
-                tx.send(reports).ok();
+            if !filter.reports.is_empty() {
+                filter.reports.sort();
+                tx.send(filter.reports).ok();
             }
         }
     })
@@ -211,7 +224,8 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // specific checks
-        let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
+        let check = "Dependency".parse().unwrap();
+        let scanner = Scanner::new().jobs(1).checks([check]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

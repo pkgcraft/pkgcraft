@@ -6,11 +6,13 @@ use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::{Report, ReportKind::KeywordsDropped};
+use crate::report::ReportKind::KeywordsDropped;
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-pub(super) static CHECK: super::CheckInfo = super::CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "KeywordsDropped",
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[KeywordsDropped],
@@ -30,7 +32,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
+    fn run(&self, pkgs: &[Pkg<'a>], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs
             .iter()
@@ -98,7 +100,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         for (pkg, arches) in &dropped {
             let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
-            report(KeywordsDropped.version(pkg, message));
+            filter.report(KeywordsDropped.version(pkg, message));
         }
     }
 }
@@ -109,16 +111,17 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::KeywordsDropped;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
+
+    use super::*;
 
     #[test]
     fn check() {
         // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let check_dir = repo.path().join(KeywordsDropped);
-        let scanner = Scanner::new().jobs(1).checks([KeywordsDropped]);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

@@ -1,13 +1,15 @@
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::traits::Contains;
 
-use crate::report::{Report, ReportKind::LiveOnly};
+use crate::report::ReportKind::LiveOnly;
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckContext, CheckInfo};
+use super::CheckContext;
 
-pub(super) static CHECK: CheckInfo = CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "LiveOnly",
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[LiveOnly],
@@ -19,9 +21,9 @@ pub(super) static CHECK: CheckInfo = CheckInfo {
 pub(crate) struct Check;
 
 impl super::CheckRun<&[Pkg<'_>]> for Check {
-    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'_>], mut report: F) {
+    fn run(&self, pkgs: &[Pkg<'_>], filter: &mut ReportFilter) {
         if pkgs.iter().all(|pkg| pkg.properties().contains("live")) {
-            report(LiveOnly.package(pkgs, "all versions are VCS-based"))
+            filter.report(LiveOnly.package(pkgs, "all versions are VCS-based"))
         }
     }
 }
@@ -32,16 +34,17 @@ mod tests {
     use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::LiveOnly;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
+
+    use super::*;
 
     #[test]
     fn check() {
         // gentoo unfixed
         let repo = TEST_DATA.repo("gentoo").unwrap();
-        let scanner = Scanner::new().jobs(1).checks([LiveOnly]);
-        let check_dir = repo.path().join(LiveOnly);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

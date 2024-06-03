@@ -3,8 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 
-use pkgcruft::check::CheckKind;
-use strum::IntoEnumIterator;
+use pkgcruft::check::Check;
 
 #[derive(Debug, Args)]
 pub(super) struct Subcommand {}
@@ -12,7 +11,7 @@ pub(super) struct Subcommand {}
 impl Subcommand {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         let mut stdout = io::stdout().lock();
-        for check in CheckKind::iter() {
+        for check in Check::iter() {
             writeln!(stdout, "{check}")?;
         }
 

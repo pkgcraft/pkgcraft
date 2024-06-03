@@ -6,13 +6,15 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::{Report, ReportKind::UnstableOnly};
+use crate::report::ReportKind::UnstableOnly;
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckContext, CheckInfo};
+use super::CheckContext;
 
-pub(super) static CHECK: CheckInfo = CheckInfo {
+pub(super) static CHECK: super::Check = super::Check {
+    name: "UnstableOnly",
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[UnstableOnly],
@@ -39,7 +41,7 @@ impl<'a> Check<'a> {
 }
 
 impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
-    fn run<F: FnMut(Report)>(&self, pkgs: &[Pkg<'a>], mut report: F) {
+    fn run(&self, pkgs: &[Pkg<'a>], filter: &mut ReportFilter) {
         let arches = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())
@@ -57,7 +59,7 @@ impl<'a> super::CheckRun<&[Pkg<'a>]> for Check<'a> {
 
         if !arches.is_empty() {
             let message = arches.into_iter().join(", ");
-            report(UnstableOnly.package(pkgs, message));
+            filter.report(UnstableOnly.package(pkgs, message));
         }
     }
 }
@@ -68,16 +70,17 @@ mod tests {
     use pkgcraft::test::TEST_DATA;
     use pretty_assertions::assert_eq;
 
-    use crate::check::CheckKind::UnstableOnly;
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
+
+    use super::*;
 
     #[test]
     fn check() {
         // gentoo unfixed
         let repo = TEST_DATA.repo("gentoo").unwrap();
-        let scanner = Scanner::new().jobs(1).checks([UnstableOnly]);
-        let check_dir = repo.path().join(UnstableOnly);
+        let check_dir = repo.path().join(&CHECK);
+        let scanner = Scanner::new().jobs(1).checks([&CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);

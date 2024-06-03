@@ -5,8 +5,8 @@ use itertools::Itertools;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 
-use crate::check::{Check, CheckKind, CheckRun};
-use crate::report::Report;
+use crate::check::{Check, CheckRun, Runner};
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::{self, IterRestrict, SourceKind};
 
@@ -17,32 +17,32 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<CheckKind>) -> Self {
+    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<&'static Check>) -> Self {
         let repo = Box::leak(Box::new(repo.clone()));
         let mut runners = IndexMap::new();
 
         // filter checks by context
         let checks = checks
             .iter()
-            .filter(|c| c.context().iter().all(|x| x.enabled(repo)))
+            .filter(|c| c.context.iter().all(|x| x.enabled(repo)))
             .copied()
             // sort checks by priority so they run in the correct order
-            .sorted_by(CheckKind::prioritized);
+            .sorted();
 
         for check in checks {
             runners
-                .entry(check.source())
-                .or_insert_with(|| CheckRunner::new(check.source(), repo))
-                .add_check(check, check.create(repo));
+                .entry(check.source)
+                .or_insert_with(|| CheckRunner::new(check.source, repo))
+                .add_check(check);
         }
 
         Self { runners }
     }
 
     /// Run all check runners in order of priority.
-    pub(super) fn run<F: FnMut(Report)>(&self, restrict: &Restrict, mut report: F) {
+    pub(super) fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         for runner in self.runners.values() {
-            runner.run(restrict, &mut report);
+            runner.run(restrict, filter);
         }
     }
 }
@@ -63,18 +63,18 @@ impl<'a> CheckRunner<'a> {
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind, check: Check<'a>) {
+    fn add_check(&mut self, check: &'static Check) {
         match self {
-            Self::EbuildPkg(r) => r.add_check(kind, check),
-            Self::EbuildRawPkg(r) => r.add_check(kind, check),
+            Self::EbuildPkg(r) => r.add_check(check),
+            Self::EbuildRawPkg(r) => r.add_check(check),
         }
     }
 
     /// Run the check runner for a given restriction.
-    fn run<F: FnMut(Report)>(&self, restrict: &Restrict, report: F) {
+    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         match self {
-            Self::EbuildPkg(r) => r.run(restrict, report),
-            Self::EbuildRawPkg(r) => r.run(restrict, report),
+            Self::EbuildPkg(r) => r.run(restrict, filter),
+            Self::EbuildRawPkg(r) => r.run(restrict, filter),
         }
     }
 }
@@ -82,47 +82,48 @@ impl<'a> CheckRunner<'a> {
 /// Check runner for ebuild package checks.
 #[derive(Debug)]
 struct EbuildPkgCheckRunner<'a> {
-    checks: IndexMap<Scope, Vec<Check<'a>>>,
+    ver_checks: Vec<Runner<'a>>,
+    pkg_checks: Vec<Runner<'a>>,
     source: source::Ebuild<'a>,
+    repo: &'a Repo,
 }
 
 impl<'a> EbuildPkgCheckRunner<'a> {
     fn new(repo: &'a Repo) -> Self {
         Self {
-            checks: Default::default(),
+            ver_checks: Default::default(),
+            pkg_checks: Default::default(),
             source: source::Ebuild { repo },
+            repo,
         }
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind, check: Check<'a>) {
-        self.checks.entry(kind.scope()).or_default().push(check);
+    fn add_check(&mut self, check: &'static Check) {
+        match &check.scope {
+            Scope::Version => self.ver_checks.push(check.create(self.repo)),
+            Scope::Package => self.pkg_checks.push(check.create(self.repo)),
+            _ => panic!("unsupported check: {check}"),
+        }
     }
 
     /// Run the check runner for a given restriction.
-    fn run<F: FnMut(Report)>(&self, restrict: &Restrict, mut report: F) {
-        let mut pkg_set = self
-            .checks
-            .get(&Scope::Package)
-            .map(|checks| (checks, vec![]));
+    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
+        let mut pkgs = vec![];
 
         for pkg in self.source.iter_restrict(restrict) {
-            if let Some(checks) = self.checks.get(&Scope::Version) {
-                for check in checks {
-                    check.run(&pkg, &mut report);
-                }
+            for check in &self.ver_checks {
+                check.run(&pkg, filter);
             }
 
-            if let Some((_, pkgs)) = &mut pkg_set {
+            if !self.pkg_checks.is_empty() {
                 pkgs.push(pkg);
             }
         }
 
-        if let Some((checks, pkgs)) = pkg_set {
-            if !pkgs.is_empty() {
-                for check in checks {
-                    check.run(&pkgs[..], &mut report);
-                }
+        if !pkgs.is_empty() {
+            for check in &self.pkg_checks {
+                check.run(&pkgs[..], filter);
             }
         }
     }
@@ -131,30 +132,33 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 /// Check runner for raw ebuild package checks.
 #[derive(Debug)]
 struct EbuildRawPkgCheckRunner<'a> {
-    checks: IndexMap<Scope, Vec<Check<'a>>>,
+    ver_checks: Vec<Runner<'a>>,
     source: source::EbuildRaw<'a>,
+    repo: &'a Repo,
 }
 
 impl<'a> EbuildRawPkgCheckRunner<'a> {
     fn new(repo: &'a Repo) -> Self {
         Self {
-            checks: Default::default(),
+            ver_checks: Default::default(),
             source: source::EbuildRaw { repo },
+            repo,
         }
     }
 
     /// Add a check to the check runner.
-    fn add_check(&mut self, kind: CheckKind, check: Check<'a>) {
-        self.checks.entry(kind.scope()).or_default().push(check);
+    fn add_check(&mut self, check: &'static Check) {
+        match &check.scope {
+            Scope::Version => self.ver_checks.push(check.create(self.repo)),
+            _ => panic!("unsupported check: {check}"),
+        }
     }
 
     /// Run the check runner for a given restriction.
-    fn run<F: FnMut(Report)>(&self, restrict: &Restrict, mut report: F) {
+    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         for pkg in self.source.iter_restrict(restrict) {
-            if let Some(checks) = self.checks.get(&Scope::Version) {
-                for check in checks {
-                    check.run(&pkg, &mut report);
-                }
+            for check in &self.ver_checks {
+                check.run(&pkg, filter);
             }
         }
     }
