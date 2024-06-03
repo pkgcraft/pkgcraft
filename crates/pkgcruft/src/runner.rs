@@ -11,7 +11,7 @@ use crate::source::{self, IterRestrict, SourceKind};
 
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
-    runners: IndexMap<SourceKind, CheckRunner<'static>>,
+    runners: IndexMap<SourceKind, CheckRunner>,
 }
 
 impl SyncCheckRunner {
@@ -46,13 +46,13 @@ impl SyncCheckRunner {
 }
 
 /// Generic check runners.
-enum CheckRunner<'a> {
-    EbuildPkg(EbuildPkgCheckRunner<'a>),
-    EbuildRawPkg(EbuildRawPkgCheckRunner<'a>),
+enum CheckRunner {
+    EbuildPkg(EbuildPkgCheckRunner),
+    EbuildRawPkg(EbuildRawPkgCheckRunner),
 }
 
-impl<'a> CheckRunner<'a> {
-    fn new(source: SourceKind, repo: &'a Repo) -> Self {
+impl CheckRunner {
+    fn new(source: SourceKind, repo: &'static Repo) -> Self {
         match source {
             SourceKind::Ebuild => Self::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
             SourceKind::EbuildRaw => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
@@ -77,15 +77,15 @@ impl<'a> CheckRunner<'a> {
 }
 
 /// Check runner for ebuild package checks.
-struct EbuildPkgCheckRunner<'a> {
-    ver_checks: Vec<Box<dyn VersionCheckRun + Send + Sync + 'a>>,
-    pkg_checks: Vec<Box<dyn PackageCheckRun + Send + Sync + 'a>>,
-    source: source::Ebuild<'a>,
-    repo: &'a Repo,
+struct EbuildPkgCheckRunner {
+    ver_checks: Vec<Box<dyn VersionCheckRun + Send + Sync>>,
+    pkg_checks: Vec<Box<dyn PackageCheckRun + Send + Sync>>,
+    source: source::Ebuild,
+    repo: &'static Repo,
 }
 
-impl<'a> EbuildPkgCheckRunner<'a> {
-    fn new(repo: &'a Repo) -> Self {
+impl EbuildPkgCheckRunner {
+    fn new(repo: &'static Repo) -> Self {
         Self {
             ver_checks: Default::default(),
             pkg_checks: Default::default(),
@@ -135,13 +135,13 @@ impl<'a> EbuildPkgCheckRunner<'a> {
 }
 
 /// Check runner for raw ebuild package checks.
-struct EbuildRawPkgCheckRunner<'a> {
-    ver_checks: Vec<Box<dyn RawVersionCheckRun + Send + Sync + 'a>>,
-    source: source::EbuildRaw<'a>,
+struct EbuildRawPkgCheckRunner {
+    ver_checks: Vec<Box<dyn RawVersionCheckRun + Send + Sync>>,
+    source: source::EbuildRaw,
 }
 
-impl<'a> EbuildRawPkgCheckRunner<'a> {
-    fn new(repo: &'a Repo) -> Self {
+impl EbuildRawPkgCheckRunner {
+    fn new(repo: &'static Repo) -> Self {
         Self {
             ver_checks: Default::default(),
             source: source::EbuildRaw { repo },

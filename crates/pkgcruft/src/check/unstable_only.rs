@@ -23,12 +23,12 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 #[derive(Debug)]
-pub(crate) struct Check<'a> {
-    stable: HashSet<&'a str>,
+pub(crate) struct Check {
+    stable: HashSet<&'static str>,
 }
 
-impl<'a> Check<'a> {
-    pub(crate) fn new(repo: &'a Repo) -> Self {
+impl Check {
+    pub(crate) fn new(repo: &'static Repo) -> Self {
         Self {
             stable: repo
                 .metadata
@@ -40,7 +40,7 @@ impl<'a> Check<'a> {
     }
 }
 
-impl super::PackageCheckRun for Check<'_> {
+impl super::PackageCheckRun for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let arches = pkgs
             .iter()

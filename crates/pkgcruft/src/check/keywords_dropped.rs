@@ -21,17 +21,17 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 #[derive(Debug)]
-pub(crate) struct Check<'a> {
-    arches: &'a IndexSet<String>,
+pub(crate) struct Check {
+    arches: &'static IndexSet<String>,
 }
 
-impl<'a> Check<'a> {
-    pub(crate) fn new(repo: &'a Repo) -> Self {
+impl Check {
+    pub(crate) fn new(repo: &'static Repo) -> Self {
         Self { arches: repo.arches() }
     }
 }
 
-impl super::PackageCheckRun for Check<'_> {
+impl super::PackageCheckRun for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs

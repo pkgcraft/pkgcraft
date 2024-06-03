@@ -80,7 +80,7 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<'a, I, R>(&self, repo: &'a Repo, restricts: I) -> impl Iterator<Item = Report> + 'a
+    pub fn run<I, R>(&self, repo: &Repo, restricts: I) -> impl Iterator<Item = Report>
     where
         I: IntoIterator<Item = R>,
         R: Into<Restrict>,

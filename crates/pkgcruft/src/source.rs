@@ -29,31 +29,31 @@ pub enum SourceKind {
 pub(crate) trait IterRestrict {
     type Item;
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_;
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item>;
 }
 
 #[derive(Debug)]
-pub(crate) struct Ebuild<'a> {
-    pub(crate) repo: &'a Repo,
+pub(crate) struct Ebuild {
+    pub(crate) repo: &'static Repo,
 }
 
-impl<'a> IterRestrict for Ebuild<'a> {
-    type Item = ebuild::Pkg<'a>;
+impl IterRestrict for Ebuild {
+    type Item = ebuild::Pkg<'static>;
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> {
         self.repo.iter_restrict(val)
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct EbuildRaw<'a> {
-    pub(crate) repo: &'a Repo,
+pub(crate) struct EbuildRaw {
+    pub(crate) repo: &'static Repo,
 }
 
-impl<'a> IterRestrict for EbuildRaw<'a> {
-    type Item = ebuild::raw::Pkg<'a>;
+impl IterRestrict for EbuildRaw {
+    type Item = ebuild::raw::Pkg<'static>;
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> {
         self.repo.iter_raw_restrict(val)
     }
 }

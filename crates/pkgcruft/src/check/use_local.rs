@@ -21,17 +21,17 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 #[derive(Debug)]
-pub(crate) struct Check<'a> {
-    repo: &'a Repo,
+pub(crate) struct Check {
+    repo: &'static Repo,
 }
 
-impl<'a> Check<'a> {
-    pub(crate) fn new(repo: &'a Repo) -> Self {
+impl Check {
+    pub(crate) fn new(repo: &'static Repo) -> Self {
         Self { repo }
     }
 }
 
-impl super::PackageCheckRun for Check<'_> {
+impl super::PackageCheckRun for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let local_use = pkgs[0].local_use();
         let sorted_flags = local_use

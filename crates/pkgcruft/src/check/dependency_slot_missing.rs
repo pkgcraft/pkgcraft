@@ -18,17 +18,17 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 #[derive(Debug)]
-pub(crate) struct Check<'a> {
-    repo: &'a Repo,
+pub(crate) struct Check {
+    repo: &'static Repo,
 }
 
-impl<'a> Check<'a> {
-    pub(crate) fn new(repo: &'a Repo) -> Self {
+impl Check {
+    pub(crate) fn new(repo: &'static Repo) -> Self {
         Self { repo }
     }
 }
 
-impl super::VersionCheckRun for Check<'_> {
+impl super::VersionCheckRun for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for dep in pkg
             .rdepend()
