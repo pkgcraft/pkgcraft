@@ -78,17 +78,17 @@ impl CheckContext {
 }
 
 /// Run a check against a given ebuild package version.
-pub(crate) trait VersionCheckRun {
+pub(crate) trait VersionCheck {
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
 }
 
 /// Run a check against a given ebuild package set.
-pub(crate) trait PackageCheckRun {
+pub(crate) trait PackageCheck {
     fn run(&self, pkg: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
 
 /// Run a check against a given raw ebuild package version.
-pub(crate) trait RawVersionCheckRun {
+pub(crate) trait RawVersionCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
 }
 

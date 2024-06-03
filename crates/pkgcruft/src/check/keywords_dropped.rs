@@ -31,7 +31,7 @@ impl Check {
     }
 }
 
-impl super::PackageCheckRun for Check {
+impl super::PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs

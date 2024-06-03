@@ -29,7 +29,7 @@ impl Check {
     }
 }
 
-impl super::VersionCheckRun for Check {
+impl super::VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let keywords_map = pkg
             .keywords()

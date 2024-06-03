@@ -33,7 +33,7 @@ pub(super) static CHECK: super::Check = super::Check {
 #[derive(Debug)]
 pub(crate) struct Check;
 
-impl super::RawVersionCheckRun for Check {
+impl super::RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 

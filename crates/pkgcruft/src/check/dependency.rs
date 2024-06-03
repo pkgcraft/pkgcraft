@@ -31,7 +31,7 @@ impl Check {
     }
 }
 
-impl super::VersionCheckRun for Check {
+impl super::VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys() {
             let mut deprecated = HashSet::new();

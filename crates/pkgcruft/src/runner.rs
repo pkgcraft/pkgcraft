@@ -78,8 +78,8 @@ impl CheckRunner {
 
 /// Check runner for ebuild package checks.
 struct EbuildPkgCheckRunner {
-    ver_checks: Vec<Box<dyn VersionCheckRun + Send + Sync>>,
-    pkg_checks: Vec<Box<dyn PackageCheckRun + Send + Sync>>,
+    ver_checks: Vec<Box<dyn VersionCheck + Send + Sync>>,
+    pkg_checks: Vec<Box<dyn PackageCheck + Send + Sync>>,
     source: source::Ebuild,
     repo: &'static Repo,
 }
@@ -136,7 +136,7 @@ impl EbuildPkgCheckRunner {
 
 /// Check runner for raw ebuild package checks.
 struct EbuildRawPkgCheckRunner {
-    ver_checks: Vec<Box<dyn RawVersionCheckRun + Send + Sync>>,
+    ver_checks: Vec<Box<dyn RawVersionCheck + Send + Sync>>,
     source: source::EbuildRaw,
 }
 
