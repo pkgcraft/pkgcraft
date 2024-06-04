@@ -22,7 +22,8 @@ impl SyncCheckRunner {
         // filter checks by context
         let checks = checks
             .iter()
-            .filter(|c| c.context.iter().all(|x| x.enabled(repo)))
+            // TODO: replace checks parameter with selected checks once #194 is implemented
+            .filter(|c| c.enabled(repo, checks))
             .copied()
             // sort checks by priority so they run in the correct order
             .sorted();

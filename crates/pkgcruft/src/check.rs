@@ -66,17 +66,6 @@ pub enum CheckContext {
     Overlay,
 }
 
-impl CheckContext {
-    /// Determine if a context is enabled.
-    pub(super) fn enabled(&self, repo: &Repo) -> bool {
-        match self {
-            Self::Gentoo => repo.name() == "gentoo",
-            Self::Optional => false,
-            Self::Overlay => repo.masters().next().is_some(),
-        }
-    }
-}
-
 /// Run a check against a given ebuild package version.
 pub(crate) trait VersionCheck {
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
@@ -108,7 +97,7 @@ pub struct Check {
     pub reports: &'static [ReportKind],
 
     /// Check variant contexts.
-    pub context: &'static [CheckContext],
+    context: &'static [CheckContext],
 
     /// The priority of the check for enabling a deterministic running order.
     priority: i64,
@@ -141,6 +130,15 @@ impl Check {
             .unwrap_or_else(|| panic!("no checks for source: {source}"))
             .iter()
             .copied()
+    }
+
+    /// Determine if a check is enabled for a scanning run.
+    pub(crate) fn enabled(&self, repo: &Repo, selected: &IndexSet<Self>) -> bool {
+        self.context.iter().all(|x| match x {
+            CheckContext::Gentoo => repo.name() == "gentoo",
+            CheckContext::Optional => selected.contains(self),
+            CheckContext::Overlay => repo.masters().next().is_some(),
+        })
     }
 }
 
