@@ -8,8 +8,10 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
+use super::{CheckKind, VersionCheck};
+
 pub(super) static CHECK: super::Check = super::Check {
-    kind: super::CheckKind::RestrictTestMissing,
+    kind: CheckKind::RestrictTestMissing,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[RestrictMissing],
@@ -17,7 +19,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create() -> impl super::VersionCheck {
+pub(super) fn create() -> impl VersionCheck {
     Check {
         restricts: ["test", "!test? ( test )"]
             .iter()
@@ -34,7 +36,7 @@ struct Check {
     iuse: Iuse,
 }
 
-impl super::VersionCheck for Check {
+impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         if pkg.iuse().contains(&self.iuse)
             && pkg

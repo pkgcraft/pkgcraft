@@ -11,8 +11,10 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
+use super::{CheckKind, VersionCheck};
+
 pub(super) static CHECK: super::Check = super::Check {
-    kind: super::CheckKind::Dependency,
+    kind: CheckKind::Dependency,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[DependencyDeprecated, RevisionMissing],
@@ -20,7 +22,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl super::VersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
     Check { repo }
 }
 
@@ -28,7 +30,7 @@ struct Check {
     repo: &'static Repo,
 }
 
-impl super::VersionCheck for Check {
+impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys() {
             let mut deprecated = HashSet::new();

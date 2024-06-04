@@ -13,8 +13,10 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
+use super::{CheckKind, RawVersionCheck};
+
 pub(super) static CHECK: super::Check = super::Check {
-    kind: super::CheckKind::Metadata,
+    kind: CheckKind::Metadata,
     scope: Scope::Version,
     source: SourceKind::EbuildRaw,
     reports: &[
@@ -30,13 +32,13 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: -9999,
 };
 
-pub(super) fn create() -> impl super::RawVersionCheck {
+pub(super) fn create() -> impl RawVersionCheck {
     Check
 }
 
 struct Check;
 
-impl super::RawVersionCheck for Check {
+impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 

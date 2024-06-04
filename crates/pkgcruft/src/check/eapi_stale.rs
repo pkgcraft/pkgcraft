@@ -8,8 +8,10 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
+use super::{CheckKind, PackageCheck};
+
 pub(super) static CHECK: super::Check = super::Check {
-    kind: super::CheckKind::EapiStale,
+    kind: CheckKind::EapiStale,
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[EapiStale],
@@ -17,13 +19,13 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create() -> impl super::PackageCheck {
+pub(super) fn create() -> impl PackageCheck {
     Check
 }
 
 struct Check;
 
-impl super::PackageCheck for Check {
+impl PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))

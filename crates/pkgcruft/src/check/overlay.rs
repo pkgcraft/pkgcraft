@@ -7,16 +7,18 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
+use super::{CheckContext, CheckKind, VersionCheck};
+
 pub(super) static CHECK: super::Check = super::Check {
-    kind: super::CheckKind::Overlay,
+    kind: CheckKind::Overlay,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[EclassUnused],
-    context: &[super::CheckContext::Overlay],
+    context: &[CheckContext::Overlay],
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl super::VersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
     let mut eclasses: IndexSet<_> = repo.eclasses().values().collect();
     for repo in repo.masters() {
         for pkg in &*repo {
@@ -33,7 +35,7 @@ struct Check {
     eclasses: IndexSet<&'static Eclass>,
 }
 
-impl super::VersionCheck for Check {
+impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for eclass in self.eclasses.intersection(pkg.inherited()) {
             filter.report(EclassUnused.version(pkg, eclass))

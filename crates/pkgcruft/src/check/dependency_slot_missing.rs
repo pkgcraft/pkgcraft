@@ -8,8 +8,10 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
+use super::{CheckKind, VersionCheck};
+
 pub(super) static CHECK: super::Check = super::Check {
-    kind: super::CheckKind::DependencySlotMissing,
+    kind: CheckKind::DependencySlotMissing,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[DependencySlotMissing],
@@ -17,7 +19,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl super::VersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
     Check { repo }
 }
 
@@ -25,7 +27,7 @@ struct Check {
     repo: &'static Repo,
 }
 
-impl super::VersionCheck for Check {
+impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for dep in pkg
             .rdepend()
