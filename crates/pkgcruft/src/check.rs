@@ -70,16 +70,19 @@ enum CheckContext {
 pub(crate) trait VersionCheck {
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
 }
+pub(crate) type VersionCheckRunner = Box<dyn VersionCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
 pub(crate) trait PackageCheck {
     fn run(&self, pkg: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
+pub(crate) type PackageCheckRunner = Box<dyn PackageCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version.
 pub(crate) trait RawVersionCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
 }
+pub(crate) type RawVersionCheckRunner = Box<dyn RawVersionCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -142,7 +145,7 @@ impl Check {
     }
 
     /// Create an ebuild package version check runner.
-    pub(crate) fn version_check(&self, repo: &'static Repo) -> Box<dyn VersionCheck + Send + Sync> {
+    pub(crate) fn version_check(&self, repo: &'static Repo) -> VersionCheckRunner {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
@@ -154,7 +157,7 @@ impl Check {
     }
 
     /// Create an ebuild package set check runner.
-    pub(crate) fn package_check(&self, repo: &'static Repo) -> Box<dyn PackageCheck + Send + Sync> {
+    pub(crate) fn package_check(&self, repo: &'static Repo) -> PackageCheckRunner {
         match &self.kind {
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
@@ -166,7 +169,7 @@ impl Check {
     }
 
     /// Create a raw ebuild package version check runner.
-    pub(crate) fn raw_version_check(&self) -> Box<dyn RawVersionCheck + Send + Sync> {
+    pub(crate) fn raw_version_check(&self) -> RawVersionCheckRunner {
         match &self.kind {
             CheckKind::Metadata => Box::new(metadata::create()),
             _ => unreachable!("unsupported check: {self}"),
