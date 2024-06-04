@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
 use pkgcraft::repo::{ebuild, Repo};
 use pkgcraft::restrict::Restrict;
@@ -86,8 +86,8 @@ impl Scanner {
         R: Into<Restrict>,
     {
         let restricts = restricts.into_iter().map(Into::into).collect();
-        let (restrict_tx, restrict_rx) = unbounded();
-        let (reports_tx, reports_rx) = unbounded();
+        let (restrict_tx, restrict_rx) = bounded(self.jobs);
+        let (reports_tx, reports_rx) = bounded(self.jobs);
         let filter = Arc::new(self.reports.clone());
         let exit = Arc::new(self.exit.clone());
 
