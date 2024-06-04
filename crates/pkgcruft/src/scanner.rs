@@ -109,7 +109,7 @@ impl Scanner {
                             )
                         })
                         .collect(),
-                    reports: VecDeque::new(),
+                    reports: Default::default(),
                 }
             }
             _ => todo!("add support for other repo types"),
