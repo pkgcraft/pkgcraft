@@ -42,3 +42,26 @@ impl VersionCheck for Check {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::repo::Repository;
+    use pkgcraft::test::TEST_DATA;
+    use pretty_assertions::assert_eq;
+
+    use crate::scanner::Scanner;
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        // secondary unfixed
+        let repo = TEST_DATA.repo("qa-secondary").unwrap();
+        let check_dir = repo.path().join(CHECK);
+        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let expected = glob_reports!("{check_dir}/*/reports.json");
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+    }
+}
