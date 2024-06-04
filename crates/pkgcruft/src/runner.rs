@@ -99,16 +99,16 @@ impl EbuildPkgCheckRunner {
     #[rustfmt::skip]
     fn add_check(&mut self, check: Check) {
         match &check.kind {
-            CheckKind::Dependency => self.ver_checks.push(Box::new(dependency::Check::new(self.repo))),
-            CheckKind::DependencySlotMissing => self.ver_checks.push(Box::new(dependency_slot_missing::Check::new(self.repo))),
-            CheckKind::EapiStale => self.pkg_checks.push(Box::new(eapi_stale::Check)),
-            CheckKind::EapiStatus => self.ver_checks.push(Box::new(eapi_status::Check::new(self.repo))),
-            CheckKind::Keywords => self.ver_checks.push(Box::new(keywords::Check::new(self.repo))),
-            CheckKind::KeywordsDropped => self.pkg_checks.push(Box::new(keywords_dropped::Check::new(self.repo))),
-            CheckKind::LiveOnly => self.pkg_checks.push(Box::new(live_only::Check)),
-            CheckKind::RestrictTestMissing => self.ver_checks.push(Box::new(restrict_test_missing::Check::new())),
-            CheckKind::UnstableOnly => self.pkg_checks.push(Box::new(unstable_only::Check::new(self.repo))),
-            CheckKind::UseLocal => self.pkg_checks.push(Box::new(use_local::Check::new(self.repo))),
+            CheckKind::Dependency => self.ver_checks.push(Box::new(dependency::create(self.repo))),
+            CheckKind::DependencySlotMissing => self.ver_checks.push(Box::new(dependency_slot_missing::create(self.repo))),
+            CheckKind::EapiStale => self.pkg_checks.push(Box::new(eapi_stale::create())),
+            CheckKind::EapiStatus => self.ver_checks.push(Box::new(eapi_status::create(self.repo))),
+            CheckKind::Keywords => self.ver_checks.push(Box::new(keywords::create(self.repo))),
+            CheckKind::KeywordsDropped => self.pkg_checks.push(Box::new(keywords_dropped::create(self.repo))),
+            CheckKind::LiveOnly => self.pkg_checks.push(Box::new(live_only::create())),
+            CheckKind::RestrictTestMissing => self.ver_checks.push(Box::new(restrict_test_missing::create())),
+            CheckKind::UnstableOnly => self.pkg_checks.push(Box::new(unstable_only::create(self.repo))),
+            CheckKind::UseLocal => self.pkg_checks.push(Box::new(use_local::create(self.repo))),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -153,7 +153,7 @@ impl EbuildRawPkgCheckRunner {
     #[rustfmt::skip]
     fn add_check(&mut self, check: Check) {
         match &check.kind {
-            CheckKind::Metadata => self.ver_checks.push(Box::new(metadata::Check)),
+            CheckKind::Metadata => self.ver_checks.push(Box::new(metadata::create())),
             _ => unreachable!("unsupported check: {check}"),
         }
     }

@@ -20,15 +20,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-#[derive(Debug)]
-pub(crate) struct Check {
-    arches: &'static IndexSet<String>,
+pub(crate) fn create(repo: &'static Repo) -> impl super::PackageCheck {
+    Check { arches: repo.arches() }
 }
 
-impl Check {
-    pub(crate) fn new(repo: &'static Repo) -> Self {
-        Self { arches: repo.arches() }
-    }
+struct Check {
+    arches: &'static IndexSet<String>,
 }
 
 impl super::PackageCheck for Check {

@@ -17,8 +17,11 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-#[derive(Debug)]
-pub(crate) struct Check;
+pub(crate) fn create() -> impl super::PackageCheck {
+    Check
+}
+
+struct Check;
 
 impl super::PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {

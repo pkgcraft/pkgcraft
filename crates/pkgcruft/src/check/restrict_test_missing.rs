@@ -17,24 +17,21 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-#[derive(Debug)]
-pub(crate) struct Check {
-    restricts: DependencySet<String>,
-    iuse: Iuse,
+pub(crate) fn create() -> impl super::VersionCheck {
+    Check {
+        restricts: ["test", "!test? ( test )"]
+            .iter()
+            .map(|s| {
+                restrict_dependency(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
+            })
+            .collect(),
+        iuse: Iuse::try_new("test").unwrap(),
+    }
 }
 
-impl Check {
-    pub(crate) fn new() -> Self {
-        Self {
-            restricts: ["test", "!test? ( test )"]
-                .iter()
-                .map(|s| {
-                    restrict_dependency(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
-                })
-                .collect(),
-            iuse: Iuse::try_new("test").unwrap(),
-        }
-    }
+struct Check {
+    restricts: DependencySet<String>,
+    iuse: Iuse,
 }
 
 impl super::VersionCheck for Check {

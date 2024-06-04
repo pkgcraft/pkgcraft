@@ -18,15 +18,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-#[derive(Debug)]
-pub(crate) struct Check {
-    repo: &'static Repo,
+pub(crate) fn create(repo: &'static Repo) -> impl super::VersionCheck {
+    Check { repo }
 }
 
-impl Check {
-    pub(crate) fn new(repo: &'static Repo) -> Self {
-        Self { repo }
-    }
+struct Check {
+    repo: &'static Repo,
 }
 
 impl super::VersionCheck for Check {

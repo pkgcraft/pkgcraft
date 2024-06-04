@@ -22,22 +22,19 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-#[derive(Debug)]
-pub(crate) struct Check {
-    stable: HashSet<&'static str>,
+pub(crate) fn create(repo: &'static Repo) -> impl super::PackageCheck {
+    Check {
+        stable: repo
+            .metadata
+            .arches_desc()
+            .get("stable")
+            .map(|x| x.iter().map(|s| s.as_str()).collect())
+            .unwrap_or_default(),
+    }
 }
 
-impl Check {
-    pub(crate) fn new(repo: &'static Repo) -> Self {
-        Self {
-            stable: repo
-                .metadata
-                .arches_desc()
-                .get("stable")
-                .map(|x| x.iter().map(|s| s.as_str()).collect())
-                .unwrap_or_default(),
-        }
-    }
+struct Check {
+    stable: HashSet<&'static str>,
 }
 
 impl super::PackageCheck for Check {

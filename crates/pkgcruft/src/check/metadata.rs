@@ -30,8 +30,11 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: -9999,
 };
 
-#[derive(Debug)]
-pub(crate) struct Check;
+pub(crate) fn create() -> impl super::RawVersionCheck {
+    Check
+}
+
+struct Check;
 
 impl super::RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
