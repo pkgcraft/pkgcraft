@@ -30,7 +30,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: -9999,
 };
 
-pub(crate) fn create() -> impl super::RawVersionCheck {
+pub(super) fn create() -> impl super::RawVersionCheck {
     Check
 }
 

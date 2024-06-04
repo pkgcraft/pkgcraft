@@ -20,7 +20,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(crate) fn create(repo: &'static Repo) -> impl super::PackageCheck {
+pub(super) fn create(repo: &'static Repo) -> impl super::PackageCheck {
     Check { repo }
 }
 

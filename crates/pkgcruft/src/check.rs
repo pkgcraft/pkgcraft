@@ -18,17 +18,17 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 
-pub(crate) mod dependency;
-pub(crate) mod dependency_slot_missing;
-pub(crate) mod eapi_stale;
-pub(crate) mod eapi_status;
-pub(crate) mod keywords;
-pub(crate) mod keywords_dropped;
-pub(crate) mod live_only;
-pub(crate) mod metadata;
-pub(crate) mod restrict_test_missing;
-pub(crate) mod unstable_only;
-pub(crate) mod use_local;
+mod dependency;
+mod dependency_slot_missing;
+mod eapi_stale;
+mod eapi_status;
+mod keywords;
+mod keywords_dropped;
+mod live_only;
+mod metadata;
+mod restrict_test_missing;
+mod unstable_only;
+mod use_local;
 
 /// Check variants.
 #[derive(
@@ -139,6 +139,38 @@ impl Check {
             CheckContext::Optional => selected.contains(self),
             CheckContext::Overlay => repo.masters().next().is_some(),
         })
+    }
+
+    /// Create an ebuild package version check runner.
+    pub(crate) fn version_check(&self, repo: &'static Repo) -> Box<dyn VersionCheck + Send + Sync> {
+        match &self.kind {
+            CheckKind::Dependency => Box::new(dependency::create(repo)),
+            CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
+            CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
+            CheckKind::Keywords => Box::new(keywords::create(repo)),
+            CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
+
+    /// Create an ebuild package set check runner.
+    pub(crate) fn package_check(&self, repo: &'static Repo) -> Box<dyn PackageCheck + Send + Sync> {
+        match &self.kind {
+            CheckKind::EapiStale => Box::new(eapi_stale::create()),
+            CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
+            CheckKind::LiveOnly => Box::new(live_only::create()),
+            CheckKind::UnstableOnly => Box::new(unstable_only::create(repo)),
+            CheckKind::UseLocal => Box::new(use_local::create(repo)),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
+
+    /// Create a raw ebuild package version check runner.
+    pub(crate) fn raw_version_check(&self) -> Box<dyn RawVersionCheck + Send + Sync> {
+        match &self.kind {
+            CheckKind::Metadata => Box::new(metadata::create()),
+            _ => unreachable!("unsupported check: {self}"),
+        }
     }
 }
 

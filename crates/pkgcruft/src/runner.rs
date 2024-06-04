@@ -7,6 +7,7 @@ use pkgcraft::restrict::Restrict;
 
 use crate::check::*;
 use crate::scanner::ReportFilter;
+use crate::scope::Scope;
 use crate::source::{self, IterRestrict, SourceKind};
 
 /// Check runner for synchronous checks.
@@ -96,19 +97,10 @@ impl EbuildPkgCheckRunner {
     }
 
     /// Add a check to the check runner.
-    #[rustfmt::skip]
     fn add_check(&mut self, check: Check) {
-        match &check.kind {
-            CheckKind::Dependency => self.ver_checks.push(Box::new(dependency::create(self.repo))),
-            CheckKind::DependencySlotMissing => self.ver_checks.push(Box::new(dependency_slot_missing::create(self.repo))),
-            CheckKind::EapiStale => self.pkg_checks.push(Box::new(eapi_stale::create())),
-            CheckKind::EapiStatus => self.ver_checks.push(Box::new(eapi_status::create(self.repo))),
-            CheckKind::Keywords => self.ver_checks.push(Box::new(keywords::create(self.repo))),
-            CheckKind::KeywordsDropped => self.pkg_checks.push(Box::new(keywords_dropped::create(self.repo))),
-            CheckKind::LiveOnly => self.pkg_checks.push(Box::new(live_only::create())),
-            CheckKind::RestrictTestMissing => self.ver_checks.push(Box::new(restrict_test_missing::create())),
-            CheckKind::UnstableOnly => self.pkg_checks.push(Box::new(unstable_only::create(self.repo))),
-            CheckKind::UseLocal => self.pkg_checks.push(Box::new(use_local::create(self.repo))),
+        match &check.scope {
+            Scope::Version => self.ver_checks.push(check.version_check(self.repo)),
+            Scope::Package => self.pkg_checks.push(check.package_check(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -150,10 +142,9 @@ impl EbuildRawPkgCheckRunner {
     }
 
     /// Add a check to the check runner.
-    #[rustfmt::skip]
     fn add_check(&mut self, check: Check) {
-        match &check.kind {
-            CheckKind::Metadata => self.ver_checks.push(Box::new(metadata::create())),
+        match &check.scope {
+            Scope::Version => self.ver_checks.push(check.raw_version_check()),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
