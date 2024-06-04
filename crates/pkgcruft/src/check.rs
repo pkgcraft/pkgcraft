@@ -60,8 +60,7 @@ impl From<CheckKind> for Check {
 }
 
 /// Check contexts.
-#[derive(Display, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[strum(serialize_all = "kebab-case")]
+#[derive(Copy, Clone)]
 enum CheckContext {
     Gentoo,
     Optional,
