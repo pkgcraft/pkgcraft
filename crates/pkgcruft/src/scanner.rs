@@ -133,32 +133,34 @@ fn producer(
     })
 }
 
-pub(crate) struct ReportFilter<'a> {
-    reports: Vec<Report>,
-    filter: &'a IndexSet<ReportKind>,
-    exit: &'a IndexSet<ReportKind>,
-    failed: &'a AtomicBool,
+pub(crate) struct ReportFilter {
+    reports: Option<Vec<Report>>,
+    filter: Arc<IndexSet<ReportKind>>,
+    exit: Arc<IndexSet<ReportKind>>,
+    failed: Arc<AtomicBool>,
 }
 
-impl ReportFilter<'_> {
+impl ReportFilter {
     /// Add a report.
     pub(crate) fn report(&mut self, report: Report) {
         if self.filter.contains(report.kind()) {
             if self.exit.contains(report.kind()) {
                 self.failed.store(true, Ordering::Relaxed);
             }
-            self.reports.push(report);
+
+            if let Some(x) = self.reports.as_mut() {
+                x.push(report);
+            }
         }
     }
 
     /// Process reports for output.
-    fn process(mut self) -> Option<Vec<Report>> {
-        if !self.reports.is_empty() {
-            self.reports.sort();
-            Some(self.reports)
-        } else {
-            None
-        }
+    fn process(&mut self) -> Option<Vec<Report>> {
+        self.reports.take().map(|mut x| {
+            self.reports = Some(Default::default());
+            x.sort();
+            x
+        })
     }
 }
 
@@ -172,14 +174,14 @@ fn worker(
     tx: Sender<Vec<Report>>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        for restrict in rx {
-            let mut filter = ReportFilter {
-                reports: Default::default(),
-                filter: &filter,
-                exit: &exit,
-                failed: &failed,
-            };
+        let mut filter = ReportFilter {
+            reports: Some(Default::default()),
+            filter,
+            exit,
+            failed,
+        };
 
+        for restrict in rx {
             // run checks
             runner.run(&restrict, &mut filter);
 
