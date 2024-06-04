@@ -18,7 +18,7 @@ pub(super) static CHECK: super::Check = super::Check {
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[UnstableOnly],
-    context: &[CheckContext::Gentoo],
+    context: &[CheckContext::Optional],
     priority: 0,
 };
 
