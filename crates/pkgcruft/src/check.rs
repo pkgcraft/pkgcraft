@@ -182,7 +182,7 @@ impl Check {
 
 impl fmt::Debug for Check {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Check {{ {} }}", self.kind)
+        write!(f, "{self}")
     }
 }
 
