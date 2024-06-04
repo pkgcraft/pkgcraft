@@ -138,10 +138,11 @@ pub(crate) struct ReportFilter {
     filter: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
     failed: Arc<AtomicBool>,
+    tx: Sender<Vec<Report>>,
 }
 
 impl ReportFilter {
-    /// Add a report.
+    /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&mut self, report: Report) {
         if self.filter.contains(report.kind()) {
             if self.exit.contains(report.kind()) {
@@ -154,13 +155,13 @@ impl ReportFilter {
         }
     }
 
-    /// Process reports for output.
-    fn process(&mut self) -> Option<Vec<Report>> {
-        self.reports.take().map(|mut x| {
+    /// Sort existing reports and send them to the iterator.
+    fn process(&mut self) {
+        if let Some(mut reports) = self.reports.take() {
             self.reports = Some(Default::default());
-            x.sort();
-            x
-        })
+            reports.sort();
+            self.tx.send(reports).ok();
+        }
     }
 }
 
@@ -179,16 +180,12 @@ fn worker(
             filter,
             exit,
             failed,
+            tx,
         };
 
         for restrict in rx {
-            // run checks
             runner.run(&restrict, &mut filter);
-
-            // send reports to iterator
-            if let Some(reports) = filter.process() {
-                tx.send(reports).ok();
-            }
+            filter.process();
         }
     })
 }
