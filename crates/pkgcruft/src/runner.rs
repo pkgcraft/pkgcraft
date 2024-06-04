@@ -20,7 +20,7 @@ impl SyncCheckRunner {
         let mut runners = IndexMap::new();
 
         // filter checks by context
-        let checks = checks
+        let enabled = checks
             .iter()
             // TODO: replace checks parameter with selected checks once #194 is implemented
             .filter(|c| c.enabled(repo, checks))
@@ -28,7 +28,7 @@ impl SyncCheckRunner {
             // sort checks by priority so they run in the correct order
             .sorted();
 
-        for check in checks {
+        for check in enabled {
             runners
                 .entry(check.source)
                 .or_insert_with(|| CheckRunner::new(check.source, repo))
