@@ -205,12 +205,12 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
-    pub fn inherit(&self) -> &OrderedSet<&Eclass> {
+    pub fn inherit(&self) -> &OrderedSet<&'a Eclass> {
         &self.meta.inherit
     }
 
     /// Return the ordered set of inherited eclasses for a package.
-    pub fn inherited(&self) -> &OrderedSet<&Eclass> {
+    pub fn inherited(&self) -> &OrderedSet<&'a Eclass> {
         &self.meta.inherited
     }
 
