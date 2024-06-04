@@ -86,6 +86,9 @@ pub enum ReportKind {
     /// Package has stable keywords with an unstable EAPI.
     EapiUnstable,
 
+    /// Eclass that is unused in the parent repository.
+    EclassUnused,
+
     KeywordsDropped,
     KeywordsOverlapping,
     KeywordsUnsorted,
@@ -187,6 +190,7 @@ impl ReportKind {
             Self::EapiDeprecated => Scope::Version,
             Self::EapiStale => Scope::Version,
             Self::EapiUnstable => Scope::Version,
+            Self::EclassUnused => Scope::Version,
             Self::KeywordsDropped => Scope::Version,
             Self::KeywordsOverlapping => Scope::Version,
             Self::KeywordsUnsorted => Scope::Version,
@@ -218,6 +222,7 @@ impl ReportKind {
             Self::EapiDeprecated => Warning,
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
+            Self::EclassUnused => Warning,
             Self::KeywordsDropped => Warning,
             Self::KeywordsOverlapping => Error,
             Self::KeywordsUnsorted => Style,
