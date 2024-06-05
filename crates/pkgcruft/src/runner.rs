@@ -6,6 +6,7 @@ use itertools::Itertools;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
+use tracing::debug;
 
 use crate::check::*;
 use crate::scanner::ReportFilter;
@@ -15,11 +16,10 @@ use crate::source::{self, IterRestrict, SourceKind};
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, CheckRunner>,
-    debug: bool,
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<Check>, debug: bool) -> Self {
+    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<Check>) -> Self {
         let repo = Box::leak(Box::new(repo.clone()));
         let mut runners = IndexMap::new();
 
@@ -39,13 +39,13 @@ impl SyncCheckRunner {
                 .add_check(check);
         }
 
-        Self { runners, debug }
+        Self { runners }
     }
 
     /// Run all check runners in order of priority.
     pub(super) fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         for runner in self.runners.values() {
-            runner.run(restrict, filter, self.debug);
+            runner.run(restrict, filter);
         }
     }
 }
@@ -73,10 +73,10 @@ impl CheckRunner {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter, debug: bool) {
+    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         match self {
-            Self::EbuildPkg(r) => r.run(restrict, filter, debug),
-            Self::EbuildRawPkg(r) => r.run(restrict, filter, debug),
+            Self::EbuildPkg(r) => r.run(restrict, filter),
+            Self::EbuildRawPkg(r) => r.run(restrict, filter),
         }
     }
 }
@@ -109,21 +109,14 @@ impl EbuildPkgCheckRunner {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter, debug: bool) {
+    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         let mut pkgs = vec![];
-        let mut now = Instant::now();
 
         for pkg in self.source.iter_restrict(restrict) {
             for check in &self.ver_checks {
-                if debug {
-                    now = Instant::now();
-                }
-
+                let now = Instant::now();
                 check.run(&pkg, filter);
-
-                if debug {
-                    eprintln!("{}: {pkg}: {:?}", check.check(), now.elapsed());
-                }
+                debug!("{}: {pkg}: {:?}", check.check(), now.elapsed());
             }
 
             if !self.pkg_checks.is_empty() {
@@ -133,15 +126,9 @@ impl EbuildPkgCheckRunner {
 
         if !pkgs.is_empty() {
             for check in &self.pkg_checks {
-                if debug {
-                    now = Instant::now();
-                }
-
+                let now = Instant::now();
                 check.run(&pkgs[..], filter);
-
-                if debug {
-                    eprintln!("{}: {}: {:?}", check.check(), pkgs[0].cpn(), now.elapsed());
-                }
+                debug!("{}: {}: {:?}", check.check(), pkgs[0].cpn(), now.elapsed());
             }
         }
     }
@@ -170,19 +157,12 @@ impl EbuildRawPkgCheckRunner {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter, debug: bool) {
-        let mut now = Instant::now();
+    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         for pkg in self.source.iter_restrict(restrict) {
             for check in &self.ver_checks {
-                if debug {
-                    now = Instant::now();
-                }
-
+                let now = Instant::now();
                 check.run(&pkg, filter);
-
-                if debug {
-                    eprintln!("{}: {pkg}: {:?}", check.check(), now.elapsed());
-                }
+                debug!("{}: {pkg}: {:?}", check.check(), now.elapsed());
             }
         }
     }

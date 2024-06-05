@@ -34,10 +34,6 @@ pub(crate) struct Command {
     )]
     exit: Vec<ReportKind>,
 
-    /// Output check durations
-    #[arg(long)]
-    debug: bool,
-
     #[clap(flatten)]
     reporter: options::reporter::ReporterOptions,
 
@@ -80,8 +76,7 @@ impl Command {
             .jobs(self.jobs.unwrap_or_default())
             .checks(checks)
             .reports(reports)
-            .exit(self.exit)
-            .debug(self.debug);
+            .exit(self.exit);
 
         // run scanner for all targets
         let mut stdout = io::stdout().lock();
