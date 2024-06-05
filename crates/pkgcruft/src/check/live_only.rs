@@ -23,11 +23,9 @@ pub(super) fn create() -> impl PackageCheck {
 
 struct Check;
 
-impl PackageCheck for Check {
-    fn check(&self) -> super::Check {
-        CHECK
-    }
+super::register!(Check);
 
+impl PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         if pkgs.iter().all(|pkg| pkg.properties().contains("live")) {
             filter.report(LiveOnly.package(pkgs, "all versions are VCS-based"))

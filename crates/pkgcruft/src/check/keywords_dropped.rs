@@ -30,11 +30,9 @@ struct Check {
     arches: &'static IndexSet<String>,
 }
 
-impl PackageCheck for Check {
-    fn check(&self) -> super::Check {
-        CHECK
-    }
+super::register!(Check);
 
+impl PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs

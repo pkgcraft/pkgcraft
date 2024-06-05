@@ -67,23 +67,36 @@ enum CheckContext {
     Overlay,
 }
 
-/// Run a check against a given ebuild package version.
-pub(crate) trait VersionCheck {
+pub(crate) trait RegisterCheck {
     fn check(&self) -> Check;
+}
+
+/// Implement RegisterCheck for a given check type.
+macro_rules! register {
+    ($x:ty) => {
+        impl $crate::check::RegisterCheck for $x {
+            fn check(&self) -> $crate::check::Check {
+                CHECK
+            }
+        }
+    };
+}
+use register;
+
+/// Run a check against a given ebuild package version.
+pub(crate) trait VersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
 }
 pub(crate) type VersionCheckRunner = Box<dyn VersionCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
-pub(crate) trait PackageCheck {
-    fn check(&self) -> Check;
+pub(crate) trait PackageCheck: RegisterCheck {
     fn run(&self, pkg: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
 pub(crate) type PackageCheckRunner = Box<dyn PackageCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version.
-pub(crate) trait RawVersionCheck {
-    fn check(&self) -> Check;
+pub(crate) trait RawVersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
 }
 pub(crate) type RawVersionCheckRunner = Box<dyn RawVersionCheck + Send + Sync>;

@@ -35,11 +35,9 @@ struct Check {
     eclasses: IndexSet<&'static Eclass>,
 }
 
-impl VersionCheck for Check {
-    fn check(&self) -> super::Check {
-        CHECK
-    }
+super::register!(Check);
 
+impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for eclass in self.eclasses.intersection(pkg.inherited()) {
             filter.report(EclassUnused.version(pkg, eclass))

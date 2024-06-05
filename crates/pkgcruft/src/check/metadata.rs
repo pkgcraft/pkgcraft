@@ -38,11 +38,9 @@ pub(super) fn create() -> impl RawVersionCheck {
 
 struct Check;
 
-impl RawVersionCheck for Check {
-    fn check(&self) -> super::Check {
-        CHECK
-    }
+super::register!(Check);
 
+impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 

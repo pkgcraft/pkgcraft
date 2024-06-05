@@ -36,11 +36,9 @@ struct Check {
     iuse: Iuse,
 }
 
-impl VersionCheck for Check {
-    fn check(&self) -> super::Check {
-        CHECK
-    }
+super::register!(Check);
 
+impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         if pkg.iuse().contains(&self.iuse)
             && pkg
