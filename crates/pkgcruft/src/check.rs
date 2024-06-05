@@ -22,6 +22,7 @@ mod dependency;
 mod dependency_slot_missing;
 mod eapi_stale;
 mod eapi_status;
+mod header;
 mod keywords;
 mod keywords_dropped;
 mod live_only;
@@ -39,6 +40,7 @@ pub enum CheckKind {
     Dependency,
     EapiStale,
     EapiStatus,
+    Header,
     Keywords,
     KeywordsDropped,
     LiveOnly,
@@ -203,6 +205,7 @@ impl Check {
     /// Create a raw ebuild package version check runner.
     pub(crate) fn raw_version_check(&self) -> RawVersionCheckRunner {
         match &self.kind {
+            CheckKind::Header => Box::new(header::create()),
             CheckKind::Metadata => Box::new(metadata::create()),
             _ => unreachable!("unsupported check: {self}"),
         }
@@ -282,6 +285,7 @@ static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
         dependency_slot_missing::CHECK,
         eapi_stale::CHECK,
         eapi_status::CHECK,
+        header::CHECK,
         keywords::CHECK,
         keywords_dropped::CHECK,
         live_only::CHECK,
