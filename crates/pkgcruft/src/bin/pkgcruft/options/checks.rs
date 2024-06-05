@@ -91,10 +91,14 @@ impl Checks {
             default_reports = false;
         }
 
-        // enable reports related to scopes
+        // enable reports related to check scope
         if !self.scopes.is_empty() {
             let scopes: HashSet<_> = self.scopes.into_iter().collect();
-            reports.extend(ReportKind::iter().filter(|r| scopes.contains(&r.scope())));
+            reports.extend(
+                Check::iter()
+                    .filter(|c| scopes.contains(&c.scope))
+                    .flat_map(|c| c.reports),
+            );
             default_reports = false;
         }
 

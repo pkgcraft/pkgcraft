@@ -138,9 +138,6 @@ impl ReportKind {
         P: Package,
         S: fmt::Display,
     {
-        // verify report scope
-        debug_assert!(self.scope() == Scope::Version);
-
         Report {
             kind: self,
             scope: ReportScope::Version(pkg.cpv().clone()),
@@ -154,9 +151,6 @@ impl ReportKind {
         P: Package,
         S: fmt::Display,
     {
-        // verify report scope
-        debug_assert!(self.scope() == Scope::Package);
-
         Report {
             kind: self,
             scope: ReportScope::Package(pkgs[0].cpn().clone()),
@@ -170,44 +164,10 @@ impl ReportKind {
         R: Repository,
         S: fmt::Display,
     {
-        // verify report scope
-        debug_assert!(self.scope() == Scope::Repo);
-
         Report {
             kind: self,
             scope: ReportScope::Repo(repo.name().to_string()),
             message: message.to_string(),
-        }
-    }
-
-    /// Return the scope of the report variant.
-    pub fn scope(&self) -> Scope {
-        match self {
-            Self::DependencyDeprecated => Scope::Version,
-            Self::DependencyInvalid => Scope::Version,
-            Self::DependencySlotMissing => Scope::Version,
-            Self::EapiBanned => Scope::Version,
-            Self::EapiDeprecated => Scope::Version,
-            Self::EapiStale => Scope::Version,
-            Self::EapiUnstable => Scope::Version,
-            Self::EclassUnused => Scope::Version,
-            Self::KeywordsDropped => Scope::Version,
-            Self::KeywordsOverlapping => Scope::Version,
-            Self::KeywordsUnsorted => Scope::Version,
-            Self::LicenseInvalid => Scope::Version,
-            Self::LiveOnly => Scope::Package,
-            Self::MetadataMissing => Scope::Version,
-            Self::PropertiesInvalid => Scope::Version,
-            Self::RequiredUseInvalid => Scope::Version,
-            Self::RestrictInvalid => Scope::Version,
-            Self::RestrictMissing => Scope::Version,
-            Self::RevisionMissing => Scope::Version,
-            Self::SourcingError => Scope::Version,
-            Self::UnstableOnly => Scope::Package,
-            Self::UseLocalDescMissing => Scope::Package,
-            Self::UseLocalGlobal => Scope::Package,
-            Self::UseLocalUnused => Scope::Package,
-            Self::UseLocalUnsorted => Scope::Package,
         }
     }
 
