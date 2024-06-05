@@ -89,14 +89,8 @@ pub enum ReportKind {
     /// Eclass that is unused in the parent repository.
     EclassUnused,
 
-    /// File has an invalid copyright header.
-    HeaderCopyrightInvalid,
-
-    /// File has an outdated copyright header.
-    HeaderCopyrightOutdated,
-
-    /// File has an invalid license header.
-    HeaderLicenseInvalid,
+    /// File has an invalid copyright and/or license header.
+    HeaderInvalid,
 
     KeywordsDropped,
     KeywordsOverlapping,
@@ -192,9 +186,7 @@ impl ReportKind {
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
             Self::EclassUnused => Warning,
-            Self::HeaderCopyrightInvalid => Error,
-            Self::HeaderCopyrightOutdated => Error,
-            Self::HeaderLicenseInvalid => Error,
+            Self::HeaderInvalid => Error,
             Self::KeywordsDropped => Warning,
             Self::KeywordsOverlapping => Error,
             Self::KeywordsUnsorted => Style,

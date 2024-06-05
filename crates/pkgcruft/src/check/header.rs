@@ -2,9 +2,7 @@ use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild::raw::Pkg;
 use regex::Regex;
 
-use crate::report::ReportKind::{
-    HeaderCopyrightInvalid, HeaderCopyrightOutdated, HeaderLicenseInvalid,
-};
+use crate::report::ReportKind::HeaderInvalid;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -15,7 +13,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Header,
     scope: Scope::Version,
     source: SourceKind::EbuildRaw,
-    reports: &[HeaderCopyrightInvalid, HeaderCopyrightOutdated, HeaderLicenseInvalid],
+    reports: &[HeaderInvalid],
     context: &[CheckContext::Gentoo],
     priority: 0,
 };
@@ -39,30 +37,36 @@ impl RawVersionCheck for Check {
         let mut lines = pkg.data().lines();
 
         let mut line = lines.next().unwrap_or_default();
-        if let Some(m) = COPYRIGHT_REGEX.captures(line) {
+        if let Some(m) = COPYRIGHT_REGEX.captures(line.trim()) {
             // Copyright policy is active since 2018-10-21 via GLEP 76, so it applies to all
             // ebuilds committed in 2019 and later.
             let end: u64 = m.name("end").unwrap().as_str().parse().unwrap();
             if end >= 2019 {
                 let holder = m.name("holder").unwrap().as_str();
-                if holder == "Gentoo Foundation" {
-                    filter.report(HeaderCopyrightOutdated.version(pkg, format!("{line:?}")));
-                } else if holder != "Gentoo Authors" {
-                    filter.report(HeaderCopyrightInvalid.version(pkg, format!("{line:?}")));
+                if holder != "Gentoo Authors" {
+                    let message = format!("invalid copyright holder: {holder:?}");
+                    filter.report(HeaderInvalid.version(pkg, message));
                 }
             }
         } else {
-            filter.report(HeaderCopyrightInvalid.version(pkg, format!("{line:?}")));
+            let message = if !line.trim().starts_with('#') || line.trim().is_empty() {
+                "missing copyright header".to_string()
+            } else {
+                format!("invalid copyright: {line:?}")
+            };
+
+            filter.report(HeaderInvalid.version(pkg, message));
         }
 
         line = lines.next().unwrap_or_default();
         if line != GENTOO_LICENSE_HEADER {
-            let message = if line.trim().is_empty() {
+            let message = if !line.trim().starts_with('#') || line.trim().is_empty() {
                 "missing license header".to_string()
             } else {
-                format!("{line:?}")
+                format!("invalid license: {line:?}")
             };
-            filter.report(HeaderLicenseInvalid.version(pkg, message));
+
+            filter.report(HeaderInvalid.version(pkg, message));
         }
     }
 }
