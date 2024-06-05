@@ -123,7 +123,10 @@ impl Check {
 
     /// Return an iterator of all checks enabled by default.
     pub fn iter_default() -> impl Iterator<Item = Check> {
-        CHECKS.iter().filter(|x| !x.context.contains(&CheckContext::Optional)).copied()
+        CHECKS
+            .iter()
+            .filter(|x| !x.context.contains(&CheckContext::Optional))
+            .copied()
     }
 
     /// Return an iterator of checks that generate a given report.

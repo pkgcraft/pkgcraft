@@ -8,9 +8,7 @@ use crate::Error;
 use super::parse;
 
 /// Unversioned package.
-#[derive(
-    SerializeDisplay, DeserializeFromStr, PartialEq, Eq, PartialOrd, Ord, Clone, Hash,
-)]
+#[derive(SerializeDisplay, DeserializeFromStr, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub struct Cpn {
     pub(crate) category: String,
     pub(crate) package: String,
