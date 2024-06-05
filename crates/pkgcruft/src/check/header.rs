@@ -38,32 +38,29 @@ impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let mut lines = pkg.data().lines();
 
-        let copyright = lines.next().unwrap_or_default();
-        if let Some(m) = COPYRIGHT_REGEX.captures(copyright) {
+        let mut line = lines.next().unwrap_or_default();
+        if let Some(m) = COPYRIGHT_REGEX.captures(line) {
             // Copyright policy is active since 2018-10-21 via GLEP 76, so it applies to all
             // ebuilds committed in 2019 and later.
             let end: u64 = m.name("end").unwrap().as_str().parse().unwrap();
             if end >= 2019 {
                 let holder = m.name("holder").unwrap().as_str();
                 if holder == "Gentoo Foundation" {
-                    let message = format!("{copyright:?}");
-                    filter.report(HeaderCopyrightOutdated.version(pkg, message));
+                    filter.report(HeaderCopyrightOutdated.version(pkg, format!("{line:?}")));
                 } else if holder != "Gentoo Authors" {
-                    let message = format!("{copyright:?}");
-                    filter.report(HeaderCopyrightInvalid.version(pkg, message));
+                    filter.report(HeaderCopyrightInvalid.version(pkg, format!("{line:?}")));
                 }
             }
         } else {
-            let message = format!("{copyright:?}");
-            filter.report(HeaderCopyrightInvalid.version(pkg, message));
+            filter.report(HeaderCopyrightInvalid.version(pkg, format!("{line:?}")));
         }
 
-        let license = lines.next().unwrap_or_default();
-        if license != GENTOO_LICENSE_HEADER {
-            let message = if license.trim().is_empty() {
+        line = lines.next().unwrap_or_default();
+        if line != GENTOO_LICENSE_HEADER {
+            let message = if line.trim().is_empty() {
                 "missing license header".to_string()
             } else {
-                format!("{license:?}")
+                format!("{line:?}")
             };
             filter.report(HeaderLicenseInvalid.version(pkg, message));
         }
