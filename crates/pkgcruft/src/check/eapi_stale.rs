@@ -26,6 +26,10 @@ pub(super) fn create() -> impl PackageCheck {
 struct Check;
 
 impl PackageCheck for Check {
+    fn check(&self) -> super::Check {
+        CHECK
+    }
+
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))

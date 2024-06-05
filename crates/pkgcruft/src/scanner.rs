@@ -21,6 +21,7 @@ pub struct Scanner {
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
+    debug: bool,
 }
 
 impl Default for Scanner {
@@ -31,6 +32,7 @@ impl Default for Scanner {
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
             failed: Arc::new(Default::default()),
+            debug: false,
         }
     }
 }
@@ -74,6 +76,12 @@ impl Scanner {
         self
     }
 
+    /// Enable debug support for timing checks.
+    pub fn debug(mut self, value: bool) -> Self {
+        self.debug = value;
+        self
+    }
+
     /// Return true if the scanning process failed, false otherwise.
     pub fn failed(&self) -> bool {
         self.failed.load(Ordering::Relaxed)
@@ -93,7 +101,7 @@ impl Scanner {
 
         match repo {
             Repo::Ebuild(r) => {
-                let runner = Arc::new(SyncCheckRunner::new(r, &self.checks));
+                let runner = Arc::new(SyncCheckRunner::new(r, &self.checks, self.debug));
                 Iter {
                     reports_rx,
                     _producer: producer(r.clone(), restricts, restrict_tx),

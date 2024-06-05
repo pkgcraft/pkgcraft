@@ -31,6 +31,10 @@ struct Check {
 }
 
 impl PackageCheck for Check {
+    fn check(&self) -> super::Check {
+        CHECK
+    }
+
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs

@@ -31,6 +31,10 @@ struct Check {
 }
 
 impl PackageCheck for Check {
+    fn check(&self) -> super::Check {
+        CHECK
+    }
+
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let local_use = pkgs[0].local_use();
         let sorted_flags = local_use

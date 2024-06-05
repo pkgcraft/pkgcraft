@@ -28,6 +28,10 @@ struct Check {
 }
 
 impl VersionCheck for Check {
+    fn check(&self) -> super::Check {
+        CHECK
+    }
+
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for dep in pkg
             .rdepend()

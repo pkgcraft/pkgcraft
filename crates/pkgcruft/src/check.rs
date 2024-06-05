@@ -69,18 +69,21 @@ enum CheckContext {
 
 /// Run a check against a given ebuild package version.
 pub(crate) trait VersionCheck {
+    fn check(&self) -> Check;
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
 }
 pub(crate) type VersionCheckRunner = Box<dyn VersionCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
 pub(crate) trait PackageCheck {
+    fn check(&self) -> Check;
     fn run(&self, pkg: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
 pub(crate) type PackageCheckRunner = Box<dyn PackageCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version.
 pub(crate) trait RawVersionCheck {
+    fn check(&self) -> Check;
     fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
 }
 pub(crate) type RawVersionCheckRunner = Box<dyn RawVersionCheck + Send + Sync>;
