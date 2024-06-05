@@ -9,7 +9,7 @@ use super::parse;
 
 /// Unversioned package.
 #[derive(
-    SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash,
+    SerializeDisplay, DeserializeFromStr, PartialEq, Eq, PartialOrd, Ord, Clone, Hash,
 )]
 pub struct Cpn {
     pub(crate) category: String,
@@ -21,6 +21,12 @@ impl FromStr for Cpn {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         Self::try_new(s)
+    }
+}
+
+impl fmt::Debug for Cpn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Cpn {{ {self} }}")
     }
 }
 
