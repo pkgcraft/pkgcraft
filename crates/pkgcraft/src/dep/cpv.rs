@@ -106,7 +106,7 @@ impl Intersects<CpvOrDep> for Cow<'_, Dep> {
 
 /// Versioned package.
 #[derive(
-    SerializeDisplay, DeserializeFromStr, Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash,
+    SerializeDisplay, DeserializeFromStr, PartialEq, Eq, PartialOrd, Ord, Clone, Hash,
 )]
 pub struct Cpv {
     pub(crate) cpn: Cpn,
@@ -210,6 +210,12 @@ where
     fn try_from(vals: (T1, T2, T3)) -> Result<Self, Self::Error> {
         let (cat, pn, ver) = vals;
         Cpv::try_new(format!("{cat}/{pn}-{ver}"))
+    }
+}
+
+impl fmt::Debug for Cpv {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Cpv {{ {self} }}")
     }
 }
 
