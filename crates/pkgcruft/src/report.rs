@@ -244,7 +244,7 @@ impl ReportKind {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub enum ReportScope {
     Version(Cpv),
     Package(Cpn),
@@ -280,6 +280,17 @@ impl Ord for ReportScope {
 impl PartialOrd for ReportScope {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl fmt::Debug for ReportScope {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Version(cpv) => write!(f, "Version( {cpv} )"),
+            Self::Package(cpn) => write!(f, "Package( {cpn} )"),
+            Self::Category(cat) => write!(f, "Category( {cat} )"),
+            Self::Repo(repo) => write!(f, "Repo( {repo} )"),
+        }
     }
 }
 
