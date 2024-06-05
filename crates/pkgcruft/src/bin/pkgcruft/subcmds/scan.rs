@@ -61,7 +61,7 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine enabled checks and reports
-        let (checks, reports) = self.checks.collapse();
+        let (checks, reports) = self.checks.collapse(true);
 
         // determine reporter
         let mut reporter = self.reporter.collapse();

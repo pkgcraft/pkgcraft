@@ -74,7 +74,7 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(self) -> (IndexSet<Check>, IndexSet<ReportKind>) {
+    pub(crate) fn collapse(self, scan: bool) -> (IndexSet<Check>, IndexSet<ReportKind>) {
         // determine enabled report set
         let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
@@ -114,9 +114,13 @@ impl Checks {
             default_reports = false;
         }
 
-        // default to enabling all report variants
+        // default to all reports skipping those from optional checks when scanning
         if default_reports {
-            reports.extend(ReportKind::iter());
+            if scan {
+                reports.extend(Check::iter_default().flat_map(|x| x.reports));
+            } else {
+                reports.extend(ReportKind::iter());
+            }
         }
 
         // determine enabled check set

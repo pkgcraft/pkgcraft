@@ -68,7 +68,7 @@ impl PackageCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::TEST_DATA;
+    use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
     use crate::scanner::Scanner;
@@ -78,19 +78,28 @@ mod tests {
 
     #[test]
     fn check() {
-        // gentoo unfixed
-        let repo = TEST_DATA.repo("gentoo").unwrap();
+        // unselected
+        let repo = TEST_DATA.repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK);
+        let restrict = repo.restrict_from_path(&check_dir).unwrap();
+        let scanner = Scanner::new().jobs(1);
+        let reports: Vec<_> = scanner.run(repo, [restrict]).collect();
+        assert_eq!(&reports, &[]);
+
+        // primary unfixed
         let scanner = Scanner::new().jobs(1).checks([CHECK]);
-        let expected = glob_reports!("{check_dir}/*/reports.json");
+        let expected = glob_reports!("{check_dir}/*/optional.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
+
+        // primary fixed
+        let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
 
         // empty repo
         let repo = TEST_DATA.repo("empty").unwrap();
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
     }
-
-    // TODO: scan with check selected vs unselected in non-gentoo repo once #194 is fixed
 }

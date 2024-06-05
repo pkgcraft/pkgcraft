@@ -60,7 +60,7 @@ impl From<CheckKind> for Check {
 }
 
 /// Check contexts.
-#[derive(Copy, Clone)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
 enum CheckContext {
     Gentoo,
     Optional,
@@ -119,6 +119,11 @@ impl Check {
     /// Return an iterator of all registered checks.
     pub fn iter() -> impl Iterator<Item = Check> {
         CHECKS.iter().copied()
+    }
+
+    /// Return an iterator of all checks enabled by default.
+    pub fn iter_default() -> impl Iterator<Item = Check> {
+        CHECKS.iter().filter(|x| !x.context.contains(&CheckContext::Optional)).copied()
     }
 
     /// Return an iterator of checks that generate a given report.

@@ -415,7 +415,7 @@ fn scopes() {
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",
-        "{repo}/UnstableOnly/UnstableOnly/reports.json",
+        "{repo}/UseLocal/UseLocal/reports.json",
     );
 
     for opt in ["-s", "--scopes"] {
@@ -433,7 +433,7 @@ fn scopes() {
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "version"])
             .arg(repo.join("Dependency/DependencyDeprecated"))
-            .arg(repo.join("UnstableOnly/UnstableOnly"))
+            .arg(repo.join("UseLocal/UseLocal"))
             .to_reports();
         assert_eq!(&single_expected, &reports);
 
@@ -441,7 +441,7 @@ fn scopes() {
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "version,package"])
             .arg(repo.join("Dependency/DependencyDeprecated"))
-            .arg(repo.join("UnstableOnly/UnstableOnly"))
+            .arg(repo.join("UseLocal/UseLocal"))
             .to_reports();
         assert_eq!(&multiple_expected, &reports);
     }
