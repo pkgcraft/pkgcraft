@@ -67,16 +67,22 @@ enum CheckContext {
     Overlay,
 }
 
-pub(crate) trait RegisterCheck {
+pub(crate) trait RegisterCheck: fmt::Display {
     fn check(&self) -> Check;
 }
 
-/// Implement RegisterCheck for a given check type.
+/// Implement various traits for a given check type.
 macro_rules! register {
     ($x:ty) => {
         impl $crate::check::RegisterCheck for $x {
             fn check(&self) -> $crate::check::Check {
                 CHECK
+            }
+        }
+
+        impl std::fmt::Display for $x {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "{CHECK}")
             }
         }
     };

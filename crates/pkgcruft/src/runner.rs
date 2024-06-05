@@ -116,7 +116,7 @@ impl EbuildPkgCheckRunner {
             for check in &self.ver_checks {
                 let now = Instant::now();
                 check.run(&pkg, filter);
-                debug!("{}: {pkg}: {:?}", check.check(), now.elapsed());
+                debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
 
             if !self.pkg_checks.is_empty() {
@@ -128,7 +128,7 @@ impl EbuildPkgCheckRunner {
             for check in &self.pkg_checks {
                 let now = Instant::now();
                 check.run(&pkgs[..], filter);
-                debug!("{}: {}: {:?}", check.check(), pkgs[0].cpn(), now.elapsed());
+                debug!("{check}: {}: {:?}", pkgs[0].cpn(), now.elapsed());
             }
         }
     }
@@ -162,7 +162,7 @@ impl EbuildRawPkgCheckRunner {
             for check in &self.ver_checks {
                 let now = Instant::now();
                 check.run(&pkg, filter);
-                debug!("{}: {pkg}: {:?}", check.check(), now.elapsed());
+                debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
         }
     }
