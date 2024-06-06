@@ -277,8 +277,8 @@ fn sources() {
 #[test]
 fn pkgs() {
     let reports = indoc::indoc! {r#"
-        {"kind":"KeywordsDropped","scope":{"Version":"sys-fs/lvm2-2.03.22-r2"},"message":"alpha, hppa, ia64, m68k, ppc"}
-        {"kind":"KeywordsDropped","scope":{"Version":"x11-wm/mutter-45.1"},"message":"ppc64"}
+        {"kind":"KeywordsDropped","scope":{"Version":["sys-fs/lvm2-2.03.22-r2",null]},"message":"alpha, hppa, ia64, m68k, ppc"}
+        {"kind":"KeywordsDropped","scope":{"Version":["x11-wm/mutter-45.1",null]},"message":"ppc64"}
         {"kind":"UnstableOnly","scope":{"Package":"x11-wm/mutter"},"message":"arm, ppc64"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
@@ -319,8 +319,8 @@ fn sort() {
     // serialized reports in reversed sorting order
     let reports = indoc::indoc! {r#"
         {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"message":"x86"}
-        {"kind":"DependencyDeprecated","scope":{"Version":"x11-wm/qtile-0.23.0-r1"},"message":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"DependencyDeprecated","scope":{"Version":"x11-wm/qtile-0.22.1-r3"},"message":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DependencyDeprecated","scope":{"Version":["x11-wm/qtile-0.23.0-r1",null]},"message":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"DependencyDeprecated","scope":{"Version":["x11-wm/qtile-0.22.1-r3",null]},"message":"BDEPEND: media-sound/pulseaudio"}
     "#};
     let mut expected: Vec<_> = reports.lines().collect();
     expected.reverse();

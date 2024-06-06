@@ -143,7 +143,7 @@ impl ReportKind {
     {
         Report {
             kind: self,
-            scope: ReportScope::Version(pkg.cpv().clone()),
+            scope: ReportScope::Version(pkg.cpv().clone(), None),
             message: message.to_string(),
         }
     }
@@ -210,7 +210,7 @@ impl ReportKind {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub enum ReportScope {
-    Version(Cpv),
+    Version(Cpv, Option<usize>),
     Package(Cpn),
     Category(String),
     Repo(String),
@@ -219,7 +219,7 @@ pub enum ReportScope {
 impl ReportScope {
     fn scope(&self) -> Scope {
         match self {
-            Self::Version(_) => Scope::Version,
+            Self::Version(_, _) => Scope::Version,
             Self::Package(_) => Scope::Package,
             Self::Category(_) => Scope::Category,
             Self::Repo(_) => Scope::Repo,
@@ -230,12 +230,12 @@ impl ReportScope {
 impl Ord for ReportScope {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (Self::Repo(repo1), Self::Repo(repo2)) => repo1.cmp(repo2),
-            (Self::Category(cat1), Self::Category(cat2)) => cat1.cmp(cat2),
-            (Self::Package(cpn1), Self::Package(cpn2)) => cpn1.cmp(cpn2),
-            (Self::Version(cpv1), Self::Version(cpv2)) => cpv1.cmp(cpv2),
-            (Self::Version(cpv), Self::Package(cpn)) => cpv.cpn().cmp(cpn).then(Ordering::Less),
-            (Self::Package(cpn), Self::Version(cpv)) => cpn.cmp(cpv.cpn()).then(Ordering::Greater),
+            (Self::Repo(v1), Self::Repo(v2)) => v1.cmp(v2),
+            (Self::Category(v1), Self::Category(v2)) => v1.cmp(v2),
+            (Self::Package(v1), Self::Package(v2)) => v1.cmp(v2),
+            (Self::Version(v1, l1), Self::Version(v2, l2)) => v1.cmp(v2).then_with(|| l1.cmp(l2)),
+            (Self::Version(v1, _), Self::Package(v2)) => v1.cpn().cmp(v2).then(Ordering::Less),
+            (Self::Package(v1), Self::Version(v2, _)) => v1.cmp(v2.cpn()).then(Ordering::Greater),
             _ => self.scope().cmp(&other.scope()),
         }
     }
@@ -250,7 +250,8 @@ impl PartialOrd for ReportScope {
 impl fmt::Debug for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Version(cpv) => write!(f, "Version( {cpv} )"),
+            Self::Version(cpv, Some(line)) => write!(f, "Version( {cpv}, line {line} )"),
+            Self::Version(cpv, None) => write!(f, "Version( {cpv} )"),
             Self::Package(cpn) => write!(f, "Package( {cpn} )"),
             Self::Category(cat) => write!(f, "Category( {cat} )"),
             Self::Repo(repo) => write!(f, "Repo( {repo} )"),
@@ -261,7 +262,8 @@ impl fmt::Debug for ReportScope {
 impl fmt::Display for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Version(cpv) => write!(f, "{cpv}"),
+            Self::Version(cpv, Some(line)) => write!(f, "{cpv}, line {line}"),
+            Self::Version(cpv, None) => write!(f, "{cpv}"),
             Self::Package(cpn) => write!(f, "{cpn}"),
             Self::Category(cat) => write!(f, "{cat}"),
             Self::Repo(repo) => write!(f, "{repo}"),
@@ -307,6 +309,16 @@ impl Report {
         serde_json::from_str(data)
             .map_err(|e| Error::InvalidValue(format!("failed deserializing report: {e}")))
     }
+
+    /// Add a line reference into the report scope during creation.
+    pub(crate) fn line(mut self, line: usize) -> Report {
+        let ReportScope::Version(cpv, None) = self.scope else {
+            panic!("invalid report scope: {:?}", self.scope);
+        };
+
+        self.scope = ReportScope::Version(cpv, Some(line));
+        self
+    }
 }
 
 impl Ord for Report {
@@ -333,7 +345,7 @@ impl fmt::Display for Report {
 impl Restriction<&Report> for Restrict {
     fn matches(&self, report: &Report) -> bool {
         match &report.scope {
-            ReportScope::Version(cpv) => self.matches(cpv),
+            ReportScope::Version(cpv, _) => self.matches(cpv),
             ReportScope::Package(cpn) => self.matches(cpn),
             _ => false,
         }
@@ -435,9 +447,9 @@ mod tests {
     fn cmp() {
         let pkg_r1 = Report::from_json(r#"{"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}"#).unwrap();
         let pkg_r2 = Report::from_json(r#"{"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}"#).unwrap();
-        let ver_r3 = Report::from_json(r#"{"kind":"DependencyDeprecated","scope":{"Version":"cat/pkg1-2-r3"},"message":"BDEPEND: cat/deprecated"}"#).unwrap();
-        let ver_r4 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":"cat/pkg1-2-r3"},"message":"6"}"#).unwrap();
-        let ver_r5 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":"cat/pkg2-1-r2"},"message":"6"}"#).unwrap();
+        let ver_r3 = Report::from_json(r#"{"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}"#).unwrap();
+        let ver_r4 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}"#).unwrap();
+        let ver_r5 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}"#).unwrap();
 
         assert!(pkg_r1 == pkg_r1);
         // message ordering

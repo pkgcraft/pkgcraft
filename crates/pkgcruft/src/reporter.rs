@@ -66,7 +66,7 @@ impl From<FancyReporter> for Reporter {
 impl FancyReporter {
     fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
         let key = match report.scope() {
-            ReportScope::Version(cpv) => cpv.cpn().to_string(),
+            ReportScope::Version(cpv, _) => cpv.cpn().to_string(),
             ReportScope::Package(cpn) => cpn.to_string(),
             ReportScope::Category(cat) => cat.to_string(),
             ReportScope::Repo(repo) => repo.to_string(),
@@ -85,11 +85,11 @@ impl FancyReporter {
             self.prev_key = Some(key);
         }
 
-        write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
+        write!(output, "  {}: ", report.kind().as_ref().color(report.level()))?;
 
-        write!(output, ": ")?;
-        if let ReportScope::Version(cpv) = report.scope() {
-            write!(output, "version {}: ", cpv.version())?;
+        if let ReportScope::Version(cpv, line) = report.scope() {
+            let line = line.map(|x| format!(", line {x}")).unwrap_or_default();
+            write!(output, "version {}{line}: ", cpv.version())?;
         }
         writeln!(output, "{}", report.message())?;
 
@@ -131,7 +131,7 @@ impl FormatReporter {
             .collect();
 
         match report.scope() {
-            ReportScope::Version(cpv) => {
+            ReportScope::Version(cpv, _) => {
                 let category = cpv.category().to_string();
                 let package = cpv.package().to_string();
                 let version = cpv.version().to_string();
@@ -183,7 +183,7 @@ mod tests {
 
     static REPORTS: &str = indoc::indoc! {r#"
         {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
-        {"kind":"DependencyDeprecated","scope":{"Version":"cat/pkg-1-r2"},"message":"BDEPEND: cat/deprecated"}
+        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
     "#};
 
     fn report<R: Into<Reporter>>(reporter: R) -> String {
