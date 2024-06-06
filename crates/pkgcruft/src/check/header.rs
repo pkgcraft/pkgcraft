@@ -44,7 +44,7 @@ impl RawVersionCheck for Check {
             if end >= 2019 {
                 let holder = m.name("holder").unwrap().as_str();
                 if holder != "Gentoo Authors" {
-                    let message = format!("invalid copyright holder: {holder:?}");
+                    let message = format!("invalid copyright holder: {holder}");
                     filter.report(HeaderInvalid.version(pkg, message));
                 }
             }
@@ -52,7 +52,7 @@ impl RawVersionCheck for Check {
             let message = if !line.trim().starts_with('#') || line.trim().is_empty() {
                 "missing copyright header".to_string()
             } else {
-                format!("invalid copyright: {line:?}")
+                format!("invalid copyright: {line}")
             };
 
             filter.report(HeaderInvalid.version(pkg, message));
@@ -63,7 +63,7 @@ impl RawVersionCheck for Check {
             let message = if !line.trim().starts_with('#') || line.trim().is_empty() {
                 "missing license header".to_string()
             } else {
-                format!("invalid license: {line:?}")
+                format!("invalid license: {line}")
             };
 
             filter.report(HeaderInvalid.version(pkg, message));
