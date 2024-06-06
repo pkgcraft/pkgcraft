@@ -124,10 +124,10 @@ pub enum ReportKind {
     /// Local USE flag that is unused.
     UseLocalUnused,
 
-    /// Whitespace used that isn't tab, newline, or single space.
+    /// Whitespace usage that is invalid.
     WhitespaceInvalid,
 
-    /// Whitespace used that isn't needed.
+    /// Whitespace usage that isn't needed.
     WhitespaceUnneeded,
 }
 
