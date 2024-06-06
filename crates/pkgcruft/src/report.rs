@@ -120,6 +120,9 @@ pub enum ReportKind {
 
     /// Local USE flag that is unused.
     UseLocalUnused,
+
+    /// Whitespace used that isn't tab, newline, or single space.
+    WhitespaceInvalid,
 }
 
 impl Ord for ReportKind {
@@ -204,6 +207,7 @@ impl ReportKind {
             Self::UseLocalGlobal => Warning,
             Self::UseLocalUnused => Warning,
             Self::UseLocalUnsorted => Style,
+            Self::WhitespaceInvalid => Warning,
         }
     }
 }

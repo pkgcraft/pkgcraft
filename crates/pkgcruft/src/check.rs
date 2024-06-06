@@ -31,6 +31,7 @@ mod overlay;
 mod restrict_test_missing;
 mod unstable_only;
 mod use_local;
+mod whitespace;
 
 /// Check variants.
 #[derive(
@@ -50,6 +51,7 @@ pub enum CheckKind {
     RestrictTestMissing,
     UnstableOnly,
     UseLocal,
+    Whitespace,
 }
 
 impl From<CheckKind> for Check {
@@ -207,6 +209,7 @@ impl Check {
         match &self.kind {
             CheckKind::Header => Box::new(header::create()),
             CheckKind::Metadata => Box::new(metadata::create()),
+            CheckKind::Whitespace => Box::new(whitespace::create()),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -294,6 +297,7 @@ static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
         restrict_test_missing::CHECK,
         unstable_only::CHECK,
         use_local::CHECK,
+        whitespace::CHECK,
     ]
     .into_iter()
     .collect()
