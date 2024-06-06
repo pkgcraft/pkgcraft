@@ -21,6 +21,7 @@ pub(super) static CHECK: super::Check = super::Check {
 static COPYRIGHT_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^# Copyright ((?P<begin>\d{4})-)?(?P<end>\d{4}) (?P<holder>.+)$").unwrap()
 });
+
 static GENTOO_LICENSE_HEADER: &str =
     "# Distributed under the terms of the GNU General Public License v2";
 

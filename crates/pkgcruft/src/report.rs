@@ -118,7 +118,7 @@ pub enum ReportKind {
     /// Local USE flag that is unsorted.
     UseLocalUnsorted,
 
-    /// Local USE flag this is unused.
+    /// Local USE flag that is unused.
     UseLocalUnused,
 }
 
