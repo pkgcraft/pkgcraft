@@ -456,27 +456,31 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use super::*;
 
     #[rustfmt::skip]
     #[test]
     fn cmp() {
-        let pkg_r1 = Report::from_json(r#"{"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}"#).unwrap();
-        let pkg_r2 = Report::from_json(r#"{"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}"#).unwrap();
-        let ver_r3 = Report::from_json(r#"{"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}"#).unwrap();
-        let ver_r4 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}"#).unwrap();
-        let ver_r5 = Report::from_json(r#"{"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}"#).unwrap();
+        // serialized reports in order
+        let data = indoc::indoc! {r#"
+            {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}
+            {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}
+            {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}
+            {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}
+            {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
+        "#};
 
-        assert!(pkg_r1 == pkg_r1);
-        // message ordering
-        assert!(pkg_r1 < pkg_r2);
-        // scope ordering
-        assert!(ver_r3 < pkg_r2);
-        assert!(pkg_r2 > ver_r4);
-        // package ordering
-        assert!(ver_r5 > pkg_r2);
-        assert!(ver_r5 > ver_r4);
-        // report ordering
-        assert!(ver_r3 < ver_r4);
+        // reverse reports and sort them back into the expected order
+        let expected: Vec<_> = data.lines().filter_map(|s| Report::from_json(s).ok()).collect();
+        let mut reports = expected.clone();
+        reports.reverse();
+        reports.sort();
+
+        // compare reports via string serialization for better diff output
+        let expected: Vec<_> = expected.iter().map(|r| r.to_string()).collect();
+        let reports: Vec<_> = reports.iter().map(|r| r.to_string()).collect();
+        assert_eq!(&expected, &reports);
     }
 }
