@@ -33,24 +33,27 @@ super::register!(Check);
 impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let mut prev_line_empty = false;
+        let mut lines = pkg.data().lines().peekable();
+        let mut lineno = 0;
 
-        for (i, line) in pkg.data().lines().enumerate() {
-            for (j, c) in line.chars().enumerate() {
+        while let Some(line) = lines.next() {
+            lineno += 1;
+            for (i, c) in line.chars().enumerate() {
                 // TODO: Check for unnecessary leading whitespace which requires bash
                 // parsing to ignore indents inside multiline strings or similar.
-                if j == line.len() - 1 && (c == ' ' || c == '\t') {
+                if i == line.len() - 1 && (c == ' ' || c == '\t') {
                     let message = "trailing whitespace";
-                    filter.report(WhitespaceUnneeded.version(pkg, message).line(i + 1));
+                    filter.report(WhitespaceUnneeded.version(pkg, message).line(lineno));
                 } else if c.is_whitespace() && !self.allowed.contains(&c) {
-                    let message = format!("position {:04}: {c:?}", j + 1);
-                    filter.report(WhitespaceInvalid.version(pkg, message).line(i + 1));
+                    let message = format!("position {:04}: {c:?}", lineno);
+                    filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
                 }
             }
 
             if !line.trim().is_empty() {
                 prev_line_empty = false;
-            } else if prev_line_empty {
-                filter.report(WhitespaceUnneeded.version(pkg, "empty line").line(i + 1));
+            } else if prev_line_empty || lines.peek().is_none() {
+                filter.report(WhitespaceUnneeded.version(pkg, "empty line").line(lineno));
             } else {
                 prev_line_empty = true;
             }
