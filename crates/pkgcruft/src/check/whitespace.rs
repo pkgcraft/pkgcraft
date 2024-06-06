@@ -57,7 +57,7 @@ impl RawVersionCheck for Check {
 
         if !pkg.data().ends_with('\n') {
             let message = "missing ending newline";
-            filter.report(WhitespaceInvalid.version(pkg, message));
+            filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
         }
     }
 }
