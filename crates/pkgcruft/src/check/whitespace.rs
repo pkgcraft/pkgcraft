@@ -64,3 +64,31 @@ impl RawVersionCheck for Check {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::repo::Repository;
+    use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
+    use pretty_assertions::assert_eq;
+
+    use crate::scanner::Scanner;
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        // primary unfixed
+        let repo = TEST_DATA.repo("qa-primary").unwrap();
+        let check_dir = repo.path().join(CHECK);
+        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let expected = glob_reports!("{check_dir}/*/reports.json");
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+
+        // primary fixed
+        let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
+    }
+}
