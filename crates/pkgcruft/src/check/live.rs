@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::traits::Contains;
 
@@ -33,7 +34,8 @@ impl PackageCheck for Check {
             if !pkg.properties().contains("live") {
                 live_only = false;
             } else if !pkg.keywords().is_empty() {
-                filter.report(LiveKeywords.version(pkg, ""))
+                let message = pkg.keywords().iter().join(", ");
+                filter.report(LiveKeywords.version(pkg, message))
             }
         }
 
