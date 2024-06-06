@@ -307,9 +307,9 @@ fn pkgs() {
                 .output()
                 .unwrap()
                 .stdout;
-            let data = String::from_utf8(output).unwrap();
-            let data: Vec<_> = data.lines().collect();
-            assert_eq!(&data, expected);
+            let output = String::from_utf8(output).unwrap();
+            let output: Vec<_> = output.lines().collect();
+            assert_eq!(&output, expected);
         }
     }
 }
@@ -330,9 +330,9 @@ fn sort() {
         .output()
         .unwrap()
         .stdout;
-    let data = String::from_utf8(output).unwrap();
-    let data: Vec<_> = data.lines().collect();
-    assert_eq!(&data, &expected);
+    let output = String::from_utf8(output).unwrap();
+    let output: Vec<_> = output.lines().collect();
+    assert_eq!(&output, &expected);
 }
 
 #[test]
