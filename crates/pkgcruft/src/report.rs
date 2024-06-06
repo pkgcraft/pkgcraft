@@ -95,7 +95,15 @@ pub enum ReportKind {
     KeywordsDropped,
     KeywordsOverlapping,
     KeywordsUnsorted,
+
+    /// Ebuild has a deprecated license.
+    LicenseDeprecated,
+
+    /// Ebuild has an invalid license.
     LicenseInvalid,
+
+    /// Ebuild has a missing license.
+    LicenseMissing,
 
     /// Live ebuild has keywords.
     LiveKeywords,
@@ -199,7 +207,9 @@ impl ReportKind {
             Self::KeywordsDropped => Warning,
             Self::KeywordsOverlapping => Error,
             Self::KeywordsUnsorted => Style,
+            Self::LicenseDeprecated => Warning,
             Self::LicenseInvalid => Critical,
+            Self::LicenseMissing => Error,
             Self::LiveKeywords => Warning,
             Self::LiveOnly => Warning,
             Self::MetadataMissing => Critical,

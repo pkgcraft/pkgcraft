@@ -1,0 +1,58 @@
+use indexmap::IndexSet;
+use itertools::Itertools;
+use pkgcraft::pkg::{ebuild::Pkg, Package};
+use pkgcraft::repo::ebuild::Repo;
+
+use crate::report::ReportKind::{LicenseDeprecated, LicenseMissing};
+use crate::scanner::ReportFilter;
+use crate::scope::Scope;
+use crate::source::SourceKind;
+
+use super::{CheckKind, VersionCheck};
+
+pub(super) static CHECK: super::Check = super::Check {
+    kind: CheckKind::License,
+    scope: Scope::Version,
+    source: SourceKind::Ebuild,
+    reports: &[LicenseDeprecated, LicenseMissing],
+    context: &[],
+    priority: 0,
+};
+
+pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
+    Check {
+        deprecated: repo
+            .license_groups()
+            .get("DEPRECATED")
+            .map(|x| x.iter().collect()),
+        unlicensed_categories: ["acct-group", "acct-user", "virtual"]
+            .iter()
+            .map(|x| x.to_string())
+            .collect(),
+    }
+}
+
+struct Check {
+    deprecated: Option<IndexSet<&'static String>>,
+    unlicensed_categories: IndexSet<String>,
+}
+
+super::register!(Check);
+
+impl VersionCheck for Check {
+    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+        let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
+
+        if licenses.is_empty() {
+            if !self.unlicensed_categories.contains(pkg.category()) {
+                filter.report(LicenseMissing.version(pkg, ""));
+            }
+        } else if let Some(group) = &self.deprecated {
+            let deprecated: Vec<_> = licenses.intersection(group).sorted().collect();
+            if !deprecated.is_empty() {
+                let message = deprecated.iter().join(", ");
+                filter.report(LicenseDeprecated.version(pkg, message));
+            }
+        }
+    }
+}

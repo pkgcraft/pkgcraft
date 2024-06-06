@@ -25,6 +25,7 @@ mod eapi_status;
 mod header;
 mod keywords;
 mod keywords_dropped;
+mod license;
 mod live;
 mod metadata;
 mod overlay;
@@ -44,6 +45,7 @@ pub enum CheckKind {
     Header,
     Keywords,
     KeywordsDropped,
+    License,
     Live,
     Overlay,
     Metadata,
@@ -186,6 +188,7 @@ impl Check {
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
             CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
             CheckKind::Keywords => Box::new(keywords::create(repo)),
+            CheckKind::License => Box::new(license::create(repo)),
             CheckKind::Overlay => Box::new(overlay::create(repo)),
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             _ => unreachable!("unsupported check: {self}"),
@@ -291,6 +294,7 @@ static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
         header::CHECK,
         keywords::CHECK,
         keywords_dropped::CHECK,
+        license::CHECK,
         live::CHECK,
         metadata::CHECK,
         overlay::CHECK,
