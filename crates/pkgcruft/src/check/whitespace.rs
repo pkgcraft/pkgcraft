@@ -45,7 +45,7 @@ impl RawVersionCheck for Check {
                     let message = "trailing whitespace";
                     filter.report(WhitespaceUnneeded.version(pkg, message).line(lineno));
                 } else if c.is_whitespace() && !self.allowed.contains(&c) {
-                    let message = format!("position {:04}: {c:?}", lineno);
+                    let message = format!("position {:04}: {c:?}", i + 1);
                     filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
                 }
             }
