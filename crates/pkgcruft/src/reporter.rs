@@ -85,13 +85,16 @@ impl FancyReporter {
             self.prev_key = Some(key);
         }
 
-        write!(output, "  {}: ", report.kind().as_ref().color(report.level()))?;
+        write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
 
         if let ReportScope::Version(cpv, line) = report.scope() {
             let line = line.map(|x| format!(", line {x}")).unwrap_or_default();
-            write!(output, "version {}{line}: ", cpv.version())?;
+            write!(output, ": version {}{line}", cpv.version())?;
         }
-        writeln!(output, "{}", report.message())?;
+
+        if !report.message().is_empty() {
+            writeln!(output, ": {}", report.message())?;
+        }
 
         Ok(())
     }

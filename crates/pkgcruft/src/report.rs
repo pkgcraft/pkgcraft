@@ -342,7 +342,11 @@ impl PartialOrd for Report {
 
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}: {}", self.scope, self.kind, self.message)
+        write!(f, "{}: {}", self.scope, self.kind)?;
+        if !self.message.is_empty() {
+            write!(f, ": {}", self.message)?;
+        }
+        Ok(())
     }
 }
 
