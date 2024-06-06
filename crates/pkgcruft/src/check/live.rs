@@ -9,7 +9,7 @@ use crate::source::SourceKind;
 use super::{CheckContext, CheckKind, PackageCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::LiveOnly,
+    kind: CheckKind::Live,
     scope: Scope::Package,
     source: SourceKind::Ebuild,
     reports: &[LiveKeywords, LiveOnly],
