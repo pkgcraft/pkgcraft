@@ -32,16 +32,19 @@ impl RawVersionCheck for Check {
 
         while let Some(line) = lines.next() {
             lineno += 1;
-            for (i, c) in line.chars().enumerate() {
+            let mut chars = line.chars().peekable();
+            let mut pos = 0;
+            while let Some(c) = chars.next() {
+                pos += 1;
                 // TODO: Check for unnecessary leading whitespace which requires bash
                 // parsing to ignore indents inside multiline strings or similar.
                 if c.is_whitespace() {
-                    if i == line.len() - 1 {
+                    if c != ' ' && c != '\t' {
+                        let message = format!("character {pos:04}: {c:?}");
+                        filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
+                    } else if chars.peek().is_none() {
                         let message = "trailing whitespace";
                         filter.report(WhitespaceUnneeded.version(pkg, message).line(lineno));
-                    } else if c != ' ' && c != '\t' {
-                        let message = format!("position {:04}: {c:?}", i + 1);
-                        filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
                     }
                 }
             }
