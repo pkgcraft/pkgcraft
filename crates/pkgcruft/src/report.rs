@@ -246,8 +246,13 @@ impl Ord for ReportScope {
             (Self::Category(v1), Self::Category(v2)) => v1.cmp(v2),
             (Self::Package(v1), Self::Package(v2)) => v1.cmp(v2),
             (Self::Version(v1, l1), Self::Version(v2, l2)) => v1.cmp(v2).then_with(|| l1.cmp(l2)),
-            (Self::Version(v1, _), Self::Package(v2)) => v1.cpn().cmp(v2).then(Ordering::Less),
-            (Self::Package(v1), Self::Version(v2, _)) => v1.cmp(v2.cpn()).then(Ordering::Greater),
+            (Self::Version(v1, _), Self::Package(v2)) => v1
+                .cpn()
+                .cmp(v2)
+                .then_with(|| self.scope().cmp(&other.scope())),
+            (Self::Package(v1), Self::Version(v2, _)) => v1
+                .cmp(v2.cpn())
+                .then_with(|| self.scope().cmp(&other.scope())),
             _ => self.scope().cmp(&other.scope()),
         }
     }
