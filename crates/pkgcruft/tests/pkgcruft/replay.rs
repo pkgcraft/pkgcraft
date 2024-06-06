@@ -318,9 +318,11 @@ fn pkgs() {
 fn sort() {
     // serialized reports in reversed sorting order
     let reports = indoc::indoc! {r#"
-        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/qtile"},"message":"x86"}
-        {"kind":"DependencyDeprecated","scope":{"Version":["x11-wm/qtile-0.23.0-r1",null]},"message":"BDEPEND: media-sound/pulseaudio"}
-        {"kind":"DependencyDeprecated","scope":{"Version":["x11-wm/qtile-0.22.1-r3",null]},"message":"BDEPEND: media-sound/pulseaudio"}
+        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"x86"}
+        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",6]},"message":"missing ending newline"}
+        {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-2",3]},"message":"empty line"}
+        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-2",null]},"message":"BDEPEND: pkg/deprecated"}
+        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1",null]},"message":"BDEPEND: pkg/deprecated"}
     "#};
     let mut expected: Vec<_> = reports.lines().collect();
     expected.reverse();
