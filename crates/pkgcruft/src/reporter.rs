@@ -93,9 +93,10 @@ impl FancyReporter {
         }
 
         if !report.message().is_empty() {
-            writeln!(output, ": {}", report.message())?;
+            write!(output, ": {}", report.message())?;
         }
 
+        writeln!(output)?;
         Ok(())
     }
 }
