@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use pkgcraft::pkg::ebuild::raw::Pkg;
 
 use crate::report::ReportKind::{WhitespaceInvalid, WhitespaceUnneeded};
@@ -19,14 +17,10 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create() -> impl RawVersionCheck {
-    Check {
-        allowed: [' ', '\t', '\n'].into_iter().collect(),
-    }
+    Check
 }
 
-struct Check {
-    allowed: HashSet<char>,
-}
+struct Check;
 
 super::register!(Check);
 
@@ -41,12 +35,14 @@ impl RawVersionCheck for Check {
             for (i, c) in line.chars().enumerate() {
                 // TODO: Check for unnecessary leading whitespace which requires bash
                 // parsing to ignore indents inside multiline strings or similar.
-                if i == line.len() - 1 && (c == ' ' || c == '\t') {
-                    let message = "trailing whitespace";
-                    filter.report(WhitespaceUnneeded.version(pkg, message).line(lineno));
-                } else if c.is_whitespace() && !self.allowed.contains(&c) {
-                    let message = format!("position {:04}: {c:?}", i + 1);
-                    filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
+                if c.is_whitespace() {
+                    if i == line.len() - 1 {
+                        let message = "trailing whitespace";
+                        filter.report(WhitespaceUnneeded.version(pkg, message).line(lineno));
+                    } else if c != ' ' && c != '\t' {
+                        let message = format!("position {:04}: {c:?}", i + 1);
+                        filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
+                    }
                 }
             }
 
