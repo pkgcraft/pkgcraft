@@ -97,6 +97,9 @@ pub enum ReportKind {
     KeywordsUnsorted,
     LicenseInvalid,
 
+    /// Live ebuild has keywords.
+    LiveKeywords,
+
     /// Package only has live ebuilds.
     LiveOnly,
 
@@ -197,6 +200,7 @@ impl ReportKind {
             Self::KeywordsOverlapping => Error,
             Self::KeywordsUnsorted => Style,
             Self::LicenseInvalid => Critical,
+            Self::LiveKeywords => Warning,
             Self::LiveOnly => Warning,
             Self::MetadataMissing => Critical,
             Self::PropertiesInvalid => Critical,

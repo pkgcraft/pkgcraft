@@ -1,7 +1,7 @@
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::traits::Contains;
 
-use crate::report::ReportKind::LiveOnly;
+use crate::report::ReportKind::{LiveKeywords, LiveOnly};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -12,7 +12,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::LiveOnly,
     scope: Scope::Package,
     source: SourceKind::Ebuild,
-    reports: &[LiveOnly],
+    reports: &[LiveKeywords, LiveOnly],
     context: &[CheckContext::Gentoo],
     priority: 0,
 };
@@ -27,7 +27,17 @@ super::register!(Check);
 
 impl PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
-        if pkgs.iter().all(|pkg| pkg.properties().contains("live")) {
+        let mut live_only = true;
+
+        for pkg in pkgs {
+            if !pkg.properties().contains("live") {
+                live_only = false;
+            } else if !pkg.keywords().is_empty() {
+                filter.report(LiveKeywords.version(pkg, ""))
+            }
+        }
+
+        if live_only {
             filter.report(LiveOnly.package(pkgs, ""))
         }
     }
