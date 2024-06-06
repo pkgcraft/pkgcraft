@@ -467,6 +467,8 @@ mod tests {
         let data = indoc::indoc! {r#"
             {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}
             {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}
+            {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg1-2-r3",3]},"message":"empty line"}
+            {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg1-2-r3",6]},"message":"missing ending newline"}
             {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}
             {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}
             {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
