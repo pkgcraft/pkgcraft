@@ -105,6 +105,9 @@ pub enum ReportKind {
     /// Ebuild has a missing license.
     LicenseMissing,
 
+    /// Ebuild has an unneeded license.
+    LicenseUnneeded,
+
     /// Live ebuild has keywords.
     LiveKeywords,
 
@@ -210,6 +213,7 @@ impl ReportKind {
             Self::LicenseDeprecated => Warning,
             Self::LicenseInvalid => Critical,
             Self::LicenseMissing => Error,
+            Self::LicenseUnneeded => Warning,
             Self::LiveKeywords => Warning,
             Self::LiveOnly => Warning,
             Self::MetadataMissing => Critical,

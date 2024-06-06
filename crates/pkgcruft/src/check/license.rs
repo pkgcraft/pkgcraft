@@ -3,7 +3,7 @@ use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::ReportKind::{LicenseDeprecated, LicenseMissing};
+use crate::report::ReportKind::{LicenseDeprecated, LicenseMissing, LicenseUnneeded};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -14,7 +14,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::License,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
-    reports: &[LicenseDeprecated, LicenseMissing],
+    reports: &[LicenseDeprecated, LicenseMissing, LicenseUnneeded],
     context: &[],
     priority: 0,
 };
@@ -47,6 +47,8 @@ impl VersionCheck for Check {
             if !self.unlicensed_categories.contains(pkg.category()) {
                 filter.report(LicenseMissing.version(pkg, ""));
             }
+        } else if self.unlicensed_categories.contains(pkg.category()) {
+            filter.report(LicenseUnneeded.version(pkg, ""));
         } else if let Some(group) = &self.deprecated {
             let deprecated: Vec<_> = licenses.intersection(group).sorted().collect();
             if !deprecated.is_empty() {
