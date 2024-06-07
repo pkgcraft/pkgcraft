@@ -26,7 +26,7 @@ super::register!(Check);
 
 impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
-        let mut prev_line_empty = false;
+        let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();
         let mut lineno = 0;
@@ -58,13 +58,13 @@ impl RawVersionCheck for Check {
                 eapi_assign = true;
             }
 
-            if !line.trim().is_empty() {
-                prev_line_empty = false;
-            } else if prev_line_empty || lines.peek().is_none() {
-                filter.report(WhitespaceUnneeded.version(pkg, "empty line").line(lineno));
-            } else {
-                prev_line_empty = true;
+            if let Some(prev) = prev_line {
+                if prev.trim().is_empty() && line.trim().is_empty() {
+                    filter.report(WhitespaceUnneeded.version(pkg, "empty line").line(lineno));
+                }
             }
+
+            prev_line = Some(line);
         }
 
         if !pkg.data().ends_with('\n') {
