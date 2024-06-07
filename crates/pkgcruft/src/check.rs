@@ -36,7 +36,19 @@ mod whitespace;
 
 /// Check variants.
 #[derive(
-    AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Hash, Copy, Clone,
+    AsRefStr,
+    Display,
+    EnumIter,
+    EnumString,
+    VariantNames,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
 )]
 pub enum CheckKind {
     Dependency,
@@ -268,7 +280,7 @@ impl Ord for Check {
     fn cmp(&self, other: &Self) -> Ordering {
         self.priority
             .cmp(&other.priority)
-            .then_with(|| self.name().cmp(other.name()))
+            .then_with(|| self.kind.cmp(&other.kind))
     }
 }
 
