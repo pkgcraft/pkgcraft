@@ -80,8 +80,13 @@ impl From<CheckKind> for Check {
 /// Check contexts.
 #[derive(PartialEq, Eq, Hash, Copy, Clone)]
 enum CheckContext {
+    /// Check only runs by default in the gentoo repo.
     Gentoo,
+
+    /// Check isn't enabled by default.
     Optional,
+
+    /// Check only runs in overlay repos.
     Overlay,
 }
 
