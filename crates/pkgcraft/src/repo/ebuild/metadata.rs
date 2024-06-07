@@ -622,7 +622,7 @@ impl Metadata {
                                 })
                                 .ok()
                         })
-                        .collect::<IndexMap<_, _>>();
+                        .collect();
                     (name.to_string(), vals)
                 })
                 .collect()
