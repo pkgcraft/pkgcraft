@@ -82,14 +82,17 @@ pub enum ReportKind {
     /// Package has a deprecated EAPI.
     EapiDeprecated,
 
+    /// Ebuild has a non-standard EAPI assignment format.
+    ///
+    /// The EAPI assignment should be wrapped in empty lines (except when the first line
+    /// of the ebuild) with no whitespace prefix.
+    EapiFormat,
+
     /// Package has an older EAPI than the previous release in the same SLOT.
     EapiStale,
 
     /// Package has stable keywords with an unstable EAPI.
     EapiUnstable,
-
-    /// Ebuild has a formatting issue.
-    EbuildFormat,
 
     /// Eclass that is unused in the parent repository.
     EclassUnused,
@@ -196,9 +199,9 @@ impl ReportKind {
             Self::DependencySlotMissing => Warning,
             Self::EapiBanned => Error,
             Self::EapiDeprecated => Warning,
+            Self::EapiFormat => Style,
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
-            Self::EbuildFormat => Style,
             Self::EclassUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::KeywordsDropped => Warning,

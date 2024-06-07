@@ -1,6 +1,6 @@
 use pkgcraft::pkg::ebuild::raw::Pkg;
 
-use crate::report::ReportKind::{EbuildFormat, WhitespaceInvalid, WhitespaceUnneeded};
+use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -11,7 +11,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Whitespace,
     scope: Scope::Version,
     source: SourceKind::EbuildRaw,
-    reports: &[EbuildFormat, WhitespaceInvalid, WhitespaceUnneeded],
+    reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
     context: &[],
     priority: 0,
 };
@@ -56,7 +56,7 @@ impl RawVersionCheck for Check {
                     || !line.starts_with("EAPI=")
                 {
                     let message = "non-standard EAPI assignment";
-                    filter.report(EbuildFormat.version(pkg, message).line(lineno));
+                    filter.report(EapiFormat.version(pkg, message).line(lineno));
                 }
                 eapi_assign = true;
             }
