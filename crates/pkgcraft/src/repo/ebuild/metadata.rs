@@ -222,7 +222,7 @@ pub struct Metadata {
     categories: OnceLock<IndexSet<String>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
     licenses: OnceLock<IndexSet<String>>,
-    license_groups: OnceLock<HashMap<String, HashSet<String>>>,
+    license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceLock<IndexSet<Dep>>,
     pkg_mask: OnceLock<IndexSet<Dep>>,
@@ -417,15 +417,15 @@ impl Metadata {
     }
 
     /// Return the mapping of license groups.
-    pub fn license_groups(&self) -> &HashMap<String, HashSet<String>> {
+    pub fn license_groups(&self) -> &IndexMap<String, IndexSet<String>> {
         self.license_groups.get_or_init(|| {
             let mut alias_map = IndexMap::<_, IndexSet<_>>::new();
-            let mut group_map: HashMap<_, _> = self.read_path("profiles/license_groups")
+            let mut group_map = self.read_path("profiles/license_groups")
                 .filter_lines()
                 .filter_map(|(i, s)| {
                     let mut vals = s.split_whitespace();
                     if let Some(name) = vals.next() {
-                        let licenses: HashSet<_> = vals
+                        let licenses = vals
                             .filter_map(|s| match s.strip_prefix('@') {
                                 None => {
                                     if self.licenses().contains(s) {
@@ -458,7 +458,7 @@ impl Metadata {
                         None
                     }
                 })
-                .collect();
+                .collect::<IndexMap<_, IndexSet<_>>>();
 
             // resolve aliases using DFS
             for (set, aliases) in &alias_map {

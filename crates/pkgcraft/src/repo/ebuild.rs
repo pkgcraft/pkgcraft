@@ -147,7 +147,7 @@ pub struct Repo {
     trees: OnceLock<Vec<Weak<Self>>>,
     arches: OnceLock<IndexSet<String>>,
     licenses: OnceLock<IndexSet<String>>,
-    license_groups: OnceLock<HashMap<String, HashSet<String>>>,
+    license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceLock<IndexMap<String, Eclass>>,
     xml_cache: OnceLock<ArcCache<xml::Metadata>>,
@@ -420,7 +420,7 @@ impl Repo {
     }
 
     /// Return the mapping of license groups merged via inheritance.
-    pub fn license_groups(&self) -> &HashMap<String, HashSet<String>> {
+    pub fn license_groups(&self) -> &IndexMap<String, IndexSet<String>> {
         self.license_groups.get_or_init(|| {
             let mut group_map = self.metadata.license_groups().clone();
             self.masters()
