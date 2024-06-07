@@ -41,7 +41,7 @@ impl RawVersionCheck for Check {
                 // parsing to ignore indents inside multiline strings or similar.
                 if c.is_whitespace() {
                     if c != ' ' && c != '\t' {
-                        let message = format!("character {pos:04}: {c:?}");
+                        let message = format!("character {pos:03}: {c:?}");
                         filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
                     } else if chars.peek().is_none() {
                         let message = "trailing whitespace";
