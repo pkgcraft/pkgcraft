@@ -65,6 +65,8 @@ impl From<ReportLevel> for Color {
     Debug,
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
     Hash,
     Copy,
     Clone,
@@ -140,18 +142,6 @@ pub enum ReportKind {
 
     /// Whitespace usage that isn't needed.
     WhitespaceUnneeded,
-}
-
-impl Ord for ReportKind {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.as_ref().cmp(other.as_ref())
-    }
-}
-
-impl PartialOrd for ReportKind {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl ReportKind {
@@ -475,9 +465,20 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
     use pretty_assertions::assert_eq;
+    use strum::IntoEnumIterator;
 
     use super::*;
+
+    #[test]
+    fn kind() {
+        // verify ReportKind are kept in lexical order
+        let kinds: Vec<_> = ReportKind::iter().collect();
+        let ordered: Vec<_> = ReportKind::iter().map(|x| x.to_string()).sorted().collect();
+        let ordered: Vec<_> = ordered.iter().map(|s| s.parse().unwrap()).collect();
+        assert_eq!(&kinds, &ordered);
+    }
 
     #[rustfmt::skip]
     #[test]
