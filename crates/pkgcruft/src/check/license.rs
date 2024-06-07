@@ -24,7 +24,8 @@ pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
         deprecated: repo
             .license_groups()
             .get("DEPRECATED")
-            .map(|x| x.iter().collect()),
+            .map(|x| x.iter().collect())
+            .unwrap_or_default(),
         unlicensed_categories: ["acct-group", "acct-user", "virtual"]
             .iter()
             .map(|x| x.to_string())
@@ -33,7 +34,7 @@ pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
 }
 
 struct Check {
-    deprecated: Option<IndexSet<&'static String>>,
+    deprecated: IndexSet<&'static String>,
     unlicensed_categories: IndexSet<String>,
 }
 
@@ -42,15 +43,14 @@ super::register!(Check);
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
-
         if licenses.is_empty() {
             if !self.unlicensed_categories.contains(pkg.category()) {
                 filter.report(LicenseMissing.version(pkg, ""));
             }
         } else if self.unlicensed_categories.contains(pkg.category()) {
             filter.report(LicenseUnneeded.version(pkg, ""));
-        } else if let Some(group) = &self.deprecated {
-            let deprecated: Vec<_> = licenses.intersection(group).sorted().collect();
+        } else {
+            let deprecated: Vec<_> = licenses.intersection(&self.deprecated).sorted().collect();
             if !deprecated.is_empty() {
                 let message = deprecated.iter().join(", ");
                 filter.report(LicenseDeprecated.version(pkg, message));
