@@ -60,9 +60,9 @@ mod tests {
     fn check() {
         // secondary unfixed
         let repo = TEST_DATA.repo("qa-secondary").unwrap();
-        let check_dir = repo.path().join(CHECK);
+        let dir = repo.path().join(CHECK);
         let scanner = Scanner::new().jobs(1).checks([CHECK]);
-        let expected = glob_reports!("{check_dir}/*/reports.json");
+        let expected = glob_reports!("{dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
     }
