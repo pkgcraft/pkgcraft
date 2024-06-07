@@ -40,6 +40,7 @@ mod whitespace;
 )]
 pub enum CheckKind {
     Dependency,
+    DependencySlotMissing,
     EapiStale,
     EapiStatus,
     Header,
@@ -47,9 +48,8 @@ pub enum CheckKind {
     KeywordsDropped,
     License,
     Live,
-    Overlay,
     Metadata,
-    DependencySlotMissing,
+    Overlay,
     RestrictTestMissing,
     UnstableOnly,
     UseLocal,
