@@ -284,12 +284,28 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
                     let status = process::Command::new("patch")
                         .arg("-p1")
                         .arg("-F0")
+                        .arg("--backup-if-mismatch")
                         .stdin(fs::File::open(path).unwrap())
                         .current_dir(path.parent().unwrap())
                         .status()
                         .unwrap();
                     assert!(status.success());
                     fs::remove_file(path).unwrap();
+
+                    // TODO: Switch to using a patch option rejecting mismatches if upstream ever
+                    // supports that.
+                    //
+                    // verify no backup files were created due to mismatched patches
+                    let dir = entry.path().parent().unwrap();
+                    let mut files = fs::read_dir(dir).unwrap().filter_map(|e| e.ok());
+                    if files.any(|e| {
+                        e.path()
+                            .extension()
+                            .map(|s| s == "orig")
+                            .unwrap_or_default()
+                    }) {
+                        panic!("mismatched patch: {:?}", path.strip_prefix(tmppath).unwrap());
+                    }
                 }
             }
 
