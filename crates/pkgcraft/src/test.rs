@@ -283,6 +283,7 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
                 if is_patch(&entry) {
                     let status = process::Command::new("patch")
                         .arg("-p1")
+                        .arg("-F0")
                         .stdin(fs::File::open(path).unwrap())
                         .current_dir(path.parent().unwrap())
                         .status()
