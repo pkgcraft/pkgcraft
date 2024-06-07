@@ -51,8 +51,10 @@ impl RawVersionCheck for Check {
             }
 
             if !eapi_assign && line.starts_with("EAPI=") {
-                if !lines.peek().map(|s| s.is_empty()).unwrap_or_default() {
-                    let message = "missing empty line after EAPI assignment";
+                if prev_line.map(|s| !s.is_empty()).unwrap_or_default()
+                    || !lines.peek().map(|s| s.is_empty()).unwrap_or_default()
+                {
+                    let message = "missing empty lines around EAPI assignment";
                     filter.report(EbuildFormat.version(pkg, message).line(lineno));
                 }
                 eapi_assign = true;
