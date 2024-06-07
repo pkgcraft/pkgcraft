@@ -72,11 +72,11 @@ impl<'a, T: ToRef<'a>> ToRef<'a> for Option<T> {
 /// Iterate over an object's lines, filtering comments starting with '#' and empty lines returning
 /// an enumerated iterator for the remaining content.
 pub trait FilterLines {
-    fn filter_lines(&self) -> impl Iterator<Item = (usize, &str)> + '_;
+    fn filter_lines(&self) -> impl Iterator<Item = (usize, &str)>;
 }
 
 impl<T: AsRef<str>> FilterLines for T {
-    fn filter_lines(&self) -> impl Iterator<Item = (usize, &str)> + '_ {
+    fn filter_lines(&self) -> impl Iterator<Item = (usize, &str)> {
         self.as_ref()
             .lines()
             .map(|s| s.trim())
