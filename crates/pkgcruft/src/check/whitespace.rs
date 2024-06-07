@@ -1,6 +1,6 @@
 use pkgcraft::pkg::ebuild::raw::Pkg;
 
-use crate::report::ReportKind::{WhitespaceInvalid, WhitespaceUnneeded};
+use crate::report::ReportKind::{EbuildFormat, WhitespaceInvalid, WhitespaceUnneeded};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -11,7 +11,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Whitespace,
     scope: Scope::Version,
     source: SourceKind::EbuildRaw,
-    reports: &[WhitespaceInvalid, WhitespaceUnneeded],
+    reports: &[EbuildFormat, WhitespaceInvalid, WhitespaceUnneeded],
     context: &[],
     priority: 0,
 };
@@ -27,6 +27,7 @@ super::register!(Check);
 impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let mut prev_line_empty = false;
+        let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();
         let mut lineno = 0;
 
@@ -47,6 +48,14 @@ impl RawVersionCheck for Check {
                         filter.report(WhitespaceUnneeded.version(pkg, message).line(lineno));
                     }
                 }
+            }
+
+            if !eapi_assign && line.starts_with("EAPI=") {
+                if !lines.peek().map(|s| s.is_empty()).unwrap_or_default() {
+                    let message = "missing empty line after EAPI assignment";
+                    filter.report(EbuildFormat.version(pkg, message).line(lineno));
+                }
+                eapi_assign = true;
             }
 
             if !line.trim().is_empty() {
