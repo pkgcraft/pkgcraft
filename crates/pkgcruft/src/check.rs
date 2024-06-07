@@ -318,3 +318,25 @@ static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::ne
 /// The mapping of all source variants to the checks that use them.
 static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<Check>>> =
     Lazy::new(|| CHECKS.iter().map(|c| (c.source, *c)).collect());
+
+#[cfg(test)]
+mod tests {
+    use itertools::Itertools;
+    use pretty_assertions::assert_eq;
+    use strum::IntoEnumIterator;
+
+    use super::*;
+
+    #[test]
+    fn kind() {
+        // verify CheckKind are kept in lexical order
+        let kinds: Vec<_> = CheckKind::iter().collect();
+        let ordered: Vec<_> = CheckKind::iter().map(|x| x.to_string()).sorted().collect();
+        let ordered: Vec<_> = ordered.iter().map(|s| s.parse().unwrap()).collect();
+        assert_eq!(&kinds, &ordered);
+
+        // verify all CheckKind variants map to implemented checks
+        let checks: Vec<_> = Check::iter().map(|x| x.kind).collect();
+        assert_eq!(&kinds, &checks);
+    }
+}
