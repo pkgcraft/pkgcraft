@@ -48,9 +48,10 @@ impl Scanner {
     }
 
     /// Set the checks to run.
-    pub fn checks<I>(mut self, values: I) -> Self
+    pub fn checks<I, T>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = Check>,
+        I: IntoIterator<Item = T>,
+        T: Into<Check>,
     {
         self.checks = values.into_iter().map(Into::into).collect();
         self
@@ -234,8 +235,7 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // specific checks
-        let check = CheckKind::Dependency.into();
-        let scanner = Scanner::new().jobs(1).checks([check]);
+        let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
@@ -249,7 +249,8 @@ mod tests {
         assert_eq!(&reports, &expected);
 
         // no checks
-        let scanner = Scanner::new().jobs(1).checks([]);
+        let checks: [Check; 0] = [];
+        let scanner = Scanner::new().jobs(1).checks(checks);
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
 
