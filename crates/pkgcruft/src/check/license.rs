@@ -72,15 +72,16 @@ mod tests {
 
     #[test]
     fn check() {
-        // primary LicenseUnneeded unfixed
+        // primary unfixed
         let repo = TEST_DATA.repo("qa-primary").unwrap();
-        let dir = repo.path().join("virtual/LicenseUnneeded");
-        let scanner = Scanner::new().jobs(1).reports([LicenseUnneeded]);
-        let expected = glob_reports!("{dir}/reports.json");
+        let check_dir = repo.path().join(CHECK);
+        let report_dir = repo.path().join("virtual/LicenseUnneeded");
+        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let expected = glob_reports!("{check_dir}/*/reports.json", "{report_dir}/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
 
-        // primary LicenseUnneeded fixed
+        // primary fixed
         let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &[]);
