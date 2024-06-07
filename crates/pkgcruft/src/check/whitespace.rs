@@ -50,11 +50,12 @@ impl RawVersionCheck for Check {
                 }
             }
 
-            if !eapi_assign && line.starts_with("EAPI=") {
+            if !eapi_assign && line.trim().starts_with("EAPI=") {
                 if prev_line.map(|s| !s.is_empty()).unwrap_or_default()
                     || !lines.peek().map(|s| s.is_empty()).unwrap_or_default()
+                    || line.starts_with([' ', '\t'])
                 {
-                    let message = "missing empty lines around EAPI assignment";
+                    let message = "non-standard EAPI assignment";
                     filter.report(EbuildFormat.version(pkg, message).line(lineno));
                 }
                 eapi_assign = true;
