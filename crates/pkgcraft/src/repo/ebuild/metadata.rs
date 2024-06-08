@@ -106,12 +106,12 @@ macro_rules! parse_iter {
     };
 }
 
-/// Parse a boolean value from an [`Ini`] object.
-macro_rules! parse_bool {
+/// Parse a value from an [`Ini`] object.
+macro_rules! parse {
     ($ini:expr, $key:expr) => {
         $ini.get($key)
             .map(|s| {
-                s.parse::<bool>()
+                s.parse()
                     .map_err(|_| Error::InvalidValue(format!("{}: unsupported value: {s}", $key)))
             })
             .transpose()
@@ -133,7 +133,7 @@ impl Config {
             masters: parse_iter!(ini, "masters")?,
             properties_allowed: parse_iter!(ini, "properties-allowed")?,
             restrict_allowed: parse_iter!(ini, "restrict-allowed")?,
-            thin_manifests: parse_bool!(ini, "thin-manifests")?.unwrap_or(false),
+            thin_manifests: parse!(ini, "thin-manifests")?.unwrap_or(false),
         })
     }
 
