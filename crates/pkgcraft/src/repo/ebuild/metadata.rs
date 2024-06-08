@@ -700,8 +700,8 @@ mod tests {
         "#};
         fs::write(repo.path().join("metadata/layout.conf"), data).unwrap();
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert_unordered_eq(&metadata.config.properties_allowed, ["live", "interactive"]);
-        assert_unordered_eq(&metadata.config.restrict_allowed, ["fetch", "mirror"]);
+        assert_ordered_eq(&metadata.config.properties_allowed, ["interactive", "live"]);
+        assert_ordered_eq(&metadata.config.restrict_allowed, ["fetch", "mirror"]);
     }
 
     #[test]
