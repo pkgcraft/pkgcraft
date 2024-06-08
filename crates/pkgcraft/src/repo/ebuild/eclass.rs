@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -10,7 +11,7 @@ use crate::Error;
 use super::cache::{Cache, MetadataCache};
 
 /// An eclass in an ebuild repository.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Eclass {
     name: String,
     path: Utf8PathBuf,
@@ -47,6 +48,20 @@ impl Eclass {
     /// Return the MD5 checksum of the eclass.
     pub(crate) fn chksum(&self) -> &str {
         &self.chksum
+    }
+}
+
+impl Ord for Eclass {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name
+            .cmp(&other.name)
+            .then_with(|| self.path.cmp(&other.path))
+    }
+}
+
+impl PartialOrd for Eclass {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
