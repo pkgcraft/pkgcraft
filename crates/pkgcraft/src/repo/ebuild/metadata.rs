@@ -871,8 +871,8 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_unordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
-        assert_unordered_eq(metadata.license_groups().get("group2").unwrap(), ["a"]);
+        assert_ordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
+        assert_ordered_eq(metadata.license_groups().get("group2").unwrap(), ["a"]);
         assert_logs_re!(".+, line 5: unknown license: z$");
 
         // multiple with unknown and invalid aliases
@@ -885,8 +885,8 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_unordered_eq(metadata.license_groups().get("group1").unwrap(), ["b"]);
-        assert_unordered_eq(metadata.license_groups().get("group2").unwrap(), ["a", "b", "c"]);
+        assert_ordered_eq(metadata.license_groups().get("group1").unwrap(), ["b"]);
+        assert_ordered_eq(metadata.license_groups().get("group2").unwrap(), ["a", "c", "b"]);
         assert_logs_re!(".+, line 2: invalid alias: @");
         assert_logs_re!(".+ group2: unknown alias: group3");
 
@@ -899,10 +899,10 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_unordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
-        assert_unordered_eq(metadata.license_groups().get("group2").unwrap(), ["a", "b"]);
-        assert_unordered_eq(metadata.license_groups().get("group3").unwrap(), ["a", "b", "c"]);
-        assert_unordered_eq(metadata.license_groups().get("group4").unwrap(), ["c"]);
+        assert_ordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
+        assert_ordered_eq(metadata.license_groups().get("group2").unwrap(), ["b", "a"]);
+        assert_ordered_eq(metadata.license_groups().get("group3").unwrap(), ["c", "b", "a"]);
+        assert_ordered_eq(metadata.license_groups().get("group4").unwrap(), ["c"]);
         assert_logs_re!(".+ group1: cyclic alias: group2");
         assert_logs_re!(".+ group2: cyclic alias: group1");
         assert_logs_re!(".+ group3: cyclic alias: group2");
