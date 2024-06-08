@@ -15,7 +15,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 use crate::report::ReportKind;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::SourceKind;
+use crate::source::{PkgParsed, SourceKind};
 use crate::Error;
 
 mod dependency;
@@ -32,6 +32,7 @@ mod overlay;
 mod restrict_test_missing;
 mod unstable_only;
 mod use_local;
+mod variable_order;
 mod whitespace;
 
 /// Check variants.
@@ -65,6 +66,7 @@ pub enum CheckKind {
     RestrictTestMissing,
     UnstableOnly,
     UseLocal,
+    VariableOrder,
     Whitespace,
 }
 
@@ -129,6 +131,12 @@ pub(crate) trait RawVersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
 }
 pub(crate) type RawVersionCheckRunner = Box<dyn RawVersionCheck + Send + Sync>;
+
+/// Run a check against a given raw ebuild package version.
+pub(crate) trait ParsedVersionCheck: RegisterCheck {
+    fn run(&self, pkg: &PkgParsed, filter: &mut ReportFilter);
+}
+pub(crate) type ParsedVersionCheckRunner = Box<dyn ParsedVersionCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -233,6 +241,14 @@ impl Check {
             _ => unreachable!("unsupported check: {self}"),
         }
     }
+
+    /// Create a parsed ebuild package version check runner.
+    pub(crate) fn parsed_version_check(&self) -> ParsedVersionCheckRunner {
+        match &self.kind {
+            CheckKind::VariableOrder => Box::new(variable_order::create()),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
 }
 
 impl fmt::Debug for Check {
@@ -318,6 +334,7 @@ static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
         restrict_test_missing::CHECK,
         unstable_only::CHECK,
         use_local::CHECK,
+        variable_order::CHECK,
         whitespace::CHECK,
     ]
     .into_iter()

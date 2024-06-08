@@ -143,6 +143,12 @@ pub enum ReportKind {
     /// Local USE flag that is unused.
     UseLocalUnused,
 
+    /// Global metadata variables are defined in non-standard order.
+    ///
+    /// Note that this only is reported for ebuilds with all target variables
+    /// unconditionally defined in global scope.
+    VariableOrder,
+
     /// Whitespace usage that is invalid.
     WhitespaceInvalid,
 
@@ -225,6 +231,7 @@ impl ReportKind {
             Self::UseLocalGlobal => Warning,
             Self::UseLocalUnused => Warning,
             Self::UseLocalUnsorted => Style,
+            Self::VariableOrder => Style,
             Self::WhitespaceInvalid => Warning,
             Self::WhitespaceUnneeded => Style,
         }

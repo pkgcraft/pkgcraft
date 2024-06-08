@@ -53,6 +53,7 @@ impl SyncCheckRunner {
 /// Generic check runners.
 enum CheckRunner {
     EbuildPkg(EbuildPkgCheckRunner),
+    EbuildParsedPkg(EbuildParsedPkgCheckRunner),
     EbuildRawPkg(EbuildRawPkgCheckRunner),
 }
 
@@ -60,6 +61,9 @@ impl CheckRunner {
     fn new(source: SourceKind, repo: &'static Repo) -> Self {
         match source {
             SourceKind::Ebuild => Self::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
+            SourceKind::EbuildParsed => {
+                Self::EbuildParsedPkg(EbuildParsedPkgCheckRunner::new(repo))
+            }
             SourceKind::EbuildRaw => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
         }
     }
@@ -68,6 +72,7 @@ impl CheckRunner {
     fn add_check(&mut self, check: Check) {
         match self {
             Self::EbuildPkg(r) => r.add_check(check),
+            Self::EbuildParsedPkg(r) => r.add_check(check),
             Self::EbuildRawPkg(r) => r.add_check(check),
         }
     }
@@ -76,6 +81,7 @@ impl CheckRunner {
     fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         match self {
             Self::EbuildPkg(r) => r.run(restrict, filter),
+            Self::EbuildParsedPkg(r) => r.run(restrict, filter),
             Self::EbuildRawPkg(r) => r.run(restrict, filter),
         }
     }
@@ -152,6 +158,40 @@ impl EbuildRawPkgCheckRunner {
     fn add_check(&mut self, check: Check) {
         match &check.scope {
             Scope::Version => self.ver_checks.push(check.raw_version_check()),
+            _ => unreachable!("unsupported check: {check}"),
+        }
+    }
+
+    /// Run the check runner for a given restriction.
+    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
+        for pkg in self.source.iter_restrict(restrict) {
+            for check in &self.ver_checks {
+                let now = Instant::now();
+                check.run(&pkg, filter);
+                debug!("{check}: {pkg}: {:?}", now.elapsed());
+            }
+        }
+    }
+}
+
+/// Check runner for parsed ebuild package checks.
+struct EbuildParsedPkgCheckRunner {
+    ver_checks: Vec<ParsedVersionCheckRunner>,
+    source: source::EbuildParsed,
+}
+
+impl EbuildParsedPkgCheckRunner {
+    fn new(repo: &'static Repo) -> Self {
+        Self {
+            ver_checks: Default::default(),
+            source: source::EbuildParsed::new(repo),
+        }
+    }
+
+    /// Add a check to the check runner.
+    fn add_check(&mut self, check: Check) {
+        match &check.scope {
+            Scope::Version => self.ver_checks.push(check.parsed_version_check()),
             _ => unreachable!("unsupported check: {check}"),
         }
     }

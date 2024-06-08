@@ -1961,6 +1961,8 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
+ "tree-sitter",
+ "tree-sitter-bash",
 ]
 
 [[package]]
@@ -2982,6 +2984,26 @@ checksum = "04659ddb06c87d233c566112c1c9c5b9e98256d9af50ec3bc9c8327f873a7568"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tree-sitter"
+version = "0.22.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df7cc499ceadd4dcdf7ec6d4cbc34ece92c3fa07821e287aedecd4416c516dca"
+dependencies = [
+ "cc",
+ "regex",
+]
+
+[[package]]
+name = "tree-sitter-bash"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5244703ad2e08a616d859a0557d7aa290adcd5e0990188a692e628ffe9dce40"
+dependencies = [
+ "cc",
+ "tree-sitter",
 ]
 
 [[package]]
