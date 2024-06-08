@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use criterion::Criterion;
 
 use pkgcraft::dep::{Dep, DependencySet};
@@ -21,7 +19,8 @@ pub fn bench_depsets(c: &mut Criterion) {
     });
 
     c.bench_function("depset-restrict-dep", |b| {
-        let r = Restrict::from(&Dep::from_str("c/p5").unwrap());
+        let dep: Dep = "c/p5".parse().unwrap();
+        let r = Restrict::from(&dep);
         let depset = DependencySet::package(deps, &EAPI_LATEST_OFFICIAL).unwrap();
         b.iter(|| assert!(r.matches(&depset)));
     });
