@@ -39,7 +39,8 @@ impl Ini {
         match ini::Ini::load_from_file(path) {
             Ok(c) => Ok(Self(c)),
             Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(Error::IO(e.to_string())),
+            Err(ini::Error::Io(e)) => Err(Error::IO(e.to_string())),
+            Err(ini::Error::Parse(e)) => Err(Error::IO(format!("failed parsing INI: {e}"))),
         }
     }
 
@@ -242,7 +243,7 @@ impl Metadata {
             Ok(data) => match data.lines().next().map(|s| parse::repo(s.trim())) {
                 Some(Ok(s)) => Ok(s.to_string()),
                 Some(Err(e)) => Err(invalid_repo(format!("profiles/repo_name: {e}"))),
-                None => Err(invalid_repo("profiles/repo_name empty".to_string())),
+                None => Err(invalid_repo("profiles/repo_name: repo name unset".to_string())),
             },
             Err(e) => {
                 let msg = format!("profiles/repo_name: {e}");
@@ -663,17 +664,26 @@ mod tests {
 
     #[test]
     fn test_config() {
+        // empty config
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
-
-        // empty config
         fs::write(repo.path().join("metadata/layout.conf"), "").unwrap();
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.config.is_empty());
 
+        // empty repo name
+        let mut config = crate::config::Config::default();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        fs::write(repo.path().join("profiles/repo_name"), "").unwrap();
+        let r = Metadata::try_new("test", repo.path());
+        assert_err_re!(r, "^invalid repo: test: profiles/repo_name: repo name unset$");
+
         // invalid config
+        let mut config = crate::config::Config::default();
+        let repo = config.temp_repo("test", 0, None).unwrap();
         fs::write(repo.path().join("metadata/layout.conf"), "data").unwrap();
-        assert!(Metadata::try_new("test", repo.path()).is_err());
+        let r = Metadata::try_new("test", repo.path());
+        assert_err_re!(r, "^invalid repo: test: metadata/layout.conf: failed parsing INI: ");
     }
 
     #[test]
