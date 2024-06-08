@@ -418,7 +418,7 @@ impl Metadata {
                 .filter_lines()
                 .filter_map(|(i, s)| {
                     let mut vals = s.split_whitespace();
-                    if let Some(name) = vals.next() {
+                    vals.next().map(|name| {
                         let licenses = vals
                             .filter_map(|s| match s.strip_prefix('@') {
                                 None => {
@@ -447,10 +447,8 @@ impl Metadata {
                                 }
                             })
                             .collect();
-                        Some((name.to_string(), licenses))
-                    } else {
-                        None
-                    }
+                        (name.to_string(), licenses)
+                    })
                 })
                 .collect::<IndexMap<_, IndexSet<_>>>();
 
