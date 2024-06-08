@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::OnceLock;
@@ -217,7 +217,7 @@ pub struct Metadata {
     pub config: Config,
     path: Utf8PathBuf,
     arches: OnceLock<IndexSet<String>>,
-    arches_desc: OnceLock<HashMap<ArchStatus, HashSet<String>>>,
+    arches_desc: OnceLock<IndexMap<ArchStatus, IndexSet<String>>>,
     cache: OnceLock<MetadataCache>,
     categories: OnceLock<IndexSet<String>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
@@ -294,9 +294,9 @@ impl Metadata {
 
     /// Architecture stability status from `profiles/arches.desc`.
     /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
-    pub fn arches_desc(&self) -> &HashMap<ArchStatus, HashSet<String>> {
+    pub fn arches_desc(&self) -> &IndexMap<ArchStatus, IndexSet<String>> {
         self.arches_desc.get_or_init(|| {
-            let mut vals = HashMap::<_, HashSet<_>>::new();
+            let mut vals = IndexMap::<_, IndexSet<_>>::new();
             self.read_path("profiles/arches.desc")
                 .filter_lines()
                 .map(|(i, s)| (i, s.split_whitespace()))
@@ -664,7 +664,7 @@ mod tests {
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::*;
-    use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
+    use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -767,15 +767,15 @@ mod tests {
 
         // multiple with ignored 3rd column
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64\nppc64").unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64\nppc\nppc64").unwrap();
         fs::write(
             metadata.path.join("profiles/arches.desc"),
-            "amd64 stable\narm64 testing\nppc64 transitional 3rd-col",
+            "amd64 stable\narm64 testing\nppc testing\nppc64 transitional 3rd-col",
         )
         .unwrap();
-        assert_unordered_eq(&metadata.arches_desc()[&ArchStatus::Stable], ["amd64"]);
-        assert_unordered_eq(&metadata.arches_desc()[&ArchStatus::Testing], ["arm64"]);
-        assert_unordered_eq(&metadata.arches_desc()[&ArchStatus::Transitional], ["ppc64"]);
+        assert_ordered_eq(&metadata.arches_desc()[&ArchStatus::Stable], ["amd64"]);
+        assert_ordered_eq(&metadata.arches_desc()[&ArchStatus::Testing], ["arm64", "ppc"]);
+        assert_ordered_eq(&metadata.arches_desc()[&ArchStatus::Transitional], ["ppc64"]);
     }
 
     #[traced_test]
