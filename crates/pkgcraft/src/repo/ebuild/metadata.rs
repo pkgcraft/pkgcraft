@@ -46,11 +46,7 @@ impl Ini {
 
     /// Iterate over the config values for a given key, splitting by whitespace.
     fn iter(&self, key: &str) -> SplitWhitespace {
-        self.0
-            .general_section()
-            .get(key)
-            .unwrap_or_default()
-            .split_whitespace()
+        self.get(key).unwrap_or_default().split_whitespace()
     }
 
     /// Get a value from the main section if it exists given its key.
