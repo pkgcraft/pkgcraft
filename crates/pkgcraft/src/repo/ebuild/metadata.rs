@@ -461,7 +461,7 @@ impl Metadata {
                 .collect::<IndexMap<_, IndexSet<_>>>();
 
             // resolve aliases using DFS
-            for (set, aliases) in &alias_map {
+            for (name, aliases) in &alias_map {
                 let mut seen = HashSet::new();
                 let mut stack = aliases.clone();
                 while let Some(s) = stack.pop() {
@@ -476,7 +476,7 @@ impl Metadata {
                                 stack.insert(x.clone());
                             } else {
                                 warn!(
-                                    "{}::profiles/license_groups: {set}: cyclic alias: {x}",
+                                    "{}::profiles/license_groups: {name}: cyclic alias: {x}",
                                     self.id,
                                 );
                             }
@@ -485,12 +485,12 @@ impl Metadata {
 
                     // resolve alias values
                     if let Some(values) = group_map.get(&s).cloned() {
-                        group_map.entry(set.clone())
+                        group_map.entry(name.clone())
                             .or_default()
                             .extend(values);
                     } else {
                         warn!(
-                            "{}::profiles/license_groups: {set}: unknown alias: {s}",
+                            "{}::profiles/license_groups: {name}: unknown alias: {s}",
                             self.id,
                         );
                     }
@@ -864,49 +864,49 @@ mod tests {
         // multiple with unknown and mixed whitespace
         let data = indoc::indoc! {r#"
             # comment 1
-            set1 a b
+            group1 a b
 
             # comment 2
-            set2 a	z
+            group2 a	z
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["a", "b"]);
-        assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a"]);
+        assert_unordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
+        assert_unordered_eq(metadata.license_groups().get("group2").unwrap(), ["a"]);
         assert_logs_re!(".+, line 5: unknown license: z$");
 
         // multiple with unknown and invalid aliases
         let data = indoc::indoc! {r#"
             # comment 1
-            set1 b @
+            group1 b @
 
             # comment 2
-            set2 a c @set1 @set3
+            group2 a c @group1 @group3
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["b"]);
-        assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b", "c"]);
+        assert_unordered_eq(metadata.license_groups().get("group1").unwrap(), ["b"]);
+        assert_unordered_eq(metadata.license_groups().get("group2").unwrap(), ["a", "b", "c"]);
         assert_logs_re!(".+, line 2: invalid alias: @");
-        assert_logs_re!(".+ set2: unknown alias: set3");
+        assert_logs_re!(".+ group2: unknown alias: group3");
 
         // multiple with cyclic aliases
         let data = indoc::indoc! {r#"
-            set1 a @set2
-            set2 b @set1
-            set3 c @set2
-            set4 c @set4
+            group1 a @group2
+            group2 b @group1
+            group3 c @group2
+            group4 c @group4
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_unordered_eq(metadata.license_groups().get("set1").unwrap(), ["a", "b"]);
-        assert_unordered_eq(metadata.license_groups().get("set2").unwrap(), ["a", "b"]);
-        assert_unordered_eq(metadata.license_groups().get("set3").unwrap(), ["a", "b", "c"]);
-        assert_unordered_eq(metadata.license_groups().get("set4").unwrap(), ["c"]);
-        assert_logs_re!(".+ set1: cyclic alias: set2");
-        assert_logs_re!(".+ set2: cyclic alias: set1");
-        assert_logs_re!(".+ set3: cyclic alias: set2");
-        assert_logs_re!(".+ set4: cyclic alias: set4");
+        assert_unordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
+        assert_unordered_eq(metadata.license_groups().get("group2").unwrap(), ["a", "b"]);
+        assert_unordered_eq(metadata.license_groups().get("group3").unwrap(), ["a", "b", "c"]);
+        assert_unordered_eq(metadata.license_groups().get("group4").unwrap(), ["c"]);
+        assert_logs_re!(".+ group1: cyclic alias: group2");
+        assert_logs_re!(".+ group2: cyclic alias: group1");
+        assert_logs_re!(".+ group3: cyclic alias: group2");
+        assert_logs_re!(".+ group4: cyclic alias: group4");
     }
 
     #[test]
