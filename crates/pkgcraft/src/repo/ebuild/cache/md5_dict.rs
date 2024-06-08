@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
 
-use crate::dep::{self, Cpv, Slot};
+use crate::dep::{Cpv, DependencySet, Slot};
 use crate::eapi::Eapi;
 use crate::files::{atomic_write_file, is_file};
 use crate::pkg::ebuild::metadata::{Key, Metadata, MetadataRaw};
@@ -101,23 +101,23 @@ fn deserialize<'a>(
         CHKSUM => meta.chksum = val.to_string(),
         DESCRIPTION => meta.description = val.to_string(),
         SLOT => meta.slot = Slot::try_new(val)?,
-        BDEPEND => meta.bdepend = dep::parse::package_dependency_set(val, eapi)?,
-        DEPEND => meta.depend = dep::parse::package_dependency_set(val, eapi)?,
-        IDEPEND => meta.idepend = dep::parse::package_dependency_set(val, eapi)?,
-        PDEPEND => meta.pdepend = dep::parse::package_dependency_set(val, eapi)?,
-        RDEPEND => meta.rdepend = dep::parse::package_dependency_set(val, eapi)?,
+        BDEPEND => meta.bdepend = DependencySet::package(val, eapi)?,
+        DEPEND => meta.depend = DependencySet::package(val, eapi)?,
+        IDEPEND => meta.idepend = DependencySet::package(val, eapi)?,
+        PDEPEND => meta.pdepend = DependencySet::package(val, eapi)?,
+        RDEPEND => meta.rdepend = DependencySet::package(val, eapi)?,
         LICENSE => {
-            meta.license = dep::parse::license_dependency_set(val)?;
+            meta.license = DependencySet::license(val)?;
             for l in meta.license.iter_flatten() {
                 if !repo.licenses().contains(l) {
                     return Err(Error::InvalidValue(format!("nonexistent license: {l}")));
                 }
             }
         }
-        PROPERTIES => meta.properties = dep::parse::properties_dependency_set(val)?,
-        REQUIRED_USE => meta.required_use = dep::parse::required_use_dependency_set(val)?,
-        RESTRICT => meta.restrict = dep::parse::restrict_dependency_set(val)?,
-        SRC_URI => meta.src_uri = dep::parse::src_uri_dependency_set(val)?,
+        PROPERTIES => meta.properties = DependencySet::properties(val)?,
+        REQUIRED_USE => meta.required_use = DependencySet::required_use(val)?,
+        RESTRICT => meta.restrict = DependencySet::restrict(val)?,
+        SRC_URI => meta.src_uri = DependencySet::src_uri(val)?,
         HOMEPAGE => meta.homepage = val.split_whitespace().map(String::from).collect(),
         DEFINED_PHASES => {
             // PMS specifies if no phase functions are defined, a single hyphen is used.

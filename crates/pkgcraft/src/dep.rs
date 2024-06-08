@@ -7,6 +7,7 @@ use std::str::FromStr;
 use indexmap::IndexSet;
 use itertools::Itertools;
 
+use crate::eapi::Eapi;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::traits::{Contains, IntoOwned, ToRef};
 use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
@@ -238,6 +239,36 @@ impl<T: Ordered> Dependency<T> {
             Conditional(_, vals) => *vals = sort_set!(vals).collect(),
             _ => (),
         }
+    }
+}
+
+impl Dependency<Dep> {
+    pub fn package(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
+        parse::package_dependency(s, eapi)
+    }
+}
+
+impl Dependency<String> {
+    pub fn license(s: &str) -> crate::Result<Self> {
+        parse::license_dependency(s)
+    }
+
+    pub fn properties(s: &str) -> crate::Result<Self> {
+        parse::properties_dependency(s)
+    }
+
+    pub fn required_use(s: &str) -> crate::Result<Self> {
+        parse::required_use_dependency(s)
+    }
+
+    pub fn restrict(s: &str) -> crate::Result<Self> {
+        parse::restrict_dependency(s)
+    }
+}
+
+impl Dependency<Uri> {
+    pub fn src_uri(s: &str) -> crate::Result<Self> {
+        parse::src_uri_dependency(s)
     }
 }
 
@@ -584,6 +615,36 @@ impl<T: Ordered> DependencySet<T> {
 
     pub fn iter_conditionals(&self) -> IterConditionals<T> {
         self.into_iter_conditionals()
+    }
+}
+
+impl DependencySet<Dep> {
+    pub fn package(s: &str, eapi: &'static Eapi) -> crate::Result<Self> {
+        parse::package_dependency_set(s, eapi)
+    }
+}
+
+impl DependencySet<String> {
+    pub fn license(s: &str) -> crate::Result<Self> {
+        parse::license_dependency_set(s)
+    }
+
+    pub fn properties(s: &str) -> crate::Result<Self> {
+        parse::properties_dependency_set(s)
+    }
+
+    pub fn required_use(s: &str) -> crate::Result<Self> {
+        parse::required_use_dependency_set(s)
+    }
+
+    pub fn restrict(s: &str) -> crate::Result<Self> {
+        parse::restrict_dependency_set(s)
+    }
+}
+
+impl DependencySet<Uri> {
+    pub fn src_uri(s: &str) -> crate::Result<Self> {
+        parse::src_uri_dependency_set(s)
     }
 }
 

@@ -1,5 +1,4 @@
-use pkgcraft::dep::parse::restrict_dependency;
-use pkgcraft::dep::DependencySet;
+use pkgcraft::dep::{Dependency, DependencySet};
 use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::Pkg;
 
@@ -24,7 +23,7 @@ pub(super) fn create() -> impl VersionCheck {
         restricts: ["test", "!test? ( test )"]
             .iter()
             .map(|s| {
-                restrict_dependency(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
+                Dependency::restrict(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
             })
             .collect(),
         iuse: Iuse::try_new("test").unwrap(),

@@ -558,27 +558,27 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_parse(
         use DependencySetKind::*;
         let depset = match kind {
             Package => {
-                let opt_dep = unwrap_or_panic!(dep::parse::package_dependency_set(s, eapi));
+                let opt_dep = unwrap_or_panic!(dep::DependencySet::package(s, eapi));
                 DependencySet::new_dep(opt_dep)
             },
             SrcUri => {
-                let opt_dep = unwrap_or_panic!(dep::parse::src_uri_dependency_set(s));
+                let opt_dep = unwrap_or_panic!(dep::DependencySet::src_uri(s));
                 DependencySet::new_uri(opt_dep)
             },
             License => {
-                let opt_dep = unwrap_or_panic!(dep::parse::license_dependency_set(s));
+                let opt_dep = unwrap_or_panic!(dep::DependencySet::license(s));
                 DependencySet::new_string(opt_dep, kind)
             },
             Properties => {
-                let opt_dep = unwrap_or_panic!(dep::parse::properties_dependency_set(s));
+                let opt_dep = unwrap_or_panic!(dep::DependencySet::properties(s));
                 DependencySet::new_string(opt_dep, kind)
             },
             RequiredUse => {
-                let opt_dep = unwrap_or_panic!(dep::parse::required_use_dependency_set(s));
+                let opt_dep = unwrap_or_panic!(dep::DependencySet::required_use(s));
                 DependencySet::new_string(opt_dep, kind)
             },
             Restrict => {
-                let opt_dep = unwrap_or_panic!(dep::parse::restrict_dependency_set(s));
+                let opt_dep = unwrap_or_panic!(dep::DependencySet::restrict(s));
                 DependencySet::new_string(opt_dep, kind)
             },
         };
@@ -606,27 +606,27 @@ pub unsafe extern "C" fn pkgcraft_dependency_parse(
         use DependencySetKind::*;
         let dep = match kind {
             Package => {
-                let dep = unwrap_or_panic!(dep::parse::package_dependency(s, eapi));
+                let dep = unwrap_or_panic!(dep::Dependency::package(s, eapi));
                 Dependency::new_dep(dep)
             },
             SrcUri => {
-                let dep = unwrap_or_panic!(dep::parse::src_uri_dependency(s));
+                let dep = unwrap_or_panic!(dep::Dependency::src_uri(s));
                 Dependency::new_uri(dep)
             },
             License => {
-                let dep = unwrap_or_panic!(dep::parse::license_dependency(s));
+                let dep = unwrap_or_panic!(dep::Dependency::license(s));
                 Dependency::new_string(dep, kind)
             },
             Properties => {
-                let dep = unwrap_or_panic!(dep::parse::properties_dependency(s));
+                let dep = unwrap_or_panic!(dep::Dependency::properties(s));
                 Dependency::new_string(dep, kind)
             },
             RequiredUse => {
-                let dep = unwrap_or_panic!(dep::parse::required_use_dependency(s));
+                let dep = unwrap_or_panic!(dep::Dependency::required_use(s));
                 Dependency::new_string(dep, kind)
             },
             Restrict => {
-                let dep = unwrap_or_panic!(dep::parse::restrict_dependency(s));
+                let dep = unwrap_or_panic!(dep::Dependency::restrict(s));
                 Dependency::new_string(dep, kind)
             },
         };

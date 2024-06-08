@@ -399,52 +399,55 @@ pub(super) fn cpn(s: &str) -> crate::Result<Cpn> {
     depspec::cpn(s).map_err(|e| peg_error("invalid cpn", s, e))
 }
 
-pub fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
+pub(super) fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
     depspec::license_dependency_set(s).map_err(|e| peg_error("invalid LICENSE", s, e))
 }
 
-pub fn license_dependency(s: &str) -> crate::Result<Dependency<String>> {
+pub(super) fn license_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::license_dependency(s).map_err(|e| peg_error("invalid LICENSE dependency", s, e))
 }
 
-pub fn src_uri_dependency_set(s: &str) -> crate::Result<DependencySet<Uri>> {
+pub(super) fn src_uri_dependency_set(s: &str) -> crate::Result<DependencySet<Uri>> {
     depspec::src_uri_dependency_set(s).map_err(|e| peg_error("invalid SRC_URI", s, e))
 }
 
-pub fn src_uri_dependency(s: &str) -> crate::Result<Dependency<Uri>> {
+pub(super) fn src_uri_dependency(s: &str) -> crate::Result<Dependency<Uri>> {
     depspec::src_uri_dependency(s).map_err(|e| peg_error("invalid SRC_URI dependency", s, e))
 }
 
-pub fn properties_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
+pub(super) fn properties_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
     depspec::properties_dependency_set(s).map_err(|e| peg_error("invalid PROPERTIES", s, e))
 }
 
-pub fn properties_dependency(s: &str) -> crate::Result<Dependency<String>> {
+pub(super) fn properties_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::properties_dependency(s).map_err(|e| peg_error("invalid PROPERTIES dependency", s, e))
 }
 
-pub fn required_use_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
+pub(super) fn required_use_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
     depspec::required_use_dependency_set(s).map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
 }
 
-pub fn required_use_dependency(s: &str) -> crate::Result<Dependency<String>> {
+pub(super) fn required_use_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::required_use_dependency(s)
         .map_err(|e| peg_error("invalid REQUIRED_USE dependency", s, e))
 }
 
-pub fn restrict_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
+pub(super) fn restrict_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
     depspec::restrict_dependency_set(s).map_err(|e| peg_error("invalid RESTRICT", s, e))
 }
 
-pub fn restrict_dependency(s: &str) -> crate::Result<Dependency<String>> {
+pub(super) fn restrict_dependency(s: &str) -> crate::Result<Dependency<String>> {
     depspec::restrict_dependency(s).map_err(|e| peg_error("invalid RESTRICT dependency", s, e))
 }
 
-pub fn package_dependency_set(s: &str, eapi: &'static Eapi) -> crate::Result<DependencySet<Dep>> {
+pub(super) fn package_dependency_set(
+    s: &str,
+    eapi: &'static Eapi,
+) -> crate::Result<DependencySet<Dep>> {
     depspec::package_dependency_set(s, eapi).map_err(|e| peg_error("invalid dependency", s, e))
 }
 
-pub fn package_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<Dep>> {
+pub(super) fn package_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<Dep>> {
     depspec::package_dependency(s, eapi).map_err(|e| peg_error("invalid package dependency", s, e))
 }
 

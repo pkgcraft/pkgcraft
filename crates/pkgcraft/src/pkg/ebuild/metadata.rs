@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
-use crate::dep::{self, Dep, DependencySet, Slot, Uri};
+use crate::dep::{Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::shell::phase::Phase;
@@ -120,23 +120,23 @@ impl<'a> Metadata<'a> {
         match key {
             DESCRIPTION => self.description = val.to_string(),
             SLOT => self.slot = Slot::try_new(val)?,
-            BDEPEND => self.bdepend = dep::parse::package_dependency_set(val, eapi)?,
-            DEPEND => self.depend = dep::parse::package_dependency_set(val, eapi)?,
-            IDEPEND => self.idepend = dep::parse::package_dependency_set(val, eapi)?,
-            PDEPEND => self.pdepend = dep::parse::package_dependency_set(val, eapi)?,
-            RDEPEND => self.rdepend = dep::parse::package_dependency_set(val, eapi)?,
+            BDEPEND => self.bdepend = DependencySet::package(val, eapi)?,
+            DEPEND => self.depend = DependencySet::package(val, eapi)?,
+            IDEPEND => self.idepend = DependencySet::package(val, eapi)?,
+            PDEPEND => self.pdepend = DependencySet::package(val, eapi)?,
+            RDEPEND => self.rdepend = DependencySet::package(val, eapi)?,
             LICENSE => {
-                self.license = dep::parse::license_dependency_set(val)?;
+                self.license = DependencySet::license(val)?;
                 for l in self.license.iter_flatten() {
                     if !repo.licenses().contains(l) {
                         return Err(Error::InvalidValue(format!("nonexistent license: {l}")));
                     }
                 }
             }
-            PROPERTIES => self.properties = dep::parse::properties_dependency_set(val)?,
-            REQUIRED_USE => self.required_use = dep::parse::required_use_dependency_set(val)?,
-            RESTRICT => self.restrict = dep::parse::restrict_dependency_set(val)?,
-            SRC_URI => self.src_uri = dep::parse::src_uri_dependency_set(val)?,
+            PROPERTIES => self.properties = DependencySet::properties(val)?,
+            REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
+            RESTRICT => self.restrict = DependencySet::restrict(val)?,
+            SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
             KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
             IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,

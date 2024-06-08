@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pkgcraft::dep;
+use pkgcraft::dep::DependencySet;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::ebuild::raw::Pkg;
@@ -63,7 +63,7 @@ impl RawVersionCheck for Check {
                 // TODO: improve contextual relevance for depset parsing failures (issue #153)
                 for key in eapi.dep_keys() {
                     if let Some(val) = raw.get(key) {
-                        if let Err(e) = dep::parse::package_dependency_set(val, eapi) {
+                        if let Err(e) = DependencySet::package(val, eapi) {
                             let message = format!("{key}: {e}");
                             filter.report(DependencyInvalid.version(pkg, message));
                         }
@@ -71,25 +71,25 @@ impl RawVersionCheck for Check {
                 }
 
                 if let Some(val) = raw.get(&Key::LICENSE) {
-                    if let Err(e) = dep::parse::license_dependency_set(val) {
+                    if let Err(e) = DependencySet::license(val) {
                         filter.report(LicenseInvalid.version(pkg, e));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::PROPERTIES) {
-                    if let Err(e) = dep::parse::properties_dependency_set(val) {
+                    if let Err(e) = DependencySet::properties(val) {
                         filter.report(PropertiesInvalid.version(pkg, e));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::REQUIRED_USE) {
-                    if let Err(e) = dep::parse::required_use_dependency_set(val) {
+                    if let Err(e) = DependencySet::required_use(val) {
                         filter.report(RequiredUseInvalid.version(pkg, e));
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::RESTRICT) {
-                    if let Err(e) = dep::parse::restrict_dependency_set(val) {
+                    if let Err(e) = DependencySet::restrict(val) {
                         filter.report(RestrictInvalid.version(pkg, e));
                     }
                 }
