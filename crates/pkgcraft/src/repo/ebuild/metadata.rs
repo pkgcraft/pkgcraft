@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::OnceLock;
-use std::{fmt, fs, io};
+use std::{fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
@@ -27,13 +27,6 @@ use super::Eclass;
 
 /// Wrapper for ini format config files.
 struct Ini(ini::Ini);
-
-impl fmt::Debug for Ini {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let section = self.0.general_section();
-        f.debug_tuple("Ini").field(&section).finish()
-    }
-}
 
 impl Default for Ini {
     fn default() -> Self {
