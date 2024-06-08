@@ -45,12 +45,17 @@ impl Ini {
     }
 
     /// Iterate over the config values for a given key, splitting by whitespace.
-    pub(super) fn iter(&self, key: &str) -> SplitWhitespace {
+    fn iter(&self, key: &str) -> SplitWhitespace {
         self.0
             .general_section()
             .get(key)
             .unwrap_or_default()
             .split_whitespace()
+    }
+
+    /// Get a value from the main section if it exists given its key.
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.general_section().get(key)
     }
 }
 
@@ -84,10 +89,13 @@ pub struct Config {
 
     /// Allowed values for ebuild RESTRICT.
     pub restrict_allowed: OrderedSet<String>,
+
+    /// Control whether thin or thick Manifest files are used.
+    pub thin_manifests: bool,
 }
 
-/// Parse a setting from an [`Ini`] object.
-macro_rules! parse {
+/// Parse an iterable value from an [`Ini`] object.
+macro_rules! parse_iter {
     ($ini:expr, $key:expr) => {
         $ini.iter($key)
             .map(|s| {
@@ -98,21 +106,34 @@ macro_rules! parse {
     };
 }
 
+/// Parse a boolean value from an [`Ini`] object.
+macro_rules! parse_bool {
+    ($ini:expr, $key:expr) => {
+        $ini.get($key)
+            .map(|s| {
+                s.parse::<bool>()
+                    .map_err(|_| Error::InvalidValue(format!("{}: unsupported value: {s}", $key)))
+            })
+            .transpose()
+    };
+}
+
 impl Config {
     fn try_new(repo_path: &Utf8Path) -> crate::Result<Self> {
         let path = repo_path.join("metadata/layout.conf");
         let ini = Ini::load(&path)?;
 
         Ok(Self {
-            cache_formats: parse!(ini, "cache-formats")?,
-            eapis_banned: parse!(ini, "eapis-banned")?,
-            eapis_deprecated: parse!(ini, "eapis-deprecated")?,
-            eapis_testing: parse!(ini, "eapis-testing")?,
-            manifest_hashes: parse!(ini, "manifest-hashes")?,
-            manifest_required_hashes: parse!(ini, "manifest-required-hashes")?,
-            masters: parse!(ini, "masters")?,
-            properties_allowed: parse!(ini, "properties-allowed")?,
-            restrict_allowed: parse!(ini, "restrict-allowed")?,
+            cache_formats: parse_iter!(ini, "cache-formats")?,
+            eapis_banned: parse_iter!(ini, "eapis-banned")?,
+            eapis_deprecated: parse_iter!(ini, "eapis-deprecated")?,
+            eapis_testing: parse_iter!(ini, "eapis-testing")?,
+            manifest_hashes: parse_iter!(ini, "manifest-hashes")?,
+            manifest_required_hashes: parse_iter!(ini, "manifest-required-hashes")?,
+            masters: parse_iter!(ini, "masters")?,
+            properties_allowed: parse_iter!(ini, "properties-allowed")?,
+            restrict_allowed: parse_iter!(ini, "restrict-allowed")?,
+            thin_manifests: parse_bool!(ini, "thin-manifests")?.unwrap_or(false),
         })
     }
 
