@@ -60,7 +60,8 @@ impl ParsedVersionCheck for Check {
                 return;
             }
 
-            if let Ok(var) = tree.node_name(node).parse::<Variable>() {
+            let name = node.name().expect("unnamed variable");
+            if let Ok(var) = name.parse::<Variable>() {
                 variables.push((var, node.start_position().row + 1));
             }
         }
