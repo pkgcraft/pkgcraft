@@ -206,9 +206,15 @@ impl Check {
             CheckContext::Overlay => repo.masters().next().is_some(),
         })
     }
+}
 
-    /// Create an ebuild package version check runner.
-    pub(crate) fn version_check(&self, repo: &'static Repo) -> VersionCheckRunner {
+/// Create a check runner from a given check.
+pub(crate) trait ToRunner<T> {
+    fn to_runner(&self, repo: &'static Repo) -> T;
+}
+
+impl ToRunner<VersionCheckRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> VersionCheckRunner {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
@@ -220,9 +226,10 @@ impl Check {
             _ => unreachable!("unsupported check: {self}"),
         }
     }
+}
 
-    /// Create an ebuild package set check runner.
-    pub(crate) fn package_check(&self, repo: &'static Repo) -> PackageCheckRunner {
+impl ToRunner<PackageCheckRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> PackageCheckRunner {
         match &self.kind {
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
@@ -232,9 +239,10 @@ impl Check {
             _ => unreachable!("unsupported check: {self}"),
         }
     }
+}
 
-    /// Create a raw ebuild package version check runner.
-    pub(crate) fn raw_version_check(&self) -> RawVersionCheckRunner {
+impl ToRunner<RawVersionCheckRunner> for Check {
+    fn to_runner(&self, _repo: &'static Repo) -> RawVersionCheckRunner {
         match &self.kind {
             CheckKind::Header => Box::new(header::create()),
             CheckKind::Metadata => Box::new(metadata::create()),
@@ -242,9 +250,10 @@ impl Check {
             _ => unreachable!("unsupported check: {self}"),
         }
     }
+}
 
-    /// Create a parsed ebuild package version check runner.
-    pub(crate) fn parsed_version_check(&self) -> ParsedVersionCheckRunner {
+impl ToRunner<ParsedVersionCheckRunner> for Check {
+    fn to_runner(&self, _repo: &'static Repo) -> ParsedVersionCheckRunner {
         match &self.kind {
             CheckKind::VariableOrder => Box::new(variable_order::create()),
             _ => unreachable!("unsupported check: {self}"),

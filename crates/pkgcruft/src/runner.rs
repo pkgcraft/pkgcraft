@@ -107,8 +107,8 @@ impl EbuildCheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.ver_checks.push(check.version_check(self.repo)),
-            Scope::Package => self.pkg_checks.push(check.package_check(self.repo)),
+            Scope::Version => self.ver_checks.push(check.to_runner(self.repo)),
+            Scope::Package => self.pkg_checks.push(check.to_runner(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -143,6 +143,7 @@ impl EbuildCheckRunner {
 struct EbuildRawCheckRunner {
     ver_checks: Vec<RawVersionCheckRunner>,
     source: source::EbuildRaw,
+    repo: &'static Repo,
 }
 
 impl EbuildRawCheckRunner {
@@ -150,13 +151,14 @@ impl EbuildRawCheckRunner {
         Self {
             ver_checks: Default::default(),
             source: source::EbuildRaw { repo },
+            repo,
         }
     }
 
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.ver_checks.push(check.raw_version_check()),
+            Scope::Version => self.ver_checks.push(check.to_runner(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -177,6 +179,7 @@ impl EbuildRawCheckRunner {
 struct EbuildParsedCheckRunner {
     ver_checks: Vec<ParsedVersionCheckRunner>,
     source: source::EbuildRaw,
+    repo: &'static Repo,
 }
 
 impl EbuildParsedCheckRunner {
@@ -184,13 +187,14 @@ impl EbuildParsedCheckRunner {
         Self {
             ver_checks: Default::default(),
             source: source::EbuildRaw { repo },
+            repo,
         }
     }
 
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.ver_checks.push(check.parsed_version_check()),
+            Scope::Version => self.ver_checks.push(check.to_runner(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
