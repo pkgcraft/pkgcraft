@@ -3,6 +3,8 @@ use std::fmt;
 use std::ops::Deref;
 use std::sync::OnceLock;
 
+use crate::report::Location;
+
 pub(crate) struct Tree<'a> {
     data: &'a [u8],
     tree: OnceLock<tree_sitter::Tree>,
@@ -71,6 +73,15 @@ impl<'a> Deref for Node<'a> {
 
     fn deref(&self) -> &Self::Target {
         &self.node
+    }
+}
+
+impl From<&Node<'_>> for Location {
+    fn from(value: &Node<'_>) -> Self {
+        Self {
+            line: value.node.start_position().row + 1,
+            column: value.node.start_position().column + 1,
+        }
     }
 }
 

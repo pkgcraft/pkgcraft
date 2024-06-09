@@ -243,8 +243,8 @@ impl ReportKind {
 /// Values are not zero-based so a value of zero means the field is unset.
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub struct Location {
-    line: usize,
-    column: usize,
+    pub line: usize,
+    pub column: usize,
 }
 
 impl fmt::Debug for Location {
