@@ -20,7 +20,6 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted],
     context: &[],
     priority: 0,
-    parse: false,
 };
 
 pub(super) fn create(repo: &'static Repo) -> impl PackageCheck {

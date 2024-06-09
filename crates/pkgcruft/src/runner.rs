@@ -138,7 +138,6 @@ impl EbuildCheckRunner {
 /// Check runner for raw ebuild package checks.
 struct EbuildRawCheckRunner {
     ver_checks: Vec<RawVersionRunner>,
-    parsed_checks: Vec<ParsedVersionRunner>,
     source: source::EbuildRaw,
     repo: &'static Repo,
 }
@@ -147,7 +146,6 @@ impl EbuildRawCheckRunner {
     fn new(repo: &'static Repo) -> Self {
         Self {
             ver_checks: Default::default(),
-            parsed_checks: Default::default(),
             source: source::EbuildRaw { repo },
             repo,
         }
@@ -155,9 +153,8 @@ impl EbuildRawCheckRunner {
 
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
-        match (&check.scope, check.parse) {
-            (Scope::Version, false) => self.ver_checks.push(check.to_runner(self.repo)),
-            (Scope::Version, true) => self.parsed_checks.push(check.to_runner(self.repo)),
+        match &check.scope {
+            Scope::Version => self.ver_checks.push(check.to_runner(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -165,19 +162,11 @@ impl EbuildRawCheckRunner {
     /// Run the check runner for a given restriction.
     fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         for pkg in self.source.iter_restrict(restrict) {
+            let tree = Tree::new(pkg.data().as_bytes());
             for check in &self.ver_checks {
                 let now = Instant::now();
-                check.run(&pkg, filter);
+                check.run(&pkg, &tree, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
-            }
-
-            if !self.parsed_checks.is_empty() {
-                let tree = Tree::new(pkg.data().as_bytes());
-                for check in &self.parsed_checks {
-                    let now = Instant::now();
-                    check.run(&pkg, &tree, filter);
-                    debug!("{check}: {pkg}: {:?}", now.elapsed());
-                }
             }
         }
     }

@@ -1,26 +1,32 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::ops::Deref;
+use std::sync::OnceLock;
 
 pub(crate) struct Tree<'a> {
     data: &'a [u8],
-    tree: tree_sitter::Tree,
+    tree: OnceLock<tree_sitter::Tree>,
 }
 
 impl<'a> Tree<'a> {
     pub(crate) fn new(data: &'a [u8]) -> Self {
-        // TODO: Re-use parser instead of recreating it per pkg, this is currently difficult
-        // because parser.parse() requires a mutable Parser reference.
-        let mut parser = tree_sitter::Parser::new();
-        parser
-            .set_language(&tree_sitter_bash::language())
-            .expect("failed loading bash grammar");
-        let tree = parser.parse(data, None).expect("failed parsing bash");
-        Self { data, tree }
+        Self { data, tree: OnceLock::new() }
     }
 
     pub(crate) fn iter_global_nodes(&self) -> IterNodes {
-        IterNodes::new(self.data, self.tree.root_node(), ["function_definition"])
+        IterNodes::new(self.data, self.tree().root_node(), ["function_definition"])
+    }
+
+    fn tree(&self) -> &tree_sitter::Tree {
+        self.tree.get_or_init(|| {
+            // TODO: Re-use parser instead of recreating it per pkg, this is currently difficult
+            // because parser.parse() requires a mutable Parser reference.
+            let mut parser = tree_sitter::Parser::new();
+            parser
+                .set_language(&tree_sitter_bash::language())
+                .expect("failed loading bash grammar");
+            parser.parse(self.data, None).expect("failed parsing bash")
+        })
     }
 }
 
@@ -28,7 +34,7 @@ impl Deref for Tree<'_> {
     type Target = tree_sitter::Tree;
 
     fn deref(&self) -> &Self::Target {
-        &self.tree
+        self.tree()
     }
 }
 

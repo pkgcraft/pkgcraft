@@ -18,7 +18,6 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[EapiUnstable, KeywordsOverlapping, KeywordsUnsorted],
     context: &[],
     priority: 0,
-    parse: false,
 };
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {

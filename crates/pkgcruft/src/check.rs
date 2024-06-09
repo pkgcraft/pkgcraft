@@ -127,17 +127,11 @@ pub(crate) trait PackageCheck: RegisterCheck {
 }
 pub(crate) type PackageRunner = Box<dyn PackageCheck + Send + Sync>;
 
-/// Run a check against a given raw ebuild package version.
+/// Run a check against a given raw ebuild package version and lazily parsed bash tree.
 pub(crate) trait RawVersionCheck: RegisterCheck {
-    fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
-}
-pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
-
-/// Run a check against a parsed raw ebuild.
-pub(crate) trait ParsedVersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, tree: &Tree, filter: &mut ReportFilter);
 }
-pub(crate) type ParsedVersionRunner = Box<dyn ParsedVersionCheck + Send + Sync>;
+pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -159,9 +153,6 @@ pub struct Check {
 
     /// The priority of the check for enabling a deterministic running order.
     priority: i64,
-
-    /// The check requires a bash parse tree related to the object it runs against.
-    pub(crate) parse: bool,
 }
 
 impl Check {
@@ -249,16 +240,8 @@ impl ToRunner<RawVersionRunner> for Check {
         match &self.kind {
             CheckKind::Header => Box::new(header::create()),
             CheckKind::Metadata => Box::new(metadata::create()),
-            CheckKind::Whitespace => Box::new(whitespace::create()),
-            _ => unreachable!("unsupported check: {self}"),
-        }
-    }
-}
-
-impl ToRunner<ParsedVersionRunner> for Check {
-    fn to_runner(&self, _repo: &'static Repo) -> ParsedVersionRunner {
-        match &self.kind {
             CheckKind::VariableOrder => Box::new(variable_order::create()),
+            CheckKind::Whitespace => Box::new(whitespace::create()),
             _ => unreachable!("unsupported check: {self}"),
         }
     }

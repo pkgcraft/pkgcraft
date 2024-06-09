@@ -1,5 +1,6 @@
 use pkgcraft::pkg::ebuild::raw::Pkg;
 
+use crate::bash::Tree;
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -14,7 +15,6 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
     context: &[],
     priority: 0,
-    parse: false,
 };
 
 pub(super) fn create() -> impl RawVersionCheck {
@@ -26,7 +26,7 @@ struct Check;
 super::register!(Check);
 
 impl RawVersionCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();

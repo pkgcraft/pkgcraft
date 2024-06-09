@@ -5,6 +5,7 @@ use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::ebuild::raw::Pkg;
 use pkgcraft::pkg::Package;
 
+use crate::bash::Tree;
 use crate::report::ReportKind::{
     DependencyInvalid, LicenseInvalid, MetadataMissing, PropertiesInvalid, RequiredUseInvalid,
     RestrictInvalid, SourcingError,
@@ -30,7 +31,6 @@ pub(super) static CHECK: super::Check = super::Check {
     ],
     context: &[],
     priority: -9999,
-    parse: false,
 };
 
 pub(super) fn create() -> impl RawVersionCheck {
@@ -42,7 +42,7 @@ struct Check;
 super::register!(Check);
 
 impl RawVersionCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 
         match pkg.metadata_raw() {

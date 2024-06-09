@@ -2,6 +2,7 @@ use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild::raw::Pkg;
 use regex::Regex;
 
+use crate::bash::Tree;
 use crate::report::ReportKind::HeaderInvalid;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -16,7 +17,6 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[HeaderInvalid],
     context: &[CheckContext::Gentoo],
     priority: 0,
-    parse: false,
 };
 
 static COPYRIGHT_REGEX: Lazy<Regex> = Lazy::new(|| {
@@ -35,7 +35,7 @@ struct Check;
 super::register!(Check);
 
 impl RawVersionCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let mut lines = pkg.data().lines();
 
         let mut line = lines.next().unwrap_or_default();

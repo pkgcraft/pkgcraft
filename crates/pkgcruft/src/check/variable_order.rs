@@ -8,7 +8,7 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, ParsedVersionCheck};
+use super::{CheckKind, RawVersionCheck};
 
 pub(crate) static CHECK: super::Check = super::Check {
     kind: CheckKind::VariableOrder,
@@ -17,7 +17,6 @@ pub(crate) static CHECK: super::Check = super::Check {
     reports: &[VariableOrder],
     context: &[],
     priority: 0,
-    parse: true,
 };
 
 #[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -37,7 +36,7 @@ enum Variable {
     PROPERTIES,
 }
 
-pub(crate) fn create() -> impl ParsedVersionCheck {
+pub(crate) fn create() -> impl RawVersionCheck {
     Check
 }
 
@@ -45,7 +44,7 @@ struct Check;
 
 super::register!(Check);
 
-impl ParsedVersionCheck for Check {
+impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, tree: &Tree, filter: &mut ReportFilter) {
         let mut variables = vec![];
         for node in tree
