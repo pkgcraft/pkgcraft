@@ -34,19 +34,19 @@ impl RawVersionCheck for Check {
 
         while let Some(line) = lines.next() {
             lineno += 1;
-            let mut chars = line.chars().peekable();
-            let mut pos = 0;
-            while let Some(c) = chars.next() {
-                pos += 1;
+            let mut char_indices = line.char_indices().peekable();
+            while let Some((pos, c)) = char_indices.next() {
                 // TODO: Check for unnecessary leading whitespace which requires bash
                 // parsing to ignore indents inside multiline strings or similar.
                 if c.is_whitespace() {
                     if c != ' ' && c != '\t' {
-                        let message = format!("character {pos:03}: {c:?}");
-                        filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
-                    } else if chars.peek().is_none() {
+                        let message = format!("character {c:?}");
+                        let report = WhitespaceInvalid.version(pkg, message);
+                        filter.report(report.location((lineno, pos + 1)));
+                    } else if char_indices.peek().is_none() {
                         let message = "trailing whitespace";
-                        filter.report(WhitespaceUnneeded.version(pkg, message).line(lineno));
+                        let report = WhitespaceUnneeded.version(pkg, message);
+                        filter.report(report.location((lineno, pos + 1)));
                     }
                 }
             }
@@ -57,14 +57,15 @@ impl RawVersionCheck for Check {
                     || !line.starts_with("EAPI=")
                 {
                     let message = "non-standard EAPI assignment";
-                    filter.report(EapiFormat.version(pkg, message).line(lineno));
+                    filter.report(EapiFormat.version(pkg, message).location(lineno));
                 }
                 eapi_assign = true;
             }
 
             if let Some(prev) = prev_line {
                 if prev.trim().is_empty() && line.trim().is_empty() {
-                    filter.report(WhitespaceUnneeded.version(pkg, "empty line").line(lineno));
+                    let report = WhitespaceUnneeded.version(pkg, "empty line");
+                    filter.report(report.location(lineno));
                 }
             }
 
@@ -73,7 +74,8 @@ impl RawVersionCheck for Check {
 
         if !pkg.data().ends_with('\n') {
             let message = "missing ending newline";
-            filter.report(WhitespaceInvalid.version(pkg, message).line(lineno));
+            let report = WhitespaceInvalid.version(pkg, message);
+            filter.report(report.location(lineno));
         }
     }
 }

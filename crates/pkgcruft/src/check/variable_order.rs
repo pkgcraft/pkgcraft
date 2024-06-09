@@ -69,7 +69,8 @@ impl RawVersionCheck for Check {
         for ((var1, _), (var2, lineno)) in variables.iter().tuple_windows() {
             if var2 < var1 {
                 let message = format!("{var2} should occur before {var1}");
-                filter.report(VariableOrder.version(pkg, message).line(*lineno));
+                let report = VariableOrder.version(pkg, message);
+                filter.report(report.location(*lineno));
             }
         }
     }

@@ -242,7 +242,7 @@ impl ReportKind {
 ///
 /// Values are not zero-based so a value of zero means the field is unset.
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub(crate) struct Location {
+pub struct Location {
     line: usize,
     column: usize,
 }
@@ -257,7 +257,7 @@ impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "line: {}", self.line)?;
         if self.column > 0 {
-            write!(f, ", col: {}", self.column)?;
+            write!(f, ", column: {}", self.column)?;
         }
         Ok(())
     }
@@ -266,6 +266,12 @@ impl fmt::Display for Location {
 impl From<usize> for Location {
     fn from(value: usize) -> Self {
         Self { line: value, column: 0 }
+    }
+}
+
+impl From<(usize, usize)> for Location {
+    fn from(value: (usize, usize)) -> Self {
+        Self { line: value.0, column: value.1 }
     }
 }
 
@@ -376,13 +382,13 @@ impl Report {
             .map_err(|e| Error::InvalidValue(format!("failed deserializing report: {e}")))
     }
 
-    /// Add a line reference into the report scope during creation.
-    pub(crate) fn line<L>(mut self, value: L) -> Report
+    /// Add a location reference into the report scope during creation.
+    pub(crate) fn location<L>(mut self, value: L) -> Report
     where
         L: Into<Location>,
     {
         match &mut self.scope {
-            ReportScope::Version(_, line @ None) => *line = Some(value.into()),
+            ReportScope::Version(_, location @ None) => *location = Some(value.into()),
             _ => panic!("invalid report scope: {:?}", self.scope),
         }
         self
