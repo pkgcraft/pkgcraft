@@ -53,6 +53,11 @@ impl<'a> Node<'a> {
             .child_by_field_name("name")
             .map(|x| x.utf8_text(self.data).unwrap())
     }
+
+    /// Return the node's line number.
+    pub(crate) fn line(&self) -> usize {
+        self.node.start_position().row + 1
+    }
 }
 
 impl<'a> Deref for Node<'a> {

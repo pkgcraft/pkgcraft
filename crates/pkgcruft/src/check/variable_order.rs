@@ -62,7 +62,7 @@ impl ParsedVersionCheck for Check {
 
             let name = node.name().expect("unnamed variable");
             if let Ok(var) = name.parse::<Variable>() {
-                variables.push((var, node.start_position().row + 1));
+                variables.push((var, node.line()));
             }
         }
 
