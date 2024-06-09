@@ -13,7 +13,7 @@ impl<'a> Tree<'a> {
         Self { data, tree: OnceLock::new() }
     }
 
-    pub(crate) fn iter_global_nodes(&self) -> IterNodes {
+    pub(crate) fn iter_global_nodes(&self) -> impl Iterator<Item = Node> {
         IterNodes::new(self.data, self.tree().root_node(), ["function_definition"])
     }
 
@@ -74,7 +74,7 @@ impl<'a> Deref for Node<'a> {
     }
 }
 
-pub(crate) struct IterNodes<'a> {
+struct IterNodes<'a> {
     data: &'a [u8],
     cursor: tree_sitter::TreeCursor<'a>,
     skip: HashSet<String>,
