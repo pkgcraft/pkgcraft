@@ -88,8 +88,8 @@ impl CheckRunner {
 
 /// Check runner for ebuild package checks.
 struct EbuildCheckRunner {
-    ver_checks: Vec<VersionCheckRunner>,
-    pkg_checks: Vec<PackageCheckRunner>,
+    ver_checks: Vec<VersionRunner>,
+    pkg_checks: Vec<PackageRunner>,
     source: source::Ebuild,
     repo: &'static Repo,
 }
@@ -141,7 +141,7 @@ impl EbuildCheckRunner {
 
 /// Check runner for raw ebuild package checks.
 struct EbuildRawCheckRunner {
-    ver_checks: Vec<RawVersionCheckRunner>,
+    ver_checks: Vec<RawVersionRunner>,
     source: source::EbuildRaw,
     repo: &'static Repo,
 }
@@ -177,7 +177,7 @@ impl EbuildRawCheckRunner {
 
 /// Check runner for parsed ebuild package checks.
 struct EbuildParsedCheckRunner {
-    ver_checks: Vec<ParsedVersionCheckRunner>,
+    ver_checks: Vec<ParsedVersionRunner>,
     source: source::EbuildRaw,
     repo: &'static Repo,
 }

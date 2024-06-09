@@ -119,25 +119,25 @@ use register;
 pub(crate) trait VersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
 }
-pub(crate) type VersionCheckRunner = Box<dyn VersionCheck + Send + Sync>;
+pub(crate) type VersionRunner = Box<dyn VersionCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
 pub(crate) trait PackageCheck: RegisterCheck {
     fn run(&self, pkg: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
-pub(crate) type PackageCheckRunner = Box<dyn PackageCheck + Send + Sync>;
+pub(crate) type PackageRunner = Box<dyn PackageCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version.
 pub(crate) trait RawVersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, filter: &mut ReportFilter);
 }
-pub(crate) type RawVersionCheckRunner = Box<dyn RawVersionCheck + Send + Sync>;
+pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
 
 /// Run a check against a parsed raw ebuild.
 pub(crate) trait ParsedVersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, tree: &Tree, filter: &mut ReportFilter);
 }
-pub(crate) type ParsedVersionCheckRunner = Box<dyn ParsedVersionCheck + Send + Sync>;
+pub(crate) type ParsedVersionRunner = Box<dyn ParsedVersionCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -213,8 +213,8 @@ pub(crate) trait ToRunner<T> {
     fn to_runner(&self, repo: &'static Repo) -> T;
 }
 
-impl ToRunner<VersionCheckRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> VersionCheckRunner {
+impl ToRunner<VersionRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> VersionRunner {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
@@ -228,8 +228,8 @@ impl ToRunner<VersionCheckRunner> for Check {
     }
 }
 
-impl ToRunner<PackageCheckRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> PackageCheckRunner {
+impl ToRunner<PackageRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> PackageRunner {
         match &self.kind {
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
@@ -241,8 +241,8 @@ impl ToRunner<PackageCheckRunner> for Check {
     }
 }
 
-impl ToRunner<RawVersionCheckRunner> for Check {
-    fn to_runner(&self, _repo: &'static Repo) -> RawVersionCheckRunner {
+impl ToRunner<RawVersionRunner> for Check {
+    fn to_runner(&self, _repo: &'static Repo) -> RawVersionRunner {
         match &self.kind {
             CheckKind::Header => Box::new(header::create()),
             CheckKind::Metadata => Box::new(metadata::create()),
@@ -252,8 +252,8 @@ impl ToRunner<RawVersionCheckRunner> for Check {
     }
 }
 
-impl ToRunner<ParsedVersionCheckRunner> for Check {
-    fn to_runner(&self, _repo: &'static Repo) -> ParsedVersionCheckRunner {
+impl ToRunner<ParsedVersionRunner> for Check {
+    fn to_runner(&self, _repo: &'static Repo) -> ParsedVersionRunner {
         match &self.kind {
             CheckKind::VariableOrder => Box::new(variable_order::create()),
             _ => unreachable!("unsupported check: {self}"),
