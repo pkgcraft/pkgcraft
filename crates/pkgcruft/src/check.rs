@@ -212,7 +212,6 @@ impl ToRunner<VersionRunner> for Check {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
-            CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
             CheckKind::Keywords => Box::new(keywords::create(repo)),
             CheckKind::License => Box::new(license::create(repo)),
             CheckKind::Overlay => Box::new(overlay::create(repo)),
@@ -236,8 +235,9 @@ impl ToRunner<PackageRunner> for Check {
 }
 
 impl ToRunner<RawVersionRunner> for Check {
-    fn to_runner(&self, _repo: &'static Repo) -> RawVersionRunner {
+    fn to_runner(&self, repo: &'static Repo) -> RawVersionRunner {
         match &self.kind {
+            CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
             CheckKind::Header => Box::new(header::create()),
             CheckKind::Metadata => Box::new(metadata::create()),
             CheckKind::VariableOrder => Box::new(variable_order::create()),
