@@ -16,6 +16,7 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[LiveKeywords, LiveOnly],
     context: &[CheckContext::Gentoo],
     priority: 0,
+    parse: false,
 };
 
 pub(super) fn create() -> impl PackageCheck {

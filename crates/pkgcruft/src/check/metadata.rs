@@ -30,6 +30,7 @@ pub(super) static CHECK: super::Check = super::Check {
     ],
     context: &[],
     priority: -9999,
+    parse: false,
 };
 
 pub(super) fn create() -> impl RawVersionCheck {

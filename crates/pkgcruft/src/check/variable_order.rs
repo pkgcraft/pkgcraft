@@ -13,10 +13,11 @@ use super::{CheckKind, ParsedVersionCheck};
 pub(crate) static CHECK: super::Check = super::Check {
     kind: CheckKind::VariableOrder,
     scope: Scope::Version,
-    source: SourceKind::EbuildParsed,
+    source: SourceKind::EbuildRaw,
     reports: &[VariableOrder],
     context: &[],
     priority: 0,
+    parse: true,
 };
 
 #[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]

@@ -17,6 +17,7 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[LicenseDeprecated, LicenseMissing, LicenseUnneeded],
     context: &[],
     priority: 0,
+    parse: false,
 };
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {

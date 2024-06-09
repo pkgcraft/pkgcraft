@@ -159,6 +159,9 @@ pub struct Check {
 
     /// The priority of the check for enabling a deterministic running order.
     priority: i64,
+
+    /// The check requires a bash parse tree related to the object it runs against.
+    pub(crate) parse: bool,
 }
 
 impl Check {

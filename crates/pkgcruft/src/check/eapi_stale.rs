@@ -17,6 +17,7 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[EapiStale],
     context: &[],
     priority: 0,
+    parse: false,
 };
 
 pub(super) fn create() -> impl PackageCheck {

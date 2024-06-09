@@ -14,6 +14,7 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
     context: &[],
     priority: 0,
+    parse: false,
 };
 
 pub(super) fn create() -> impl RawVersionCheck {

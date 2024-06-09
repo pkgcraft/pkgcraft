@@ -16,6 +16,7 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[HeaderInvalid],
     context: &[CheckContext::Gentoo],
     priority: 0,
+    parse: false,
 };
 
 static COPYRIGHT_REGEX: Lazy<Regex> = Lazy::new(|| {

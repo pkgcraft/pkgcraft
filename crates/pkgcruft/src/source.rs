@@ -23,7 +23,6 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 #[strum(serialize_all = "kebab-case")]
 pub enum SourceKind {
     Ebuild,
-    EbuildParsed,
     EbuildRaw,
 }
 

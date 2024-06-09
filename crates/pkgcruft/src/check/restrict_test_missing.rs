@@ -16,6 +16,7 @@ pub(super) static CHECK: super::Check = super::Check {
     reports: &[RestrictMissing],
     context: &[],
     priority: 0,
+    parse: false,
 };
 
 pub(super) fn create() -> impl VersionCheck {
