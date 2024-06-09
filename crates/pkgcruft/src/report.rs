@@ -346,12 +346,11 @@ impl Report {
     }
 
     /// Add a line reference into the report scope during creation.
-    pub(crate) fn line(mut self, line: usize) -> Report {
-        let ReportScope::Version(cpv, None) = self.scope else {
-            panic!("invalid report scope: {:?}", self.scope);
-        };
-
-        self.scope = ReportScope::Version(cpv, Some(line));
+    pub(crate) fn line(mut self, value: usize) -> Report {
+        match &mut self.scope {
+            ReportScope::Version(_, line @ None) => *line = Some(value),
+            _ => panic!("invalid report scope: {:?}", self.scope),
+        }
         self
     }
 }
