@@ -87,9 +87,11 @@ impl FancyReporter {
 
         write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
 
-        if let ReportScope::Version(cpv, line) = report.scope() {
-            let line = line.map(|x| format!(", line {x}")).unwrap_or_default();
-            write!(output, ": version {}{line}", cpv.version())?;
+        if let ReportScope::Version(cpv, location) = report.scope() {
+            write!(output, ": version {}", cpv.version())?;
+            if let Some(value) = location {
+                write!(output, ", {value}")?;
+            }
         }
 
         if !report.message().is_empty() {

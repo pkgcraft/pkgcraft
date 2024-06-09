@@ -238,9 +238,40 @@ impl ReportKind {
     }
 }
 
+/// A position in a multi-line text file, in terms of lines and columns.
+///
+/// Values are not zero-based so a value of zero means the field is unset.
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+pub(crate) struct Location {
+    line: usize,
+    column: usize,
+}
+
+impl fmt::Debug for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{self}")
+    }
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "line: {}", self.line)?;
+        if self.column > 0 {
+            write!(f, ", col: {}", self.column)?;
+        }
+        Ok(())
+    }
+}
+
+impl From<usize> for Location {
+    fn from(value: usize) -> Self {
+        Self { line: value, column: 0 }
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub enum ReportScope {
-    Version(Cpv, Option<usize>),
+    Version(Cpv, Option<Location>),
     Package(Cpn),
     Category(String),
     Repo(String),
@@ -285,7 +316,7 @@ impl PartialOrd for ReportScope {
 impl fmt::Debug for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Version(cpv, Some(line)) => write!(f, "Version( {cpv}, line {line} )"),
+            Self::Version(cpv, Some(location)) => write!(f, "Version( {cpv}, {location:?} )"),
             Self::Version(cpv, None) => write!(f, "Version( {cpv} )"),
             Self::Package(cpn) => write!(f, "Package( {cpn} )"),
             Self::Category(cat) => write!(f, "Category( {cat} )"),
@@ -297,7 +328,7 @@ impl fmt::Debug for ReportScope {
 impl fmt::Display for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Version(cpv, Some(line)) => write!(f, "{cpv}, line {line}"),
+            Self::Version(cpv, Some(location)) => write!(f, "{cpv}, {location}"),
             Self::Version(cpv, None) => write!(f, "{cpv}"),
             Self::Package(cpn) => write!(f, "{cpn}"),
             Self::Category(cat) => write!(f, "{cat}"),
@@ -346,9 +377,12 @@ impl Report {
     }
 
     /// Add a line reference into the report scope during creation.
-    pub(crate) fn line(mut self, value: usize) -> Report {
+    pub(crate) fn line<L>(mut self, value: L) -> Report
+    where
+        L: Into<Location>,
+    {
         match &mut self.scope {
-            ReportScope::Version(_, line @ None) => *line = Some(value),
+            ReportScope::Version(_, line @ None) => *line = Some(value.into()),
             _ => panic!("invalid report scope: {:?}", self.scope),
         }
         self
@@ -500,8 +534,8 @@ mod tests {
         let data = indoc::indoc! {r#"
             {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}
             {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}
-            {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg1-2-r3",3]},"message":"empty line"}
-            {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg1-2-r3",6]},"message":"missing ending newline"}
+            {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg1-2-r3",{"line":3,"column":0}]},"message":"empty line"}
+            {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg1-2-r3",{"line":6,"column":0}]},"message":"missing ending newline"}
             {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}
             {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}
             {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
