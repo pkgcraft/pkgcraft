@@ -8,6 +8,7 @@ use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::restrict::Restrict;
 use tracing::debug;
 
+use crate::bash::Tree;
 use crate::check::*;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -177,14 +178,14 @@ impl EbuildRawPkgCheckRunner {
 /// Check runner for parsed ebuild package checks.
 struct EbuildParsedPkgCheckRunner {
     ver_checks: Vec<ParsedVersionCheckRunner>,
-    source: source::EbuildParsed,
+    source: source::EbuildRaw,
 }
 
 impl EbuildParsedPkgCheckRunner {
     fn new(repo: &'static Repo) -> Self {
         Self {
             ver_checks: Default::default(),
-            source: source::EbuildParsed::new(repo),
+            source: source::EbuildRaw { repo },
         }
     }
 
@@ -199,9 +200,10 @@ impl EbuildParsedPkgCheckRunner {
     /// Run the check runner for a given restriction.
     fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         for pkg in self.source.iter_restrict(restrict) {
+            let tree = Tree::new(pkg.data().as_bytes());
             for check in &self.ver_checks {
                 let now = Instant::now();
-                check.run(&pkg, filter);
+                check.run(&pkg, &tree, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
         }

@@ -1,3 +1,4 @@
+mod bash;
 pub mod check;
 pub mod error;
 pub mod report;

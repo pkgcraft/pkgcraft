@@ -12,10 +12,11 @@ use pkgcraft::repo::{ebuild::Repo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
+use crate::bash::Tree;
 use crate::report::ReportKind;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{PkgParsed, SourceKind};
+use crate::source::SourceKind;
 use crate::Error;
 
 mod dependency;
@@ -132,9 +133,9 @@ pub(crate) trait RawVersionCheck: RegisterCheck {
 }
 pub(crate) type RawVersionCheckRunner = Box<dyn RawVersionCheck + Send + Sync>;
 
-/// Run a check against a given raw ebuild package version.
+/// Run a check against a parsed raw ebuild.
 pub(crate) trait ParsedVersionCheck: RegisterCheck {
-    fn run(&self, pkg: &PkgParsed, filter: &mut ReportFilter);
+    fn run(&self, pkg: &ebuild::raw::Pkg, tree: &Tree, filter: &mut ReportFilter);
 }
 pub(crate) type ParsedVersionCheckRunner = Box<dyn ParsedVersionCheck + Send + Sync>;
 
