@@ -1,5 +1,6 @@
-use indexmap::IndexSet;
+use itertools::Itertools;
 use pkgcraft::pkg::ebuild::raw::Pkg;
+use strum::{Display, EnumString};
 
 use crate::bash::Tree;
 use crate::report::ReportKind::VariableOrder;
@@ -18,30 +19,28 @@ pub(crate) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(crate) fn create() -> impl ParsedVersionCheck {
-    // TODO: replace string variables with enum variants from pkgcraft?
-    Check {
-        ordered: [
-            "DESCRIPTION",
-            "HOMEPAGE",
-            "SRC_URI",
-            "S",
-            "LICENSE",
-            "SLOT",
-            "KEYWORDS",
-            "IUSE",
-            "RESTRICT",
-            "PROPERTIES",
-        ]
-        .iter()
-        .map(|s| s.to_string())
-        .collect(),
-    }
+#[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[strum(serialize_all = "UPPERCASE")]
+#[allow(non_camel_case_types)]
+#[allow(clippy::upper_case_acronyms)]
+enum Variable {
+    DESCRIPTION,
+    HOMEPAGE,
+    SRC_URI,
+    S,
+    LICENSE,
+    SLOT,
+    KEYWORDS,
+    IUSE,
+    RESTRICT,
+    PROPERTIES,
 }
 
-struct Check {
-    ordered: IndexSet<String>,
+pub(crate) fn create() -> impl ParsedVersionCheck {
+    Check
 }
+
+struct Check;
 
 super::register!(Check);
 
@@ -61,20 +60,16 @@ impl ParsedVersionCheck for Check {
                 return;
             }
 
-            let name = tree.node_name(node);
-            if let Some(idx) = self.ordered.get_index_of(name) {
-                variables.push((idx, name, node.start_position().row + 1));
+            if let Ok(var) = tree.node_name(node).parse::<Variable>() {
+                variables.push((var, node.start_position().row + 1));
             }
         }
 
-        let mut prev_idx = 0;
-        for (idx, name, lineno) in variables {
-            if idx < prev_idx {
-                let unordered = self.ordered.get_index(prev_idx).unwrap();
-                let message = format!("{name} should occur before {unordered}");
-                filter.report(VariableOrder.version(pkg, message).line(lineno));
+        for ((var1, _), (var2, lineno)) in variables.iter().tuple_windows() {
+            if var2 < var1 {
+                let message = format!("{var2} should occur before {var1}");
+                filter.report(VariableOrder.version(pkg, message).line(*lineno));
             }
-            prev_idx = idx;
         }
     }
 }
