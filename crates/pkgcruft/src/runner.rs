@@ -53,50 +53,48 @@ impl SyncCheckRunner {
 
 /// Generic check runners.
 enum CheckRunner {
-    EbuildPkg(EbuildPkgCheckRunner),
-    EbuildParsedPkg(EbuildParsedPkgCheckRunner),
-    EbuildRawPkg(EbuildRawPkgCheckRunner),
+    Ebuild(EbuildCheckRunner),
+    EbuildParsed(EbuildParsedCheckRunner),
+    EbuildRaw(EbuildRawCheckRunner),
 }
 
 impl CheckRunner {
     fn new(source: SourceKind, repo: &'static Repo) -> Self {
         match source {
-            SourceKind::Ebuild => Self::EbuildPkg(EbuildPkgCheckRunner::new(repo)),
-            SourceKind::EbuildParsed => {
-                Self::EbuildParsedPkg(EbuildParsedPkgCheckRunner::new(repo))
-            }
-            SourceKind::EbuildRaw => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo)),
+            SourceKind::Ebuild => Self::Ebuild(EbuildCheckRunner::new(repo)),
+            SourceKind::EbuildParsed => Self::EbuildParsed(EbuildParsedCheckRunner::new(repo)),
+            SourceKind::EbuildRaw => Self::EbuildRaw(EbuildRawCheckRunner::new(repo)),
         }
     }
 
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match self {
-            Self::EbuildPkg(r) => r.add_check(check),
-            Self::EbuildParsedPkg(r) => r.add_check(check),
-            Self::EbuildRawPkg(r) => r.add_check(check),
+            Self::Ebuild(r) => r.add_check(check),
+            Self::EbuildParsed(r) => r.add_check(check),
+            Self::EbuildRaw(r) => r.add_check(check),
         }
     }
 
     /// Run the check runner for a given restriction.
     fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
         match self {
-            Self::EbuildPkg(r) => r.run(restrict, filter),
-            Self::EbuildParsedPkg(r) => r.run(restrict, filter),
-            Self::EbuildRawPkg(r) => r.run(restrict, filter),
+            Self::Ebuild(r) => r.run(restrict, filter),
+            Self::EbuildParsed(r) => r.run(restrict, filter),
+            Self::EbuildRaw(r) => r.run(restrict, filter),
         }
     }
 }
 
 /// Check runner for ebuild package checks.
-struct EbuildPkgCheckRunner {
+struct EbuildCheckRunner {
     ver_checks: Vec<VersionCheckRunner>,
     pkg_checks: Vec<PackageCheckRunner>,
     source: source::Ebuild,
     repo: &'static Repo,
 }
 
-impl EbuildPkgCheckRunner {
+impl EbuildCheckRunner {
     fn new(repo: &'static Repo) -> Self {
         Self {
             ver_checks: Default::default(),
@@ -142,12 +140,12 @@ impl EbuildPkgCheckRunner {
 }
 
 /// Check runner for raw ebuild package checks.
-struct EbuildRawPkgCheckRunner {
+struct EbuildRawCheckRunner {
     ver_checks: Vec<RawVersionCheckRunner>,
     source: source::EbuildRaw,
 }
 
-impl EbuildRawPkgCheckRunner {
+impl EbuildRawCheckRunner {
     fn new(repo: &'static Repo) -> Self {
         Self {
             ver_checks: Default::default(),
@@ -176,12 +174,12 @@ impl EbuildRawPkgCheckRunner {
 }
 
 /// Check runner for parsed ebuild package checks.
-struct EbuildParsedPkgCheckRunner {
+struct EbuildParsedCheckRunner {
     ver_checks: Vec<ParsedVersionCheckRunner>,
     source: source::EbuildRaw,
 }
 
-impl EbuildParsedPkgCheckRunner {
+impl EbuildParsedCheckRunner {
     fn new(repo: &'static Repo) -> Self {
         Self {
             ver_checks: Default::default(),
