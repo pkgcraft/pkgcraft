@@ -26,7 +26,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-static ECLASSES: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
+static ECLASSES: Lazy<IndexSet<&str>> = Lazy::new(|| {
     ["python-r1", "python-single-r1", "python-any-r1"]
         .into_iter()
         .collect()
