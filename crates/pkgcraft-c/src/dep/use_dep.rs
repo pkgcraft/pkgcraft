@@ -27,7 +27,7 @@ pub struct UseDep {
 impl From<dep::UseDep> for UseDep {
     fn from(u: dep::UseDep) -> Self {
         UseDep {
-            kind: u.kind(),
+            kind: *u.kind(),
             flag: try_ptr_from_str!(u.flag()),
             missing: u.default().map(boxed).unwrap_or(ptr::null_mut()),
             dep: boxed(UseDepWrapper(u)),

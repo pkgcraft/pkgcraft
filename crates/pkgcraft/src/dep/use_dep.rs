@@ -82,8 +82,8 @@ impl UseDep {
     }
 
     /// Return the USE dependency type.
-    pub fn kind(&self) -> UseDepKind {
-        self.kind
+    pub fn kind(&self) -> &UseDepKind {
+        &self.kind
     }
 
     /// Return the flag value for the USE dependency.
