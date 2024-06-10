@@ -3,10 +3,11 @@ use std::sync::OnceLock;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::{Eclass, Repo};
+use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
 
 use crate::report::ReportKind::PythonUpdate;
@@ -25,7 +26,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-static ECLASSES: &[&str] = &["python-r1", "python-single-r1", "python-any-r1"];
+static ECLASSES: Lazy<IndexSet<&'static str>> = Lazy::new(|| {
+    ["python-r1", "python-single-r1", "python-any-r1"]
+        .into_iter()
+        .collect()
+});
+
 static IUSE_PREFIX: &str = "python_targets_";
 static IUSE_PREFIX_S: &str = "python_single_target_";
 
@@ -34,15 +40,8 @@ fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
 }
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
-    let eclasses = repo
-        .eclasses()
-        .values()
-        .filter(|x| ECLASSES.contains(&x.name()))
-        .collect();
-
     Check {
         repo,
-        eclasses,
         multi_target: OnceLock::new(),
         single_target: OnceLock::new(),
     }
@@ -95,11 +94,16 @@ super::register!(Check);
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         // TODO: return on multiple matches
-        let Some(eclass) = pkg.inherited().intersection(&self.eclasses).next() else {
+        let Some(eclass) = pkg
+            .inherited()
+            .iter()
+            .map(|x| x.name())
+            .find(|x| ECLASSES.contains(x))
+        else {
             return;
         };
 
-        let (available_targets, keys, prefixes) = match eclass.name() {
+        let (available_targets, keys, prefixes) = match eclass {
             "python-r1" => (self.multi_target(), vec![], vec![IUSE_PREFIX]),
             "python-single-r1" => (self.single_target(), vec![], vec![IUSE_PREFIX, IUSE_PREFIX_S]),
             "python-any-r1" => {
