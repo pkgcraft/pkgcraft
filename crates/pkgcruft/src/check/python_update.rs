@@ -85,11 +85,10 @@ super::register!(Check);
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         // TODO: return on multiple matches
-        let Some(eclass) = pkg
-            .inherited()
+        let Some(eclass) = ECLASSES
             .iter()
-            .map(|x| x.name())
-            .find(|x| ECLASSES.contains(x))
+            .copied()
+            .find(|x| pkg.inherited().contains(*x))
         else {
             return;
         };

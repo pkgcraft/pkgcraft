@@ -60,7 +60,7 @@ super::register!(Check);
 
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
-        if pkg.category() == "virtual" || !pkg.inherited().iter().any(|x| x.name() == "ruby-ng") {
+        if pkg.category() == "virtual" || !pkg.inherited().contains("ruby-ng") {
             return;
         };
 
