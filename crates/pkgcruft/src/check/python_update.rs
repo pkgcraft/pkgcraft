@@ -103,7 +103,11 @@ impl VersionCheck for Check {
             _ => return,
         };
 
-        let deps: IndexSet<_> = pkg.dependencies(&keys).into_iter_flatten().collect();
+        let deps: IndexSet<_> = pkg
+            .dependencies(&keys)
+            .into_iter_flatten()
+            .filter(|x| x.blocker().is_none())
+            .collect();
 
         // determine the latest supported python version
         let Some(latest) = deps
