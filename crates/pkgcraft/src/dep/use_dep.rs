@@ -86,6 +86,13 @@ impl UseDep {
         &self.kind
     }
 
+    /// Return true if the USE dependency may or must be enabled, otherwise false.
+    pub fn possible(&self) -> bool {
+        [UseDepKind::Enabled, UseDepKind::EnabledConditional, UseDepKind::Equal]
+            .iter()
+            .any(|x| x == &self.kind)
+    }
+
     /// Return the flag value for the USE dependency.
     pub fn flag(&self) -> &str {
         &self.flag

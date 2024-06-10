@@ -4,7 +4,6 @@ use std::sync::OnceLock;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
-use pkgcraft::dep::UseDepKind::{self, Enabled, EnabledConditional, Equal};
 use pkgcraft::pkg::ebuild::metadata::Key::{BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::{Eclass, Repo};
@@ -44,7 +43,6 @@ pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
     Check {
         repo,
         eclasses,
-        use_possible: [Enabled, Equal, EnabledConditional].into_iter().collect(),
         multi_target: OnceLock::new(),
         single_target: OnceLock::new(),
     }
@@ -53,7 +51,6 @@ pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
 struct Check {
     repo: &'static Repo,
     eclasses: IndexSet<&'static Eclass>,
-    use_possible: HashSet<UseDepKind>,
     multi_target: OnceLock<Vec<&'static str>>,
     single_target: OnceLock<Vec<&'static str>>,
 }
@@ -142,9 +139,10 @@ impl VersionCheck for Check {
         }
 
         for (dep, use_deps) in deps.iter().filter_map(|x| x.use_deps().map(|u| (x, u))) {
-            if use_deps.iter().any(|x| {
-                self.use_possible.contains(x.kind()) && deprefix(x.flag(), &prefixes).is_some()
-            }) {
+            if use_deps
+                .iter()
+                .any(|x| x.possible() && deprefix(x.flag(), &prefixes).is_some())
+            {
                 if let Some(pkg) = self.repo.iter_restrict(dep.no_use_deps().as_ref()).last() {
                     let iuse = pkg
                         .iuse()
