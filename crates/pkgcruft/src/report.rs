@@ -132,6 +132,10 @@ pub enum ReportKind {
     RestrictInvalid,
     RestrictMissing,
     RevisionMissing,
+
+    /// Ebuild can support newer ruby version(s).
+    RubyUpdate,
+
     SourcingError,
     UnstableOnly,
 
@@ -230,6 +234,7 @@ impl ReportKind {
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
             Self::RevisionMissing => Warning,
+            Self::RubyUpdate => Info,
             Self::SourcingError => Critical,
             Self::UnstableOnly => Info,
             Self::UseLocalDescMissing => Error,

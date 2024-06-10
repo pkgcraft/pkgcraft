@@ -32,6 +32,7 @@ mod metadata;
 mod overlay;
 mod python_update;
 mod restrict_test_missing;
+mod ruby_update;
 mod unstable_only;
 mod use_local;
 mod variable_order;
@@ -67,6 +68,7 @@ pub enum CheckKind {
     Overlay,
     PythonUpdate,
     RestrictTestMissing,
+    RubyUpdate,
     UnstableOnly,
     UseLocal,
     VariableOrder,
@@ -218,6 +220,7 @@ impl ToRunner<VersionRunner> for Check {
             CheckKind::License => Box::new(license::create(repo)),
             CheckKind::Overlay => Box::new(overlay::create(repo)),
             CheckKind::PythonUpdate => Box::new(python_update::create(repo)),
+            CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             _ => unreachable!("unsupported check: {self}"),
         }
@@ -332,6 +335,7 @@ static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
         overlay::CHECK,
         python_update::CHECK,
         restrict_test_missing::CHECK,
+        ruby_update::CHECK,
         unstable_only::CHECK,
         use_local::CHECK,
         variable_order::CHECK,
