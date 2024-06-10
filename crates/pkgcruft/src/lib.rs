@@ -9,6 +9,7 @@ pub mod scope;
 pub mod source;
 #[cfg(feature = "test")]
 pub mod test;
+mod utils;
 
 pub use self::error::Error;
 

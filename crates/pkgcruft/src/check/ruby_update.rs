@@ -12,6 +12,7 @@ use crate::report::ReportKind::RubyUpdate;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
+use crate::utils::use_starts_with;
 
 use super::{CheckKind, VersionCheck};
 
@@ -94,21 +95,16 @@ impl VersionCheck for Check {
             return;
         }
 
-        for (dep, use_deps) in deps.iter().filter_map(|x| x.use_deps().map(|u| (x, u))) {
-            if use_deps
-                .iter()
-                .any(|x| x.possible() && x.flag().starts_with(IUSE_PREFIX))
-            {
-                if let Some(pkg) = self.repo.iter_restrict(dep.no_use_deps().as_ref()).last() {
-                    let iuse = pkg
-                        .iuse()
-                        .iter()
-                        .filter_map(|x| x.flag().strip_prefix(IUSE_PREFIX))
-                        .collect::<HashSet<_>>();
-                    targets.retain(|x| iuse.contains(x));
-                    if targets.is_empty() {
-                        return;
-                    }
+        for dep in deps.iter().filter(|x| use_starts_with(x, &[IUSE_PREFIX])) {
+            if let Some(pkg) = self.repo.iter_restrict(dep.no_use_deps().as_ref()).last() {
+                let iuse = pkg
+                    .iuse()
+                    .iter()
+                    .filter_map(|x| x.flag().strip_prefix(IUSE_PREFIX))
+                    .collect::<HashSet<_>>();
+                targets.retain(|x| iuse.contains(x));
+                if targets.is_empty() {
+                    return;
                 }
             }
         }
