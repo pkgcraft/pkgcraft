@@ -49,43 +49,34 @@ pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
 
 struct Check {
     repo: &'static Repo,
-    eclasses: IndexSet<&'static Eclass>,
     multi_target: OnceLock<Vec<&'static str>>,
     single_target: OnceLock<Vec<&'static str>>,
 }
 
-// TODO: add inherited use_expand support to pkgcraft so running against overlays works
 impl Check {
+    fn use_expand(&self, name: &str) -> Vec<&'static str> {
+        // TODO: add inherited use_expand support to pkgcraft so running against overlays works
+        self.repo
+            .metadata
+            .use_expand()
+            .get(name)
+            .map(|x| {
+                x.keys()
+                    .filter(|x| x.starts_with("python"))
+                    .map(|x| x.as_str())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     fn multi_target(&self) -> &[&str] {
-        self.multi_target.get_or_init(|| {
-            self.repo
-                .metadata
-                .use_expand()
-                .get("python_targets")
-                .map(|x| {
-                    x.keys()
-                        .filter(|x| x.starts_with("python"))
-                        .map(|x| x.as_str())
-                        .collect()
-                })
-                .unwrap_or_default()
-        })
+        self.multi_target
+            .get_or_init(|| self.use_expand("python_targets"))
     }
 
     fn single_target(&self) -> &[&str] {
-        self.single_target.get_or_init(|| {
-            self.repo
-                .metadata
-                .use_expand()
-                .get("python_single_target")
-                .map(|x| {
-                    x.keys()
-                        .filter(|x| x.starts_with("python"))
-                        .map(|x| x.as_str())
-                        .collect()
-                })
-                .unwrap_or_default()
-        })
+        self.single_target
+            .get_or_init(|| self.use_expand("python_single_target"))
     }
 }
 
