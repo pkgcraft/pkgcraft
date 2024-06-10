@@ -149,6 +149,7 @@ impl FormatReporter {
                     ("package".to_string(), package),
                     ("version".to_string(), version),
                     ("cpv".to_string(), cpv.to_string()),
+                    ("cpn".to_string(), cpv.cpn().to_string()),
                 ]);
             }
             ReportScope::Package(cpn) => {
