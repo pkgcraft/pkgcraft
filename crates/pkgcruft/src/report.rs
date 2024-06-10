@@ -124,6 +124,10 @@ pub enum ReportKind {
 
     MetadataMissing,
     PropertiesInvalid,
+
+    /// Ebuild can support newer python version(s).
+    PythonUpdate,
+
     RequiredUseInvalid,
     RestrictInvalid,
     RestrictMissing,
@@ -221,6 +225,7 @@ impl ReportKind {
             Self::LiveOnly => Warning,
             Self::MetadataMissing => Critical,
             Self::PropertiesInvalid => Critical,
+            Self::PythonUpdate => Info,
             Self::RequiredUseInvalid => Critical,
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
