@@ -3,11 +3,11 @@ use std::env;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 use pkgcraft::test::TEST_DATA;
-use pkgcraft::utils::current_dir;
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
+use tempfile::tempdir;
 
 #[test]
 fn stdin_targets() {
@@ -80,8 +80,10 @@ fn dep_restrict_targets() {
 fn current_dir_targets() {
     let repo = qa_repo("qa-primary").path();
 
-    // invalid
-    let path = current_dir().unwrap();
+    // empty dir
+    let tmpdir = tempdir().unwrap();
+    let path = tmpdir.path().to_str().unwrap();
+    env::set_current_dir(path).unwrap();
     cmd("pkgcruft scan")
         .assert()
         .stdout("")
