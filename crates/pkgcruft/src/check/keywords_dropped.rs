@@ -56,12 +56,12 @@ impl PackageCheck for Check {
 
             // globbed arches override all dropped keywords
             let drops = if arches.contains("*") {
-                Default::default()
+                HashSet::new()
             } else {
                 previous
                     .difference(&arches)
                     .chain(seen.difference(&arches))
-                    .collect::<HashSet<_>>()
+                    .collect()
             };
 
             for arch in drops {
