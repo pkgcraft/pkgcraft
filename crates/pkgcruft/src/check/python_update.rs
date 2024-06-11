@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use pkgcraft::dep::Flatten;
@@ -87,24 +87,19 @@ type Params = (Vec<&'static str>, Vec<Key>, Vec<&'static str>);
 
 struct Check {
     repo: &'static Repo,
-    params: HashMap<&'static str, Params>,
+    params: IndexMap<&'static str, Params>,
 }
 
 super::register!(Check);
 
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
-        // TODO: return on multiple matches
-        let Some(eclass) = ECLASSES
+        let Some((available_targets, keys, prefixes)) = self
+            .params
             .iter()
-            .copied()
-            .find(|x| pkg.inherited().contains(*x))
+            .find_map(|(k, v)| pkg.inherited().get(*k).and(Some(v)))
         else {
             return;
-        };
-
-        let Some((available_targets, keys, prefixes)) = self.params.get(eclass) else {
-            unreachable!("{self}: unsupported eclass: {eclass}");
         };
 
         let deps: IndexSet<_> = pkg
