@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
+use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
 use crate::report::ReportKind::PythonUpdate;
 use crate::scanner::ReportFilter;
@@ -25,9 +26,43 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-static ECLASSES: &[&str] = &["python-r1", "python-single-r1", "python-any-r1"];
 static IUSE_PREFIX: &str = "python_targets_";
 static IUSE_PREFIX_S: &str = "python_single_target_";
+
+/// Check variants.
+#[derive(AsRefStr, EnumIter, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[strum(serialize_all = "kebab-case")]
+enum Eclass {
+    PythonR1,
+    PythonSingleR1,
+    PythonAnyR1,
+}
+
+impl Eclass {
+    fn targets<'a>(&self, repo: &'a Repo) -> Vec<&'a str> {
+        match self {
+            Self::PythonR1 => use_expand(repo, "python_targets"),
+            Self::PythonSingleR1 => use_expand(repo, "python_single_target"),
+            Self::PythonAnyR1 => use_expand(repo, "python_targets"),
+        }
+    }
+
+    fn keys(&self) -> Vec<Key> {
+        match self {
+            Self::PythonR1 => vec![],
+            Self::PythonSingleR1 => vec![],
+            Self::PythonAnyR1 => vec![DEPEND, BDEPEND],
+        }
+    }
+
+    fn prefixes(&self) -> Vec<&'static str> {
+        match self {
+            Self::PythonR1 => vec![IUSE_PREFIX],
+            Self::PythonSingleR1 => vec![IUSE_PREFIX, IUSE_PREFIX_S],
+            Self::PythonAnyR1 => vec![IUSE_PREFIX, IUSE_PREFIX_S],
+        }
+    }
+}
 
 fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
     prefixes.iter().filter_map(|x| s.strip_prefix(x)).next()
@@ -48,56 +83,23 @@ fn use_expand<'a>(repo: &'a Repo, name: &str) -> Vec<&'a str> {
 }
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
-    let params = ECLASSES
-        .iter()
-        .copied()
-        .map(|x| match x {
-            "python-r1" => (x, (use_expand(repo, "python_targets"), vec![], vec![IUSE_PREFIX])),
-            "python-single-r1" => (
-                x,
-                (
-                    use_expand(repo, "python_single_target"),
-                    vec![],
-                    vec![IUSE_PREFIX, IUSE_PREFIX_S],
-                ),
-            ),
-            "python-any-r1" => (
-                x,
-                (
-                    use_expand(repo, "python_targets"),
-                    vec![BDEPEND, DEPEND],
-                    vec![IUSE_PREFIX, IUSE_PREFIX_S],
-                ),
-            ),
-            _ => unreachable!("{CHECK}: unsupported eclass: {x}"),
-        })
-        .collect();
-
-    Check { repo, params }
+    Check { repo }
 }
-
-// parameters used for scanning deps related to python eclasses
-type Params = (Vec<&'static str>, Vec<Key>, Vec<&'static str>);
 
 struct Check {
     repo: &'static Repo,
-    params: IndexMap<&'static str, Params>,
 }
 
 super::register!(Check);
 
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
-        let Some((available_targets, keys, prefixes)) = self
-            .params
-            .iter()
-            .find_map(|(k, v)| pkg.inherited().get(*k).and(Some(v)))
-        else {
+        let Some(eclass) = Eclass::iter().find(|x| pkg.inherited().contains(x.as_ref())) else {
             return;
         };
 
         let deps: IndexSet<_> = pkg
-            .dependencies(keys)
+            .dependencies(&eclass.keys())
             .into_iter_flatten()
             .filter(|x| x.blocker().is_none())
             .collect();
@@ -115,11 +117,11 @@ impl VersionCheck for Check {
         };
 
         // determine potential targets
-        let mut targets = available_targets
-            .iter()
+        let mut targets = eclass
+            .targets(self.repo)
+            .into_iter()
             .rev()
-            .take_while(|x| *x != &latest)
-            .copied()
+            .take_while(|x| *x != latest)
             .collect::<Vec<_>>();
 
         if targets.is_empty() {
@@ -129,13 +131,13 @@ impl VersionCheck for Check {
         // drop targets with missing dependencies
         for pkg in deps
             .iter()
-            .filter(|x| use_starts_with(x, prefixes))
+            .filter(|x| use_starts_with(x, &eclass.prefixes()))
             .filter_map(|x| self.repo.iter_restrict(x.no_use_deps()).last())
         {
             let iuse = pkg
                 .iuse()
                 .iter()
-                .filter_map(|x| deprefix(x.flag(), prefixes))
+                .filter_map(|x| deprefix(x.flag(), &eclass.prefixes()))
                 .collect::<HashSet<_>>();
             targets.retain(|x| iuse.contains(x));
             if targets.is_empty() {
