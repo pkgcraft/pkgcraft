@@ -223,6 +223,12 @@ impl From<Cow<'_, Dep>> for BaseRestrict {
     }
 }
 
+impl From<&Cow<'_, Dep>> for BaseRestrict {
+    fn from(value: &Cow<'_, Dep>) -> Self {
+        value.as_ref().into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
