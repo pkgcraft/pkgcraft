@@ -37,16 +37,9 @@ impl VersionCheck for Check {
             .iter()
             .map(|k| (k.arch(), k))
             .collect::<OrderedMap<_, OrderedSet<_>>>();
-        let overlapping = keywords_map
-            .values()
-            .filter(|keywords| keywords.len() > 1)
-            .collect::<Vec<_>>();
 
-        if !overlapping.is_empty() {
-            let message = overlapping
-                .into_iter()
-                .map(|keywords| format!("({})", keywords.iter().sorted().join(", ")))
-                .join(", ");
+        for keywords in keywords_map.values().filter(|k| k.len() > 1) {
+            let message = keywords.iter().sorted().join(", ");
             filter.report(KeywordsOverlapping.version(pkg, message));
         }
 
