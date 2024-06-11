@@ -112,12 +112,7 @@ impl VersionCheck for Check {
         // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
-            .filter(|x| {
-                x.category() == "dev-lang"
-                    && x.package() == "python"
-                    // ignore python2 deps
-                    && x.slot().map(|x| x != "2.7").unwrap_or_default()
-            })
+            .filter(|x| x.category() == "dev-lang" && x.package() == "python" && x.slot().is_some())
             .map(|x| x.no_use_deps())
             .sorted()
             .last()
@@ -126,7 +121,7 @@ impl VersionCheck for Check {
             return;
         };
 
-        // determine potential implementations
+        // determine potential targets
         let mut targets = available_targets
             .iter()
             .rev()
@@ -138,7 +133,7 @@ impl VersionCheck for Check {
             return;
         }
 
-        // drop implementations with missing dependencies
+        // drop targets with missing dependencies
         for pkg in deps
             .iter()
             .filter(|x| use_starts_with(x, &prefixes))

@@ -83,7 +83,7 @@ impl VersionCheck for Check {
             return;
         };
 
-        // determine potential implementations
+        // determine potential targets
         let mut targets = self
             .targets()
             .iter()
@@ -96,7 +96,7 @@ impl VersionCheck for Check {
             return;
         }
 
-        // drop implementations with missing dependencies
+        // drop targets with missing dependencies
         for pkg in deps
             .iter()
             .filter(|x| use_starts_with(x, &[IUSE_PREFIX]))
