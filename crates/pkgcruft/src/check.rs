@@ -80,7 +80,7 @@ impl From<CheckKind> for Check {
         CHECKS
             .get(&value)
             .copied()
-            .unwrap_or_else(|| panic!("unknown check: {value}"))
+            .unwrap_or_else(|| unreachable!("unknown check: {value:?}"))
     }
 }
 
@@ -182,7 +182,7 @@ impl Check {
     pub fn iter_report(report: &ReportKind) -> impl Iterator<Item = Check> {
         REPORT_CHECKS
             .get(report)
-            .unwrap_or_else(|| panic!("no checks for report: {report}"))
+            .unwrap_or_else(|| unreachable!("no checks for report: {report:?}"))
             .iter()
             .copied()
     }
@@ -191,7 +191,7 @@ impl Check {
     pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> {
         SOURCE_CHECKS
             .get(source)
-            .unwrap_or_else(|| panic!("no checks for source: {source}"))
+            .unwrap_or_else(|| unreachable!("no checks for source: {source:?}"))
             .iter()
             .copied()
     }
@@ -222,7 +222,7 @@ impl ToRunner<VersionRunner> for Check {
             CheckKind::PythonUpdate => Box::new(python_update::create(repo)),
             CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
-            _ => unreachable!("unsupported check: {self}"),
+            _ => unreachable!("unsupported check: {self:?}"),
         }
     }
 }
@@ -235,7 +235,7 @@ impl ToRunner<PackageRunner> for Check {
             CheckKind::Live => Box::new(live::create()),
             CheckKind::UnstableOnly => Box::new(unstable_only::create(repo)),
             CheckKind::UseLocal => Box::new(use_local::create(repo)),
-            _ => unreachable!("unsupported check: {self}"),
+            _ => unreachable!("unsupported check: {self:?}"),
         }
     }
 }
@@ -248,7 +248,7 @@ impl ToRunner<RawVersionRunner> for Check {
             CheckKind::Metadata => Box::new(metadata::create()),
             CheckKind::VariableOrder => Box::new(variable_order::create()),
             CheckKind::Whitespace => Box::new(whitespace::create()),
-            _ => unreachable!("unsupported check: {self}"),
+            _ => unreachable!("unsupported check: {self:?}"),
         }
     }
 }
