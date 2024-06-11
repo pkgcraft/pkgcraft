@@ -2,8 +2,8 @@ use std::env;
 
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
-use pkgcraft::utils::current_dir;
 use pkgcraft::test::TEST_DATA;
+use pkgcraft::utils::current_dir;
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
