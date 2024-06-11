@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
@@ -26,12 +25,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-static ECLASSES: Lazy<IndexSet<&str>> = Lazy::new(|| {
-    ["python-r1", "python-single-r1", "python-any-r1"]
-        .into_iter()
-        .collect()
-});
-
+static ECLASSES: &[&str] = &["python-r1", "python-single-r1", "python-any-r1"];
 static IUSE_PREFIX: &str = "python_targets_";
 static IUSE_PREFIX_S: &str = "python_single_target_";
 
