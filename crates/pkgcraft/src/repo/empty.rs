@@ -81,15 +81,15 @@ impl PkgRepository for Repo {
     type IterRestrict<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
 
     fn categories(&self) -> IndexSet<String> {
-        IndexSet::new()
+        Default::default()
     }
 
     fn packages(&self, _cat: &str) -> IndexSet<String> {
-        IndexSet::new()
+        Default::default()
     }
 
     fn versions(&self, _cat: &str, _pkg: &str) -> IndexSet<Version> {
-        IndexSet::new()
+        Default::default()
     }
 
     fn len(&self) -> usize {
