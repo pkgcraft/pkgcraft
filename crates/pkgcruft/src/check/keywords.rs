@@ -48,7 +48,7 @@ impl VersionCheck for Check {
             .metadata
             .config
             .eapis_testing
-            .contains(pkg.eapi().as_ref())
+            .contains(pkg.eapi().as_str())
         {
             let keywords = pkg
                 .keywords()

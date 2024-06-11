@@ -70,7 +70,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) 
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char {
     let eapi = try_ref_from_ptr!(eapi);
-    try_ptr_from_str!(eapi.as_ref())
+    try_ptr_from_str!(eapi.as_str())
 }
 
 /// Determine if a string is a valid EAPI.

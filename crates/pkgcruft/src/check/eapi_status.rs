@@ -31,7 +31,7 @@ super::register!(Check);
 
 impl RawVersionCheck for Check {
     fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
-        let eapi = pkg.eapi().as_ref();
+        let eapi = pkg.eapi().as_str();
         if self.repo.metadata.config.eapis_deprecated.contains(eapi) {
             filter.report(EapiDeprecated.version(pkg, eapi));
         } else if self.repo.metadata.config.eapis_banned.contains(eapi) {

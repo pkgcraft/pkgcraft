@@ -145,12 +145,6 @@ impl PartialOrd for Eapi {
     }
 }
 
-impl AsRef<str> for Eapi {
-    fn as_ref(&self) -> &str {
-        &self.id
-    }
-}
-
 impl fmt::Display for Eapi {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.id)
@@ -236,6 +230,11 @@ impl Eapi {
         let s = s.as_ref();
         parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
         Ok(())
+    }
+
+    /// Return the ID as a string slice.
+    pub fn as_str(&self) -> &str {
+        &self.id
     }
 
     /// Check if an EAPI has a given feature.
