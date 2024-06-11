@@ -377,4 +377,20 @@ mod tests {
         let checks: Vec<_> = Check::iter().map(|x| x.kind).collect();
         assert_eq!(&kinds, &checks);
     }
+
+    #[test]
+    fn report() {
+        // verify all reports variants have at least one check
+        for kind in ReportKind::iter() {
+            assert!(REPORT_CHECKS.get(&kind).is_some(), "no checks for report: {kind:?}");
+        }
+    }
+
+    #[test]
+    fn source() {
+        // verify all source variants have at least one check
+        for kind in SourceKind::iter() {
+            assert!(SOURCE_CHECKS.get(&kind).is_some(), "no checks for source: {kind:?}");
+        }
+    }
 }
