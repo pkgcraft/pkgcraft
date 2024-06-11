@@ -137,17 +137,19 @@ impl VersionCheck for Check {
             return;
         }
 
-        for dep in deps.iter().filter(|x| use_starts_with(x, &prefixes)) {
-            if let Some(pkg) = self.repo.iter_restrict(dep.no_use_deps()).last() {
-                let iuse = pkg
-                    .iuse()
-                    .iter()
-                    .filter_map(|x| deprefix(x.flag(), &prefixes))
-                    .collect::<HashSet<_>>();
-                targets.retain(|x| iuse.contains(x));
-                if targets.is_empty() {
-                    return;
-                }
+        for pkg in deps
+            .iter()
+            .filter(|x| use_starts_with(x, &prefixes))
+            .filter_map(|x| self.repo.iter_restrict(x.no_use_deps()).last())
+        {
+            let iuse = pkg
+                .iuse()
+                .iter()
+                .filter_map(|x| deprefix(x.flag(), &prefixes))
+                .collect::<HashSet<_>>();
+            targets.retain(|x| iuse.contains(x));
+            if targets.is_empty() {
+                return;
             }
         }
 
