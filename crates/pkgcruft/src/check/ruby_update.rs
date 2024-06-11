@@ -78,17 +78,17 @@ impl VersionCheck for Check {
             .map(|x| x.no_use_deps())
             .sorted()
             .last()
+            .map(|x| format!("ruby{}", x.slot().unwrap().replace('.', "")))
         else {
             return;
         };
 
         // determine potential implementations
-        let latest_target = format!("ruby{}", latest.slot().unwrap().replace('.', ""));
         let mut targets = self
             .targets()
             .iter()
             .rev()
-            .take_while(|x| *x != &latest_target)
+            .take_while(|x| *x != &latest)
             .copied()
             .collect::<Vec<_>>();
 

@@ -121,16 +121,16 @@ impl VersionCheck for Check {
             .map(|x| x.no_use_deps())
             .sorted()
             .last()
+            .map(|x| format!("python{}", x.slot().unwrap().replace('.', "_")))
         else {
             return;
         };
 
         // determine potential implementations
-        let latest_target = format!("python{}", latest.slot().unwrap().replace('.', "_"));
         let mut targets = available_targets
             .iter()
             .rev()
-            .take_while(|x| *x != &latest_target)
+            .take_while(|x| *x != &latest)
             .copied()
             .collect::<Vec<_>>();
 
