@@ -138,7 +138,7 @@ impl VersionCheck for Check {
         }
 
         for dep in deps.iter().filter(|x| use_starts_with(x, &prefixes)) {
-            if let Some(pkg) = self.repo.iter_restrict(dep.no_use_deps().as_ref()).last() {
+            if let Some(pkg) = self.repo.iter_restrict(dep.no_use_deps()).last() {
                 let iuse = pkg
                     .iuse()
                     .iter()

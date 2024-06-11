@@ -40,7 +40,7 @@ impl VersionCheck for Check {
             // TODO: use cached lookup instead of searching for each dep
             let slots = self
                 .repo
-                .iter_restrict(dep.no_use_deps().as_ref())
+                .iter_restrict(dep.no_use_deps())
                 .map(|pkg| pkg.slot().to_string())
                 .collect::<IndexSet<_>>();
             if slots.len() > 1 {
