@@ -29,7 +29,7 @@ pub(super) static CHECK: super::Check = super::Check {
 static IUSE_PREFIX: &str = "python_targets_";
 static IUSE_PREFIX_S: &str = "python_single_target_";
 
-/// Check variants.
+/// Supported python eclasses.
 #[derive(AsRefStr, EnumIter, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 enum Eclass {
@@ -39,6 +39,7 @@ enum Eclass {
 }
 
 impl Eclass {
+    /// USE_EXPAND targets pulled from the given repo.
     fn targets<'a>(&self, repo: &'a Repo) -> Vec<&'a str> {
         match self {
             Self::PythonR1 => use_expand(repo, "python_targets"),
@@ -47,6 +48,7 @@ impl Eclass {
         }
     }
 
+    /// Dependency variants to pull for matching, with empty lists pulling all deps.
     fn keys(&self) -> Vec<Key> {
         match self {
             Self::PythonR1 => vec![],
@@ -55,6 +57,7 @@ impl Eclass {
         }
     }
 
+    /// USE flag dependency prefixes.
     fn prefixes(&self) -> Vec<&'static str> {
         match self {
             Self::PythonR1 => vec![IUSE_PREFIX],
@@ -64,11 +67,13 @@ impl Eclass {
     }
 }
 
+/// Remove a prefix from a string, given a list of prefixes.
 fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
     prefixes.iter().filter_map(|x| s.strip_prefix(x)).next()
 }
 
 // TODO: add inherited use_expand support to pkgcraft so running against overlays works
+/// Pull USE_EXPAND targets related to a given name from a target repo.
 fn use_expand<'a>(repo: &'a Repo, name: &str) -> Vec<&'a str> {
     repo.metadata
         .use_expand()
