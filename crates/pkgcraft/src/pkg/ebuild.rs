@@ -433,23 +433,28 @@ mod tests {
     fn dependencies() {
         // none
         let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        for key in EAPI_LATEST_OFFICIAL.dep_keys() {
+            assert!(pkg.dependencies(&[*key]).is_empty());
+        }
         assert!(pkg.dependencies(&[]).is_empty());
-        assert!(pkg.dependencies(&[Key::DEPEND]).is_empty());
-        // non-dependency keys are ignored
-        assert!(pkg.dependencies(&[Key::LICENSE]).is_empty());
+        assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
 
         // empty
         let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        for key in EAPI_LATEST_OFFICIAL.dep_keys() {
+            assert!(pkg.dependencies(&[*key]).is_empty());
+        }
         assert!(pkg.dependencies(&[]).is_empty());
-        assert!(pkg.dependencies(&[Key::DEPEND]).is_empty());
         assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
 
         // single
         let pkg = TEST_DATA
             .ebuild_pkg("=dependencies/single-8::metadata")
             .unwrap();
+        for key in EAPI_LATEST_OFFICIAL.dep_keys() {
+            assert_eq!(pkg.dependencies(&[*key]).to_string(), "a/pkg b/pkg");
+        }
         assert_eq!(pkg.dependencies(&[]).to_string(), "a/pkg b/pkg");
-        assert_eq!(pkg.dependencies(&[Key::DEPEND]).to_string(), "a/pkg b/pkg");
         assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg b/pkg");
 
         // non-dependency keys are ignored
