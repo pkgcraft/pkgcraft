@@ -110,8 +110,6 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's dependencies for a given iterable of descriptors.
     pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&Dep> {
-        use Key::*;
-
         // default to all dependency types defined by the package EAPI if no keys are passed
         let keys = if keys.is_empty() {
             Either::Left(self.eapi().dep_keys())
@@ -121,11 +119,11 @@ impl<'a> Pkg<'a> {
 
         keys.into_iter()
             .filter_map(|k| match k {
-                BDEPEND => Some(self.bdepend()),
-                DEPEND => Some(self.depend()),
-                IDEPEND => Some(self.idepend()),
-                PDEPEND => Some(self.pdepend()),
-                RDEPEND => Some(self.rdepend()),
+                Key::BDEPEND => Some(self.bdepend()),
+                Key::DEPEND => Some(self.depend()),
+                Key::IDEPEND => Some(self.idepend()),
+                Key::PDEPEND => Some(self.pdepend()),
+                Key::RDEPEND => Some(self.rdepend()),
                 // non-dependency keys are ignored
                 _ => None,
             })
