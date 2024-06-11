@@ -71,7 +71,7 @@ impl VersionCheck for Check {
             .filter(|x| x.blocker().is_none())
             .collect();
 
-        // determine the latest supported python version
+        // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
             .filter(|x| x.category() == "dev-lang" && x.package() == "ruby" && x.slot().is_some())
@@ -82,6 +82,7 @@ impl VersionCheck for Check {
             return;
         };
 
+        // determine potential implementations
         let latest_target = format!("ruby{}", latest.slot().unwrap().replace('.', ""));
         let mut targets = self
             .targets()
@@ -95,6 +96,7 @@ impl VersionCheck for Check {
             return;
         }
 
+        // drop implementations with missing dependencies
         for pkg in deps
             .iter()
             .filter(|x| use_starts_with(x, &[IUSE_PREFIX]))

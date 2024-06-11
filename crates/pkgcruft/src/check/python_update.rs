@@ -109,7 +109,7 @@ impl VersionCheck for Check {
             .filter(|x| x.blocker().is_none())
             .collect();
 
-        // determine the latest supported python version
+        // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
             .filter(|x| {
@@ -125,6 +125,7 @@ impl VersionCheck for Check {
             return;
         };
 
+        // determine potential implementations
         let latest_target = format!("python{}", latest.slot().unwrap().replace('.', "_"));
         let mut targets = available_targets
             .iter()
@@ -137,6 +138,7 @@ impl VersionCheck for Check {
             return;
         }
 
+        // drop implementations with missing dependencies
         for pkg in deps
             .iter()
             .filter(|x| use_starts_with(x, &prefixes))
