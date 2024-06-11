@@ -27,14 +27,14 @@ pub struct OrderedSet<T: Ordered>(IndexSet<T>);
 
 impl<T: Ordered> Default for OrderedSet<T> {
     fn default() -> Self {
-        Self::new()
+        Self(Default::default())
     }
 }
 
 impl<T: Ordered> OrderedSet<T> {
-    /// Constructs a new, empty OrderedSet<T>.
+    /// Construct a new, empty OrderedSet<T>.
     pub fn new() -> Self {
-        Self(IndexSet::new())
+        Self::default()
     }
 }
 
@@ -125,14 +125,14 @@ pub struct SortedSet<T: Ordered>(IndexSet<T>);
 
 impl<T: Ordered> Default for SortedSet<T> {
     fn default() -> Self {
-        Self::new()
+        Self(Default::default())
     }
 }
 
 impl<T: Ordered> SortedSet<T> {
-    /// Constructs a new, empty SortedSet<T>.
+    /// Construct a new, empty SortedSet<T>.
     pub fn new() -> Self {
-        Self(IndexSet::new())
+        Self::default()
     }
 }
 
@@ -304,13 +304,14 @@ pub struct OrderedMap<K: Ordered, V: Ordered>(pub(crate) IndexMap<K, V>);
 
 impl<K: Ordered, V: Ordered> Default for OrderedMap<K, V> {
     fn default() -> Self {
-        Self::new()
+        Self(Default::default())
     }
 }
 
 impl<K: Ordered, V: Ordered> OrderedMap<K, V> {
+    /// Construct a new, empty OrderedMap<K, V>.
     pub fn new() -> Self {
-        Self(IndexMap::new())
+        Self::default()
     }
 }
 
