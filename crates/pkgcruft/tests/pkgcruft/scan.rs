@@ -7,7 +7,7 @@ use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
-use tempfile::tempdir;
+use tempfile::{tempdir, NamedTempFile};
 
 #[test]
 fn stdin_targets() {
@@ -124,10 +124,13 @@ fn path_targets() {
         .code(2);
 
     // invalid
-    cmd("pkgcruft scan /")
+    let file = NamedTempFile::new().unwrap();
+    let path = file.path().to_str().unwrap();
+    cmd("pkgcruft scan")
+        .arg(path)
         .assert()
         .stdout("")
-        .stderr(contains("invalid ebuild repo: /"))
+        .stderr(contains(format!("invalid ebuild repo: {path}")))
         .failure()
         .code(2);
 
