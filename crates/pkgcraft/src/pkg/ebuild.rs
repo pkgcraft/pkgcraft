@@ -447,7 +447,7 @@ mod tests {
         assert!(pkg.dependencies(&[]).is_empty());
         assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
 
-        // single
+        // single-line
         let pkg = TEST_DATA
             .ebuild_pkg("=dependencies/single-8::metadata")
             .unwrap();
@@ -456,6 +456,19 @@ mod tests {
         }
         assert_eq!(pkg.dependencies(&[]).to_string(), "a/pkg b/pkg");
         assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg b/pkg");
+
+        // multi-line
+        let pkg = TEST_DATA
+            .ebuild_pkg("=dependencies/multi-8::metadata")
+            .unwrap();
+        for key in EAPI_LATEST_OFFICIAL.dep_keys() {
+            assert_eq!(pkg.dependencies(&[*key]).to_string(), "a/pkg u? ( b/pkg )");
+        }
+        assert_eq!(pkg.dependencies(&[]).to_string(), "a/pkg u? ( b/pkg )");
+        assert_eq!(
+            pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(),
+            "a/pkg u? ( b/pkg )"
+        );
 
         // non-dependency keys are ignored
         assert!(pkg.dependencies(&[Key::LICENSE]).is_empty());
