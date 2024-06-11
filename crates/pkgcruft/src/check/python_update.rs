@@ -1,11 +1,10 @@
-use std::collections::HashSet;
-use std::sync::OnceLock;
+use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use pkgcraft::dep::Flatten;
-use pkgcraft::pkg::ebuild::metadata::Key::{BDEPEND, DEPEND};
+use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
@@ -40,45 +39,55 @@ fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
     prefixes.iter().filter_map(|x| s.strip_prefix(x)).next()
 }
 
-pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
-    Check {
-        repo,
-        multi_target: OnceLock::new(),
-        single_target: OnceLock::new(),
-    }
+// TODO: add inherited use_expand support to pkgcraft so running against overlays works
+fn use_expand<'a>(repo: &'a Repo, name: &str) -> Vec<&'a str> {
+    repo.metadata
+        .use_expand()
+        .get(name)
+        .map(|x| {
+            x.keys()
+                .filter(|x| x.starts_with("python"))
+                .map(|x| x.as_str())
+                .collect()
+        })
+        .unwrap_or_default()
 }
+
+pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
+    let params = ECLASSES
+        .iter()
+        .copied()
+        .map(|x| match x {
+            "python-r1" => (x, (use_expand(repo, "python_targets"), vec![], vec![IUSE_PREFIX])),
+            "python-single-r1" => (
+                x,
+                (
+                    use_expand(repo, "python_single_target"),
+                    vec![],
+                    vec![IUSE_PREFIX, IUSE_PREFIX_S],
+                ),
+            ),
+            "python-any-r1" => (
+                x,
+                (
+                    use_expand(repo, "python_targets"),
+                    vec![BDEPEND, DEPEND],
+                    vec![IUSE_PREFIX, IUSE_PREFIX_S],
+                ),
+            ),
+            _ => unreachable!("{CHECK}: unsupported eclass: {x}"),
+        })
+        .collect();
+
+    Check { repo, params }
+}
+
+// parameters used for scanning deps related to python eclasses
+type Params = (Vec<&'static str>, Vec<Key>, Vec<&'static str>);
 
 struct Check {
     repo: &'static Repo,
-    multi_target: OnceLock<Vec<&'static str>>,
-    single_target: OnceLock<Vec<&'static str>>,
-}
-
-impl Check {
-    fn use_expand(&self, name: &str) -> Vec<&'static str> {
-        // TODO: add inherited use_expand support to pkgcraft so running against overlays works
-        self.repo
-            .metadata
-            .use_expand()
-            .get(name)
-            .map(|x| {
-                x.keys()
-                    .filter(|x| x.starts_with("python"))
-                    .map(|x| x.as_str())
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    fn multi_target(&self) -> &[&str] {
-        self.multi_target
-            .get_or_init(|| self.use_expand("python_targets"))
-    }
-
-    fn single_target(&self) -> &[&str] {
-        self.single_target
-            .get_or_init(|| self.use_expand("python_single_target"))
-    }
+    params: HashMap<&'static str, Params>,
 }
 
 super::register!(Check);
@@ -94,17 +103,12 @@ impl VersionCheck for Check {
             return;
         };
 
-        let (available_targets, keys, prefixes) = match eclass {
-            "python-r1" => (self.multi_target(), vec![], vec![IUSE_PREFIX]),
-            "python-single-r1" => (self.single_target(), vec![], vec![IUSE_PREFIX, IUSE_PREFIX_S]),
-            "python-any-r1" => {
-                (self.multi_target(), vec![BDEPEND, DEPEND], vec![IUSE_PREFIX, IUSE_PREFIX_S])
-            }
-            _ => return,
+        let Some((available_targets, keys, prefixes)) = self.params.get(eclass) else {
+            unreachable!("{self}: unsupported eclass: {eclass}");
         };
 
         let deps: IndexSet<_> = pkg
-            .dependencies(&keys)
+            .dependencies(keys)
             .into_iter_flatten()
             .filter(|x| x.blocker().is_none())
             .collect();
@@ -136,13 +140,13 @@ impl VersionCheck for Check {
         // drop targets with missing dependencies
         for pkg in deps
             .iter()
-            .filter(|x| use_starts_with(x, &prefixes))
+            .filter(|x| use_starts_with(x, prefixes))
             .filter_map(|x| self.repo.iter_restrict(x.no_use_deps()).last())
         {
             let iuse = pkg
                 .iuse()
                 .iter()
-                .filter_map(|x| deprefix(x.flag(), &prefixes))
+                .filter_map(|x| deprefix(x.flag(), prefixes))
                 .collect::<HashSet<_>>();
             targets.retain(|x| iuse.contains(x));
             if targets.is_empty() {
