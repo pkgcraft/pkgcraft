@@ -3,6 +3,7 @@ use std::env;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 use pkgcraft::utils::current_dir;
+use pkgcraft::test::TEST_DATA;
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -125,6 +126,16 @@ fn path_targets() {
         .assert()
         .stdout("")
         .stderr(contains("invalid ebuild repo: /"))
+        .failure()
+        .code(2);
+
+    // unsupported EAPI
+    let path = TEST_DATA.path().join("repos/invalid/unsupported-eapi");
+    cmd("pkgcruft scan")
+        .arg(&path)
+        .assert()
+        .stdout("")
+        .stderr(contains("unsupported EAPI: 0"))
         .failure()
         .code(2);
 
