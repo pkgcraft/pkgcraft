@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::dep::{Blocker, Cpn, Cpv, Dep, UseDep, Version};
 use crate::traits::Intersects;
 use crate::types::SortedSet;
@@ -212,6 +214,12 @@ impl From<&Dep> for BaseRestrict {
         }
 
         BaseRestrict::and(restricts)
+    }
+}
+
+impl From<Cow<'_, Dep>> for BaseRestrict {
+    fn from(value: Cow<'_, Dep>) -> Self {
+        value.as_ref().into()
     }
 }
 
