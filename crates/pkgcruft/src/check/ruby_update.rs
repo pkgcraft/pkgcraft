@@ -12,7 +12,7 @@ use crate::report::ReportKind::RubyUpdate;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
-use crate::utils::use_starts_with;
+use crate::utils::{use_expand, use_starts_with};
 
 use super::{CheckKind, VersionCheck};
 
@@ -37,23 +37,9 @@ struct Check {
 }
 
 impl Check {
-    fn use_expand(&self, name: &str) -> Vec<&'static str> {
-        // TODO: add inherited use_expand support to pkgcraft so running against overlays works
-        self.repo
-            .metadata
-            .use_expand()
-            .get(name)
-            .map(|x| {
-                x.keys()
-                    .filter(|x| x.starts_with("ruby"))
-                    .map(|x| x.as_str())
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
     fn targets(&self) -> &[&str] {
-        self.targets.get_or_init(|| self.use_expand("ruby_targets"))
+        self.targets
+            .get_or_init(|| use_expand(self.repo, "ruby_targets", "ruby"))
     }
 }
 

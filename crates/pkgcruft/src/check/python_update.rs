@@ -13,7 +13,7 @@ use crate::report::ReportKind::PythonUpdate;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
-use crate::utils::use_starts_with;
+use crate::utils::{use_expand, use_starts_with};
 
 use super::{CheckKind, VersionCheck};
 
@@ -42,9 +42,9 @@ impl Eclass {
     /// USE_EXPAND targets pulled from the given repo.
     fn targets<'a>(&self, repo: &'a Repo) -> Vec<&'a str> {
         match self {
-            Self::PythonR1 => use_expand(repo, "python_targets"),
-            Self::PythonSingleR1 => use_expand(repo, "python_single_target"),
-            Self::PythonAnyR1 => use_expand(repo, "python_targets"),
+            Self::PythonR1 => use_expand(repo, "python_targets", "python"),
+            Self::PythonSingleR1 => use_expand(repo, "python_single_target", "python"),
+            Self::PythonAnyR1 => use_expand(repo, "python_targets", "python"),
         }
     }
 
@@ -70,21 +70,6 @@ impl Eclass {
 /// Remove a prefix from a string, given a list of prefixes.
 fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
     prefixes.iter().filter_map(|x| s.strip_prefix(x)).next()
-}
-
-// TODO: add inherited use_expand support to pkgcraft so running against overlays works
-/// Pull USE_EXPAND targets related to a given name from a target repo.
-fn use_expand<'a>(repo: &'a Repo, name: &str) -> Vec<&'a str> {
-    repo.metadata
-        .use_expand()
-        .get(name)
-        .map(|x| {
-            x.keys()
-                .filter(|x| x.starts_with("python"))
-                .map(|x| x.as_str())
-                .collect()
-        })
-        .unwrap_or_default()
 }
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
