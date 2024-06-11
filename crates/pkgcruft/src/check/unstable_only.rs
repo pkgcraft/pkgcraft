@@ -54,11 +54,10 @@ impl PackageCheck for Check {
             .filter(|(_, v)| v.iter().all(|k| k.status() == Unstable))
             .map(|(k, _)| k)
             .sorted_by(|a, b| cmp_arches(a, b))
-            .collect::<Vec<_>>();
+            .join(", ");
 
         if !arches.is_empty() {
-            let message = arches.into_iter().join(", ");
-            filter.report(UnstableOnly.package(pkgs, message));
+            filter.report(UnstableOnly.package(pkgs, arches));
         }
     }
 }

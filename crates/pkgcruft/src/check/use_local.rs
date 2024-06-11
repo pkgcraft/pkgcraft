@@ -68,11 +68,10 @@ impl PackageCheck for Check {
         let unused = sorted_flags
             .iter()
             .filter(|&x| !used.contains(x))
-            .collect::<Vec<_>>();
+            .join(", ");
 
         if !unused.is_empty() {
-            let message = unused.iter().join(", ");
-            filter.report(UseLocalUnused.package(pkgs, message));
+            filter.report(UseLocalUnused.package(pkgs, unused));
         }
     }
 }

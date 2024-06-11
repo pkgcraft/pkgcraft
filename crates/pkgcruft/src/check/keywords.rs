@@ -43,25 +43,16 @@ impl VersionCheck for Check {
             filter.report(KeywordsOverlapping.version(pkg, message));
         }
 
-        if self
-            .repo
-            .metadata
-            .config
-            .eapis_testing
-            .contains(pkg.eapi().as_str())
-        {
+        let eapi = pkg.eapi().as_str();
+        if self.repo.metadata.config.eapis_testing.contains(eapi) {
             let keywords = pkg
                 .keywords()
                 .iter()
                 .filter(|k| k.status() == Stable)
                 .sorted()
-                .collect::<Vec<_>>();
+                .join(" ");
             if !keywords.is_empty() {
-                let message = format!(
-                    "unstable EAPI {} with stable keywords: {}",
-                    pkg.eapi(),
-                    keywords.into_iter().join(" ")
-                );
+                let message = format!("unstable EAPI {eapi} with stable keywords: {keywords}");
                 filter.report(EapiUnstable.version(pkg, message));
             }
         }

@@ -50,10 +50,9 @@ impl VersionCheck for Check {
         } else if self.unlicensed_categories.contains(pkg.category()) {
             filter.report(LicenseUnneeded.version(pkg, ""));
         } else {
-            let deprecated: Vec<_> = licenses.intersection(&self.deprecated).sorted().collect();
+            let deprecated = licenses.intersection(&self.deprecated).sorted().join(", ");
             if !deprecated.is_empty() {
-                let message = deprecated.iter().join(", ");
-                filter.report(LicenseDeprecated.version(pkg, message));
+                filter.report(LicenseDeprecated.version(pkg, deprecated));
             }
         }
     }
