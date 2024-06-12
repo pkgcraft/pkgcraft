@@ -150,26 +150,18 @@ impl ReportFilter {
                 self.failed.store(true, Ordering::Relaxed);
             }
 
-            if let Some(x) = self.reports.as_mut() {
-                x.push(report);
+            match self.reports.as_mut() {
+                Some(reports) => reports.push(report),
+                None => self.reports = Some(vec![report]),
             }
         }
     }
 
     /// Sort existing reports and send them to the iterator.
     fn process(&mut self) {
-        // TODO: replace with Option::take_if once MSRV >= 1.80
-        if self
-            .reports
-            .as_ref()
-            .map(|x| !x.is_empty())
-            .unwrap_or_default()
-        {
-            if let Some(mut reports) = self.reports.take() {
-                self.reports = Some(Default::default());
-                reports.sort();
-                self.tx.send(reports).ok();
-            }
+        if let Some(mut reports) = self.reports.take() {
+            reports.sort();
+            self.tx.send(reports).ok();
         }
     }
 }
@@ -185,7 +177,7 @@ fn worker(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let mut filter = ReportFilter {
-            reports: Some(Default::default()),
+            reports: None,
             filter,
             exit,
             failed,
