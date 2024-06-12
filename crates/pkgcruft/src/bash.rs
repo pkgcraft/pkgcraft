@@ -46,10 +46,6 @@ pub(crate) struct Node<'a> {
 }
 
 impl<'a> Node<'a> {
-    fn new(node: tree_sitter::Node<'a>, data: &'a [u8]) -> Self {
-        Self { data, node }
-    }
-
     /// Get the string value of a given node.
     pub(crate) fn as_str(&self) -> &str {
         self.node.utf8_text(self.data).unwrap()
@@ -118,8 +114,10 @@ impl<'a> Iterator for IterNodes<'a> {
                 && self.cursor.goto_first_child())
                 || self.cursor.goto_next_sibling()
             {
-                let node = self.cursor.node();
-                return Some(Node::new(node, self.data));
+                return Some(Node {
+                    node: self.cursor.node(),
+                    data: self.data,
+                });
             } else if self.cursor.goto_parent() {
                 self.seen.insert(self.cursor.node().id());
             } else {
