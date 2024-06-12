@@ -158,10 +158,18 @@ impl ReportFilter {
 
     /// Sort existing reports and send them to the iterator.
     fn process(&mut self) {
-        if let Some(mut reports) = self.reports.take() {
-            self.reports = Some(Default::default());
-            reports.sort();
-            self.tx.send(reports).ok();
+        // TODO: replace with Option::take_if once MSRV >= 1.80
+        if self
+            .reports
+            .as_ref()
+            .map(|x| !x.is_empty())
+            .unwrap_or_default()
+        {
+            if let Some(mut reports) = self.reports.take() {
+                self.reports = Some(Default::default());
+                reports.sort();
+                self.tx.send(reports).ok();
+            }
         }
     }
 }
@@ -204,6 +212,7 @@ impl Iterator for Iter {
     fn next(&mut self) -> Option<Self::Item> {
         self.reports.pop_front().or_else(|| {
             self.reports_rx.recv().ok().and_then(|reports| {
+                debug_assert!(!reports.is_empty());
                 self.reports.extend(reports);
                 self.next()
             })
