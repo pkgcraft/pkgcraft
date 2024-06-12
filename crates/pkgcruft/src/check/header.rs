@@ -76,7 +76,7 @@ impl RawVersionCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::TEST_DATA;
+    use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
     use pretty_assertions::assert_eq;
 
     use crate::scanner::Scanner;
@@ -93,5 +93,10 @@ mod tests {
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
+
+        // gentoo fixed
+        let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
     }
 }
