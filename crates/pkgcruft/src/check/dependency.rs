@@ -1,6 +1,4 @@
-use std::collections::HashSet;
-
-use itertools::Itertools;
+use indexmap::IndexSet;
 use pkgcraft::dep::{Flatten, Operator};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::pkg::Package;
@@ -35,23 +33,22 @@ super::register!(Check);
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys() {
-            let mut deprecated = HashSet::new();
+            let deps = pkg
+                .dependencies(&[*key])
+                .into_iter_flatten()
+                .collect::<IndexSet<_>>();
 
-            for dep in pkg.dependencies(&[*key]).into_iter_flatten() {
+            for dep in deps {
                 if self.repo.deprecated(dep).is_some() {
                     // drop use deps since package.deprecated doesn't include them
-                    deprecated.insert(dep.no_use_deps());
+                    let message = format!("{key}: {}", dep.no_use_deps());
+                    filter.report(DependencyDeprecated.version(pkg, message));
                 }
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
                     let message = format!("{key}: {dep}");
                     filter.report(RevisionMissing.version(pkg, message));
                 }
-            }
-
-            if !deprecated.is_empty() {
-                let message = format!("{key}: {}", deprecated.iter().sorted().join(", "));
-                filter.report(DependencyDeprecated.version(pkg, message));
             }
         }
     }
