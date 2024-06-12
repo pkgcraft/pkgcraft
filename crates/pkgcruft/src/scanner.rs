@@ -95,20 +95,19 @@ impl Scanner {
         match repo {
             Repo::Ebuild(r) => {
                 let runner = Arc::new(SyncCheckRunner::new(r, &self.checks));
+                let filter = ReportFilter {
+                    reports: None,
+                    filter,
+                    exit,
+                    failed: self.failed.clone(),
+                    tx: reports_tx,
+                };
+
                 Iter {
                     reports_rx,
                     _producer: producer(r.clone(), restricts, restrict_tx),
                     _workers: (0..self.jobs)
-                        .map(|_| {
-                            worker(
-                                runner.clone(),
-                                filter.clone(),
-                                exit.clone(),
-                                self.failed.clone(),
-                                restrict_rx.clone(),
-                                reports_tx.clone(),
-                            )
-                        })
+                        .map(|_| worker(runner.clone(), filter.clone(), restrict_rx.clone()))
                         .collect(),
                     reports: Default::default(),
                 }
@@ -134,6 +133,7 @@ fn producer(
     })
 }
 
+#[derive(Clone)]
 pub(crate) struct ReportFilter {
     reports: Option<Vec<Report>>,
     filter: Arc<IndexSet<ReportKind>>,
@@ -169,21 +169,10 @@ impl ReportFilter {
 /// Create worker thread that receives restrictions and send reports over the channel.
 fn worker(
     runner: Arc<SyncCheckRunner>,
-    filter: Arc<IndexSet<ReportKind>>,
-    exit: Arc<IndexSet<ReportKind>>,
-    failed: Arc<AtomicBool>,
+    mut filter: ReportFilter,
     rx: Receiver<Restrict>,
-    tx: Sender<Vec<Report>>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        let mut filter = ReportFilter {
-            reports: None,
-            filter,
-            exit,
-            failed,
-            tx,
-        };
-
         for restrict in rx {
             runner.run(&restrict, &mut filter);
             filter.process();
