@@ -111,19 +111,20 @@ impl<'a> Iterator for IterNodes<'a> {
     type Item = Node<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let node = self.cursor.node();
-        if (!self.seen.contains(&node.id())
-            && !self.skip.contains(node.kind())
-            && self.cursor.goto_first_child())
-            || self.cursor.goto_next_sibling()
-        {
+        loop {
             let node = self.cursor.node();
-            Some(Node::new(node, self.data))
-        } else if self.cursor.goto_parent() {
-            self.seen.insert(self.cursor.node().id());
-            self.next()
-        } else {
-            None
+            if (!self.seen.contains(&node.id())
+                && !self.skip.contains(node.kind())
+                && self.cursor.goto_first_child())
+                || self.cursor.goto_next_sibling()
+            {
+                let node = self.cursor.node();
+                return Some(Node::new(node, self.data));
+            } else if self.cursor.goto_parent() {
+                self.seen.insert(self.cursor.node().id());
+            } else {
+                return None;
+            }
         }
     }
 }
