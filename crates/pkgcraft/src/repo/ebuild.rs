@@ -441,13 +441,13 @@ impl Repo {
     /// Return the mapping of license groups merged via inheritance.
     pub fn license_groups(&self) -> &IndexMap<String, IndexSet<String>> {
         self.license_groups.get_or_init(|| {
-            let mut group_map = self.metadata.license_groups().clone();
-            self.masters()
+            let mut license_groups: IndexMap<_, _> = self
+                .trees()
+                .rev()
                 .flat_map(|r| r.metadata.license_groups().clone())
-                .for_each(|(name, set)| {
-                    group_map.entry(name).or_default().extend(set);
-                });
-            group_map
+                .collect();
+            license_groups.sort_keys();
+            license_groups
         })
     }
 
