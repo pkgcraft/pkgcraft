@@ -149,7 +149,7 @@ pub struct Repo {
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
-    eclasses: OnceLock<IndexMap<String, Eclass>>,
+    eclasses: OnceLock<IndexSet<Eclass>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
     xml_cache: OnceLock<ArcCache<xml::Metadata>>,
     manifest_cache: OnceLock<ArcCache<Manifest>>,
@@ -296,14 +296,14 @@ impl Repo {
     }
 
     /// Return the ordered map of inherited eclasses.
-    pub fn eclasses(&self) -> &IndexMap<String, Eclass> {
+    pub fn eclasses(&self) -> &IndexSet<Eclass> {
         self.eclasses.get_or_init(|| {
-            let mut eclasses: IndexMap<_, _> = self
+            let mut eclasses: IndexSet<_> = self
                 .trees()
-                .flat_map(|r| r.metadata.eclasses().clone().into_iter())
-                .map(|e| (e.name().to_string(), e))
+                .rev()
+                .flat_map(|r| r.metadata.eclasses().clone())
                 .collect();
-            eclasses.sort_keys();
+            eclasses.sort();
             eclasses
         })
     }
@@ -1427,9 +1427,9 @@ mod tests {
     #[test]
     fn eclasses() {
         let repo1 = TEST_DATA.ebuild_repo("primary").unwrap();
-        assert_ordered_eq(repo1.eclasses().keys(), ["a", "c"]);
+        assert_ordered_eq(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
         let repo2 = TEST_DATA.ebuild_repo("secondary").unwrap();
-        assert_ordered_eq(repo2.eclasses().keys(), ["a", "b", "c"]);
+        assert_ordered_eq(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
         // verify the overridden eclass is from the secondary repo
         let overridden_eclass = repo2.eclasses().get("c").unwrap();
         assert!(overridden_eclass.path().starts_with(repo2.path()));

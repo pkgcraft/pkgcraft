@@ -19,7 +19,7 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
-    let mut eclasses: IndexSet<_> = repo.eclasses().values().collect();
+    let mut eclasses: IndexSet<_> = repo.eclasses().iter().collect();
     for repo in repo.masters() {
         for pkg in &*repo {
             for eclass in pkg.inherited() {

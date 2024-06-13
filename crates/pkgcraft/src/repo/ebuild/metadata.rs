@@ -840,7 +840,7 @@ mod tests {
         // uninherited eclasses
         assert_ordered_eq(repo.metadata.eclasses().iter().map(|e| e.name()), ["b", "c"]);
         // inherited eclasses
-        assert_ordered_eq(repo.eclasses().keys(), ["a", "b", "c"]);
+        assert_ordered_eq(repo.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
     }
 
     #[test]

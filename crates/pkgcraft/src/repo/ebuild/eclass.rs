@@ -67,6 +67,12 @@ impl Hash for Eclass {
     }
 }
 
+impl Borrow<str> for Eclass {
+    fn borrow(&self) -> &str {
+        &self.name
+    }
+}
+
 impl Borrow<str> for &Eclass {
     fn borrow(&self) -> &str {
         &self.name
