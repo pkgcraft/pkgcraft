@@ -327,7 +327,7 @@ mod tests {
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::manifest::Checksum;
     use crate::repo::PkgRepository;
-    use crate::test::{assert_unordered_eq, TEST_DATA};
+    use crate::test::TEST_DATA;
 
     use super::*;
 
@@ -536,7 +536,7 @@ mod tests {
 
         // ebuild-defined
         let pkg = TEST_DATA.ebuild_pkg("=phases/direct-8::metadata").unwrap();
-        assert_unordered_eq(
+        assert_equal(
             pkg.defined_phases().iter().map(|p| p.to_string()),
             ["src_compile", "src_install", "src_prepare"],
         );
@@ -545,7 +545,7 @@ mod tests {
         let pkg = TEST_DATA
             .ebuild_pkg("=phases/indirect-8::metadata")
             .unwrap();
-        assert_unordered_eq(
+        assert_equal(
             pkg.defined_phases().iter().map(|p| p.to_string()),
             ["src_install", "src_prepare", "src_test"],
         );

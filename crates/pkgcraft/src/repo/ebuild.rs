@@ -1159,7 +1159,7 @@ mod tests {
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::repo::Contains;
-    use crate::test::{assert_unordered_eq, TEST_DATA};
+    use crate::test::TEST_DATA;
 
     use super::*;
 
@@ -1448,17 +1448,17 @@ mod tests {
     #[test]
     fn arches() {
         let repo = TEST_DATA.ebuild_repo("primary").unwrap();
-        assert_unordered_eq(repo.arches(), ["x86"]);
+        assert_equal(repo.arches(), ["x86"]);
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
-        assert_unordered_eq(repo.arches(), ["amd64", "x86"]);
+        assert_equal(repo.arches(), ["amd64", "x86"]);
     }
 
     #[test]
     fn licenses() {
         let repo = TEST_DATA.ebuild_repo("primary").unwrap();
-        assert_unordered_eq(repo.licenses(), ["a"]);
+        assert_equal(repo.licenses(), ["a"]);
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
-        assert_unordered_eq(repo.licenses(), ["a", "b"]);
+        assert_equal(repo.licenses(), ["a", "b"]);
     }
 
     #[test]
