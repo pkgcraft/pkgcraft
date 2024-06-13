@@ -133,12 +133,6 @@ impl From<ebuild::configured::Repo> for Repo {
     }
 }
 
-impl From<Arc<ebuild::Repo>> for Repo {
-    fn from(repo: Arc<ebuild::Repo>) -> Self {
-        Self::Ebuild(repo)
-    }
-}
-
 impl From<fake::Repo> for Repo {
     fn from(repo: fake::Repo) -> Self {
         Self::Fake(Arc::new(repo))
