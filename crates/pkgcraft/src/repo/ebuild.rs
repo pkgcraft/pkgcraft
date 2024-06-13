@@ -415,10 +415,13 @@ impl Repo {
     /// Return the set of inherited architectures sorted by name.
     pub fn arches(&self) -> &IndexSet<String> {
         self.arches.get_or_init(|| {
-            self.trees()
+            let mut arches: IndexSet<_> = self
+                .trees()
                 .rev()
                 .flat_map(|r| r.metadata.arches().clone())
-                .collect()
+                .collect();
+            arches.sort();
+            arches
         })
     }
 
@@ -451,10 +454,13 @@ impl Repo {
     /// Return the set of mirrors merged via inheritance.
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
         self.mirrors.get_or_init(|| {
-            self.trees()
+            let mut mirrors: IndexMap<_, _> = self
+                .trees()
                 .rev()
                 .flat_map(|r| r.metadata.mirrors().clone())
-                .collect()
+                .collect();
+            mirrors.sort_keys();
+            mirrors
         })
     }
 
