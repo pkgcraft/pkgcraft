@@ -265,9 +265,9 @@ impl fmt::Debug for Location {
 
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "line: {}", self.line)?;
+        write!(f, "line {}", self.line)?;
         if self.column > 0 {
-            write!(f, ", column: {}", self.column)?;
+            write!(f, ", column {}", self.column)?;
         }
         Ok(())
     }
