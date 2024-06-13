@@ -15,14 +15,14 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::utils::{use_expand, use_starts_with};
 
-use super::{CheckKind, VersionCheck};
+use super::{CheckContext, CheckKind, VersionCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::PythonUpdate,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[PythonUpdate],
-    context: &[],
+    context: &[CheckContext::GentooInherited],
     priority: 0,
 };
 

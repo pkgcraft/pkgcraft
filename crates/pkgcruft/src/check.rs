@@ -90,6 +90,9 @@ enum CheckContext {
     /// Check only runs by default in the gentoo repo.
     Gentoo,
 
+    /// Check only runs in repos inheriting from the gentoo repo.
+    GentooInherited,
+
     /// Check isn't enabled by default.
     Optional,
 
@@ -200,6 +203,7 @@ impl Check {
     pub(crate) fn enabled(&self, repo: &Repo, selected: &IndexSet<Self>) -> bool {
         self.context.iter().all(|x| match x {
             CheckContext::Gentoo => repo.name() == "gentoo",
+            CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
             CheckContext::Optional => selected.contains(self),
             CheckContext::Overlay => repo.masters().next().is_some(),
         })
