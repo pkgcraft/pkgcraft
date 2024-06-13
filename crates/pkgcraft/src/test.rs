@@ -324,12 +324,12 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
 });
 
 /// Verify two, unordered iterables contain the same elements.
-pub fn assert_unordered_eq<I, J, T, S>(a: I, b: J)
+pub fn assert_unordered_eq<I, J>(a: I, b: J)
 where
-    I: IntoIterator<Item = T>,
-    J: IntoIterator<Item = S>,
-    T: PartialEq<S> + Ord + fmt::Debug,
-    S: PartialEq<T> + Ord + fmt::Debug,
+    I: IntoIterator,
+    J: IntoIterator,
+    I::Item: fmt::Debug + Ord + PartialEq<J::Item>,
+    J::Item: fmt::Debug + Ord,
 {
     let mut a: Vec<_> = a.into_iter().collect();
     let mut b: Vec<_> = b.into_iter().collect();
