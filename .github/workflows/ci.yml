@@ -91,9 +91,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install protoc for arcanist
-      uses: arduino/setup-protoc@v3
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+      uses: taiki-e/install-action@protoc
 
     - name: Install cargo-llvm-cov
       if: ${{ matrix.rust-version == 'stable' }}

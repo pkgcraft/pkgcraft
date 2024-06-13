@@ -62,9 +62,7 @@ jobs:
         cargo install cargo-criterion || true
 
     - name: Install protoc for arcanist
-      uses: arduino/setup-protoc@v3
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+      uses: taiki-e/install-action@protoc
 
     - name: Benchmark pkgcraft
       run: cargo criterion --all-features -p pkgcraft --color always --output-format quiet
