@@ -14,7 +14,6 @@ use crate::check::Check;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 
-#[derive(Debug)]
 pub struct Scanner {
     jobs: usize,
     checks: IndexSet<Check>,
