@@ -12,11 +12,9 @@ pub(crate) fn use_starts_with(dep: &Dep, prefixes: &[&str]) -> bool {
         .unwrap_or_default()
 }
 
-// TODO: add inherited use_expand support to pkgcraft so running against overlays works
 /// Pull USE_EXPAND targets related to a given name from a target repo.
 pub(crate) fn use_expand<'a>(repo: &'a Repo, name: &str, prefix: &str) -> Vec<&'a str> {
-    repo.metadata
-        .use_expand()
+    repo.use_expand()
         .get(name)
         .map(|x| {
             x.keys()
