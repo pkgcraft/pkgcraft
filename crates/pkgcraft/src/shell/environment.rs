@@ -70,10 +70,10 @@ impl PartialOrd for Variable {
 }
 
 impl Variable {
-    pub(crate) fn internal<I, S>(self, scopes: I) -> BuildVariable
+    pub(crate) fn internal<I>(self, scopes: I) -> BuildVariable
     where
-        I: IntoIterator<Item = S>,
-        S: Into<Scopes>,
+        I: IntoIterator,
+        I::Item: Into<Scopes>,
     {
         BuildVariable {
             var: self,

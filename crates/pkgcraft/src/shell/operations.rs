@@ -23,10 +23,10 @@ pub(crate) enum OperationKind {
 
 impl OperationKind {
     /// Create an operation from an iterator of phases.
-    pub(crate) fn phases<I, P>(self, phases: I) -> Operation
+    pub(crate) fn phases<I>(self, phases: I) -> Operation
     where
-        I: IntoIterator<Item = P>,
-        P: Into<Phase>,
+        I: IntoIterator,
+        I::Item: Into<Phase>,
     {
         Operation {
             kind: self,

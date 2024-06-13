@@ -471,10 +471,10 @@ impl Eapi {
     }
 
     /// Enable support for build variables during Eapi registration.
-    fn update_env<I, V>(mut self, variables: I) -> Self
+    fn update_env<I>(mut self, variables: I) -> Self
     where
-        I: IntoIterator<Item = V>,
-        V: Into<BuildVariable>,
+        I: IntoIterator,
+        I::Item: Into<BuildVariable>,
     {
         for var in variables {
             self.env.replace(var.into());

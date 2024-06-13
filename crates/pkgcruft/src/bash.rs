@@ -89,10 +89,10 @@ struct IterNodes<'a> {
 }
 
 impl<'a> IterNodes<'a> {
-    fn new<I, S>(data: &'a [u8], node: tree_sitter::Node<'a>, skip: I) -> Self
+    fn new<I>(data: &'a [u8], node: tree_sitter::Node<'a>, skip: I) -> Self
     where
-        I: IntoIterator<Item = S>,
-        S: fmt::Display,
+        I: IntoIterator,
+        I::Item: fmt::Display,
     {
         Self {
             data,

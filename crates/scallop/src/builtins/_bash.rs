@@ -4,10 +4,10 @@ use crate::traits::*;
 use crate::{bash, ExecStatus};
 
 /// Run the `declare` builtin with the given arguments.
-pub fn declare<I, S>(args: I) -> crate::Result<ExecStatus>
+pub fn declare<I>(args: I) -> crate::Result<ExecStatus>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     let args = Words::from_iter(args);
     ok_or_error(|| {
@@ -23,10 +23,10 @@ where
 }
 
 /// Run the `local` builtin with the given arguments.
-pub fn local<I, S>(args: I) -> crate::Result<ExecStatus>
+pub fn local<I>(args: I) -> crate::Result<ExecStatus>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     let args = Words::from_iter(args);
     ok_or_error(|| {
@@ -42,10 +42,10 @@ where
 }
 
 /// Run the `set` builtin with the given arguments.
-pub fn set<I, S>(args: I) -> crate::Result<ExecStatus>
+pub fn set<I>(args: I) -> crate::Result<ExecStatus>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     let args = Words::from_iter(args);
     ok_or_error(|| {
@@ -61,10 +61,10 @@ where
 }
 
 /// Run the `shopt` builtin with the given arguments.
-pub fn shopt<I, S>(args: I) -> crate::Result<ExecStatus>
+pub fn shopt<I>(args: I) -> crate::Result<ExecStatus>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     let args = Words::from_iter(args);
     ok_or_error(|| {
@@ -80,10 +80,10 @@ where
 }
 
 /// Run the `source` builtin with the given arguments.
-pub fn source<I, S>(args: I) -> crate::Result<ExecStatus>
+pub fn source<I>(args: I) -> crate::Result<ExecStatus>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     let args = Words::from_iter(args);
     ok_or_error(|| {

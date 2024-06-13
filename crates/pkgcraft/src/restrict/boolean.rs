@@ -41,10 +41,10 @@ pub(crate) use restrict_match_boolean;
 /// Implement boolean restriction conversions for injected boolean variants.
 macro_rules! restrict_impl_boolean {
     ($type:ty) => {
-        pub fn and<I, T>(iter: I) -> Self
+        pub fn and<I>(iter: I) -> Self
         where
-            I: IntoIterator<Item = T>,
-            T: Into<$type>,
+            I: IntoIterator,
+            I::Item: Into<$type>,
         {
             let mut restricts = vec![];
             for r in iter.into_iter().map(Into::into) {
@@ -56,10 +56,10 @@ macro_rules! restrict_impl_boolean {
             Self::And(restricts)
         }
 
-        pub fn or<I, T>(iter: I) -> Self
+        pub fn or<I>(iter: I) -> Self
         where
-            I: IntoIterator<Item = T>,
-            T: Into<$type>,
+            I: IntoIterator,
+            I::Item: Into<$type>,
         {
             let mut restricts = vec![];
             for r in iter.into_iter().map(Into::into) {
@@ -71,10 +71,10 @@ macro_rules! restrict_impl_boolean {
             Self::Or(restricts)
         }
 
-        pub fn xor<I, T>(iter: I) -> Self
+        pub fn xor<I>(iter: I) -> Self
         where
-            I: IntoIterator<Item = T>,
-            T: Into<$type>,
+            I: IntoIterator,
+            I::Item: Into<$type>,
         {
             let mut restricts = vec![];
             for r in iter.into_iter().map(Into::into) {

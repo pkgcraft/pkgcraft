@@ -1,7 +1,7 @@
 use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{fs, io};
+use std::{fmt, fs, io};
 
 use clap::Parser;
 use filetime::{set_file_times, FileTime};
@@ -59,10 +59,10 @@ impl Install {
         Ok(self)
     }
 
-    fn parse_options<I, T>(&self, options: I) -> InstallOpts
+    fn parse_options<I>(&self, options: I) -> InstallOpts
     where
-        I: IntoIterator<Item = T>,
-        T: ToString,
+        I: IntoIterator,
+        I::Item: fmt::Display,
     {
         let options: Vec<_> = options.into_iter().map(|s| s.to_string()).collect();
         let cmd = ["install"]
@@ -76,20 +76,20 @@ impl Install {
     }
 
     /// Parse options to use for file attributes during install.
-    pub(super) fn file_options<I, T>(mut self, options: I) -> Self
+    pub(super) fn file_options<I>(mut self, options: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: ToString,
+        I: IntoIterator,
+        I::Item: fmt::Display,
     {
         self.file_options = self.parse_options(options);
         self
     }
 
     /// Parse options to use for dir attributes during install.
-    pub(super) fn dir_options<I, T>(mut self, options: I) -> Self
+    pub(super) fn dir_options<I>(mut self, options: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: ToString,
+        I: IntoIterator,
+        I::Item: fmt::Display,
     {
         self.dir_options = self.parse_options(options);
         self
@@ -158,10 +158,10 @@ impl Install {
     }
 
     /// Create given directories under the target directory.
-    pub(super) fn dirs<I, P>(&self, paths: I) -> scallop::Result<()>
+    pub(super) fn dirs<I>(&self, paths: I) -> scallop::Result<()>
     where
-        I: IntoIterator<Item = P>,
-        P: AsRef<Path>,
+        I: IntoIterator,
+        I::Item: AsRef<Path>,
     {
         match self.dir_options {
             InstallOpts::Cmd(_) => self.dirs_cmd(paths),
@@ -170,10 +170,10 @@ impl Install {
     }
 
     // Create directories using internal functionality.
-    fn dirs_internal<I, P>(&self, paths: I) -> scallop::Result<()>
+    fn dirs_internal<I>(&self, paths: I) -> scallop::Result<()>
     where
-        I: IntoIterator<Item = P>,
-        P: AsRef<Path>,
+        I: IntoIterator,
+        I::Item: AsRef<Path>,
     {
         for p in paths {
             let path = self.prefix(p);
@@ -187,10 +187,10 @@ impl Install {
     }
 
     // Create directories using the `install` command.
-    fn dirs_cmd<I, P>(&self, paths: I) -> scallop::Result<()>
+    fn dirs_cmd<I>(&self, paths: I) -> scallop::Result<()>
     where
-        I: IntoIterator<Item = P>,
-        P: AsRef<Path>,
+        I: IntoIterator,
+        I::Item: AsRef<Path>,
     {
         let mut install = Command::new("install");
         install.arg("-d");
@@ -204,10 +204,10 @@ impl Install {
     }
 
     /// Copy file trees under given directories to the target directory.
-    pub(super) fn recursive<I, P, F>(&self, dirs: I, predicate: Option<F>) -> scallop::Result<()>
+    pub(super) fn recursive<I, F>(&self, dirs: I, predicate: Option<F>) -> scallop::Result<()>
     where
-        I: IntoIterator<Item = P>,
-        P: AsRef<Path>,
+        I: IntoIterator,
+        I::Item: AsRef<Path>,
         F: Fn(&DirEntry) -> bool,
     {
         for dir in dirs {

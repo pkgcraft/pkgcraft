@@ -47,10 +47,10 @@ impl Scanner {
     }
 
     /// Set the checks to run.
-    pub fn checks<I, T>(mut self, values: I) -> Self
+    pub fn checks<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: Into<Check>,
+        I: IntoIterator,
+        I::Item: Into<Check>,
     {
         self.checks = values.into_iter().map(Into::into).collect();
         self
@@ -80,10 +80,10 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<I, R>(&self, repo: &Repo, restricts: I) -> impl Iterator<Item = Report>
+    pub fn run<I>(&self, repo: &Repo, restricts: I) -> impl Iterator<Item = Report>
     where
-        I: IntoIterator<Item = R>,
-        R: Into<Restrict>,
+        I: IntoIterator,
+        I::Item: Into<Restrict>,
     {
         let restricts = restricts.into_iter().map(Into::into).collect();
         let (restrict_tx, restrict_rx) = bounded(self.jobs);

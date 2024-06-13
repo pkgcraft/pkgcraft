@@ -6,10 +6,10 @@ use predicates::prelude::*;
 type FnPredStr = dyn Fn(&str) -> bool;
 
 /// Verify a given iterable of lines completely contains a set of values.
-pub(crate) fn lines_contain<I, S>(vals: I) -> FnPredicate<Box<FnPredStr>, str>
+pub(crate) fn lines_contain<I>(vals: I) -> FnPredicate<Box<FnPredStr>, str>
 where
-    I: IntoIterator<Item = S>,
-    S: ToString,
+    I: IntoIterator,
+    I::Item: std::fmt::Display,
 {
     let vals: HashSet<_> = vals.into_iter().map(|s| s.to_string()).collect();
     let func = move |s: &str| -> bool {

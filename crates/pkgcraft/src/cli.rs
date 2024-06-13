@@ -126,13 +126,13 @@ impl<'a> TargetRestrictions<'a> {
         }
     }
 
-    pub fn targets<I, S>(
+    pub fn targets<I>(
         mut self,
         values: I,
     ) -> crate::Result<impl Iterator<Item = (RepoSet, Vec<Restrict>)>>
     where
-        I: IntoIterator<Item = S>,
-        S: AsRef<str>,
+        I: IntoIterator,
+        I::Item: AsRef<str>,
     {
         // determine target restrictions
         let targets: Vec<_> = values

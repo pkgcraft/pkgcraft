@@ -53,11 +53,11 @@ impl Repo {
         }
     }
 
-    pub fn pkgs<I, T>(mut self, iter: I) -> Self
+    pub fn pkgs<I>(mut self, iter: I) -> Self
     where
-        I: IntoIterator<Item = T>,
-        T: TryInto<Cpv>,
-        <T as TryInto<Cpv>>::Error: std::fmt::Display,
+        I: IntoIterator,
+        I::Item: TryInto<Cpv>,
+        <I::Item as TryInto<Cpv>>::Error: std::fmt::Display,
     {
         self.extend(iter);
         self
