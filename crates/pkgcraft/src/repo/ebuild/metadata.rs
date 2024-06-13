@@ -669,11 +669,12 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
+    use itertools::assert_equal;
     use tracing_test::traced_test;
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::*;
-    use crate::test::{assert_ordered_eq, TEST_DATA};
+    use crate::test::TEST_DATA;
 
     use super::*;
 
@@ -722,9 +723,9 @@ mod tests {
         "#};
         fs::write(repo.path().join("metadata/layout.conf"), data).unwrap();
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert_ordered_eq(&metadata.config.masters, ["repo1", "repo2"]);
-        assert_ordered_eq(&metadata.config.properties_allowed, ["interactive", "live"]);
-        assert_ordered_eq(&metadata.config.restrict_allowed, ["fetch", "mirror"]);
+        assert_equal(&metadata.config.masters, ["repo1", "repo2"]);
+        assert_equal(&metadata.config.properties_allowed, ["interactive", "live"]);
+        assert_equal(&metadata.config.restrict_allowed, ["fetch", "mirror"]);
         assert!(metadata.config.thin_manifests);
     }
 
@@ -750,7 +751,7 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/arch.list"), data).unwrap();
-        assert_ordered_eq(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
+        assert_equal(metadata.arches(), ["amd64", "arm64", "amd64-linux"]);
     }
 
     #[traced_test]
@@ -797,9 +798,9 @@ mod tests {
             "amd64 stable\narm64 testing\nppc testing\nppc64 transitional 3rd-col",
         )
         .unwrap();
-        assert_ordered_eq(&metadata.arches_desc()[&ArchStatus::Stable], ["amd64"]);
-        assert_ordered_eq(&metadata.arches_desc()[&ArchStatus::Testing], ["arm64", "ppc"]);
-        assert_ordered_eq(&metadata.arches_desc()[&ArchStatus::Transitional], ["ppc64"]);
+        assert_equal(&metadata.arches_desc()[&ArchStatus::Stable], ["amd64"]);
+        assert_equal(&metadata.arches_desc()[&ArchStatus::Testing], ["arm64", "ppc"]);
+        assert_equal(&metadata.arches_desc()[&ArchStatus::Transitional], ["ppc64"]);
     }
 
     #[traced_test]
@@ -820,7 +821,7 @@ mod tests {
         // multiple with invalid entry
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), "cat\nc@t").unwrap();
-        assert_ordered_eq(metadata.categories(), ["cat"]);
+        assert_equal(metadata.categories(), ["cat"]);
         assert_logs_re!(".+, line 2: .* invalid category name: c@t$");
 
         // multiple
@@ -831,16 +832,16 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/categories"), data).unwrap();
-        assert_ordered_eq(metadata.categories(), ["cat1", "cat2", "cat-3"]);
+        assert_equal(metadata.categories(), ["cat1", "cat2", "cat-3"]);
     }
 
     #[test]
     fn test_eclasses() {
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
         // uninherited eclasses
-        assert_ordered_eq(repo.metadata.eclasses().iter().map(|e| e.name()), ["b", "c"]);
+        assert_equal(repo.metadata.eclasses().iter().map(|e| e.name()), ["b", "c"]);
         // inherited eclasses
-        assert_ordered_eq(repo.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
+        assert_equal(repo.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
     }
 
     #[test]
@@ -861,7 +862,7 @@ mod tests {
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("licenses/L1"), "").unwrap();
         fs::write(metadata.path.join("licenses/L2"), "").unwrap();
-        assert_ordered_eq(metadata.licenses(), ["L1", "L2"]);
+        assert_equal(metadata.licenses(), ["L1", "L2"]);
     }
 
     #[traced_test]
@@ -895,8 +896,8 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_ordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
-        assert_ordered_eq(metadata.license_groups().get("group2").unwrap(), ["a"]);
+        assert_equal(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
+        assert_equal(metadata.license_groups().get("group2").unwrap(), ["a"]);
         assert_logs_re!(".+, line 5: unknown license: z$");
 
         // multiple with unknown and invalid aliases
@@ -909,8 +910,8 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_ordered_eq(metadata.license_groups().get("group1").unwrap(), ["b"]);
-        assert_ordered_eq(metadata.license_groups().get("group2").unwrap(), ["a", "c", "b"]);
+        assert_equal(metadata.license_groups().get("group1").unwrap(), ["b"]);
+        assert_equal(metadata.license_groups().get("group2").unwrap(), ["a", "c", "b"]);
         assert_logs_re!(".+, line 2: invalid alias: @");
         assert_logs_re!(".+ group2: unknown alias: group3");
 
@@ -923,10 +924,10 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/license_groups"), data).unwrap();
-        assert_ordered_eq(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
-        assert_ordered_eq(metadata.license_groups().get("group2").unwrap(), ["b", "a"]);
-        assert_ordered_eq(metadata.license_groups().get("group3").unwrap(), ["c", "b", "a"]);
-        assert_ordered_eq(metadata.license_groups().get("group4").unwrap(), ["c"]);
+        assert_equal(metadata.license_groups().get("group1").unwrap(), ["a", "b"]);
+        assert_equal(metadata.license_groups().get("group2").unwrap(), ["b", "a"]);
+        assert_equal(metadata.license_groups().get("group3").unwrap(), ["c", "b", "a"]);
+        assert_equal(metadata.license_groups().get("group4").unwrap(), ["c"]);
         assert_logs_re!(".+ group1: cyclic alias: group2");
         assert_logs_re!(".+ group2: cyclic alias: group1");
         assert_logs_re!(".+ group3: cyclic alias: group2");
@@ -957,14 +958,11 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/thirdpartymirrors"), data).unwrap();
-        assert_ordered_eq(
+        assert_equal(
             metadata.mirrors().get("mirror1").unwrap(),
             ["https://a/mirror/", "https://another/mirror"],
         );
-        assert_ordered_eq(
-            metadata.mirrors().get("mirror2").unwrap(),
-            ["http://yet/another/mirror/"],
-        );
+        assert_equal(metadata.mirrors().get("mirror2").unwrap(), ["http://yet/another/mirror/"]);
     }
 
     #[traced_test]
@@ -995,7 +993,7 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
-        assert_ordered_eq(
+        assert_equal(
             metadata.pkg_deprecated(),
             [&Dep::try_new("cat/pkg-a").unwrap(), &Dep::try_new("another/pkg").unwrap()],
         );
@@ -1012,7 +1010,7 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
-        assert_ordered_eq(
+        assert_equal(
             metadata.pkg_deprecated(),
             [&Dep::try_new("cat/slotted:0").unwrap(), &Dep::try_new("cat/subslot:0/1").unwrap()],
         );
@@ -1046,7 +1044,7 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
-        assert_ordered_eq(
+        assert_equal(
             metadata.pkg_mask(),
             [&Dep::try_new("cat/pkg-a").unwrap(), &Dep::try_new("another/pkg").unwrap()],
         );
@@ -1063,7 +1061,7 @@ mod tests {
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
-        assert_ordered_eq(
+        assert_equal(
             metadata.pkg_mask(),
             [&Dep::try_new("cat/slotted:0").unwrap(), &Dep::try_new("cat/subslot:0/1").unwrap()],
         );

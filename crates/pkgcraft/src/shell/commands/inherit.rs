@@ -81,13 +81,14 @@ make_builtin!("inherit", inherit_builtin);
 
 #[cfg(test)]
 mod tests {
+    use itertools::assert_equal;
     use scallop::variables::{optional, string_vec};
 
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::pkg::Source;
     use crate::shell::BuildData;
-    use crate::test::{assert_ordered_eq, TEST_DATA};
+    use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, inherit};
     use super::*;
@@ -160,8 +161,8 @@ mod tests {
         let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["e1"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["e1"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["e1"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["e1"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1"]);
     }
 
@@ -188,8 +189,8 @@ mod tests {
         let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1"]).unwrap();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["e1"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["e1", "e2"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["e1"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["e1", "e2"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e1", "e2"]);
     }
 
@@ -215,8 +216,8 @@ mod tests {
         let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e2"]).unwrap();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["e2"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["e2", "e1"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["e2"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["e2", "e1"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e2", "e1"]);
     }
 
@@ -248,8 +249,8 @@ mod tests {
         let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e3"]).unwrap();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["e3"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["e3", "e2", "e1"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["e3"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["e3", "e2", "e1"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["e3", "e2", "e1"]);
     }
 
@@ -345,24 +346,24 @@ mod tests {
         // verify previous inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["e1", "e2"]).unwrap();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["e1", "e2"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["e1", "e0", "e2"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["e1", "e2"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["e1", "e0", "e2"]);
         assert_eq!(var.optional().unwrap(), "e2e0e1");
 
         // verify nested inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         var.unbind().unwrap();
         inherit(&["e2", "e1"]).unwrap();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["e2", "e1"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["e2", "e1", "e0"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["e2", "e1"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["e2", "e1", "e0"]);
         assert_eq!(var.optional().unwrap(), "e0e1e2");
 
         // verify recursive inherits are skipped
         BuildData::from_raw_pkg(&raw_pkg);
         var.unbind().unwrap();
         inherit(&["r"]).unwrap();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["r"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["r"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["r"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["r"]);
         assert_eq!(var.optional().unwrap(), "r");
     }
 
@@ -372,8 +373,8 @@ mod tests {
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["b", "c"]).unwrap();
         let build = get_build_mut();
-        assert_ordered_eq(build.inherit.iter().map(|e| e.name()), ["b", "c"]);
-        assert_ordered_eq(build.inherited.iter().map(|e| e.name()), ["b", "a", "c"]);
+        assert_equal(build.inherit.iter().map(|e| e.name()), ["b", "c"]);
+        assert_equal(build.inherited.iter().map(|e| e.name()), ["b", "a", "c"]);
         assert_eq!(string_vec("INHERITED").unwrap(), ["b", "a", "c"]);
     }
 }

@@ -1150,6 +1150,7 @@ impl<'a> Iterator for IterRawRestrict<'a> {
 mod tests {
     use std::fs;
 
+    use itertools::assert_equal;
     use tracing_test::traced_test;
 
     use crate::config::Config;
@@ -1158,7 +1159,7 @@ mod tests {
     use crate::macros::*;
     use crate::pkg::Package;
     use crate::repo::Contains;
-    use crate::test::{assert_ordered_eq, assert_unordered_eq, TEST_DATA};
+    use crate::test::{assert_unordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -1271,10 +1272,10 @@ mod tests {
 
         assert!(repo.categories().is_empty());
         fs::create_dir(repo.path().join("cat")).unwrap();
-        assert_ordered_eq(repo.categories(), ["cat"]);
+        assert_equal(repo.categories(), ["cat"]);
         fs::create_dir(repo.path().join("a-cat")).unwrap();
         fs::create_dir(repo.path().join("z-cat")).unwrap();
-        assert_ordered_eq(repo.categories(), ["a-cat", "cat", "z-cat"]);
+        assert_equal(repo.categories(), ["a-cat", "cat", "z-cat"]);
     }
 
     #[test]
@@ -1285,10 +1286,10 @@ mod tests {
 
         assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
-        assert_ordered_eq(repo.packages("cat"), ["pkg"]);
+        assert_equal(repo.packages("cat"), ["pkg"]);
         fs::create_dir_all(repo.path().join("a-cat/pkg-z")).unwrap();
         fs::create_dir_all(repo.path().join("a-cat/pkg-a")).unwrap();
-        assert_ordered_eq(repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
+        assert_equal(repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
     }
 
     #[test]
@@ -1301,24 +1302,24 @@ mod tests {
         assert!(repo.versions("cat", "pkg").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-1.ebuild")).unwrap();
-        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1")]);
+        assert_equal(repo.versions("cat", "pkg"), [ver("1")]);
 
         // unmatching ebuilds are ignored
         fs::File::create(repo.path().join("cat/pkg/foo-2.ebuild")).unwrap();
-        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1")]);
+        assert_equal(repo.versions("cat", "pkg"), [ver("1")]);
 
         // wrongly named files are ignored
         fs::File::create(repo.path().join("cat/pkg/pkg-2.txt")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-2..ebuild")).unwrap();
         fs::File::create(repo.path().join("cat/pkg/pkg-2ebuild")).unwrap();
-        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1")]);
+        assert_equal(repo.versions("cat", "pkg"), [ver("1")]);
 
         fs::File::create(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        assert_ordered_eq(repo.versions("cat", "pkg"), [ver("1"), ver("2")]);
+        assert_equal(repo.versions("cat", "pkg"), [ver("1"), ver("2")]);
 
         fs::create_dir_all(repo.path().join("a-cat/pkg10a")).unwrap();
         fs::File::create(repo.path().join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
-        assert_ordered_eq(repo.versions("a-cat", "pkg10a"), [ver("0-r0")]);
+        assert_equal(repo.versions("a-cat", "pkg10a"), [ver("0-r0")]);
     }
 
     #[test]
@@ -1436,9 +1437,9 @@ mod tests {
     #[test]
     fn eclasses() {
         let repo1 = TEST_DATA.ebuild_repo("primary").unwrap();
-        assert_ordered_eq(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
+        assert_equal(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
         let repo2 = TEST_DATA.ebuild_repo("secondary").unwrap();
-        assert_ordered_eq(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
+        assert_equal(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
         // verify the overridden eclass is from the secondary repo
         let overridden_eclass = repo2.eclasses().get("c").unwrap();
         assert!(overridden_eclass.path().starts_with(repo2.path()));
