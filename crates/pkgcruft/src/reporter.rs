@@ -191,6 +191,8 @@ mod tests {
     static REPORTS: &str = indoc::indoc! {r#"
         {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
         {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
+        {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"message":"empty line"}
+        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
     "#};
 
     fn report<R: Into<Reporter>>(reporter: R) -> String {
@@ -207,10 +209,12 @@ mod tests {
 
     #[test]
     fn simple() {
-        let expected = indoc::indoc! {"
+        let expected = indoc::indoc! {r#"
             cat/pkg: UnstableOnly: arch
             cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
-        "};
+            cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
+            cat/pkg-1-r2, line 3, column 28: WhitespaceInvalid: character '\u{2001}'
+        "#};
 
         let output = report(SimpleReporter);
         assert_eq!(expected, &output);
@@ -218,11 +222,13 @@ mod tests {
 
     #[test]
     fn fancy() {
-        let expected = indoc::indoc! {"
+        let expected = indoc::indoc! {r#"
             cat/pkg
               UnstableOnly: arch
               DependencyDeprecated: version 1-r2: BDEPEND: cat/deprecated
-        "};
+              WhitespaceUnneeded: version 1-r2, line 3: empty line
+              WhitespaceInvalid: version 1-r2, line 3, column 28: character '\u{2001}'
+        "#};
 
         let output = report(FancyReporter::default());
         assert_eq!(expected, &output);
@@ -244,6 +250,8 @@ mod tests {
 
         // existing format strings
         let expected = indoc::indoc! {"
+            pkg
+            pkg
             pkg
             pkg
         "};
