@@ -150,6 +150,7 @@ pub struct Repo {
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceLock<IndexMap<String, Eclass>>,
+    use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
     xml_cache: OnceLock<ArcCache<xml::Metadata>>,
     manifest_cache: OnceLock<ArcCache<Manifest>>,
     categories_xml: OnceLock<IndexMap<String, String>>,
@@ -304,6 +305,19 @@ impl Repo {
                 .collect();
             eclasses.sort_keys();
             eclasses
+        })
+    }
+
+    /// Return the ordered map of inherited USE_EXPAND flags.
+    pub fn use_expand(&self) -> &IndexMap<String, IndexMap<String, String>> {
+        self.use_expand.get_or_init(|| {
+            let mut use_expand: IndexMap<_, _> = self
+                .trees()
+                .rev()
+                .flat_map(|r| r.metadata.use_expand().clone())
+                .collect();
+            use_expand.sort_keys();
+            use_expand
         })
     }
 
