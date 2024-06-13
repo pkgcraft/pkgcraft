@@ -319,7 +319,9 @@ fn sort() {
     // serialized reports in reversed sorting order
     let reports = indoc::indoc! {r#"
         {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"x86"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",{"line":6,"column":0}]},"message":"missing ending newline"}
+        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",{"line":16,"column":0}]},"message":"missing ending newline"}
+        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",{"line":4,"column":17}]},"message":"character '\\u{2002}'"}
+        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",{"line":4,"column":5}]},"message":"character '\\u{2001}'"}
         {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-2",{"line":3,"column":0}]},"message":"empty line"}
         {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-2",null]},"message":"BDEPEND: pkg/deprecated"}
         {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1",null]},"message":"BDEPEND: pkg/deprecated"}
