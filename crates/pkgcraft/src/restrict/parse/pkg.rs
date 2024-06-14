@@ -270,10 +270,10 @@ peg::parser!(grammar restrict() for str {
         )) { attr }
 
     rule attr_depset_str_restrict() -> BaseRestrict
-        = attr:depset_str_attr() _ "any" _ s:quoted_string()
-        {
-            let r = StrRestrict::equal(s);
-            depset_str_restrict(attr, r).into()
+        = attr:depset_str_attr() _ "any" _ op:string_ops() s:quoted_string()
+        {?
+            let r = str_restrict(op, s)?;
+            Ok(depset_str_restrict(attr, r).into())
         }
 
     rule attr_orderedset_str() -> BaseRestrict
