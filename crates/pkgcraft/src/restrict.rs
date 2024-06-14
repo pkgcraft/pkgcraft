@@ -24,6 +24,12 @@ boolean::restrict_with_boolean! {Restrict,
     Str(str::Restrict),
 }
 
+impl Default for Restrict {
+    fn default() -> Self {
+        Self::True
+    }
+}
+
 impl From<&Restrict> for Restrict {
     fn from(r: &Restrict) -> Self {
         r.clone()
