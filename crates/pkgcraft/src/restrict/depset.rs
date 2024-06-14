@@ -9,9 +9,17 @@ pub enum Restrict<T> {
     Contains(StrRestrict),
 }
 
-// TODO: combine these Restriction implementations using generics
 impl Restriction<&DependencySet<Dep>> for Restrict<DepRestrict> {
     fn matches(&self, val: &DependencySet<Dep>) -> bool {
+        match self {
+            Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
+            Self::Contains(r) => val.into_iter_recursive().any(|v| r.matches(&v.to_string())),
+        }
+    }
+}
+
+impl Restriction<DependencySet<&Dep>> for Restrict<DepRestrict> {
+    fn matches(&self, val: DependencySet<&Dep>) -> bool {
         match self {
             Self::Any(r) => val.into_iter_flatten().any(|v| r.matches(v)),
             Self::Contains(r) => val.into_iter_recursive().any(|v| r.matches(&v.to_string())),

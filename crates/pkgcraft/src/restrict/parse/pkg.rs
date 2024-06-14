@@ -45,6 +45,7 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
     use EbuildRestrict::*;
     match attr {
         "subslot" => RawSubslot(None),
+        "dependencies" => Dependencies(None),
         "depend" => Depend(None),
         "bdepend" => Bdepend(None),
         "idepend" => Idepend(None),
@@ -68,6 +69,7 @@ fn depset_dep_any(attr: &str, r: DepRestrict) -> EbuildRestrict {
     use EbuildRestrict::*;
 
     match attr {
+        "dependencies" => Dependencies(Some(Any(r))),
         "depend" => Depend(Some(Any(r))),
         "bdepend" => Bdepend(Some(Any(r))),
         "idepend" => Idepend(Some(Any(r))),
@@ -82,6 +84,7 @@ fn depset_dep_contains(attr: &str, r: StrRestrict) -> EbuildRestrict {
     use EbuildRestrict::*;
 
     match attr {
+        "dependencies" => Dependencies(Some(Contains(r))),
         "depend" => Depend(Some(Contains(r))),
         "bdepend" => Bdepend(Some(Contains(r))),
         "idepend" => Idepend(Some(Contains(r))),
@@ -114,6 +117,7 @@ peg::parser!(grammar restrict() for str {
     rule optional_attr() -> &'input str
         = attr:$((
             "subslot"
+            / "dependencies"
             / "depend"
             / "bdepend"
             / "idepend"
@@ -241,7 +245,8 @@ peg::parser!(grammar restrict() for str {
 
     rule depset_dep_attr() -> &'input str
         = attr:$((
-            "depend"
+            "dependencies"
+            / "depend"
             / "bdepend"
             / "idepend"
             / "pdepend"

@@ -18,6 +18,7 @@ pub enum Restrict {
     Slot(StrRestrict),
     Subslot(StrRestrict),
     RawSubslot(Option<StrRestrict>),
+    Dependencies(Option<DepSetRestrict<DepRestrict>>),
     Depend(Option<DepSetRestrict<DepRestrict>>),
     Bdepend(Option<DepSetRestrict<DepRestrict>>),
     Idepend(Option<DepSetRestrict<DepRestrict>>),
@@ -115,6 +116,11 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
             RawSubslot(r) => match (r, pkg.meta.slot.subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
+                _ => false,
+            },
+            Dependencies(r) => match (r, pkg.dependencies(&[])) {
+                (Some(r), val) => r.matches(val),
+                (None, val) if val.is_empty() => true,
                 _ => false,
             },
             Depend(r) => match (r, pkg.depend()) {
