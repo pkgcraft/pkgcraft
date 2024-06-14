@@ -62,7 +62,7 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
     }
 }
 
-fn dep_restrict(attr: &str, r: DepRestrict) -> EbuildRestrict {
+fn depset_dep_restrict(attr: &str, r: DepRestrict) -> EbuildRestrict {
     use DepSetRestrict::*;
     use EbuildRestrict::*;
 
@@ -72,7 +72,20 @@ fn dep_restrict(attr: &str, r: DepRestrict) -> EbuildRestrict {
         "idepend" => Idepend(Some(Any(r))),
         "pdepend" => Pdepend(Some(Any(r))),
         "rdepend" => Rdepend(Some(Any(r))),
-        _ => panic!("unknown dep attribute: {attr}"),
+        _ => panic!("unknown depset dep attribute: {attr}"),
+    }
+}
+
+fn depset_str_restrict(attr: &str, r: StrRestrict) -> EbuildRestrict {
+    use DepSetRestrict::*;
+    use EbuildRestrict::*;
+
+    match attr {
+        "license" => License(Some(Any(r))),
+        "properties" => Properties(Some(Any(r))),
+        "required_use" => RequiredUse(Some(Any(r))),
+        "restrict" => Restrict(Some(Any(r))),
+        _ => panic!("unknown depset string attribute: {attr}"),
     }
 }
 
@@ -217,7 +230,7 @@ peg::parser!(grammar restrict() for str {
             let restricts = dep::restricts(s)
                 .map_err(|_| "invalid dep restriction")?
                 .into_iter()
-                .map(|r| dep_restrict(attr, r));
+                .map(|r| depset_dep_restrict(attr, r));
             Ok(BaseRestrict::and(restricts))
         } / vals:(op:['&' | '|'] attr:depset_dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
@@ -229,7 +242,7 @@ peg::parser!(grammar restrict() for str {
                 .map_err(|_| "invalid dep restriction")?;
 
             for (op, attr) in vals {
-                let restricts = restricts.iter().cloned().map(|r| dep_restrict(attr, r));
+                let restricts = restricts.iter().cloned().map(|r| depset_dep_restrict(attr, r));
                 match op {
                     '&' => and_restricts.extend(restricts),
                     '|' => or_restricts.extend(restricts),
@@ -246,6 +259,21 @@ peg::parser!(grammar restrict() for str {
             };
 
             Ok(r)
+        }
+
+    rule depset_str_attr() -> &'input str
+        = attr:$((
+            "license"
+            / "properties"
+            / "required_use"
+            / "restrict"
+        )) { attr }
+
+    rule attr_depset_str_restrict() -> BaseRestrict
+        = attr:depset_str_attr() _ "any" _ s:quoted_string()
+        {
+            let r = StrRestrict::equal(s);
+            depset_str_restrict(attr, r).into()
         }
 
     rule attr_orderedset_str() -> BaseRestrict
@@ -335,6 +363,7 @@ peg::parser!(grammar restrict() for str {
            / dep_str_restrict()
            / attr_str_restrict()
            / attr_depset_dep_restrict()
+           / attr_depset_str_restrict()
            / attr_orderedset_str()
            / maintainers()
            / pkg_restrict()
