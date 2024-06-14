@@ -33,6 +33,7 @@ fn orderedset_restrict(op: &str, vals: &[&str]) -> OrderedSetRestrict<String, St
 fn str_restrict(op: &str, s: &str) -> Result<StrRestrict, &'static str> {
     match op {
         "==" => Ok(StrRestrict::equal(s)),
+        ">=" => Ok(StrRestrict::substr(s)),
         "!=" => Ok(StrRestrict::not(StrRestrict::equal(s))),
         "=~" => str_to_regex_restrict(s),
         "!~" => Ok(StrRestrict::not(str_to_regex_restrict(s)?)),
@@ -162,7 +163,7 @@ peg::parser!(grammar restrict() for str {
         / "\'" s:$([^'\'']+) "\'" { s }
 
     rule string_ops() -> &'input str
-        = _* op:$("==" / "!=" / "=~" / "!~") _* { op }
+        = _* op:$("==" / ">=" / "!=" / "=~" / "!~") _* { op }
 
     rule set_ops() -> &'input str
         = _* op:$((['<' | '>'] "="?) / "==" / "%") _* { op }
