@@ -1,13 +1,16 @@
+use std::str::FromStr;
+
 use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::Restrict;
+use pkgcraft::restrict::{self, Restrict};
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
+use strum::{Display, EnumIter, EnumString, VariantNames};
+
+use crate::Error;
 
 /// All check runner source variants.
 #[derive(
-    AsRefStr,
     Display,
     EnumIter,
     EnumString,
@@ -28,10 +31,7 @@ pub enum SourceKind {
 }
 
 /// Package filtering variants.
-#[derive(
-    AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Hash, Clone,
-)]
-#[strum(serialize_all = "kebab-case")]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Filter {
     /// Restrict package version scanning to the latest version only.
     Latest,
@@ -41,6 +41,20 @@ pub enum Filter {
 
     /// Restrict package version scanning with a custom restriction.
     Restrict(Restrict),
+}
+
+impl FromStr for Filter {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        match s {
+            "latest" => Ok(Self::Latest),
+            "latest-slots" => Ok(Self::LatestSlots),
+            _ => restrict::parse::pkg(s)
+                .map(Self::Restrict)
+                .map_err(|e| Error::InvalidValue(format!("{e}"))),
+        }
+    }
 }
 
 pub(crate) trait IterRestrict {

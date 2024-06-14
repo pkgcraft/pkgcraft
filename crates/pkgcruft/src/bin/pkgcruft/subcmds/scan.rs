@@ -36,13 +36,7 @@ pub(crate) struct Command {
     exit: Vec<ReportKind>,
 
     /// Package filter
-    #[arg(
-        short,
-        long,
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(Filter::VARIANTS)
-            .map(|s| s.parse::<Filter>().unwrap()),
-    )]
+    #[arg(short, long)]
     filter: Option<Filter>,
 
     #[clap(flatten)]
