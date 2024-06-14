@@ -26,7 +26,7 @@ boolean::restrict_with_boolean! {Restrict,
 
 impl Default for Restrict {
     fn default() -> Self {
-        Self::True
+        Self::False
     }
 }
 
