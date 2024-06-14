@@ -19,7 +19,7 @@ macro_rules! make_ordered_restrictions {
             fn matches(&self, val: $x) -> bool {
                 match self {
                     Self::Any(r) => val.iter().any(|v| r.matches(v)),
-                    Self::All(r) => val.iter().all(|v| r.matches(v)),
+                    Self::All(r) => !val.is_empty() && val.iter().all(|v| r.matches(v)),
                     Self::First(r) => val.first().map(|v| r.matches(v)).unwrap_or_default(),
                     Self::Last(r) => val.last().map(|v| r.matches(v)).unwrap_or_default(),
                     Self::Count(ordering, size) => ordering.contains(&val.len().cmp(size)),
