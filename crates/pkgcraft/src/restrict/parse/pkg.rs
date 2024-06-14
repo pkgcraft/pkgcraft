@@ -62,7 +62,7 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
     }
 }
 
-fn depset_dep_restrict(attr: &str, r: DepRestrict) -> EbuildRestrict {
+fn depset_dep_any(attr: &str, r: DepRestrict) -> EbuildRestrict {
     use DepSetRestrict::*;
     use EbuildRestrict::*;
 
@@ -76,15 +76,35 @@ fn depset_dep_restrict(attr: &str, r: DepRestrict) -> EbuildRestrict {
     }
 }
 
-fn depset_str_restrict(attr: &str, r: StrRestrict) -> EbuildRestrict {
+fn depset_dep_contains(attr: &str, r: StrRestrict) -> EbuildRestrict {
     use DepSetRestrict::*;
     use EbuildRestrict::*;
 
     match attr {
-        "license" => License(Some(Any(r))),
-        "properties" => Properties(Some(Any(r))),
-        "required_use" => RequiredUse(Some(Any(r))),
-        "restrict" => Restrict(Some(Any(r))),
+        "depend" => Depend(Some(Contains(r))),
+        "bdepend" => Bdepend(Some(Contains(r))),
+        "idepend" => Idepend(Some(Contains(r))),
+        "pdepend" => Pdepend(Some(Contains(r))),
+        "rdepend" => Rdepend(Some(Contains(r))),
+        _ => panic!("unknown depset dep attribute: {attr}"),
+    }
+}
+
+fn depset_str_restrict(kind: &str, attr: &str, r: StrRestrict) -> EbuildRestrict {
+    use DepSetRestrict::*;
+    use EbuildRestrict::*;
+
+    let depset_restrict = match kind {
+        "any" => Any,
+        "contains" => Contains,
+        _ => panic!("unknown depset restriction type: {kind}"),
+    };
+
+    match attr {
+        "license" => License(Some(depset_restrict(r))),
+        "properties" => Properties(Some(depset_restrict(r))),
+        "required_use" => RequiredUse(Some(depset_restrict(r))),
+        "restrict" => Restrict(Some(depset_restrict(r))),
         _ => panic!("unknown depset string attribute: {attr}"),
     }
 }
@@ -215,6 +235,9 @@ peg::parser!(grammar restrict() for str {
             Ok(ebuild_r.into())
         }
 
+    rule depset_restrict() -> &'input str
+        = kind:$(("any" / "contains")) { kind }
+
     rule depset_dep_attr() -> &'input str
         = attr:$((
             "depend"
@@ -230,8 +253,12 @@ peg::parser!(grammar restrict() for str {
             let restricts = dep::restricts(s)
                 .map_err(|_| "invalid dep restriction")?
                 .into_iter()
-                .map(|r| depset_dep_restrict(attr, r));
+                .map(|r| depset_dep_any(attr, r));
             Ok(BaseRestrict::and(restricts))
+        } / attr:depset_dep_attr() _ "contains" _ op:string_ops() s:quoted_string()
+        {?
+            let r = str_restrict(op, s)?;
+            Ok(depset_dep_contains(attr, r).into())
         } / vals:(op:['&' | '|'] attr:depset_dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
         {?
@@ -242,7 +269,7 @@ peg::parser!(grammar restrict() for str {
                 .map_err(|_| "invalid dep restriction")?;
 
             for (op, attr) in vals {
-                let restricts = restricts.iter().cloned().map(|r| depset_dep_restrict(attr, r));
+                let restricts = restricts.iter().cloned().map(|r| depset_dep_any(attr, r));
                 match op {
                     '&' => and_restricts.extend(restricts),
                     '|' => or_restricts.extend(restricts),
@@ -270,10 +297,10 @@ peg::parser!(grammar restrict() for str {
         )) { attr }
 
     rule attr_depset_str_restrict() -> BaseRestrict
-        = attr:depset_str_attr() _ "any" _ op:string_ops() s:quoted_string()
+        = attr:depset_str_attr() _ kind:depset_restrict() _ op:string_ops() s:quoted_string()
         {?
             let r = str_restrict(op, s)?;
-            Ok(depset_str_restrict(attr, r).into())
+            Ok(depset_str_restrict(kind, attr, r).into())
         }
 
     rule attr_orderedset_str() -> BaseRestrict
