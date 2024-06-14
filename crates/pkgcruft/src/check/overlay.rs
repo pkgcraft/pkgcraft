@@ -14,7 +14,8 @@ pub(super) static CHECK: super::Check = super::Check {
     scope: Scope::Version,
     source: SourceKind::Ebuild,
     reports: &[EclassUnused],
-    context: &[CheckContext::Overlay],
+    // drop optional when eclass deprecation flags are used instead
+    context: &[CheckContext::Optional, CheckContext::Overlay],
     priority: 0,
 };
 
