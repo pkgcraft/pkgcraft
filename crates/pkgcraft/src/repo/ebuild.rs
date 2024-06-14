@@ -1175,8 +1175,7 @@ mod tests {
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
         assert!(repo.masters().next().is_none());
-        let trees: Vec<_> = repo.trees().map(|r| r.id().to_string()).collect();
-        assert_eq!(trees, ["a"]);
+        assert_equal(repo.trees().map(|r| r.id().to_string()), ["a"]);
 
         // nonexistent
         let repo =
@@ -1190,10 +1189,8 @@ mod tests {
             .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
             .unwrap();
         let repo = repo.as_ebuild().unwrap();
-        let masters: Vec<_> = repo.masters().map(|r| r.id().to_string()).collect();
-        assert_eq!(masters, ["a"]);
-        let trees: Vec<_> = repo.trees().map(|r| r.id().to_string()).collect();
-        assert_eq!(trees, ["a", "b"]);
+        assert_equal(repo.masters().map(|r| r.id().to_string()), ["a"]);
+        assert_equal(repo.trees().map(|r| r.id().to_string()), ["a", "b"]);
     }
 
     #[test]
@@ -1376,15 +1373,11 @@ mod tests {
 
         // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
-        let iter = repo.iter_cpv_restrict(&cpv);
-        let cpvs: Vec<_> = iter.collect();
-        assert_eq!(cpvs, [cpv]);
+        assert_equal(repo.iter_cpv_restrict(&cpv), [cpv]);
 
         // multiple matches via package name
         let restrict = DepRestrict::package("inherit");
-        let iter = repo.iter_cpv_restrict(restrict);
-        let cpvs: Vec<_> = iter.collect();
-        assert!(cpvs.len() > 2);
+        assert!(repo.iter_cpv_restrict(restrict).count() > 2);
     }
 
     #[test]
@@ -1407,21 +1400,18 @@ mod tests {
 
         // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
-        let iter = repo.iter_restrict(&cpv);
-        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
-        assert_eq!(cpvs, [cpv.to_string()]);
+        assert_equal(repo.iter_restrict(&cpv).map(|p| p.cpv().to_string()), [cpv.to_string()]);
 
         // single match via package
         let pkg = repo.iter().next().unwrap();
-        let iter = repo.iter_restrict(&pkg);
-        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
-        assert_eq!(cpvs, [pkg.cpv().to_string()]);
+        assert_equal(
+            repo.iter_restrict(&pkg).map(|p| p.cpv().to_string()),
+            [pkg.cpv().to_string()],
+        );
 
         // multiple matches via package name
         let restrict = DepRestrict::package("inherit");
-        let iter = repo.iter_restrict(restrict);
-        let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
-        assert!(cpvs.len() > 2);
+        assert!(repo.iter_restrict(restrict).count() > 2);
     }
 
     #[traced_test]
