@@ -72,7 +72,7 @@ impl MetadataRaw {
 ///
 /// This is created via deserializing metadata cache entries or pulled directly from the
 /// environment after sourcing an ebuild.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Metadata<'a> {
     pub(crate) eapi: &'static Eapi,
     pub(crate) description: String,

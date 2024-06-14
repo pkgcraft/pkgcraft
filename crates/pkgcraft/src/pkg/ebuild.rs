@@ -49,6 +49,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct Pkg<'a> {
     cpv: Cpv,
     repo: &'a Repo,
