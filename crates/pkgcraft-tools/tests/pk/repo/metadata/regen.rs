@@ -238,7 +238,7 @@ fn data_content() {
         // verify new data matches original
         let new: IndexMap<_, _> = metadata_content(cache_path);
         for (cpv, data) in new {
-            assert_unordered_eq(expected.get(&cpv).unwrap().lines(), data.lines());
+            assert_unordered_eq!(expected.get(&cpv).unwrap().lines(), data.lines());
         }
     }
 }
