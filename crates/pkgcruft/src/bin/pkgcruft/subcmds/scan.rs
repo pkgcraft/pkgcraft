@@ -45,12 +45,6 @@ pub(crate) struct Command {
     #[clap(flatten)]
     checks: options::checks::Checks,
 
-    #[clap(flatten)]
-    arches: options::arches::Arches,
-
-    #[clap(flatten)]
-    profiles: options::profiles::Profiles,
-
     // positionals
     /// Target packages or paths
     #[arg(
