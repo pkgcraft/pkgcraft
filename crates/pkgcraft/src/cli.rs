@@ -65,6 +65,46 @@ impl<'a> TargetRestrictions<'a> {
             .add_format_repo_nested_path(path, 0, self.repo_format)
     }
 
+    fn dep_restriction(&mut self, restrict: Restrict) -> crate::Result<(RepoSet, Restrict)> {
+        // support external repo path restrictions
+        if let Restrict::And(vals) = &restrict {
+            use DepRestrict::Repo;
+            use StrRestrict::Equal;
+            let mut paths = vec![];
+            let mut restricts = vec![];
+            for r in vals.iter().map(Deref::deref) {
+                match r {
+                    Restrict::Dep(Repo(Some(Equal(s)))) => paths.push(s),
+                    r => restricts.push(r),
+                }
+            }
+
+            match paths[..] {
+                [path] if path.contains('/') => {
+                    let path = Utf8Path::new(path)
+                        .canonicalize_utf8()
+                        .map_err(|e| Error::InvalidValue(format!("invalid repo: {path}: {e}")))?;
+
+                    // add external repo to the config if it doesn't exist
+                    let repo =
+                        if let Some(repo) = self.repo_set.repos.iter().find(|r| r.path() == path) {
+                            repo.clone()
+                        } else {
+                            self.repo_from_path(&path)?
+                        };
+
+                    return Ok((repo.into(), Restrict::and(restricts)));
+                }
+                [id] if !self.repo_set.repos.iter().any(|r| r.id() == id) => {
+                    return Err(Error::InvalidValue(format!("unknown repo: {id}")));
+                }
+                _ => (),
+            }
+        }
+
+        Ok(self.repo_set.clone().filter(restrict))
+    }
+
     /// Convert a target into a path or dep restriction.
     fn target_restriction(&mut self, target: &str) -> crate::Result<(RepoSet, Restrict)> {
         let path_target = Utf8Path::new(target)
@@ -76,50 +116,13 @@ impl<'a> TargetRestrictions<'a> {
             .map(|path| self.repo_from_nested_path(path));
 
         match (restrict::parse::dep(target), path_target, repo_target) {
+            // prefer dep restrictions for valid cat/pkg paths
+            (Ok(restrict), Ok(_), _) if target.contains('/') => self.dep_restriction(restrict),
             (_, Ok(path), Some(Ok(repo))) => {
                 let restrict = repo.restrict_from_path(path).expect("invalid repo");
                 Ok((repo.into(), restrict))
             }
-            (Ok(restrict), _, _) => {
-                // support external repo path restrictions
-                if let Restrict::And(vals) = &restrict {
-                    use DepRestrict::Repo;
-                    use StrRestrict::Equal;
-                    let mut paths = vec![];
-                    let mut restricts = vec![];
-                    for r in vals.iter().map(Deref::deref) {
-                        match r {
-                            Restrict::Dep(Repo(Some(Equal(s)))) => paths.push(s),
-                            r => restricts.push(r),
-                        }
-                    }
-
-                    match paths[..] {
-                        [path] if path.contains('/') => {
-                            let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
-                                Error::InvalidValue(format!("invalid repo: {path}: {e}"))
-                            })?;
-
-                            // add external repo to the config if it doesn't exist
-                            let repo = if let Some(repo) =
-                                self.repo_set.repos.iter().find(|r| r.path() == path)
-                            {
-                                repo.clone()
-                            } else {
-                                self.repo_from_path(&path)?
-                            };
-
-                            return Ok((repo.into(), Restrict::and(restricts)));
-                        }
-                        [id] if !self.repo_set.repos.iter().any(|r| r.id() == id) => {
-                            return Err(Error::InvalidValue(format!("unknown repo: {id}")));
-                        }
-                        _ => (),
-                    }
-                }
-
-                Ok(self.repo_set.clone().filter(restrict))
-            }
+            (Ok(restrict), _, _) => self.dep_restriction(restrict),
             (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
             (_, Err(e), _) if target.contains('/') => Err(e),
             (Err(e), _, _) => Err(e),
