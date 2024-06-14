@@ -20,7 +20,7 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(repo: &Arc<Repo>, filter: Option<Filter>, checks: &IndexSet<Check>) -> Self {
+    pub(super) fn new(repo: &Arc<Repo>, filter: Option<&Filter>, checks: &IndexSet<Check>) -> Self {
         let repo = Box::leak(Box::new(repo.clone()));
         let mut runners = IndexMap::new();
 
@@ -44,7 +44,7 @@ impl SyncCheckRunner {
         for check in enabled {
             runners
                 .entry(check.source)
-                .or_insert_with(|| CheckRunner::new(check.source, repo, filter))
+                .or_insert_with(|| CheckRunner::new(check.source, repo, filter.cloned()))
                 .add_check(check);
         }
 

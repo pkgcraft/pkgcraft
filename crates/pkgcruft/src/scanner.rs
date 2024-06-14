@@ -102,7 +102,7 @@ impl Scanner {
 
         match repo {
             Repo::Ebuild(r) => {
-                let runner = Arc::new(SyncCheckRunner::new(r, self.filter, &self.checks));
+                let runner = Arc::new(SyncCheckRunner::new(r, self.filter.as_ref(), &self.checks));
                 let filter = ReportFilter {
                     reports: None,
                     filter,

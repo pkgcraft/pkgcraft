@@ -29,7 +29,7 @@ pub enum SourceKind {
 
 /// Package filtering variants.
 #[derive(
-    AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Hash, Copy, Clone,
+    AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Hash, Clone,
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum Filter {
@@ -38,6 +38,9 @@ pub enum Filter {
 
     /// Restrict package version scanning to the latest version from each slot.
     LatestSlots,
+
+    /// Restrict package version scanning with a custom restriction.
+    Restrict(Restrict),
 }
 
 pub(crate) trait IterRestrict {
@@ -69,6 +72,10 @@ impl IterRestrict for Ebuild {
                     .into_iter()
                     .filter_map(|(_, mut pkgs)| pkgs.pop()),
             ),
+            Some(Filter::Restrict(restrict)) => Box::new(
+                self.repo
+                    .iter_restrict(Restrict::and([val.into(), restrict.clone()])),
+            ),
         }
     }
 }
@@ -95,6 +102,11 @@ impl IterRestrict for EbuildRaw {
                     .collect::<OrderedMap<_, OrderedSet<_>>>()
                     .into_iter()
                     .filter_map(|(_, mut pkgs)| pkgs.pop())
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+            ),
+            Some(Filter::Restrict(restrict)) => Box::new(
+                self.repo
+                    .iter_restrict(Restrict::and([val.into(), restrict.clone()]))
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             ),
         }
