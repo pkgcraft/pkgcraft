@@ -331,13 +331,12 @@ impl Config {
 mod tests {
     use std::env;
 
-    use itertools::assert_equal;
     use tempfile::tempdir;
     use tracing_test::traced_test;
 
     use crate::macros::*;
     use crate::repo::Repository;
-    use crate::test::TEST_DATA;
+    use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -434,7 +433,7 @@ mod tests {
         "#, t1.path()};
         fs::write(path, data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_equal(config.repos.iter().map(|(_, r)| r.id()), ["a"]);
+        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["a"]);
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
@@ -448,7 +447,7 @@ mod tests {
         "#, t1.path(), t2.path()};
         fs::write(path, data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_equal(config.repos.iter().map(|(_, r)| r.id()), ["c", "b"]);
+        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["c", "b"]);
 
         // reloading existing repo using a different id fails
         let data = indoc::formatdoc! {r#"
@@ -496,10 +495,10 @@ mod tests {
         "#, t3.path()};
         fs::write(conf_dir.join("repos.conf/r3.conf"), data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_equal(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
+        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
 
         // reloading directory succeeds
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_equal(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
+        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
     }
 }

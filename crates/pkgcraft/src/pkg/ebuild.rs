@@ -320,14 +320,12 @@ impl<'a> EbuildPackage for Pkg<'a> {
 
 #[cfg(test)]
 mod tests {
-    use itertools::assert_equal;
-
     use crate::config::Config;
     use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
     use crate::macros::assert_err_re;
     use crate::pkg::ebuild::manifest::Checksum;
     use crate::repo::PkgRepository;
-    use crate::test::TEST_DATA;
+    use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::*;
 
@@ -500,14 +498,14 @@ mod tests {
         let pkg = TEST_DATA
             .ebuild_pkg("=homepage/single-8::metadata")
             .unwrap();
-        assert_equal(
+        assert_ordered_eq!(
             pkg.homepage(),
             ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
         );
 
         // multi-line
         let pkg = TEST_DATA.ebuild_pkg("=homepage/multi-8::metadata").unwrap();
-        assert_equal(
+        assert_ordered_eq!(
             pkg.homepage(),
             ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
         );
@@ -516,13 +514,13 @@ mod tests {
         let pkg = TEST_DATA
             .ebuild_pkg("=homepage/inherit-8::metadata")
             .unwrap();
-        assert_equal(pkg.homepage(), ["https://github.com/pkgcraft/1"]);
+        assert_ordered_eq!(pkg.homepage(), ["https://github.com/pkgcraft/1"]);
 
         // inherited and appended
         let pkg = TEST_DATA
             .ebuild_pkg("=homepage/append-8::metadata")
             .unwrap();
-        assert_equal(
+        assert_ordered_eq!(
             pkg.homepage(),
             ["https://github.com/pkgcraft/a", "https://github.com/pkgcraft/1"],
         );
@@ -536,7 +534,7 @@ mod tests {
 
         // ebuild-defined
         let pkg = TEST_DATA.ebuild_pkg("=phases/direct-8::metadata").unwrap();
-        assert_equal(
+        assert_ordered_eq!(
             pkg.defined_phases().iter().map(|p| p.to_string()),
             ["src_compile", "src_install", "src_prepare"],
         );
@@ -545,7 +543,7 @@ mod tests {
         let pkg = TEST_DATA
             .ebuild_pkg("=phases/indirect-8::metadata")
             .unwrap();
-        assert_equal(
+        assert_ordered_eq!(
             pkg.defined_phases().iter().map(|p| p.to_string()),
             ["src_install", "src_prepare", "src_test"],
         );
@@ -565,11 +563,11 @@ mod tests {
         let pkg = TEST_DATA
             .ebuild_pkg("=keywords/single-8::metadata")
             .unwrap();
-        assert_equal(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "~arm64"]);
+        assert_ordered_eq!(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "~arm64"]);
 
         // multi-line
         let pkg = TEST_DATA.ebuild_pkg("=keywords/multi-8::metadata").unwrap();
-        assert_equal(pkg.keywords().iter().map(|x| x.to_string()), ["~amd64", "arm64"]);
+        assert_ordered_eq!(pkg.keywords().iter().map(|x| x.to_string()), ["~amd64", "arm64"]);
     }
 
     #[test]
@@ -584,15 +582,15 @@ mod tests {
 
         // single-line
         let pkg = TEST_DATA.ebuild_pkg("=iuse/single-8::metadata").unwrap();
-        assert_equal(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
+        assert_ordered_eq!(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
 
         // multi-line
         let pkg = TEST_DATA.ebuild_pkg("=iuse/multi-8::metadata").unwrap();
-        assert_equal(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
+        assert_ordered_eq!(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
 
         // incremental inherit
         let pkg = TEST_DATA.ebuild_pkg("=iuse/inherit-8::metadata").unwrap();
-        assert_equal(
+        assert_ordered_eq!(
             pkg.iuse().iter().map(|x| x.to_string()),
             ["global", "ebuild", "eclass", "a", "b"],
         );
@@ -737,15 +735,15 @@ mod tests {
 
         // direct inherit
         let pkg = TEST_DATA.ebuild_pkg("=inherit/direct-8::metadata").unwrap();
-        assert_equal(pkg.inherit(), [&a]);
-        assert_equal(pkg.inherited(), [&a]);
+        assert_ordered_eq!(pkg.inherit(), [&a]);
+        assert_ordered_eq!(pkg.inherited(), [&a]);
 
         // indirect inherit
         let pkg = TEST_DATA
             .ebuild_pkg("=inherit/indirect-8::metadata")
             .unwrap();
-        assert_equal(pkg.inherit(), [&b]);
-        assert_equal(pkg.inherited(), [&b, &a]);
+        assert_ordered_eq!(pkg.inherit(), [&b]);
+        assert_ordered_eq!(pkg.inherited(), [&b, &a]);
     }
 
     #[test]

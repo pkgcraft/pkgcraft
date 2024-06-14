@@ -232,10 +232,9 @@ make_ordered_restrictions!((&[Maintainer], MaintainerRestrict));
 mod tests {
     use std::fs;
 
-    use itertools::assert_equal;
-
     use crate::config::Config;
     use crate::repo::PkgRepository;
+    use crate::test::assert_ordered_eq;
 
     use super::*;
 
@@ -266,10 +265,10 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        assert_equal(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-2"]);
+        assert_ordered_eq!(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-2"]);
 
         let r = Restrict::Ebuild(StrRestrict::regex("SLOT=").unwrap());
-        assert_equal(
+        assert_ordered_eq!(
             t.repo().iter_restrict(r).map(|p| p.cpv().to_string()),
             ["cat/pkg-1", "cat/pkg-2"],
         );
@@ -291,10 +290,10 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        assert_equal(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-2"]);
+        assert_ordered_eq!(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-2"]);
 
         let r = Restrict::Description(StrRestrict::regex("desc").unwrap());
-        assert_equal(
+        assert_ordered_eq!(
             t.repo().iter_restrict(r).map(|p| p.cpv().to_string()),
             ["cat/pkg-1", "cat/pkg-2"],
         );
@@ -315,10 +314,10 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        assert_equal(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-1"]);
+        assert_ordered_eq!(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-1"]);
 
         let r = Restrict::Slot(StrRestrict::regex("0|1").unwrap());
-        assert_equal(
+        assert_ordered_eq!(
             t.repo().iter_restrict(r).map(|p| p.cpv().to_string()),
             ["cat/pkg-0", "cat/pkg-1"],
         );
@@ -344,10 +343,10 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        assert_equal(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-1"]);
+        assert_ordered_eq!(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-1"]);
 
         let r = Restrict::Subslot(StrRestrict::regex("0|2").unwrap());
-        assert_equal(
+        assert_ordered_eq!(
             t.repo().iter_restrict(r).map(|p| p.cpv().to_string()),
             ["cat/pkg-0", "cat/pkg-1"],
         );
@@ -381,7 +380,7 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // single repo match
-        assert_equal(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-b-1"]);
+        assert_ordered_eq!(t.repo().iter_restrict(r).map(|p| p.cpv().to_string()), ["cat/pkg-b-1"]);
 
         let raw_pkg = t.create_raw_pkg("cat/pkg-c-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
@@ -397,7 +396,7 @@ mod tests {
 
         // multiple repo matches
         let r = Restrict::LongDescription(Some(StrRestrict::regex("desc").unwrap()));
-        assert_equal(
+        assert_ordered_eq!(
             t.repo().iter_restrict(r).map(|p| p.cpv().to_string()),
             ["cat/pkg-b-1", "cat/pkg-c-1"],
         );
@@ -445,10 +444,13 @@ mod tests {
 
         // pkgs with no maintainers
         let r: BaseRestrict = Restrict::Maintainers(None).into();
-        assert_equal(t.repo().iter_restrict(&r).map(|p| p.cpv().to_string()), ["noxml/pkg-1"]);
+        assert_ordered_eq!(
+            t.repo().iter_restrict(&r).map(|p| p.cpv().to_string()),
+            ["noxml/pkg-1"]
+        );
 
         // pkgs with maintainers
-        assert_equal(
+        assert_ordered_eq!(
             t.repo().iter_restrict(!r).map(|p| p.cpv().to_string()),
             ["cat/pkg-a-1", "cat/pkg-b-1"],
         );

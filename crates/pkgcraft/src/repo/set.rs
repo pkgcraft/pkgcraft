@@ -352,11 +352,10 @@ impl SubAssign<&Repo> for RepoSet {
 
 #[cfg(test)]
 mod tests {
-    use itertools::assert_equal;
-
     use crate::config::Config;
     use crate::pkg::RepoPackage;
     use crate::repo::{fake, Contains, Repository};
+    use crate::test::assert_ordered_eq;
     use crate::utils::hash;
 
     use super::*;
@@ -394,16 +393,16 @@ mod tests {
         let r1: Repo = fake::Repo::new("r1", 0).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
         let s = RepoSet::from_iter([&r1, &r2]);
-        assert_equal(&s.repos, [&r1, &r2]);
+        assert_ordered_eq!(&s.repos, [&r1, &r2]);
         // different parameter order are still sorted lexically by repo id
         let s = RepoSet::from_iter([&r2, &r1]);
-        assert_equal(&s.repos, [&r1, &r2]);
+        assert_ordered_eq!(&s.repos, [&r1, &r2]);
 
         // higher priority repos come before lower priority ones
         let r1: Repo = fake::Repo::new("r1", -1).into();
         let r2: Repo = fake::Repo::new("r2", 0).into();
         let s = RepoSet::from_iter([&r1, &r2]);
-        assert_equal(&s.repos, [&r2, &r1]);
+        assert_ordered_eq!(&s.repos, [&r2, &r1]);
     }
 
     #[test]
@@ -443,12 +442,12 @@ mod tests {
 
         // single ebuild
         t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert_equal(s.categories(), ["cat"]);
-        assert_equal(s.packages("cat"), ["pkg"]);
-        assert_equal(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
+        assert_ordered_eq!(s.categories(), ["cat"]);
+        assert_ordered_eq!(s.packages("cat"), ["pkg"]);
+        assert_ordered_eq!(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
         assert_eq!(s.len(), 1);
         assert!(!s.is_empty());
-        assert_equal(s.iter_cpv(), [cpv.clone()]);
+        assert_ordered_eq!(s.iter_cpv(), [cpv.clone()]);
         assert!(s.iter().next().is_some());
         assert!(s.iter_restrict(&cpv).next().is_some());
         assert!(s.contains(&cpn));
@@ -459,14 +458,14 @@ mod tests {
         let fake_repo = fake::Repo::new("fake", 0).pkgs(["cat/pkg-1"]);
         let f_repo: Repo = fake_repo.into();
         let s = RepoSet::from_iter([t.repo(), &f_repo]);
-        assert_equal(s.categories(), ["cat"]);
-        assert_equal(s.packages("cat"), ["pkg"]);
-        assert_equal(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
+        assert_ordered_eq!(s.categories(), ["cat"]);
+        assert_ordered_eq!(s.packages("cat"), ["pkg"]);
+        assert_ordered_eq!(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
         assert_eq!(s.len(), 2);
         assert!(s.contains(&cpn));
         assert!(s.contains(&cpv));
         assert!(s.contains(&dep));
-        assert_equal(s.iter_cpv(), [cpv.clone()]);
+        assert_ordered_eq!(s.iter_cpv(), [cpv.clone()]);
         assert_eq!(s.iter().count(), 2);
         assert_eq!(s.iter_restrict(&cpv).count(), 2);
         let pkg = s.iter_restrict(&cpv).next().unwrap();

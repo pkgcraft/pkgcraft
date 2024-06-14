@@ -275,11 +275,10 @@ impl<'a> Iterator for IterRestrict<'a> {
 
 #[cfg(test)]
 mod tests {
-    use itertools::assert_equal;
-
     use crate::dep::Dep;
     use crate::pkg::Package;
     use crate::repo::Contains;
+    use crate::test::assert_ordered_eq;
 
     use super::*;
 
@@ -296,7 +295,7 @@ mod tests {
         assert!(repo.categories().is_empty());
         // existing pkgs
         repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
-        assert_equal(repo.categories(), ["cat1", "cat2"])
+        assert_ordered_eq!(repo.categories(), ["cat1", "cat2"])
     }
 
     #[test]
@@ -308,8 +307,8 @@ mod tests {
         // existing pkgs
         repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
         assert!(repo.packages("cat").is_empty());
-        assert_equal(repo.packages("cat1"), ["pkg-a"]);
-        assert_equal(repo.packages("cat2"), ["pkg-b"]);
+        assert_ordered_eq!(repo.packages("cat1"), ["pkg-a"]);
+        assert_ordered_eq!(repo.packages("cat2"), ["pkg-b"]);
     }
 
     #[test]
@@ -322,8 +321,8 @@ mod tests {
         // existing pkgs
         repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
         assert!(repo.versions("cat", "pkg").is_empty());
-        assert_equal(repo.versions("cat1", "pkg-a"), [ver("1"), ver("2")]);
-        assert_equal(repo.versions("cat2", "pkg-b"), [ver("3")]);
+        assert_ordered_eq!(repo.versions("cat1", "pkg-a"), [ver("1"), ver("2")]);
+        assert_ordered_eq!(repo.versions("cat2", "pkg-b"), [ver("3")]);
     }
 
     #[test]

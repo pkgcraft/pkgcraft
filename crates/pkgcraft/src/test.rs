@@ -323,10 +323,21 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
     TestDataPatched { tmpdir, config }
 });
 
+/// Verify two, ordered iterables are equal.
+#[macro_export]
+macro_rules! assert_ordered_eq {
+    ($iter1:expr, $iter2:expr $(,)?) => {{
+        let a: Vec<_> = $iter1.into_iter().collect();
+        let b: Vec<_> = $iter2.into_iter().collect();
+        assert_eq!(a, b, "{a:?} != {b:?}");
+    }};
+}
+pub use assert_ordered_eq;
+
 /// Verify two, unordered iterables contain the same elements.
 #[macro_export]
 macro_rules! assert_unordered_eq {
-    ($iter1:expr, $iter2:expr) => {{
+    ($iter1:expr, $iter2:expr $(,)?) => {{
         let mut a: Vec<_> = $iter1.into_iter().collect();
         let mut b: Vec<_> = $iter2.into_iter().collect();
         a.sort();
