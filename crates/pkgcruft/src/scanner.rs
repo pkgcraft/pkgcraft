@@ -13,12 +13,14 @@ use strum::IntoEnumIterator;
 use crate::check::Check;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
+use crate::source::Filter;
 
 pub struct Scanner {
     jobs: usize,
     checks: IndexSet<Check>,
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
+    filter: Option<Filter>,
     failed: Arc<AtomicBool>,
 }
 
@@ -29,6 +31,7 @@ impl Default for Scanner {
             checks: Check::iter_default().collect(),
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
+            filter: None,
             failed: Arc::new(Default::default()),
         }
     }
@@ -74,6 +77,12 @@ impl Scanner {
         self
     }
 
+    /// Set report variants that trigger exit code failures.
+    pub fn filter(mut self, value: Option<Filter>) -> Self {
+        self.filter = value;
+        self
+    }
+
     /// Return true if the scanning process failed, false otherwise.
     pub fn failed(&self) -> bool {
         self.failed.load(Ordering::Relaxed)
@@ -93,7 +102,7 @@ impl Scanner {
 
         match repo {
             Repo::Ebuild(r) => {
-                let runner = Arc::new(SyncCheckRunner::new(r, &self.checks));
+                let runner = Arc::new(SyncCheckRunner::new(r, self.filter, &self.checks));
                 let filter = ReportFilter {
                     reports: None,
                     filter,

@@ -12,7 +12,7 @@ use crate::bash::Tree;
 use crate::check::*;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{self, IterRestrict, SourceKind};
+use crate::source::{self, Filter, IterRestrict, SourceKind};
 
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
@@ -20,13 +20,21 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(repo: &Arc<Repo>, checks: &IndexSet<Check>) -> Self {
+    pub(super) fn new(repo: &Arc<Repo>, filter: Option<Filter>, checks: &IndexSet<Check>) -> Self {
         let repo = Box::leak(Box::new(repo.clone()));
         let mut runners = IndexMap::new();
 
-        // filter checks by context
+        // filter checks
         let enabled = checks
             .iter()
+            .filter(|c| {
+                if filter.is_some() && c.scope == Scope::Package {
+                    debug!("{c}: disabled due to package filtering");
+                    false
+                } else {
+                    true
+                }
+            })
             // TODO: replace checks parameter with selected checks once #194 is implemented
             .filter(|c| c.enabled(repo, checks))
             .copied()
@@ -36,7 +44,7 @@ impl SyncCheckRunner {
         for check in enabled {
             runners
                 .entry(check.source)
-                .or_insert_with(|| CheckRunner::new(check.source, repo))
+                .or_insert_with(|| CheckRunner::new(check.source, repo, filter))
                 .add_check(check);
         }
 
@@ -58,10 +66,10 @@ enum CheckRunner {
 }
 
 impl CheckRunner {
-    fn new(source: SourceKind, repo: &'static Repo) -> Self {
+    fn new(source: SourceKind, repo: &'static Repo, filter: Option<Filter>) -> Self {
         match source {
-            SourceKind::Ebuild => Self::Ebuild(EbuildCheckRunner::new(repo)),
-            SourceKind::EbuildRaw => Self::EbuildRaw(EbuildRawCheckRunner::new(repo)),
+            SourceKind::Ebuild => Self::Ebuild(EbuildCheckRunner::new(repo, filter)),
+            SourceKind::EbuildRaw => Self::EbuildRaw(EbuildRawCheckRunner::new(repo, filter)),
         }
     }
 
@@ -91,11 +99,11 @@ struct EbuildCheckRunner {
 }
 
 impl EbuildCheckRunner {
-    fn new(repo: &'static Repo) -> Self {
+    fn new(repo: &'static Repo, filter: Option<Filter>) -> Self {
         Self {
             ver_checks: Default::default(),
             pkg_checks: Default::default(),
-            source: source::Ebuild { repo },
+            source: source::Ebuild { repo, filter },
             repo,
         }
     }
@@ -143,10 +151,10 @@ struct EbuildRawCheckRunner {
 }
 
 impl EbuildRawCheckRunner {
-    fn new(repo: &'static Repo) -> Self {
+    fn new(repo: &'static Repo, filter: Option<Filter>) -> Self {
         Self {
             ver_checks: Default::default(),
-            source: source::EbuildRaw { repo },
+            source: source::EbuildRaw { repo, filter },
             repo,
         }
     }
