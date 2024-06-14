@@ -1,7 +1,8 @@
-use pkgcraft::pkg::ebuild;
+use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Restrict;
+use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 /// All check runner source variants.
@@ -32,7 +33,11 @@ pub enum SourceKind {
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum Filter {
+    /// Restrict package version scanning to the latest version only.
     Latest,
+
+    /// Restrict package version scanning to the latest version from each slot.
+    LatestSlots,
 }
 
 pub(crate) trait IterRestrict {
@@ -50,13 +55,20 @@ impl IterRestrict for Ebuild {
     type Item = ebuild::Pkg<'static>;
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Box<dyn Iterator<Item = Self::Item>> {
-        if self.filter.is_some() {
-            match self.repo.iter_restrict(val).last() {
-                Some(value) => Box::new(std::iter::once(value)),
+        match &self.filter {
+            None => Box::new(self.repo.iter_restrict(val)),
+            Some(Filter::Latest) => match self.repo.iter_restrict(val).last() {
+                Some(pkg) => Box::new(std::iter::once(pkg)),
                 None => Box::new(std::iter::empty()),
-            }
-        } else {
-            Box::new(self.repo.iter_restrict(val))
+            },
+            Some(Filter::LatestSlots) => Box::new(
+                self.repo
+                    .iter_restrict(val)
+                    .map(|pkg| (pkg.slot().to_string(), pkg))
+                    .collect::<OrderedMap<_, OrderedSet<_>>>()
+                    .into_iter()
+                    .filter_map(|(_, mut pkgs)| pkgs.pop()),
+            ),
         }
     }
 }
@@ -70,13 +82,21 @@ impl IterRestrict for EbuildRaw {
     type Item = ebuild::raw::Pkg<'static>;
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Box<dyn Iterator<Item = Self::Item>> {
-        if self.filter.is_some() {
-            match self.repo.iter_raw_restrict(val).last() {
-                Some(value) => Box::new(std::iter::once(value)),
+        match &self.filter {
+            None => Box::new(self.repo.iter_raw_restrict(val)),
+            Some(Filter::Latest) => match self.repo.iter_raw_restrict(val).last() {
+                Some(pkg) => Box::new(std::iter::once(pkg)),
                 None => Box::new(std::iter::empty()),
-            }
-        } else {
-            Box::new(self.repo.iter_raw_restrict(val))
+            },
+            Some(Filter::LatestSlots) => Box::new(
+                self.repo
+                    .iter_restrict(val)
+                    .map(|pkg| (pkg.slot().to_string(), pkg))
+                    .collect::<OrderedMap<_, OrderedSet<_>>>()
+                    .into_iter()
+                    .filter_map(|(_, mut pkgs)| pkgs.pop())
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+            ),
         }
     }
 }
