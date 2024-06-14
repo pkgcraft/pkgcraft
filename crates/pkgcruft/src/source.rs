@@ -47,12 +47,13 @@ impl FromStr for Filter {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        match s {
+        match s.trim() {
             "latest" => Ok(Self::Latest),
             "latest-slots" => Ok(Self::LatestSlots),
-            _ => restrict::parse::pkg(s)
+            s if s.contains(|c: char| c.is_whitespace()) => restrict::parse::pkg(s)
                 .map(Self::Restrict)
                 .map_err(|e| Error::InvalidValue(format!("{e}"))),
+            s => Err(Error::InvalidValue(format!("unknown filter: {s}"))),
         }
     }
 }
