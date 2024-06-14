@@ -202,7 +202,7 @@ peg::parser!(grammar restrict() for str {
             Ok(ebuild_r.into())
         }
 
-    rule dep_attr() -> &'input str
+    rule depset_dep_attr() -> &'input str
         = attr:$((
             "depend"
             / "bdepend"
@@ -211,15 +211,15 @@ peg::parser!(grammar restrict() for str {
             / "rdepend"
         )) { attr }
 
-    rule attr_dep_restrict() -> BaseRestrict
-        = attr:dep_attr() _ "any" _ s:quoted_string()
+    rule attr_depset_dep_restrict() -> BaseRestrict
+        = attr:depset_dep_attr() _ "any" _ s:quoted_string()
         {?
             let restricts = dep::restricts(s)
                 .map_err(|_| "invalid dep restriction")?
                 .into_iter()
                 .map(|r| dep_restrict(attr, r));
             Ok(BaseRestrict::and(restricts))
-        } / vals:(op:['&' | '|'] attr:dep_attr() { (op, attr) }) **<2,> ""
+        } / vals:(op:['&' | '|'] attr:depset_dep_attr() { (op, attr) }) **<2,> ""
             _ "any" _ s:quoted_string()
         {?
             let mut and_restricts = vec![];
@@ -334,7 +334,7 @@ peg::parser!(grammar restrict() for str {
         = r:(attr_optional()
            / dep_str_restrict()
            / attr_str_restrict()
-           / attr_dep_restrict()
+           / attr_depset_dep_restrict()
            / attr_orderedset_str()
            / maintainers()
            / pkg_restrict()
