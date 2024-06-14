@@ -153,17 +153,16 @@ impl From<&Repo> for Restrict {
 
 impl PartialEq for Repo {
     fn eq(&self, other: &Self) -> bool {
-        use Repo::*;
         match (self, other) {
-            (Ebuild(r1), Ebuild(r2)) => r1.eq(r2),
-            (Configured(r1), Configured(r2)) => r1.eq(r2),
-            (Fake(r1), Fake(r2)) => r1.eq(r2),
-            (Unsynced(r1), Unsynced(r2)) => r1.eq(r2),
+            (Self::Ebuild(r1), Self::Ebuild(r2)) => r1.eq(r2),
+            (Self::Configured(r1), Self::Configured(r2)) => r1.eq(r2),
+            (Self::Fake(r1), Self::Fake(r2)) => r1.eq(r2),
+            (Self::Unsynced(r1), Self::Unsynced(r2)) => r1.eq(r2),
             // list unmatched formats for compile failure visibility when adding types
-            (Ebuild(_), _) => false,
-            (Configured(_), _) => false,
-            (Fake(_), _) => false,
-            (Unsynced(_), _) => false,
+            (Self::Ebuild(_), _) => false,
+            (Self::Configured(_), _) => false,
+            (Self::Fake(_), _) => false,
+            (Self::Unsynced(_), _) => false,
         }
     }
 }
@@ -173,12 +172,11 @@ impl Eq for Repo {}
 impl Hash for Repo {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.format().hash(state);
-        use Repo::*;
         match self {
-            Ebuild(r) => r.hash(state),
-            Configured(r) => r.hash(state),
-            Fake(r) => r.hash(state),
-            Unsynced(r) => r.hash(state),
+            Self::Ebuild(r) => r.hash(state),
+            Self::Configured(r) => r.hash(state),
+            Self::Fake(r) => r.hash(state),
+            Self::Unsynced(r) => r.hash(state),
         }
     }
 }
