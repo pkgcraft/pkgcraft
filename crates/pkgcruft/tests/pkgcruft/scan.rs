@@ -264,6 +264,47 @@ fn exit() {
 }
 
 #[test]
+fn filter() {
+    let repo = qa_repo("gentoo").path();
+
+    // none
+    let reports = cmd("pkgcruft scan -j1 -R json")
+        .args(["-r", "HeaderInvalid"])
+        .arg(repo)
+        .to_reports();
+    assert_eq!(reports.len(), 6);
+
+    for opt in ["-f", "--filter"] {
+        // invalid
+        cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "invalid"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr(contains("--filter"))
+            .failure()
+            .code(2);
+
+        // latest
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "latest"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .to_reports();
+        assert_eq!(reports.len(), 2);
+
+        // latest slots
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "latest-slots"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .to_reports();
+        assert_eq!(reports.len(), 3);
+    }
+}
+
+#[test]
 fn reporter() {
     let repo = qa_repo("qa-primary").path();
     env::set_current_dir(repo).unwrap();
