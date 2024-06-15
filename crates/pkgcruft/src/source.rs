@@ -1,17 +1,20 @@
 use std::str::FromStr;
 
+use colored::{Color, Colorize};
+use itertools::Itertools;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus;
 use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict};
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::{Display, EnumIter, EnumString, VariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::Error;
 
 /// All check runner source variants.
 #[derive(
+    AsRefStr,
     Display,
     EnumIter,
     EnumString,
@@ -32,7 +35,8 @@ pub enum SourceKind {
 }
 
 /// Package filtering variants.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(AsRefStr, EnumIter, Debug, PartialEq, Eq, Hash, Clone)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Filter {
     /// Restrict package version scanning to the latest version only.
     Latest,
@@ -62,7 +66,21 @@ impl FromStr for Filter {
             s if s.contains(|c: char| c.is_whitespace()) => restrict::parse::pkg(s)
                 .map(Self::Restrict)
                 .map_err(|e| Error::InvalidValue(format!("{e}"))),
-            s => Err(Error::InvalidValue(format!("unknown filter: {s}"))),
+            s => {
+                let possible = Filter::iter()
+                    .filter(|r| !matches!(r, Filter::Restrict(_)))
+                    .map(|r| r.as_ref().color(Color::Green))
+                    .join(", ");
+                let message = indoc::formatdoc! {r#"
+                    invalid filter: {s}
+                      [possible values: {possible}]
+
+                    Custom restrictions are also supported. For example, to target all packages
+                    maintained by the python project use the following command:
+
+                    pkgcruft scan -f "maintainers any email == 'python@gentoo.org'""#};
+                Err(Error::InvalidValue(message))
+            }
         }
     }
 }

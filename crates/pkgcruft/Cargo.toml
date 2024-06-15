@@ -40,6 +40,7 @@ clap-verbosity-flag = "2.2.0"
 colored = "2.1.0"
 crossbeam-channel = "0.5.13"
 indexmap = { version = "2.2.6", features = ["serde"] }
+indoc = "2.0.5"
 itertools = "0.12.1"
 num_cpus = "1.16.0"
 once_cell = "1.19.0"
@@ -63,7 +64,6 @@ glob = { version = "0.3.1", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"
-indoc = "2.0.5"
 predicates = "3.1.0"
 pretty_assertions = "1.4.0"
 tempfile = "3.10.1"
