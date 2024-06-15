@@ -340,7 +340,7 @@ impl<'a> EbuildPackage for Pkg<'a> {
 
 impl Intersects<Dep> for Pkg<'_> {
     fn intersects(&self, dep: &Dep) -> bool {
-        bool_not_equal!(self.cpv.cpn(), dep.cpn());
+        bool_not_equal!(self.cpn(), dep.cpn());
 
         if let Some(val) = dep.slot() {
             bool_not_equal!(self.slot(), val);
@@ -350,14 +350,14 @@ impl Intersects<Dep> for Pkg<'_> {
             bool_not_equal!(self.subslot(), val);
         }
 
-        // TODO: compare usedeps to iuse/iuse_effective
+        // TODO: compare usedeps to iuse_effective
 
         if let Some(val) = dep.repo() {
             bool_not_equal!(self.repo.name(), val);
         }
 
         if let Some(val) = dep.version() {
-            self.cpv.version().intersects(val)
+            self.cpv().version().intersects(val)
         } else {
             true
         }

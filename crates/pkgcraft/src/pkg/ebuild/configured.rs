@@ -3,9 +3,12 @@ use std::sync::OnceLock;
 use crate::config::Settings;
 use crate::dep::{Cpv, Dep, DependencySet, Evaluate, Uri};
 use crate::eapi::Eapi;
+use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::configured::Repo;
+use crate::repo::Repository;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::traits::Intersects;
 use crate::types::OrderedSet;
 
 use super::metadata::Key;
@@ -158,5 +161,37 @@ impl<'a> EbuildPackage for Pkg<'a> {
 impl<'a, 'b> Restriction<&'a Pkg<'b>> for BaseRestrict {
     fn matches(&self, pkg: &'a Pkg<'b>) -> bool {
         self.matches(&pkg.raw)
+    }
+}
+
+impl Intersects<Dep> for Pkg<'_> {
+    fn intersects(&self, dep: &Dep) -> bool {
+        bool_not_equal!(self.cpn(), dep.cpn());
+
+        if let Some(val) = dep.slot() {
+            bool_not_equal!(self.raw.slot(), val);
+        }
+
+        if let Some(val) = dep.subslot() {
+            bool_not_equal!(self.raw.subslot(), val);
+        }
+
+        // TODO: compare usedeps to iuse_effective
+
+        if let Some(val) = dep.repo() {
+            bool_not_equal!(self.repo.name(), val);
+        }
+
+        if let Some(val) = dep.version() {
+            self.cpv().version().intersects(val)
+        } else {
+            true
+        }
+    }
+}
+
+impl Intersects<Pkg<'_>> for Dep {
+    fn intersects(&self, other: &Pkg<'_>) -> bool {
+        other.intersects(self)
     }
 }

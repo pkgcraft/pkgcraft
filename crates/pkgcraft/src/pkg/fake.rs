@@ -1,9 +1,11 @@
-use crate::dep::Cpv;
+use crate::dep::{Cpv, Dep};
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
+use crate::macros::bool_not_equal;
 use crate::pkg;
 use crate::repo::{fake::Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::traits::Intersects;
 
 use super::{make_pkg_traits, Package, RepoPackage};
 
@@ -67,6 +69,40 @@ impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
             Repo(r) => r.matches(pkg.repo().id()),
             _ => false,
         }
+    }
+}
+
+impl Intersects<Dep> for Pkg<'_> {
+    fn intersects(&self, dep: &Dep) -> bool {
+        bool_not_equal!(self.cpn(), dep.cpn());
+
+        if dep.slot().is_some() {
+            return false;
+        }
+
+        if dep.subslot().is_some() {
+            return false;
+        }
+
+        if dep.use_deps().is_some() {
+            return false;
+        }
+
+        if let Some(val) = dep.repo() {
+            bool_not_equal!(self.repo.name(), val);
+        }
+
+        if let Some(val) = dep.version() {
+            self.cpv().version().intersects(val)
+        } else {
+            true
+        }
+    }
+}
+
+impl Intersects<Pkg<'_>> for Dep {
+    fn intersects(&self, other: &Pkg<'_>) -> bool {
+        other.intersects(self)
     }
 }
 

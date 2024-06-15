@@ -3,12 +3,13 @@ use std::fmt;
 use enum_as_inner::EnumAsInner;
 use scallop::ExecStatus;
 
-use crate::dep::{Cpn, Cpv, Version};
+use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::eapi::{Eapi, Restrict as EapiRestrict};
 use crate::repo::{Repo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::traits::Intersects;
 
 pub mod ebuild;
 pub mod fake;
@@ -23,7 +24,7 @@ pub enum Pkg<'a> {
 
 make_pkg_traits!(Pkg<'_>);
 
-pub trait Package: fmt::Debug + fmt::Display {
+pub trait Package: fmt::Debug + fmt::Display + Intersects<Dep> {
     /// Return a package's EAPI.
     fn eapi(&self) -> &'static Eapi;
 
@@ -177,6 +178,22 @@ impl<'a> RepoPackage for Pkg<'a> {
     }
 }
 
+impl Intersects<Dep> for Pkg<'_> {
+    fn intersects(&self, dep: &Dep) -> bool {
+        match self {
+            Self::Configured(pkg, _) => pkg.intersects(dep),
+            Self::Ebuild(pkg, _) => pkg.intersects(dep),
+            Self::Fake(pkg, _) => pkg.intersects(dep),
+        }
+    }
+}
+
+impl Intersects<Pkg<'_>> for Dep {
+    fn intersects(&self, other: &Pkg<'_>) -> bool {
+        other.intersects(self)
+    }
+}
+
 impl<T> Package for &T
 where
     T: Package,
@@ -197,6 +214,15 @@ where
 
     fn repo(&self) -> Self::Repo {
         (*self).repo()
+    }
+}
+
+impl<T> Intersects<Dep> for &T
+where
+    T: Package,
+{
+    fn intersects(&self, dep: &Dep) -> bool {
+        (*self).intersects(dep)
     }
 }
 

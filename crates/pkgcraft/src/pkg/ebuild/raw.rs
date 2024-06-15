@@ -2,12 +2,13 @@ use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 
-use crate::dep::Cpv;
+use crate::dep::{Cpv, Dep};
 use crate::eapi::{self, Eapi};
+use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{ebuild::Repo, Repository};
-use crate::traits::FilterLines;
+use crate::traits::{FilterLines, Intersects};
 use crate::Error;
 
 use super::metadata::{Metadata, MetadataRaw};
@@ -124,6 +125,40 @@ impl<'a> RepoPackage for Pkg<'a> {
 
     fn repo(&self) -> Self::Repo {
         self.repo
+    }
+}
+
+impl Intersects<Dep> for Pkg<'_> {
+    fn intersects(&self, dep: &Dep) -> bool {
+        bool_not_equal!(self.cpn(), dep.cpn());
+
+        if dep.slot().is_some() {
+            return false;
+        }
+
+        if dep.subslot().is_some() {
+            return false;
+        }
+
+        if dep.use_deps().is_some() {
+            return false;
+        }
+
+        if let Some(val) = dep.repo() {
+            bool_not_equal!(self.repo.name(), val);
+        }
+
+        if let Some(val) = dep.version() {
+            self.cpv().version().intersects(val)
+        } else {
+            true
+        }
+    }
+}
+
+impl Intersects<Pkg<'_>> for Dep {
+    fn intersects(&self, other: &Pkg<'_>) -> bool {
+        other.intersects(self)
     }
 }
 
