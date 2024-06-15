@@ -184,9 +184,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
         let keys = unsafe { slice::from_raw_parts(keys, len) };
         let mut dep_keys = vec![];
         for s in keys {
-            let s = try_str_from_ptr!(s).to_uppercase();
+            let s = try_str_from_ptr!(s);
             let key = unwrap_or_panic!(
-                s.parse().map_err(|_| Error::new(format!("invalid dep key: {s}")))
+                s.to_uppercase().parse().map_err(|_| Error::new(format!("invalid dep key: {s}")))
             );
             dep_keys.push(key);
         }
