@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 
-use pkgcraft::dep::{Cpv, Version};
+use pkgcraft::dep::{Cpv, Dep, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::{Package, Pkg, RepoPackage};
 use pkgcraft::repo::Repo;
 use pkgcraft::restrict::{Restrict, Restriction};
+use pkgcraft::traits::Intersects;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
@@ -94,6 +95,17 @@ pub unsafe extern "C" fn pkgcraft_pkg_cmp<'a>(p1: *mut Pkg<'a>, p2: *mut Pkg<'a>
         Ordering::Equal => 0,
         Ordering::Greater => 1,
     }
+}
+
+/// Determine if a package intersects with a package dependency.
+///
+/// # Safety
+/// The arguments should be non-null pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_pkg_intersects_dep(p: *mut Pkg, d: *mut Dep) -> bool {
+    let pkg = try_ref_from_ptr!(p);
+    let dep = try_ref_from_ptr!(d);
+    pkg.intersects(dep)
 }
 
 /// Return the string for a package.
