@@ -77,7 +77,7 @@ impl Scanner {
         self
     }
 
-    /// Set report variants that trigger exit code failures.
+    /// Set a package filter for target filtering.
     pub fn filter(mut self, value: Option<Filter>) -> Self {
         self.filter = value;
         self
@@ -97,7 +97,7 @@ impl Scanner {
         let restricts = restricts.into_iter().map(Into::into).collect();
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
-        let filter = Arc::new(self.reports.clone());
+        let reports = Arc::new(self.reports.clone());
         let exit = Arc::new(self.exit.clone());
 
         match repo {
@@ -105,7 +105,7 @@ impl Scanner {
                 let runner = Arc::new(SyncCheckRunner::new(r, self.filter.as_ref(), &self.checks));
                 let filter = ReportFilter {
                     reports: None,
-                    filter,
+                    filter: reports,
                     exit,
                     failed: self.failed.clone(),
                     tx: reports_tx,
