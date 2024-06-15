@@ -314,6 +314,22 @@ fn filter() {
             .to_reports();
         assert_eq!(&reports, &[&expected[1..=1], &expected[4..]].concat());
 
+        // stable
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "stable"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .to_reports();
+        assert_eq!(&reports, &expected[..3]);
+
+        // unstable
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "unstable"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .to_reports();
+        assert_eq!(&reports, &expected[3..]);
+
         // custom
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "slot == '1'"])
