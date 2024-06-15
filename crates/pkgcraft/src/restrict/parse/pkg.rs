@@ -58,6 +58,7 @@ fn missing_restrict(attr: &str) -> EbuildRestrict {
         "src_uri" => SrcUri(None),
         "homepage" => Homepage(None),
         "iuse" => Iuse(None),
+        "keywords" => Keywords(None),
         "long_description" => LongDescription(None),
         "maintainers" => Maintainers(None),
         _ => panic!("unknown optional package attribute: {attr}"),
@@ -130,6 +131,7 @@ peg::parser!(grammar restrict() for str {
             / "src_uri"
             / "homepage"
             / "iuse"
+            / "keywords"
             / "long_description"
             / "maintainers"
             / "upstream"
