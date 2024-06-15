@@ -46,10 +46,8 @@ impl<'a> TargetRestrictions<'a> {
                 Err(Error::InvalidValue(format!("unknown repo: {s}")))
             }?;
             self.repo_set = repo.into();
-        } else if let Ok(path) = current_dir() {
-            if let Ok(repo) = self.repo_from_nested_path(&path) {
-                self.repo_set = repo.into();
-            }
+        } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(&x)) {
+            self.repo_set = repo.into();
         }
 
         Ok(self)
