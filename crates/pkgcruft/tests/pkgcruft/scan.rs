@@ -286,6 +286,17 @@ fn filter() {
             .failure()
             .code(2);
 
+        // invalid custom
+        cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "slot = 1"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr(contains("--filter"))
+            .failure()
+            .code(2);
+
         // latest
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "latest"])
