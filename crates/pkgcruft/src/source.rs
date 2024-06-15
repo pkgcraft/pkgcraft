@@ -7,7 +7,7 @@ use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict};
-use pkgcraft::types::{OrderedMap, OrderedSet};
+use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::Error;
@@ -118,7 +118,7 @@ impl IterRestrict for Ebuild {
                 self.repo
                     .iter_restrict(val)
                     .map(|pkg| (pkg.slot().to_string(), pkg))
-                    .collect::<OrderedMap<_, OrderedSet<_>>>()
+                    .collect::<OrderedMap<_, Vec<_>>>()
                     .into_iter()
                     .filter_map(|(_, mut pkgs)| pkgs.pop()),
             ),
@@ -169,7 +169,7 @@ impl IterRestrict for EbuildRaw {
                 self.repo
                     .iter_restrict(val)
                     .map(|pkg| (pkg.slot().to_string(), pkg))
-                    .collect::<OrderedMap<_, OrderedSet<_>>>()
+                    .collect::<OrderedMap<_, Vec<_>>>()
                     .into_iter()
                     .filter_map(|(_, mut pkgs)| pkgs.pop())
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),

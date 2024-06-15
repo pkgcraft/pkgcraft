@@ -1,7 +1,7 @@
 use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::Contains;
-use pkgcraft::types::{OrderedMap, OrderedSet};
+use pkgcraft::types::OrderedMap;
 
 use crate::report::ReportKind::EapiStale;
 use crate::scanner::ReportFilter;
@@ -31,10 +31,10 @@ impl PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))
-            .collect::<OrderedMap<_, OrderedSet<_>>>()
-            .values()
-            .for_each(|pkgs| {
-                let (live, release): (Vec<&Pkg>, Vec<&Pkg>) = pkgs
+            .collect::<OrderedMap<_, Vec<_>>>()
+            .into_iter()
+            .for_each(|(_, pkgs)| {
+                let (live, release): (Vec<_>, Vec<_>) = pkgs
                     .into_iter()
                     .partition(|pkg| pkg.properties().contains("live"));
 
