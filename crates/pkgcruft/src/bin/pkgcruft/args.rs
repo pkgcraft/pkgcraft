@@ -1,19 +1,15 @@
 use std::io::{stdin, IsTerminal};
 
-pub(super) struct StdinArgs<'a> {
-    iter: Box<dyn Iterator<Item = String> + 'a>,
-}
+pub(super) struct StdinArgs<'a>(Box<dyn Iterator<Item = String> + 'a>);
 
 impl<'a> StdinArgs<'a> {
     /// Split arguments into separate strings by whitespace.
-    pub(super) fn split_whitespace(self) -> StdinArgs<'a> {
-        let iter = self.iter.flat_map(|s| {
+    pub(super) fn split_whitespace(self) -> Self {
+        Self(Box::new(self.0.flat_map(|s| {
             s.split_whitespace()
                 .map(|s| s.to_string())
                 .collect::<Vec<_>>()
-        });
-
-        StdinArgs { iter: Box::new(iter) }
+        })))
     }
 }
 
@@ -21,7 +17,7 @@ impl Iterator for StdinArgs<'_> {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.0.next()
     }
 }
 
@@ -38,7 +34,7 @@ pub(super) trait StdinOrArgs {
             _ => Box::new(iter),
         };
 
-        StdinArgs { iter }
+        StdinArgs(iter)
     }
 }
 
