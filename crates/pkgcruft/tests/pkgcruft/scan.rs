@@ -301,6 +301,14 @@ fn filter() {
             .arg(repo)
             .to_reports();
         assert_eq!(reports.len(), 3);
+
+        // custom
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "slot == '1'"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .to_reports();
+        assert_eq!(reports.len(), 4);
     }
 }
 
