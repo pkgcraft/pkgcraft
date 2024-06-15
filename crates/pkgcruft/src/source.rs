@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use pkgcraft::pkg::ebuild::keyword::KeywordStatus;
 use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
@@ -41,6 +42,12 @@ pub enum Filter {
 
     /// Restrict package version scanning with a custom restriction.
     Restrict(Restrict),
+
+    /// Restrict package version scanning to packages with only stable keywords.
+    Stable,
+
+    /// Restrict package version scanning to packages with only unstable keywords.
+    Unstable,
 }
 
 impl FromStr for Filter {
@@ -50,6 +57,8 @@ impl FromStr for Filter {
         match s.trim() {
             "latest" => Ok(Self::Latest),
             "latest-slots" => Ok(Self::LatestSlots),
+            "stable" => Ok(Self::Stable),
+            "unstable" => Ok(Self::Unstable),
             s if s.contains(|c: char| c.is_whitespace()) => restrict::parse::pkg(s)
                 .map(Self::Restrict)
                 .map_err(|e| Error::InvalidValue(format!("{e}"))),
@@ -87,6 +96,20 @@ impl IterRestrict for Ebuild {
                     .into_iter()
                     .filter_map(|(_, mut pkgs)| pkgs.pop()),
             ),
+            Some(Filter::Stable) => Box::new(self.repo.iter_restrict(val).filter(|pkg| {
+                !pkg.keywords().is_empty()
+                    && pkg
+                        .keywords()
+                        .iter()
+                        .all(|k| k.status() == KeywordStatus::Stable)
+            })),
+            Some(Filter::Unstable) => Box::new(self.repo.iter_restrict(val).filter(|pkg| {
+                !pkg.keywords().is_empty()
+                    && pkg
+                        .keywords()
+                        .iter()
+                        .all(|k| k.status() == KeywordStatus::Unstable)
+            })),
             Some(Filter::Restrict(restrict)) => Box::new(
                 self.repo
                     .iter_restrict(Restrict::and([val.into(), restrict.clone()])),
@@ -117,6 +140,30 @@ impl IterRestrict for EbuildRaw {
                     .collect::<OrderedMap<_, OrderedSet<_>>>()
                     .into_iter()
                     .filter_map(|(_, mut pkgs)| pkgs.pop())
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+            ),
+            Some(Filter::Stable) => Box::new(
+                self.repo
+                    .iter_restrict(val)
+                    .filter(|pkg| {
+                        !pkg.keywords().is_empty()
+                            && pkg
+                                .keywords()
+                                .iter()
+                                .all(|k| k.status() == KeywordStatus::Stable)
+                    })
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+            ),
+            Some(Filter::Unstable) => Box::new(
+                self.repo
+                    .iter_restrict(val)
+                    .filter(|pkg| {
+                        !pkg.keywords().is_empty()
+                            && pkg
+                                .keywords()
+                                .iter()
+                                .all(|k| k.status() == KeywordStatus::Unstable)
+                    })
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             ),
             Some(Filter::Restrict(restrict)) => Box::new(

@@ -38,7 +38,7 @@ impl Default for Scanner {
 }
 
 impl Scanner {
-    /// Create a new scanner with all checks enabled.
+    /// Create a new scanner using the default settings.
     pub fn new() -> Self {
         Self::default()
     }
