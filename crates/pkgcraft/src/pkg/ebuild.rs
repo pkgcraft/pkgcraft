@@ -9,10 +9,11 @@ use itertools::Either;
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
+use crate::macros::bool_not_equal;
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::repo::Repository;
 use crate::shell::phase::Phase;
-use crate::traits::ToRef;
+use crate::traits::{Intersects, ToRef};
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -316,6 +317,38 @@ impl<'a> EbuildPackage for Pkg<'a> {
 
     fn slot(&self) -> &str {
         self.meta.slot.slot()
+    }
+}
+
+impl Intersects<Dep> for Pkg<'_> {
+    fn intersects(&self, dep: &Dep) -> bool {
+        bool_not_equal!(self.cpv.cpn(), dep.cpn());
+
+        if let Some(val) = dep.slot() {
+            bool_not_equal!(self.slot(), val);
+        }
+
+        if let Some(val) = dep.subslot() {
+            bool_not_equal!(self.subslot(), val);
+        }
+
+        // TODO: compare usedeps to iuse/iuse_effective
+
+        if let Some(val) = dep.repo() {
+            bool_not_equal!(self.repo.name(), val);
+        }
+
+        if let Some(val) = dep.version() {
+            bool_not_equal!(self.cpv.version(), val);
+        }
+
+        true
+    }
+}
+
+impl Intersects<Pkg<'_>> for Dep {
+    fn intersects(&self, other: &Pkg<'_>) -> bool {
+        other.intersects(self)
     }
 }
 
