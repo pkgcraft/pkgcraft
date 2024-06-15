@@ -266,13 +266,14 @@ fn exit() {
 #[test]
 fn filter() {
     let repo = qa_repo("gentoo").path();
+    let expected = glob_reports!("{repo}/Header/HeaderInvalid/reports.json");
 
     // none
     let reports = cmd("pkgcruft scan -j1 -R json")
         .args(["-r", "HeaderInvalid"])
         .arg(repo)
         .to_reports();
-    assert_eq!(reports.len(), 6);
+    assert_eq!(&reports, &expected);
 
     for opt in ["-f", "--filter"] {
         // invalid
@@ -303,7 +304,7 @@ fn filter() {
             .args(["-r", "HeaderInvalid"])
             .arg(repo)
             .to_reports();
-        assert_eq!(reports.len(), 2);
+        assert_eq!(&reports, &expected[4..]);
 
         // latest slots
         let reports = cmd("pkgcruft scan -j1 -R json")
@@ -311,7 +312,7 @@ fn filter() {
             .args(["-r", "HeaderInvalid"])
             .arg(repo)
             .to_reports();
-        assert_eq!(reports.len(), 3);
+        assert_eq!(&reports, &[&expected[1..=1], &expected[4..]].concat());
 
         // custom
         let reports = cmd("pkgcruft scan -j1 -R json")
@@ -319,7 +320,7 @@ fn filter() {
             .args(["-r", "HeaderInvalid"])
             .arg(repo)
             .to_reports();
-        assert_eq!(reports.len(), 4);
+        assert_eq!(&reports, &expected[2..]);
     }
 }
 
