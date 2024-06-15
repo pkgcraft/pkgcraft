@@ -348,10 +348,10 @@ impl Intersects<Dep> for Pkg<'_> {
         }
 
         if let Some(val) = dep.version() {
-            bool_not_equal!(self.cpv.version(), val);
+            self.cpv.version().intersects(val)
+        } else {
+            true
         }
-
-        true
     }
 }
 
