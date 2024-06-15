@@ -100,6 +100,15 @@ impl<'a> Pkg<'a> {
         fs::read_to_string(self.path()).map_err(|e| Error::IO(e.to_string()))
     }
 
+    /// Return true if a package is globally masked in its repo, false otherwise.
+    pub fn masked(&self) -> bool {
+        self.repo
+            .metadata
+            .pkg_mask()
+            .iter()
+            .any(|x| self.intersects(x))
+    }
+
     /// Return a package's description.
     pub fn description(&self) -> &str {
         &self.meta.description
