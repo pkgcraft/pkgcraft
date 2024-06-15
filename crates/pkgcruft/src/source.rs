@@ -44,11 +44,17 @@ pub enum Filter {
     /// Restrict package version scanning to the latest version from each slot.
     LatestSlots,
 
+    /// Restrict package version scanning to packages that are globally masked.
+    Masked,
+
     /// Restrict package version scanning with a custom restriction.
     Restrict(Restrict),
 
     /// Restrict package version scanning to packages with only stable keywords.
     Stable,
+
+    /// Restrict package version scanning to packages that aren't globally masked.
+    Unmasked,
 
     /// Restrict package version scanning to packages with only unstable keywords.
     Unstable,
@@ -61,7 +67,9 @@ impl FromStr for Filter {
         match s.trim() {
             "latest" => Ok(Self::Latest),
             "latest-slots" => Ok(Self::LatestSlots),
+            "masked" => Ok(Self::Masked),
             "stable" => Ok(Self::Stable),
+            "unmasked" => Ok(Self::Unmasked),
             "unstable" => Ok(Self::Unstable),
             s if s.contains(|c: char| c.is_whitespace()) => restrict::parse::pkg(s)
                 .map(Self::Restrict)
@@ -114,6 +122,9 @@ impl IterRestrict for Ebuild {
                     .into_iter()
                     .filter_map(|(_, mut pkgs)| pkgs.pop()),
             ),
+            Some(Filter::Masked) => {
+                Box::new(self.repo.iter_restrict(val).filter(|pkg| pkg.masked()))
+            }
             Some(Filter::Stable) => Box::new(self.repo.iter_restrict(val).filter(|pkg| {
                 !pkg.keywords().is_empty()
                     && pkg
@@ -121,6 +132,9 @@ impl IterRestrict for Ebuild {
                         .iter()
                         .all(|k| k.status() == KeywordStatus::Stable)
             })),
+            Some(Filter::Unmasked) => {
+                Box::new(self.repo.iter_restrict(val).filter(|pkg| !pkg.masked()))
+            }
             Some(Filter::Unstable) => Box::new(self.repo.iter_restrict(val).filter(|pkg| {
                 !pkg.keywords().is_empty()
                     && pkg
@@ -160,6 +174,12 @@ impl IterRestrict for EbuildRaw {
                     .filter_map(|(_, mut pkgs)| pkgs.pop())
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             ),
+            Some(Filter::Masked) => Box::new(
+                self.repo
+                    .iter_restrict(val)
+                    .filter(|pkg| pkg.masked())
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+            ),
             Some(Filter::Stable) => Box::new(
                 self.repo
                     .iter_restrict(val)
@@ -170,6 +190,12 @@ impl IterRestrict for EbuildRaw {
                                 .iter()
                                 .all(|k| k.status() == KeywordStatus::Stable)
                     })
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+            ),
+            Some(Filter::Unmasked) => Box::new(
+                self.repo
+                    .iter_restrict(val)
+                    .filter(|pkg| !pkg.masked())
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             ),
             Some(Filter::Unstable) => Box::new(
