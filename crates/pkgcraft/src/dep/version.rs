@@ -436,8 +436,8 @@ macro_rules! ranged {
     };
 }
 
-impl Intersects<Version> for Version {
-    fn intersects(&self, other: &Version) -> bool {
+impl Intersects<Self> for Version {
+    fn intersects(&self, other: &Self) -> bool {
         use Operator::*;
         match (self.op, other.op) {
             // intersects if both are unbounded in the same direction
