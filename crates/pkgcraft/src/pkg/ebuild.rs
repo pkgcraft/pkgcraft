@@ -100,6 +100,15 @@ impl<'a> Pkg<'a> {
         fs::read_to_string(self.path()).map_err(|e| Error::IO(e.to_string()))
     }
 
+    /// Return true if a package is globally deprecated in its repo, false otherwise.
+    pub fn deprecated(&self) -> bool {
+        self.repo
+            .metadata
+            .pkg_deprecated()
+            .iter()
+            .any(|x| self.intersects(x))
+    }
+
     /// Return true if a package is globally masked in its repo, false otherwise.
     pub fn masked(&self) -> bool {
         self.repo
