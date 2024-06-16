@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -11,7 +10,7 @@ use strum::{AsRefStr, Display, EnumString};
 
 use crate::macros::bool_not_equal;
 use crate::traits::Intersects;
-use crate::types::SortedSet;
+use crate::types::{OrderedMap, OrderedSet, SortedSet};
 use crate::Error;
 
 use super::use_dep::{UseDep, UseDepKind};
@@ -592,6 +591,22 @@ impl Intersects<Cpv> for Cow<'_, Dep> {
     }
 }
 
+// Determine if any use dependency differences with matching flags are
+// requested to be both enabled and disabled.
+impl Intersects for SortedSet<UseDep> {
+    fn intersects(&self, other: &Self) -> bool {
+        !self
+            .symmetric_difference(other)
+            .map(|x| (x.flag(), x.kind()))
+            .collect::<OrderedMap<_, OrderedSet<_>>>()
+            .into_iter()
+            .map(|(_, kinds)| kinds)
+            .any(|kinds| {
+                kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled)
+            })
+    }
+}
+
 impl Intersects for Dep {
     fn intersects(&self, other: &Self) -> bool {
         bool_not_equal!(self.cpn(), other.cpn());
@@ -605,18 +620,7 @@ impl Intersects for Dep {
         }
 
         if let (Some(s1), Some(s2)) = (self.use_deps(), other.use_deps()) {
-            // find the differences between the sets
-            let mut use_map = HashMap::<_, HashSet<_>>::new();
-            for u in s1.symmetric_difference(s2) {
-                use_map.entry(&u.flag).or_default().insert(&u.kind);
-            }
-
-            // determine if the set of differences contains a flag both enabled and disabled
-            for kinds in use_map.values() {
-                if kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled) {
-                    return false;
-                }
-            }
+            bool_not_equal!(s1.intersects(s2));
         }
 
         if let (Some(x), Some(y)) = (self.repo(), other.repo()) {
@@ -651,8 +655,6 @@ impl Intersects<Dep> for Cow<'_, Dep> {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
-
     use crate::eapi::{self, EAPIS};
     use crate::test::TEST_DATA;
     use crate::utils::hash;
@@ -674,7 +676,7 @@ mod tests {
         // valid
         for e in &TEST_DATA.dep_toml.valid {
             let s = e.dep.as_str();
-            let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
+            let passing_eapis: OrderedSet<_> = eapi::range(&e.eapis).unwrap().collect();
             for eapi in &passing_eapis {
                 let result = eapi.dep(s);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");
@@ -806,7 +808,7 @@ mod tests {
 
     #[test]
     fn cmp() {
-        let op_map: HashMap<_, _> =
+        let op_map: OrderedMap<_, _> =
             [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
                 .into_iter()
                 .collect();
@@ -1096,7 +1098,7 @@ mod tests {
     #[test]
     fn hashing() {
         for d in &TEST_DATA.version_toml.hashing {
-            let set: HashSet<Dep> = d
+            let set: OrderedSet<Dep> = d
                 .versions
                 .iter()
                 .map(|s| format!("=cat/pkg-{s}").parse().unwrap())
