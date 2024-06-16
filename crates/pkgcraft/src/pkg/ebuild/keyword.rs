@@ -1,8 +1,68 @@
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 
 use crate::dep::parse;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct Arch(String);
+
+impl From<&str> for Arch {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+/// Compare two arches, making unprefixed arches less than prefixed arches.
+impl Ord for Arch {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self.0.split_once('-'), other.0.split_once('-')) {
+            (None, Some(_)) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater,
+            (Some((arch1, platform1)), Some((arch2, platform2))) => {
+                platform1.cmp(platform2).then_with(|| arch1.cmp(arch2))
+            }
+            (None, None) => self.0.cmp(&other.0),
+        }
+    }
+}
+
+impl PartialOrd for Arch {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq<str> for Arch {
+    fn eq(&self, other: &str) -> bool {
+        self.0 == other
+    }
+}
+
+impl Borrow<str> for Arch {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Borrow<str> for &Arch {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for Arch {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for Arch {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// Package keyword type.
 #[repr(C)]
@@ -16,7 +76,7 @@ pub enum KeywordStatus {
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Keyword {
     pub(crate) status: KeywordStatus,
-    pub(crate) arch: String,
+    pub(crate) arch: Arch,
 }
 
 impl Keyword {
@@ -26,7 +86,7 @@ impl Keyword {
     }
 
     /// Return the architecture for a keyword without its status.
-    pub fn arch(&self) -> &str {
+    pub fn arch(&self) -> &Arch {
         &self.arch
     }
 
@@ -36,35 +96,16 @@ impl Keyword {
     }
 }
 
-/// Compare two arches, making unprefixed arches less than prefixed arches.
-pub fn cmp_arches<S1, S2>(arch1: S1, arch2: S2) -> Ordering
-where
-    S1: AsRef<str>,
-    S2: AsRef<str>,
-{
-    let (arch1, arch2) = (arch1.as_ref(), arch2.as_ref());
-    match (arch1.split_once('-'), arch2.split_once('-')) {
-        (None, Some(_)) => Ordering::Less,
-        (Some(_), None) => Ordering::Greater,
-        (Some((arch1, platform1)), Some((arch2, platform2))) => {
-            platform1.cmp(platform2).then_with(|| arch1.cmp(arch2))
-        }
-        (None, None) => arch1.cmp(arch2),
-    }
-}
-
 impl Ord for Keyword {
     fn cmp(&self, other: &Self) -> Ordering {
-        let cmp = cmp_arches(self.arch(), other.arch());
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-        self.status.cmp(&other.status)
+        self.arch
+            .cmp(&other.arch)
+            .then_with(|| self.status.cmp(&other.status))
     }
 }
 
 impl PartialOrd for Keyword {
-    fn partial_cmp(&self, other: &Keyword) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }

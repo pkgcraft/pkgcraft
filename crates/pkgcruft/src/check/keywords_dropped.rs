@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Disabled};
+use pkgcraft::pkg::ebuild::keyword::Arch;
+use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
@@ -27,7 +28,7 @@ pub(super) fn create(repo: &'static Repo) -> impl PackageCheck {
 }
 
 struct Check {
-    arches: &'static IndexSet<String>,
+    arches: &'static IndexSet<Arch>,
 }
 
 super::register!(Check);
@@ -61,12 +62,13 @@ impl PackageCheck for Check {
                 previous
                     .difference(&arches)
                     .chain(seen.difference(&arches))
+                    .copied()
                     .collect()
             };
 
             for arch in drops {
-                if self.arches.contains(*arch) {
-                    changes.insert(arch.to_string(), pkg);
+                if self.arches.contains(arch) {
+                    changes.insert(arch.clone(), pkg);
                 }
             }
 
@@ -100,7 +102,7 @@ impl PackageCheck for Check {
         }
 
         for (pkg, arches) in &dropped {
-            let message = arches.iter().sorted_by(|a, b| cmp_arches(a, b)).join(", ");
+            let message = arches.iter().sorted().join(", ");
             filter.report(KeywordsDropped.version(pkg, message));
         }
     }

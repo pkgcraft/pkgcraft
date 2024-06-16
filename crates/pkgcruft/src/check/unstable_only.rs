@@ -1,7 +1,6 @@
-use std::collections::HashSet;
-
+use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::keyword::{cmp_arches, KeywordStatus::Unstable};
+use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
@@ -28,13 +27,13 @@ pub(super) fn create(repo: &'static Repo) -> impl PackageCheck {
             .metadata
             .arches_desc()
             .get("stable")
-            .map(|x| x.iter().map(|s| s.as_str()).collect())
+            .cloned()
             .unwrap_or_default(),
     }
 }
 
 struct Check {
-    stable: HashSet<&'static str>,
+    stable: IndexSet<Arch>,
 }
 
 super::register!(Check);
@@ -52,7 +51,7 @@ impl PackageCheck for Check {
             .into_iter()
             // find arches that only have unstable keywords
             .filter_map(|(k, v)| v.iter().all(|k| k.status() == Unstable).then_some(k))
-            .sorted_by(|a, b| cmp_arches(a, b))
+            .sorted()
             .join(", ");
 
         if !arches.is_empty() {

@@ -17,6 +17,7 @@ use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
 use crate::files::{has_ext_utf8, is_dir_utf8, is_file_utf8, is_hidden_utf8, sorted_dir_list_utf8};
 use crate::macros::build_path;
+use crate::pkg::ebuild::keyword::Arch;
 use crate::pkg::ebuild::{self, manifest::Manifest, xml};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -145,7 +146,7 @@ pub struct Repo {
     pub metadata: Metadata,
     masters: OnceLock<Vec<Weak<Self>>>,
     trees: OnceLock<Vec<Weak<Self>>>,
-    arches: OnceLock<IndexSet<String>>,
+    arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -413,7 +414,7 @@ impl Repo {
     }
 
     /// Return the set of inherited architectures sorted by name.
-    pub fn arches(&self) -> &IndexSet<String> {
+    pub fn arches(&self) -> &IndexSet<Arch> {
         self.arches.get_or_init(|| {
             let mut arches: IndexSet<_> = self
                 .trees()

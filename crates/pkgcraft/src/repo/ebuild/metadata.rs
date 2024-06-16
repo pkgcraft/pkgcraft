@@ -16,6 +16,7 @@ use crate::eapi::Eapi;
 use crate::files::{
     has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8, sorted_dir_list,
 };
+use crate::pkg::ebuild::keyword::Arch;
 use crate::pkg::ebuild::manifest::HashType;
 use crate::repo::RepoFormat;
 use crate::traits::FilterLines;
@@ -227,8 +228,8 @@ pub struct Metadata {
     pub(super) eapi: &'static Eapi,
     pub config: Config,
     path: Utf8PathBuf,
-    arches: OnceLock<IndexSet<String>>,
-    arches_desc: OnceLock<IndexMap<ArchStatus, IndexSet<String>>>,
+    arches: OnceLock<IndexSet<Arch>>,
+    arches_desc: OnceLock<IndexMap<ArchStatus, IndexSet<Arch>>>,
     cache: OnceLock<MetadataCache>,
     categories: OnceLock<IndexSet<String>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
@@ -294,18 +295,18 @@ impl Metadata {
     }
 
     /// Return a repo's known architectures from `profiles/arch.list`.
-    pub fn arches(&self) -> &IndexSet<String> {
+    pub fn arches(&self) -> &IndexSet<Arch> {
         self.arches.get_or_init(|| {
             self.read_path("profiles/arch.list")
                 .filter_lines()
-                .map(|(_, s)| s.to_string())
+                .map(|(_, s)| s.into())
                 .collect()
         })
     }
 
     /// Architecture stability status from `profiles/arches.desc`.
     /// See GLEP 72 (https://www.gentoo.org/glep/glep-0072.html).
-    pub fn arches_desc(&self) -> &IndexMap<ArchStatus, IndexSet<String>> {
+    pub fn arches_desc(&self) -> &IndexMap<ArchStatus, IndexSet<Arch>> {
         self.arches_desc.get_or_init(|| {
             let mut vals = IndexMap::<_, IndexSet<_>>::new();
             self.read_path("profiles/arches.desc")
@@ -323,7 +324,7 @@ impl Metadata {
                         }
 
                         if let Ok(status) = status.parse() {
-                            vals.entry(status).or_default().insert(arch.to_string());
+                            vals.entry(status).or_default().insert(arch.into());
                         } else {
                             warn!(
                                 "{}::profiles/arches.desc, line {i}: unknown status: {status}",

@@ -26,7 +26,7 @@ impl From<keyword::Keyword> for Keyword {
     fn from(value: keyword::Keyword) -> Self {
         Keyword {
             status: value.status(),
-            arch: try_ptr_from_str!(value.arch()),
+            arch: try_ptr_from_str!(value.arch().as_ref()),
             keyword: boxed(KeywordWrapper(value)),
         }
     }

@@ -25,13 +25,13 @@ peg::parser!(grammar depspec() for str {
     // The "-*" keyword is allowed in KEYWORDS for package metadata.
     pub(super) rule keyword() -> Keyword
         = arch:keyword_name()
-            { Keyword { status: KeywordStatus::Stable, arch: arch.to_string() } }
+            { Keyword { status: KeywordStatus::Stable, arch: arch.into() } }
         / "~" arch:keyword_name()
-            { Keyword { status: KeywordStatus::Unstable, arch: arch.to_string() } }
+            { Keyword { status: KeywordStatus::Unstable, arch: arch.into() } }
         / "-" arch:keyword_name()
-            { Keyword { status: KeywordStatus::Disabled, arch: arch.to_string() } }
+            { Keyword { status: KeywordStatus::Disabled, arch: arch.into() } }
         / "-*"
-            { Keyword { status: KeywordStatus::Disabled, arch: "*".to_string() } }
+            { Keyword { status: KeywordStatus::Disabled, arch: "*".into() } }
 
     // License names must not begin with a hyphen, dot, or plus sign.
     pub(super) rule license_name() -> &'input str
