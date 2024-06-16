@@ -74,7 +74,7 @@ macro_rules! partial_cmp_not_equal_opt {
 }
 pub(crate) use partial_cmp_not_equal_opt;
 
-// Return false if the arguments or expression are not equal.
+// Return false if the arguments are not equal or the expression is false.
 macro_rules! bool_not_equal {
     ($bool:expr) => {
         if !$bool {
