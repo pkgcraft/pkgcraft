@@ -2,7 +2,6 @@ use std::borrow::Borrow;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
-use std::str::FromStr;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -11,7 +10,6 @@ use crate::eapi::Eapi;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::traits::{Contains, IntoOwned, ToRef};
 use crate::types::{Deque, Ordered, OrderedSet, SortedSet};
-use crate::Error;
 
 pub mod cpn;
 pub mod cpv;
@@ -269,15 +267,6 @@ impl Dependency<String> {
 impl Dependency<Uri> {
     pub fn src_uri(s: &str) -> crate::Result<Self> {
         parse::src_uri_dependency(s)
-    }
-}
-
-impl FromStr for Dependency<Dep> {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        let eapi = Default::default();
-        parse::package_dependency(s, eapi)
     }
 }
 
@@ -669,15 +658,6 @@ impl<T: Ordered> FromIterator<Dependency<T>> for DependencySet<T> {
 impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<T>> for DependencySet<&'a T> {
     fn from_iter<I: IntoIterator<Item = &'a Dependency<T>>>(iterable: I) -> Self {
         Self(iterable.into_iter().map(|d| d.to_ref()).collect())
-    }
-}
-
-impl FromStr for DependencySet<Dep> {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        let eapi = Default::default();
-        parse::package_dependency_set(s, eapi)
     }
 }
 
@@ -1266,9 +1246,9 @@ mod tests {
     #[test]
     fn dependency_contains() {
         let dep = Dep::try_new("cat/pkg").unwrap();
-        let spec = Dependency::from_str("cat/pkg").unwrap();
+        let spec = Dependency::package("cat/pkg", Default::default()).unwrap();
         for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
-            let d: Dependency<Dep> = s.parse().unwrap();
+            let d = Dependency::package(s, Default::default()).unwrap();
             assert!(d.contains(&dep), "{d} doesn't contain {dep}");
             assert!(!d.contains(&d), "{d} contains itself");
             assert!(d.contains(&spec), "{d} doesn't contain {spec}");
@@ -1285,7 +1265,7 @@ mod tests {
             ("u? ( c/d a/b )", "u? ( a/b c/d )"),
             ("!u? ( c/d a/b )", "!u? ( a/b c/d )"),
         ] {
-            let mut spec: Dependency<Dep> = s.parse().unwrap();
+            let mut spec = Dependency::package(s, Default::default()).unwrap();
             spec.sort();
             assert_eq!(spec.to_string(), expected);
         }
@@ -1302,7 +1282,7 @@ mod tests {
             ("u? ( b a )", "u? ( a b )"),
             ("!u? ( b a )", "!u? ( a b )"),
         ] {
-            let mut spec = parse::required_use_dependency(s).unwrap();
+            let mut spec = Dependency::required_use(s).unwrap();
             spec.sort();
             assert_eq!(spec.to_string(), expected);
         }
@@ -1311,9 +1291,9 @@ mod tests {
     #[test]
     fn dependency_set_contains() {
         let dep = Dep::try_new("cat/pkg").unwrap();
-        let spec = Dependency::from_str("cat/pkg").unwrap();
+        let spec = Dependency::package("cat/pkg", Default::default()).unwrap();
         for s in ["cat/pkg", "a/b cat/pkg"] {
-            let set: DependencySet<Dep> = s.parse().unwrap();
+            let set = DependencySet::package(s, Default::default()).unwrap();
             assert!(set.contains(&dep), "{set} doesn't contain {dep}");
             assert!(set.contains(&spec), "{set} doesn't contain {spec}");
         }
@@ -1329,7 +1309,7 @@ mod tests {
             ("u? ( c/d a/b ) z/z", "z/z u? ( a/b c/d )"),
             ("!u? ( c/d a/b ) z/z", "z/z !u? ( a/b c/d )"),
         ] {
-            let mut set: DependencySet<Dep> = s.parse().unwrap();
+            let mut set = DependencySet::package(s, Default::default()).unwrap();
             set.sort();
             assert_eq!(set.to_string(), expected);
         }
