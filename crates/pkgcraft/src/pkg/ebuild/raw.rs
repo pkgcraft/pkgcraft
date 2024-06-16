@@ -13,6 +13,7 @@ use crate::Error;
 
 use super::metadata::{Metadata, MetadataRaw};
 
+#[derive(Clone)]
 pub struct Pkg<'a> {
     pub(super) cpv: Cpv,
     pub(super) repo: &'a Repo,

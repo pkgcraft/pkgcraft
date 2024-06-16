@@ -14,7 +14,7 @@ use crate::types::OrderedSet;
 use super::metadata::Key;
 use super::EbuildPackage;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pkg<'a> {
     repo: &'a Repo,
     settings: &'a Settings,
