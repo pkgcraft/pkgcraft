@@ -51,8 +51,7 @@ impl PackageCheck for Check {
             .collect::<OrderedMap<_, OrderedSet<_>>>()
             .into_iter()
             // find arches that only have unstable keywords
-            .filter(|(_, v)| v.iter().all(|k| k.status() == Unstable))
-            .map(|(k, _)| k)
+            .filter_map(|(k, v)| v.iter().all(|k| k.status() == Unstable).then_some(k))
             .sorted_by(|a, b| cmp_arches(a, b))
             .join(", ");
 
