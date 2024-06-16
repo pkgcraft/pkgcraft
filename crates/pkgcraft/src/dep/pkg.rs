@@ -592,65 +592,60 @@ impl Intersects<Cpv> for Cow<'_, Dep> {
     }
 }
 
-/// Determine if two package dependencies intersect ignoring blockers.
-fn dep_intersects(dep1: &Dep, dep2: &Dep) -> bool {
-    bool_not_equal!(dep1.cpn(), dep2.cpn());
-
-    if let (Some(x), Some(y)) = (dep1.slot(), dep2.slot()) {
-        bool_not_equal!(x, y);
-    }
-
-    if let (Some(x), Some(y)) = (dep1.subslot(), dep2.subslot()) {
-        bool_not_equal!(x, y);
-    }
-
-    if let (Some(s1), Some(s2)) = (dep1.use_deps(), dep2.use_deps()) {
-        // find the differences between the sets
-        let mut use_map = HashMap::<_, HashSet<_>>::new();
-        for u in s1.symmetric_difference(s2) {
-            use_map.entry(&u.flag).or_default().insert(&u.kind);
-        }
-
-        // determine if the set of differences contains a flag both enabled and disabled
-        for kinds in use_map.values() {
-            if kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled) {
-                return false;
-            }
-        }
-    }
-
-    if let (Some(x), Some(y)) = (dep1.repo(), dep2.repo()) {
-        bool_not_equal!(x, y);
-    }
-
-    if let (Some(x), Some(y)) = (dep1.version(), dep2.version()) {
-        x.intersects(y)
-    } else {
-        true
-    }
-}
-
 impl Intersects for Dep {
     fn intersects(&self, other: &Self) -> bool {
-        dep_intersects(self, other)
+        bool_not_equal!(self.cpn(), other.cpn());
+
+        if let (Some(x), Some(y)) = (self.slot(), other.slot()) {
+            bool_not_equal!(x, y);
+        }
+
+        if let (Some(x), Some(y)) = (self.subslot(), other.subslot()) {
+            bool_not_equal!(x, y);
+        }
+
+        if let (Some(s1), Some(s2)) = (self.use_deps(), other.use_deps()) {
+            // find the differences between the sets
+            let mut use_map = HashMap::<_, HashSet<_>>::new();
+            for u in s1.symmetric_difference(s2) {
+                use_map.entry(&u.flag).or_default().insert(&u.kind);
+            }
+
+            // determine if the set of differences contains a flag both enabled and disabled
+            for kinds in use_map.values() {
+                if kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled) {
+                    return false;
+                }
+            }
+        }
+
+        if let (Some(x), Some(y)) = (self.repo(), other.repo()) {
+            bool_not_equal!(x, y);
+        }
+
+        if let (Some(x), Some(y)) = (self.version(), other.version()) {
+            x.intersects(y)
+        } else {
+            true
+        }
     }
 }
 
 impl Intersects<Cow<'_, Dep>> for Cow<'_, Dep> {
     fn intersects(&self, other: &Cow<'_, Dep>) -> bool {
-        dep_intersects(self, other)
-    }
-}
-
-impl Intersects<Dep> for Cow<'_, Dep> {
-    fn intersects(&self, other: &Dep) -> bool {
-        dep_intersects(self, other)
+        self.as_ref().intersects(other.as_ref())
     }
 }
 
 impl Intersects<Cow<'_, Dep>> for Dep {
     fn intersects(&self, other: &Cow<'_, Dep>) -> bool {
-        dep_intersects(self, other)
+        self.intersects(other.as_ref())
+    }
+}
+
+impl Intersects<Dep> for Cow<'_, Dep> {
+    fn intersects(&self, other: &Dep) -> bool {
+        other.intersects(self.as_ref())
     }
 }
 
