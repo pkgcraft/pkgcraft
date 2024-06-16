@@ -32,8 +32,8 @@ impl PackageCheck for Check {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))
             .collect::<OrderedMap<_, Vec<_>>>()
-            .into_iter()
-            .for_each(|(_, pkgs)| {
+            .into_values()
+            .for_each(|pkgs| {
                 let (live, release): (Vec<_>, Vec<_>) = pkgs
                     .into_iter()
                     .partition(|pkg| pkg.properties().contains("live"));

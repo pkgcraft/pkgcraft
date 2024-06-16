@@ -599,8 +599,7 @@ impl Intersects for SortedSet<UseDep> {
             .symmetric_difference(other)
             .map(|x| (x.flag(), x.kind()))
             .collect::<OrderedMap<_, OrderedSet<_>>>()
-            .into_iter()
-            .map(|(_, kinds)| kinds)
+            .into_values()
             .any(|kinds| {
                 kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled)
             })

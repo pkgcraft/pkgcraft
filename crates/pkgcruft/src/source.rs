@@ -119,8 +119,8 @@ impl IterRestrict for Ebuild {
                     .iter_restrict(val)
                     .map(|pkg| (pkg.slot().to_string(), pkg))
                     .collect::<OrderedMap<_, Vec<_>>>()
-                    .into_iter()
-                    .filter_map(|(_, mut pkgs)| pkgs.pop()),
+                    .into_values()
+                    .filter_map(|mut pkgs| pkgs.pop()),
             ),
             Some(Filter::Masked) => {
                 Box::new(self.repo.iter_restrict(val).filter(|pkg| pkg.masked()))
@@ -170,8 +170,8 @@ impl IterRestrict for EbuildRaw {
                     .iter_restrict(val)
                     .map(|pkg| (pkg.slot().to_string(), pkg))
                     .collect::<OrderedMap<_, Vec<_>>>()
-                    .into_iter()
-                    .filter_map(|(_, mut pkgs)| pkgs.pop())
+                    .into_values()
+                    .filter_map(|mut pkgs| pkgs.pop())
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             ),
             Some(Filter::Masked) => Box::new(
