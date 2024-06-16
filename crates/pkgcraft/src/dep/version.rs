@@ -668,7 +668,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ver_new_and_parse() {
+    fn new_and_parse() {
         // invalid
         for s in &TEST_DATA.version_toml.invalid {
             let result = Version::try_new(s);
@@ -690,7 +690,7 @@ mod tests {
     }
 
     #[test]
-    fn ver_op() {
+    fn op() {
         let ver = Version::try_new("1").unwrap();
         assert!(ver.op().is_none());
 
@@ -736,7 +736,7 @@ mod tests {
     }
 
     #[test]
-    fn ver_compare() {
+    fn compare() {
         let op_map: HashMap<_, _> =
             [("<", Ordering::Less), ("==", Ordering::Equal), (">", Ordering::Greater)]
                 .into_iter()
@@ -763,7 +763,7 @@ mod tests {
     }
 
     #[test]
-    fn ver_intersects() {
+    fn intersects() {
         for d in &TEST_DATA.version_toml.intersects {
             // test intersections between all pairs of distinct values
             let permutations = d
@@ -791,7 +791,7 @@ mod tests {
     }
 
     #[test]
-    fn ver_sorting() {
+    fn sorting() {
         for d in &TEST_DATA.version_toml.sorting {
             let mut reversed: Vec<Version> =
                 d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
@@ -806,7 +806,7 @@ mod tests {
     }
 
     #[test]
-    fn ver_hashing() {
+    fn hashing() {
         for d in &TEST_DATA.version_toml.hashing {
             let set: HashSet<Version> = d.versions.iter().map(|s| s.parse().unwrap()).collect();
             if d.equal {
