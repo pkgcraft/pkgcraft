@@ -336,4 +336,15 @@ mod tests {
         assert_eq!(pkg.pvr(), "1-r2");
         assert_eq!(pkg.cpn(), &Cpn::try_new("cat/pkg").unwrap());
     }
+
+    #[test]
+    fn intersects_dep() {
+        let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
+        let r: Repo = fake::Repo::new("test", 0).pkgs([&cpv]).into();
+        let pkg = r.iter_restrict(&cpv).next().unwrap();
+        assert!(pkg.intersects(&Dep::try_new("cat/pkg").unwrap()));
+        assert!(!pkg.intersects(&Dep::try_new("a/b").unwrap()));
+        assert!(pkg.intersects(&Dep::try_new("=cat/pkg-1-r2").unwrap()));
+        assert!(!pkg.intersects(&Dep::try_new(">cat/pkg-1-r2").unwrap()));
+    }
 }
