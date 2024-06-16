@@ -564,35 +564,31 @@ impl fmt::Display for Dep {
     }
 }
 
-/// Determine if a package dependency intersects with a Cpv.
-fn dep_intersects_cpv(dep: &Dep, cpv: &Cpv) -> bool {
-    bool_not_equal!(dep.cpn(), cpv.cpn());
-    dep.version()
-        .map(|v| v.intersects(cpv.version()))
-        .unwrap_or(true)
+impl Intersects<Dep> for Cpv {
+    fn intersects(&self, other: &Dep) -> bool {
+        bool_not_equal!(self.cpn(), other.cpn());
+        other
+            .version()
+            .map(|v| v.intersects(self.version()))
+            .unwrap_or(true)
+    }
 }
 
 impl Intersects<Cpv> for Dep {
     fn intersects(&self, other: &Cpv) -> bool {
-        dep_intersects_cpv(self, other)
-    }
-}
-
-impl Intersects<Dep> for Cpv {
-    fn intersects(&self, other: &Dep) -> bool {
-        dep_intersects_cpv(other, self)
-    }
-}
-
-impl Intersects<Cpv> for Cow<'_, Dep> {
-    fn intersects(&self, other: &Cpv) -> bool {
-        dep_intersects_cpv(self, other)
+        other.intersects(self)
     }
 }
 
 impl Intersects<Cow<'_, Dep>> for Cpv {
     fn intersects(&self, other: &Cow<'_, Dep>) -> bool {
-        dep_intersects_cpv(other, self)
+        self.intersects(other.as_ref())
+    }
+}
+
+impl Intersects<Cpv> for Cow<'_, Dep> {
+    fn intersects(&self, other: &Cpv) -> bool {
+        other.intersects(self.as_ref())
     }
 }
 
