@@ -24,17 +24,17 @@ impl Command {
 #[derive(Debug, clap::Subcommand)]
 enum Subcommand {
     /// Output ebuild environment
-    Env(env::Command),
+    Env(Box<env::Command>),
     /// Manipulate package metadata
-    Metadata(metadata::Command),
+    Metadata(Box<metadata::Command>),
     /// Run the pkg_pretend phase
-    Pretend(pretend::Command),
+    Pretend(Box<pretend::Command>),
     /// Output reverse dependencies
-    Revdeps(revdeps::Command),
+    Revdeps(Box<revdeps::Command>),
     /// Output package keywords
-    Showkw(showkw::Command),
+    Showkw(Box<showkw::Command>),
     /// Benchmark ebuild sourcing
-    Source(source::Command),
+    Source(Box<source::Command>),
 }
 
 impl Subcommand {

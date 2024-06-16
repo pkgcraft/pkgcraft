@@ -21,11 +21,11 @@ impl Command {
 #[derive(Debug, clap::Subcommand)]
 enum Subcommand {
     /// Output EAPI usage rates
-    Eapis(eapis::Command),
+    Eapis(Box<eapis::Command>),
     /// Output leaf packages
-    Leaf(leaf::Command),
+    Leaf(Box<leaf::Command>),
     /// Manipulate repo metadata
-    Metadata(metadata::Command),
+    Metadata(Box<metadata::Command>),
 }
 
 impl Subcommand {

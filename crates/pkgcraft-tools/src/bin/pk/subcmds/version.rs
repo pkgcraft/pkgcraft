@@ -22,15 +22,15 @@ impl Command {
 #[derive(Debug, clap::Subcommand)]
 enum Subcommand {
     /// Compare two versions
-    Compare(compare::Command),
+    Compare(Box<compare::Command>),
     /// Determine if two versions intersect
-    Intersect(intersect::Command),
+    Intersect(Box<intersect::Command>),
     /// Parse a version and optionally print formatted output
-    Parse(parse::Command),
+    Parse(Box<parse::Command>),
     /// Collapse versions into a set
-    Set(set::Command),
+    Set(Box<set::Command>),
     /// Sort versions
-    Sort(sort::Command),
+    Sort(Box<sort::Command>),
 }
 
 impl Subcommand {
