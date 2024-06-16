@@ -313,6 +313,10 @@ impl<K: Ordered, V: Ordered> OrderedMap<K, V> {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn into_values(self) -> indexmap::map::IntoValues<K, V> {
+        self.0.into_values()
+    }
 }
 
 impl<K: Ordered, V: Ordered> Hash for OrderedMap<K, V> {
