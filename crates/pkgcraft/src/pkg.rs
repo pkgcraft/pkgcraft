@@ -286,6 +286,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for DepRestrict {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
+    use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::repo::{fake, PkgRepository};
 
     use super::*;
@@ -325,8 +326,9 @@ mod tests {
     #[test]
     fn package_trait_attributes() {
         let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
-        let r: Repo = fake::Repo::new("b", 0).pkgs([&cpv]).into();
+        let r: Repo = fake::Repo::new("test", 0).pkgs([&cpv]).into();
         let pkg = r.iter_restrict(&cpv).next().unwrap();
+        assert_eq!(pkg.eapi(), *EAPI_LATEST_OFFICIAL);
         assert_eq!(pkg.p(), "pkg-1");
         assert_eq!(pkg.pf(), "pkg-1-r2");
         assert_eq!(pkg.pr(), "r2");
