@@ -465,6 +465,21 @@ mod tests {
     }
 
     #[test]
+    fn intersects_dep() {
+        let mut config = Config::default();
+        let t = config.temp_repo("test", 0, None).unwrap();
+        let pkg = t.create_pkg("cat/pkg-1", &["SLOT=0/1"]).unwrap();
+
+        assert!(pkg.intersects(&Dep::try_new("cat/pkg").unwrap()));
+        assert!(pkg.intersects(&Dep::try_new("cat/pkg:0").unwrap()));
+        assert!(!pkg.intersects(&Dep::try_new("cat/pkg:1").unwrap()));
+        assert!(pkg.intersects(&Dep::try_new("cat/pkg:0/1").unwrap()));
+        assert!(!pkg.intersects(&Dep::try_new("cat/pkg:0/2").unwrap()));
+        assert!(pkg.intersects(&Dep::try_new("cat/pkg::test").unwrap()));
+        assert!(!pkg.intersects(&Dep::try_new("cat/pkg::repo").unwrap()));
+    }
+
+    #[test]
     fn slot_and_subslot() {
         // without slot
         let r = TEST_DATA.ebuild_pkg("=slot/none-8::bad");
