@@ -470,13 +470,18 @@ mod tests {
         let t = config.temp_repo("test", 0, None).unwrap();
         let pkg = t.create_pkg("cat/pkg-1", &["SLOT=0/1"]).unwrap();
 
-        assert!(pkg.intersects(&Dep::try_new("cat/pkg").unwrap()));
-        assert!(pkg.intersects(&Dep::try_new("cat/pkg:0").unwrap()));
-        assert!(!pkg.intersects(&Dep::try_new("cat/pkg:1").unwrap()));
-        assert!(pkg.intersects(&Dep::try_new("cat/pkg:0/1").unwrap()));
-        assert!(!pkg.intersects(&Dep::try_new("cat/pkg:0/2").unwrap()));
-        assert!(pkg.intersects(&Dep::try_new("cat/pkg::test").unwrap()));
-        assert!(!pkg.intersects(&Dep::try_new("cat/pkg::repo").unwrap()));
+        for (s, expected) in [
+            ("cat/pkg", true),
+            ("cat/pkg:0", true),
+            ("cat/pkg:1", false),
+            ("cat/pkg:0/1", true),
+            ("cat/pkg:0/2", false),
+            ("cat/pkg::test", true),
+            ("cat/pkg::repo", false),
+        ] {
+            let dep: Dep = s.parse().unwrap();
+            assert_eq!(pkg.intersects(&dep), expected, "failed for {s}");
+        }
     }
 
     #[test]

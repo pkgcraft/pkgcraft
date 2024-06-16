@@ -342,9 +342,16 @@ mod tests {
         let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
         let r: Repo = fake::Repo::new("test", 0).pkgs([&cpv]).into();
         let pkg = r.iter_restrict(&cpv).next().unwrap();
-        assert!(pkg.intersects(&Dep::try_new("cat/pkg").unwrap()));
-        assert!(!pkg.intersects(&Dep::try_new("a/b").unwrap()));
-        assert!(pkg.intersects(&Dep::try_new("=cat/pkg-1-r2").unwrap()));
-        assert!(!pkg.intersects(&Dep::try_new(">cat/pkg-1-r2").unwrap()));
+
+        for (s, expected) in [
+            ("cat/pkg", true),
+            ("a/b", false),
+            ("=cat/pkg-1-r2", true),
+            (">cat/pkg-1-r2", false),
+            ("~cat/pkg-1", true),
+        ] {
+            let dep: Dep = s.parse().unwrap();
+            assert_eq!(pkg.intersects(&dep), expected, "failed for {s}");
+        }
     }
 }
