@@ -24,7 +24,8 @@ impl ToReports for Command {
                 .map(|s| Report::from_json(s).unwrap())
                 .collect())
         } else {
-            Err("command failed".to_string())
+            let err = String::from_utf8(output.stderr).unwrap();
+            Err(format!("command failed: {err}"))
         }
     }
 }
