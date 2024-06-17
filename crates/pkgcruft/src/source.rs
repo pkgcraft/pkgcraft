@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use colored::{Color, Colorize};
 use indexmap::IndexSet;
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus;
 use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
@@ -44,7 +44,7 @@ pub enum PkgFilter {
     Latest(bool),
 
     /// Filter packages using the latest version from each slot.
-    LatestSlots,
+    LatestSlots(bool),
 
     /// Filter packages based on live status.
     Live(bool),
@@ -66,11 +66,8 @@ impl FromStr for PkgFilter {
         let stripped = s.strip_prefix('!');
         let inverted = stripped.is_some();
         match stripped.unwrap_or(s) {
-            "latest-slots" if inverted => {
-                Err(Error::InvalidValue("filter doesn't support inversion".to_string()))
-            }
             "latest" => Ok(PkgFilter::Latest(inverted)),
-            "latest-slots" => Ok(PkgFilter::LatestSlots),
+            "latest-slots" => Ok(PkgFilter::LatestSlots(inverted)),
             "live" => Ok(PkgFilter::Live(inverted)),
             "masked" => Ok(PkgFilter::Masked(inverted)),
             "stable" => Ok(PkgFilter::Stable(inverted)),
@@ -124,11 +121,18 @@ impl PkgFilters {
                         Box::new(items.into_iter().skip(len - 1))
                     }
                 }
-                PkgFilter::LatestSlots => Box::new(
+                PkgFilter::LatestSlots(inverted) => Box::new(
                     iter.map(|pkg| (pkg.slot().to_string(), pkg))
                         .collect::<OrderedMap<_, Vec<_>>>()
                         .into_values()
-                        .filter_map(|mut pkgs| pkgs.pop()),
+                        .flat_map(|pkgs| {
+                            let len = pkgs.len();
+                            if *inverted {
+                                Either::Left(pkgs.into_iter().take(len - 1))
+                            } else {
+                                Either::Right(pkgs.into_iter().skip(len - 1))
+                            }
+                        }),
                 ),
                 PkgFilter::Live(inverted) => {
                     Box::new(iter.filter(move |pkg| inverted ^ pkg.properties().contains("live")))
