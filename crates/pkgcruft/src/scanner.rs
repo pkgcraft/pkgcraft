@@ -97,6 +97,21 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<Restrict>,
     {
+        // TODO: Drop this hack once lifetime handling is improved for thread usage.
+        // Currently, it's not possible to use std::thread::scope() as the related Scope
+        // objects can't be stored without self-referential issues. Also, this is much
+        // easier than passing Arc-wrapped repo objects down to checks which then can have
+        // more self-referencing issues if they pre-process repo data without cloning it.
+        //
+        // In addition, note that Box::leak() shouldn't be used internally as that leaks a
+        // pointer per call (or require hacks anyway to drop the leaked reference) causing
+        // issues with long running services.
+        //
+        // An alternative would be to externally leak the references outside potential
+        // loops with a passed in static reference; however, that makes the API worse and
+        // this workaround shouldn't cause any issues to make that pain worth it.
+        let repo: &'static Repo = unsafe { std::mem::transmute(repo) };
+
         let restricts = restricts.into_iter().map(Into::into).collect();
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
@@ -104,8 +119,8 @@ impl Scanner {
         let exit = Arc::new(self.exit.clone());
 
         match repo {
-            Repo::Ebuild(r) => {
-                let runner = Arc::new(SyncCheckRunner::new(r, &self.filters, &self.checks));
+            Repo::Ebuild(repo) => {
+                let runner = Arc::new(SyncCheckRunner::new(repo, &self.filters, &self.checks));
                 let filter = ReportFilter {
                     reports: None,
                     filter: reports,
@@ -116,7 +131,7 @@ impl Scanner {
 
                 Iter {
                     reports_rx,
-                    _producer: producer(r.clone(), restricts, restrict_tx),
+                    _producer: producer(repo, restricts, restrict_tx),
                     _workers: (0..self.jobs)
                         .map(|_| worker(runner.clone(), filter.clone(), restrict_rx.clone()))
                         .collect(),
@@ -131,7 +146,7 @@ impl Scanner {
 // TODO: use multiple producers to push restrictions
 /// Create a producer thread that sends restrictions over the channel to the workers.
 fn producer(
-    repo: Arc<ebuild::Repo>,
+    repo: &'static ebuild::Repo,
     restricts: Vec<Restrict>,
     tx: Sender<Restrict>,
 ) -> thread::JoinHandle<()> {

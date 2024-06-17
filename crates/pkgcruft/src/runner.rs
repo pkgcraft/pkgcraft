@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Instant;
 
 use indexmap::{IndexMap, IndexSet};
@@ -21,11 +20,10 @@ pub(super) struct SyncCheckRunner {
 
 impl SyncCheckRunner {
     pub(super) fn new(
-        repo: &Arc<Repo>,
+        repo: &'static Repo,
         filters: &IndexSet<PkgFilter>,
         checks: &IndexSet<Check>,
     ) -> Self {
-        let repo = Box::leak(Box::new(repo.clone()));
         let mut runners = IndexMap::new();
 
         // filter checks
