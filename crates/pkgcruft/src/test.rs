@@ -30,18 +30,14 @@ impl ToReports for Command {
 }
 
 /// Return an iterator of reports from a globbed path pattern.
-pub fn glob_reports_iter<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = Report> {
-    glob(pattern.as_ref())
-        .unwrap()
-        .filter_map(Result::ok)
-        .flat_map(|path| {
-            let path = path
-                .to_str()
-                .unwrap_or_else(|| panic!("invalid path: {path:?}"));
-            Iter::try_from_file(path, None, None)
-                .unwrap()
-                .filter_map(Result::ok)
-        })
+pub fn glob_reports_iter<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = crate::Result<Report>> {
+    glob(pattern.as_ref()).unwrap().flat_map(|path| {
+        let path = path.unwrap();
+        let path = path
+            .to_str()
+            .unwrap_or_else(|| panic!("invalid path: {path:?}"));
+        Iter::try_from_file(path, None, None).unwrap()
+    })
 }
 
 /// Return a vector of reports for the given globbed path patterns.
@@ -50,7 +46,11 @@ macro_rules! glob_reports {
     // handle comma-separated patterns with a trailing comma
     ($($pattern:expr,)+) => {{
         let mut reports = vec![];
-        $(reports.extend($crate::test::glob_reports_iter(format!($pattern)));)+
+        $(
+            let deserialized = $crate::test::glob_reports_iter(format!($pattern))
+                .collect::<$crate::Result<Vec<_>>>().unwrap();
+            reports.extend(deserialized);
+        )+
         assert!(!reports.is_empty());
         reports
     }};
