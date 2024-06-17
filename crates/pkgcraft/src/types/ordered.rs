@@ -22,6 +22,7 @@ use crate::macros::partial_cmp_not_equal_opt;
 pub trait Ordered: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 impl<T> Ordered for T where T: Debug + PartialEq + Eq + PartialOrd + Ord + Clone + Hash {}
 
+/// Ordered set that implements Ord and Hash.
 #[derive(Debug, Clone)]
 pub struct OrderedSet<T: Ordered>(IndexSet<T>);
 
@@ -120,6 +121,7 @@ impl<'de, T: Ordered + Deserialize<'de>> Deserialize<'de> for OrderedSet<T> {
     }
 }
 
+/// Ordered set that implements Ord and Hash via sorting.
 #[derive(Debug, Clone)]
 pub struct SortedSet<T: Ordered>(IndexSet<T>);
 
@@ -299,6 +301,7 @@ macro_rules! make_set_traits {
 use make_set_traits;
 make_set_traits!(OrderedSet<T>, SortedSet<T>);
 
+/// Ordered map that implements Ord and Hash.
 #[derive(Debug, Clone)]
 pub struct OrderedMap<K: Ordered, V: Ordered>(pub(crate) IndexMap<K, V>);
 

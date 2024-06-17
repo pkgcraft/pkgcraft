@@ -127,6 +127,7 @@ impl<'a> TargetRestrictions<'a> {
         }
     }
 
+    /// Determine target restrictions.
     pub fn targets<I>(
         mut self,
         values: I,
