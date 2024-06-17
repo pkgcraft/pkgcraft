@@ -8,6 +8,7 @@ use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict, Restriction};
+use pkgcraft::traits::Contains;
 use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
@@ -45,6 +46,9 @@ pub enum PkgFilter {
     /// Filter packages using the latest version from each slot.
     LatestSlots,
 
+    /// Filter packages based on live status.
+    Live(bool),
+
     /// Filter packages based on global mask status.
     Masked(bool),
 
@@ -67,6 +71,7 @@ impl FromStr for PkgFilter {
             }
             "latest" => Ok(PkgFilter::Latest),
             "latest-slots" => Ok(PkgFilter::LatestSlots),
+            "live" => Ok(PkgFilter::Live(inverted)),
             "masked" => Ok(PkgFilter::Masked(inverted)),
             "stable" => Ok(PkgFilter::Stable(inverted)),
             s if s.contains(|c: char| c.is_whitespace()) => restrict::parse::pkg(s)
@@ -120,6 +125,9 @@ impl PkgFilters {
                         .into_values()
                         .filter_map(|mut pkgs| pkgs.pop()),
                 ),
+                PkgFilter::Live(inverted) => {
+                    Box::new(iter.filter(move |pkg| inverted ^ pkg.properties().contains("live")))
+                }
                 PkgFilter::Masked(inverted) => {
                     Box::new(iter.filter(move |pkg| inverted ^ pkg.masked()))
                 }
