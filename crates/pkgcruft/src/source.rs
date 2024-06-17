@@ -189,11 +189,7 @@ impl IterRestrict for Ebuild {
         &self,
         val: R,
     ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
-        if self.filters.is_empty() {
-            Box::new(self.repo.iter_restrict(val))
-        } else {
-            Box::new(self.filters.iter_restrict(self.repo, val))
-        }
+        self.filters.iter_restrict(self.repo, val)
     }
 }
 
