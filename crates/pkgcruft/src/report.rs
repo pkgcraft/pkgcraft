@@ -101,7 +101,14 @@ pub enum ReportKind {
     HeaderInvalid,
 
     KeywordsDropped,
+
+    /// Live ebuild has keywords.
+    KeywordsLive,
+
+    /// Ebuild has overlapping keywords.
     KeywordsOverlapping,
+
+    /// Ebuild has unsorted keywords.
     KeywordsUnsorted,
 
     /// Ebuild has a deprecated license.
@@ -115,9 +122,6 @@ pub enum ReportKind {
 
     /// Ebuild has an unneeded license.
     LicenseUnneeded,
-
-    /// Live ebuild has keywords.
-    LiveKeywords,
 
     /// Package only has live ebuilds.
     LiveOnly,
@@ -219,13 +223,13 @@ impl ReportKind {
             Self::EclassUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::KeywordsDropped => Warning,
+            Self::KeywordsLive => Warning,
             Self::KeywordsOverlapping => Error,
             Self::KeywordsUnsorted => Style,
             Self::LicenseDeprecated => Warning,
             Self::LicenseInvalid => Critical,
             Self::LicenseMissing => Error,
             Self::LicenseUnneeded => Warning,
-            Self::LiveKeywords => Warning,
             Self::LiveOnly => Warning,
             Self::MetadataMissing => Critical,
             Self::PropertiesInvalid => Critical,

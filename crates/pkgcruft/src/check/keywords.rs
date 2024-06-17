@@ -2,9 +2,12 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Stable;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::traits::Contains;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::report::ReportKind::{EapiUnstable, KeywordsOverlapping, KeywordsUnsorted};
+use crate::report::ReportKind::{
+    EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
+};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -15,7 +18,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Keywords,
     scope: Scope::Version,
     source: SourceKind::Ebuild,
-    reports: &[EapiUnstable, KeywordsOverlapping, KeywordsUnsorted],
+    reports: &[EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted],
     context: &[],
     priority: 0,
 };
@@ -32,6 +35,11 @@ super::register!(Check);
 
 impl VersionCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+        if !pkg.keywords().is_empty() && pkg.properties().contains("live") {
+            let message = pkg.keywords().iter().join(", ");
+            filter.report(KeywordsLive.version(pkg, message))
+        }
+
         let keywords_map = pkg
             .keywords()
             .iter()
