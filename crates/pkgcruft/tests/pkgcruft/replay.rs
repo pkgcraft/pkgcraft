@@ -122,14 +122,16 @@ fn checks() {
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "Dependency"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&single_expected, &reports);
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "Dependency,EapiStatus,Keywords"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&multiple_expected, &reports);
     }
 }
@@ -156,14 +158,16 @@ fn levels() {
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "warning"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&single_expected, &reports);
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "warning,error"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&multiple_expected, &reports);
     }
 }
@@ -194,14 +198,16 @@ fn reports() {
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "DependencyDeprecated"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&single_expected, &reports);
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "DependencyDeprecated,EapiBanned,KeywordsUnsorted"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&multiple_expected, &reports);
     }
 }
@@ -231,14 +237,16 @@ fn scopes() {
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "version"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&single_expected, &reports);
 
         // multiple
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "version,package"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&multiple_expected, &reports);
     }
 }
@@ -267,7 +275,8 @@ fn sources() {
         let reports = cmd("pkgcruft replay -R json -")
             .args([opt, "ebuild"])
             .write_stdin(data.as_str())
-            .to_reports();
+            .to_reports()
+            .unwrap();
         assert_eq!(&expected, &reports);
 
         // TODO: add test for multiple args once issue #178 is fixed

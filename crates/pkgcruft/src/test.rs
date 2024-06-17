@@ -11,16 +11,21 @@ pub fn qa_repo(name: &str) -> &Repo {
 }
 
 pub trait ToReports {
-    fn to_reports(&mut self) -> Vec<Report>;
+    fn to_reports(&mut self) -> Result<Vec<Report>, String>;
 }
 
 impl ToReports for Command {
-    fn to_reports(&mut self) -> Vec<Report> {
-        let output = self.output().unwrap().stdout;
-        let data = String::from_utf8(output).unwrap();
-        data.lines()
-            .map(|s| Report::from_json(s).unwrap())
-            .collect()
+    fn to_reports(&mut self) -> Result<Vec<Report>, String> {
+        let output = self.output().unwrap();
+        let data = String::from_utf8(output.stdout).unwrap();
+        if output.status.success() {
+            Ok(data
+                .lines()
+                .map(|s| Report::from_json(s).unwrap())
+                .collect())
+        } else {
+            Err("command failed".to_string())
+        }
     }
 }
 
