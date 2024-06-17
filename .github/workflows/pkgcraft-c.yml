@@ -78,10 +78,10 @@ jobs:
     - name: Build C library
       run: |
         cargo cinstall --version
-        cargo cinstall --prefix="${pkgcraft_dir}" --pkgconfigdir="${pkgcraft_dir}" -p pkgcraft-c
+        cargo cinstall --prefix="${pkgcraft_dir}" --pkgconfigdir="${pkgcraft_dir}" --libdir="${pkgcraft_dir}" -p pkgcraft-c
         echo "PKG_CONFIG_PATH=${pkgcraft_dir}" >> $GITHUB_ENV
-        echo "LD_LIBRARY_PATH=${pkgcraft_dir}/lib" >> $GITHUB_ENV
-        echo "DYLD_LIBRARY_PATH=${pkgcraft_dir}/lib" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=${pkgcraft_dir}" >> $GITHUB_ENV
+        echo "DYLD_LIBRARY_PATH=${pkgcraft_dir}" >> $GITHUB_ENV
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
