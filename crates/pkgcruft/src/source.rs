@@ -41,7 +41,7 @@ pub enum SourceKind {
 #[strum(serialize_all = "kebab-case")]
 pub enum PkgFilter {
     /// Filter packages using the latest version only.
-    Latest,
+    Latest(bool),
 
     /// Filter packages using the latest version from each slot.
     LatestSlots,
@@ -66,10 +66,10 @@ impl FromStr for PkgFilter {
         let stripped = s.strip_prefix('!');
         let inverted = stripped.is_some();
         match stripped.unwrap_or(s) {
-            "latest" | "latest-slots" if inverted => {
+            "latest-slots" if inverted => {
                 Err(Error::InvalidValue("filter doesn't support inversion".to_string()))
             }
-            "latest" => Ok(PkgFilter::Latest),
+            "latest" => Ok(PkgFilter::Latest(inverted)),
             "latest-slots" => Ok(PkgFilter::LatestSlots),
             "live" => Ok(PkgFilter::Live(inverted)),
             "masked" => Ok(PkgFilter::Masked(inverted)),
@@ -115,10 +115,15 @@ impl PkgFilters {
 
         for filter in &self.0 {
             iter = match filter {
-                PkgFilter::Latest => match iter.last() {
-                    Some(pkg) => Box::new(std::iter::once(pkg)),
-                    None => Box::new(std::iter::empty()),
-                },
+                PkgFilter::Latest(inverted) => {
+                    let items: Vec<_> = iter.collect();
+                    let len = items.len();
+                    if *inverted {
+                        Box::new(items.into_iter().take(len - 1))
+                    } else {
+                        Box::new(items.into_iter().skip(len - 1))
+                    }
+                }
                 PkgFilter::LatestSlots => Box::new(
                     iter.map(|pkg| (pkg.slot().to_string(), pkg))
                         .collect::<OrderedMap<_, Vec<_>>>()
