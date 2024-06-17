@@ -13,14 +13,14 @@ use strum::IntoEnumIterator;
 use crate::check::Check;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
-use crate::source::Filter;
+use crate::source::PkgFilter;
 
 pub struct Scanner {
     jobs: usize,
     checks: IndexSet<Check>,
     reports: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
-    filter: Option<Filter>,
+    filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
 }
 
@@ -31,7 +31,7 @@ impl Default for Scanner {
             checks: Check::iter_default().collect(),
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
-            filter: None,
+            filters: Default::default(),
             failed: Arc::new(Default::default()),
         }
     }
@@ -77,9 +77,12 @@ impl Scanner {
         self
     }
 
-    /// Set a package filter for target filtering.
-    pub fn filter(mut self, value: Option<Filter>) -> Self {
-        self.filter = value;
+    /// Set package filters for target filtering.
+    pub fn filters<I>(mut self, values: I) -> Self
+    where
+        I: IntoIterator<Item = PkgFilter>,
+    {
+        self.filters = values.into_iter().collect();
         self
     }
 
@@ -102,7 +105,7 @@ impl Scanner {
 
         match repo {
             Repo::Ebuild(r) => {
-                let runner = Arc::new(SyncCheckRunner::new(r, self.filter.as_ref(), &self.checks));
+                let runner = Arc::new(SyncCheckRunner::new(r, &self.filters, &self.checks));
                 let filter = ReportFilter {
                     reports: None,
                     filter: reports,

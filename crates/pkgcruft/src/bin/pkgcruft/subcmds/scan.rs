@@ -7,7 +7,7 @@ use pkgcraft::cli::TargetRestrictions;
 use pkgcraft::config::Config;
 use pkgcruft::report::ReportKind;
 use pkgcruft::scanner::Scanner;
-use pkgcruft::source::Filter;
+use pkgcruft::source::PkgFilter;
 use strum::VariantNames;
 
 use crate::args::StdinOrArgs;
@@ -35,9 +35,9 @@ pub(crate) struct Command {
     )]
     exit: Vec<ReportKind>,
 
-    /// Package filter
-    #[arg(short, long)]
-    filter: Option<Filter>,
+    /// Package filters
+    #[arg(short, long, value_name = "FILTER[,...]")]
+    filters: Vec<PkgFilter>,
 
     #[clap(flatten)]
     reporter: options::reporter::ReporterOptions,
@@ -75,7 +75,7 @@ impl Command {
             .jobs(self.jobs.unwrap_or_default())
             .checks(checks)
             .reports(reports)
-            .filter(self.filter)
+            .filters(self.filters)
             .exit(self.exit);
 
         // run scanner for all targets
