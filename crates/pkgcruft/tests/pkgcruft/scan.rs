@@ -309,6 +309,15 @@ fn filters() {
             .unwrap();
         assert_eq!(&reports, &expected[4..]);
 
+        // latest inverted
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "!latest"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .to_reports()
+            .unwrap();
+        assert_eq!(&reports, &expected[..4]);
+
         // latest slots
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args([opt, "latest-slots"])
@@ -317,6 +326,15 @@ fn filters() {
             .to_reports()
             .unwrap();
         assert_eq!(&reports, &[&expected[1..=1], &expected[4..]].concat());
+
+        // latest slots inverted
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args([opt, "!latest-slots"])
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
+            .to_reports()
+            .unwrap();
+        assert_eq!(&reports, &[&expected[..1], &expected[2..4]].concat());
 
         // stable
         let reports = cmd("pkgcruft scan -j1 -R json")
