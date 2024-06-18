@@ -20,7 +20,8 @@ pub struct UseDepWrapper(dep::UseDep);
 pub struct UseDep {
     kind: dep::UseDepKind,
     flag: *mut c_char,
-    missing: *mut dep::UseDepDefault,
+    // underscore suffix to avoid reserved keyword with cython bindings
+    default_: *mut dep::UseDepDefault,
     dep: *mut UseDepWrapper,
 }
 
@@ -29,7 +30,7 @@ impl From<dep::UseDep> for UseDep {
         UseDep {
             kind: *u.kind(),
             flag: try_ptr_from_str!(u.flag()),
-            missing: u.default().map(boxed).unwrap_or(ptr::null_mut()),
+            default_: u.default().map(boxed).unwrap_or(ptr::null_mut()),
             dep: boxed(UseDepWrapper(u)),
         }
     }
@@ -48,8 +49,8 @@ impl Drop for UseDep {
     fn drop(&mut self) {
         unsafe {
             drop(CString::from_raw(self.flag));
-            if !self.missing.is_null() {
-                drop(Box::from_raw(self.missing));
+            if !self.default_.is_null() {
+                drop(Box::from_raw(self.default_));
             }
             drop(Box::from_raw(self.dep));
         }
