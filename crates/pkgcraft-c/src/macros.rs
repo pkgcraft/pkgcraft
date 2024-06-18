@@ -54,6 +54,20 @@ macro_rules! try_ref_from_ptr {
 }
 pub(crate) use try_ref_from_ptr;
 
+/// Convert and dereference a given pointer into a &T.
+macro_rules! try_deref_from_ptr {
+    ( $var:expr ) => {
+        match unsafe { $var.as_ref() } {
+            Some(c) => c.deref(),
+            None => {
+                let e = $crate::error::Error::new("unexpected NULL reference");
+                $crate::macros::set_error_and_panic!(e);
+            }
+        }
+    };
+}
+pub(crate) use try_deref_from_ptr;
+
 /// Convert a given pointer into a &mut T.
 macro_rules! try_mut_from_ptr {
     ( $var:expr ) => {
