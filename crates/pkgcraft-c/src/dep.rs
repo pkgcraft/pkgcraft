@@ -710,11 +710,11 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_is_disjoint(
     d1: *mut DependencySet,
     d2: *mut DependencySet,
 ) -> bool {
-    let d1 = try_ref_from_ptr!(d1);
-    let d2 = try_ref_from_ptr!(d2);
+    let d1 = try_deref_from_ptr!(d1);
+    let d2 = try_deref_from_ptr!(d2);
 
     use DependencySetWrapper::*;
-    match (d1.deref(), d2.deref()) {
+    match (d1, d2) {
         (Dep(d1), Dep(d2)) => d1.is_disjoint(d2),
         (String(d1), String(d2)) => d1.is_disjoint(d2),
         (Uri(d1), Uri(d2)) => d1.is_disjoint(d2),
@@ -728,9 +728,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_is_disjoint(
 /// The argument must be a valid DependencySet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dependency_set_is_empty(d: *mut DependencySet) -> bool {
-    let deps = try_ref_from_ptr!(d);
+    let deps = try_deref_from_ptr!(d);
 
-    match deps.deref() {
+    match deps {
         DependencySetWrapper::Dep(d) => d.is_empty(),
         DependencySetWrapper::String(d) => d.is_empty(),
         DependencySetWrapper::Uri(d) => d.is_empty(),
@@ -746,11 +746,11 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_is_subset(
     d1: *mut DependencySet,
     d2: *mut DependencySet,
 ) -> bool {
-    let d1 = try_ref_from_ptr!(d1);
-    let d2 = try_ref_from_ptr!(d2);
+    let d1 = try_deref_from_ptr!(d1);
+    let d2 = try_deref_from_ptr!(d2);
 
     use DependencySetWrapper::*;
-    match (d1.deref(), d2.deref()) {
+    match (d1, d2) {
         (Dep(d1), Dep(d2)) => d1.is_subset(d2),
         (String(d1), String(d2)) => d1.is_subset(d2),
         (Uri(d1), Uri(d2)) => d1.is_subset(d2),
@@ -836,9 +836,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_insert(
     value: *mut Dependency,
 ) -> bool {
     let set = try_mut_from_ptr!(d);
-    let spec = try_ref_from_ptr!(value);
+    let spec = try_deref_from_ptr!(value);
 
-    match (set.deref_mut(), spec.deref().clone()) {
+    match (set.deref_mut(), spec.clone()) {
         (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(dep)) => deps.insert(dep),
         (DependencySetWrapper::String(deps), DependencyWrapper::String(dep)) => deps.insert(dep),
         (DependencySetWrapper::Uri(deps), DependencyWrapper::Uri(dep)) => deps.insert(dep),
@@ -879,9 +879,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_replace_index(
     value: *mut Dependency,
 ) -> *mut Dependency {
     let set = try_mut_from_ptr!(d);
-    let spec = try_ref_from_ptr!(value);
+    let spec = try_deref_from_ptr!(value);
 
-    let dep = match (set.deref_mut(), spec.deref()) {
+    let dep = match (set.deref_mut(), spec) {
         (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(dep)) => deps
             .shift_replace_index(index, dep.clone())
             .map(Dependency::new_dep),
@@ -910,10 +910,10 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_replace(
     value: *mut Dependency,
 ) -> *mut Dependency {
     let set = try_mut_from_ptr!(d);
-    let key = try_ref_from_ptr!(key);
-    let value = try_ref_from_ptr!(value);
+    let key = try_deref_from_ptr!(key);
+    let value = try_deref_from_ptr!(value);
 
-    let dep = match (set.deref_mut(), key.deref(), value.deref()) {
+    let dep = match (set.deref_mut(), key, value) {
         (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(k), DependencyWrapper::Dep(v)) => {
             deps.shift_replace(k, v.clone()).map(Dependency::new_dep)
         }
@@ -1018,10 +1018,10 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dependency(
     s: *mut DependencySet,
     d: *mut Dependency,
 ) -> bool {
-    let s = try_ref_from_ptr!(s);
-    let d = try_ref_from_ptr!(d);
+    let s = try_deref_from_ptr!(s);
+    let d = try_deref_from_ptr!(d);
 
-    match (s.deref(), d.deref()) {
+    match (s, d) {
         (DependencySetWrapper::Dep(s), DependencyWrapper::Dep(d)) => s.contains(d),
         (DependencySetWrapper::String(s), DependencyWrapper::String(d)) => s.contains(d),
         (DependencySetWrapper::Uri(s), DependencyWrapper::Uri(d)) => s.contains(d),
@@ -1038,10 +1038,10 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_str(
     d: *mut DependencySet,
     s: *const c_char,
 ) -> bool {
-    let d = try_ref_from_ptr!(d);
+    let d = try_deref_from_ptr!(d);
     let s = try_str_from_ptr!(s);
 
-    match d.deref() {
+    match d {
         DependencySetWrapper::Dep(d) => d.contains(s),
         DependencySetWrapper::String(d) => d.contains(s),
         DependencySetWrapper::Uri(d) => d.contains(s),
@@ -1083,9 +1083,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_hash(d: *mut DependencySet) -> 
 /// The argument must be a valid DependencySet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dependency_set_len(d: *mut DependencySet) -> usize {
-    let deps = try_ref_from_ptr!(d);
+    let deps = try_deref_from_ptr!(d);
     use DependencySetWrapper::*;
-    match deps.deref() {
+    match deps {
         Dep(d) => d.len(),
         String(d) => d.len(),
         Uri(d) => d.len(),
@@ -1225,10 +1225,10 @@ pub unsafe extern "C" fn pkgcraft_dependency_evaluate_force(
 pub unsafe extern "C" fn pkgcraft_dependency_conditional(
     d: *mut Dependency,
 ) -> *mut use_dep::UseDep {
-    let d = try_ref_from_ptr!(d);
+    let d = try_deref_from_ptr!(d);
 
     use DependencyWrapper::*;
-    let use_dep = match d.deref() {
+    let use_dep = match d {
         Dep(dep::Dependency::Conditional(u, _)) => Some(u.clone().into()),
         String(dep::Dependency::Conditional(u, _)) => Some(u.clone().into()),
         Uri(dep::Dependency::Conditional(u, _)) => Some(u.clone().into()),
@@ -1267,11 +1267,11 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_dependency(
     d1: *mut Dependency,
     d2: *mut Dependency,
 ) -> bool {
-    let d1 = try_ref_from_ptr!(d1);
-    let d2 = try_ref_from_ptr!(d2);
+    let d1 = try_deref_from_ptr!(d1);
+    let d2 = try_deref_from_ptr!(d2);
 
     use DependencyWrapper::*;
-    match (d1.deref(), d2.deref()) {
+    match (d1, d2) {
         (Dep(d1), Dep(d2)) => d1.contains(d2),
         (String(d1), String(d2)) => d1.contains(d2),
         (Uri(d1), Uri(d2)) => d1.contains(d2),
@@ -1288,10 +1288,10 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_str(
     d: *mut Dependency,
     s: *const c_char,
 ) -> bool {
-    let d = try_ref_from_ptr!(d);
+    let d = try_deref_from_ptr!(d);
     let s = try_str_from_ptr!(s);
 
-    match d.deref() {
+    match d {
         DependencyWrapper::Dep(d) => d.contains(s),
         DependencyWrapper::String(d) => d.contains(s),
         DependencyWrapper::Uri(d) => d.contains(s),
@@ -1333,9 +1333,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_hash(d: *mut Dependency) -> u64 {
 /// The argument must be a valid Dependency pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dependency_len(d: *mut Dependency) -> usize {
-    let deps = try_ref_from_ptr!(d);
+    let deps = try_deref_from_ptr!(d);
     use DependencyWrapper::*;
-    match deps.deref() {
+    match deps {
         Dep(d) => d.len(),
         String(d) => d.len(),
         Uri(d) => d.len(),
@@ -1388,8 +1388,8 @@ pub unsafe extern "C" fn pkgcraft_dependency_into_iter(
 pub unsafe extern "C" fn pkgcraft_dependency_into_iter_flatten(
     d: *mut Dependency,
 ) -> *mut DependencyIntoIterFlatten {
-    let dep = try_ref_from_ptr!(d);
-    let iter = match dep.deref().clone() {
+    let dep = try_deref_from_ptr!(d);
+    let iter = match dep.clone() {
         DependencyWrapper::Dep(d) => DependencyIntoIterFlatten::Dep(d.into_iter_flatten()),
         DependencyWrapper::String(d) => DependencyIntoIterFlatten::String(d.into_iter_flatten()),
         DependencyWrapper::Uri(d) => DependencyIntoIterFlatten::Uri(d.into_iter_flatten()),
@@ -1405,8 +1405,8 @@ pub unsafe extern "C" fn pkgcraft_dependency_into_iter_flatten(
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten(
     d: *mut DependencySet,
 ) -> *mut DependencyIntoIterFlatten {
-    let deps = try_ref_from_ptr!(d);
-    let iter = match deps.deref().clone() {
+    let deps = try_deref_from_ptr!(d);
+    let iter = match deps.clone() {
         DependencySetWrapper::Dep(d) => DependencyIntoIterFlatten::Dep(d.into_iter_flatten()),
         DependencySetWrapper::String(d) => DependencyIntoIterFlatten::String(d.into_iter_flatten()),
         DependencySetWrapper::Uri(d) => DependencyIntoIterFlatten::Uri(d.into_iter_flatten()),
