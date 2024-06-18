@@ -272,15 +272,7 @@ impl Dependency<Uri> {
 
 impl<T: Ordered> Contains<&Self> for Dependency<T> {
     fn contains(&self, dep: &Self) -> bool {
-        use Dependency::*;
-        match self {
-            Enabled(_) | Disabled(_) => false,
-            AllOf(vals) => vals.contains(dep),
-            AnyOf(vals) => vals.contains(dep),
-            ExactlyOneOf(vals) => vals.contains(dep),
-            AtMostOneOf(vals) => vals.contains(dep),
-            Conditional(_, vals) => vals.contains(dep),
-        }
+        self.iter_recursive().any(|x| x == dep)
     }
 }
 
@@ -723,7 +715,7 @@ impl<T: Ordered> SubAssign<&Self> for DependencySet<T> {
 
 impl<T: Ordered> Contains<&Dependency<T>> for DependencySet<T> {
     fn contains(&self, dep: &Dependency<T>) -> bool {
-        self.0.contains(dep)
+        self.iter_recursive().any(|x| x == dep)
     }
 }
 
@@ -1250,7 +1242,7 @@ mod tests {
         for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
             let d = Dependency::package(s, Default::default()).unwrap();
             assert!(d.contains(&dep), "{d} doesn't contain {dep}");
-            assert!(!d.contains(&d), "{d} contains itself");
+            assert!(d.contains(&d), "{d} doesn't contain itself");
             assert!(d.contains(&spec), "{d} doesn't contain {spec}");
         }
     }
