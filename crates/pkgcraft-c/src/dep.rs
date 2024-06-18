@@ -1029,6 +1029,25 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dependency(
     }
 }
 
+/// Determine if a DependencySet contains a given raw string.
+///
+/// # Safety
+/// The arguments must be valid pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_set_contains_str(
+    d: *mut DependencySet,
+    s: *const c_char,
+) -> bool {
+    let d = try_ref_from_ptr!(d);
+    let s = try_str_from_ptr!(s);
+
+    match d.deref() {
+        DependencySetWrapper::Dep(d) => d.contains(s),
+        DependencySetWrapper::String(d) => d.contains(s),
+        DependencySetWrapper::Uri(d) => d.contains(s),
+    }
+}
+
 /// Return the hash value for a DependencySet.
 ///
 /// # Safety
@@ -1238,6 +1257,25 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_dependency(
         (String(d1), String(d2)) => d1.contains(d2),
         (Uri(d1), Uri(d2)) => d1.contains(d2),
         _ => false,
+    }
+}
+
+/// Determine if a Dependency contains a given raw string.
+///
+/// # Safety
+/// The arguments must be valid pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_contains_str(
+    d: *mut Dependency,
+    s: *const c_char,
+) -> bool {
+    let d = try_ref_from_ptr!(d);
+    let s = try_str_from_ptr!(s);
+
+    match d.deref() {
+        DependencyWrapper::Dep(d) => d.contains(s),
+        DependencyWrapper::String(d) => d.contains(s),
+        DependencyWrapper::Uri(d) => d.contains(s),
     }
 }
 
