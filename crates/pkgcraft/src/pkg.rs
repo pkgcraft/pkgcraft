@@ -101,7 +101,7 @@ pub trait Source: Package {
 
 macro_rules! make_pkg_traits {
     ($($x:ty),+) => {$(
-        impl crate::error::PackageError for $x {}
+        impl $crate::error::PackageError for $x {}
 
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
@@ -132,16 +132,40 @@ macro_rules! make_pkg_traits {
 
         impl std::fmt::Display for $x {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                use crate::repo::Repository;
+                use $crate::repo::Repository;
                 write!(f, "{}::{}", self.cpv(), self.repo().id())
             }
         }
 
-        impl From<&$x> for crate::restrict::Restrict {
+        impl From<&$x> for $crate::restrict::Restrict {
             fn from(pkg: &$x) -> Self {
                 let r1 = pkg.cpv().into();
-                let r2 = crate::restrict::Restrict::Dep(pkg.repo().into());
-                crate::restrict::Restrict::and([r1, r2])
+                let r2 = $crate::restrict::Restrict::Dep(pkg.repo().into());
+                $crate::restrict::Restrict::and([r1, r2])
+            }
+        }
+
+        impl $crate::traits::Intersects<$crate::dep::Cpv> for $x {
+            fn intersects(&self, cpv: &$crate::dep::Cpv) -> bool {
+                self.cpv() == cpv
+            }
+        }
+
+        impl $crate::traits::Intersects<$x> for $crate::dep::Cpv {
+            fn intersects(&self, other: &$x) -> bool {
+                other.intersects(self)
+            }
+        }
+
+        impl $crate::traits::Intersects<$crate::dep::Cpn> for $x {
+            fn intersects(&self, cpn: &$crate::dep::Cpn) -> bool {
+                self.cpn() == cpn
+            }
+        }
+
+        impl $crate::traits::Intersects<$x> for $crate::dep::Cpn {
+            fn intersects(&self, other: &$x) -> bool {
+                other.intersects(self)
             }
         }
     )+};
@@ -189,6 +213,18 @@ impl Intersects<Dep> for Pkg<'_> {
 }
 
 impl Intersects<Pkg<'_>> for Dep {
+    fn intersects(&self, other: &Pkg<'_>) -> bool {
+        other.intersects(self)
+    }
+}
+
+impl Intersects<Cpv> for Pkg<'_> {
+    fn intersects(&self, cpv: &Cpv) -> bool {
+        self.cpv() == cpv
+    }
+}
+
+impl Intersects<Pkg<'_>> for Cpv {
     fn intersects(&self, other: &Pkg<'_>) -> bool {
         other.intersects(self)
     }
