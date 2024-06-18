@@ -541,6 +541,26 @@ mod tests {
     }
 
     #[test]
+    fn deprecated() {
+        let pkg = TEST_DATA
+            .ebuild_pkg("=deprecated/deprecated-0::metadata")
+            .unwrap();
+        assert!(pkg.deprecated());
+        let pkg = TEST_DATA
+            .ebuild_pkg("=deprecated/deprecated-1::metadata")
+            .unwrap();
+        assert!(!pkg.deprecated());
+    }
+
+    #[test]
+    fn masked() {
+        let pkg = TEST_DATA.ebuild_pkg("=masked/masked-0::metadata").unwrap();
+        assert!(pkg.masked());
+        let pkg = TEST_DATA.ebuild_pkg("=masked/masked-1::metadata").unwrap();
+        assert!(!pkg.masked());
+    }
+
+    #[test]
     fn description() {
         let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
         assert_eq!(pkg.description(), "ebuild with no optional metadata fields");
