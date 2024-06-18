@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::ffi::{c_char, c_int};
 
-use pkgcraft::dep::{Cpv, Dep, Version};
+use pkgcraft::dep::{Cpn, Cpv, Dep, Version};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::{Package, Pkg, RepoPackage};
 use pkgcraft::repo::Repo;
@@ -106,6 +106,28 @@ pub unsafe extern "C" fn pkgcraft_pkg_intersects_dep(p: *mut Pkg, d: *mut Dep) -
     let pkg = try_ref_from_ptr!(p);
     let dep = try_ref_from_ptr!(d);
     pkg.intersects(dep)
+}
+
+/// Determine if a package intersects with a Cpv.
+///
+/// # Safety
+/// The arguments should be non-null pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_pkg_intersects_cpv(p: *mut Pkg, c: *mut Cpv) -> bool {
+    let pkg = try_ref_from_ptr!(p);
+    let cpv = try_ref_from_ptr!(c);
+    pkg.intersects(cpv)
+}
+
+/// Determine if a package intersects with a Cpn.
+///
+/// # Safety
+/// The arguments should be non-null pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_pkg_intersects_cpn(p: *mut Pkg, c: *mut Cpn) -> bool {
+    let pkg = try_ref_from_ptr!(p);
+    let cpn = try_ref_from_ptr!(c);
+    pkg.intersects(cpn)
 }
 
 /// Return the string for a package.
