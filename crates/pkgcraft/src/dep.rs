@@ -284,9 +284,9 @@ impl<T: Ordered> Contains<&Self> for Dependency<T> {
     }
 }
 
-impl<T: Ordered + AsRef<str>> Contains<&str> for Dependency<T> {
+impl<T: Ordered + Display> Contains<&str> for Dependency<T> {
     fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.as_ref() == obj)
+        self.to_string().contains(obj)
     }
 }
 
@@ -727,9 +727,9 @@ impl<T: Ordered> Contains<&Dependency<T>> for DependencySet<T> {
     }
 }
 
-impl<T: Ordered + AsRef<str>> Contains<&str> for DependencySet<T> {
+impl<T: Ordered + Display> Contains<&str> for DependencySet<T> {
     fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.as_ref() == obj)
+        self.to_string().contains(obj)
     }
 }
 
