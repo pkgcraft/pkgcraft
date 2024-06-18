@@ -27,10 +27,9 @@ pub mod use_dep;
 pub mod version;
 
 /// DependencySet variants.
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(C)]
 pub enum DependencySetKind {
-    #[default]
     Package,
     SrcUri,
     License,
