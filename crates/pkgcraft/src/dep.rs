@@ -282,6 +282,24 @@ impl<T: Ordered + Display> Contains<&str> for Dependency<T> {
     }
 }
 
+impl Contains<&UseDep> for Dependency<Dep> {
+    fn contains(&self, obj: &UseDep) -> bool {
+        self.iter_conditionals().any(|x| x == obj)
+    }
+}
+
+impl Contains<&UseDep> for Dependency<String> {
+    fn contains(&self, obj: &UseDep) -> bool {
+        self.iter_conditionals().any(|x| x == obj)
+    }
+}
+
+impl Contains<&UseDep> for Dependency<Uri> {
+    fn contains(&self, obj: &UseDep) -> bool {
+        self.iter_conditionals().any(|x| x == obj)
+    }
+}
+
 impl<T: Ordered> Contains<&T> for Dependency<T> {
     fn contains(&self, obj: &T) -> bool {
         self.iter_flatten().any(|x| x == obj)
@@ -722,6 +740,24 @@ impl<T: Ordered> Contains<&Dependency<T>> for DependencySet<T> {
 impl<T: Ordered + Display> Contains<&str> for DependencySet<T> {
     fn contains(&self, obj: &str) -> bool {
         self.to_string().contains(obj)
+    }
+}
+
+impl Contains<&UseDep> for DependencySet<Dep> {
+    fn contains(&self, obj: &UseDep) -> bool {
+        self.iter_conditionals().any(|x| x == obj)
+    }
+}
+
+impl Contains<&UseDep> for DependencySet<String> {
+    fn contains(&self, obj: &UseDep) -> bool {
+        self.iter_conditionals().any(|x| x == obj)
+    }
+}
+
+impl Contains<&UseDep> for DependencySet<Uri> {
+    fn contains(&self, obj: &UseDep) -> bool {
+        self.iter_conditionals().any(|x| x == obj)
     }
 }
 
