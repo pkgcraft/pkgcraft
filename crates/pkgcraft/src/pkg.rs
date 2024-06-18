@@ -24,7 +24,9 @@ pub enum Pkg<'a> {
 
 make_pkg_traits!(Pkg<'_>);
 
-pub trait Package: fmt::Debug + fmt::Display + Intersects<Dep> {
+pub trait Package:
+    fmt::Debug + fmt::Display + Intersects<Dep> + Intersects<Cpv> + Intersects<Cpn>
+{
     /// Return a package's EAPI.
     fn eapi(&self) -> &'static Eapi;
 
@@ -247,6 +249,24 @@ where
 {
     fn intersects(&self, dep: &Dep) -> bool {
         (*self).intersects(dep)
+    }
+}
+
+impl<T> Intersects<Cpv> for &T
+where
+    T: Package,
+{
+    fn intersects(&self, cpv: &Cpv) -> bool {
+        (*self).intersects(cpv)
+    }
+}
+
+impl<T> Intersects<Cpn> for &T
+where
+    T: Package,
+{
+    fn intersects(&self, cpn: &Cpn) -> bool {
+        (*self).intersects(cpn)
     }
 }
 
