@@ -145,6 +145,12 @@ macro_rules! make_pkg_traits {
             }
         }
 
+        impl Intersects<$x> for $crate::dep::Dep {
+            fn intersects(&self, other: &$x) -> bool {
+                other.intersects(self)
+            }
+        }
+
         impl $crate::traits::Intersects<$crate::dep::Cpv> for $x {
             fn intersects(&self, cpv: &$crate::dep::Cpv) -> bool {
                 self.cpv() == cpv
@@ -209,24 +215,6 @@ impl Intersects<Dep> for Pkg<'_> {
             Self::Ebuild(pkg, _) => pkg.intersects(dep),
             Self::Fake(pkg, _) => pkg.intersects(dep),
         }
-    }
-}
-
-impl Intersects<Pkg<'_>> for Dep {
-    fn intersects(&self, other: &Pkg<'_>) -> bool {
-        other.intersects(self)
-    }
-}
-
-impl Intersects<Cpv> for Pkg<'_> {
-    fn intersects(&self, cpv: &Cpv) -> bool {
-        self.cpv() == cpv
-    }
-}
-
-impl Intersects<Pkg<'_>> for Cpv {
-    fn intersects(&self, other: &Pkg<'_>) -> bool {
-        other.intersects(self)
     }
 }
 

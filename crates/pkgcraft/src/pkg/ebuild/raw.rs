@@ -157,12 +157,6 @@ impl Intersects<Dep> for Pkg<'_> {
     }
 }
 
-impl Intersects<Pkg<'_>> for Dep {
-    fn intersects(&self, other: &Pkg<'_>) -> bool {
-        other.intersects(self)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
