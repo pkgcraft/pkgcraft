@@ -102,6 +102,20 @@ pub unsafe extern "C" fn pkgcraft_dep_versioned(d: *mut Dep) -> *mut Dep {
     }
 }
 
+/// Return a package dependency without USE dependencies.
+///
+/// # Safety
+/// The argument must a valid Dep pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dep_no_use_deps(d: *mut Dep) -> *mut Dep {
+    let dep = try_ref_from_ptr!(d);
+    if let Cow::Owned(d) = dep.no_use_deps() {
+        Box::into_raw(Box::new(d))
+    } else {
+        d
+    }
+}
+
 /// Return a package dependency modifying the specified fields with corresponding string values.
 /// Use null pointers for string values to unset a given field.
 ///
