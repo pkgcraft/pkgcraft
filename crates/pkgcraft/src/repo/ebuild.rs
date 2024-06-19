@@ -68,7 +68,7 @@ where
     T: ArcCacheData + Send + Sync + 'static,
 {
     fn new(repo: Arc<Repo>) -> ArcCache<T> {
-        let (tx, rx) = bounded::<Msg<T>>(10);
+        let (tx, rx) = bounded(10);
 
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
@@ -117,7 +117,7 @@ where
 
     /// Get the cache data related to a given package Cpv.
     fn get(&self, cpv: &Cpv) -> Arc<T> {
-        let (tx, rx) = bounded::<Arc<T>>(0);
+        let (tx, rx) = bounded(0);
         self.tx
             .send(Msg::Key(cpv.cpn().to_string(), tx))
             .expect("failed requesting pkg manifest data");
