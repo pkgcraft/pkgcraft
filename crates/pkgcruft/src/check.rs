@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::{ebuild::Repo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::bash::Tree;
 use crate::report::ReportKind;
@@ -79,10 +79,28 @@ pub enum CheckKind {
 
 impl From<CheckKind> for Check {
     fn from(value: CheckKind) -> Self {
-        CHECKS
-            .get(&value)
-            .copied()
-            .unwrap_or_else(|| unreachable!("unknown check: {value}"))
+        use CheckKind::*;
+        match value {
+            Dependency => dependency::CHECK,
+            DependencySlotMissing => dependency_slot_missing::CHECK,
+            Duplicates => duplicates::CHECK,
+            EapiStale => eapi_stale::CHECK,
+            EapiStatus => eapi_status::CHECK,
+            Header => header::CHECK,
+            Keywords => keywords::CHECK,
+            KeywordsDropped => keywords_dropped::CHECK,
+            License => license::CHECK,
+            Live => live::CHECK,
+            Metadata => metadata::CHECK,
+            Overlay => overlay::CHECK,
+            PythonUpdate => python_update::CHECK,
+            RestrictTestMissing => restrict_test_missing::CHECK,
+            RubyUpdate => ruby_update::CHECK,
+            UnstableOnly => unstable_only::CHECK,
+            UseLocal => use_local::CHECK,
+            VariableOrder => variable_order::CHECK,
+            Whitespace => whitespace::CHECK,
+        }
     }
 }
 
@@ -178,15 +196,12 @@ impl Check {
 
     /// Return an iterator of all registered checks.
     pub fn iter() -> impl Iterator<Item = Check> {
-        CHECKS.iter().copied()
+        CheckKind::iter().map(Into::into)
     }
 
     /// Return an iterator of all checks enabled by default.
     pub fn iter_default() -> impl Iterator<Item = Check> {
-        CHECKS
-            .iter()
-            .filter(|x| !x.context.contains(&CheckContext::Optional))
-            .copied()
+        Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional))
     }
 
     /// Return an iterator of checks that generate a given report.
@@ -293,10 +308,8 @@ impl FromStr for Check {
         let kind: CheckKind = s
             .parse()
             .map_err(|_| Error::InvalidValue(format!("unknown check: {s}")))?;
-        CHECKS
-            .get(&kind)
-            .copied()
-            .ok_or_else(|| Error::InvalidValue(format!("unknown check: {s}")))
+
+        Ok(kind.into())
     }
 }
 
@@ -340,44 +353,16 @@ impl AsRef<Utf8Path> for Check {
     }
 }
 
-/// The set of all registered checks.
-static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
-    [
-        dependency::CHECK,
-        dependency_slot_missing::CHECK,
-        duplicates::CHECK,
-        eapi_stale::CHECK,
-        eapi_status::CHECK,
-        header::CHECK,
-        keywords::CHECK,
-        keywords_dropped::CHECK,
-        license::CHECK,
-        live::CHECK,
-        metadata::CHECK,
-        overlay::CHECK,
-        python_update::CHECK,
-        restrict_test_missing::CHECK,
-        ruby_update::CHECK,
-        unstable_only::CHECK,
-        use_local::CHECK,
-        variable_order::CHECK,
-        whitespace::CHECK,
-    ]
-    .into_iter()
-    .collect()
-});
-
 /// The mapping of all report variants to the checks that can generate them.
 static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::new(|| {
-    CHECKS
-        .iter()
-        .flat_map(|c| c.reports.iter().copied().map(move |r| (r, *c)))
+    Check::iter()
+        .flat_map(|c| c.reports.iter().copied().map(move |r| (r, c)))
         .collect()
 });
 
 /// The mapping of all source variants to the checks that use them.
 static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<Check>>> =
-    Lazy::new(|| CHECKS.iter().map(|c| (c.source, *c)).collect());
+    Lazy::new(|| Check::iter().map(|c| (c.source, c)).collect());
 
 #[cfg(test)]
 mod tests {
