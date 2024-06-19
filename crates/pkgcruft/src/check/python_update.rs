@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::dep::Flatten;
+use pkgcraft::dep::{DepField, Flatten};
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
@@ -98,7 +98,7 @@ impl VersionCheck for Check {
         let Some(latest) = deps
             .iter()
             .filter(|x| x.category() == "dev-lang" && x.package() == "python" && x.slot().is_some())
-            .map(|x| x.no_use_deps())
+            .filter_map(|x| x.without([DepField::Version, DepField::UseDeps]).ok())
             .sorted()
             .last()
             .map(|x| format!("python{}", x.slot().unwrap().replace('.', "_")))

@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::dep::Flatten;
+use pkgcraft::dep::{DepField, Flatten};
 use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
@@ -61,7 +61,7 @@ impl VersionCheck for Check {
         let Some(latest) = deps
             .iter()
             .filter(|x| x.category() == "dev-lang" && x.package() == "ruby" && x.slot().is_some())
-            .map(|x| x.no_use_deps())
+            .filter_map(|x| x.without([DepField::Version, DepField::UseDeps]).ok())
             .sorted()
             .last()
             .map(|x| format!("ruby{}", x.slot().unwrap().replace('.', "")))
