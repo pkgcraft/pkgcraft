@@ -230,23 +230,22 @@ impl Repo {
                 }
             });
 
-        if nonexistent.is_empty() {
-            let mut trees = masters.clone();
-            trees.push(repo);
-            self.masters
-                .set(masters)
-                .unwrap_or_else(|_| panic!("masters already set: {}", self.id()));
-            self.trees
-                .set(trees)
-                .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
-            Ok(())
-        } else {
+        if !nonexistent.is_empty() {
             let repos = nonexistent.join(", ");
-            Err(Error::InvalidRepo {
+            return Err(Error::InvalidRepo {
                 id: self.id().to_string(),
                 err: format!("unconfigured repos: {repos}"),
-            })
+            });
         }
+
+        self.trees
+            .set(masters.iter().cloned().chain([repo]).collect())
+            .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
+        self.masters
+            .set(masters)
+            .unwrap_or_else(|_| panic!("masters already set: {}", self.id()));
+
+        Ok(())
     }
 
     /// Collapse required lazy fields for metadata regeneration that leverages process-based
