@@ -65,17 +65,17 @@ impl FromStr for PkgFilter {
         let stripped = s.strip_prefix('!');
         let inverted = stripped.is_some();
         match stripped.unwrap_or(s) {
-            "latest" => Ok(PkgFilter::Latest(inverted)),
-            "latest-slots" => Ok(PkgFilter::LatestSlots(inverted)),
-            "live" => Ok(PkgFilter::Live(inverted)),
-            "masked" => Ok(PkgFilter::Masked(inverted)),
-            "stable" => Ok(PkgFilter::Stable(inverted)),
+            "latest" => Ok(Self::Latest(inverted)),
+            "latest-slots" => Ok(Self::LatestSlots(inverted)),
+            "live" => Ok(Self::Live(inverted)),
+            "masked" => Ok(Self::Masked(inverted)),
+            "stable" => Ok(Self::Stable(inverted)),
             s if s.contains(|c: char| c.is_whitespace()) => restrict::parse::pkg(s)
-                .map(|r| PkgFilter::Restrict(inverted, r))
+                .map(|r| Self::Restrict(inverted, r))
                 .map_err(|e| Error::InvalidValue(format!("{e}"))),
             s => {
-                let possible = PkgFilter::iter()
-                    .filter(|r| !matches!(r, PkgFilter::Restrict(_, _)))
+                let possible = Self::iter()
+                    .filter(|r| !matches!(r, Self::Restrict(_, _)))
                     .map(|r| r.as_ref().color(Color::Green))
                     .join(", ");
                 let message = indoc::formatdoc! {r#"
