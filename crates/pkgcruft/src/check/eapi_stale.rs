@@ -1,6 +1,5 @@
 use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
 use pkgcraft::pkg::Package;
-use pkgcraft::traits::Contains;
 use pkgcraft::types::OrderedMap;
 
 use crate::report::ReportKind::EapiStale;
@@ -34,9 +33,8 @@ impl PackageCheck for Check {
             .collect::<OrderedMap<_, Vec<_>>>()
             .into_values()
             .for_each(|pkgs| {
-                let (live, release): (Vec<_>, Vec<_>) = pkgs
-                    .into_iter()
-                    .partition(|pkg| pkg.properties().contains("live"));
+                let (live, release): (Vec<_>, Vec<_>) =
+                    pkgs.into_iter().partition(|pkg| pkg.live());
 
                 if let Some(latest_release) = release.last() {
                     for pkg in live {

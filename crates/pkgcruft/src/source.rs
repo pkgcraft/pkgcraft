@@ -8,7 +8,6 @@ use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict, Restriction};
-use pkgcraft::traits::Contains;
 use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
@@ -135,7 +134,7 @@ impl PkgFilters {
                         }),
                 ),
                 PkgFilter::Live(inverted) => {
-                    Box::new(iter.filter(move |pkg| inverted ^ pkg.properties().contains("live")))
+                    Box::new(iter.filter(move |pkg| inverted ^ pkg.live()))
                 }
                 PkgFilter::Masked(inverted) => {
                     Box::new(iter.filter(move |pkg| inverted ^ pkg.masked()))

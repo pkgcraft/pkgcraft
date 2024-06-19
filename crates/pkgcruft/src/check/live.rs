@@ -1,5 +1,4 @@
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::traits::Contains;
 
 use crate::report::ReportKind::LiveOnly;
 use crate::scanner::ReportFilter;
@@ -27,7 +26,7 @@ super::register!(Check);
 
 impl PackageCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
-        if pkgs.iter().all(|pkg| pkg.properties().contains("live")) {
+        if pkgs.iter().all(|pkg| pkg.live()) {
             filter.report(LiveOnly.package(pkgs, ""))
         }
     }
