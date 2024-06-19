@@ -127,6 +127,10 @@ pub enum ReportKind {
     LiveOnly,
 
     MetadataMissing,
+
+    /// Overlay package matches the name of a package from a parent repo.
+    PackageOverride,
+
     PropertiesInvalid,
 
     /// Ebuild can support newer python version(s).
@@ -232,6 +236,7 @@ impl ReportKind {
             Self::LicenseUnneeded => Warning,
             Self::LiveOnly => Warning,
             Self::MetadataMissing => Critical,
+            Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
             Self::PythonUpdate => Info,
             Self::RequiredUseInvalid => Critical,

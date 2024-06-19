@@ -21,6 +21,7 @@ use crate::Error;
 
 mod dependency;
 mod dependency_slot_missing;
+mod duplicates;
 mod eapi_stale;
 mod eapi_status;
 mod header;
@@ -57,6 +58,7 @@ mod whitespace;
 pub enum CheckKind {
     Dependency,
     DependencySlotMissing,
+    Duplicates,
     EapiStale,
     EapiStatus,
     Header,
@@ -130,7 +132,7 @@ pub(crate) type VersionRunner = Box<dyn VersionCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
 pub(crate) trait PackageCheck: RegisterCheck {
-    fn run(&self, pkg: &[ebuild::Pkg], filter: &mut ReportFilter);
+    fn run(&self, pkgs: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
 pub(crate) type PackageRunner = Box<dyn PackageCheck + Send + Sync>;
 
@@ -139,6 +141,12 @@ pub(crate) trait RawVersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, tree: &Tree, filter: &mut ReportFilter);
 }
 pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
+
+/// Run a check against a given raw ebuild package set.
+pub(crate) trait RawPackageCheck: RegisterCheck {
+    fn run(&self, pkgs: &[ebuild::raw::Pkg], filter: &mut ReportFilter);
+}
+pub(crate) type RawPackageRunner = Box<dyn RawPackageCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -257,6 +265,15 @@ impl ToRunner<RawVersionRunner> for Check {
     }
 }
 
+impl ToRunner<RawPackageRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> RawPackageRunner {
+        match &self.kind {
+            CheckKind::Duplicates => Box::new(duplicates::create(repo)),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
+}
+
 impl fmt::Debug for Check {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self}")
@@ -328,6 +345,7 @@ static CHECKS: Lazy<IndexSet<Check>> = Lazy::new(|| {
     [
         dependency::CHECK,
         dependency_slot_missing::CHECK,
+        duplicates::CHECK,
         eapi_stale::CHECK,
         eapi_status::CHECK,
         header::CHECK,
