@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::dep::{DepField, Flatten};
+use pkgcraft::dep::{Cpn, DepField, Flatten};
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
@@ -73,11 +73,15 @@ fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
 }
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
-    Check { repo }
+    Check {
+        repo,
+        lang: Cpn::try_new("dev-lang/python").expect("invalid cpn"),
+    }
 }
 
 struct Check {
     repo: &'static Repo,
+    lang: Cpn,
 }
 
 super::register!(Check);
@@ -97,7 +101,7 @@ impl VersionCheck for Check {
         // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
-            .filter(|x| x.category() == "dev-lang" && x.package() == "python" && x.slot().is_some())
+            .filter(|x| x.cpn() == &self.lang && x.slot().is_some())
             .filter_map(|x| x.without([DepField::Version, DepField::UseDeps]).ok())
             .sorted()
             .last()

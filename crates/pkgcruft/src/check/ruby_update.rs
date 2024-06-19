@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::dep::{DepField, Flatten};
+use pkgcraft::dep::{Cpn, DepField, Flatten};
 use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
@@ -28,12 +28,17 @@ pub(super) static CHECK: super::Check = super::Check {
 static IUSE_PREFIX: &str = "ruby_targets_";
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
-    Check { repo, targets: OnceLock::new() }
+    Check {
+        repo,
+        targets: OnceLock::new(),
+        lang: Cpn::try_new("dev-lang/ruby").expect("invalid cpn"),
+    }
 }
 
 struct Check {
     repo: &'static Repo,
     targets: OnceLock<Vec<&'static str>>,
+    lang: Cpn,
 }
 
 impl Check {
@@ -60,7 +65,7 @@ impl VersionCheck for Check {
         // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
-            .filter(|x| x.category() == "dev-lang" && x.package() == "ruby" && x.slot().is_some())
+            .filter(|x| x.cpn() == &self.lang && x.slot().is_some())
             .filter_map(|x| x.without([DepField::Version, DepField::UseDeps]).ok())
             .sorted()
             .last()
