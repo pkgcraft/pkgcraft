@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::dep::{Cpn, DepField, Flatten};
+use pkgcraft::dep::{DepField, Flatten};
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
@@ -28,6 +28,7 @@ pub(super) static CHECK: super::Check = super::Check {
 
 static IUSE_PREFIX: &str = "python_targets_";
 static IUSE_PREFIX_S: &str = "python_single_target_";
+static IMPL_PKG: &str = "dev-lang/python";
 
 /// Supported python eclasses.
 #[derive(AsRefStr, EnumIter, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -73,15 +74,11 @@ fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
 }
 
 pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
-    Check {
-        repo,
-        lang: Cpn::try_new("dev-lang/python").expect("invalid cpn"),
-    }
+    Check { repo }
 }
 
 struct Check {
     repo: &'static Repo,
-    lang: Cpn,
 }
 
 super::register!(Check);
@@ -101,7 +98,7 @@ impl VersionCheck for Check {
         // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
-            .filter(|x| x.cpn() == &self.lang && x.slot().is_some())
+            .filter(|x| x.cpn() == IMPL_PKG && x.slot().is_some())
             .filter_map(|x| x.without([DepField::Version, DepField::UseDeps]).ok())
             .sorted()
             .last()
