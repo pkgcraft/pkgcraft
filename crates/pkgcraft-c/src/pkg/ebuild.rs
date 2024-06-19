@@ -147,6 +147,16 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_deprecated(p: *mut Pkg) -> bool {
     pkg.deprecated()
 }
 
+/// Return a package's live status.
+///
+/// # Safety
+/// The argument must be a non-null Pkg pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_live(p: *mut Pkg) -> bool {
+    let pkg = try_pkg_from_ptr!(p);
+    pkg.live()
+}
+
 /// Return a package's masked status.
 ///
 /// # Safety

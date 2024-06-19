@@ -13,7 +13,7 @@ use crate::macros::bool_not_equal;
 use crate::repo::ebuild::{Eclass, Repo};
 use crate::repo::Repository;
 use crate::shell::phase::Phase;
-use crate::traits::{Intersects, ToRef};
+use crate::traits::{Contains, Intersects, ToRef};
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -107,6 +107,11 @@ impl<'a> Pkg<'a> {
             .pkg_deprecated()
             .iter()
             .any(|x| self.intersects(x))
+    }
+
+    /// Return true if a package is VCS-based, false otherwise.
+    pub fn live(&self) -> bool {
+        self.properties().contains("live")
     }
 
     /// Return true if a package is globally masked in its repo, false otherwise.
@@ -550,6 +555,18 @@ mod tests {
             .ebuild_pkg("=deprecated/deprecated-1::metadata")
             .unwrap();
         assert!(!pkg.deprecated());
+    }
+
+    #[test]
+    fn live() {
+        let pkg = TEST_DATA
+            .ebuild_pkg("=Keywords/KeywordsLive-9999::qa-primary")
+            .unwrap();
+        assert!(pkg.live());
+        let pkg = TEST_DATA
+            .ebuild_pkg("=Keywords/KeywordsLive-0::qa-primary")
+            .unwrap();
+        assert!(!pkg.live());
     }
 
     #[test]
