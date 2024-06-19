@@ -29,10 +29,10 @@ test = ["dep:assert_cmd"]
 [dependencies]
 blake2 = "0.10.6"
 blake3 = { version = "1.5.1", features = ["traits-preview"] }
-cached = "0.51.3"
+cached = "0.51.4"
 camino = { version = "1.1.7", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.5.6", features = ["derive"] }
+clap = { version = "4.5.7", features = ["derive"] }
 crossbeam-channel = "0.5.13"
 digest = "0.10.7"
 enum-as-inner = "0.6.0"
@@ -53,8 +53,8 @@ num_cpus = "1.16.0"
 once_cell = "1.19.0"
 peg = "0.8.3"
 rayon = "1.10.0"
-regex = "1.10.4"
-reqwest = { version = "0.12.4", default-features = false, features = ["rustls-tls", "stream"], optional = true }
+regex = "1.10.5"
+reqwest = { version = "0.12.5", default-features = false, features = ["rustls-tls", "stream"], optional = true }
 roxmltree = "0.20.0"
 rust-ini = "0.21.0"
 scallop = { path = "../scallop", version = "0.0.15" }
