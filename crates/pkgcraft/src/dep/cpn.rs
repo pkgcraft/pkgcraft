@@ -34,6 +34,15 @@ impl fmt::Display for Cpn {
     }
 }
 
+impl PartialEq<str> for Cpn {
+    fn eq(&self, other: &str) -> bool {
+        other
+            .split_once('/')
+            .map(|(cat, pkg)| self.category == cat && self.package == pkg)
+            .unwrap_or_default()
+    }
+}
+
 impl Cpn {
     /// Create a [`Cpn`] from a given string.
     pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
