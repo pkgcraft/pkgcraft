@@ -88,7 +88,7 @@ pub struct Metadata<'a> {
     pub(crate) restrict: DependencySet<String>,
     pub(crate) src_uri: DependencySet<Uri>,
     pub(crate) homepage: OrderedSet<String>,
-    pub(crate) defined_phases: OrderedSet<&'a Phase>,
+    pub(crate) defined_phases: OrderedSet<Phase>,
     pub(crate) keywords: OrderedSet<Keyword>,
     pub(crate) iuse: OrderedSet<Iuse>,
     pub(crate) inherit: OrderedSet<&'a Eclass>,

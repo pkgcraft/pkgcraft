@@ -213,7 +213,7 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return a package's defined phases
-    pub fn defined_phases(&self) -> &OrderedSet<&Phase> {
+    pub fn defined_phases(&self) -> &OrderedSet<Phase> {
         &self.meta.defined_phases
     }
 

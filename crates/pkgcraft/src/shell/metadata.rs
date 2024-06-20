@@ -54,6 +54,7 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
                         .phases()
                         .iter()
                         .filter(|p| functions::find(p).is_some())
+                        .copied()
                         .collect();
                 }
                 INHERIT => meta.inherit = build.inherit.iter().copied().collect(),

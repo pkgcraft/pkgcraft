@@ -90,9 +90,10 @@ fn deserialize<'a>(
     };
 
     // return the Phase for a given name if it exists
-    let phase = |name: &str| -> crate::Result<&Phase> {
+    let phase = |name: &str| -> crate::Result<Phase> {
         eapi.phases()
             .get(name)
+            .copied()
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
     };
 
