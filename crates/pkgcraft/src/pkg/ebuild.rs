@@ -245,7 +245,7 @@ impl<'a> Pkg<'a> {
     /// Return a package's XML metadata.
     fn xml(&self) -> &xml::Metadata {
         self.xml
-            .get_or_init(|| self.repo.pkg_xml(self.cpv()))
+            .get_or_init(|| self.repo.pkg_xml(self.cpn()))
             .as_ref()
     }
 
@@ -287,7 +287,7 @@ impl<'a> Pkg<'a> {
     /// Return a package's manifest.
     pub fn manifest(&self) -> &Manifest {
         self.manifest
-            .get_or_init(|| self.repo.pkg_manifest(self.cpv()))
+            .get_or_init(|| self.repo.pkg_manifest(self.cpn()))
             .as_ref()
     }
 

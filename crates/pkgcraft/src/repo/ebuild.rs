@@ -116,10 +116,10 @@ where
     }
 
     /// Get the cache data related to a given package Cpv.
-    fn get(&self, cpv: &Cpv) -> Arc<T> {
+    fn get(&self, cpn: &Cpn) -> Arc<T> {
         let (tx, rx) = bounded(0);
         self.tx
-            .send(Msg::Key(cpv.cpn().to_string(), tx))
+            .send(Msg::Key(cpn.to_string(), tx))
             .expect("failed requesting pkg manifest data");
         rx.recv().expect("failed receiving pkg manifest data")
     }
@@ -465,17 +465,17 @@ impl Repo {
     }
 
     /// Return the shared XML metadata for a given package.
-    pub(crate) fn pkg_xml(&self, cpv: &Cpv) -> Arc<xml::Metadata> {
+    pub(crate) fn pkg_xml(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
         self.xml_cache
             .get_or_init(|| ArcCache::<xml::Metadata>::new(self.arc()))
-            .get(cpv)
+            .get(cpn)
     }
 
     /// Return the shared manifest data for a given package.
-    pub(crate) fn pkg_manifest(&self, cpv: &Cpv) -> Arc<Manifest> {
+    pub(crate) fn pkg_manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
         self.manifest_cache
             .get_or_init(|| ArcCache::<Manifest>::new(self.arc()))
-            .get(cpv)
+            .get(cpn)
     }
 
     /// Return the sorted set of Cpvs from a given category.
