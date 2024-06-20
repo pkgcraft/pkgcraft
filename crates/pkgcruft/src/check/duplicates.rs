@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::raw::Pkg;
-use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::Repository;
 use pkgcraft::traits::Contains;
@@ -35,12 +35,11 @@ struct Check {
 super::register!(Check);
 
 impl RawPackageSetCheck for Check {
-    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
-        let cpn = pkgs[0].cpn();
+    fn run(&self, cpn: &Cpn, _pkgs: &[Pkg], filter: &mut ReportFilter) {
         for repo in &self.repos {
             if repo.contains(cpn) {
                 let message = format!("repo: {}", repo.name());
-                filter.report(PackageOverride.package(pkgs, message));
+                filter.report(PackageOverride.package(cpn, message));
             }
         }
     }

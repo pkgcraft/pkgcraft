@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
+use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
 
@@ -33,7 +34,7 @@ struct Check {
 super::register!(Check);
 
 impl PackageSetCheck for Check {
-    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let local_use = pkgs[0].local_use();
         let sorted_flags = local_use
             .keys()
@@ -44,18 +45,18 @@ impl PackageSetCheck for Check {
         let mut unsorted = false;
         for ((flag, desc), sorted) in local_use.iter().zip(&sorted_flags) {
             if desc.is_empty() {
-                filter.report(UseLocalDescMissing.package(pkgs, flag));
+                filter.report(UseLocalDescMissing.package(cpn, flag));
             }
 
             if !unsorted && flag != sorted {
                 let message = format!("unsorted flag: {flag} (sorted: {sorted})");
-                filter.report(UseLocalUnsorted.package(pkgs, message));
+                filter.report(UseLocalUnsorted.package(cpn, message));
                 unsorted = true;
             }
 
             if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
                 if global_desc == desc {
-                    filter.report(UseLocalGlobal.package(pkgs, flag));
+                    filter.report(UseLocalGlobal.package(cpn, flag));
                 }
             }
         }
@@ -71,7 +72,7 @@ impl PackageSetCheck for Check {
             .join(", ");
 
         if !unused.is_empty() {
-            filter.report(UseLocalUnused.package(pkgs, unused));
+            filter.report(UseLocalUnused.package(cpn, unused));
         }
     }
 }

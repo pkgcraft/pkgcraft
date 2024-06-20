@@ -3,7 +3,6 @@ use std::time::Instant;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
-use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 use tracing::debug;
 
@@ -138,8 +137,8 @@ impl EbuildCheckRunner {
         if !pkgs.is_empty() {
             for check in &self.pkg_checks {
                 let now = Instant::now();
-                check.run(&pkgs[..], filter);
-                debug!("{check}: {}: {:?}", pkgs[0].cpn(), now.elapsed());
+                check.run(cpn, &pkgs[..], filter);
+                debug!("{check}: {cpn}: {:?}", now.elapsed());
             }
         }
     }
@@ -192,8 +191,8 @@ impl EbuildRawCheckRunner {
         if !pkgs.is_empty() {
             for check in &self.pkg_checks {
                 let now = Instant::now();
-                check.run(&pkgs[..], filter);
-                debug!("{check}: {}: {:?}", pkgs[0].cpn(), now.elapsed());
+                check.run(cpn, &pkgs[..], filter);
+                debug!("{check}: {cpn}: {:?}", now.elapsed());
             }
         }
     }

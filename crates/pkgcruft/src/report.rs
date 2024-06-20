@@ -187,14 +187,13 @@ impl ReportKind {
     }
 
     /// Create a package scope report.
-    pub(crate) fn package<P, S>(self, pkgs: &[P], message: S) -> Report
+    pub(crate) fn package<S>(self, cpn: &Cpn, message: S) -> Report
     where
-        P: Package,
         S: fmt::Display,
     {
         Report {
             kind: self,
-            scope: ReportScope::Package(pkgs[0].cpn().clone()),
+            scope: ReportScope::Package(cpn.clone()),
             message: message.to_string(),
         }
     }

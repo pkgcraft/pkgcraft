@@ -1,5 +1,6 @@
 use indexmap::IndexSet;
 use itertools::Itertools;
+use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
@@ -39,7 +40,7 @@ struct Check {
 super::register!(Check);
 
 impl PackageSetCheck for Check {
-    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let arches = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())
@@ -55,7 +56,7 @@ impl PackageSetCheck for Check {
             .join(", ");
 
         if !arches.is_empty() {
-            filter.report(UnstableOnly.package(pkgs, arches));
+            filter.report(UnstableOnly.package(cpn, arches));
         }
     }
 }

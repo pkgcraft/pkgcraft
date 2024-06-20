@@ -7,6 +7,7 @@ use std::str::FromStr;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use once_cell::sync::Lazy;
+use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::{ebuild::Repo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
@@ -150,7 +151,7 @@ pub(crate) type VersionRunner = Box<dyn VersionCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
 pub(crate) trait PackageSetCheck: RegisterCheck {
-    fn run(&self, pkgs: &[ebuild::Pkg], filter: &mut ReportFilter);
+    fn run(&self, cpn: &Cpn, pkgs: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
 pub(crate) type PackageSetRunner = Box<dyn PackageSetCheck + Send + Sync>;
 
@@ -162,7 +163,7 @@ pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package set.
 pub(crate) trait RawPackageSetCheck: RegisterCheck {
-    fn run(&self, pkgs: &[ebuild::raw::Pkg], filter: &mut ReportFilter);
+    fn run(&self, cpn: &Cpn, pkgs: &[ebuild::raw::Pkg], filter: &mut ReportFilter);
 }
 pub(crate) type RawPackageSetRunner = Box<dyn RawPackageSetCheck + Send + Sync>;
 

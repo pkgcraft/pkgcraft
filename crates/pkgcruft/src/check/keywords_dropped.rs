@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
+use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::Arch;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::Pkg;
@@ -34,7 +35,7 @@ struct Check {
 super::register!(Check);
 
 impl PackageSetCheck for Check {
-    fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
+    fn run(&self, _cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs
             .iter()
