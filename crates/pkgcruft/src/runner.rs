@@ -102,7 +102,7 @@ impl CheckRunner {
 /// Check runner for ebuild package checks.
 struct EbuildCheckRunner {
     ver_checks: Vec<VersionRunner>,
-    pkg_checks: Vec<PackageSetRunner>,
+    pkg_set_checks: Vec<EbuildPkgSetRunner>,
     source: source::Ebuild,
     repo: &'static Repo,
 }
@@ -111,7 +111,7 @@ impl EbuildCheckRunner {
     fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             ver_checks: Default::default(),
-            pkg_checks: Default::default(),
+            pkg_set_checks: Default::default(),
             source: source::Ebuild::new(repo, filters),
             repo,
         }
@@ -121,7 +121,7 @@ impl EbuildCheckRunner {
     fn add_check(&mut self, check: Check) {
         match &check.scope {
             Scope::Version => self.ver_checks.push(check.to_runner(self.repo)),
-            Scope::Package => self.pkg_checks.push(check.to_runner(self.repo)),
+            Scope::Package => self.pkg_set_checks.push(check.to_runner(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -137,13 +137,13 @@ impl EbuildCheckRunner {
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
 
-            if !self.pkg_checks.is_empty() {
+            if !self.pkg_set_checks.is_empty() {
                 pkgs.push(pkg);
             }
         }
 
         if !pkgs.is_empty() {
-            for check in &self.pkg_checks {
+            for check in &self.pkg_set_checks {
                 let now = Instant::now();
                 check.run(cpn, &pkgs[..], filter);
                 debug!("{check}: {cpn}: {:?}", now.elapsed());

@@ -6,7 +6,7 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, PackageSetCheck};
+use super::{CheckContext, CheckKind, EbuildPkgSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Live,
@@ -17,7 +17,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create() -> impl PackageSetCheck {
+pub(super) fn create() -> impl EbuildPkgSetCheck {
     Check
 }
 
@@ -25,7 +25,7 @@ struct Check;
 
 super::register!(Check);
 
-impl PackageSetCheck for Check {
+impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
         if pkgs.iter().all(|pkg| pkg.live()) {
             filter.report(LiveOnly.package(cpn, ""))

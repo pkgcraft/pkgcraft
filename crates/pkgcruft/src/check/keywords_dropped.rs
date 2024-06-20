@@ -13,7 +13,7 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, PackageSetCheck};
+use super::{CheckKind, EbuildPkgSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::KeywordsDropped,
@@ -24,7 +24,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl PackageSetCheck {
+pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgSetCheck {
     Check { arches: repo.arches() }
 }
 
@@ -34,7 +34,7 @@ struct Check {
 
 super::register!(Check);
 
-impl PackageSetCheck for Check {
+impl EbuildPkgSetCheck for Check {
     fn run(&self, _cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
         // ignore packages lacking keywords
         let pkgs = pkgs
