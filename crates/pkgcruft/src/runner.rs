@@ -2,9 +2,9 @@ use std::time::Instant;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
-use pkgcraft::restrict::Restrict;
 use tracing::debug;
 
 use crate::bash::Tree;
@@ -54,9 +54,9 @@ impl SyncCheckRunner {
     }
 
     /// Run all check runners in order of priority.
-    pub(super) fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
+    pub(super) fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         for runner in self.runners.values() {
-            runner.run(restrict, filter);
+            runner.run(cpn, filter);
         }
     }
 }
@@ -84,10 +84,10 @@ impl CheckRunner {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         match self {
-            Self::Ebuild(r) => r.run(restrict, filter),
-            Self::EbuildRaw(r) => r.run(restrict, filter),
+            Self::Ebuild(r) => r.run(cpn, filter),
+            Self::EbuildRaw(r) => r.run(cpn, filter),
         }
     }
 }
@@ -120,10 +120,10 @@ impl EbuildCheckRunner {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         let mut pkgs = vec![];
 
-        for pkg in self.source.iter_restrict(restrict) {
+        for pkg in self.source.iter_restrict(cpn) {
             for check in &self.ver_checks {
                 let now = Instant::now();
                 check.run(&pkg, filter);
@@ -173,10 +173,10 @@ impl EbuildRawCheckRunner {
     }
 
     /// Run the check runner for a given restriction.
-    fn run(&self, restrict: &Restrict, filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         let mut pkgs = vec![];
 
-        for pkg in self.source.iter_restrict(restrict) {
+        for pkg in self.source.iter_restrict(cpn) {
             let tree = Tree::new(pkg.data().as_bytes());
             for check in &self.ver_checks {
                 let now = Instant::now();

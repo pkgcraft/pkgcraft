@@ -5,6 +5,7 @@ use std::thread;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
+use pkgcraft::dep::Cpn;
 use pkgcraft::repo::{ebuild, Repo};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
@@ -148,12 +149,12 @@ impl Scanner {
 fn producer(
     repo: &'static ebuild::Repo,
     restricts: Vec<Restrict>,
-    tx: Sender<Restrict>,
+    tx: Sender<Cpn>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for r in restricts {
             for cpn in repo.iter_cpn_restrict(r) {
-                tx.send(cpn.into()).ok();
+                tx.send(cpn).ok();
             }
         }
     })
@@ -196,11 +197,11 @@ impl ReportFilter {
 fn worker(
     runner: Arc<SyncCheckRunner>,
     mut filter: ReportFilter,
-    rx: Receiver<Restrict>,
+    rx: Receiver<Cpn>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        for restrict in rx {
-            runner.run(&restrict, &mut filter);
+        for cpn in rx {
+            runner.run(&cpn, &mut filter);
             filter.process();
         }
     })
