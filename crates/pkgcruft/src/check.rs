@@ -162,10 +162,10 @@ pub(crate) trait PackageSetCheck: RegisterCheck {
 pub(crate) type PackageSetRunner = Box<dyn PackageSetCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version and lazily parsed bash tree.
-pub(crate) trait RawVersionCheck: RegisterCheck {
+pub(crate) trait EbuildRawPkgCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, tree: &Tree, filter: &mut ReportFilter);
 }
-pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
+pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -268,8 +268,8 @@ impl ToRunner<PackageSetRunner> for Check {
     }
 }
 
-impl ToRunner<RawVersionRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> RawVersionRunner {
+impl ToRunner<EbuildRawPkgRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> EbuildRawPkgRunner {
         match &self.kind {
             CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
             CheckKind::Header => Box::new(header::create()),

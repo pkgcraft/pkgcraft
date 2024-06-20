@@ -8,12 +8,12 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, RawVersionCheck};
+use super::{CheckContext, CheckKind, EbuildRawPkgCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Header,
     scope: Scope::Version,
-    source: SourceKind::EbuildRaw,
+    source: SourceKind::EbuildRawPkg,
     reports: &[HeaderInvalid],
     context: &[CheckContext::Gentoo],
     priority: 0,
@@ -26,7 +26,7 @@ static COPYRIGHT_REGEX: Lazy<Regex> = Lazy::new(|| {
 static GENTOO_LICENSE_HEADER: &str =
     "# Distributed under the terms of the GNU General Public License v2";
 
-pub(super) fn create() -> impl RawVersionCheck {
+pub(super) fn create() -> impl EbuildRawPkgCheck {
     Check
 }
 
@@ -34,7 +34,7 @@ struct Check;
 
 super::register!(Check);
 
-impl RawVersionCheck for Check {
+impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let mut lines = pkg.data().lines();
 

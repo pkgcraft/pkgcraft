@@ -14,12 +14,12 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, RawVersionCheck};
+use super::{CheckKind, EbuildRawPkgCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Metadata,
     scope: Scope::Version,
-    source: SourceKind::EbuildRaw,
+    source: SourceKind::EbuildRawPkg,
     reports: &[
         DependencyInvalid,
         LicenseInvalid,
@@ -33,7 +33,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: -9999,
 };
 
-pub(super) fn create() -> impl RawVersionCheck {
+pub(super) fn create() -> impl EbuildRawPkgCheck {
     Check
 }
 
@@ -41,7 +41,7 @@ struct Check;
 
 super::register!(Check);
 
-impl RawVersionCheck for Check {
+impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 

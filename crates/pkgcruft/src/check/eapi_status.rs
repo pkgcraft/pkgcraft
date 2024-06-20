@@ -8,18 +8,18 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, RawVersionCheck};
+use super::{CheckKind, EbuildRawPkgCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::EapiStatus,
     scope: Scope::Version,
-    source: SourceKind::EbuildRaw,
+    source: SourceKind::EbuildRawPkg,
     reports: &[EapiBanned, EapiDeprecated],
     context: &[],
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl RawVersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl EbuildRawPkgCheck {
     Check { repo }
 }
 
@@ -29,7 +29,7 @@ struct Check {
 
 super::register!(Check);
 
-impl RawVersionCheck for Check {
+impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let eapi = pkg.eapi().as_str();
         if self.repo.metadata.config.eapis_deprecated.contains(eapi) {

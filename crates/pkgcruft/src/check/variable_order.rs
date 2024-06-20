@@ -8,12 +8,12 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, RawVersionCheck};
+use super::{CheckKind, EbuildRawPkgCheck};
 
 pub(crate) static CHECK: super::Check = super::Check {
     kind: CheckKind::VariableOrder,
     scope: Scope::Version,
-    source: SourceKind::EbuildRaw,
+    source: SourceKind::EbuildRawPkg,
     reports: &[VariableOrder],
     context: &[],
     priority: 0,
@@ -36,7 +36,7 @@ enum Variable {
     PROPERTIES,
 }
 
-pub(crate) fn create() -> impl RawVersionCheck {
+pub(crate) fn create() -> impl EbuildRawPkgCheck {
     Check
 }
 
@@ -44,7 +44,7 @@ struct Check;
 
 super::register!(Check);
 
-impl RawVersionCheck for Check {
+impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &Pkg, tree: &Tree, filter: &mut ReportFilter) {
         let mut variables = vec![];
         for node in tree

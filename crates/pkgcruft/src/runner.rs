@@ -63,7 +63,7 @@ impl SyncCheckRunner {
 /// Generic check runners.
 enum CheckRunner {
     Ebuild(EbuildCheckRunner),
-    EbuildRaw(EbuildRawCheckRunner),
+    EbuildRawPkg(EbuildRawPkgCheckRunner),
     UnversionedPkg(UnversionedPkgCheckRunner),
 }
 
@@ -71,7 +71,9 @@ impl CheckRunner {
     fn new(source: SourceKind, repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
         match source {
             SourceKind::Ebuild => Self::Ebuild(EbuildCheckRunner::new(repo, filters)),
-            SourceKind::EbuildRaw => Self::EbuildRaw(EbuildRawCheckRunner::new(repo, filters)),
+            SourceKind::EbuildRawPkg => {
+                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, filters))
+            }
             SourceKind::UnversionedPkg => {
                 Self::UnversionedPkg(UnversionedPkgCheckRunner::new(repo))
             }
@@ -82,7 +84,7 @@ impl CheckRunner {
     fn add_check(&mut self, check: Check) {
         match self {
             Self::Ebuild(r) => r.add_check(check),
-            Self::EbuildRaw(r) => r.add_check(check),
+            Self::EbuildRawPkg(r) => r.add_check(check),
             Self::UnversionedPkg(r) => r.add_check(check),
         }
     }
@@ -91,7 +93,7 @@ impl CheckRunner {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         match self {
             Self::Ebuild(r) => r.run(cpn, filter),
-            Self::EbuildRaw(r) => r.run(cpn, filter),
+            Self::EbuildRawPkg(r) => r.run(cpn, filter),
             Self::UnversionedPkg(r) => r.run(cpn, filter),
         }
     }
@@ -151,17 +153,17 @@ impl EbuildCheckRunner {
 }
 
 /// Check runner for raw ebuild package checks.
-struct EbuildRawCheckRunner {
-    checks: Vec<RawVersionRunner>,
-    source: source::EbuildRaw,
+struct EbuildRawPkgCheckRunner {
+    checks: Vec<EbuildRawPkgRunner>,
+    source: source::EbuildRawPkg,
     repo: &'static Repo,
 }
 
-impl EbuildRawCheckRunner {
+impl EbuildRawPkgCheckRunner {
     fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             checks: Default::default(),
-            source: source::EbuildRaw::new(repo, filters),
+            source: source::EbuildRawPkg::new(repo, filters),
             repo,
         }
     }
