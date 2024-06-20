@@ -10,7 +10,7 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, PackageCheck};
+use super::{CheckContext, CheckKind, PackageSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::UnstableOnly,
@@ -21,7 +21,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl PackageCheck {
+pub(super) fn create(repo: &'static Repo) -> impl PackageSetCheck {
     Check {
         stable: repo
             .metadata
@@ -38,7 +38,7 @@ struct Check {
 
 super::register!(Check);
 
-impl PackageCheck for Check {
+impl PackageSetCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let arches = pkgs
             .iter()

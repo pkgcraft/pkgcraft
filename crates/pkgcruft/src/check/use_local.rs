@@ -11,7 +11,7 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, PackageCheck};
+use super::{CheckKind, PackageSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::UseLocal,
@@ -22,7 +22,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl PackageCheck {
+pub(super) fn create(repo: &'static Repo) -> impl PackageSetCheck {
     Check { repo }
 }
 
@@ -32,7 +32,7 @@ struct Check {
 
 super::register!(Check);
 
-impl PackageCheck for Check {
+impl PackageSetCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let local_use = pkgs[0].local_use();
         let sorted_flags = local_use

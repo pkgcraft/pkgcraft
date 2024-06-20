@@ -7,7 +7,7 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, PackageCheck};
+use super::{CheckKind, PackageSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::EapiStale,
@@ -18,7 +18,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create() -> impl PackageCheck {
+pub(super) fn create() -> impl PackageSetCheck {
     Check
 }
 
@@ -26,7 +26,7 @@ struct Check;
 
 super::register!(Check);
 
-impl PackageCheck for Check {
+impl PackageSetCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))

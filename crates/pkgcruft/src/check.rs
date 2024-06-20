@@ -149,10 +149,10 @@ pub(crate) trait VersionCheck: RegisterCheck {
 pub(crate) type VersionRunner = Box<dyn VersionCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
-pub(crate) trait PackageCheck: RegisterCheck {
+pub(crate) trait PackageSetCheck: RegisterCheck {
     fn run(&self, pkgs: &[ebuild::Pkg], filter: &mut ReportFilter);
 }
-pub(crate) type PackageRunner = Box<dyn PackageCheck + Send + Sync>;
+pub(crate) type PackageSetRunner = Box<dyn PackageSetCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version and lazily parsed bash tree.
 pub(crate) trait RawVersionCheck: RegisterCheck {
@@ -161,10 +161,10 @@ pub(crate) trait RawVersionCheck: RegisterCheck {
 pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package set.
-pub(crate) trait RawPackageCheck: RegisterCheck {
+pub(crate) trait RawPackageSetCheck: RegisterCheck {
     fn run(&self, pkgs: &[ebuild::raw::Pkg], filter: &mut ReportFilter);
 }
-pub(crate) type RawPackageRunner = Box<dyn RawPackageCheck + Send + Sync>;
+pub(crate) type RawPackageSetRunner = Box<dyn RawPackageSetCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -254,8 +254,8 @@ impl ToRunner<VersionRunner> for Check {
     }
 }
 
-impl ToRunner<PackageRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> PackageRunner {
+impl ToRunner<PackageSetRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> PackageSetRunner {
         match &self.kind {
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
@@ -280,8 +280,8 @@ impl ToRunner<RawVersionRunner> for Check {
     }
 }
 
-impl ToRunner<RawPackageRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> RawPackageRunner {
+impl ToRunner<RawPackageSetRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> RawPackageSetRunner {
         match &self.kind {
             CheckKind::Duplicates => Box::new(duplicates::create(repo)),
             _ => unreachable!("unsupported check: {self}"),

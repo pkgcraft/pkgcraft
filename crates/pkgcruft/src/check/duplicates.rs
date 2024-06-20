@@ -11,7 +11,7 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, RawPackageCheck};
+use super::{CheckContext, CheckKind, RawPackageSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Duplicates,
@@ -22,7 +22,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl RawPackageCheck {
+pub(super) fn create(repo: &'static Repo) -> impl RawPackageSetCheck {
     Check {
         repos: repo.masters().collect(),
     }
@@ -34,7 +34,7 @@ struct Check {
 
 super::register!(Check);
 
-impl RawPackageCheck for Check {
+impl RawPackageSetCheck for Check {
     fn run(&self, pkgs: &[Pkg], filter: &mut ReportFilter) {
         let cpn = pkgs[0].cpn();
         for repo in &self.repos {
