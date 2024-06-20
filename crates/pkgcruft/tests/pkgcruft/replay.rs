@@ -273,7 +273,7 @@ fn sources() {
 
         // single
         let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "ebuild"])
+            .args([opt, "ebuild-pkg"])
             .write_stdin(data.as_str())
             .to_reports()
             .unwrap();

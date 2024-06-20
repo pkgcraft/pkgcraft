@@ -17,7 +17,7 @@ use super::{CheckKind, EbuildPkgSetCheck};
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::UseLocal,
     scope: Scope::Package,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted],
     context: &[],
     priority: 0,

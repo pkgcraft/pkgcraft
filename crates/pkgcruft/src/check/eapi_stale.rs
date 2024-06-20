@@ -13,7 +13,7 @@ use super::{CheckKind, EbuildPkgSetCheck};
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::EapiStale,
     scope: Scope::Package,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[EapiStale],
     context: &[],
     priority: 0,

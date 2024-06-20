@@ -11,7 +11,7 @@ use super::{CheckContext, CheckKind, EbuildPkgSetCheck};
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Live,
     scope: Scope::Package,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[LiveOnly],
     context: &[CheckContext::Gentoo],
     priority: 0,

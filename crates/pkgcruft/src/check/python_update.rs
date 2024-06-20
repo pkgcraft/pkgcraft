@@ -15,12 +15,12 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::utils::{use_expand, use_starts_with};
 
-use super::{CheckContext, CheckKind, VersionCheck};
+use super::{CheckContext, CheckKind, EbuildPkgCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::PythonUpdate,
     scope: Scope::Version,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[PythonUpdate],
     context: &[CheckContext::GentooInherited],
     priority: 0,
@@ -73,7 +73,7 @@ fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
     prefixes.iter().filter_map(|x| s.strip_prefix(x)).next()
 }
 
-pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
     Check { repo }
 }
 
@@ -83,7 +83,7 @@ struct Check {
 
 super::register!(Check);
 
-impl VersionCheck for Check {
+impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let Some(eclass) = Eclass::iter().find(|x| pkg.inherited().contains(x.as_ref())) else {
             return;

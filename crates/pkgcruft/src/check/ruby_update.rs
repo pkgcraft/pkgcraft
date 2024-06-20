@@ -14,12 +14,12 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::utils::{use_expand, use_starts_with};
 
-use super::{CheckContext, CheckKind, VersionCheck};
+use super::{CheckContext, CheckKind, EbuildPkgCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::RubyUpdate,
     scope: Scope::Version,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[RubyUpdate],
     context: &[CheckContext::GentooInherited],
     priority: 0,
@@ -28,7 +28,7 @@ pub(super) static CHECK: super::Check = super::Check {
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
 
-pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
     Check { repo, targets: OnceLock::new() }
 }
 
@@ -46,7 +46,7 @@ impl Check {
 
 super::register!(Check);
 
-impl VersionCheck for Check {
+impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         if pkg.category() == "virtual" || !pkg.inherited().contains("ruby-ng") {
             return;

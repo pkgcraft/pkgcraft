@@ -18,7 +18,7 @@ use super::{CheckKind, EbuildPkgSetCheck};
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::KeywordsDropped,
     scope: Scope::Package,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[KeywordsDropped],
     context: &[],
     priority: 0,

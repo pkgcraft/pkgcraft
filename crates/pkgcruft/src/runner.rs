@@ -61,8 +61,10 @@ impl SyncCheckRunner {
 }
 
 /// Generic check runners.
+// TODO: remove the lint ignore once more variants are added
+#[allow(clippy::enum_variant_names)]
 enum CheckRunner {
-    Ebuild(EbuildCheckRunner),
+    EbuildPkg(EbuildPkgCheckRunner),
     EbuildRawPkg(EbuildRawPkgCheckRunner),
     UnversionedPkg(UnversionedPkgCheckRunner),
 }
@@ -70,7 +72,7 @@ enum CheckRunner {
 impl CheckRunner {
     fn new(source: SourceKind, repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
         match source {
-            SourceKind::Ebuild => Self::Ebuild(EbuildCheckRunner::new(repo, filters)),
+            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, filters)),
             SourceKind::EbuildRawPkg => {
                 Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, filters))
             }
@@ -83,7 +85,7 @@ impl CheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match self {
-            Self::Ebuild(r) => r.add_check(check),
+            Self::EbuildPkg(r) => r.add_check(check),
             Self::EbuildRawPkg(r) => r.add_check(check),
             Self::UnversionedPkg(r) => r.add_check(check),
         }
@@ -92,7 +94,7 @@ impl CheckRunner {
     /// Run the check runner for a given restriction.
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         match self {
-            Self::Ebuild(r) => r.run(cpn, filter),
+            Self::EbuildPkg(r) => r.run(cpn, filter),
             Self::EbuildRawPkg(r) => r.run(cpn, filter),
             Self::UnversionedPkg(r) => r.run(cpn, filter),
         }
@@ -100,19 +102,19 @@ impl CheckRunner {
 }
 
 /// Check runner for ebuild package checks.
-struct EbuildCheckRunner {
-    ver_checks: Vec<VersionRunner>,
+struct EbuildPkgCheckRunner {
+    pkg_checks: Vec<EbuildPkgRunner>,
     pkg_set_checks: Vec<EbuildPkgSetRunner>,
-    source: source::Ebuild,
+    source: source::EbuildPkg,
     repo: &'static Repo,
 }
 
-impl EbuildCheckRunner {
+impl EbuildPkgCheckRunner {
     fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
-            ver_checks: Default::default(),
+            pkg_checks: Default::default(),
             pkg_set_checks: Default::default(),
-            source: source::Ebuild::new(repo, filters),
+            source: source::EbuildPkg::new(repo, filters),
             repo,
         }
     }
@@ -120,7 +122,7 @@ impl EbuildCheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.ver_checks.push(check.to_runner(self.repo)),
+            Scope::Version => self.pkg_checks.push(check.to_runner(self.repo)),
             Scope::Package => self.pkg_set_checks.push(check.to_runner(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
@@ -131,7 +133,7 @@ impl EbuildCheckRunner {
         let mut pkgs = vec![];
 
         for pkg in self.source.iter_restrict(cpn) {
-            for check in &self.ver_checks {
+            for check in &self.pkg_checks {
                 let now = Instant::now();
                 check.run(&pkg, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());

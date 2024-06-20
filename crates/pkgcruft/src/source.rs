@@ -31,7 +31,7 @@ use crate::Error;
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum SourceKind {
-    Ebuild,
+    EbuildPkg,
     EbuildRawPkg,
     UnversionedPkg,
 }
@@ -168,12 +168,12 @@ pub(crate) trait IterRestrict {
         -> Box<dyn Iterator<Item = Self::Item> + '_>;
 }
 
-pub(crate) struct Ebuild {
+pub(crate) struct EbuildPkg {
     repo: &'static Repo,
     filters: PkgFilters,
 }
 
-impl Ebuild {
+impl EbuildPkg {
     pub(crate) fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             repo,
@@ -182,7 +182,7 @@ impl Ebuild {
     }
 }
 
-impl IterRestrict for Ebuild {
+impl IterRestrict for EbuildPkg {
     type Item = ebuild::Pkg<'static>;
 
     fn iter_restrict<R: Into<Restrict>>(

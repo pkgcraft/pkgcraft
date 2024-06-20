@@ -8,18 +8,18 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, VersionCheck};
+use super::{CheckKind, EbuildPkgCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::License,
     scope: Scope::Version,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[LicenseDeprecated, LicenseMissing, LicenseUnneeded],
     context: &[],
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
     Check {
         deprecated: repo
             .license_groups()
@@ -40,7 +40,7 @@ struct Check {
 
 super::register!(Check);
 
-impl VersionCheck for Check {
+impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
         if licenses.is_empty() {

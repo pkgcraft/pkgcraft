@@ -16,7 +16,7 @@ use super::{CheckContext, CheckKind, EbuildPkgSetCheck};
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::UnstableOnly,
     scope: Scope::Package,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[UnstableOnly],
     context: &[CheckContext::Optional],
     priority: 0,

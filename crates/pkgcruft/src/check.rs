@@ -150,10 +150,10 @@ pub(crate) trait UnversionedPkgCheck: RegisterCheck {
 pub(crate) type UnversionedPkgRunner = Box<dyn UnversionedPkgCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package version.
-pub(crate) trait VersionCheck: RegisterCheck {
+pub(crate) trait EbuildPkgCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
 }
-pub(crate) type VersionRunner = Box<dyn VersionCheck + Send + Sync>;
+pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
 pub(crate) trait EbuildPkgSetCheck: RegisterCheck {
@@ -239,8 +239,8 @@ pub(crate) trait ToRunner<T> {
     fn to_runner(&self, repo: &'static Repo) -> T;
 }
 
-impl ToRunner<VersionRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> VersionRunner {
+impl ToRunner<EbuildPkgRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> EbuildPkgRunner {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),

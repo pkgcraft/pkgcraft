@@ -11,18 +11,18 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckKind, VersionCheck};
+use super::{CheckKind, EbuildPkgCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Keywords,
     scope: Scope::Version,
-    source: SourceKind::Ebuild,
+    source: SourceKind::EbuildPkg,
     reports: &[EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted],
     context: &[],
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl VersionCheck {
+pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
     Check { repo }
 }
 
@@ -32,7 +32,7 @@ struct Check {
 
 super::register!(Check);
 
-impl VersionCheck for Check {
+impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         if !pkg.keywords().is_empty() && pkg.live() {
             let message = pkg.keywords().iter().join(", ");
