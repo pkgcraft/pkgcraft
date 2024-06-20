@@ -127,7 +127,7 @@ impl PartialEq for Array<'_> {
 impl Eq for Array<'_> {}
 
 impl fmt::Debug for Array<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let values: Vec<_> = self.iter().collect();
         write!(f, "Array {{ {values:?} }}")
     }

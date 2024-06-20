@@ -69,7 +69,7 @@ pub struct Builtin {
 }
 
 impl fmt::Debug for Builtin {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Builtin").field("name", &self.name).finish()
     }
 }

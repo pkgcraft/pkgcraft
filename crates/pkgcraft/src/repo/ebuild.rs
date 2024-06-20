@@ -158,7 +158,7 @@ pub struct Repo {
 }
 
 impl fmt::Debug for Repo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Repo")
             .field("id", &self.id)
             .field("repo_config", &self.repo_config())

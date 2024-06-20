@@ -61,7 +61,7 @@ pub struct Pkg<'a> {
 }
 
 impl fmt::Debug for Pkg<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Pkg {{ {}::{} }}", self.cpv, self.repo)
     }
 }
