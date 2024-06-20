@@ -64,6 +64,7 @@ impl SyncCheckRunner {
 enum CheckRunner {
     Ebuild(EbuildCheckRunner),
     EbuildRaw(EbuildRawCheckRunner),
+    UnversionedPkg(UnversionedPkgCheckRunner),
 }
 
 impl CheckRunner {
@@ -71,6 +72,9 @@ impl CheckRunner {
         match source {
             SourceKind::Ebuild => Self::Ebuild(EbuildCheckRunner::new(repo, filters)),
             SourceKind::EbuildRaw => Self::EbuildRaw(EbuildRawCheckRunner::new(repo, filters)),
+            SourceKind::UnversionedPkg => {
+                Self::UnversionedPkg(UnversionedPkgCheckRunner::new(repo))
+            }
         }
     }
 
@@ -79,6 +83,7 @@ impl CheckRunner {
         match self {
             Self::Ebuild(r) => r.add_check(check),
             Self::EbuildRaw(r) => r.add_check(check),
+            Self::UnversionedPkg(r) => r.add_check(check),
         }
     }
 
@@ -87,6 +92,7 @@ impl CheckRunner {
         match self {
             Self::Ebuild(r) => r.run(cpn, filter),
             Self::EbuildRaw(r) => r.run(cpn, filter),
+            Self::UnversionedPkg(r) => r.run(cpn, filter),
         }
     }
 }
@@ -146,8 +152,7 @@ impl EbuildCheckRunner {
 
 /// Check runner for raw ebuild package checks.
 struct EbuildRawCheckRunner {
-    ver_checks: Vec<RawVersionRunner>,
-    pkg_checks: Vec<RawPackageSetRunner>,
+    checks: Vec<RawVersionRunner>,
     source: source::EbuildRaw,
     repo: &'static Repo,
 }
@@ -155,8 +160,7 @@ struct EbuildRawCheckRunner {
 impl EbuildRawCheckRunner {
     fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
-            ver_checks: Default::default(),
-            pkg_checks: Default::default(),
+            checks: Default::default(),
             source: source::EbuildRaw::new(repo, filters),
             repo,
         }
@@ -165,35 +169,52 @@ impl EbuildRawCheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.ver_checks.push(check.to_runner(self.repo)),
-            Scope::Package => self.pkg_checks.push(check.to_runner(self.repo)),
+            Scope::Version => self.checks.push(check.to_runner(self.repo)),
             _ => unreachable!("unsupported check: {check}"),
         }
     }
 
     /// Run the check runner for a given restriction.
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
-        let mut pkgs = vec![];
-
         for pkg in self.source.iter_restrict(cpn) {
             let tree = Tree::new(pkg.data().as_bytes());
-            for check in &self.ver_checks {
+            for check in &self.checks {
                 let now = Instant::now();
                 check.run(&pkg, &tree, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
-
-            if !self.pkg_checks.is_empty() {
-                pkgs.push(pkg);
-            }
         }
+    }
+}
 
-        if !pkgs.is_empty() {
-            for check in &self.pkg_checks {
-                let now = Instant::now();
-                check.run(cpn, &pkgs[..], filter);
-                debug!("{check}: {cpn}: {:?}", now.elapsed());
-            }
+/// Check runner for unversioned package checks.
+struct UnversionedPkgCheckRunner {
+    checks: Vec<UnversionedPkgRunner>,
+    repo: &'static Repo,
+}
+
+impl UnversionedPkgCheckRunner {
+    fn new(repo: &'static Repo) -> Self {
+        Self {
+            checks: Default::default(),
+            repo,
+        }
+    }
+
+    /// Add a check to the check runner.
+    fn add_check(&mut self, check: Check) {
+        match &check.scope {
+            Scope::Package => self.checks.push(check.to_runner(self.repo)),
+            _ => unreachable!("unsupported check: {check}"),
+        }
+    }
+
+    /// Run the check runner for a given restriction.
+    fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        for check in &self.checks {
+            let now = Instant::now();
+            check.run(cpn, filter);
+            debug!("{check}: {cpn}: {:?}", now.elapsed());
         }
     }
 }

@@ -143,6 +143,12 @@ macro_rules! register {
 }
 use register;
 
+/// Run a check against an unversioned package.
+pub(crate) trait UnversionedPkgCheck: RegisterCheck {
+    fn run(&self, cpn: &Cpn, filter: &mut ReportFilter);
+}
+pub(crate) type UnversionedPkgRunner = Box<dyn UnversionedPkgCheck + Send + Sync>;
+
 /// Run a check against a given ebuild package version.
 pub(crate) trait VersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
@@ -160,12 +166,6 @@ pub(crate) trait RawVersionCheck: RegisterCheck {
     fn run(&self, pkg: &ebuild::raw::Pkg, tree: &Tree, filter: &mut ReportFilter);
 }
 pub(crate) type RawVersionRunner = Box<dyn RawVersionCheck + Send + Sync>;
-
-/// Run a check against a given raw ebuild package set.
-pub(crate) trait RawPackageSetCheck: RegisterCheck {
-    fn run(&self, cpn: &Cpn, pkgs: &[ebuild::raw::Pkg], filter: &mut ReportFilter);
-}
-pub(crate) type RawPackageSetRunner = Box<dyn RawPackageSetCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -281,8 +281,8 @@ impl ToRunner<RawVersionRunner> for Check {
     }
 }
 
-impl ToRunner<RawPackageSetRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> RawPackageSetRunner {
+impl ToRunner<UnversionedPkgRunner> for Check {
+    fn to_runner(&self, repo: &'static Repo) -> UnversionedPkgRunner {
         match &self.kind {
             CheckKind::Duplicates => Box::new(duplicates::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
