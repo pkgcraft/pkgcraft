@@ -101,7 +101,7 @@ where
 
                                 // insert Arc-wrapped value into the cache and return a copy
                                 let val = Arc::new(val);
-                                cache.insert(s.clone(), (hash, val.clone()));
+                                cache.insert(s, (hash, val.clone()));
                                 val
                             }
                         };
