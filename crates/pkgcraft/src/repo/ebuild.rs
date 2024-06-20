@@ -67,7 +67,7 @@ impl<T> ArcCache<T>
 where
     T: ArcCacheData + Send + Sync + 'static,
 {
-    fn new(repo: Arc<Repo>) -> ArcCache<T> {
+    fn new(repo: Arc<Repo>) -> Self {
         let (tx, rx) = bounded(10);
 
         let thread = thread::spawn(move || {
