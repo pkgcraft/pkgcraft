@@ -29,7 +29,7 @@ impl SyncCheckRunner {
         let enabled = checks
             .iter()
             .filter(|c| {
-                if !filters.is_empty() && c.scope == Scope::Package {
+                if !filters.is_empty() && c.scope != Scope::Version {
                     debug!("{c}: disabled due to package filtering");
                     false
                 } else {
