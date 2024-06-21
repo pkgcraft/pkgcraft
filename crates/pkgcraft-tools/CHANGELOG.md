@@ -1,3 +1,10 @@
+# 0.0.15 (2024-06-21)
+
+## Changed
+- Bumped MSRV to 1.76.
+- Various documentation updates for subcommands and options.
+- `pk pkg metadata`: Don't use internal targets when performing full repo scans.
+
 # 0.0.14 (2024-02-01)
 
 ## Added
