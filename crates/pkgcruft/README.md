@@ -8,7 +8,7 @@ issue #178).
 
 As a workaround, the command `pk pkg metadata` can be called from any ebuild
 repo directory to generate related package metadata and on successful
-completion `pkgcraft scan` can be called.
+completion `pkgcruft scan` can be called.
 
 # Requirements
 
