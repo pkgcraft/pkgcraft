@@ -7,6 +7,7 @@ use pkgcraft::cli::target_restriction;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::RepoFormat;
+use pkgcraft::restrict::Restrict;
 
 use crate::args::StdinOrArgs;
 
@@ -66,16 +67,21 @@ impl Command {
                     format.from_repo(repo.as_ref())
                 };
 
-                // TODO: use parallel Cpv restriction iterator
-                cache
-                    .regen()
+                let mut regen = cache.regen();
+                regen
                     .jobs(self.jobs.unwrap_or_default())
                     .force(self.force)
                     .progress(stdout().is_terminal() && !self.no_progress && !self.output)
                     .output(self.output)
-                    .targets(repo.iter_cpv_restrict(&restrict))
-                    .verify(self.verify)
-                    .run(repo)?;
+                    .verify(self.verify);
+
+                // TODO: use parallel Cpv restriction iterator
+                // skip repo level targets that needlessly slow down regen
+                if restrict != Restrict::True {
+                    regen.targets(repo.iter_cpv_restrict(&restrict));
+                }
+
+                regen.run(repo)?;
             }
         }
 
