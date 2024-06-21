@@ -1,5 +1,6 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::sync::Arc;
 
 use camino::Utf8Path;
@@ -172,6 +173,14 @@ impl<'a> Iterator for IterRestrict<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
+    }
+}
+
+impl Deref for Repo {
+    type Target = super::Repo;
+
+    fn deref(&self) -> &Self::Target {
+        &self.raw
     }
 }
 
