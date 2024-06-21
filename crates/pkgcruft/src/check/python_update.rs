@@ -103,7 +103,7 @@ impl EbuildPkgCheck for Check {
             .sorted_by_key(|x| eclass.targets(self.repo).get_index_of(x.as_str()))
             .last()
         else {
-            // missing python deps
+            // missing deps
             return;
         };
 

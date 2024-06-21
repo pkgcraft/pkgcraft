@@ -66,6 +66,7 @@ impl EbuildPkgCheck for Check {
             .sorted_by_key(|x| self.targets().get_index_of(x.as_str()))
             .last()
         else {
+            // missing deps
             return;
         };
 
@@ -79,6 +80,7 @@ impl EbuildPkgCheck for Check {
             .collect::<Vec<_>>();
 
         if targets.is_empty() {
+            // no updates available
             return;
         }
 
@@ -95,11 +97,42 @@ impl EbuildPkgCheck for Check {
                 .collect::<HashSet<_>>();
             targets.retain(|x| iuse.contains(x));
             if targets.is_empty() {
+                // no updates available
                 return;
             }
         }
 
         let message = targets.iter().rev().join(", ");
         filter.report(RubyUpdate.version(pkg, message));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::repo::Repository;
+    use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
+    use pretty_assertions::assert_eq;
+
+    use crate::scanner::Scanner;
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        // gentoo unfixed
+        let repo = TEST_DATA.repo("gentoo").unwrap();
+        let dir = repo.path().join(CHECK);
+        // ignore stub/* ebuilds
+        let filter = "category != 'stub'".parse().unwrap();
+        let scanner = Scanner::new().jobs(1).checks([CHECK]).filters([filter]);
+        let expected = glob_reports!("{dir}/*/reports.json");
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+
+        // gentoo fixed
+        let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
     }
 }
