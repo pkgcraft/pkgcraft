@@ -103,6 +103,7 @@ impl EbuildPkgCheck for Check {
             .sorted_by_key(|x| eclass.targets(self.repo).get_index_of(x.as_str()))
             .last()
         else {
+            // missing python deps
             return;
         };
 
@@ -115,6 +116,7 @@ impl EbuildPkgCheck for Check {
             .collect::<Vec<_>>();
 
         if targets.is_empty() {
+            // no updates available
             return;
         }
 
@@ -131,6 +133,7 @@ impl EbuildPkgCheck for Check {
                 .collect::<HashSet<_>>();
             targets.retain(|x| iuse.contains(x));
             if targets.is_empty() {
+                // no updates available
                 return;
             }
         }
@@ -156,7 +159,9 @@ mod tests {
         // gentoo unfixed
         let repo = TEST_DATA.repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
-        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        // ignore stub/* ebuilds
+        let filter = "category != 'stub'".parse().unwrap();
+        let scanner = Scanner::new().jobs(1).checks([CHECK]).filters([filter]);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports: Vec<_> = scanner.run(repo, [repo]).collect();
         assert_eq!(&reports, &expected);
