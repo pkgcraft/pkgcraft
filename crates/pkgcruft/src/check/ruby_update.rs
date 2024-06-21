@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::dep::{DepField, Flatten};
+use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::repo::PkgRepository;
@@ -34,11 +34,11 @@ pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
 
 struct Check {
     repo: &'static Repo,
-    targets: OnceLock<Vec<&'static str>>,
+    targets: OnceLock<IndexSet<&'static str>>,
 }
 
 impl Check {
-    fn targets(&self) -> &[&str] {
+    fn targets(&self) -> &IndexSet<&str> {
         self.targets
             .get_or_init(|| use_expand(self.repo, "ruby_targets", "ruby"))
     }
@@ -62,10 +62,9 @@ impl EbuildPkgCheck for Check {
         let Some(latest) = deps
             .iter()
             .filter(|x| x.cpn() == IMPL_PKG && x.slot().is_some())
-            .filter_map(|x| x.without([DepField::Version, DepField::UseDeps]).ok())
-            .sorted()
-            .last()
             .map(|x| format!("ruby{}", x.slot().unwrap().replace('.', "")))
+            .sorted_by_key(|x| self.targets().get_index_of(x.as_str()))
+            .last()
         else {
             return;
         };

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::dep::{DepField, Flatten};
+use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::repo::ebuild::Repo;
@@ -41,7 +41,7 @@ enum Eclass {
 
 impl Eclass {
     /// USE_EXPAND targets pulled from the given repo.
-    fn targets<'a>(&self, repo: &'a Repo) -> Vec<&'a str> {
+    fn targets<'a>(&self, repo: &'a Repo) -> IndexSet<&'a str> {
         match self {
             Self::PythonR1 => use_expand(repo, "python_targets", "python"),
             Self::PythonSingleR1 => use_expand(repo, "python_single_target", "python"),
@@ -99,10 +99,9 @@ impl EbuildPkgCheck for Check {
         let Some(latest) = deps
             .iter()
             .filter(|x| x.cpn() == IMPL_PKG && x.slot().is_some())
-            .filter_map(|x| x.without([DepField::Version, DepField::UseDeps]).ok())
-            .sorted()
-            .last()
             .map(|x| format!("python{}", x.slot().unwrap().replace('.', "_")))
+            .sorted_by_key(|x| eclass.targets(self.repo).get_index_of(x.as_str()))
+            .last()
         else {
             return;
         };
@@ -140,7 +139,6 @@ impl EbuildPkgCheck for Check {
         filter.report(PythonUpdate.version(pkg, message));
     }
 }
-
 
 #[cfg(test)]
 mod tests {

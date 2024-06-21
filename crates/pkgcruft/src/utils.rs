@@ -1,3 +1,4 @@
+use indexmap::IndexSet;
 use pkgcraft::dep::Dep;
 use pkgcraft::repo::ebuild::Repo;
 
@@ -13,7 +14,7 @@ pub(crate) fn use_starts_with(dep: &Dep, prefixes: &[&str]) -> bool {
 }
 
 /// Pull USE_EXPAND targets related to a given name from a target repo.
-pub(crate) fn use_expand<'a>(repo: &'a Repo, name: &str, prefix: &str) -> Vec<&'a str> {
+pub(crate) fn use_expand<'a>(repo: &'a Repo, name: &str, prefix: &str) -> IndexSet<&'a str> {
     repo.use_expand()
         .get(name)
         .map(|x| {
