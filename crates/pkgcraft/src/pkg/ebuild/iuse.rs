@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::dep::parse;
 
 /// Package IUSE.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Iuse {
     pub(crate) flag: String,
     pub(crate) default: Option<bool>,
@@ -43,6 +43,12 @@ impl fmt::Display for Iuse {
             Some(false) => write!(f, "-{flag}"),
             None => write!(f, "{flag}"),
         }
+    }
+}
+
+impl fmt::Debug for Iuse {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Iuse {{ {self} }}")
     }
 }
 

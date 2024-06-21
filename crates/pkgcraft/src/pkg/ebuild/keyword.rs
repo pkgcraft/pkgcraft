@@ -73,7 +73,7 @@ pub enum KeywordStatus {
     Stable,   // arch
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Keyword {
     pub(crate) status: KeywordStatus,
     pub(crate) arch: Arch,
@@ -126,6 +126,12 @@ impl fmt::Display for Keyword {
             KeywordStatus::Unstable => write!(f, "~{arch}"),
             KeywordStatus::Disabled => write!(f, "-{arch}"),
         }
+    }
+}
+
+impl fmt::Debug for Keyword {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Keyword {{ {self} }}")
     }
 }
 
