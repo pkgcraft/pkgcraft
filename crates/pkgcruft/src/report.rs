@@ -72,8 +72,13 @@ impl From<ReportLevel> for Color {
     Clone,
 )]
 pub enum ReportKind {
+    /// Package dependency flagged as deprecated by the repo.
     DependencyDeprecated,
+
+    /// Ebuild has an invalid dependency.
     DependencyInvalid,
+
+    /// Dependency is missing a slot.
     DependencySlotMissing,
 
     /// Package has a banned EAPI.
@@ -100,6 +105,7 @@ pub enum ReportKind {
     /// File has an invalid copyright and/or license header.
     HeaderInvalid,
 
+    /// Keywords have been dropped between releases.
     KeywordsDropped,
 
     /// Live ebuild has keywords.
@@ -114,7 +120,7 @@ pub enum ReportKind {
     /// Ebuild has a deprecated license.
     LicenseDeprecated,
 
-    /// Ebuild has an invalid license.
+    /// Ebuild has invalid LICENSE.
     LicenseInvalid,
 
     /// Ebuild has a missing license.
@@ -126,25 +132,37 @@ pub enum ReportKind {
     /// Package only has live ebuilds.
     LiveOnly,
 
+    /// Ebuild is missing mandatory metadata values.
     MetadataMissing,
 
     /// Overlay package matches the name of a package from a parent repo.
     PackageOverride,
 
+    /// Ebuild has invalid PROPERTIES.
     PropertiesInvalid,
 
     /// Ebuild can support newer python version(s).
     PythonUpdate,
 
+    /// Ebuild has invalid REQUIRED_USE.
     RequiredUseInvalid,
+
+    /// Ebuild has invalid RESTRICT.
     RestrictInvalid,
+
+    /// Ebuild is missing a RESTRICT value of the specified type.
     RestrictMissing,
+
+    /// Package dependency is missing a revision.
     RevisionMissing,
 
     /// Ebuild can support newer ruby version(s).
     RubyUpdate,
 
+    /// Ebuild has bash failures when sourced.
     SourcingError,
+
+    /// Package only has unstable keywords.
     UnstableOnly,
 
     /// Local USE flag missing description.
