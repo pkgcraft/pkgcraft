@@ -151,7 +151,7 @@ impl FromStr for SlotDep {
 }
 
 /// Package dependency.
-#[derive(SerializeDisplay, DeserializeFromStr, Debug, Clone)]
+#[derive(SerializeDisplay, DeserializeFromStr, Clone)]
 pub struct Dep {
     pub(crate) cpn: Cpn,
     pub(crate) blocker: Option<Blocker>,
@@ -560,6 +560,12 @@ impl fmt::Display for Dep {
         }
 
         Ok(())
+    }
+}
+
+impl fmt::Debug for Dep {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Dep {{ {self} }}")
     }
 }
 
