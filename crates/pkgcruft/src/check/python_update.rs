@@ -140,3 +140,32 @@ impl EbuildPkgCheck for Check {
         filter.report(PythonUpdate.version(pkg, message));
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::repo::Repository;
+    use pkgcraft::test::{TEST_DATA, TEST_DATA_PATCHED};
+    use pretty_assertions::assert_eq;
+
+    use crate::scanner::Scanner;
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        // gentoo unfixed
+        let repo = TEST_DATA.repo("gentoo").unwrap();
+        let dir = repo.path().join(CHECK);
+        let scanner = Scanner::new().jobs(1).checks([CHECK]);
+        let expected = glob_reports!("{dir}/*/reports.json");
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &expected);
+
+        // gentoo fixed
+        let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
+        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
+        assert_eq!(&reports, &[]);
+    }
+}
