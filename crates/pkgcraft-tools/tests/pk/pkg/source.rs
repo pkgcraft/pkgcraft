@@ -1,6 +1,7 @@
 use std::env;
 
 use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
+use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 use predicates::prelude::*;
 use predicates::str::contains;

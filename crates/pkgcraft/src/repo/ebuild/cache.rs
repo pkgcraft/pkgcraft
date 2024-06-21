@@ -332,7 +332,6 @@ mod tests {
     fn regen_errors() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.ebuild_repo();
 
         // create a large number of packages with a subshelled, invalid scope builtin call
         for pv in 0..50 {
@@ -347,7 +346,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.metadata.cache().regen().run(repo);
+        let r = t.metadata.cache().regen().run(&t);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

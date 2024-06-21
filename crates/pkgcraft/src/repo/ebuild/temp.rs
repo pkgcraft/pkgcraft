@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::ops::Deref;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -9,8 +10,6 @@ use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::pkg::ebuild::{self, metadata::Key};
 use crate::repo::Repo as BaseRepo;
 use crate::Error;
-
-use super::Repo as EbuildRepo;
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
@@ -58,7 +57,7 @@ impl Repo {
         let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;
 
-        let repo = EbuildRepo::from_path(id, priority, &path)?;
+        let repo = super::Repo::from_path(id, priority, &path)?;
 
         Ok(Self {
             tempdir,
@@ -105,7 +104,7 @@ impl Repo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        ebuild::raw::Pkg::try_new(cpv, self.ebuild_repo())
+        ebuild::raw::Pkg::try_new(cpv, self)
     }
 
     /// Create a [`ebuild::Pkg`] from ebuild field settings.
@@ -126,7 +125,7 @@ impl Repo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        ebuild::raw::Pkg::try_new(cpv, self.ebuild_repo())
+        ebuild::raw::Pkg::try_new(cpv, self)
     }
 
     /// Create a [`ebuild::Pkg`] from an ebuild using raw data.
@@ -148,19 +147,9 @@ impl Repo {
         Ok(path)
     }
 
-    /// Return the temporary repo's file path.
-    pub fn path(&self) -> &Utf8Path {
-        &self.path
-    }
-
     /// Return the temporary repo's wrapped repo object.
     pub fn repo(&self) -> &BaseRepo {
         &self.repo
-    }
-
-    /// Return the temporary repo's wrapped ebuild repo object.
-    pub fn ebuild_repo(&self) -> &EbuildRepo {
-        self.repo.as_ebuild().expect("invalid repo type")
     }
 
     /// Persist the temporary repo to disk, returning the [`Utf8PathBuf`] where it is located.
@@ -175,5 +164,13 @@ impl Repo {
             repo_path = path.to_path_buf();
         }
         Ok(repo_path)
+    }
+}
+
+impl Deref for Repo {
+    type Target = super::Repo;
+
+    fn deref(&self) -> &Self::Target {
+        self.repo.as_ebuild().unwrap()
     }
 }

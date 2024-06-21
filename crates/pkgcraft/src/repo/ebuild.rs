@@ -1248,30 +1248,28 @@ mod tests {
     fn len() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
 
-        assert_eq!(repo.len(), 0);
-        assert!(repo.is_empty());
+        assert_eq!(t.len(), 0);
+        assert!(t.is_empty());
         t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert_eq!(repo.len(), 1);
-        assert!(!repo.is_empty());
+        assert_eq!(t.len(), 1);
+        assert!(!t.is_empty());
         t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        assert_eq!(repo.len(), 2);
-        assert!(!repo.is_empty());
+        assert_eq!(t.len(), 2);
+        assert!(!t.is_empty());
     }
 
     #[test]
     fn categories() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
 
-        assert!(repo.categories().is_empty());
-        fs::create_dir(repo.path().join("cat")).unwrap();
-        assert_ordered_eq!(repo.categories(), ["cat"]);
-        fs::create_dir(repo.path().join("a-cat")).unwrap();
-        fs::create_dir(repo.path().join("z-cat")).unwrap();
-        assert_ordered_eq!(repo.categories(), ["a-cat", "cat", "z-cat"]);
+        assert!(t.categories().is_empty());
+        fs::create_dir(t.path().join("cat")).unwrap();
+        assert_ordered_eq!(t.categories(), ["cat"]);
+        fs::create_dir(t.path().join("a-cat")).unwrap();
+        fs::create_dir(t.path().join("z-cat")).unwrap();
+        assert_ordered_eq!(t.categories(), ["a-cat", "cat", "z-cat"]);
     }
 
     #[test]

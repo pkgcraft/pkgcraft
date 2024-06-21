@@ -189,15 +189,14 @@ mod tests {
     use crate::config::Config;
     use crate::dep::Cpv;
     use crate::pkg::Package;
+    use crate::repo::PkgRepository;
     use crate::restrict::dep::Restrict as DepRestrict;
-
-    use super::*;
 
     #[test]
     fn test_iter() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.ebuild_repo().configure(&config);
+        let repo = t.configure(&config);
         t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
         t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
         let mut iter = repo.iter();
@@ -212,7 +211,7 @@ mod tests {
     fn test_iter_restrict() {
         let mut config = Config::default();
         let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.ebuild_repo().configure(&config);
+        let repo = t.configure(&config);
         t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         t.create_raw_pkg("cat/pkg-2", &[]).unwrap();
 

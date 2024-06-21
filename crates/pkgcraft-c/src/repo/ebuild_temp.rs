@@ -6,6 +6,7 @@ use pkgcraft::eapi::Eapi;
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
+use crate::repo::Repository;
 use crate::types::EbuildTempRepo;
 
 /// Create a temporary ebuild repository.
