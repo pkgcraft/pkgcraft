@@ -78,6 +78,9 @@ pub enum ReportKind {
     /// Ebuild has an invalid dependency.
     DependencyInvalid,
 
+    /// Package dependency is missing a revision.
+    DependencyRevisionMissing,
+
     /// Dependency is missing a slot.
     DependencySlotMissing,
 
@@ -152,9 +155,6 @@ pub enum ReportKind {
 
     /// Ebuild is missing a RESTRICT value of the specified type.
     RestrictMissing,
-
-    /// Package dependency is missing a revision.
-    RevisionMissing,
 
     /// Ebuild can support newer ruby version(s).
     RubyUpdate,
@@ -235,6 +235,7 @@ impl ReportKind {
         match self {
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Critical,
+            Self::DependencyRevisionMissing => Warning,
             Self::DependencySlotMissing => Warning,
             Self::EapiBanned => Error,
             Self::EapiDeprecated => Warning,
@@ -259,7 +260,6 @@ impl ReportKind {
             Self::RequiredUseInvalid => Critical,
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
-            Self::RevisionMissing => Warning,
             Self::RubyUpdate => Info,
             Self::SourcingError => Critical,
             Self::UnstableOnly => Info,

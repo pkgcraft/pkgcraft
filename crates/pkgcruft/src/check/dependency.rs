@@ -4,7 +4,7 @@ use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::ReportKind::{DependencyDeprecated, RevisionMissing};
+use crate::report::ReportKind::{DependencyDeprecated, DependencyRevisionMissing};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -15,7 +15,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Dependency,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[DependencyDeprecated, RevisionMissing],
+    reports: &[DependencyDeprecated, DependencyRevisionMissing],
     context: &[],
     priority: 0,
 };
@@ -47,7 +47,7 @@ impl EbuildPkgCheck for Check {
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
                     let message = format!("{key}: {dep}");
-                    filter.report(RevisionMissing.version(pkg, message));
+                    filter.report(DependencyRevisionMissing.version(pkg, message));
                 }
             }
         }
