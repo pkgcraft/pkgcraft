@@ -134,8 +134,8 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
             format.from_repo(repo)
         };
 
-        let regen = cache.regen().jobs(jobs).force(force);
-        unwrap_or_panic!(regen.run(repo));
+        let mut regen = cache.regen();
+        unwrap_or_panic!(regen.jobs(jobs).force(force).run(repo));
         true
     }
 }
