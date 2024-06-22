@@ -78,6 +78,12 @@ impl EbuildRawPkgCheck for Check {
                             .report(filter);
                     }
                 }
+            } else if whitespace_only_line && !line.is_empty() {
+                WhitespaceUnneeded
+                    .version(pkg)
+                    .location(lineno)
+                    .message("empty line with whitespace")
+                    .report(filter);
             }
 
             if !eapi_assign && line.trim().starts_with("EAPI=") {
