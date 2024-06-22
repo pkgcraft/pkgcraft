@@ -44,8 +44,11 @@ impl EbuildPkgCheck for Check {
                 .map(|pkg| pkg.slot().to_string())
                 .collect::<IndexSet<_>>();
             if slots.len() > 1 {
-                let message = format!("{dep} matches multiple slots: {}", slots.iter().join(", "));
-                filter.report(DependencySlotMissing.version(pkg, message));
+                let slots = slots.iter().join(", ");
+                DependencySlotMissing
+                    .version(pkg)
+                    .message(format!("{dep} matches multiple slots: {slots}"))
+                    .report(filter);
             }
         }
     }

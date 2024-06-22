@@ -102,8 +102,10 @@ impl EbuildPkgCheck for Check {
             }
         }
 
-        let message = targets.iter().rev().join(", ");
-        filter.report(RubyUpdate.version(pkg, message));
+        RubyUpdate
+            .version(pkg)
+            .message(targets.iter().rev().join(", "))
+            .report(filter);
     }
 }
 

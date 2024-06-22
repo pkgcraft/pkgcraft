@@ -46,8 +46,10 @@ impl EbuildRawPkgCheck for Check {
             if end >= 2019 {
                 let holder = m.name("holder").unwrap().as_str();
                 if holder != "Gentoo Authors" {
-                    let message = format!("invalid copyright holder: {holder}");
-                    filter.report(HeaderInvalid.version(pkg, message));
+                    HeaderInvalid
+                        .version(pkg)
+                        .message(format!("invalid copyright holder: {holder}"))
+                        .report(filter);
                 }
             }
         } else {
@@ -57,7 +59,7 @@ impl EbuildRawPkgCheck for Check {
                 format!("invalid copyright: {line}")
             };
 
-            filter.report(HeaderInvalid.version(pkg, message));
+            HeaderInvalid.version(pkg).message(message).report(filter);
         }
 
         line = lines.next().unwrap_or_default();
@@ -68,7 +70,7 @@ impl EbuildRawPkgCheck for Check {
                 format!("invalid license: {line}")
             };
 
-            filter.report(HeaderInvalid.version(pkg, message));
+            HeaderInvalid.version(pkg).message(message).report(filter);
         }
     }
 }

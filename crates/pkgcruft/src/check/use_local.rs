@@ -45,18 +45,23 @@ impl EbuildPkgSetCheck for Check {
         let mut unsorted = false;
         for ((flag, desc), sorted) in local_use.iter().zip(&sorted_flags) {
             if desc.is_empty() {
-                filter.report(UseLocalDescMissing.package(cpn, flag));
+                UseLocalDescMissing
+                    .package(cpn)
+                    .message(flag)
+                    .report(filter);
             }
 
             if !unsorted && flag != sorted {
-                let message = format!("unsorted flag: {flag} (sorted: {sorted})");
-                filter.report(UseLocalUnsorted.package(cpn, message));
                 unsorted = true;
+                UseLocalUnsorted
+                    .package(cpn)
+                    .message(format!("unsorted flag: {flag} (sorted: {sorted})"))
+                    .report(filter);
             }
 
             if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
                 if global_desc == desc {
-                    filter.report(UseLocalGlobal.package(cpn, flag));
+                    UseLocalGlobal.package(cpn).message(flag).report(filter);
                 }
             }
         }
@@ -72,7 +77,7 @@ impl EbuildPkgSetCheck for Check {
             .join(", ");
 
         if !unused.is_empty() {
-            filter.report(UseLocalUnused.package(cpn, unused));
+            UseLocalUnused.package(cpn).message(unused).report(filter);
         }
     }
 }

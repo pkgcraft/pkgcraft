@@ -37,8 +37,10 @@ impl UnversionedPkgCheck for Check {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         for repo in &self.repos {
             if repo.contains(cpn) {
-                let message = format!("repo: {}", repo.name());
-                filter.report(PackageOverride.package(cpn, message));
+                PackageOverride
+                    .package(cpn)
+                    .message(format!("repo: {}", repo.name()))
+                    .report(filter);
             }
         }
     }

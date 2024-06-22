@@ -40,7 +40,7 @@ impl EbuildPkgSetCheck for Check {
                 if let Some(latest_release) = release.last() {
                     for pkg in live {
                         if pkg.eapi() < latest_release.eapi() {
-                            filter.report(EapiStale.version(pkg, pkg.eapi()));
+                            EapiStale.version(pkg).message(pkg.eapi()).report(filter);
                         }
                     }
                 }

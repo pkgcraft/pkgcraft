@@ -41,7 +41,7 @@ super::register!(Check);
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for eclass in self.eclasses.intersection(pkg.inherited()) {
-            filter.report(EclassUnused.version(pkg, eclass))
+            EclassUnused.version(pkg).message(eclass).report(filter);
         }
     }
 }

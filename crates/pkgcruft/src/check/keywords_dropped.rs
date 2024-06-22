@@ -103,8 +103,10 @@ impl EbuildPkgSetCheck for Check {
         }
 
         for (pkg, arches) in &dropped {
-            let message = arches.iter().sorted().join(", ");
-            filter.report(KeywordsDropped.version(pkg, message));
+            KeywordsDropped
+                .version(pkg)
+                .message(arches.iter().sorted().join(", "))
+                .report(filter);
         }
     }
 }

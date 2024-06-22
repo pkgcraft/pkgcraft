@@ -56,7 +56,7 @@ impl EbuildPkgSetCheck for Check {
             .join(", ");
 
         if !arches.is_empty() {
-            filter.report(UnstableOnly.package(cpn, arches));
+            UnstableOnly.package(cpn).message(arches).report(filter);
         }
     }
 }

@@ -68,9 +68,11 @@ impl EbuildRawPkgCheck for Check {
 
         for ((var1, _), (var2, lineno)) in variables.iter().tuple_windows() {
             if var2 < var1 {
-                let message = format!("{var2} should occur before {var1}");
-                let report = VariableOrder.version(pkg, message);
-                filter.report(report.location(*lineno));
+                VariableOrder
+                    .version(pkg)
+                    .message(format!("{var2} should occur before {var1}"))
+                    .location(*lineno)
+                    .report(filter);
             }
         }
     }

@@ -49,13 +49,17 @@ impl EbuildRawPkgCheck for Check {
                 // parsing to ignore indents inside multiline strings or similar.
                 if c.is_whitespace() {
                     if c != ' ' && c != '\t' {
-                        let message = format!("character {c:?}");
-                        let report = WhitespaceInvalid.version(pkg, message);
-                        filter.report(report.location((lineno, pos + 1)));
+                        WhitespaceInvalid
+                            .version(pkg)
+                            .message(format!("character {c:?}"))
+                            .location((lineno, pos + 1))
+                            .report(filter);
                     } else if char_indices.peek().is_none() && !line.trim().is_empty() {
-                        let message = "trailing whitespace";
-                        let report = WhitespaceUnneeded.version(pkg, message);
-                        filter.report(report.location((lineno, pos + 1)));
+                        WhitespaceUnneeded
+                            .version(pkg)
+                            .message("trailing whitespace")
+                            .location((lineno, pos + 1))
+                            .report(filter);
                     }
                 }
             }
@@ -65,9 +69,11 @@ impl EbuildRawPkgCheck for Check {
             if line.starts_with(' ') {
                 if let Some(node) = tree.last_node_for_position(lineno - 1, 0) {
                     if !self.allowed_leading_whitespace.contains(node.kind()) {
-                        let message = "leading whitespace";
-                        let report = WhitespaceUnneeded.version(pkg, message);
-                        filter.report(report.location(lineno));
+                        WhitespaceUnneeded
+                            .version(pkg)
+                            .message("leading whitespace")
+                            .location(lineno)
+                            .report(filter);
                     }
                 }
             }
@@ -77,16 +83,22 @@ impl EbuildRawPkgCheck for Check {
                     || prev_line.map(|s| !s.is_empty()).unwrap_or_default()
                     || !line.starts_with("EAPI=")
                 {
-                    let message = "non-standard EAPI assignment";
-                    filter.report(EapiFormat.version(pkg, message).location(lineno));
+                    EapiFormat
+                        .version(pkg)
+                        .message("non-standard EAPI assignment")
+                        .location(lineno)
+                        .report(filter);
                 }
                 eapi_assign = true;
             }
 
             if let Some(prev) = prev_line {
                 if prev.trim().is_empty() && line.trim().is_empty() {
-                    let report = WhitespaceUnneeded.version(pkg, "empty line");
-                    filter.report(report.location(lineno));
+                    WhitespaceUnneeded
+                        .version(pkg)
+                        .message("empty line")
+                        .location(lineno)
+                        .report(filter);
                 }
             }
 
@@ -94,9 +106,11 @@ impl EbuildRawPkgCheck for Check {
         }
 
         if !pkg.data().ends_with('\n') {
-            let message = "missing ending newline";
-            let report = WhitespaceInvalid.version(pkg, message);
-            filter.report(report.location(lineno));
+            WhitespaceInvalid
+                .version(pkg)
+                .message("missing ending newline")
+                .location(lineno)
+                .report(filter);
         }
     }
 }

@@ -13,6 +13,7 @@ use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
+use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::Error;
 
@@ -192,41 +193,30 @@ pub enum ReportKind {
 
 impl ReportKind {
     /// Create a version scope report.
-    pub(crate) fn version<P, S>(self, pkg: P, message: S) -> Report
-    where
-        P: Package,
-        S: fmt::Display,
-    {
-        Report {
+    pub(crate) fn version<P: Package>(self, pkg: P) -> ReportBuilder {
+        ReportBuilder(Report {
             kind: self,
             scope: ReportScope::Version(pkg.cpv().clone(), None),
-            message: message.to_string(),
-        }
+            message: Default::default(),
+        })
     }
 
     /// Create a package scope report.
-    pub(crate) fn package<S>(self, cpn: &Cpn, message: S) -> Report
-    where
-        S: fmt::Display,
-    {
-        Report {
+    pub(crate) fn package(self, cpn: &Cpn) -> ReportBuilder {
+        ReportBuilder(Report {
             kind: self,
             scope: ReportScope::Package(cpn.clone()),
-            message: message.to_string(),
-        }
+            message: Default::default(),
+        })
     }
 
     /// Create a repo scope report.
-    pub(crate) fn repo<R, S>(self, repo: R, message: S) -> Report
-    where
-        R: Repository,
-        S: fmt::Display,
-    {
-        Report {
+    pub(crate) fn repo<R: Repository>(self, repo: R) -> ReportBuilder {
+        ReportBuilder(Report {
             kind: self,
             scope: ReportScope::Repo(repo.name().to_string()),
-            message: message.to_string(),
-        }
+            message: Default::default(),
+        })
     }
 
     /// Return the severity level of the report variant.
@@ -271,6 +261,37 @@ impl ReportKind {
             Self::WhitespaceInvalid => Warning,
             Self::WhitespaceUnneeded => Style,
         }
+    }
+}
+
+/// Builder for reports.
+pub(crate) struct ReportBuilder(Report);
+
+impl ReportBuilder {
+    /// Add a report message.
+    pub(crate) fn message<S>(mut self, value: S) -> Self
+    where
+        S: fmt::Display,
+    {
+        self.0.message = value.to_string();
+        self
+    }
+
+    /// Add a location reference.
+    pub(crate) fn location<L>(mut self, value: L) -> Self
+    where
+        L: Into<Location>,
+    {
+        match &mut self.0.scope {
+            ReportScope::Version(_, location @ None) => *location = Some(value.into()),
+            _ => panic!("invalid report scope: {:?}", self.0.scope),
+        }
+        self
+    }
+
+    /// Pass the report to the scanning filter for processing.
+    pub(crate) fn report(self, filter: &mut ReportFilter) {
+        filter.report(self.0)
     }
 }
 
@@ -416,18 +437,6 @@ impl Report {
     pub fn from_json(data: &str) -> crate::Result<Self> {
         serde_json::from_str(data)
             .map_err(|e| Error::InvalidValue(format!("failed deserializing report: {e}")))
-    }
-
-    /// Add a location reference into the report scope during creation.
-    pub(crate) fn location<L>(mut self, value: L) -> Report
-    where
-        L: Into<Location>,
-    {
-        match &mut self.scope {
-            ReportScope::Version(_, location @ None) => *location = Some(value.into()),
-            _ => panic!("invalid report scope: {:?}", self.scope),
-        }
-        self
     }
 }
 

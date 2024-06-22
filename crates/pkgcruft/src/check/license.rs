@@ -45,14 +45,17 @@ impl EbuildPkgCheck for Check {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
         if licenses.is_empty() {
             if !self.unlicensed_categories.contains(pkg.category()) {
-                filter.report(LicenseMissing.version(pkg, ""));
+                LicenseMissing.version(pkg).report(filter);
             }
         } else if self.unlicensed_categories.contains(pkg.category()) {
-            filter.report(LicenseUnneeded.version(pkg, ""));
+            LicenseUnneeded.version(pkg).report(filter);
         } else {
             let deprecated = licenses.intersection(&self.deprecated).sorted().join(", ");
             if !deprecated.is_empty() {
-                filter.report(LicenseDeprecated.version(pkg, deprecated));
+                LicenseDeprecated
+                    .version(pkg)
+                    .message(deprecated)
+                    .report(filter);
             }
         }
     }

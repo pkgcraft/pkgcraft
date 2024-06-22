@@ -41,13 +41,17 @@ impl EbuildPkgCheck for Check {
             for dep in deps {
                 if self.repo.deprecated(dep).is_some() {
                     // drop use deps since package.deprecated doesn't include them
-                    let message = format!("{key}: {}", dep.no_use_deps());
-                    filter.report(DependencyDeprecated.version(pkg, message));
+                    DependencyDeprecated
+                        .version(pkg)
+                        .message(format!("{key}: {}", dep.no_use_deps()))
+                        .report(filter);
                 }
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
-                    let message = format!("{key}: {dep}");
-                    filter.report(DependencyRevisionMissing.version(pkg, message));
+                    DependencyRevisionMissing
+                        .version(pkg)
+                        .message(format!("{key}: {dep}"))
+                        .report(filter);
                 }
             }
         }

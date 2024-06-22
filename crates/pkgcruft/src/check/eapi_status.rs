@@ -33,9 +33,9 @@ impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let eapi = pkg.eapi().as_str();
         if self.repo.metadata.config.eapis_deprecated.contains(eapi) {
-            filter.report(EapiDeprecated.version(pkg, eapi));
+            EapiDeprecated.version(pkg).message(eapi).report(filter);
         } else if self.repo.metadata.config.eapis_banned.contains(eapi) {
-            filter.report(EapiBanned.version(pkg, eapi));
+            EapiBanned.version(pkg).message(eapi).report(filter);
         }
     }
 }

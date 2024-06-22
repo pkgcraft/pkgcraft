@@ -138,8 +138,10 @@ impl EbuildPkgCheck for Check {
             }
         }
 
-        let message = targets.iter().rev().join(", ");
-        filter.report(PythonUpdate.version(pkg, message));
+        PythonUpdate
+            .version(pkg)
+            .message(targets.iter().rev().join(", "))
+            .report(filter);
     }
 }
 

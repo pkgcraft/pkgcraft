@@ -35,8 +35,10 @@ super::register!(Check);
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         if !pkg.keywords().is_empty() && pkg.live() {
-            let message = pkg.keywords().iter().join(", ");
-            filter.report(KeywordsLive.version(pkg, message))
+            KeywordsLive
+                .version(pkg)
+                .message(pkg.keywords().iter().join(", "))
+                .report(filter);
         }
 
         let keywords_map = pkg
@@ -46,8 +48,10 @@ impl EbuildPkgCheck for Check {
             .collect::<OrderedMap<_, OrderedSet<_>>>();
 
         for keywords in keywords_map.values().filter(|k| k.len() > 1) {
-            let message = keywords.iter().sorted().join(", ");
-            filter.report(KeywordsOverlapping.version(pkg, message));
+            KeywordsOverlapping
+                .version(pkg)
+                .message(keywords.iter().sorted().join(", "))
+                .report(filter);
         }
 
         let eapi = pkg.eapi().as_str();
@@ -59,8 +63,10 @@ impl EbuildPkgCheck for Check {
                 .sorted()
                 .join(" ");
             if !keywords.is_empty() {
-                let message = format!("unstable EAPI {eapi} with stable keywords: {keywords}");
-                filter.report(EapiUnstable.version(pkg, message));
+                EapiUnstable
+                    .version(pkg)
+                    .message(format!("unstable EAPI {eapi} with stable keywords: {keywords}"))
+                    .report(filter);
             }
         }
 
@@ -75,8 +81,10 @@ impl EbuildPkgCheck for Check {
             .zip(sorted_keywords)
             .find(|(a, b)| a != b);
         if let Some((unsorted, sorted)) = sorted_diff {
-            let message = format!("unsorted KEYWORD: {unsorted} (sorted: {sorted})");
-            filter.report(KeywordsUnsorted.version(pkg, message));
+            KeywordsUnsorted
+                .version(pkg)
+                .message(format!("unsorted KEYWORD: {unsorted} (sorted: {sorted})"))
+                .report(filter);
         }
     }
 }

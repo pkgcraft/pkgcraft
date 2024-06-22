@@ -28,7 +28,7 @@ super::register!(Check);
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
         if pkgs.iter().all(|pkg| pkg.live()) {
-            filter.report(LiveOnly.package(cpn, ""))
+            LiveOnly.package(cpn).report(filter);
         }
     }
 }

@@ -56,8 +56,10 @@ impl EbuildRawPkgCheck for Check {
                     .collect::<Vec<_>>();
 
                 if !missing.is_empty() {
-                    let message = missing.into_iter().join(", ");
-                    filter.report(MetadataMissing.version(pkg, message));
+                    MetadataMissing
+                        .version(pkg)
+                        .message(missing.into_iter().join(", "))
+                        .report(filter);
                 }
 
                 // verify depset parsing
@@ -65,38 +67,40 @@ impl EbuildRawPkgCheck for Check {
                 for key in eapi.dep_keys() {
                     if let Some(val) = raw.get(key) {
                         if let Err(e) = DependencySet::package(val, eapi) {
-                            let message = format!("{key}: {e}");
-                            filter.report(DependencyInvalid.version(pkg, message));
+                            DependencyInvalid
+                                .version(pkg)
+                                .message(format!("{key}: {e}"))
+                                .report(filter);
                         }
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::LICENSE) {
                     if let Err(e) = DependencySet::license(val) {
-                        filter.report(LicenseInvalid.version(pkg, e));
+                        LicenseInvalid.version(pkg).message(e).report(filter);
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::PROPERTIES) {
                     if let Err(e) = DependencySet::properties(val) {
-                        filter.report(PropertiesInvalid.version(pkg, e));
+                        PropertiesInvalid.version(pkg).message(e).report(filter);
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::REQUIRED_USE) {
                     if let Err(e) = DependencySet::required_use(val) {
-                        filter.report(RequiredUseInvalid.version(pkg, e));
+                        RequiredUseInvalid.version(pkg).message(e).report(filter);
                     }
                 }
 
                 if let Some(val) = raw.get(&Key::RESTRICT) {
                     if let Err(e) = DependencySet::restrict(val) {
-                        filter.report(RestrictInvalid.version(pkg, e));
+                        RestrictInvalid.version(pkg).message(e).report(filter);
                     }
                 }
             }
             Err(InvalidPkg { id: _, err }) => {
-                filter.report(SourcingError.version(pkg, err));
+                SourcingError.version(pkg).message(err).report(filter);
             }
             // no other pkgcraft error types should occur
             Err(e) => panic!("MetadataCheck failed: {e}"),
