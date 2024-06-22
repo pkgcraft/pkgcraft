@@ -43,6 +43,8 @@ impl EbuildRawPkgCheck for Check {
 
         while let Some(line) = lines.next() {
             lineno += 1;
+            let whitespace_only_line = line.trim().is_empty();
+
             let mut char_indices = line.char_indices().peekable();
             while let Some((pos, c)) = char_indices.next() {
                 // TODO: Check for unnecessary leading whitespace which requires bash
@@ -54,7 +56,7 @@ impl EbuildRawPkgCheck for Check {
                             .message(format!("character {c:?}"))
                             .location((lineno, pos + 1))
                             .report(filter);
-                    } else if char_indices.peek().is_none() && !line.trim().is_empty() {
+                    } else if char_indices.peek().is_none() && !whitespace_only_line {
                         WhitespaceUnneeded
                             .version(pkg)
                             .message("trailing whitespace")
@@ -93,7 +95,7 @@ impl EbuildRawPkgCheck for Check {
             }
 
             if let Some(prev) = prev_line {
-                if prev.trim().is_empty() && line.trim().is_empty() {
+                if prev.trim().is_empty() && whitespace_only_line {
                     WhitespaceUnneeded
                         .version(pkg)
                         .message("empty line")
