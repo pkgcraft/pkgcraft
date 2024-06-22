@@ -102,7 +102,7 @@ mod tests {
 
         // verify failure during build
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
@@ -113,7 +113,7 @@ mod tests {
                     die main
                 }}
             "#};
-            let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            let pkg = repo.create_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_pkg(&pkg);
             let result = pkg.build();
             assert_err_re!(result, "line 5: die: error: subshell$");

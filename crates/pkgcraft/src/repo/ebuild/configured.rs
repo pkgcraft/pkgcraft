@@ -195,11 +195,11 @@ mod tests {
     #[test]
     fn test_iter() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.configure(&config);
-        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let mut iter = repo.iter();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let configured = repo.configure(&config);
+        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let mut iter = configured.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             let pkg = iter.next();
             assert_eq!(pkg.map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));
@@ -210,14 +210,14 @@ mod tests {
     #[test]
     fn test_iter_restrict() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.configure(&config);
-        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        t.create_raw_pkg("cat/pkg-2", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let configured = repo.configure(&config);
+        repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        repo.create_raw_pkg("cat/pkg-2", &[]).unwrap();
 
         // single match via CPV
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
-        let iter = repo.iter_restrict(&cpv);
+        let iter = configured.iter_restrict(&cpv);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [cpv.to_string()]);
 

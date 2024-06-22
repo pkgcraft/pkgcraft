@@ -47,10 +47,10 @@ mod tests {
     #[test]
     fn set_path() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
-            let raw_pkg = t
+            let raw_pkg = repo
                 .create_raw_pkg("cat/pkg-1", &[&format!("EAPI={eapi}")])
                 .unwrap();
             BuildData::from_raw_pkg(&raw_pkg);

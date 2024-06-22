@@ -32,8 +32,8 @@ mod tests {
     #[test]
     fn empty_iuse_effective() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         assert_err_re!(useq(&["use"]), "^.* not in IUSE$");
@@ -42,8 +42,8 @@ mod tests {
     #[test]
     fn enabled_and_disabled() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
 
         // disabled

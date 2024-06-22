@@ -40,9 +40,9 @@ fn nonexistent_path_target() {
 
 #[test]
 fn no_pkgs() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
     cmd("pk pkg pretend")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -62,17 +62,17 @@ fn pkg_target_from_stdin() {
 
 #[test]
 fn path_targets() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg_from_str("cat1/a-1", SUCCESS_WITH_OUTPUT)
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    repo.create_raw_pkg_from_str("cat1/a-1", SUCCESS_WITH_OUTPUT)
         .unwrap();
-    t.create_raw_pkg_from_str("cat1/b-1", SUCCESS_WITH_OUTPUT)
+    repo.create_raw_pkg_from_str("cat1/b-1", SUCCESS_WITH_OUTPUT)
         .unwrap();
-    t.create_raw_pkg_from_str("cat2/c-1", SUCCESS_WITH_OUTPUT)
+    repo.create_raw_pkg_from_str("cat2/c-1", SUCCESS_WITH_OUTPUT)
         .unwrap();
 
     // repo path
     cmd("pk pkg pretend")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout(lines_contain(["cat1/a-1", "cat1/b-1", "cat2/c-1", "output123"]))
         .stderr("")
@@ -80,7 +80,7 @@ fn path_targets() {
 
     // category path
     cmd("pk pkg pretend")
-        .arg(t.path().join("cat1"))
+        .arg(repo.path().join("cat1"))
         .assert()
         .stdout(lines_contain(["cat1/a-1", "cat1/b-1", "output123"]))
         .stderr("")
@@ -88,14 +88,14 @@ fn path_targets() {
 
     // package path
     cmd("pk pkg pretend")
-        .arg(t.path().join("cat2/c"))
+        .arg(repo.path().join("cat2/c"))
         .assert()
         .stdout(lines_contain(["cat2/c-1", "output123"]))
         .stderr("")
         .success();
 
     // default current working dir
-    env::set_current_dir(t.path().join("cat2/c")).unwrap();
+    env::set_current_dir(repo.path().join("cat2/c")).unwrap();
     cmd("pk pkg pretend")
         .assert()
         .stdout(lines_contain(["cat2/c-1", "output123"]))

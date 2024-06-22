@@ -117,8 +117,8 @@ mod tests {
     #[test]
     fn test_no_files() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -129,8 +129,8 @@ mod tests {
     #[test]
     fn test_default_files_empty() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -144,8 +144,8 @@ mod tests {
     #[test]
     fn test_default_files() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -166,8 +166,8 @@ mod tests {
     #[test]
     fn test_default_files_globs() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -188,8 +188,8 @@ mod tests {
     #[test]
     fn test_docs_array() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -220,8 +220,8 @@ mod tests {
     #[test]
     fn test_docs_string() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -252,8 +252,8 @@ mod tests {
     #[test]
     fn test_html_docs_array() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -284,8 +284,8 @@ mod tests {
     #[test]
     fn test_html_docs_string() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();

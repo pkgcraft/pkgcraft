@@ -34,8 +34,8 @@ mod tests {
     #[test]
     fn empty_iuse_effective() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         assert_err_re!(use_enable(&["use"]), "^.* not in IUSE$");
@@ -44,8 +44,8 @@ mod tests {
     #[test]
     fn enabled_and_disabled() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
 
         // disabled
@@ -61,7 +61,7 @@ mod tests {
 
         // check EAPIs that support three arg variant
         for eapi in &*EAPIS_OFFICIAL {
-            let pkg = t
+            let pkg = repo
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
             BuildData::from_pkg(&pkg);
@@ -76,7 +76,7 @@ mod tests {
         }
 
         // enabled
-        let pkg = t.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().use_.insert("use".to_string());
 
@@ -92,7 +92,7 @@ mod tests {
 
         // check EAPIs that support three arg variant
         for eapi in &*EAPIS_OFFICIAL {
-            let pkg = t
+            let pkg = repo
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
             BuildData::from_pkg(&pkg);

@@ -56,8 +56,8 @@ mod tests {
     #[test]
     fn invalid_args() {
         let mut config = Config::default();
-        let t = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         assert_invalid_args(ver_test, &[0, 1, 4]);
@@ -66,8 +66,8 @@ mod tests {
     #[test]
     fn overflow() {
         let mut config = Config::default();
-        let t = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         let u64_max: u128 = u64::MAX as u128;
@@ -81,8 +81,8 @@ mod tests {
     #[test]
     fn invalid_versions() {
         let mut config = Config::default();
-        let t = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         for v in ["a", "1_1", "1-2", ">=1", "~1"] {
@@ -94,8 +94,8 @@ mod tests {
     #[test]
     fn invalid_op() {
         let mut config = Config::default();
-        let t = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         for op in [">", ">=", "<", "<=", "==", "!="] {
@@ -118,7 +118,7 @@ mod tests {
         .collect();
 
         let mut config = Config::default();
-        let t = config.temp_repo("test1", 0, None).unwrap();
+        let repo = config.temp_repo("test1", 0, None).unwrap();
 
         let inverted_op_map: HashMap<_, _> =
             [("==", "!="), ("!=", "=="), ("<", ">="), (">", "<="), ("<=", ">"), (">=", "<")]
@@ -126,7 +126,7 @@ mod tests {
                 .collect();
 
         for (expr, (v1, op, v2)) in TEST_DATA.version_toml.compares() {
-            let raw_pkg = t.create_raw_pkg(format!("cat/pkg-{v1}"), &[]).unwrap();
+            let raw_pkg = repo.create_raw_pkg(format!("cat/pkg-{v1}"), &[]).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
 
             let inverted_op = op_map[inverted_op_map[op]];

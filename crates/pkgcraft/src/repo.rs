@@ -724,18 +724,18 @@ mod tests {
 
     #[test]
     fn test_traits() {
-        let t = ebuild::temp::Repo::new("test", None, 0, None).unwrap();
-        let e_repo = t.repo();
+        let ebuild_repo = ebuild::temp::Repo::new("test", None, 0, None).unwrap();
+        let e_repo = (&ebuild_repo).into();
         let f_repo: Repo = fake::Repo::new("fake", 0).into();
-        assert!(e_repo != &f_repo);
-        assert!(e_repo > &f_repo);
+        assert!(e_repo != f_repo);
+        assert!(e_repo > f_repo);
 
-        let repos: HashSet<_> = HashSet::from([e_repo, &f_repo]);
+        let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
 
         let f_repo: Repo = fake::Repo::new("test", 0).into();
-        assert!(e_repo != &f_repo);
-        let repos: HashSet<_> = HashSet::from([e_repo, &f_repo]);
+        assert!(e_repo != f_repo);
+        let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
     }
 }

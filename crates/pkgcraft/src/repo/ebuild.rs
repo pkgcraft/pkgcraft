@@ -1247,36 +1247,35 @@ mod tests {
     #[test]
     fn len() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
-        assert_eq!(t.len(), 0);
-        assert!(t.is_empty());
-        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert_eq!(t.len(), 1);
-        assert!(!t.is_empty());
-        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        assert_eq!(t.len(), 2);
-        assert!(!t.is_empty());
+        assert_eq!(repo.len(), 0);
+        assert!(repo.is_empty());
+        repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        assert_eq!(repo.len(), 1);
+        assert!(!repo.is_empty());
+        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        assert_eq!(repo.len(), 2);
+        assert!(!repo.is_empty());
     }
 
     #[test]
     fn categories() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
-        assert!(t.categories().is_empty());
-        fs::create_dir(t.path().join("cat")).unwrap();
-        assert_ordered_eq!(t.categories(), ["cat"]);
-        fs::create_dir(t.path().join("a-cat")).unwrap();
-        fs::create_dir(t.path().join("z-cat")).unwrap();
-        assert_ordered_eq!(t.categories(), ["a-cat", "cat", "z-cat"]);
+        assert!(repo.categories().is_empty());
+        fs::create_dir(repo.path().join("cat")).unwrap();
+        assert_ordered_eq!(repo.categories(), ["cat"]);
+        fs::create_dir(repo.path().join("a-cat")).unwrap();
+        fs::create_dir(repo.path().join("z-cat")).unwrap();
+        assert_ordered_eq!(repo.categories(), ["a-cat", "cat", "z-cat"]);
     }
 
     #[test]
     fn packages() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
@@ -1289,8 +1288,7 @@ mod tests {
     #[test]
     fn versions() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
+        let repo = config.temp_repo("test", 0, None).unwrap();
         let ver = |s: &str| Version::try_new(s).unwrap();
 
         assert!(repo.versions("cat", "pkg").is_empty());
@@ -1353,10 +1351,9 @@ mod tests {
     #[test]
     fn iter_cpv() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
-        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
         let mut iter = repo.iter_cpv();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             assert_eq!(iter.next(), Some(Cpv::try_new(cpv).unwrap()));
@@ -1380,10 +1377,9 @@ mod tests {
     #[test]
     fn iter() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let repo = t.repo();
-        t.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        t.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
         let mut iter = repo.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             assert_eq!(iter.next().map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));

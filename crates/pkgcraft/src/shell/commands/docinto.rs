@@ -47,8 +47,8 @@ mod tests {
     #[test]
     fn creation() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();

@@ -52,8 +52,8 @@ mod tests {
     #[test]
     fn failure() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().user_patches = ["file.patch".to_string()].into_iter().collect();
 
@@ -88,8 +88,8 @@ mod tests {
     #[test]
     fn success() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().user_patches = ["files/0.patch".to_string(), "files/1.patch".to_string()]
             .into_iter()

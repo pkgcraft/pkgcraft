@@ -584,7 +584,7 @@ macro_rules! cmd_scope_tests {
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
             let mut config = Config::default();
-            let t = config.temp_repo("test", 0, None).unwrap();
+            let repo = config.temp_repo("test", 0, None).unwrap();
             let all_scopes: HashSet<_> = Scopes::All.into_iter().collect();
 
             for eapi in &*EAPIS_OFFICIAL {
@@ -600,7 +600,7 @@ macro_rules! cmd_scope_tests {
                                     {cmd}
                                     VAR=2
                                 "#};
-                                t.create_eclass("e1", &eclass).unwrap();
+                                repo.create_eclass("e1", &eclass).unwrap();
                                 let data = indoc::formatdoc! {r#"
                                     EAPI={eapi}
                                     inherit e1
@@ -608,7 +608,7 @@ macro_rules! cmd_scope_tests {
                                     SLOT=0
                                 "#};
                                 let raw_pkg =
-                                    t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                                    repo.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                                 let r = raw_pkg.source();
                                 // verify sourcing stops at unknown command
                                 assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
@@ -627,7 +627,7 @@ macro_rules! cmd_scope_tests {
                                     VAR=2
                                 "#};
                                 let raw_pkg =
-                                    t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                                    repo.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                                 let r = raw_pkg.source();
                                 // verify sourcing stops at unknown command
                                 assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");
@@ -646,7 +646,7 @@ macro_rules! cmd_scope_tests {
                                         VAR=2
                                     }}
                                 "#};
-                                let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                                let pkg = repo.create_pkg_from_str("cat/pkg-1", &data).unwrap();
                                 pkg.source().unwrap();
                                 let phase = eapi.phases().get(phase).unwrap();
                                 let r = phase.run();
@@ -671,7 +671,7 @@ macro_rules! cmd_scope_tests {
                         {cmd}
                         VAR=2
                     "#};
-                    let raw_pkg = t.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                    let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                     let r = raw_pkg.source();
                     // verify sourcing stops at unknown command
                     assert_eq!(scallop::variables::optional("VAR").unwrap(), "1");

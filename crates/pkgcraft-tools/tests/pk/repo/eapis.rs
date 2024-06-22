@@ -27,9 +27,9 @@ fn nonexistent_repo() {
 
 #[test]
 fn no_pkgs() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
     cmd("pk repo eapis")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -38,10 +38,10 @@ fn no_pkgs() {
 
 #[test]
 fn single() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/dep-1", &["EAPI=8"]).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    repo.create_raw_pkg("cat/dep-1", &["EAPI=8"]).unwrap();
     cmd("pk repo eapis")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -50,11 +50,11 @@ fn single() {
 
 #[test]
 fn multiple() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
-    t.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    repo.create_raw_pkg("cat/a-1", &["EAPI=7"]).unwrap();
+    repo.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
     cmd("pk repo eapis")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -77,13 +77,13 @@ fn multiple_repos() {
 
 #[test]
 fn option_eapi() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("a/b-1", &["EAPI=8"]).unwrap();
-    t.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    repo.create_raw_pkg("a/b-1", &["EAPI=8"]).unwrap();
+    repo.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
 
     // invalid EAPI
     cmd("pk repo eapis --eapi nonexistent")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -92,7 +92,7 @@ fn option_eapi() {
 
     // matching packages
     cmd("pk repo eapis --eapi 8")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout(lines_contain(["a/b-1", "cat/pkg-2"]))
         .stderr("")
@@ -100,7 +100,7 @@ fn option_eapi() {
 
     // no matching packages
     cmd("pk repo eapis --eapi 7")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")

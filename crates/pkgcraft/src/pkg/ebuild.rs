@@ -383,10 +383,10 @@ mod tests {
     #[test]
     fn eapi() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // unknown
-        let r = t.create_raw_pkg("cat/pkg-1", &["EAPI=unknown"]);
+        let r = repo.create_raw_pkg("cat/pkg-1", &["EAPI=unknown"]);
         assert_err_re!(r, r"unsupported EAPI: unknown");
 
         // quoted and commented
@@ -395,7 +395,7 @@ mod tests {
             DESCRIPTION="testing EAPI"
             SLOT=0
         "#};
-        let pkg = t.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        let pkg = repo.create_pkg_from_str("cat/pkg-1", &data).unwrap();
         assert_eq!(pkg.eapi(), &*EAPI8);
 
         // invalid with unquoted self reference
@@ -404,7 +404,7 @@ mod tests {
             DESCRIPTION="testing EAPI"
             SLOT=0
         "#};
-        let r = t.create_raw_pkg_from_str("cat/pkg-1", data);
+        let r = repo.create_raw_pkg_from_str("cat/pkg-1", data);
         assert_err_re!(r, r#"invalid EAPI: "\$EAPI""#);
 
         // unmatched quotes
@@ -413,7 +413,7 @@ mod tests {
             DESCRIPTION="testing EAPI"
             SLOT=0
         "#};
-        let r = t.create_raw_pkg_from_str("cat/pkg-1", data);
+        let r = repo.create_raw_pkg_from_str("cat/pkg-1", data);
         assert_err_re!(r, r#"invalid EAPI: "'8"#);
 
         // unknown with leading whitespace, single quotes, and varying whitespace comment
@@ -422,17 +422,17 @@ mod tests {
             DESCRIPTION="testing EAPI"
             SLOT=0
         "#};
-        let r = t.create_raw_pkg_from_str("cat/pkg-1", data);
+        let r = repo.create_raw_pkg_from_str("cat/pkg-1", data);
         assert_err_re!(r, r"unsupported EAPI: unknown");
     }
 
     #[test]
     fn pkg_methods() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
-        let raw_pkg = t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let relpath = raw_pkg.relpath();
         let pkg: Pkg = raw_pkg.try_into().unwrap();
         assert_eq!(pkg.relpath(), relpath);
@@ -442,11 +442,11 @@ mod tests {
     #[test]
     fn package_trait() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        t.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        t.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        repo.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
 
-        let mut iter = t.repo().iter();
+        let mut iter = repo.iter();
         let pkg1 = iter.next().unwrap();
         let pkg2 = iter.next().unwrap();
 
@@ -466,8 +466,8 @@ mod tests {
     #[test]
     fn intersects_dep() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
-        let pkg = t.create_pkg("cat/pkg-1", &["SLOT=0/1"]).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        let pkg = repo.create_pkg("cat/pkg-1", &["SLOT=0/1"]).unwrap();
 
         for (s, expected) in [
             ("cat/pkg", true),
@@ -957,10 +957,10 @@ mod tests {
     #[test]
     fn distfiles() {
         let mut config = Config::default();
-        let t = config.temp_repo("test", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // none
-        let pkg = t.create_pkg("nomanifest/pkg-1", &[]).unwrap();
+        let pkg = repo.create_pkg("nomanifest/pkg-1", &[]).unwrap();
         assert!(pkg.distfiles().is_empty());
 
         // single
@@ -970,12 +970,12 @@ mod tests {
             SLOT=0
             SRC_URI="https://url/to/a.tar.gz"
         "#};
-        let pkg1 = t.create_pkg_from_str("cat1/pkg-1", data).unwrap();
+        let pkg1 = repo.create_pkg_from_str("cat1/pkg-1", data).unwrap();
         let manifest = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
         fs::write(pkg1.path().parent().unwrap().join("Manifest"), manifest).unwrap();
-        let pkg2 = t.create_pkg_from_str("cat1/pkg-2", data).unwrap();
+        let pkg2 = repo.create_pkg_from_str("cat1/pkg-2", data).unwrap();
         for pkg in [pkg1, pkg2] {
             let dist = pkg.distfiles();
             assert_eq!(dist.len(), 1);
@@ -992,7 +992,7 @@ mod tests {
             SLOT=0
             SRC_URI="https://url/to/a.tar.gz"
         "#};
-        let pkg1 = t.create_pkg_from_str("cat2/pkg-1", data).unwrap();
+        let pkg1 = repo.create_pkg_from_str("cat2/pkg-1", data).unwrap();
         let manifest = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
             DIST b.tar.gz 2 BLAKE2B c SHA512 d
@@ -1005,7 +1005,7 @@ mod tests {
             SLOT=0
             SRC_URI="https://url/to/b.tar.gz"
         "#};
-        let pkg2 = t.create_pkg_from_str("cat2/pkg-2", data).unwrap();
+        let pkg2 = repo.create_pkg_from_str("cat2/pkg-2", data).unwrap();
         let dist = pkg1.distfiles();
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "a.tar.gz");

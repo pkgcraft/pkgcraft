@@ -25,9 +25,9 @@ fn nonexistent_repo() {
 
 #[test]
 fn multiple_repos_not_supported() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
     cmd("pk repo leaf")
-        .args([t.path(), t.path()])
+        .args([repo.path(), repo.path()])
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -37,9 +37,9 @@ fn multiple_repos_not_supported() {
 
 #[test]
 fn no_pkgs() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
     cmd("pk repo leaf")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -48,12 +48,12 @@ fn no_pkgs() {
 
 #[test]
 fn single() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/dep-1", &[]).unwrap();
-    t.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    repo.create_raw_pkg("cat/dep-1", &[]).unwrap();
+    repo.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
     cmd("pk repo leaf")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("cat/leaf-1\n")
         .stderr("")
@@ -62,14 +62,14 @@ fn single() {
 
 #[test]
 fn multiple() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/dep-1", &[]).unwrap();
-    t.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    repo.create_raw_pkg("cat/dep-1", &[]).unwrap();
+    repo.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    t.create_raw_pkg("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
+    repo.create_raw_pkg("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
         .unwrap();
     cmd("pk repo leaf")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("cat/leaf-1\ncat/leaf-2\n")
         .stderr("")
@@ -78,11 +78,13 @@ fn multiple() {
 
 #[test]
 fn none() {
-    let t = TempRepo::new("test", None, 0, None).unwrap();
-    t.create_raw_pkg("cat/a-1", &["DEPEND=>=cat/b-1"]).unwrap();
-    t.create_raw_pkg("cat/b-1", &["DEPEND=>=cat/a-1"]).unwrap();
+    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    repo.create_raw_pkg("cat/a-1", &["DEPEND=>=cat/b-1"])
+        .unwrap();
+    repo.create_raw_pkg("cat/b-1", &["DEPEND=>=cat/a-1"])
+        .unwrap();
     cmd("pk repo leaf")
-        .arg(t.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")

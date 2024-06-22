@@ -7,17 +7,16 @@ use pkgcraft::test::TEST_DATA;
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "");
-    let t = config.temp_repo("test", 0, None).unwrap();
+    let repo = config.temp_repo("test", 0, None).unwrap();
     for i in 0..100 {
-        t.create_raw_pkg(&format!("cat/pkg-{i}"), &[]).unwrap();
+        repo.create_raw_pkg(&format!("cat/pkg-{i}"), &[]).unwrap();
     }
-    let repo = t.repo();
 
     c.bench_function("repo-ebuild-iter", |b| {
         let mut pkgs = 0;
         b.iter(|| {
             pkgs = 0;
-            for _ in repo {
+            for _ in repo.iter() {
                 pkgs += 1;
             }
         });

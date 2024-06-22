@@ -1,5 +1,6 @@
 use std::io::Write;
 use std::ops::Deref;
+use std::sync::Arc;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -16,7 +17,7 @@ use crate::Error;
 pub struct Repo {
     tempdir: TempDir,
     path: Utf8PathBuf,
-    repo: BaseRepo,
+    repo: Arc<super::Repo>,
 }
 
 impl Repo {
@@ -62,7 +63,7 @@ impl Repo {
         Ok(Self {
             tempdir,
             path,
-            repo: repo.into(),
+            repo: Arc::new(repo),
         })
     }
 
@@ -147,11 +148,6 @@ impl Repo {
         Ok(path)
     }
 
-    /// Return the temporary repo's wrapped repo object.
-    pub fn repo(&self) -> &BaseRepo {
-        &self.repo
-    }
-
     /// Persist the temporary repo to disk, returning the [`Utf8PathBuf`] where it is located.
     pub fn persist<P: AsRef<Utf8Path>>(self, path: Option<P>) -> crate::Result<Utf8PathBuf> {
         let mut repo_path = Utf8PathBuf::from_path_buf(self.tempdir.into_path())
@@ -171,6 +167,12 @@ impl Deref for Repo {
     type Target = super::Repo;
 
     fn deref(&self) -> &Self::Target {
-        self.repo.as_ebuild().unwrap()
+        &self.repo
+    }
+}
+
+impl From<&Repo> for BaseRepo {
+    fn from(value: &Repo) -> Self {
+        BaseRepo::Ebuild(value.repo.clone())
     }
 }
