@@ -29,6 +29,26 @@ impl<'a> Tree<'a> {
             parser.parse(self.data, None).expect("failed parsing bash")
         })
     }
+
+    /// Return the last node for a given position if one exists.
+    pub(crate) fn last_node_for_position(&self, row: usize, column: usize) -> Option<Node> {
+        let mut cursor = self.tree().walk();
+        let point = tree_sitter::Point::new(row, column);
+        cursor.goto_first_child_for_point(point).map(|_| {
+            let mut prev_node = cursor.node();
+            let iter = IterNodes::new(self.data, cursor, &[]);
+            for node in iter {
+                if node.start_position().row > row {
+                    break;
+                }
+                prev_node = node.node;
+            }
+            Node {
+                node: prev_node,
+                data: self.data,
+            }
+        })
+    }
 }
 
 impl Deref for Tree<'_> {

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use pkgcraft::pkg::ebuild::raw::Pkg;
 
 use crate::bash::Tree;
@@ -18,15 +20,22 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create() -> impl EbuildRawPkgCheck {
-    Check
+    Check {
+        allowed_leading_whitespace: ["heredoc_body", "raw_string"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+    }
 }
 
-struct Check;
+struct Check {
+    allowed_leading_whitespace: HashSet<String>,
+}
 
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &Pkg, tree: &Tree, filter: &mut ReportFilter) {
         let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();
@@ -47,6 +56,18 @@ impl EbuildRawPkgCheck for Check {
                         let message = "trailing whitespace";
                         let report = WhitespaceUnneeded.version(pkg, message);
                         filter.report(report.location((lineno, pos + 1)));
+                    }
+                }
+            }
+
+            // Flag leading single spaces, skipping certain parse tree node variants such
+            // as heredocs and raw strings.
+            if line.starts_with(' ') {
+                if let Some(node) = tree.last_node_for_position(lineno - 1, 0) {
+                    if !self.allowed_leading_whitespace.contains(node.kind()) {
+                        let message = "leading whitespace";
+                        let report = WhitespaceUnneeded.version(pkg, message);
+                        filter.report(report.location(lineno));
                     }
                 }
             }
