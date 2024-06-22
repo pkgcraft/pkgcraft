@@ -52,7 +52,7 @@ impl EbuildRawPkgCheck for Check {
                         let message = format!("character {c:?}");
                         let report = WhitespaceInvalid.version(pkg, message);
                         filter.report(report.location((lineno, pos + 1)));
-                    } else if char_indices.peek().is_none() {
+                    } else if char_indices.peek().is_none() && !line.trim().is_empty() {
                         let message = "trailing whitespace";
                         let report = WhitespaceUnneeded.version(pkg, message);
                         filter.report(report.location((lineno, pos + 1)));
