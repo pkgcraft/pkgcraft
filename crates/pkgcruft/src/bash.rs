@@ -4,16 +4,18 @@ use std::sync::OnceLock;
 
 use crate::report::Location;
 
+/// Lazily parse the given data into a bash parse tree.
+pub(crate) fn lazy_parse(data: &[u8]) -> Tree {
+    Tree { data, tree: Default::default() }
+}
+
+/// Wrapper for bash parse tree.
 pub(crate) struct Tree<'a> {
     data: &'a [u8],
     tree: OnceLock<tree_sitter::Tree>,
 }
 
 impl<'a> Tree<'a> {
-    pub(crate) fn new(data: &'a [u8]) -> Self {
-        Self { data, tree: OnceLock::new() }
-    }
-
     pub(crate) fn iter_global_nodes(&self) -> impl Iterator<Item = Node> {
         IterNodes::new(self.data, self.tree().walk(), &["function_definition"])
     }
@@ -59,6 +61,7 @@ impl Deref for Tree<'_> {
     }
 }
 
+/// Wrapper for bash parse tree node.
 pub(crate) struct Node<'a> {
     node: tree_sitter::Node<'a>,
     data: &'a [u8],
@@ -100,6 +103,7 @@ impl From<&Node<'_>> for Location {
     }
 }
 
+/// Iterable for a bash parse tree using a given tree walking cursor.
 struct IterNodes<'a> {
     data: &'a [u8],
     cursor: tree_sitter::TreeCursor<'a>,
