@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::fmt;
 use std::ops::Deref;
 use std::sync::OnceLock;
 
@@ -16,7 +15,7 @@ impl<'a> Tree<'a> {
     }
 
     pub(crate) fn iter_global_nodes(&self) -> impl Iterator<Item = Node> {
-        IterNodes::new(self.data, self.tree().root_node(), ["function_definition"])
+        IterNodes::new(self.data, self.tree().walk(), &["function_definition"])
     }
 
     fn tree(&self) -> &tree_sitter::Tree {
@@ -89,15 +88,11 @@ struct IterNodes<'a> {
 }
 
 impl<'a> IterNodes<'a> {
-    fn new<I>(data: &'a [u8], node: tree_sitter::Node<'a>, skip: I) -> Self
-    where
-        I: IntoIterator,
-        I::Item: fmt::Display,
-    {
+    fn new(data: &'a [u8], cursor: tree_sitter::TreeCursor<'a>, skip: &[&str]) -> Self {
         Self {
             data,
-            cursor: node.walk(),
-            skip: skip.into_iter().map(|s| s.to_string()).collect(),
+            cursor,
+            skip: skip.iter().map(|s| s.to_string()).collect(),
             seen: Default::default(),
         }
     }
