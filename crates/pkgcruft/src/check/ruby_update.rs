@@ -61,8 +61,8 @@ impl EbuildPkgCheck for Check {
         // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
-            .filter(|x| x.cpn() == IMPL_PKG && x.slot().is_some())
-            .map(|x| format!("ruby{}", x.slot().unwrap().replace('.', "")))
+            .filter(|x| x.cpn() == IMPL_PKG)
+            .filter_map(|x| x.slot().map(|s| format!("ruby{}", s.replace('.', ""))))
             .sorted_by_key(|x| self.targets().get_index_of(x.as_str()))
             .last()
         else {

@@ -98,8 +98,8 @@ impl EbuildPkgCheck for Check {
         // determine the latest supported implementation
         let Some(latest) = deps
             .iter()
-            .filter(|x| x.cpn() == IMPL_PKG && x.slot().is_some())
-            .map(|x| format!("python{}", x.slot().unwrap().replace('.', "_")))
+            .filter(|x| x.cpn() == IMPL_PKG)
+            .filter_map(|x| x.slot().map(|s| format!("python{}", s.replace('.', "_"))))
             .sorted_by_key(|x| eclass.targets(self.repo).get_index_of(x.as_str()))
             .last()
         else {
