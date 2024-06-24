@@ -9,7 +9,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
-use tracing::warn;
+use tracing::error;
 
 use crate::eapi::Eapi;
 use crate::repo::ebuild::temp::Repo as TempRepo;
@@ -97,7 +97,7 @@ impl Config {
                         Ok(config) => {
                             configs.push((entry.file_name().to_string(), config));
                         }
-                        Err(err) => warn!("{err}"),
+                        Err(err) => error!("{err}"),
                     }
                 }
             }
@@ -106,13 +106,13 @@ impl Config {
         // load repos
         let mut repos = vec![];
         for (name, c) in configs {
-            // ignore unsynced or nonexistent repos
+            // ignore invalid repos
             match c
                 .format
                 .load_from_path(&name, &c.location, c.priority, false)
             {
                 Ok(repo) => repos.push(repo),
-                Err(err) => warn!("{err}"),
+                Err(err) => error!("{err}"),
             }
         }
 
