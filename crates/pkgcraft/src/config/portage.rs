@@ -1,7 +1,7 @@
 use camino::Utf8Path;
 use ini::Ini;
 use itertools::Itertools;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::repo::{Repo, Repository};
 use crate::Error;
@@ -33,18 +33,24 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
                 Some(s) if s != "DEFAULT" => Some((s, p)),
                 _ => None,
             })
-            .map(|(name, settings)| {
+            .filter_map(|(name, settings)| {
                 // pull supported fields from config
                 let priority = settings.get("priority").unwrap_or("0").parse().unwrap_or(0);
-                if let Some(path) = settings.get("location") {
-                    Repo::from_path(name, path, priority, false)
-                } else {
-                    Err(Error::Config(format!(
-                        "invalid repos.conf file: {f:?}: missing location field: {name}"
-                    )))
+                let Some(path) = settings.get("location") else {
+                    error!("invalid repos.conf file: {f:?}: missing location field: {name}");
+                    return None;
+                };
+
+                // ignore invalid repos
+                match Repo::from_path(name, path, priority, false) {
+                    Ok(repo) => Some(repo),
+                    Err(err) => {
+                        error!("{err}");
+                        None
+                    }
                 }
             })
-            .try_collect()?;
+            .collect();
 
         // log repos loaded from the file
         let msg = if !repos.is_empty() {

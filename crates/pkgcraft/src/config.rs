@@ -418,8 +418,8 @@ mod tests {
             [overlay]
         "#};
         fs::write(path, data).unwrap();
-        let r = config.load_portage_conf(Some(conf_path));
-        assert_err_re!(r, "missing location field: overlay");
+        assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert_logs_re!(".+: missing location field: overlay");
 
         // empty
         fs::write(path, "").unwrap();
@@ -435,6 +435,16 @@ mod tests {
         fs::write(path, data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
         assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["a"]);
+
+        // single repo with unsupported EAPI
+        let mut config = Config::new("pkgcraft", "");
+        let data = indoc::formatdoc! {r#"
+            [unsupported]
+            location = {repos_dir}/invalid/unsupported-eapi
+        "#};
+        fs::write(path, data).unwrap();
+        assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert_logs_re!(".+: invalid repo: unsupported: profiles/eapi: unsupported EAPI: 0");
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
