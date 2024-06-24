@@ -446,6 +446,18 @@ mod tests {
         assert!(config.load_portage_conf(Some(conf_path)).is_ok());
         assert_logs_re!(".+: invalid repo: unsupported: profiles/eapi: unsupported EAPI: 0");
 
+        // invalid and valid repos
+        let mut config = Config::new("pkgcraft", "");
+        let data = indoc::formatdoc! {r#"
+            [unsupported]
+            location = {repos_dir}/invalid/unsupported-eapi
+            [empty]
+            location = {repos_dir}/valid/empty
+        "#};
+        fs::write(path, data).unwrap();
+        assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["empty"]);
+
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
         let t2 = TempRepo::new("r2", None, 0, None).unwrap();
