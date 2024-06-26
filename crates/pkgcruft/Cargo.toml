@@ -48,9 +48,9 @@ pkgcraft = { path = "../pkgcraft", version = "0.0.16" }
 regex = "1.10.5"
 scallop = { path = "../scallop", version = "0.0.16" }
 serde = { version = "1.0.203", features = ["derive"] }
-serde_json = "1.0.117"
+serde_json = "1.0.118"
 strfmt = "0.2.4"
-strum = { version = "0.26.2", features = ["derive"] }
+strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.61"
 tracing = "0.1.40"
 tracing-log = "0.2.0"
