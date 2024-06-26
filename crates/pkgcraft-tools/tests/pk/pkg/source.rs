@@ -42,12 +42,11 @@ fn empty_repo() {
 
 #[test]
 fn pkg_target_from_stdin() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
-    repo.create_raw_pkg("cat/dep-1", &[]).unwrap();
+    let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
     cmd("pk pkg source -")
-        .write_stdin(format!("cat/dep::{}", repo.path()))
+        .write_stdin(format!("slot/slot::{}", repo.path()))
         .assert()
-        .stdout(lines_contain(["cat/dep-1"]))
+        .stdout(lines_contain(["slot/slot-8"]))
         .stderr("")
         .success();
 }
