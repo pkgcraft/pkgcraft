@@ -36,7 +36,7 @@ fn multiple_repos_not_supported() {
 }
 
 #[test]
-fn no_pkgs() {
+fn empty_repo() {
     let repo = TEST_DATA.ebuild_repo("empty").unwrap();
     cmd("pk repo leaf")
         .arg(repo.path())

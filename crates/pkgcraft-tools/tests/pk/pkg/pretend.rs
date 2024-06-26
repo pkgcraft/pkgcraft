@@ -39,7 +39,7 @@ fn nonexistent_path_target() {
 }
 
 #[test]
-fn no_pkgs() {
+fn empty_repo() {
     let repo = TEST_DATA.ebuild_repo("empty").unwrap();
     cmd("pk pkg pretend")
         .arg(repo.path())
