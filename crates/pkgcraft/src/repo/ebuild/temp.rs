@@ -1,6 +1,6 @@
 use std::io::Write;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -17,7 +17,9 @@ use crate::Error;
 pub struct Repo {
     tempdir: TempDir,
     path: Utf8PathBuf,
-    repo: Arc<super::Repo>,
+    id: String,
+    priority: i32,
+    repo: OnceLock<Arc<super::Repo>>,
 }
 
 impl Repo {
@@ -58,12 +60,20 @@ impl Repo {
         let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;
 
-        let repo = super::Repo::from_path(id, priority, &path)?;
-
         Ok(Self {
             tempdir,
             path,
-            repo: Arc::new(repo),
+            id: id.to_string(),
+            priority,
+            repo: OnceLock::new(),
+        })
+    }
+
+    fn repo(&self) -> &Arc<super::Repo> {
+        self.repo.get_or_init(|| {
+            let repo = super::Repo::from_path(&self.id, self.priority, &self.path)
+                .unwrap_or_else(|e| panic!("failed creating temporary ebuild repo: {e}"));
+            Arc::new(repo)
         })
     }
 
@@ -167,12 +177,12 @@ impl Deref for Repo {
     type Target = super::Repo;
 
     fn deref(&self) -> &Self::Target {
-        &self.repo
+        self.repo()
     }
 }
 
 impl From<&Repo> for BaseRepo {
     fn from(value: &Repo) -> Self {
-        BaseRepo::Ebuild(value.repo.clone())
+        BaseRepo::Ebuild(value.repo().clone())
     }
 }
