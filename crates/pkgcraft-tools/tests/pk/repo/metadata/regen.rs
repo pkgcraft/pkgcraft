@@ -34,7 +34,7 @@ fn nonexistent_repo() {
 
 #[test]
 fn no_pkgs() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = TEST_DATA.ebuild_repo("empty").unwrap();
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()

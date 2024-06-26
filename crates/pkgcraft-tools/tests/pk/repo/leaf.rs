@@ -1,6 +1,6 @@
 use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::cmd;
+use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
 
 #[test]
@@ -37,7 +37,7 @@ fn multiple_repos_not_supported() {
 
 #[test]
 fn no_pkgs() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = TEST_DATA.ebuild_repo("empty").unwrap();
     cmd("pk repo leaf")
         .arg(repo.path())
         .assert()
