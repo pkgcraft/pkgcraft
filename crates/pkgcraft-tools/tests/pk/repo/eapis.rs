@@ -69,7 +69,7 @@ fn option_eapi() {
         .failure()
         .code(2);
 
-    // matching packages
+    // matching packages for EAPI
     cmd("pk repo eapis --eapi 8")
         .arg(repo.path())
         .assert()
@@ -77,8 +77,8 @@ fn option_eapi() {
         .stderr("")
         .success();
 
-    // no matching packages
-    cmd("pk repo eapis --eapi 6")
+    // no matching packages for custom EAPI
+    cmd("pk repo eapis --eapi pkgcraft")
         .arg(repo.path())
         .assert()
         .stdout("")
