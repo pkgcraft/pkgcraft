@@ -46,6 +46,20 @@ fn empty_repo() {
 }
 
 #[test]
+fn progress() {
+    let repo = TEST_DATA.ebuild_repo("empty").unwrap();
+    for opt in ["-n", "--no-progress"] {
+        cmd("pk repo metadata regen")
+            .arg(opt)
+            .arg(repo.path())
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+    }
+}
+
+#[test]
 fn single() {
     let repo = TempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/pkg-1", &["EAPI=7"]).unwrap();
