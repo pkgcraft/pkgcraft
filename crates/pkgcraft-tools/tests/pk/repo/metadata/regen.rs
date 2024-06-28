@@ -117,10 +117,9 @@ fn jobs() {
         }
 
         // valid and automatically bounded between 1 and max CPUs
-        for val in [0, 999999] {
+        for val in ["0", "999999"] {
             cmd("pk repo metadata regen")
-                .arg(opt)
-                .arg(val.to_string())
+                .args([opt, val])
                 .arg(repo.path())
                 .assert()
                 .stdout("")
