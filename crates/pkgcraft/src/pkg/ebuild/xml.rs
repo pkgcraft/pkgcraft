@@ -320,3 +320,49 @@ impl Metadata {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse() {
+        // invalid top level element
+        let data = indoc::indoc! {"
+            <pkgmetadata>
+            </pkg>
+        "};
+        assert!(Metadata::parse(data).is_err());
+
+        // missing top level element closure
+        let data = indoc::indoc! {"
+            <pkgmetadata>
+        "};
+        assert!(Metadata::parse(data).is_err());
+
+        // valid
+        let data = indoc::indoc! {r#"
+            <pkgmetadata>
+                <maintainer type="person">
+                    <email>a.person@email.com</email>
+                    <name>A Person</name>
+                </maintainer>
+                <use>
+                    <flag name="flag">flag desc</flag>
+                </use>
+                <upstream>
+                    <remote-id type="github">pkgcraft/pkgcraft</remote-id>
+                </upstream>
+                <longdescription>
+                    desc
+                </longdescription>
+                <slots>
+                    <slot name="*">slot description</slot>
+                    <subslots>subslot description</subslots>
+                </slots>
+                <stabilize-allarches/>
+            </pkgmetadata>
+        "#};
+        assert!(Metadata::parse(data).is_ok());
+    }
+}
