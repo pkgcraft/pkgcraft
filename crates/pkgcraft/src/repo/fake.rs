@@ -57,7 +57,7 @@ impl Repo {
     where
         I: IntoIterator,
         I::Item: TryInto<Cpv>,
-        <I::Item as TryInto<Cpv>>::Error: std::fmt::Display,
+        <I::Item as TryInto<Cpv>>::Error: fmt::Display,
     {
         self.extend(iter);
         self
@@ -97,7 +97,7 @@ impl Repo {
 impl<T> Extend<T> for Repo
 where
     T: TryInto<Cpv>,
-    <T as TryInto<Cpv>>::Error: std::fmt::Display,
+    <T as TryInto<Cpv>>::Error: fmt::Display,
 {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         let orig_len = self.cpvs.len();
