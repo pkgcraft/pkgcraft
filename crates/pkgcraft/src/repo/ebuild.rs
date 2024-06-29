@@ -544,6 +544,28 @@ impl Repo {
         }
     }
 
+    /// Retrieve a package from the repo given its [`Cpv`].
+    pub fn get_pkg<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<ebuild::Pkg>
+    where
+        Error: From<<T as TryInto<Cpv>>::Error>,
+    {
+        let cpv = value.try_into()?;
+        self.iter_restrict(&cpv)
+            .next()
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent package: {cpv}")))
+    }
+
+    /// Retrieve a raw package from the repo given its [`Cpv`].
+    pub fn get_pkg_raw<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<ebuild::raw::Pkg>
+    where
+        Error: From<<T as TryInto<Cpv>>::Error>,
+    {
+        let cpv = value.try_into()?;
+        self.iter_raw_restrict(&cpv)
+            .next()
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent package: {cpv}")))
+    }
+
     /// Scan the deprecated package list returning the first match for a given dependency.
     pub fn deprecated(&self, dep: &Dep) -> Option<&Dep> {
         if dep.blocker().is_none() {
@@ -1408,6 +1430,27 @@ mod tests {
         // multiple matches via package name
         let restrict = DepRestrict::package("inherit");
         assert!(repo.iter_restrict(restrict).count() > 2);
+    }
+
+    #[test]
+    fn get_pkg() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
+        // existing
+        for cpv in ["slot/slot-8", "slot/subslot-8"] {
+            let pkg = repo.get_pkg(cpv).unwrap();
+            let raw_pkg = repo.get_pkg_raw(cpv).unwrap();
+            assert_eq!(pkg.cpv(), raw_pkg.cpv());
+            assert_eq!(pkg.cpv().to_string(), cpv);
+        }
+
+        // nonexistent
+        assert!(repo.get_pkg("nonexistent/pkg-0").is_err());
+        assert!(repo.get_pkg_raw("nonexistent/pkg-0").is_err());
+
+        // invalid Cpv
+        assert!(repo.get_pkg("invalid").is_err());
+        assert!(repo.get_pkg_raw("invalid-0").is_err());
     }
 
     #[traced_test]
