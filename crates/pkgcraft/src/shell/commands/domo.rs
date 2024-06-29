@@ -55,10 +55,10 @@ make_builtin!("domo", domo_builtin);
 mod tests {
     use std::fs;
 
-    use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, domo};
     use super::*;
@@ -69,9 +69,8 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(domo, &[0]);
 
-        let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let _file_tree = FileTree::new();
@@ -83,9 +82,8 @@ mod tests {
 
     #[test]
     fn creation() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
