@@ -167,19 +167,16 @@ mod tests {
 
     #[test]
     fn relpath() {
-        let pkg = TEST_DATA
-            .ebuild_raw_pkg("=optional/none-8::metadata")
-            .unwrap();
-        assert_eq!(pkg.relpath(), "optional/none/none-8.ebuild");
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
+        assert_eq!(raw_pkg.relpath(), "optional/none/none-8.ebuild");
     }
 
     #[test]
     fn path() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
-        let pkg = TEST_DATA
-            .ebuild_raw_pkg("=optional/none-8::metadata")
-            .unwrap();
-        assert_eq!(pkg.path(), repo.path().join("optional/none/none-8.ebuild"));
+        let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
+        assert_eq!(raw_pkg.path(), repo.path().join("optional/none/none-8.ebuild"));
     }
 
     #[test]
@@ -192,19 +189,17 @@ mod tests {
             DESCRIPTION="testing data content"
             SLOT=0
         "#};
-        let pkg = repo.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
-        assert_eq!(pkg.data(), data);
-        assert!(!pkg.chksum().is_empty());
+        let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        assert_eq!(raw_pkg.data(), data);
+        assert!(!raw_pkg.chksum().is_empty());
     }
 
     #[test]
     fn traits() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap().as_ref();
-        let pkg = TEST_DATA
-            .ebuild_raw_pkg("=optional/none-8::metadata")
-            .unwrap();
-        assert_eq!(pkg.eapi(), &*EAPI8);
-        assert_eq!(pkg.cpv().to_string(), "optional/none-8");
-        assert_eq!(pkg.repo(), repo);
+        let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
+        assert_eq!(raw_pkg.eapi(), &*EAPI8);
+        assert_eq!(raw_pkg.cpv().to_string(), "optional/none-8");
+        assert_eq!(raw_pkg.repo(), repo);
     }
 }

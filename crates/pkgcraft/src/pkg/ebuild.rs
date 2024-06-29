@@ -486,24 +486,28 @@ mod tests {
     #[test]
     fn slot_and_subslot() {
         // without slot
-        let r = TEST_DATA.ebuild_pkg("=slot/none-8::bad");
+        let repo = TEST_DATA.ebuild_repo("bad").unwrap();
+        let r = repo.get_pkg("slot/none-8");
         assert_err_re!(r, "missing required value: SLOT$");
 
         // without subslot
-        let pkg = TEST_DATA.ebuild_pkg("=slot/slot-8::metadata").unwrap();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = repo.get_pkg("slot/slot-8").unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "1");
 
         // with subslot
-        let pkg = TEST_DATA.ebuild_pkg("=slot/subslot-8::metadata").unwrap();
+        let pkg = repo.get_pkg("slot/subslot-8").unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "2");
     }
 
     #[test]
     fn dependencies() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
             assert!(pkg.dependencies(&[*key]).is_empty());
         }
@@ -511,7 +515,7 @@ mod tests {
         assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
             assert!(pkg.dependencies(&[*key]).is_empty());
         }
@@ -519,9 +523,7 @@ mod tests {
         assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
 
         // single-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=dependencies/single-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("dependencies/single-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
             assert_eq!(pkg.dependencies(&[*key]).to_string(), "a/pkg b/pkg");
         }
@@ -529,9 +531,7 @@ mod tests {
         assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg b/pkg");
 
         // multi-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=dependencies/multi-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("dependencies/multi-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
             assert_eq!(pkg.dependencies(&[*key]).to_string(), "a/pkg u? ( b/pkg )");
         }
@@ -547,82 +547,75 @@ mod tests {
 
     #[test]
     fn deprecated() {
-        let pkg = TEST_DATA
-            .ebuild_pkg("=deprecated/deprecated-0::metadata")
-            .unwrap();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = repo.get_pkg("deprecated/deprecated-0").unwrap();
         assert!(pkg.deprecated());
-        let pkg = TEST_DATA
-            .ebuild_pkg("=deprecated/deprecated-1::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("deprecated/deprecated-1").unwrap();
         assert!(!pkg.deprecated());
     }
 
     #[test]
     fn live() {
-        let pkg = TEST_DATA
-            .ebuild_pkg("=Keywords/KeywordsLive-9999::qa-primary")
-            .unwrap();
+        let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+        let pkg = repo.get_pkg("Keywords/KeywordsLive-9999").unwrap();
         assert!(pkg.live());
-        let pkg = TEST_DATA
-            .ebuild_pkg("=Keywords/KeywordsLive-0::qa-primary")
-            .unwrap();
+        let pkg = repo.get_pkg("Keywords/KeywordsLive-0").unwrap();
         assert!(!pkg.live());
     }
 
     #[test]
     fn masked() {
-        let pkg = TEST_DATA.ebuild_pkg("=masked/masked-0::metadata").unwrap();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = repo.get_pkg("masked/masked-0").unwrap();
         assert!(pkg.masked());
-        let pkg = TEST_DATA.ebuild_pkg("=masked/masked-1::metadata").unwrap();
+        let pkg = repo.get_pkg("masked/masked-1").unwrap();
         assert!(!pkg.masked());
     }
 
     #[test]
     fn description() {
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert_eq!(pkg.description(), "ebuild with no optional metadata fields");
 
         // none
-        let r = TEST_DATA.ebuild_pkg("=description/none-8::bad");
+        let repo = TEST_DATA.ebuild_repo("bad").unwrap();
+        let r = repo.get_pkg("description/none-8");
         assert_err_re!(r, "missing required value: DESCRIPTION$");
     }
 
     #[test]
     fn homepage() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.homepage().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         assert!(pkg.homepage().is_empty());
 
         // single-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=homepage/single-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("homepage/single-8").unwrap();
         assert_ordered_eq!(
             pkg.homepage(),
             ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
         );
 
         // multi-line
-        let pkg = TEST_DATA.ebuild_pkg("=homepage/multi-8::metadata").unwrap();
+        let pkg = repo.get_pkg("homepage/multi-8").unwrap();
         assert_ordered_eq!(
             pkg.homepage(),
             ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
         );
 
         // inherited and overridden
-        let pkg = TEST_DATA
-            .ebuild_pkg("=homepage/inherit-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("homepage/inherit-8").unwrap();
         assert_ordered_eq!(pkg.homepage(), ["https://github.com/pkgcraft/1"]);
 
         // inherited and appended
-        let pkg = TEST_DATA
-            .ebuild_pkg("=homepage/append-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("homepage/append-8").unwrap();
         assert_ordered_eq!(
             pkg.homepage(),
             ["https://github.com/pkgcraft/a", "https://github.com/pkgcraft/1"],
@@ -631,21 +624,21 @@ mod tests {
 
     #[test]
     fn defined_phases() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.defined_phases().is_empty());
 
         // ebuild-defined
-        let pkg = TEST_DATA.ebuild_pkg("=phases/direct-8::metadata").unwrap();
+        let pkg = repo.get_pkg("phases/direct-8").unwrap();
         assert_ordered_eq!(
             pkg.defined_phases().iter().map(|p| p.to_string()),
             ["src_compile", "src_install", "src_prepare"],
         );
 
         // eclass-defined
-        let pkg = TEST_DATA
-            .ebuild_pkg("=phases/indirect-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("phases/indirect-8").unwrap();
         assert_ordered_eq!(
             pkg.defined_phases().iter().map(|p| p.to_string()),
             ["src_install", "src_prepare", "src_test"],
@@ -654,45 +647,47 @@ mod tests {
 
     #[test]
     fn keywords() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.keywords().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         assert!(pkg.keywords().is_empty());
 
         // single-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=keywords/single-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("keywords/single-8").unwrap();
         assert_ordered_eq!(pkg.keywords().iter().map(|x| x.to_string()), ["amd64", "~arm64"]);
 
         // multi-line
-        let pkg = TEST_DATA.ebuild_pkg("=keywords/multi-8::metadata").unwrap();
+        let pkg = repo.get_pkg("keywords/multi-8").unwrap();
         assert_ordered_eq!(pkg.keywords().iter().map(|x| x.to_string()), ["~amd64", "arm64"]);
     }
 
     #[test]
     fn iuse() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // single-line
-        let pkg = TEST_DATA.ebuild_pkg("=iuse/single-8::metadata").unwrap();
+        let pkg = repo.get_pkg("iuse/single-8").unwrap();
         assert_ordered_eq!(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
 
         // multi-line
-        let pkg = TEST_DATA.ebuild_pkg("=iuse/multi-8::metadata").unwrap();
+        let pkg = repo.get_pkg("iuse/multi-8").unwrap();
         assert_ordered_eq!(pkg.iuse().iter().map(|x| x.to_string()), ["a", "+b", "-c"]);
 
         // incremental inherit
-        let pkg = TEST_DATA.ebuild_pkg("=iuse/inherit-8::metadata").unwrap();
+        let pkg = repo.get_pkg("iuse/inherit-8").unwrap();
         assert_ordered_eq!(
             pkg.iuse().iter().map(|x| x.to_string()),
             ["global", "ebuild", "eclass", "a", "b"],
@@ -701,173 +696,160 @@ mod tests {
 
     #[test]
     fn license() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         assert!(pkg.iuse().is_empty());
 
         // single-line
-        let pkg = TEST_DATA.ebuild_pkg("=license/single-8::metadata").unwrap();
+        let pkg = repo.get_pkg("license/single-8").unwrap();
         assert_eq!(pkg.license().to_string(), "l1 l2");
 
         // multi-line
-        let pkg = TEST_DATA.ebuild_pkg("=license/multi-8::metadata").unwrap();
+        let pkg = repo.get_pkg("license/multi-8").unwrap();
         assert_eq!(pkg.license().to_string(), "l1 u? ( l2 )");
 
         // inherited and overridden
-        let pkg = TEST_DATA
-            .ebuild_pkg("=license/inherit-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("license/inherit-8").unwrap();
         assert_eq!(pkg.license().to_string(), "l1");
 
         // inherited and appended
-        let pkg = TEST_DATA.ebuild_pkg("=license/append-8::metadata").unwrap();
+        let pkg = repo.get_pkg("license/append-8").unwrap();
         assert_eq!(pkg.license().to_string(), "l2 l1");
     }
 
     #[test]
     fn properties() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.properties().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         assert!(pkg.properties().is_empty());
 
         // single-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=properties/single-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("properties/single-8").unwrap();
         assert_eq!(pkg.properties().to_string(), "1 2");
 
         // multi-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=properties/multi-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("properties/multi-8").unwrap();
         assert_eq!(pkg.properties().to_string(), "u? ( 1 2 )");
 
         // non-incremental inherit (EAPI 7)
-        let pkg = TEST_DATA
-            .ebuild_pkg("=properties/inherit-7::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("properties/inherit-7").unwrap();
         assert_eq!(pkg.properties().to_string(), "global ebuild");
 
         // incremental inherit (EAPI 8)
-        let pkg = TEST_DATA
-            .ebuild_pkg("=properties/inherit-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("properties/inherit-8").unwrap();
         assert_eq!(pkg.properties().to_string(), "global ebuild eclass a b");
     }
 
     #[test]
     fn restrict() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.restrict().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         assert!(pkg.restrict().is_empty());
 
         // single-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=restrict/single-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("restrict/single-8").unwrap();
         assert_eq!(pkg.restrict().to_string(), "1 2");
 
         // multi-line
-        let pkg = TEST_DATA.ebuild_pkg("=restrict/multi-8::metadata").unwrap();
+        let pkg = repo.get_pkg("restrict/multi-8").unwrap();
         assert_eq!(pkg.restrict().to_string(), "u? ( 1 2 )");
 
         // non-incremental inherit (EAPI 7)
-        let pkg = TEST_DATA
-            .ebuild_pkg("=restrict/inherit-7::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("restrict/inherit-7").unwrap();
         assert_eq!(pkg.restrict().to_string(), "global ebuild");
 
         // incremental inherit (EAPI 8)
-        let pkg = TEST_DATA
-            .ebuild_pkg("=restrict/inherit-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("restrict/inherit-8").unwrap();
         assert_eq!(pkg.restrict().to_string(), "global ebuild eclass a b");
     }
 
     #[test]
     fn required_use() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.required_use().is_empty());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=optional/empty-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/empty-8").unwrap();
         assert!(pkg.required_use().is_empty());
 
         // single-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=required_use/single-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("required_use/single-8").unwrap();
         assert_eq!(pkg.required_use().to_string(), "u1 u2");
 
         // multi-line
-        let pkg = TEST_DATA
-            .ebuild_pkg("=required_use/multi-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("required_use/multi-8").unwrap();
         assert_eq!(pkg.required_use().to_string(), "^^ ( u1 u2 )");
 
         // incremental inherit
-        let pkg = TEST_DATA
-            .ebuild_pkg("=required_use/inherit-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("required_use/inherit-8").unwrap();
         assert_eq!(pkg.required_use().to_string(), "global ebuild eclass a b");
     }
 
     #[test]
     fn inherits() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=optional/none-8::metadata").unwrap();
+        let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert!(pkg.inherit().is_empty());
         assert!(pkg.inherited().is_empty());
 
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         let a = repo.eclasses().get("a").unwrap();
         let b = repo.eclasses().get("b").unwrap();
 
         // direct inherit
-        let pkg = TEST_DATA.ebuild_pkg("=inherit/direct-8::metadata").unwrap();
+        let pkg = repo.get_pkg("inherit/direct-8").unwrap();
         assert_ordered_eq!(pkg.inherit(), [&a]);
         assert_ordered_eq!(pkg.inherited(), [&a]);
 
         // indirect inherit
-        let pkg = TEST_DATA
-            .ebuild_pkg("=inherit/indirect-8::metadata")
-            .unwrap();
+        let pkg = repo.get_pkg("inherit/indirect-8").unwrap();
         assert_ordered_eq!(pkg.inherit(), [&b]);
         assert_ordered_eq!(pkg.inherited(), [&b, &a]);
     }
 
     #[test]
     fn maintainers() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/none-8").unwrap();
         assert!(pkg.maintainers().is_empty());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/bad-8").unwrap();
         assert!(pkg.maintainers().is_empty());
 
         // single
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/single-8").unwrap();
         let m = pkg.maintainers();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].email(), "a.person@email.com");
         assert_eq!(m[0].name(), Some("A Person"));
 
         // multiple
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
         let m = pkg.maintainers();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].email(), "a.person@email.com");
@@ -878,23 +860,25 @@ mod tests {
 
     #[test]
     fn upstream() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/none-8").unwrap();
         assert!(pkg.upstream().is_none());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/bad-8").unwrap();
         assert!(pkg.upstream().is_none());
 
         // single
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/single-8").unwrap();
         let m = pkg.upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].site(), "github");
         assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
 
         // multiple
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
         let m = pkg.upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].site(), "github");
@@ -905,21 +889,23 @@ mod tests {
 
     #[test]
     fn local_use() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/none-8").unwrap();
         assert!(pkg.local_use().is_empty());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/bad-8").unwrap();
         assert!(pkg.local_use().is_empty());
 
         // single
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/single-8").unwrap();
         assert_eq!(pkg.local_use().len(), 1);
         assert_eq!(pkg.local_use().get("flag").unwrap(), "flag desc");
 
         // multiple
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
         assert_eq!(pkg.local_use().len(), 2);
         assert_eq!(pkg.local_use().get("flag1").unwrap(), "flag1 desc");
         assert_eq!(pkg.local_use().get("flag2").unwrap(), "flag2 desc");
@@ -927,27 +913,29 @@ mod tests {
 
     #[test]
     fn long_description() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+
         // none
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/none-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/none-8").unwrap();
         assert!(pkg.long_description().is_none());
 
         // invalid
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/bad-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/bad-8").unwrap();
         assert!(pkg.long_description().is_none());
 
         // empty
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/empty-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/empty-8").unwrap();
         assert!(pkg.long_description().is_none());
 
         // single
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/single-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/single-8").unwrap();
         assert_eq!(
             pkg.long_description().unwrap(),
             "A wrapped sentence. Another sentence. New paragraph."
         );
 
         // multiple
-        let pkg = TEST_DATA.ebuild_pkg("=pkg/multiple-8::xml").unwrap();
+        let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
         assert_eq!(
             pkg.long_description().unwrap(),
             "A wrapped sentence. Another sentence. New paragraph."

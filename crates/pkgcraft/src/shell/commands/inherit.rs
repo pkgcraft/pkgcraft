@@ -368,7 +368,8 @@ mod tests {
 
     #[test]
     fn overlay() {
-        let raw_pkg = TEST_DATA.ebuild_raw_pkg("=cat/pkg-1::secondary").unwrap();
+        let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["b", "c"]).unwrap();
         let build = get_build_mut();

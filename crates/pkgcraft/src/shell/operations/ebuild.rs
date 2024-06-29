@@ -97,32 +97,26 @@ mod tests {
 
     #[test]
     fn pretend() {
+        let repo = TEST_DATA.ebuild_repo("phases").unwrap();
+
         // no pkg_pretend phase exists
-        let pkg = TEST_DATA.ebuild_pkg("=pkg-pretend/none-1::phases").unwrap();
+        let pkg = repo.get_pkg("pkg-pretend/none-1").unwrap();
         assert!(pkg.pretend().is_ok());
 
         // success
-        let pkg = TEST_DATA
-            .ebuild_pkg("=pkg-pretend/success-1::phases")
-            .unwrap();
+        let pkg = repo.get_pkg("pkg-pretend/success-1").unwrap();
         assert!(pkg.pretend().is_ok());
 
         // success with output
-        let pkg = TEST_DATA
-            .ebuild_pkg("=pkg-pretend/success-with-output-1::phases")
-            .unwrap();
+        let pkg = repo.get_pkg("pkg-pretend/success-with-output-1").unwrap();
         assert!(pkg.pretend().is_ok());
 
         // failure
-        let pkg = TEST_DATA
-            .ebuild_pkg("=pkg-pretend/failure-1::phases")
-            .unwrap();
+        let pkg = repo.get_pkg("pkg-pretend/failure-1").unwrap();
         assert!(pkg.pretend().is_err());
 
         // failure with output
-        let pkg = TEST_DATA
-            .ebuild_pkg("=pkg-pretend/failure-with-output-1::phases")
-            .unwrap();
+        let pkg = repo.get_pkg("pkg-pretend/failure-with-output-1").unwrap();
         assert!(pkg.pretend().is_err());
     }
 }

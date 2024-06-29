@@ -116,7 +116,8 @@ mod tests {
 
     #[test]
     fn test_no_files() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -126,7 +127,8 @@ mod tests {
 
     #[test]
     fn test_default_files_empty() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -139,7 +141,8 @@ mod tests {
 
     #[test]
     fn test_default_files() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -159,7 +162,8 @@ mod tests {
 
     #[test]
     fn test_default_files_globs() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -179,7 +183,8 @@ mod tests {
 
     #[test]
     fn test_docs_array() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -209,7 +214,8 @@ mod tests {
 
     #[test]
     fn test_docs_string() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -239,7 +245,8 @@ mod tests {
 
     #[test]
     fn test_html_docs_array() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
@@ -269,7 +276,8 @@ mod tests {
 
     #[test]
     fn test_html_docs_string() {
-        let pkg = TEST_DATA.ebuild_pkg("=cat/pkg-1::commands").unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         let file_tree = FileTree::new();
