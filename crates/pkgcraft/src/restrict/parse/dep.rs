@@ -280,6 +280,8 @@ mod tests {
             "=cat/pkg-1",
             ">=cat/pkg-2",
             "<cat/pkg-3",
+            // use deps
+            "cat/pkg[u]",
             // repo
             "cat/pkg::repo",
             "cat/pkg::repo-ed",
@@ -349,6 +351,19 @@ mod tests {
             ("*:2/1", vec![]),
             ("*:2/1*", vec!["cat/pkg:2/1.1"]),
             ("*:*/*.+", vec!["=cat/pkg-0-r0:0/0.+"]),
+        ] {
+            let r = dep(s).unwrap();
+            assert_eq!(filter(r, &deps), expected, "{s:?} failed");
+        }
+
+        // use deps
+        for (s, expected) in [
+            ("cat/pkg[u]", vec!["cat/pkg[u]"]),
+            ("cat/pkg[u=]", vec![]),
+            ("cat/pkg[!u=]", vec![]),
+            ("cat/pkg[u?]", vec![]),
+            ("cat/pkg[!u?]", vec![]),
+            ("cat/pkg[-u]", vec![]),
         ] {
             let r = dep(s).unwrap();
             assert_eq!(filter(r, &deps), expected, "{s:?} failed");
