@@ -19,9 +19,9 @@ mod tests {
     use std::fs;
     use std::io::Write;
 
-    use crate::config::Config;
     use crate::shell::test::FileTree;
     use crate::shell::{write_stdin, BuildData};
+    use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, newdoc};
     use super::*;
@@ -35,9 +35,8 @@ mod tests {
 
     #[test]
     fn creation() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         let file_tree = FileTree::new();
 

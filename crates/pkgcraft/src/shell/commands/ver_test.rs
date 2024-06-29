@@ -55,19 +55,16 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
-
         assert_invalid_args(ver_test, &[0, 1, 4]);
     }
 
     #[test]
     fn overflow() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         let u64_max: u128 = u64::MAX as u128;
@@ -80,9 +77,8 @@ mod tests {
 
     #[test]
     fn invalid_versions() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         for v in ["a", "1_1", "1-2", ">=1", "~1"] {
@@ -93,9 +89,8 @@ mod tests {
 
     #[test]
     fn invalid_op() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         for op in [">", ">=", "<", "<=", "==", "!="] {
@@ -118,7 +113,7 @@ mod tests {
         .collect();
 
         let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         let inverted_op_map: HashMap<_, _> =
             [("==", "!="), ("!=", "=="), ("<", ">="), (">", "<="), ("<=", ">"), (">=", "<")]

@@ -18,6 +18,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::shell::{get_build_mut, BuildData};
+    use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, useq};
     use super::*;
@@ -31,11 +32,9 @@ mod tests {
 
     #[test]
     fn empty_iuse_effective() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        let pkg = repo.create_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
-
         assert_err_re!(useq(&["use"]), "^.* not in IUSE$");
     }
 

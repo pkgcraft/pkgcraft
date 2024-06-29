@@ -56,6 +56,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_err_re;
     use crate::shell::{assert_stdout, BuildData};
+    use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, ver_rs};
     use super::*;
@@ -64,19 +65,16 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
-
         assert_invalid_args(ver_rs, &[0, 1]);
     }
 
     #[test]
     fn invalid_range() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         for rng in ["-", "-2"] {
@@ -91,7 +89,7 @@ mod tests {
     #[test]
     fn output() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let repo = config.temp_repo("test", 0, None).unwrap();
 
         // invalid PV
         for (args, expected) in [
