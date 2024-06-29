@@ -351,6 +351,13 @@ mod tests {
                     <flag name="flag">flag desc</flag>
                 </use>
                 <upstream>
+                    <maintainer>
+                        <name>B Person</name>
+                        <email>b.person@email.com</email>
+                    </maintainer>
+                    <bugs-to>https://github.com/pkgcraft/pkgcraft/issues</bugs-to>
+                    <changelog>https://github.com/pkgcraft/pkgcraft/blob/main/CHANGELOG.md</changelog>
+                    <doc>https://pkgcraft.github.io/pkgcraft</doc>
                     <remote-id type="github">pkgcraft/pkgcraft</remote-id>
                 </upstream>
                 <longdescription>
