@@ -202,4 +202,24 @@ mod tests {
         assert_eq!(raw_pkg.cpv().to_string(), "optional/none-8");
         assert_eq!(raw_pkg.repo(), repo);
     }
+
+    #[test]
+    fn intersects_dep() {
+        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
+
+        for (s, expected) in [
+            ("cat/pkg", true),
+            ("=cat/pkg-0", false),
+            ("=cat/pkg-1", true),
+            ("cat/pkg:0", false),
+            ("cat/pkg:0/1", false),
+            ("cat/pkg[u]", false),
+            ("cat/pkg::test", false),
+            ("cat/pkg::commands", true),
+        ] {
+            let dep: Dep = s.parse().unwrap();
+            assert_eq!(raw_pkg.intersects(&dep), expected, "failed for {s}");
+        }
+    }
 }
