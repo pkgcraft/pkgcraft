@@ -549,10 +549,8 @@ impl Repo {
     where
         Error: From<<T as TryInto<Cpv>>::Error>,
     {
-        let cpv = value.try_into()?;
-        self.iter_restrict(&cpv)
-            .next()
-            .ok_or_else(|| Error::InvalidValue(format!("nonexistent package: {cpv}")))
+        let raw_pkg = self.get_pkg_raw(value)?;
+        raw_pkg.try_into()
     }
 
     /// Retrieve a raw package from the repo given its [`Cpv`].
@@ -561,9 +559,7 @@ impl Repo {
         Error: From<<T as TryInto<Cpv>>::Error>,
     {
         let cpv = value.try_into()?;
-        self.iter_raw_restrict(&cpv)
-            .next()
-            .ok_or_else(|| Error::InvalidValue(format!("nonexistent package: {cpv}")))
+        ebuild::raw::Pkg::try_new(cpv, self)
     }
 
     /// Scan the deprecated package list returning the first match for a given dependency.
