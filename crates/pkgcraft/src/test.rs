@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::{env, fs, process};
 
 use assert_cmd::Command;
@@ -161,10 +160,11 @@ impl TestData {
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&Arc<crate::repo::ebuild::Repo>> {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::Repo> {
         self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
+                .map(|r| r.as_ref())
         })
     }
 }
@@ -215,10 +215,11 @@ impl TestDataPatched {
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&Arc<crate::repo::ebuild::Repo>> {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::Repo> {
         self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
+                .map(|r| r.as_ref())
         })
     }
 }

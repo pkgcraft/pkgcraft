@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn traits() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap().as_ref();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.eapi(), &*EAPI8);
         assert_eq!(raw_pkg.cpv().to_string(), "optional/none-8");
