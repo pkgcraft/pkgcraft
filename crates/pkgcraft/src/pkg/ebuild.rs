@@ -465,18 +465,19 @@ mod tests {
 
     #[test]
     fn intersects_dep() {
-        let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        let pkg = repo.create_pkg("cat/pkg-1", &["SLOT=0/1"]).unwrap();
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = repo.get_pkg("slot/subslot-8").unwrap();
 
         for (s, expected) in [
-            ("cat/pkg", true),
-            ("cat/pkg:0", true),
-            ("cat/pkg:1", false),
-            ("cat/pkg:0/1", true),
-            ("cat/pkg:0/2", false),
-            ("cat/pkg::test", true),
-            ("cat/pkg::repo", false),
+            ("slot/subslot", true),
+            ("=slot/subslot-1", false),
+            ("=slot/subslot-8", true),
+            ("slot/subslot:0", false),
+            ("slot/subslot:1", true),
+            ("slot/subslot:0/1", false),
+            ("slot/subslot:1/2", true),
+            ("slot/subslot::test", false),
+            ("slot/subslot::metadata", true),
         ] {
             let dep: Dep = s.parse().unwrap();
             assert_eq!(pkg.intersects(&dep), expected, "failed for {s}");
