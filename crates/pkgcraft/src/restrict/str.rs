@@ -10,25 +10,25 @@ use super::{Restrict as BaseRestrict, Restriction};
 #[derive(Clone, Debug)]
 pub struct Regex(regex::Regex);
 
-impl Deref for Regex {
-    type Target = regex::Regex;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Eq for Regex {}
-
 impl PartialEq for Regex {
     fn eq(&self, other: &Self) -> bool {
         self.0.as_str() == other.0.as_str()
     }
 }
 
+impl Eq for Regex {}
+
 impl Hash for Regex {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.as_str().hash(state);
+    }
+}
+
+impl Deref for Regex {
+    type Target = regex::Regex;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -88,14 +88,18 @@ impl Restriction<&str> for Restrict {
 
 #[cfg(test)]
 mod tests {
+    use crate::utils::hash;
+
     use super::*;
 
     #[test]
-    fn test_restrict() {
+    fn variants() {
         // equal
         let r = Restrict::equal("a");
         assert!(r.matches("a"));
         assert!(!r.matches("b"));
+        assert_eq!(r, r);
+        assert!(hash(&r) != 0);
 
         // prefix
         let r = Restrict::prefix("ab");
@@ -103,12 +107,16 @@ mod tests {
         assert!(r.matches("abc"));
         assert!(!r.matches("a"));
         assert!(!r.matches("cab"));
+        assert_eq!(r, r);
+        assert!(hash(&r) != 0);
 
         // regex
         let r = Restrict::regex("^(a|b)$").unwrap();
         assert!(r.matches("a"));
         assert!(r.matches("b"));
         assert!(!r.matches("ab"));
+        assert_eq!(r, r);
+        assert!(hash(&r) != 0);
 
         // substr
         let r = Restrict::substr("ab");
@@ -116,6 +124,8 @@ mod tests {
         assert!(r.matches("cab"));
         assert!(r.matches("cabo"));
         assert!(!r.matches("acb"));
+        assert_eq!(r, r);
+        assert!(hash(&r) != 0);
 
         // suffix
         let r = Restrict::suffix("ab");
@@ -123,5 +133,7 @@ mod tests {
         assert!(r.matches("cab"));
         assert!(!r.matches("a"));
         assert!(!r.matches("abc"));
+        assert_eq!(r, r);
+        assert!(hash(&r) != 0);
     }
 }
