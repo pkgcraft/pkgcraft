@@ -39,7 +39,7 @@ impl Command {
         // TODO: parallelize while generating metadata on the fly (#121)
         let mut stdout = io::stdout().lock();
         for repo in repos.ebuild() {
-            for pkg in repo.as_ref() {
+            for pkg in repo {
                 for dep in pkg.dependencies(&[]).into_iter_flatten() {
                     if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
                         writeln!(stdout, "{pkg}: {dep}")?;
