@@ -149,7 +149,7 @@ impl<'a> Metadata<'a> {
                 }
                 self.eapi = eapi;
             }
-            _ => panic!("{key} metadata deserialization should pull from build state"),
+            _ => unreachable!("{key} metadata deserialization should pull from build state"),
         }
 
         Ok(())
