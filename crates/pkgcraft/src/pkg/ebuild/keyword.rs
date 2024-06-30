@@ -176,6 +176,7 @@ mod tests {
         ] {
             let kw = Keyword::try_new(s).unwrap();
             assert_eq!(kw.arch(), arch);
+            assert_eq!(kw.arch().as_ref(), arch);
             assert_eq!(kw.status(), status);
         }
     }
