@@ -159,6 +159,7 @@ mod tests {
             let kw = kw.unwrap();
             assert_eq!(kw, s.parse().unwrap());
             assert_eq!(kw.to_string(), s);
+            assert!(format!("{kw:?}").contains(s));
         }
     }
 
