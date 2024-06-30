@@ -77,6 +77,7 @@ mod tests {
             let iuse = iuse.unwrap();
             assert_eq!(iuse, s.parse().unwrap());
             assert_eq!(iuse.to_string(), s);
+            assert!(format!("{iuse:?}").contains(s));
         }
     }
 
