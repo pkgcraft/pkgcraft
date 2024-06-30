@@ -889,6 +889,19 @@ mod tests {
     }
 
     #[test]
+    fn stabilize_allarches() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+
+        // nonexistent
+        let pkg = repo.get_pkg("pkg/none-8").unwrap();
+        assert!(!pkg.stabilize_allarches());
+
+        // existent
+        let pkg = repo.get_pkg("pkg/single-8").unwrap();
+        assert!(pkg.stabilize_allarches());
+    }
+
+    #[test]
     fn local_use() {
         let repo = TEST_DATA.ebuild_repo("xml").unwrap();
 
