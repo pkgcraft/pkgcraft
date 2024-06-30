@@ -889,6 +889,32 @@ mod tests {
     }
 
     #[test]
+    fn slots() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+
+        // nonexistent
+        let pkg = repo.get_pkg("pkg/none-8").unwrap();
+        assert!(pkg.slots().is_empty());
+
+        // existent
+        let pkg = repo.get_pkg("pkg/single-8").unwrap();
+        assert_eq!(pkg.slots().get("*").unwrap(), "slot description");
+    }
+
+    #[test]
+    fn subslots() {
+        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+
+        // nonexistent
+        let pkg = repo.get_pkg("pkg/none-8").unwrap();
+        assert!(pkg.subslots().is_none());
+
+        // existent
+        let pkg = repo.get_pkg("pkg/single-8").unwrap();
+        assert_eq!(pkg.subslots().unwrap(), "subslot description");
+    }
+
+    #[test]
     fn stabilize_allarches() {
         let repo = TEST_DATA.ebuild_repo("xml").unwrap();
 
