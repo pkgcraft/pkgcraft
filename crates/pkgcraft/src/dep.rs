@@ -295,19 +295,7 @@ impl<T: Ordered> Contains<&Dependency<&T>> for Dependency<T> {
     }
 }
 
-impl Contains<&UseDep> for Dependency<Dep> {
-    fn contains(&self, obj: &UseDep) -> bool {
-        self.iter_conditionals().any(|x| x == obj)
-    }
-}
-
-impl Contains<&UseDep> for Dependency<String> {
-    fn contains(&self, obj: &UseDep) -> bool {
-        self.iter_conditionals().any(|x| x == obj)
-    }
-}
-
-impl Contains<&UseDep> for Dependency<Uri> {
+impl<T: Ordered> Contains<&UseDep> for Dependency<T> {
     fn contains(&self, obj: &UseDep) -> bool {
         self.iter_conditionals().any(|x| x == obj)
     }
@@ -326,9 +314,27 @@ impl Contains<&str> for Dependency<Dep> {
     }
 }
 
-impl<T: Ordered> Contains<&T> for Dependency<T> {
-    fn contains(&self, obj: &T) -> bool {
+impl Contains<&Dep> for Dependency<Dep> {
+    fn contains(&self, obj: &Dep) -> bool {
         self.iter_flatten().any(|x| x == obj)
+    }
+}
+
+impl Contains<&Dep> for Dependency<&Dep> {
+    fn contains(&self, obj: &Dep) -> bool {
+        self.iter_flatten().any(|x| *x == obj)
+    }
+}
+
+impl Contains<&Uri> for Dependency<Uri> {
+    fn contains(&self, obj: &Uri) -> bool {
+        self.iter_flatten().any(|x| x == obj)
+    }
+}
+
+impl Contains<&Uri> for Dependency<&Uri> {
+    fn contains(&self, obj: &Uri) -> bool {
+        self.iter_flatten().any(|x| *x == obj)
     }
 }
 
@@ -782,19 +788,7 @@ impl<T: Ordered> Contains<&Dependency<&T>> for DependencySet<T> {
     }
 }
 
-impl Contains<&UseDep> for DependencySet<Dep> {
-    fn contains(&self, obj: &UseDep) -> bool {
-        self.iter_conditionals().any(|x| x == obj)
-    }
-}
-
-impl Contains<&UseDep> for DependencySet<String> {
-    fn contains(&self, obj: &UseDep) -> bool {
-        self.iter_conditionals().any(|x| x == obj)
-    }
-}
-
-impl Contains<&UseDep> for DependencySet<Uri> {
+impl<T: Ordered> Contains<&UseDep> for DependencySet<T> {
     fn contains(&self, obj: &UseDep) -> bool {
         self.iter_conditionals().any(|x| x == obj)
     }
@@ -813,9 +807,27 @@ impl Contains<&str> for DependencySet<Dep> {
     }
 }
 
-impl<T: Ordered> Contains<&T> for DependencySet<T> {
-    fn contains(&self, obj: &T) -> bool {
+impl Contains<&Dep> for DependencySet<Dep> {
+    fn contains(&self, obj: &Dep) -> bool {
         self.iter_flatten().any(|x| x == obj)
+    }
+}
+
+impl Contains<&Dep> for DependencySet<&Dep> {
+    fn contains(&self, obj: &Dep) -> bool {
+        self.iter_flatten().any(|x| *x == obj)
+    }
+}
+
+impl Contains<&Uri> for DependencySet<Uri> {
+    fn contains(&self, obj: &Uri) -> bool {
+        self.iter_flatten().any(|x| x == obj)
+    }
+}
+
+impl Contains<&Uri> for DependencySet<&Uri> {
+    fn contains(&self, obj: &Uri) -> bool {
+        self.iter_flatten().any(|x| *x == obj)
     }
 }
 
