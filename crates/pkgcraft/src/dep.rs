@@ -1330,7 +1330,7 @@ mod tests {
     }
 
     #[test]
-    fn to_ref() {
+    fn to_ref_and_into_owned() {
         // Dependency
         for s in [
             "a",
@@ -1347,6 +1347,8 @@ mod tests {
             let dep_spec_ref = dep_spec.to_ref();
             assert_eq!(&dep_spec, &dep_spec_ref);
             assert_eq!(&dep_spec_ref, &dep_spec);
+            let dep_spec_owned = dep_spec_ref.into_owned();
+            assert_eq!(&dep_spec, &dep_spec_owned);
         }
 
         // DependencySet
@@ -1365,6 +1367,8 @@ mod tests {
             let dep_set_ref = dep_set.to_ref();
             assert_eq!(&dep_set, &dep_set_ref);
             assert_eq!(&dep_set_ref, &dep_set);
+            let dep_set_owned = dep_set_ref.into_owned();
+            assert_eq!(&dep_set, &dep_set_owned);
         }
     }
 
