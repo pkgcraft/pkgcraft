@@ -1432,7 +1432,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn dependency_contains() {
+    fn dep_contains() {
         let dep = Dep::try_new("cat/pkg").unwrap();
         let spec = Dependency::package("cat/pkg", Default::default()).unwrap();
         for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
@@ -1444,8 +1444,7 @@ mod tests {
     }
 
     #[test]
-    fn to_ref_and_into_owned() {
-        // Dependency
+    fn dep_to_ref_and_into_owned() {
         for (s, len) in [
             ("a", 1),
             ("!a", 1),
@@ -1466,8 +1465,43 @@ mod tests {
             let dep_spec_owned = dep_spec_ref.into_owned();
             assert_eq!(&dep_spec, &dep_spec_owned);
         }
+    }
 
-        // DependencySet
+    #[test]
+    fn dep_sort() {
+        // dependencies
+        for (s, expected) in [
+            ("a/b", "a/b"),
+            ("( c/d a/b )", "( a/b c/d )"),
+            ("|| ( c/d a/b )", "|| ( c/d a/b )"),
+            ("u? ( c/d a/b )", "u? ( a/b c/d )"),
+            ("!u? ( c/d a/b )", "!u? ( a/b c/d )"),
+        ] {
+            let mut dep = Dependency::package(s, Default::default()).unwrap();
+            dep.sort();
+            assert_eq!(dep.to_string(), expected);
+        }
+
+        // REQUIRED_USE
+        for (s, expected) in [
+            ("a", "a"),
+            ("!a", "!a"),
+            ("( b a )", "( a b )"),
+            ("( b !a )", "( b !a )"),
+            ("|| ( b a )", "|| ( b a )"),
+            ("^^ ( b a )", "^^ ( b a )"),
+            ("?? ( b a )", "?? ( b a )"),
+            ("u? ( b a )", "u? ( a b )"),
+            ("!u? ( b a )", "!u? ( a b )"),
+        ] {
+            let mut dep = Dependency::required_use(s).unwrap();
+            dep.sort();
+            assert_eq!(dep.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn dep_set_to_ref_and_into_owned() {
         for (s, len) in [
             ("", 0),
             ("a b", 2),
@@ -1492,51 +1526,18 @@ mod tests {
     }
 
     #[test]
-    fn dependency_sort() {
-        // dependencies
-        for (s, expected) in [
-            ("a/b", "a/b"),
-            ("( c/d a/b )", "( a/b c/d )"),
-            ("|| ( c/d a/b )", "|| ( c/d a/b )"),
-            ("u? ( c/d a/b )", "u? ( a/b c/d )"),
-            ("!u? ( c/d a/b )", "!u? ( a/b c/d )"),
-        ] {
-            let mut spec = Dependency::package(s, Default::default()).unwrap();
-            spec.sort();
-            assert_eq!(spec.to_string(), expected);
-        }
-
-        // REQUIRED_USE
-        for (s, expected) in [
-            ("a", "a"),
-            ("!a", "!a"),
-            ("( b a )", "( a b )"),
-            ("( b !a )", "( b !a )"),
-            ("|| ( b a )", "|| ( b a )"),
-            ("^^ ( b a )", "^^ ( b a )"),
-            ("?? ( b a )", "?? ( b a )"),
-            ("u? ( b a )", "u? ( a b )"),
-            ("!u? ( b a )", "!u? ( a b )"),
-        ] {
-            let mut spec = Dependency::required_use(s).unwrap();
-            spec.sort();
-            assert_eq!(spec.to_string(), expected);
-        }
-    }
-
-    #[test]
-    fn dependency_set_contains() {
-        let dep = Dep::try_new("cat/pkg").unwrap();
-        let spec = Dependency::package("cat/pkg", Default::default()).unwrap();
+    fn dep_set_contains() {
+        let d = Dep::try_new("cat/pkg").unwrap();
+        let dep = Dependency::package("cat/pkg", Default::default()).unwrap();
         for s in ["cat/pkg", "a/b cat/pkg"] {
-            let set = DependencySet::package(s, Default::default()).unwrap();
-            assert!(set.contains(&dep), "{set} doesn't contain {dep}");
-            assert!(set.contains(&spec), "{set} doesn't contain {spec}");
+            let dep_set = DependencySet::package(s, Default::default()).unwrap();
+            assert!(dep_set.contains(&d), "{dep_set} doesn't contain {d}");
+            assert!(dep_set.contains(&dep), "{dep_set} doesn't contain {dep}");
         }
     }
 
     #[test]
-    fn dependency_set_sort() {
+    fn dep_set_sort() {
         // dependencies
         for (s, expected) in [
             ("c/d a/b", "a/b c/d"),
@@ -1562,7 +1563,7 @@ mod tests {
             ("u? ( b a ) z", "z u? ( a b )"),
             ("!u? ( b a ) z", "z !u? ( a b )"),
         ] {
-            let mut set = parse::required_use_dependency_set(s).unwrap();
+            let mut set = DependencySet::required_use(s).unwrap();
             set.sort();
             assert_eq!(set.to_string(), expected);
         }
