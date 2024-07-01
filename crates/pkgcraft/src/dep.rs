@@ -186,6 +186,18 @@ impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<T> {
     }
 }
 
+impl<T: Ordered> PartialEq<Dependency<&T>> for Dependency<T> {
+    fn eq(&self, other: &Dependency<&T>) -> bool {
+        self.to_ref() == *other
+    }
+}
+
+impl<T: Ordered> PartialEq<Dependency<T>> for Dependency<&T> {
+    fn eq(&self, other: &Dependency<T>) -> bool {
+        other == self
+    }
+}
+
 impl<T: Ordered> Dependency<T> {
     pub fn is_empty(&self) -> bool {
         use Dependency::*;
@@ -483,6 +495,18 @@ impl<T: Display + Ordered> Display for Dependency<T> {
 /// Set of dependency objects.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DependencySet<T: Ordered>(SortedSet<Dependency<T>>);
+
+impl<T: Ordered> PartialEq<DependencySet<&T>> for DependencySet<T> {
+    fn eq(&self, other: &DependencySet<&T>) -> bool {
+        self.to_ref() == *other
+    }
+}
+
+impl<T: Ordered> PartialEq<DependencySet<T>> for DependencySet<&T> {
+    fn eq(&self, other: &DependencySet<T>) -> bool {
+        other == self
+    }
+}
 
 impl<T: Ordered> DependencySet<T> {
     /// Construct a new, empty `DependencySet`.
