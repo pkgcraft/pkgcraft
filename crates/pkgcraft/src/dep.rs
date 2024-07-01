@@ -944,20 +944,14 @@ impl<'a, T: Ordered> Conditionals for &'a DependencySet<T> {
     }
 }
 
-macro_rules! iter_eval {
-    ($variant:expr, $vals:expr, $options:expr) => {{
-        let dep = $variant(
-            $vals
-                .into_iter()
-                .flat_map(|d| d.into_iter_evaluate($options))
-                .map(|d| Box::new(d))
-                .collect(),
-        );
-
-        if !dep.is_empty() {
-            return Some(dep);
-        }
-    }};
+macro_rules! box_eval {
+    ($vals:expr, $options:expr) => {
+        $vals
+            .into_iter()
+            .flat_map(|d| d.into_iter_evaluate($options))
+            .map(|d| Box::new(d))
+            .collect()
+    };
 }
 
 #[derive(Debug)]
@@ -975,10 +969,30 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
             match dep {
                 Enabled(val) => return Some(Enabled(val)),
                 Disabled(val) => return Some(Disabled(val)),
-                AllOf(vals) => iter_eval!(AllOf, vals, self.options),
-                AnyOf(vals) => iter_eval!(AnyOf, vals, self.options),
-                ExactlyOneOf(vals) => iter_eval!(ExactlyOneOf, vals, self.options),
-                AtMostOneOf(vals) => iter_eval!(AtMostOneOf, vals, self.options),
+                AllOf(vals) => {
+                    let evaluated = AllOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
+                AnyOf(vals) => {
+                    let evaluated = AnyOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
+                ExactlyOneOf(vals) => {
+                    let evaluated = ExactlyOneOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
+                AtMostOneOf(vals) => {
+                    let evaluated = AtMostOneOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
                 Conditional(u, vals) => {
                     if u.matches(self.options) {
                         self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
@@ -1132,10 +1146,30 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
             match dep {
                 Enabled(val) => return Some(Enabled(val)),
                 Disabled(val) => return Some(Disabled(val)),
-                AllOf(vals) => iter_eval!(AllOf, vals, self.options),
-                AnyOf(vals) => iter_eval!(AnyOf, vals, self.options),
-                ExactlyOneOf(vals) => iter_eval!(ExactlyOneOf, vals, self.options),
-                AtMostOneOf(vals) => iter_eval!(AtMostOneOf, vals, self.options),
+                AllOf(vals) => {
+                    let evaluated = AllOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
+                AnyOf(vals) => {
+                    let evaluated = AnyOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
+                ExactlyOneOf(vals) => {
+                    let evaluated = ExactlyOneOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
+                AtMostOneOf(vals) => {
+                    let evaluated = AtMostOneOf(box_eval!(vals, self.options));
+                    if !evaluated.is_empty() {
+                        return Some(evaluated);
+                    }
+                }
                 Conditional(u, vals) => {
                     if u.matches(self.options) {
                         self.q.extend_left(vals.into_iter().map(|x| *x));
