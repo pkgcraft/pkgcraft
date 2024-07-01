@@ -1084,6 +1084,24 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dep(
     }
 }
 
+/// Determine if a DependencySet contains a given Uri.
+///
+/// # Safety
+/// The arguments must be valid pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_set_contains_uri(
+    d: *mut DependencySet,
+    uri: *mut Uri,
+) -> bool {
+    let d = try_deref_from_ptr!(d);
+    let uri = try_ref_from_ptr!(uri);
+
+    match d {
+        DependencySetWrapper::Uri(d) => d.contains(uri),
+        _ => false,
+    }
+}
+
 /// Return the hash value for a DependencySet.
 ///
 /// # Safety
@@ -1348,6 +1366,24 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_dep(
 
     match d {
         DependencyWrapper::Dep(d) => d.contains(dep),
+        _ => false,
+    }
+}
+
+/// Determine if a Dependency contains a given Uri.
+///
+/// # Safety
+/// The arguments must be valid pointers.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_contains_uri(
+    d: *mut Dependency,
+    uri: *mut Uri,
+) -> bool {
+    let d = try_deref_from_ptr!(d);
+    let uri = try_ref_from_ptr!(uri);
+
+    match d {
+        DependencyWrapper::Uri(d) => d.contains(uri),
         _ => false,
     }
 }
