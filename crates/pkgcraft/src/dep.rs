@@ -199,6 +199,7 @@ impl<T: Ordered> PartialEq<Dependency<T>> for Dependency<&T> {
 }
 
 impl<T: Ordered> Dependency<T> {
+    /// Return true if a Dependency is empty, otherwise false.
     pub fn is_empty(&self) -> bool {
         use Dependency::*;
         match self {
@@ -615,6 +616,7 @@ impl<T: Ordered> DependencySet<T> {
         self.0.is_disjoint(&other.0)
     }
 
+    /// Return true if a DependencySet is empty, otherwise false.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
