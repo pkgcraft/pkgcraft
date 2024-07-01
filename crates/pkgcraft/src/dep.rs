@@ -853,6 +853,14 @@ impl<T: Ordered> IntoOwned for DependencySet<&T> {
     }
 }
 
+impl<'a, T: Ordered + 'a> ToRef<'a> for DependencySet<T> {
+    type Ref = DependencySet<&'a T>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        self.iter().map(|d| d.to_ref()).collect()
+    }
+}
+
 #[derive(Debug)]
 pub struct Iter<'a, T: Ordered>(Deque<&'a Dependency<T>>);
 
