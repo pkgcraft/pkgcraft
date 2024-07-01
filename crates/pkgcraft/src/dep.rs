@@ -289,6 +289,12 @@ impl<T: Ordered> Contains<&Self> for Dependency<T> {
     }
 }
 
+impl<T: Ordered> Contains<&Dependency<&T>> for Dependency<T> {
+    fn contains(&self, dep: &Dependency<&T>) -> bool {
+        self.iter_recursive().any(|x| x == dep)
+    }
+}
+
 impl Contains<&UseDep> for Dependency<Dep> {
     fn contains(&self, obj: &UseDep) -> bool {
         self.iter_conditionals().any(|x| x == obj)
@@ -766,6 +772,12 @@ impl<T: Ordered> SubAssign<&Self> for DependencySet<T> {
 
 impl<T: Ordered> Contains<&Dependency<T>> for DependencySet<T> {
     fn contains(&self, dep: &Dependency<T>) -> bool {
+        self.iter_recursive().any(|x| x == dep)
+    }
+}
+
+impl<T: Ordered> Contains<&Dependency<&T>> for DependencySet<T> {
+    fn contains(&self, dep: &Dependency<&T>) -> bool {
         self.iter_recursive().any(|x| x == dep)
     }
 }
