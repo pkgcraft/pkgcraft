@@ -1380,6 +1380,7 @@ mod tests {
             "!u? ( a b )",
         ] {
             let dep_spec = Dependency::required_use(s).unwrap();
+            assert!(!dep_spec.is_empty());
             let dep_spec_ref = dep_spec.to_ref();
             assert_eq!(&dep_spec, &dep_spec_ref);
             assert_eq!(&dep_spec_ref, &dep_spec);
@@ -1389,6 +1390,7 @@ mod tests {
 
         // DependencySet
         for s in [
+            "",
             "a b",
             "!a b",
             "( a b ) c",
@@ -1400,6 +1402,7 @@ mod tests {
             "!u? ( a b ) c",
         ] {
             let dep_set = DependencySet::required_use(s).unwrap();
+            assert_eq!(dep_set.is_empty(), s.is_empty());
             let dep_set_ref = dep_set.to_ref();
             assert_eq!(&dep_set, &dep_set_ref);
             assert_eq!(&dep_set_ref, &dep_set);
