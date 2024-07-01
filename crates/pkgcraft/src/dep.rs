@@ -1368,19 +1368,20 @@ mod tests {
     #[test]
     fn to_ref_and_into_owned() {
         // Dependency
-        for s in [
-            "a",
-            "!a",
-            "( a b )",
-            "( a !b )",
-            "|| ( a b )",
-            "^^ ( a b )",
-            "?? ( a b )",
-            "u? ( a b )",
-            "!u? ( a b )",
+        for (s, len) in [
+            ("a", 1),
+            ("!a", 1),
+            ("( a b )", 2),
+            ("( a !b )", 2),
+            ("|| ( a b )", 2),
+            ("^^ ( a b )", 2),
+            ("?? ( a b )", 2),
+            ("u? ( a b )", 2),
+            ("!u? ( a b )", 2),
         ] {
             let dep_spec = Dependency::required_use(s).unwrap();
             assert!(!dep_spec.is_empty());
+            assert_eq!(dep_spec.len(), len);
             let dep_spec_ref = dep_spec.to_ref();
             assert_eq!(&dep_spec, &dep_spec_ref);
             assert_eq!(&dep_spec_ref, &dep_spec);
@@ -1389,20 +1390,21 @@ mod tests {
         }
 
         // DependencySet
-        for s in [
-            "",
-            "a b",
-            "!a b",
-            "( a b ) c",
-            "( a !b ) c",
-            "|| ( a b ) c",
-            "^^ ( a b ) c",
-            "?? ( a b ) c",
-            "u? ( a b ) c",
-            "!u? ( a b ) c",
+        for (s, len) in [
+            ("", 0),
+            ("a b", 2),
+            ("!a b", 2),
+            ("( a b ) c", 2),
+            ("( a !b ) c", 2),
+            ("|| ( a b ) c", 2),
+            ("^^ ( a b ) c", 2),
+            ("?? ( a b ) c", 2),
+            ("u? ( a b ) c", 2),
+            ("!u? ( a b ) c", 2),
         ] {
             let dep_set = DependencySet::required_use(s).unwrap();
             assert_eq!(dep_set.is_empty(), s.is_empty());
+            assert_eq!(dep_set.len(), len);
             let dep_set_ref = dep_set.to_ref();
             assert_eq!(&dep_set, &dep_set_ref);
             assert_eq!(&dep_set_ref, &dep_set);
