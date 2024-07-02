@@ -298,43 +298,23 @@ impl<T: Ordered> Contains<&UseDep> for Dependency<T> {
     }
 }
 
-impl<T: Ordered + AsRef<str>> Contains<&str> for Dependency<T> {
-    fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.as_ref() == obj)
-    }
-}
-
-impl<T: Ordered + AsRef<str>> Contains<String> for Dependency<T> {
-    fn contains(&self, obj: String) -> bool {
-        self.iter_flatten().any(|x| x.as_ref() == obj)
+impl<S: AsRef<str>, T: Ordered + AsRef<str>> Contains<S> for Dependency<T> {
+    fn contains(&self, obj: S) -> bool {
+        self.iter_flatten().any(|x| x.as_ref() == obj.as_ref())
     }
 }
 
 // Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<&str> for Dependency<Dep> {
-    fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
+impl<S: AsRef<str>> Contains<S> for Dependency<Dep> {
+    fn contains(&self, obj: S) -> bool {
+        self.iter_flatten().any(|x| x.to_string() == obj.as_ref())
     }
 }
 
 // Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<&str> for Dependency<&Dep> {
-    fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
-    }
-}
-
-// Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<String> for Dependency<Dep> {
-    fn contains(&self, obj: String) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
-    }
-}
-
-// Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<String> for Dependency<&Dep> {
-    fn contains(&self, obj: String) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
+impl<S: AsRef<str>> Contains<S> for Dependency<&Dep> {
+    fn contains(&self, obj: S) -> bool {
+        self.iter_flatten().any(|x| x.to_string() == obj.as_ref())
     }
 }
 
@@ -346,18 +326,6 @@ impl Contains<&Dep> for Dependency<Dep> {
 
 impl Contains<&Dep> for Dependency<&Dep> {
     fn contains(&self, obj: &Dep) -> bool {
-        self.iter_flatten().any(|x| *x == obj)
-    }
-}
-
-impl Contains<&Uri> for Dependency<Uri> {
-    fn contains(&self, obj: &Uri) -> bool {
-        self.iter_flatten().any(|x| x == obj)
-    }
-}
-
-impl Contains<&Uri> for Dependency<&Uri> {
-    fn contains(&self, obj: &Uri) -> bool {
         self.iter_flatten().any(|x| *x == obj)
     }
 }
@@ -815,43 +783,23 @@ impl<T: Ordered> Contains<&UseDep> for DependencySet<T> {
     }
 }
 
-impl<T: Ordered + AsRef<str>> Contains<&str> for DependencySet<T> {
-    fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.as_ref() == obj)
-    }
-}
-
-impl<T: Ordered + AsRef<str>> Contains<String> for DependencySet<T> {
-    fn contains(&self, obj: String) -> bool {
-        self.iter_flatten().any(|x| x.as_ref() == obj)
+impl<S: AsRef<str>, T: Ordered + AsRef<str>> Contains<S> for DependencySet<T> {
+    fn contains(&self, obj: S) -> bool {
+        self.iter_flatten().any(|x| x.as_ref() == obj.as_ref())
     }
 }
 
 // Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<&str> for DependencySet<Dep> {
-    fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
+impl<S: AsRef<str>> Contains<S> for DependencySet<Dep> {
+    fn contains(&self, obj: S) -> bool {
+        self.iter_flatten().any(|x| x.to_string() == obj.as_ref())
     }
 }
 
 // Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<&str> for DependencySet<&Dep> {
-    fn contains(&self, obj: &str) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
-    }
-}
-
-// Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<String> for DependencySet<Dep> {
-    fn contains(&self, obj: String) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
-    }
-}
-
-// Merge with AsRef<str> implementation if Dep ever supports that.
-impl Contains<String> for DependencySet<&Dep> {
-    fn contains(&self, obj: String) -> bool {
-        self.iter_flatten().any(|x| x.to_string() == obj)
+impl<S: AsRef<str>> Contains<S> for DependencySet<&Dep> {
+    fn contains(&self, obj: S) -> bool {
+        self.iter_flatten().any(|x| x.to_string() == obj.as_ref())
     }
 }
 
@@ -863,18 +811,6 @@ impl Contains<&Dep> for DependencySet<Dep> {
 
 impl Contains<&Dep> for DependencySet<&Dep> {
     fn contains(&self, obj: &Dep) -> bool {
-        self.iter_flatten().any(|x| *x == obj)
-    }
-}
-
-impl Contains<&Uri> for DependencySet<Uri> {
-    fn contains(&self, obj: &Uri) -> bool {
-        self.iter_flatten().any(|x| x == obj)
-    }
-}
-
-impl Contains<&Uri> for DependencySet<&Uri> {
-    fn contains(&self, obj: &Uri) -> bool {
         self.iter_flatten().any(|x| *x == obj)
     }
 }
