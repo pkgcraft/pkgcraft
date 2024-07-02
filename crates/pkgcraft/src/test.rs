@@ -309,10 +309,15 @@ pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
 /// Verify two, ordered iterables are equal.
 #[macro_export]
 macro_rules! assert_ordered_eq {
-    ($iter1:expr, $iter2:expr $(,)?) => {{
+    ($iter1:expr, $iter2:expr, $msg:expr) => {{
         let a: Vec<_> = $iter1.into_iter().collect();
         let b: Vec<_> = $iter2.into_iter().collect();
-        assert_eq!(a, b, "{a:?} != {b:?}");
+        let msg = $msg;
+        assert_eq!(a, b, "{msg}");
+    }};
+
+    ($iter1:expr, $iter2:expr $(,)?) => {{
+        assert_ordered_eq!($iter1, $iter2, "");
     }};
 }
 pub use assert_ordered_eq;
@@ -320,12 +325,17 @@ pub use assert_ordered_eq;
 /// Verify two, unordered iterables contain the same elements.
 #[macro_export]
 macro_rules! assert_unordered_eq {
-    ($iter1:expr, $iter2:expr $(,)?) => {{
+    ($iter1:expr, $iter2:expr, $msg:expr) => {{
         let mut a: Vec<_> = $iter1.into_iter().collect();
         let mut b: Vec<_> = $iter2.into_iter().collect();
         a.sort();
         b.sort();
-        assert_eq!(a, b, "{a:?} != {b:?}");
+        let msg = $msg;
+        assert_eq!(a, b, "{msg}");
+    }};
+
+    ($iter1:expr, $iter2:expr $(,)?) => {{
+        assert_unordered_eq!($iter1, $iter2, "");
     }};
 }
 pub use assert_unordered_eq;
