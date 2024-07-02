@@ -64,7 +64,7 @@ impl<'a> EnumVariable<'a> for Key {
             PV => obj.pv(),
             PVR => obj.pvr(),
             CPN => obj.cpn().to_string(),
-            CPV => obj.cpv(),
+            CPV => obj.cpv().map(|x| x.to_string()).unwrap_or_default(),
             OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
             SLOT => obj.slot().unwrap_or_default().to_string(),
             SUBSLOT => obj.subslot().unwrap_or_default().to_string(),

@@ -452,15 +452,19 @@ pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut Cpn {
     Box::into_raw(Box::new(dep.cpn().clone()))
 }
 
-/// Get the category, package, and version of a package dependency.
-/// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
+/// Get the Cpv of a package dependency if one exists.
+///
+/// Returns NULL on nonexistence.
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_cpv(d: *mut Dep) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_dep_cpv(d: *mut Dep) -> *mut Cpv {
     let dep = try_ref_from_ptr!(d);
-    try_ptr_from_str!(dep.cpv())
+    match dep.cpv() {
+        Some(cpv) => Box::into_raw(Box::new(cpv)),
+        None => ptr::null_mut(),
+    }
 }
 
 /// Return the string for a package dependency.

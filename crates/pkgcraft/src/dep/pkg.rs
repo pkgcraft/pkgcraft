@@ -476,14 +476,13 @@ impl Dep {
         self.version().map(|v| v.without_op()).unwrap_or_default()
     }
 
-    /// Return the package dependency's category, package, version, and revision.
+    /// Return the [`Cpv`] of the package dependency if one exists.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
-    pub fn cpv(&self) -> String {
-        if let Some(ver) = &self.version {
-            format!("{}-{}", self.cpn, ver.without_op())
-        } else {
-            format!("{}", self.cpn)
-        }
+    pub fn cpv(&self) -> Option<Cpv> {
+        self.version.clone().map(|mut version| {
+            version.op = None;
+            Cpv { cpn: self.cpn.clone(), version }
+        })
     }
 
     /// Return a package dependency's slot dependency.
@@ -531,17 +530,22 @@ impl fmt::Display for Dep {
         }
 
         // append version operator with cpv
-        let cpv = self.cpv();
+        let cpn = &self.cpn;
         use Operator::*;
-        match self.op() {
-            None => write!(f, "{cpv}")?,
-            Some(Less) => write!(f, "<{cpv}")?,
-            Some(LessOrEqual) => write!(f, "<={cpv}")?,
-            Some(Equal) => write!(f, "={cpv}")?,
-            Some(EqualGlob) => write!(f, "={cpv}*")?,
-            Some(Approximate) => write!(f, "~{cpv}")?,
-            Some(GreaterOrEqual) => write!(f, ">={cpv}")?,
-            Some(Greater) => write!(f, ">{cpv}")?,
+        if let Some(ver) = &self.version {
+            let ver = ver.without_op();
+            match self.op() {
+                Some(Less) => write!(f, "<{cpn}-{ver}")?,
+                Some(LessOrEqual) => write!(f, "<={cpn}-{ver}")?,
+                Some(Equal) => write!(f, "={cpn}-{ver}")?,
+                Some(EqualGlob) => write!(f, "={cpn}-{ver}*")?,
+                Some(Approximate) => write!(f, "~{cpn}-{ver}")?,
+                Some(GreaterOrEqual) => write!(f, ">={cpn}-{ver}")?,
+                Some(Greater) => write!(f, ">{cpn}-{ver}")?,
+                None => unreachable!("invalid dep"),
+            }
+        } else {
+            write!(f, "{cpn}")?;
         }
 
         // append slot dep
@@ -798,17 +802,17 @@ mod tests {
     #[test]
     fn cpv() {
         for (s, cpv) in [
-            ("cat/pkg", "cat/pkg"),
-            ("<cat/pkg-4", "cat/pkg-4"),
-            ("<=cat/pkg-4-r1", "cat/pkg-4-r1"),
-            ("=cat/pkg-4", "cat/pkg-4"),
-            ("=cat/pkg-4*", "cat/pkg-4"),
-            ("~cat/pkg-4", "cat/pkg-4"),
-            (">=cat/pkg-r1-2-r3", "cat/pkg-r1-2-r3"),
-            (">cat/pkg-4-r1:0=", "cat/pkg-4-r1"),
+            ("cat/pkg", None),
+            ("<cat/pkg-4", Some("cat/pkg-4")),
+            ("<=cat/pkg-4-r1", Some("cat/pkg-4-r1")),
+            ("=cat/pkg-4", Some("cat/pkg-4")),
+            ("=cat/pkg-4*", Some("cat/pkg-4")),
+            ("~cat/pkg-4", Some("cat/pkg-4")),
+            (">=cat/pkg-r1-2-r3", Some("cat/pkg-r1-2-r3")),
+            (">cat/pkg-4-r1:0=", Some("cat/pkg-4-r1")),
         ] {
             let dep: Dep = s.parse().unwrap();
-            assert_eq!(dep.cpv(), cpv);
+            assert_eq!(dep.cpv(), cpv.map(|s| Cpv::try_new(s).unwrap()));
         }
     }
 
