@@ -1806,6 +1806,66 @@ mod tests {
     }
 
     #[test]
+    fn dep_set_iter_recursive() {
+        for (s, expected) in [
+            ("( a ) b", vec!["( a )", "a", "b"]),
+            ("a", vec!["a"]),
+            ("!a", vec!["!a"]),
+            ("( a b ) c", vec!["( a b )", "a", "b", "c"]),
+            ("( a !b ) c", vec!["( a !b )", "a", "!b", "c"]),
+            ("|| ( a b ) c", vec!["|| ( a b )", "a", "b", "c"]),
+            ("^^ ( a b ) c", vec!["^^ ( a b )", "a", "b", "c"]),
+            ("?? ( a b ) c", vec!["?? ( a b )", "a", "b", "c"]),
+            ("u? ( a b ) c", vec!["u? ( a b )", "a", "b", "c"]),
+            ("u1? ( a !u2? ( b ) ) c", vec!["u1? ( a !u2? ( b ) )", "a", "!u2? ( b )", "b", "c"]),
+        ] {
+            let dep_set = DependencySet::required_use(s).unwrap();
+            // borrowed
+            assert_ordered_eq!(
+                dep_set.iter_recursive().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            // owned
+            assert_ordered_eq!(
+                dep_set.into_iter_recursive().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+        }
+    }
+
+    #[test]
+    fn dep_set_iter_conditionals() {
+        for (s, expected) in [
+            ("u? ( a ) b", vec!["u?"]),
+            ("a", vec![]),
+            ("!a", vec![]),
+            ("( a b ) c", vec![]),
+            ("( a !b ) c", vec![]),
+            ("|| ( a b ) c", vec![]),
+            ("^^ ( a b ) c", vec![]),
+            ("?? ( a b ) c", vec![]),
+            ("u? ( a b ) c", vec!["u?"]),
+            ("u1? ( a !u2? ( b ) ) c", vec!["u1?", "!u2?"]),
+        ] {
+            let dep_set = DependencySet::required_use(s).unwrap();
+            // borrowed
+            assert_ordered_eq!(
+                dep_set.iter_conditionals().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            // owned
+            assert_ordered_eq!(
+                dep_set.into_iter_conditionals().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+        }
+    }
+
+    #[test]
     fn dep_set_sort() {
         // dependencies
         for (s, expected) in [
