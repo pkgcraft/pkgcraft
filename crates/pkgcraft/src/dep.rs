@@ -1441,7 +1441,8 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["a", "!u2? ( b )"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
-            assert_ordered_eq!(dep.iter().map(|x| x.to_string()), expected);
+            assert_ordered_eq!(dep.iter().map(|x| x.to_string()), expected.iter().copied());
+            assert_ordered_eq!(dep.into_iter().map(|x| x.to_string()), expected.iter().copied());
         }
     }
 
@@ -1460,7 +1461,16 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["a", "b"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
-            assert_ordered_eq!(dep.iter_flatten().map(|x| x.to_string()), expected, s);
+            assert_ordered_eq!(
+                dep.iter_flatten().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            assert_ordered_eq!(
+                dep.into_iter_flatten().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
         }
     }
 
@@ -1479,7 +1489,16 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["u1? ( a !u2? ( b ) )", "a", "!u2? ( b )", "b"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
-            assert_ordered_eq!(dep.iter_recursive().map(|x| x.to_string()), expected, s);
+            assert_ordered_eq!(
+                dep.iter_recursive().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            assert_ordered_eq!(
+                dep.into_iter_recursive().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
         }
     }
 
@@ -1498,7 +1517,16 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["u1?", "!u2?"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
-            assert_ordered_eq!(dep.iter_conditionals().map(|x| x.to_string()), expected, s);
+            assert_ordered_eq!(
+                dep.iter_conditionals().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            assert_ordered_eq!(
+                dep.into_iter_conditionals().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
         }
     }
 
