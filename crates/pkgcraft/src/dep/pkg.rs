@@ -705,7 +705,7 @@ mod tests {
     }
 
     #[test]
-    fn to_string() {
+    fn display_and_debug() {
         for s in [
             "cat/pkg",
             "<cat/pkg-4",
@@ -723,6 +723,7 @@ mod tests {
         ] {
             let dep: Dep = s.parse().unwrap();
             assert_eq!(dep.to_string(), s);
+            assert!(format!("{dep:?}").contains(s));
         }
     }
 
