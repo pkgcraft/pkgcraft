@@ -1429,6 +1429,8 @@ impl Restriction<&DependencySet<Dep>> for BaseRestrict {
 
 #[cfg(test)]
 mod tests {
+    use crate::test::assert_ordered_eq;
+
     use super::*;
 
     #[test]
@@ -1456,14 +1458,90 @@ mod tests {
             ("u? ( a b )", 2),
             ("!u? ( a b )", 2),
         ] {
-            let dep_spec = Dependency::required_use(s).unwrap();
-            assert!(!dep_spec.is_empty());
-            assert_eq!(dep_spec.len(), len);
-            let dep_spec_ref = dep_spec.to_ref();
-            assert_eq!(&dep_spec, &dep_spec_ref);
-            assert_eq!(&dep_spec_ref, &dep_spec);
-            let dep_spec_owned = dep_spec_ref.into_owned();
-            assert_eq!(&dep_spec, &dep_spec_owned);
+            let dep = Dependency::required_use(s).unwrap();
+            assert!(!dep.is_empty());
+            assert_eq!(dep.len(), len);
+            let dep_ref = dep.to_ref();
+            assert_eq!(&dep, &dep_ref);
+            assert_eq!(&dep_ref, &dep);
+            let dep_owned = dep_ref.into_owned();
+            assert_eq!(&dep, &dep_owned);
+        }
+    }
+
+    #[test]
+    fn dep_iter() {
+        for (s, expected) in [
+            ("( ( a ) )", vec!["( a )"]),
+            ("a", vec![]),
+            ("!a", vec![]),
+            ("( a b )", vec!["a", "b"]),
+            ("( a !b )", vec!["a", "!b"]),
+            ("|| ( a b )", vec!["a", "b"]),
+            ("^^ ( a b )", vec!["a", "b"]),
+            ("?? ( a b )", vec!["a", "b"]),
+            ("u? ( a b )", vec!["a", "b"]),
+            ("u1? ( a !u2? ( b ) )", vec!["a", "!u2? ( b )"]),
+        ] {
+            let dep = Dependency::required_use(s).unwrap();
+            assert_ordered_eq!(dep.iter().map(|x| x.to_string()), expected);
+        }
+    }
+
+    #[test]
+    fn dep_iter_flatten() {
+        for (s, expected) in [
+            ("( ( a ) )", vec!["a"]),
+            ("a", vec!["a"]),
+            ("!a", vec!["a"]),
+            ("( a b )", vec!["a", "b"]),
+            ("( a !b )", vec!["a", "b"]),
+            ("|| ( a b )", vec!["a", "b"]),
+            ("^^ ( a b )", vec!["a", "b"]),
+            ("?? ( a b )", vec!["a", "b"]),
+            ("u? ( a b )", vec!["a", "b"]),
+            ("u1? ( a !u2? ( b ) )", vec!["a", "b"]),
+        ] {
+            let dep = Dependency::required_use(s).unwrap();
+            assert_ordered_eq!(dep.iter_flatten().map(|x| x.to_string()), expected, s);
+        }
+    }
+
+    #[test]
+    fn dep_iter_recursive() {
+        for (s, expected) in [
+            ("( ( a ) )", vec!["( ( a ) )", "( a )", "a"]),
+            ("a", vec!["a"]),
+            ("!a", vec!["!a"]),
+            ("( a b )", vec!["( a b )", "a", "b"]),
+            ("( a !b )", vec!["( a !b )", "a", "!b"]),
+            ("|| ( a b )", vec!["|| ( a b )", "a", "b"]),
+            ("^^ ( a b )", vec!["^^ ( a b )", "a", "b"]),
+            ("?? ( a b )", vec!["?? ( a b )", "a", "b"]),
+            ("u? ( a b )", vec!["u? ( a b )", "a", "b"]),
+            ("u1? ( a !u2? ( b ) )", vec!["u1? ( a !u2? ( b ) )", "a", "!u2? ( b )", "b"]),
+        ] {
+            let dep = Dependency::required_use(s).unwrap();
+            assert_ordered_eq!(dep.iter_recursive().map(|x| x.to_string()), expected, s);
+        }
+    }
+
+    #[test]
+    fn dep_iter_conditionals() {
+        for (s, expected) in [
+            ("u? ( a )", vec!["u?"]),
+            ("a", vec![]),
+            ("!a", vec![]),
+            ("( a b )", vec![]),
+            ("( a !b )", vec![]),
+            ("|| ( a b )", vec![]),
+            ("^^ ( a b )", vec![]),
+            ("?? ( a b )", vec![]),
+            ("u? ( a b )", vec!["u?"]),
+            ("u1? ( a !u2? ( b ) )", vec!["u1?", "!u2?"]),
+        ] {
+            let dep = Dependency::required_use(s).unwrap();
+            assert_ordered_eq!(dep.iter_conditionals().map(|x| x.to_string()), expected, s);
         }
     }
 
