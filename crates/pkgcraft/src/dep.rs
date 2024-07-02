@@ -1431,27 +1431,39 @@ mod tests {
     fn dep_contains() {
         let d = Dep::try_new("cat/pkg").unwrap();
         let target_dep = Dependency::package("cat/pkg", Default::default()).unwrap();
-        for s in ["( cat/pkg )", "u? ( cat/pkg )"] {
-            let dep = Dependency::package(s, Default::default()).unwrap();
-            let dep_ref = dep.to_ref();
+        let dep = Dependency::package("!u? ( cat/pkg )", Default::default()).unwrap();
+        let dep_ref = dep.to_ref();
 
-            // Dependency objects
-            assert!(dep.contains(&dep), "{dep} doesn't contain itself");
-            assert!(dep_ref.contains(&dep), "{dep_ref} doesn't contain itself");
-            assert!(dep.contains(&target_dep), "{dep} doesn't contain {target_dep}");
-            assert!(dep_ref.contains(&target_dep), "{dep_ref} doesn't contain {target_dep}");
+        // Dependency objects
+        assert!(dep.contains(&dep), "{dep} doesn't contain itself");
+        assert!(dep_ref.contains(&dep), "{dep_ref} doesn't contain itself");
+        assert!(dep.contains(&target_dep), "{dep} doesn't contain {target_dep}");
+        assert!(dep_ref.contains(&target_dep), "{dep_ref} doesn't contain {target_dep}");
 
-            // contains string types
-            let s = "cat/pkg".to_string();
-            assert!(dep.contains(s.as_str()), "{dep} doesn't contain {s}");
-            assert!(dep_ref.contains(s.as_str()), "{dep_ref} doesn't contain {s}");
-            assert!(dep.contains(s.clone()), "{dep} doesn't contain {s}");
-            assert!(dep_ref.contains(s.clone()), "{dep_ref} doesn't contain {s}");
+        // contains string types
+        let s = "cat/pkg".to_string();
+        assert!(dep.contains(s.as_str()), "{dep} doesn't contain {s}");
+        assert!(dep_ref.contains(s.as_str()), "{dep_ref} doesn't contain {s}");
+        assert!(dep.contains(s.clone()), "{dep} doesn't contain {s}");
+        assert!(dep_ref.contains(s.clone()), "{dep_ref} doesn't contain {s}");
 
-            // Dep objects
-            assert!(dep.contains(&d), "{dep} doesn't contain {d}");
-            assert!(dep_ref.contains(&d), "{dep_ref} doesn't contain {d}");
-        }
+        // Dep objects
+        assert!(dep.contains(&d), "{dep} doesn't contain {d}");
+        assert!(dep_ref.contains(&d), "{dep_ref} doesn't contain {d}");
+
+        // UseDep objects
+        let use_dep = UseDep::try_new("!u?").unwrap();
+        assert!(dep.contains(&use_dep), "{dep} doesn't contain {use_dep}");
+        assert!(dep_ref.contains(&use_dep), "{dep_ref} doesn't contain {use_dep}");
+
+        // string-based dependencies
+        let dep = Dependency::required_use("!u? ( a )").unwrap();
+        let dep_ref = dep.to_ref();
+        let s = "a".to_string();
+        assert!(dep.contains(s.as_str()), "{dep} doesn't contain {s}");
+        assert!(dep_ref.contains(s.as_str()), "{dep_ref} doesn't contain {s}");
+        assert!(dep.contains(s.clone()), "{dep} doesn't contain {s}");
+        assert!(dep_ref.contains(s.clone()), "{dep_ref} doesn't contain {s}");
     }
 
     #[test]
