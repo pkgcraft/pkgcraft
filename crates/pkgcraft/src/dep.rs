@@ -283,14 +283,11 @@ impl Dependency<Uri> {
     }
 }
 
-impl<T: Ordered> Contains<&Self> for Dependency<T> {
-    fn contains(&self, dep: &Self) -> bool {
-        self.iter_recursive().any(|x| x == dep)
-    }
-}
-
-impl<T: Ordered> Contains<&Dependency<&T>> for Dependency<T> {
-    fn contains(&self, dep: &Dependency<&T>) -> bool {
+impl<T1: Ordered, T2: Ordered> Contains<&Dependency<T1>> for Dependency<T2>
+where
+    Dependency<T2>: PartialEq<Dependency<T1>>,
+{
+    fn contains(&self, dep: &Dependency<T1>) -> bool {
         self.iter_recursive().any(|x| x == dep)
     }
 }
@@ -803,14 +800,11 @@ impl<T: Ordered> SubAssign<&Self> for DependencySet<T> {
     }
 }
 
-impl<T: Ordered> Contains<&Dependency<T>> for DependencySet<T> {
-    fn contains(&self, dep: &Dependency<T>) -> bool {
-        self.iter_recursive().any(|x| x == dep)
-    }
-}
-
-impl<T: Ordered> Contains<&Dependency<&T>> for DependencySet<T> {
-    fn contains(&self, dep: &Dependency<&T>) -> bool {
+impl<T1: Ordered, T2: Ordered> Contains<&Dependency<T1>> for DependencySet<T2>
+where
+    Dependency<T2>: PartialEq<Dependency<T1>>,
+{
+    fn contains(&self, dep: &Dependency<T1>) -> bool {
         self.iter_recursive().any(|x| x == dep)
     }
 }
