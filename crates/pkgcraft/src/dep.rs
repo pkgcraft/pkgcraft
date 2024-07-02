@@ -1082,6 +1082,23 @@ impl<'a, T: Ordered> Iterator for IterFlatten<'a, T> {
     }
 }
 
+impl<'a, T: Ordered> DoubleEndedIterator for IterFlatten<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        use Dependency::*;
+        while let Some(dep) = self.0.pop_back() {
+            match dep {
+                Enabled(val) | Disabled(val) => return Some(val),
+                AllOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
+                AnyOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
+                ExactlyOneOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
+                AtMostOneOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
+                Conditional(_, vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
+            }
+        }
+        None
+    }
+}
+
 #[derive(Debug)]
 pub struct IntoIter<T: Ordered>(Deque<Dependency<T>>);
 
@@ -1237,6 +1254,23 @@ impl<T: Ordered> Iterator for IntoIterFlatten<T> {
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
                 Conditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+            }
+        }
+        None
+    }
+}
+
+impl<T: Ordered> DoubleEndedIterator for IntoIterFlatten<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        use Dependency::*;
+        while let Some(dep) = self.0.pop_back() {
+            match dep {
+                Enabled(val) | Disabled(val) => return Some(val),
+                AllOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
+                AnyOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
+                ExactlyOneOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
+                AtMostOneOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
+                Conditional(_, vals) => self.0.extend(vals.into_iter().map(|x| *x)),
             }
         }
         None
@@ -1454,12 +1488,26 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["a", "!u2? ( b )"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
-            assert_ordered_eq!(dep.iter().map(|x| x.to_string()), expected.iter().copied());
+            // borrowed
+            assert_ordered_eq!(dep.iter().map(|x| x.to_string()), expected.iter().copied(), s);
+            // owned
+            assert_ordered_eq!(
+                dep.clone().into_iter().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            // borrowed and reversed
             assert_ordered_eq!(
                 dep.iter().rev().map(|x| x.to_string()),
-                expected.iter().rev().copied()
+                expected.iter().rev().copied(),
+                s
             );
-            assert_ordered_eq!(dep.into_iter().map(|x| x.to_string()), expected.iter().copied());
+            // owned and reversed
+            assert_ordered_eq!(
+                dep.clone().into_iter().rev().map(|x| x.to_string()),
+                expected.iter().rev().copied(),
+                s
+            );
         }
     }
 
@@ -1478,14 +1526,28 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["a", "b"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
+            // borrowed
             assert_ordered_eq!(
                 dep.iter_flatten().map(|x| x.to_string()),
                 expected.iter().copied(),
                 s
             );
+            // owned
             assert_ordered_eq!(
-                dep.into_iter_flatten().map(|x| x.to_string()),
+                dep.clone().into_iter_flatten().map(|x| x.to_string()),
                 expected.iter().copied(),
+                s
+            );
+            // borrowed and reversed
+            assert_ordered_eq!(
+                dep.iter_flatten().rev().map(|x| x.to_string()),
+                expected.iter().rev().copied(),
+                s
+            );
+            // owned and reversed
+            assert_ordered_eq!(
+                dep.clone().into_iter_flatten().rev().map(|x| x.to_string()),
+                expected.iter().rev().copied(),
                 s
             );
         }
@@ -1506,11 +1568,13 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["u1? ( a !u2? ( b ) )", "a", "!u2? ( b )", "b"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
+            // borrowed
             assert_ordered_eq!(
                 dep.iter_recursive().map(|x| x.to_string()),
                 expected.iter().copied(),
                 s
             );
+            // owned
             assert_ordered_eq!(
                 dep.into_iter_recursive().map(|x| x.to_string()),
                 expected.iter().copied(),
@@ -1534,11 +1598,13 @@ mod tests {
             ("u1? ( a !u2? ( b ) )", vec!["u1?", "!u2?"]),
         ] {
             let dep = Dependency::required_use(s).unwrap();
+            // borrowed
             assert_ordered_eq!(
                 dep.iter_conditionals().map(|x| x.to_string()),
                 expected.iter().copied(),
                 s
             );
+            // owned
             assert_ordered_eq!(
                 dep.into_iter_conditionals().map(|x| x.to_string()),
                 expected.iter().copied(),
