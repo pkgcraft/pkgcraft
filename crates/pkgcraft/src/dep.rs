@@ -1455,6 +1455,10 @@ mod tests {
         ] {
             let dep = Dependency::required_use(s).unwrap();
             assert_ordered_eq!(dep.iter().map(|x| x.to_string()), expected.iter().copied());
+            assert_ordered_eq!(
+                dep.iter().rev().map(|x| x.to_string()),
+                expected.iter().rev().copied()
+            );
             assert_ordered_eq!(dep.into_iter().map(|x| x.to_string()), expected.iter().copied());
         }
     }
