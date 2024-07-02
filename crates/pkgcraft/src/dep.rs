@@ -1722,6 +1722,90 @@ mod tests {
     }
 
     #[test]
+    fn dep_set_iter() {
+        for (s, expected) in [
+            ("( a ) b", vec!["( a )", "b"]),
+            ("a", vec!["a"]),
+            ("!a", vec!["!a"]),
+            ("( a b ) c", vec!["( a b )", "c"]),
+            ("( a !b ) c", vec!["( a !b )", "c"]),
+            ("|| ( a b ) c", vec!["|| ( a b )", "c"]),
+            ("^^ ( a b ) c", vec!["^^ ( a b )", "c"]),
+            ("?? ( a b ) c", vec!["?? ( a b )", "c"]),
+            ("u? ( a b ) c", vec!["u? ( a b )", "c"]),
+            ("u1? ( a !u2? ( b ) ) c", vec!["u1? ( a !u2? ( b ) )", "c"]),
+        ] {
+            let dep_set = DependencySet::required_use(s).unwrap();
+            // borrowed
+            assert_ordered_eq!(dep_set.iter().map(|x| x.to_string()), expected.iter().copied(), s);
+            // owned
+            assert_ordered_eq!(
+                dep_set.clone().into_iter().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            // borrowed and reversed
+            assert_ordered_eq!(
+                dep_set.iter().rev().map(|x| x.to_string()),
+                expected.iter().rev().copied(),
+                s
+            );
+            // owned and reversed
+            assert_ordered_eq!(
+                dep_set.clone().into_iter().rev().map(|x| x.to_string()),
+                expected.iter().rev().copied(),
+                s
+            );
+        }
+    }
+
+    #[test]
+    fn dep_set_iter_flatten() {
+        for (s, expected) in [
+            ("( a ) b", vec!["a", "b"]),
+            ("a", vec!["a"]),
+            ("!a", vec!["a"]),
+            ("( a b ) c", vec!["a", "b", "c"]),
+            ("( a !b ) c", vec!["a", "b", "c"]),
+            ("|| ( a b ) c", vec!["a", "b", "c"]),
+            ("^^ ( a b ) c", vec!["a", "b", "c"]),
+            ("?? ( a b ) c", vec!["a", "b", "c"]),
+            ("u? ( a b ) c", vec!["a", "b", "c"]),
+            ("u1? ( a !u2? ( b ) ) c", vec!["a", "b", "c"]),
+        ] {
+            let dep_set = DependencySet::required_use(s).unwrap();
+            // borrowed
+            assert_ordered_eq!(
+                dep_set.iter_flatten().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            // owned
+            assert_ordered_eq!(
+                dep_set.clone().into_iter_flatten().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
+            // borrowed and reversed
+            assert_ordered_eq!(
+                dep_set.iter_flatten().rev().map(|x| x.to_string()),
+                expected.iter().rev().copied(),
+                s
+            );
+            // owned and reversed
+            assert_ordered_eq!(
+                dep_set
+                    .clone()
+                    .into_iter_flatten()
+                    .rev()
+                    .map(|x| x.to_string()),
+                expected.iter().rev().copied(),
+                s
+            );
+        }
+    }
+
+    #[test]
     fn dep_set_sort() {
         // dependencies
         for (s, expected) in [
