@@ -1378,9 +1378,9 @@ mod tests {
 
     #[test]
     fn dep_contains() {
-        let d = Dep::try_new("cat/pkg").unwrap();
-        let target_dep = Dependency::package("cat/pkg", Default::default()).unwrap();
-        let dep = Dependency::package("!u? ( cat/pkg )", Default::default()).unwrap();
+        let d = Dep::try_new("a/b").unwrap();
+        let target_dep = Dependency::package("a/b", Default::default()).unwrap();
+        let dep = Dependency::package("!u? ( a/b )", Default::default()).unwrap();
         let dep_ref = dep.to_ref();
 
         // Dependency objects
@@ -1390,7 +1390,7 @@ mod tests {
         assert!(dep_ref.contains(&target_dep), "{dep_ref} doesn't contain {target_dep}");
 
         // contains string types
-        let s = "cat/pkg".to_string();
+        let s = "a/b".to_string();
         assert!(dep.contains(s.as_str()), "{dep} doesn't contain {s}");
         assert!(dep_ref.contains(s.as_str()), "{dep_ref} doesn't contain {s}");
         assert!(dep.contains(s.clone()), "{dep} doesn't contain {s}");
@@ -1405,7 +1405,7 @@ mod tests {
         assert!(dep.contains(&use_dep), "{dep} doesn't contain {use_dep}");
         assert!(dep_ref.contains(&use_dep), "{dep_ref} doesn't contain {use_dep}");
 
-        // string-based dependencies
+        // string-based Dependency
         let dep = Dependency::required_use("!u? ( a )").unwrap();
         let dep_ref = dep.to_ref();
         let s = "a".to_string();
@@ -1590,6 +1590,43 @@ mod tests {
     }
 
     #[test]
+    fn dep_set_contains() {
+        let d = Dep::try_new("a/b").unwrap();
+        let target_dep = Dependency::package("c/d", Default::default()).unwrap();
+        let dep_set = DependencySet::package("a/b !u? ( c/d )", Default::default()).unwrap();
+        let dep_set_ref = dep_set.to_ref();
+
+        // Dependency objects
+        assert!(dep_set.contains(&target_dep), "{dep_set} doesn't contain {target_dep}");
+        assert!(dep_set_ref.contains(&target_dep), "{dep_set_ref} doesn't contain {target_dep}");
+
+        // contains string types
+        let s = "c/d".to_string();
+        assert!(dep_set.contains(s.as_str()), "{dep_set} doesn't contain {s}");
+        assert!(dep_set_ref.contains(s.as_str()), "{dep_set_ref} doesn't contain {s}");
+        assert!(dep_set.contains(s.clone()), "{dep_set} doesn't contain {s}");
+        assert!(dep_set_ref.contains(s.clone()), "{dep_set_ref} doesn't contain {s}");
+
+        // Dep objects
+        assert!(dep_set.contains(&d), "{dep_set} doesn't contain {d}");
+        assert!(dep_set_ref.contains(&d), "{dep_set_ref} doesn't contain {d}");
+
+        // UseDep objects
+        let use_dep = UseDep::try_new("!u?").unwrap();
+        assert!(dep_set.contains(&use_dep), "{dep_set} doesn't contain {use_dep}");
+        assert!(dep_set_ref.contains(&use_dep), "{dep_set_ref} doesn't contain {use_dep}");
+
+        // string-based DependencySet
+        let dep_set = DependencySet::required_use("a !u? ( b )").unwrap();
+        let dep_set_ref = dep_set.to_ref();
+        let s = "b".to_string();
+        assert!(dep_set.contains(s.as_str()), "{dep_set} doesn't contain {s}");
+        assert!(dep_set_ref.contains(s.as_str()), "{dep_set_ref} doesn't contain {s}");
+        assert!(dep_set.contains(s.clone()), "{dep_set} doesn't contain {s}");
+        assert!(dep_set_ref.contains(s.clone()), "{dep_set_ref} doesn't contain {s}");
+    }
+
+    #[test]
     fn dep_set_to_ref_and_into_owned() {
         for (s, len) in [
             ("", 0),
@@ -1611,17 +1648,6 @@ mod tests {
             assert_eq!(&dep_set_ref, &dep_set);
             let dep_set_owned = dep_set_ref.into_owned();
             assert_eq!(&dep_set, &dep_set_owned);
-        }
-    }
-
-    #[test]
-    fn dep_set_contains() {
-        let d = Dep::try_new("cat/pkg").unwrap();
-        let dep = Dependency::package("cat/pkg", Default::default()).unwrap();
-        for s in ["cat/pkg", "a/b cat/pkg"] {
-            let dep_set = DependencySet::package(s, Default::default()).unwrap();
-            assert!(dep_set.contains(&d), "{dep_set} doesn't contain {d}");
-            assert!(dep_set.contains(&dep), "{dep_set} doesn't contain {dep}");
         }
     }
 
