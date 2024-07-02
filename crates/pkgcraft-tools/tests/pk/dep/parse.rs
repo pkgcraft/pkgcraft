@@ -68,7 +68,7 @@ fn format() {
             (["{PVR}", "=cat/pkg-1-r2"], "1-r2"),
             (["{CPN}", "cat/pkg"], "cat/pkg"),
             (["{CPN}", "=cat/pkg-1-r2"], "cat/pkg"),
-            (["{CPV}", "cat/pkg"], "cat/pkg"),
+            (["{CPV}", "cat/pkg"], "<unset>"),
             (["{CPV}", "=cat/pkg-1-r2"], "cat/pkg-1-r2"),
             (["{OP}", "cat/pkg"], "<unset>"),
             (["{OP}", "=cat/pkg-1-r2"], "="),
