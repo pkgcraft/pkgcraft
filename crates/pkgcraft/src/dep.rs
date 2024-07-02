@@ -1364,6 +1364,19 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dep_variants() {
+        // Dependency<Dep>
+        Dependency::package("a/b", Default::default()).unwrap();
+        // Dependency<String>
+        Dependency::license("a").unwrap();
+        Dependency::properties("a").unwrap();
+        Dependency::required_use("a").unwrap();
+        Dependency::restrict("a").unwrap();
+        // Dependency<Uri>
+        Dependency::src_uri("https://uri").unwrap();
+    }
+
+    #[test]
     fn dep_contains() {
         let d = Dep::try_new("cat/pkg").unwrap();
         let target_dep = Dependency::package("cat/pkg", Default::default()).unwrap();
@@ -1561,6 +1574,19 @@ mod tests {
             dep.sort();
             assert_eq!(dep.to_string(), expected);
         }
+    }
+
+    #[test]
+    fn dep_set_variants() {
+        // DependencySet<Dep>
+        DependencySet::package("a/b c/d", Default::default()).unwrap();
+        // DependencySet<String>
+        DependencySet::license("a b").unwrap();
+        DependencySet::properties("a b").unwrap();
+        DependencySet::required_use("a b").unwrap();
+        DependencySet::restrict("a b").unwrap();
+        // DependencySet<Uri>
+        DependencySet::src_uri("https://uri1 https://uri2").unwrap();
     }
 
     #[test]
