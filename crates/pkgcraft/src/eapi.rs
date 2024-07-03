@@ -940,7 +940,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid() {
+    fn parse() {
         assert!(Eapi::parse("1.2.3").is_ok());
         assert!(Eapi::parse("_").is_ok());
         assert!(Eapi::parse("+5").is_err());
@@ -948,14 +948,14 @@ mod tests {
     }
 
     #[test]
-    fn test_from_str() {
+    fn from_str() {
         assert!(<&Eapi>::from_str("-invalid").is_err());
         assert!(<&Eapi>::from_str("unknown").is_err());
         assert_eq!(<&Eapi>::from_str("8").unwrap(), &*EAPI8);
     }
 
     #[test]
-    fn test_ordering() {
+    fn cmp() {
         assert!(**EAPI_LATEST_OFFICIAL < **EAPI_LATEST);
         assert!(*EAPI8 <= *EAPI8);
         assert!(*EAPI8 == *EAPI8);
@@ -964,13 +964,13 @@ mod tests {
     }
 
     #[test]
-    fn test_has() {
+    fn has() {
         assert!(!EAPI_LATEST_OFFICIAL.has(Feature::RepoIds));
         assert!(EAPI_LATEST_OFFICIAL.has(Feature::UsevTwoArgs));
     }
 
     #[test]
-    fn test_dep_parsing() {
+    fn dep_parsing() {
         let dep = EAPI_LATEST_OFFICIAL.dep("cat/pkg").unwrap();
         assert_eq!(dep.category(), "cat");
         assert_eq!(dep.package(), "pkg");
@@ -989,7 +989,7 @@ mod tests {
     }
 
     #[test]
-    fn test_try_from() {
+    fn try_from() {
         assert_eq!(&*EAPI8, TryInto::<&'static Eapi>::try_into(&*EAPI8).unwrap());
         assert_eq!(&*EAPI8, TryInto::<&'static Eapi>::try_into("8").unwrap());
 
@@ -1010,7 +1010,7 @@ mod tests {
     }
 
     #[test]
-    fn test_range() {
+    fn eapi_range() {
         // invalid
         for s in ["", "1", "1..=", "..=", "...", "0-", "-1..", "1..9999", "..=unknown"] {
             let r = range(s);
