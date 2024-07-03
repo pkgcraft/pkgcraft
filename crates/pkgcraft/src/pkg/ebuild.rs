@@ -60,13 +60,13 @@ pub struct Pkg<'a> {
     manifest: OnceLock<Arc<Manifest>>,
 }
 
+make_pkg_traits!(Pkg<'_>);
+
 impl fmt::Debug for Pkg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Pkg {{ {}::{} }}", self.cpv, self.repo)
+        write!(f, "Pkg {{ {self} }}")
     }
 }
-
-make_pkg_traits!(Pkg<'_>);
 
 impl<'a> TryFrom<raw::Pkg<'a>> for Pkg<'a> {
     type Error = Error;

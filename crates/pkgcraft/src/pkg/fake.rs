@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::dep::{Cpv, Dep};
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::macros::bool_not_equal;
@@ -9,13 +11,19 @@ use crate::traits::Intersects;
 
 use super::{make_pkg_traits, Package, RepoPackage};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Pkg<'a> {
     cpv: Cpv,
     repo: &'a Repo,
 }
 
 make_pkg_traits!(Pkg<'_>);
+
+impl fmt::Debug for Pkg<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Pkg {{ {self} }}")
+    }
+}
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(cpv: &'a Cpv, repo: &'a Repo) -> Self {

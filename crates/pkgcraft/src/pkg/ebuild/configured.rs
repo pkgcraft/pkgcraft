@@ -1,3 +1,4 @@
+use std::fmt;
 use std::sync::OnceLock;
 
 use crate::config::Settings;
@@ -14,7 +15,7 @@ use crate::types::OrderedSet;
 use super::metadata::Key;
 use super::EbuildPackage;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Pkg<'a> {
     repo: &'a Repo,
     settings: &'a Settings,
@@ -39,6 +40,12 @@ impl<'a> From<&'a Pkg<'a>> for &'a super::Pkg<'a> {
 }
 
 make_pkg_traits!(Pkg<'_>);
+
+impl fmt::Debug for Pkg<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Pkg {{ {self} }}")
+    }
+}
 
 impl<'a> Pkg<'a> {
     pub(crate) fn new(repo: &'a Repo, settings: &'a Settings, raw: super::Pkg<'a>) -> Self {

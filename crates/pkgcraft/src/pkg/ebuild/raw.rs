@@ -26,7 +26,7 @@ make_pkg_traits!(Pkg<'_>);
 
 impl fmt::Debug for Pkg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Pkg {{ {}::{} }}", self.cpv, self.repo.id())
+        write!(f, "Pkg {{ {self} }}")
     }
 }
 
