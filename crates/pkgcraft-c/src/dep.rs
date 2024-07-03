@@ -795,12 +795,28 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_get_index(
     }
 }
 
-/// Recursively sort a DependencySet.
+/// Sort a DependencySet.
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_dependency_set_sort(d: *mut DependencySet) {
+    let set = try_mut_from_ptr!(d);
+
+    use DependencySetWrapper::*;
+    match set.deref_mut() {
+        Dep(deps) => deps.sort(),
+        String(deps) => deps.sort(),
+        Uri(deps) => deps.sort(),
+    }
+}
+
+/// Recursively sort a DependencySet.
+///
+/// # Safety
+/// The argument must be a valid DependencySet pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_set_sort_recursive(d: *mut DependencySet) {
     let set = try_mut_from_ptr!(d);
 
     use DependencySetWrapper::*;
