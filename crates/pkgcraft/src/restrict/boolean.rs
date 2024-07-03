@@ -140,7 +140,7 @@ mod tests {
     use crate::restrict::{Restrict as BaseRestrict, Restriction};
 
     #[test]
-    fn test_and_restrict() {
+    fn and() {
         let d = Dep::try_new("cat/pkg").unwrap();
         let cat = DepRestrict::category("cat");
         let pkg = DepRestrict::package("pkg");
@@ -162,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn test_or_restrict() {
+    fn or() {
         let d = Dep::try_new("cat/pkg").unwrap();
         let cat = DepRestrict::category("cat");
         let pkg = DepRestrict::package("pkg");
@@ -184,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn test_xor_restrict() {
+    fn xor() {
         let d = Dep::try_new("cat/pkg").unwrap();
 
         let cat = DepRestrict::category("cat");
@@ -229,7 +229,7 @@ mod tests {
     }
 
     #[test]
-    fn test_not_restrict() {
+    fn not() {
         let d = Dep::try_new("cat/pkg").unwrap();
         let r: BaseRestrict = DepRestrict::category("cat1").into();
 

@@ -274,7 +274,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ebuild() {
+    fn ebuild() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -310,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn test_description() {
+    fn description() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -337,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn test_slot() {
+    fn slot() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -361,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    fn test_subslot() {
+    fn subslot() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -390,7 +390,7 @@ mod tests {
     }
 
     #[test]
-    fn test_long_description() {
+    fn long_description() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -440,7 +440,7 @@ mod tests {
     }
 
     #[test]
-    fn test_maintainers() {
+    fn maintainers() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 

@@ -263,7 +263,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_filtering() {
+    fn filtering() {
         let dep_strs = vec![
             "cat/pkg",
             "cat-abc/pkg2",

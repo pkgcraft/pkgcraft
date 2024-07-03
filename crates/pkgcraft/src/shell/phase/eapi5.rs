@@ -68,11 +68,10 @@ mod tests {
     use crate::eapi;
     use crate::pkg::Build;
     use crate::shell::test::FileTree;
-
-    use super::*;
+    use crate::shell::BuildData;
 
     #[test]
-    fn test_src_install() {
+    fn src_install() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 

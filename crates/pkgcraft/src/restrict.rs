@@ -96,7 +96,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_filtering() {
+    fn filtering() {
         let dep_strs = vec!["cat/pkg", ">=cat/pkg-1", "=cat/pkg-1:2/3::repo"];
         let deps: Vec<_> = dep_strs.iter().map(|s| s.parse().unwrap()).collect();
 

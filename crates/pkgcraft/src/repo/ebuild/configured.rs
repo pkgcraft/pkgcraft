@@ -193,7 +193,7 @@ mod tests {
     use crate::restrict::dep::Restrict as DepRestrict;
 
     #[test]
-    fn test_iter() {
+    fn iter() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
         let configured = repo.configure(&config);
@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iter_restrict() {
+    fn iter_restrict() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
         let configured = repo.configure(&config);

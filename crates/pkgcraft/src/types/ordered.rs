@@ -445,7 +445,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ordered_set() {
+    fn ordered_set() {
         // different elements
         let s1 = OrderedSet::from(["a"]);
         let s2 = OrderedSet::from(["b"]);
@@ -472,7 +472,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sorted_set() {
+    fn sorted_set() {
         // different elements
         let s1 = SortedSet::from(["a"]);
         let s2 = SortedSet::from(["b"]);

@@ -47,13 +47,13 @@ mod tests {
     // TODO: run builds with tests and verify file modifications
 
     #[test]
-    fn test_include() {
+    fn include() {
         docompress(&["/test/path"]).unwrap();
         assert!(get_build_mut().compress_include.contains("/test/path"));
     }
 
     #[test]
-    fn test_exclude() {
+    fn exclude() {
         docompress(&["-x", "/test/path"]).unwrap();
         assert!(get_build_mut().compress_exclude.contains("/test/path"));
     }

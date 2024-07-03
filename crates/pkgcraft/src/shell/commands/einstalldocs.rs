@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn test_no_files() {
+    fn no_files() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
@@ -126,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn test_default_files_empty() {
+    fn default_files_empty() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
@@ -140,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn test_default_files() {
+    fn default_files() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
@@ -161,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    fn test_default_files_globs() {
+    fn default_files_globs() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn test_docs_array() {
+    fn docs_array() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_docs_string() {
+    fn docs_string() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_html_docs_array() {
+    fn html_docs_array() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_html_docs_string() {
+    fn html_docs_string() {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);

@@ -711,7 +711,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_traits() {
+    fn traits() {
         let ebuild_repo = ebuild::temp::Repo::new("test", None, 0, None).unwrap();
         let e_repo = (&ebuild_repo).into();
         let f_repo: Repo = fake::Repo::new("fake", 0).into();

@@ -47,13 +47,13 @@ mod tests {
     // TODO: run builds with tests and verify file modifications
 
     #[test]
-    fn test_include() {
+    fn include() {
         dostrip(&["/test/path"]).unwrap();
         assert!(get_build_mut().strip_include.contains("/test/path"));
     }
 
     #[test]
-    fn test_exclude() {
+    fn exclude() {
         dostrip(&["-x", "/test/path"]).unwrap();
         assert!(get_build_mut().strip_exclude.contains("/test/path"));
     }

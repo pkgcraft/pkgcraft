@@ -362,7 +362,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_cmp_traits() {
+    fn cmp() {
         let s1 = RepoSet::new();
         let s2 = RepoSet::new();
         assert_eq!(s1, s2);
@@ -387,7 +387,7 @@ mod tests {
     }
 
     #[test]
-    fn test_repos() {
+    fn repos() {
         let s = RepoSet::new();
         assert!(s.repos.is_empty());
 
@@ -407,7 +407,7 @@ mod tests {
     }
 
     #[test]
-    fn test_repo_traits() {
+    fn repo_traits() {
         let mut config = Config::default();
         let ebuild_repo = config.temp_repo("test", 0, None).unwrap();
         let fake_repo = fake::Repo::new("fake", 0);
@@ -477,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn test_set_ops() {
+    fn set_ops() {
         let cpv1 = Cpv::try_new("cat/pkg-1").unwrap();
         let cpv2 = Cpv::try_new("cat/pkg-2").unwrap();
         let cpv3 = Cpv::try_new("cat/pkg-3").unwrap();

@@ -35,13 +35,11 @@ mod tests {
     use crate::eapi;
     use crate::macros::assert_err_re;
     use crate::pkg::Build;
-    use crate::shell::get_build_mut;
     use crate::shell::test::FileTree;
-
-    use super::*;
+    use crate::shell::{get_build_mut, BuildData};
 
     #[test]
-    fn test_src_prepare() {
+    fn src_prepare() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -114,7 +112,7 @@ mod tests {
     }
 
     #[test]
-    fn test_src_install() {
+    fn src_install() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 

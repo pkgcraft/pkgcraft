@@ -680,7 +680,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_config() {
+    fn config() {
         // empty config
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
@@ -704,7 +704,7 @@ mod tests {
     }
 
     #[test]
-    fn test_config_settings() {
+    fn config_settings() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -731,7 +731,7 @@ mod tests {
     }
 
     #[test]
-    fn test_arches() {
+    fn arches() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -757,7 +757,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_arches_desc() {
+    fn arches_desc() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -806,7 +806,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_categories() {
+    fn categories() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -837,7 +837,7 @@ mod tests {
     }
 
     #[test]
-    fn test_eclasses() {
+    fn eclasses() {
         let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
         // uninherited eclasses
         assert_ordered_eq!(repo.metadata.eclasses().iter().map(|e| e.name()), ["b", "c"]);
@@ -846,7 +846,7 @@ mod tests {
     }
 
     #[test]
-    fn test_licenses() {
+    fn licenses() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -868,7 +868,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_license_groups() {
+    fn license_groups() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -936,7 +936,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mirrors() {
+    fn mirrors() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -971,7 +971,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_pkg_deprecated() {
+    fn pkg_deprecated() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test1", 0, None).unwrap();
 
@@ -1022,7 +1022,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_pkg_mask() {
+    fn pkg_mask() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test1", 0, None).unwrap();
 
@@ -1073,7 +1073,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_updates() {
+    fn updates() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -1111,7 +1111,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_use_global() {
+    fn use_global() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 
@@ -1144,7 +1144,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_use_local() {
+    fn use_local() {
         let mut config = crate::config::Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
 

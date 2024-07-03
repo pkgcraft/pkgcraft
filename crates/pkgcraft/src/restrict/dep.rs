@@ -248,7 +248,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_restrict_methods() {
+    fn methods() {
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         let blocker = Dep::try_new("!cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
@@ -369,7 +369,7 @@ mod tests {
     }
 
     #[test]
-    fn test_restrict_conversion() {
+    fn conversion() {
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let dep = Dep::try_new("=cat/pkg-1:2/3::repo[u1,u2]").unwrap();
@@ -405,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn test_restrict_versions() {
+    fn versions() {
         let lt = Dep::try_new("<cat/pkg-1-r1").unwrap();
         let le = Dep::try_new("<=cat/pkg-1-r1").unwrap();
         let eq = Dep::try_new("=cat/pkg-1-r1").unwrap();

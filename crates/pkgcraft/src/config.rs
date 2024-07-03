@@ -342,7 +342,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_config() {
+    fn config() {
         env::set_var("XDG_CACHE_HOME", "/cache");
         env::set_var("XDG_CONFIG_HOME", "/config");
         env::set_var("XDG_RUNTIME_DIR", "/run/user/4321");
@@ -386,7 +386,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn test_load_portage_conf() {
+    fn load_portage_conf() {
         let mut config = Config::new("pkgcraft", "");
         let tmpdir = tempdir().unwrap();
         let conf_path = tmpdir.path().to_str().unwrap();

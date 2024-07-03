@@ -157,7 +157,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_contains() {
+    fn contains() {
         let repo = Repo::new("empty", 0);
 
         // path
@@ -173,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iter() {
+    fn iter() {
         let repo = Repo::new("empty", 0);
         assert!(repo.iter().next().is_none());
     }
