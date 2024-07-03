@@ -283,13 +283,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_id() {
+    fn id() {
         let repo = Repo::new("fake", 0);
         assert_eq!(repo.id(), "fake");
     }
 
     #[test]
-    fn test_categories() {
+    fn categories() {
         let mut repo = Repo::new("fake", 0);
         // empty repo
         assert!(repo.categories().is_empty());
@@ -299,7 +299,7 @@ mod tests {
     }
 
     #[test]
-    fn test_packages() {
+    fn packages() {
         let mut repo: Repo;
         // empty repo
         repo = Repo::new("fake", 0);
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn test_versions() {
+    fn versions() {
         let ver = |s: &str| Version::try_new(s).unwrap();
         let mut repo: Repo;
         // empty repo
@@ -326,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_len() {
+    fn len() {
         let mut repo = Repo::new("fake", 0);
         assert_eq!(repo.len(), 0);
         repo.extend(["cat/pkg-0"]);
@@ -336,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn test_extend() {
+    fn extend() {
         let mut repo = Repo::new("fake", 0).pkgs(["cat/pkg-2"]);
         let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
         assert_eq!(cpvs, ["cat/pkg-2"]);
@@ -353,7 +353,7 @@ mod tests {
     }
 
     #[test]
-    fn test_contains() {
+    fn contains() {
         let repo = Repo::new("fake", 0).pkgs(["cat/pkg-0"]);
 
         // path is always false due to fake repo
@@ -373,7 +373,7 @@ mod tests {
     }
 
     #[test]
-    fn test_iter() {
+    fn iter() {
         let repo = Repo::new("fake", 0).pkgs(["cat/pkg-0", "acat/bpkg-1"]);
         let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
         assert_eq!(cpvs, ["acat/bpkg-1", "cat/pkg-0"]);
