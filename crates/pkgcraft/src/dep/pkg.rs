@@ -131,12 +131,12 @@ impl SlotDep {
         parse::slot_dep(s)
     }
 
-    /// Return the slot.
+    /// Return the slot if it exists.
     pub fn slot(&self) -> Option<&Slot> {
         self.slot.as_ref()
     }
 
-    /// Return the slot operator.
+    /// Return the slot operator if it exists.
     pub fn op(&self) -> Option<SlotOperator> {
         self.op
     }
@@ -409,27 +409,27 @@ impl Dep {
         self.cpn.package()
     }
 
-    /// Return a package dependency's blocker.
+    /// Return a package dependency's blocker if it exists.
     pub fn blocker(&self) -> Option<Blocker> {
         self.blocker
     }
 
-    /// Return a package dependency's USE flag dependencies.
+    /// Return a package dependency's USE flag dependencies if it exists.
     pub fn use_deps(&self) -> Option<&SortedSet<UseDep>> {
         self.use_deps.as_ref()
     }
 
-    /// Return a package dependency's version.
+    /// Return a package dependency's version if it exists.
     pub fn version(&self) -> Option<&Version> {
         self.version.as_ref()
     }
 
-    /// Return a package dependency's revision.
+    /// Return a package dependency's revision if it exists.
     pub fn revision(&self) -> Option<&Revision> {
         self.version().and_then(|v| v.revision())
     }
 
-    /// Return a package dependency's version operator.
+    /// Return a package dependency's version operator if it exists.
     pub fn op(&self) -> Option<Operator> {
         self.version().and_then(|v| v.op())
     }
@@ -485,12 +485,12 @@ impl Dep {
         })
     }
 
-    /// Return a package dependency's slot dependency.
+    /// Return a package dependency's slot dependency if it exists.
     pub fn slot_dep(&self) -> Option<&SlotDep> {
         self.slot_dep.as_ref()
     }
 
-    /// Return a package dependency's slot.
+    /// Return a package dependency's slot if it exists.
     pub fn slot(&self) -> Option<&str> {
         self.slot_dep
             .as_ref()
@@ -498,7 +498,7 @@ impl Dep {
             .map(|s| s.slot())
     }
 
-    /// Return a package dependency's subslot.
+    /// Return a package dependency's subslot if it exists.
     pub fn subslot(&self) -> Option<&str> {
         self.slot_dep
             .as_ref()
@@ -506,12 +506,12 @@ impl Dep {
             .and_then(|s| s.subslot())
     }
 
-    /// Return a package dependency's slot operator.
+    /// Return a package dependency's slot operator if it exists.
     pub fn slot_op(&self) -> Option<SlotOperator> {
         self.slot_dep.as_ref().and_then(|s| s.op)
     }
 
-    /// Return a package dependency's repository.
+    /// Return a package dependency's repository if it exists.
     pub fn repo(&self) -> Option<&str> {
         self.repo.as_ref().map(|s| s.as_ref())
     }
