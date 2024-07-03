@@ -105,6 +105,7 @@ mod tests {
     use itertools::Itertools;
 
     use crate::repo::PkgRepository;
+    use crate::restrict;
     use crate::test::assert_ordered_eq;
 
     use super::*;
@@ -151,5 +152,27 @@ mod tests {
             let dep: Dep = s.parse().unwrap();
             assert_eq!(pkg.intersects(&dep), expected, "failed for {s}");
         }
+    }
+
+    #[test]
+    fn restrict() {
+        let repo = Repo::new("test", 0).pkgs(["cat/pkg-1"]);
+        let pkg = repo.iter().next().unwrap();
+
+        // eapi
+        let r = pkg::Restrict::eapi("0");
+        assert!(!r.matches(&pkg));
+        let r = pkg::Restrict::eapi(EAPI_LATEST_OFFICIAL.as_str());
+        assert!(r.matches(&pkg));
+
+        // repo
+        let r = pkg::Restrict::repo("repo");
+        assert!(!r.matches(&pkg));
+        let r = pkg::Restrict::repo("test");
+        assert!(r.matches(&pkg));
+
+        // ebuild restriction
+        let r = restrict::parse::pkg("maintainers is none").unwrap();
+        assert!(!r.matches(&pkg));
     }
 }
