@@ -342,7 +342,7 @@ impl Eapi {
     {
         for b in commands {
             if !self.commands.remove(&b) {
-                panic!("EAPI {self}: disabling unset builtin: {b}");
+                unreachable!("EAPI {self}: disabling unset builtin: {b}");
             }
         }
         self
@@ -355,7 +355,7 @@ impl Eapi {
     {
         for f in features {
             if !self.features.insert(f) {
-                panic!("EAPI {self}: enabling set feature: {f:?}");
+                unreachable!("EAPI {self}: enabling set feature: {f:?}");
             }
         }
         self
@@ -368,7 +368,7 @@ impl Eapi {
     {
         for f in features {
             if !self.features.remove(&f) {
-                panic!("EAPI {self}: disabling unset feature: {f:?}");
+                unreachable!("EAPI {self}: disabling unset feature: {f:?}");
             }
         }
         self
@@ -464,7 +464,7 @@ impl Eapi {
     fn disable_archives(mut self, types: &[&str]) -> Self {
         for x in types {
             if !self.archives.swap_remove(*x) {
-                panic!("EAPI {self}: disabling unknown archive format: {x:?}");
+                unreachable!("EAPI {self}: disabling unknown archive format: {x:?}");
             }
         }
         self
@@ -486,7 +486,7 @@ impl Eapi {
     fn disable_env<I: IntoIterator<Item = Variable>>(mut self, variables: I) -> Self {
         for var in variables {
             if !self.env.remove(&var) {
-                panic!("EAPI {self}: disabling unregistered variable: {var}");
+                unreachable!("EAPI {self}: disabling unregistered variable: {var}");
             }
         }
         self
