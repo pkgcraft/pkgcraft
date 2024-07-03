@@ -246,10 +246,9 @@ impl<T: Ordered> Dependency<T> {
 
     /// Recursively sort a `Dependency`.
     pub fn sort(&mut self) {
-        use Dependency::*;
         match self {
-            AllOf(vals) => *vals = sort_set!(vals).collect(),
-            Conditional(_, vals) => *vals = sort_set!(vals).collect(),
+            Self::AllOf(vals) => *vals = sort_set!(vals).collect(),
+            Self::Conditional(_, vals) => *vals = sort_set!(vals).collect(),
             _ => (),
         }
     }
