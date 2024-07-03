@@ -1840,6 +1840,39 @@ mod tests {
     }
 
     #[test]
+    fn dep_set_sort() {
+        // dependencies
+        for (s, expected) in [
+            ("c/d a/b", "a/b c/d"),
+            ("( c/d a/b ) z/z", "z/z ( c/d a/b )"),
+            ("|| ( c/d a/b ) z/z", "z/z || ( c/d a/b )"),
+            ("u? ( c/d a/b ) z/z", "z/z u? ( c/d a/b )"),
+            ("!u? ( c/d a/b ) z/z", "z/z !u? ( c/d a/b )"),
+        ] {
+            let mut set = DependencySet::package(s, Default::default()).unwrap();
+            set.sort();
+            assert_eq!(set.to_string(), expected);
+        }
+
+        // REQUIRED_USE
+        for (s, expected) in [
+            ("b a", "a b"),
+            ("b !a", "b !a"),
+            ("( b a ) z", "z ( b a )"),
+            ("( b !a ) z", "z ( b !a )"),
+            ("|| ( b a ) z", "z || ( b a )"),
+            ("^^ ( b a ) z", "z ^^ ( b a )"),
+            ("?? ( b a ) z", "z ?? ( b a )"),
+            ("u? ( b a ) z", "z u? ( b a )"),
+            ("!u? ( b a ) z", "z !u? ( b a )"),
+        ] {
+            let mut set = DependencySet::required_use(s).unwrap();
+            set.sort();
+            assert_eq!(set.to_string(), expected);
+        }
+    }
+
+    #[test]
     fn dep_set_sort_recursive() {
         // dependencies
         for (s, expected) in [
