@@ -237,11 +237,6 @@ impl<'a> Pkg<'a> {
         &self.meta.inherited
     }
 
-    /// Return the checksum for a package.
-    pub fn chksum(&self) -> &str {
-        &self.meta.chksum
-    }
-
     /// Return a package's XML metadata.
     fn xml(&self) -> &xml::Metadata {
         self.xml
