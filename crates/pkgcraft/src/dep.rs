@@ -1840,7 +1840,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_set_sort() {
+    fn dep_set_sort_recursive() {
         // dependencies
         for (s, expected) in [
             ("c/d a/b", "a/b c/d"),
@@ -1850,7 +1850,7 @@ mod tests {
             ("!u? ( c/d a/b ) z/z", "z/z !u? ( a/b c/d )"),
         ] {
             let mut set = DependencySet::package(s, Default::default()).unwrap();
-            set.sort();
+            set.sort_recursive();
             assert_eq!(set.to_string(), expected);
         }
 
@@ -1867,7 +1867,7 @@ mod tests {
             ("!u? ( b a ) z", "z !u? ( a b )"),
         ] {
             let mut set = DependencySet::required_use(s).unwrap();
-            set.sort();
+            set.sort_recursive();
             assert_eq!(set.to_string(), expected);
         }
     }
