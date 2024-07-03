@@ -338,18 +338,25 @@ mod tests {
     #[test]
     fn extend() {
         let mut repo = Repo::new("fake", 0).pkgs(["cat/pkg-2"]);
-        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
-        assert_eq!(cpvs, ["cat/pkg-2"]);
+        assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-2"]);
 
         // add single cpv
         repo.extend(["cat/pkg-0"]);
-        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
-        assert_eq!(cpvs, ["cat/pkg-0", "cat/pkg-2"]);
+        assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-0", "cat/pkg-2"]);
 
         // add multiple cpvs
         repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
-        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
-        assert_eq!(cpvs, ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]);
+        assert_ordered_eq!(
+            repo.iter().map(|x| x.cpv().to_string()),
+            ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]
+        );
+
+        // re-add existing cpvs
+        repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
+        assert_ordered_eq!(
+            repo.iter().map(|x| x.cpv().to_string()),
+            ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]
+        );
     }
 
     #[test]
