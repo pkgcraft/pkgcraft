@@ -3,7 +3,7 @@ use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
-use tracing::warn;
+use tracing::error;
 
 use crate::config::RepoConfig;
 use crate::dep::{Cpn, Cpv, Dep, Version};
@@ -106,7 +106,7 @@ where
                 Ok(cpv) => {
                     self.cpvs.insert(cpv);
                 }
-                Err(e) => warn!("{e}"),
+                Err(e) => error!("{e}"),
             }
         }
 
@@ -275,7 +275,10 @@ impl<'a> Iterator for IterRestrict<'a> {
 
 #[cfg(test)]
 mod tests {
+    use tracing_test::traced_test;
+
     use crate::dep::Dep;
+    use crate::macros::assert_logs_re;
     use crate::pkg::Package;
     use crate::repo::Contains;
     use crate::test::assert_ordered_eq;
@@ -335,21 +338,23 @@ mod tests {
         assert_eq!(repo.len(), 3);
     }
 
+    #[traced_test]
     #[test]
     fn extend() {
         let mut repo = Repo::new("fake", 0).pkgs(["cat/pkg-2"]);
         assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-2"]);
 
-        // add single cpv
+        // add valid cpv
         repo.extend(["cat/pkg-0"]);
         assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-0", "cat/pkg-2"]);
 
-        // add multiple cpvs
-        repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
+        // add multiple cpvs, invalid cpvs logged and ignored
+        repo.extend(["cat/pkg-3", "cat/pkg", "cat/pkg-1", "a/b-0"]);
         assert_ordered_eq!(
             repo.iter().map(|x| x.cpv().to_string()),
             ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]
         );
+        assert_logs_re!("invalid cpv: cat/pkg");
 
         // re-add existing cpvs
         repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
