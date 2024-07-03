@@ -76,11 +76,7 @@ impl Intersects<Dep> for Pkg<'_> {
     fn intersects(&self, dep: &Dep) -> bool {
         bool_not_equal!(self.cpn(), dep.cpn());
 
-        if dep.slot().is_some() {
-            return false;
-        }
-
-        if dep.subslot().is_some() {
+        if dep.slot_dep().is_some() {
             return false;
         }
 
