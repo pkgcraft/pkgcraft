@@ -934,6 +934,8 @@ impl Restriction<&'static Eapi> for Restrict {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::NamedTempFile;
+
     use crate::macros::assert_err_re;
     use crate::test::assert_ordered_eq;
 
@@ -998,22 +1000,39 @@ mod tests {
 
     #[test]
     fn try_from() {
-        assert_eq!(&*EAPI8, TryInto::<&'static Eapi>::try_into(&*EAPI8).unwrap());
-        assert_eq!(&*EAPI8, TryInto::<&'static Eapi>::try_into("8").unwrap());
-
-        let mut arg: Option<&str> = None;
         let mut eapi: &Eapi;
+
+        // &str
+        eapi = "8".try_into().unwrap();
+        assert_eq!(&*EAPI8, eapi);
+
+        // Option<&str>
+        let mut arg: Option<&str> = None;
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI_PKGCRAFT, eapi);
         arg = Some("8");
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI8, eapi);
 
+        // Option<&Eapi>
         let mut arg: Option<&'static Eapi> = None;
         eapi = arg.try_into().unwrap();
         assert_eq!(&*EAPI_PKGCRAFT, eapi);
         arg = Some(&EAPI8);
         eapi = arg.try_into().unwrap();
+        assert_eq!(&*EAPI8, eapi);
+
+        // &Utf8Path
+        let r: crate::Result<&Eapi> = Utf8Path::new("nonexistent").try_into();
+        assert_err_re!(r, "unsupported EAPI: 0$");
+        let dir = tempfile::tempdir().unwrap();
+        let r: crate::Result<&Eapi> = Utf8Path::new(dir.path().to_str().unwrap()).try_into();
+        assert_err_re!(r, "failed reading EAPI: ");
+        let file = NamedTempFile::new().unwrap();
+        fs::write(&file, "8").unwrap();
+        eapi = Utf8Path::new(file.path().to_str().unwrap())
+            .try_into()
+            .unwrap();
         assert_eq!(&*EAPI8, eapi);
     }
 
