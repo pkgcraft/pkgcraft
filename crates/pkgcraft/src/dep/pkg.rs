@@ -188,7 +188,7 @@ impl PartialEq<Cow<'_, Dep>> for Dep {
 
 impl PartialEq<Dep> for Cow<'_, Dep> {
     fn eq(&self, other: &Dep) -> bool {
-        self.as_ref() == other
+        other == self
     }
 }
 
