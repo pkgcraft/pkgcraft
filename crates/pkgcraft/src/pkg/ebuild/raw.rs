@@ -162,6 +162,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn display_and_debug() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = repo.iter_raw().next().unwrap();
+        let s = pkg.to_string();
+        assert!(format!("{pkg:?}").contains(&s));
+    }
+
+    #[test]
     fn relpath() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();

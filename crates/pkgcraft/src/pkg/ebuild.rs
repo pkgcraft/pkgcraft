@@ -376,6 +376,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn display_and_debug() {
+        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let pkg = repo.iter().next().unwrap();
+        let s = pkg.to_string();
+        assert!(format!("{pkg:?}").contains(&s));
+    }
+
+    #[test]
     fn eapi() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();

@@ -115,6 +115,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn display_and_debug() {
+        let repo = Repo::new("test", 0).pkgs(["cat/pkg-1"]);
+        let pkg = repo.iter().next().unwrap();
+        let s = pkg.to_string();
+        assert!(format!("{pkg:?}").contains(&s));
+    }
+
+    #[test]
     fn cmp() {
         // unmatching pkgs sorted by dep attributes
         let r1 = Repo::new("b", 0).pkgs(["cat/pkg-1"]);
