@@ -110,7 +110,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ordering() {
+    fn cmp() {
         // unmatching pkgs sorted by dep attributes
         let r1 = Repo::new("b", 0).pkgs(["cat/pkg-1"]);
         let r2 = Repo::new("a", 0).pkgs(["cat/pkg-0"]);
@@ -131,5 +131,25 @@ mod tests {
         let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
+    }
+
+    #[test]
+    fn intersects_dep() {
+        let repo = Repo::new("test", 0).pkgs(["cat/pkg-1"]);
+        let pkg = repo.iter().next().unwrap();
+
+        for (s, expected) in [
+            ("cat/pkg", true),
+            ("=cat/pkg-0", false),
+            ("=cat/pkg-1", true),
+            ("cat/pkg:0", false),
+            ("cat/pkg:0/1", false),
+            ("cat/pkg[u]", false),
+            ("cat/pkg::test", true),
+            ("cat/pkg::metadata", false),
+        ] {
+            let dep: Dep = s.parse().unwrap();
+            assert_eq!(pkg.intersects(&dep), expected, "failed for {s}");
+        }
     }
 }
