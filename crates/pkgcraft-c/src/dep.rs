@@ -805,9 +805,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_sort(d: *mut DependencySet) {
 
     use DependencySetWrapper::*;
     match set.deref_mut() {
-        Dep(deps) => deps.sort(),
-        String(deps) => deps.sort(),
-        Uri(deps) => deps.sort(),
+        Dep(deps) => deps.sort_recursive(),
+        String(deps) => deps.sort_recursive(),
+        Uri(deps) => deps.sort_recursive(),
     }
 }
 

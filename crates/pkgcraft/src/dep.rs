@@ -536,7 +536,7 @@ impl<T: Ordered> DependencySet<T> {
     }
 
     /// Recursively sort a `DependencySet`.
-    pub fn sort(&mut self) {
+    pub fn sort_recursive(&mut self) {
         self.0 = sort_set!(self.0).collect();
     }
 
