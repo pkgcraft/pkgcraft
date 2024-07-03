@@ -434,48 +434,6 @@ impl Dep {
         self.version().and_then(|v| v.op())
     }
 
-    /// Return the package name and version.
-    /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1".
-    pub fn p(&self) -> String {
-        if let Some(ver) = &self.version {
-            format!("{}-{}", self.package(), ver.base())
-        } else {
-            self.package().to_string()
-        }
-    }
-
-    /// Return the package name, version, and revision.
-    /// For example, the package dependency "=cat/pkg-1-r2" returns "pkg-1-r2".
-    pub fn pf(&self) -> String {
-        if self.version.is_some() {
-            format!("{}-{}", self.package(), self.pvr())
-        } else {
-            self.package().to_string()
-        }
-    }
-
-    /// Return the package dependency's revision.
-    /// For example, the package dependency "=cat/pkg-1-r2" returns "r2".
-    pub fn pr(&self) -> String {
-        self.version()
-            .map(|v| format!("r{}", v.revision().map(|r| r.as_str()).unwrap_or("0")))
-            .unwrap_or_default()
-    }
-
-    /// Return the package dependency's version.
-    /// For example, the package dependency "=cat/pkg-1-r2" returns "1".
-    pub fn pv(&self) -> String {
-        self.version()
-            .map(|v| v.base().to_string())
-            .unwrap_or_default()
-    }
-
-    /// Return the package dependency's version and revision.
-    /// For example, the package dependency "=cat/pkg-1-r2" returns "1-r2".
-    pub fn pvr(&self) -> String {
-        self.version().map(|v| v.without_op()).unwrap_or_default()
-    }
-
     /// Return the [`Cpv`] of the package dependency if one exists.
     /// For example, the package dependency "=cat/pkg-1-r2" returns "cat/pkg-1-r2".
     pub fn cpv(&self) -> Option<Cpv> {
