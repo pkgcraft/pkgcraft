@@ -555,8 +555,7 @@ impl<T: Ordered> DependencySet<T> {
         key: &Dependency<T>,
         value: Dependency<T>,
     ) -> Option<Dependency<T>> {
-        self.0
-            .get_index_of(key)
+        self.get_index_of(key)
             .and_then(|i| self.shift_replace_index(i, value))
     }
 
@@ -570,8 +569,7 @@ impl<T: Ordered> DependencySet<T> {
         key: &Dependency<T>,
         value: Dependency<T>,
     ) -> Option<Dependency<T>> {
-        self.0
-            .get_index_of(key)
+        self.get_index_of(key)
             .and_then(|i| self.swap_replace_index(i, value))
     }
 
@@ -585,10 +583,10 @@ impl<T: Ordered> DependencySet<T> {
         index: usize,
         value: Dependency<T>,
     ) -> Option<Dependency<T>> {
-        if index < self.0.len() {
-            match self.0.insert_full(value) {
-                (_, true) => return self.0.swap_remove_index(index),
-                (idx, false) if idx != index => return self.0.shift_remove_index(index),
+        if index < self.len() {
+            match self.insert_full(value) {
+                (_, true) => return self.swap_remove_index(index),
+                (idx, false) if idx != index => return self.shift_remove_index(index),
                 _ => (),
             }
         }
@@ -606,10 +604,10 @@ impl<T: Ordered> DependencySet<T> {
         index: usize,
         value: Dependency<T>,
     ) -> Option<Dependency<T>> {
-        if index < self.0.len() {
-            match self.0.insert_full(value) {
-                (_, true) => return self.0.swap_remove_index(index),
-                (idx, false) if idx != index => return self.0.swap_remove_index(index),
+        if index < self.len() {
+            match self.insert_full(value) {
+                (_, true) => return self.swap_remove_index(index),
+                (idx, false) if idx != index => return self.swap_remove_index(index),
                 _ => (),
             }
         }
