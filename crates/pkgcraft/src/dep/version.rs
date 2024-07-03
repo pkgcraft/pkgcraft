@@ -71,18 +71,6 @@ impl PartialEq<&str> for Number {
     }
 }
 
-impl PartialEq<Number> for u64 {
-    fn eq(&self, other: &Number) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<Number> for &str {
-    fn eq(&self, other: &Number) -> bool {
-        other == *self
-    }
-}
-
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.value.hash(state);
@@ -151,18 +139,6 @@ impl PartialEq<str> for Revision {
 impl PartialEq<&str> for Revision {
     fn eq(&self, other: &&str) -> bool {
         self.0 == *other
-    }
-}
-
-impl PartialEq<Revision> for u64 {
-    fn eq(&self, other: &Revision) -> bool {
-        *self == other.0
-    }
-}
-
-impl PartialEq<Revision> for &str {
-    fn eq(&self, other: &Revision) -> bool {
-        *self == other.0
     }
 }
 
@@ -711,26 +687,20 @@ mod tests {
         // empty
         let rev = Revision::try_new("").unwrap();
         assert_eq!(rev, 0);
-        assert_eq!(0, rev);
         assert_eq!(rev, "");
-        assert_eq!("", rev);
         assert_eq!(rev, Revision::default());
         assert_eq!(rev.to_string(), "");
 
         // simple integer
         let rev1 = Revision::try_new("1").unwrap();
         assert_eq!(rev1, 1);
-        assert_eq!(1, rev1);
         assert_eq!(rev1, "1");
-        assert_eq!("1", rev1);
         assert_eq!(rev1.to_string(), "1");
 
         // zero prefixes are technically allowed
         let rev2 = Revision::try_new("01").unwrap();
         assert_eq!(rev2, 1);
-        assert_eq!(1, rev2);
         assert_eq!(rev2, "01");
-        assert_eq!("01", rev2);
         assert_eq!(rev2.to_string(), "01");
         assert_eq!(rev1, rev2);
     }
