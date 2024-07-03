@@ -1,7 +1,9 @@
 use std::borrow::Borrow;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Sub, SubAssign,
+};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -513,25 +515,24 @@ impl<T: Ordered> PartialEq<DependencySet<T>> for DependencySet<&T> {
     }
 }
 
+impl<T: Ordered> Deref for DependencySet<T> {
+    type Target = SortedSet<Dependency<T>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T: Ordered> DerefMut for DependencySet<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl<T: Ordered> DependencySet<T> {
     /// Construct a new, empty `DependencySet`.
     pub fn new() -> Self {
         Self(SortedSet::new())
-    }
-
-    /// Return the `Dependency` for a given index.
-    pub fn get_index(&self, index: usize) -> Option<&Dependency<T>> {
-        self.0.get_index(index)
-    }
-
-    /// Insert a `Dependency` into the `DependencySet`.
-    pub fn insert(&mut self, value: Dependency<T>) -> bool {
-        self.0.insert(value)
-    }
-
-    /// Remove the last value.
-    pub fn pop(&mut self) -> Option<Dependency<T>> {
-        self.0.pop()
     }
 
     /// Recursively sort a `DependencySet`.
@@ -609,32 +610,6 @@ impl<T: Ordered> DependencySet<T> {
         }
 
         None
-    }
-
-    /// Return the number of `Dependency` objects a `DependencySet` contains.
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_disjoint(&self, other: &Self) -> bool {
-        self.0.is_disjoint(&other.0)
-    }
-
-    /// Return true if a DependencySet is empty, otherwise false.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    pub fn is_subset(&self, other: &Self) -> bool {
-        self.0.is_subset(&other.0)
-    }
-
-    pub fn is_superset(&self, other: &Self) -> bool {
-        self.0.is_superset(&other.0)
-    }
-
-    pub fn intersection<'a>(&'a self, other: &'a Self) -> Iter<'a, T> {
-        self.0.intersection(&other.0).collect()
     }
 
     pub fn iter(&self) -> Iter<T> {
