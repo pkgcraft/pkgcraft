@@ -528,10 +528,16 @@ impl<T: Ordered> DerefMut for DependencySet<T> {
     }
 }
 
+impl<T: Ordered> Default for DependencySet<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
 impl<T: Ordered> DependencySet<T> {
     /// Construct a new, empty `DependencySet`.
     pub fn new() -> Self {
-        Self(SortedSet::new())
+        Self::default()
     }
 
     /// Recursively sort a `DependencySet`.
@@ -655,12 +661,6 @@ impl DependencySet<String> {
 impl DependencySet<Uri> {
     pub fn src_uri(s: &str) -> crate::Result<Self> {
         parse::src_uri_dependency_set(s)
-    }
-}
-
-impl<T: Ordered> Default for DependencySet<T> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
