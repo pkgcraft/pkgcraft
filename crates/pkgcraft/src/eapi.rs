@@ -955,6 +955,14 @@ mod tests {
     }
 
     #[test]
+    fn display_and_debug() {
+        for eapi in &*EAPIS {
+            let s = eapi.to_string();
+            assert!(format!("{eapi:?}").contains(&s));
+        }
+    }
+
+    #[test]
     fn cmp() {
         assert!(**EAPI_LATEST_OFFICIAL < **EAPI_LATEST);
         assert!(*EAPI8 <= *EAPI8);
