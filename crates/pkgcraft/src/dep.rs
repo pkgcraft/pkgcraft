@@ -201,6 +201,19 @@ impl<T: Ordered> PartialEq<Dependency<T>> for Dependency<&T> {
 }
 
 impl<T: Ordered> Dependency<T> {
+    /// Return the `Dependency` for a given index if it exists.
+    pub fn get_index(&self, index: usize) -> Option<&Dependency<T>> {
+        use Dependency::*;
+        match self {
+            Enabled(_) | Disabled(_) => None,
+            AllOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            AnyOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            ExactlyOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            AtMostOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            Conditional(_, vals) => vals.get_index(index).map(AsRef::as_ref),
+        }
+    }
+
     /// Return true if a Dependency is empty, otherwise false.
     pub fn is_empty(&self) -> bool {
         use Dependency::*;

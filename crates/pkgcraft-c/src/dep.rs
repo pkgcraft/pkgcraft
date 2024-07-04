@@ -1404,6 +1404,44 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_uri(
     }
 }
 
+/// Return the Dependency for a given index if it exists.
+///
+/// Returns NULL on index nonexistence.
+///
+/// # Safety
+/// The argument must be a valid Dependency pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_get_index(
+    d: *mut Dependency,
+    index: usize,
+) -> *mut Dependency {
+    ffi_catch_panic! {
+        let dep = try_ref_from_ptr!(d);
+        let err = || Error::new(format!("failed getting Dependency index: {index}"));
+
+        use DependencyWrapper::*;
+        let dep = match dep.deref() {
+            Dep(d) => {
+                d.get_index(index)
+                    .ok_or_else(err)
+                    .map(|d| Dependency::new_dep(d.clone()))
+            }
+            String(d) => {
+                d.get_index(index)
+                    .ok_or_else(err)
+                    .map(|d| Dependency::new_string(d.clone(), dep.set))
+            }
+            Uri(d) => {
+                d.get_index(index)
+                    .ok_or_else(err)
+                    .map(|d| Dependency::new_uri(d.clone()))
+            }
+        };
+
+        Box::into_raw(Box::new(unwrap_or_panic!(dep)))
+    }
+}
+
 /// Return the hash value for a Dependency.
 ///
 /// # Safety
