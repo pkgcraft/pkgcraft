@@ -1429,14 +1429,19 @@ pub unsafe extern "C" fn pkgcraft_dependency_len(d: *mut Dependency) -> usize {
     }
 }
 
-/// Free a Dependency object.
+/// Recursively sort a Dependency.
 ///
 /// # Safety
-/// The argument must be a Dependency pointer or NULL.
+/// The argument must be a valid Dependency pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dependency_free(r: *mut Dependency) {
-    if !r.is_null() {
-        unsafe { drop(Box::from_raw(r)) };
+pub unsafe extern "C" fn pkgcraft_dependency_sort(d: *mut Dependency) {
+    let dep = try_mut_from_ptr!(d);
+
+    use DependencyWrapper::*;
+    match dep.deref_mut() {
+        Dep(d) => d.sort(),
+        String(d) => d.sort(),
+        Uri(d) => d.sort(),
     }
 }
 
@@ -1448,6 +1453,17 @@ pub unsafe extern "C" fn pkgcraft_dependency_free(r: *mut Dependency) {
 pub unsafe extern "C" fn pkgcraft_dependency_str(d: *mut Dependency) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
     try_ptr_from_str!(deps.to_string())
+}
+
+/// Free a Dependency object.
+///
+/// # Safety
+/// The argument must be a Dependency pointer or NULL.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_dependency_free(r: *mut Dependency) {
+    if !r.is_null() {
+        unsafe { drop(Box::from_raw(r)) };
+    }
 }
 
 /// Return an iterator for a Dependency.
