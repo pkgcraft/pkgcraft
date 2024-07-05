@@ -363,7 +363,7 @@ pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
 }
 
 pub(crate) fn keyword(s: &str) -> crate::Result<Keyword> {
-    depspec::keyword(s).map_err(|e| peg_error("invalid KEYWORD", s, e))
+    depspec::keyword(s).map_err(|e| peg_error("invalid keyword", s, e))
 }
 
 pub(crate) fn revision(s: &str) -> crate::Result<Revision> {
