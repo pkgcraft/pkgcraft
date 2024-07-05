@@ -196,7 +196,6 @@ mod tests {
             // status order
             "-arch < ~arch",
             "~arch < arch",
-            "~arch < arch",
             // unprefixed vs prefixed
             "zarch < arch-linux",
         ];
