@@ -1,6 +1,6 @@
 use indexmap::IndexSet;
 use pkgcraft::dep::{Flatten, Operator, SlotOperator};
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::{metadata::Key, Pkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
@@ -34,9 +34,9 @@ super::register!(Check);
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
-        for key in pkg.eapi().dep_keys() {
+        for key in pkg.eapi().dep_keys().iter().copied() {
             let deps = pkg
-                .dependencies(&[*key])
+                .dependencies(&[key])
                 .into_iter_flatten()
                 .collect::<IndexSet<_>>();
 
@@ -49,11 +49,21 @@ impl EbuildPkgCheck for Check {
                         .report(filter);
                 }
 
-                if matches!(dep.slot_op(), Some(SlotOperator::Equal)) && dep.subslot().is_some() {
-                    DependencyInvalid
-                        .version(pkg)
-                        .message(format!("{key}: = slot operator with subslot: {dep}"))
-                        .report(filter);
+                // TODO: consider moving into parser when it supports dynamic error strings
+                if matches!(dep.slot_op(), Some(SlotOperator::Equal)) {
+                    if dep.subslot().is_some() {
+                        DependencyInvalid
+                            .version(pkg)
+                            .message(format!("{key}: = slot operator with subslot: {dep}"))
+                            .report(filter);
+                    }
+
+                    if key == Key::PDEPEND {
+                        DependencyInvalid
+                            .version(pkg)
+                            .message(format!("{key}: = slot operator invalid: {dep}"))
+                            .report(filter);
+                    }
                 }
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
