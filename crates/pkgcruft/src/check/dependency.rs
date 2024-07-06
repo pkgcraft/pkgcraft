@@ -5,6 +5,7 @@ use pkgcraft::dep::{Dependency, Operator, SlotOperator};
 use pkgcraft::pkg::ebuild::{metadata::Key, Pkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{
     DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing,
@@ -69,6 +70,13 @@ impl EbuildPkgCheck for Check {
                             .message(format!("{key}: = slot operator invalid: {dep}"))
                             .report(filter);
                     }
+                }
+
+                if dep.blocker().is_some() && dep.intersects(pkg) {
+                    DependencyInvalid
+                        .version(pkg)
+                        .message(format!("{key}: blocker matches package: {dep}"))
+                        .report(filter);
                 }
 
                 if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
