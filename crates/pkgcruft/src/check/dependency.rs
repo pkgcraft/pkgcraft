@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use itertools::Itertools;
 use pkgcraft::dep::{Dependency, Operator, SlotOperator};
 use pkgcraft::pkg::ebuild::{metadata::Key, Pkg};
@@ -88,19 +86,17 @@ impl EbuildPkgCheck for Check {
             }
 
             // TODO: consider moving into parser when it supports dynamic error strings
-            let mut seen = HashSet::new();
-            for any_of in deps
+            for dep in deps
                 .iter_recursive()
                 .filter(|x| matches!(x, Dependency::AnyOf(_)))
+                .flat_map(|x| x.iter_flatten())
+                .filter(|x| matches!(x.slot_op(), Some(SlotOperator::Equal)))
+                .unique()
             {
-                for dep in any_of.iter_flatten() {
-                    if matches!(dep.slot_op(), Some(SlotOperator::Equal)) && seen.insert(dep) {
-                        DependencyInvalid
-                            .version(pkg)
-                            .message(format!("{key}: = slot operator in any-of: {dep}"))
-                            .report(filter);
-                    }
-                }
+                DependencyInvalid
+                    .version(pkg)
+                    .message(format!("{key}: = slot operator in any-of: {dep}"))
+                    .report(filter);
             }
         }
     }
