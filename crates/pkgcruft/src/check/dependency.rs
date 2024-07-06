@@ -1,5 +1,5 @@
-use indexmap::IndexSet;
-use pkgcraft::dep::{Flatten, Operator, SlotOperator};
+use itertools::Itertools;
+use pkgcraft::dep::{Operator, SlotOperator};
 use pkgcraft::pkg::ebuild::{metadata::Key, Pkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
@@ -35,12 +35,8 @@ super::register!(Check);
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys().iter().copied() {
-            let deps = pkg
-                .dependencies(&[key])
-                .into_iter_flatten()
-                .collect::<IndexSet<_>>();
-
-            for dep in deps {
+            let deps = pkg.dependencies(&[key]);
+            for dep in deps.iter_flatten().unique() {
                 if self.repo.deprecated(dep).is_some() {
                     // drop use deps since package.deprecated doesn't include them
                     DependencyDeprecated
