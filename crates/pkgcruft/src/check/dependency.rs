@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pkgcraft::dep::{Operator, SlotOperator};
+use pkgcraft::dep::{Dependency, Operator, SlotOperator};
 use pkgcraft::pkg::ebuild::{metadata::Key, Pkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
@@ -67,6 +67,18 @@ impl EbuildPkgCheck for Check {
                         .version(pkg)
                         .message(format!("{key}: {dep}"))
                         .report(filter);
+                }
+            }
+
+            // TODO: consider moving into parser when it supports dynamic error strings
+            for any_of in deps.iter_recursive().filter(|x| matches!(x, Dependency::AnyOf(_))) {
+                for dep in any_of.iter_flatten().unique() {
+                    if matches!(dep.slot_op(), Some(SlotOperator::Equal)) {
+                        DependencyInvalid
+                            .version(pkg)
+                            .message(format!("{key}: = slot operator in any-of: {dep}"))
+                            .report(filter);
+                    }
                 }
             }
         }
