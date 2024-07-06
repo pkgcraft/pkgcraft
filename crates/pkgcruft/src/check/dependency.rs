@@ -1,10 +1,12 @@
 use indexmap::IndexSet;
-use pkgcraft::dep::{Flatten, Operator};
+use pkgcraft::dep::{Flatten, Operator, SlotOperator};
 use pkgcraft::pkg::ebuild::Pkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 
-use crate::report::ReportKind::{DependencyDeprecated, DependencyRevisionMissing};
+use crate::report::ReportKind::{
+    DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing,
+};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -15,7 +17,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Dependency,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[DependencyDeprecated, DependencyRevisionMissing],
+    reports: &[DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing],
     context: &[],
     priority: 0,
 };
@@ -44,6 +46,13 @@ impl EbuildPkgCheck for Check {
                     DependencyDeprecated
                         .version(pkg)
                         .message(format!("{key}: {}", dep.no_use_deps()))
+                        .report(filter);
+                }
+
+                if matches!(dep.slot_op(), Some(SlotOperator::Equal)) && dep.subslot().is_some() {
+                    DependencyInvalid
+                        .version(pkg)
+                        .message(format!("{key}: = slot operator with subslot: {dep}"))
                         .report(filter);
                 }
 
