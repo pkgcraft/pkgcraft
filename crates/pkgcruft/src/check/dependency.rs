@@ -49,6 +49,13 @@ impl EbuildPkgCheck for Check {
 
                 // TODO: consider moving into parser when it supports dynamic error strings
                 if matches!(dep.slot_op(), Some(SlotOperator::Equal)) {
+                    if dep.blocker().is_some() {
+                        DependencyInvalid
+                            .version(pkg)
+                            .message(format!("{key}: = slot operator with blocker: {dep}"))
+                            .report(filter);
+                    }
+
                     if dep.subslot().is_some() {
                         DependencyInvalid
                             .version(pkg)
