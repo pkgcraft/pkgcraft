@@ -80,6 +80,14 @@ impl Checks {
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
             default_reports = false;
             self.reports.into_iter().collect()
+        } else if !self.checks.is_empty() {
+            // enable reports related to enabled checks
+            default_reports = false;
+            self.checks
+                .iter()
+                .flat_map(|x| x.reports)
+                .copied()
+                .collect()
         } else {
             Default::default()
         };
@@ -109,12 +117,6 @@ impl Checks {
                     .iter()
                     .flat_map(|s| Check::iter_source(s).flat_map(|x| x.reports)),
             );
-            default_reports = false;
-        }
-
-        // enable reports related to checks
-        if !self.checks.is_empty() {
-            reports.extend(self.checks.iter().flat_map(|x| x.reports));
             default_reports = false;
         }
 
