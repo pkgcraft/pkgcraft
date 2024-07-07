@@ -22,8 +22,8 @@ pub enum UseDepKind {
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum UseDepDefault {
-    Enabled,  // cat/pkg[opt(+)]
     Disabled, // cat/pkg[opt(-)]
+    Enabled,  // cat/pkg[opt(+)]
 }
 
 /// Package USE dependency.
