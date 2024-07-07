@@ -52,11 +52,11 @@ impl EbuildPkgCheck for Check {
             return;
         };
 
-        let deps: IndexSet<_> = pkg
+        let deps = pkg
             .dependencies(&[])
             .into_iter_flatten()
             .filter(|x| x.blocker().is_none())
-            .collect();
+            .collect::<IndexSet<_>>();
 
         // determine the latest supported implementation
         let Some(latest) = deps
