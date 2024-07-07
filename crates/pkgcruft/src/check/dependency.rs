@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use pkgcraft::dep::{Dependency, Operator, SlotOperator};
-use pkgcraft::pkg::ebuild::{metadata::Key, Pkg};
+use pkgcraft::dep::{Dependency, Operator, SlotOperator, UseDepKind};
+use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPackage, Pkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::Repo;
 use pkgcraft::traits::Intersects;
@@ -38,6 +38,22 @@ impl EbuildPkgCheck for Check {
         for key in pkg.eapi().dep_keys().iter().copied() {
             let deps = pkg.dependencies(&[key]);
             for dep in deps.iter_flatten().unique() {
+                // verify conditional use deps map to IUSE flags
+                for flag in dep
+                    .use_deps()
+                    .into_iter()
+                    .flatten()
+                    .filter(|x| matches!(x.kind(), UseDepKind::Conditional(_)))
+                    .map(|x| x.flag())
+                {
+                    if !pkg.iuse_effective().contains(flag) {
+                        DependencyInvalid
+                            .version(pkg)
+                            .message(format!("{key}: missing IUSE={flag}: {dep}"))
+                            .report(filter);
+                    }
+                }
+
                 if self.repo.deprecated(dep).is_some() {
                     // drop use deps since package.deprecated doesn't include them
                     DependencyDeprecated
