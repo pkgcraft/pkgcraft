@@ -284,7 +284,7 @@ impl ReportBuilder {
     {
         match &mut self.0.scope {
             ReportScope::Version(_, location @ None) => *location = Some(value.into()),
-            _ => panic!("invalid report scope: {:?}", self.0.scope),
+            _ => unreachable!("invalid report scope: {:?}", self.0.scope),
         }
         self
     }
