@@ -45,13 +45,12 @@ impl EbuildPkgCheck for Check {
                     .flatten()
                     .filter(|x| matches!(x.kind(), UseDepKind::Conditional(_)))
                     .map(|x| x.flag())
+                    .filter(|flag| !pkg.iuse_effective().contains(*flag))
                 {
-                    if !pkg.iuse_effective().contains(flag) {
-                        DependencyInvalid
-                            .version(pkg)
-                            .message(format!("{key}: missing IUSE={flag}: {dep}"))
-                            .report(filter);
-                    }
+                    DependencyInvalid
+                        .version(pkg)
+                        .message(format!("{key}: missing IUSE={flag}: {dep}"))
+                        .report(filter);
                 }
 
                 if self.repo.deprecated(dep).is_some() {
