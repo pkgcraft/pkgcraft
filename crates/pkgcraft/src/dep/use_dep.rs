@@ -18,14 +18,6 @@ pub enum UseDepKind {
     Conditional(bool), // cat/pkg[u?] and cat/pkg[!u?]
 }
 
-/// Package USE dependency default when missing.
-#[repr(C)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub enum UseDepDefault {
-    Disabled, // cat/pkg[opt(-)]
-    Enabled,  // cat/pkg[opt(+)]
-}
-
 /// Package USE dependency.
 #[derive(
     DeserializeFromStr, SerializeDisplay, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone,
@@ -33,14 +25,14 @@ pub enum UseDepDefault {
 pub struct UseDep {
     pub(crate) flag: String,
     pub(crate) kind: UseDepKind,
-    pub(crate) default: Option<UseDepDefault>,
+    pub(crate) default: Option<bool>,
 }
 
 impl fmt::Display for UseDep {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let default = match &self.default {
-            Some(UseDepDefault::Enabled) => "(+)",
-            Some(UseDepDefault::Disabled) => "(-)",
+            Some(true) => "(+)",
+            Some(false) => "(-)",
             None => "",
         };
 
@@ -98,7 +90,7 @@ impl UseDep {
     }
 
     /// Return the USE dependency default.
-    pub fn default(&self) -> Option<UseDepDefault> {
+    pub fn default(&self) -> Option<bool> {
         self.default
     }
 

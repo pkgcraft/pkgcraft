@@ -25,7 +25,7 @@ pub use cpn::Cpn;
 pub use cpv::{Cpv, CpvOrDep};
 pub use pkg::{Blocker, Dep, DepField, Slot, SlotDep, SlotOperator};
 pub use uri::Uri;
-pub use use_dep::{UseDep, UseDepDefault, UseDepKind};
+pub use use_dep::{UseDep, UseDepKind};
 pub use version::{Operator, Revision, Version};
 
 pub trait Stringable:

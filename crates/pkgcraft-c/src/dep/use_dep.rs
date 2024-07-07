@@ -21,7 +21,7 @@ pub struct UseDep {
     kind: dep::UseDepKind,
     flag: *mut c_char,
     // underscore suffix to avoid reserved keyword with cython bindings
-    default_: *mut dep::UseDepDefault,
+    default_: *mut bool,
     dep: *mut UseDepWrapper,
 }
 

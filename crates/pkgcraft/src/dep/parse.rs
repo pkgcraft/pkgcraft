@@ -4,7 +4,7 @@ use crate::dep::cpn::Cpn;
 use crate::dep::cpv::{Cpv, CpvOrDep};
 use crate::dep::pkg::{Blocker, Dep, Slot, SlotDep, SlotOperator};
 use crate::dep::uri::Uri;
-use crate::dep::use_dep::{UseDep, UseDepDefault, UseDepKind};
+use crate::dep::use_dep::{UseDep, UseDepKind};
 use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
 use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
@@ -157,9 +157,9 @@ peg::parser!(grammar depspec() for str {
         / "+" flag:use_flag() { Iuse { flag: flag.to_string(), default: Some(true) } }
         / "-" flag:use_flag() { Iuse { flag: flag.to_string(), default: Some(false) } }
 
-    rule use_dep_default() -> UseDepDefault
-        = "(+)" { UseDepDefault::Enabled }
-        / "(-)" { UseDepDefault::Disabled }
+    rule use_dep_default() -> bool
+        = "(+)" { true }
+        / "(-)" { false }
 
     pub(super) rule use_dep() -> UseDep
         = disabled:"!"? flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {

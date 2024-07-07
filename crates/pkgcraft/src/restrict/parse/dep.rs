@@ -1,5 +1,5 @@
 use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
-use crate::dep::{Blocker, UseDep, UseDepDefault, UseDepKind};
+use crate::dep::{Blocker, UseDep, UseDepKind};
 use crate::error::peg_error;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -160,9 +160,9 @@ peg::parser!(grammar restrict() for str {
         } / expected!("USE flag name")
         ) { s }
 
-    rule use_dep_default() -> UseDepDefault
-        = "(+)" { UseDepDefault::Enabled }
-        / "(-)" { UseDepDefault::Disabled }
+    rule use_dep_default() -> bool
+        = "(+)" { true }
+        / "(-)" { false }
 
     rule use_dep() -> UseDep
         = disabled:"!"? flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
