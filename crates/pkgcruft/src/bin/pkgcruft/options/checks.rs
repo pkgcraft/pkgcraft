@@ -139,3 +139,33 @@ impl Checks {
         (checks, reports)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+    use pkgcraft::test::assert_ordered_eq;
+
+    use super::*;
+
+    #[derive(Parser)]
+    struct Command {
+        #[clap(flatten)]
+        checks: Checks,
+    }
+
+    #[test]
+    fn parse() {
+        // verify checks and reports options don't affect each other when both are specified
+        let cmd = Command::try_parse_from(["cmd", "-c", "Dependency", "-r", "DependencyInvalid"])
+            .unwrap();
+        let (checks, reports) = cmd.checks.collapse(false);
+        assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
+        assert_ordered_eq!(reports.iter().map(|x| x.as_ref()), ["DependencyInvalid"]);
+
+        // reports are populated by checks when unspecified
+        let cmd = Command::try_parse_from(["cmd", "-c", "Dependency"]).unwrap();
+        let (checks, reports) = cmd.checks.collapse(false);
+        assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
+        assert!(!reports.is_empty());
+    }
+}
