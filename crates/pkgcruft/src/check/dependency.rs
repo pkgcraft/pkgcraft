@@ -62,7 +62,7 @@ impl EbuildPkgCheck for Check {
                 }
 
                 // TODO: consider moving into parser when it supports dynamic error strings
-                if matches!(dep.slot_op(), Some(SlotOperator::Equal)) {
+                if dep.slot_op() == Some(SlotOperator::Equal) {
                     if dep.blocker().is_some() {
                         DependencyInvalid
                             .version(pkg)
@@ -92,7 +92,7 @@ impl EbuildPkgCheck for Check {
                         .report(filter);
                 }
 
-                if matches!(dep.op(), Some(Operator::Equal)) && dep.revision().is_none() {
+                if dep.op() == Some(Operator::Equal) && dep.revision().is_none() {
                     DependencyRevisionMissing
                         .version(pkg)
                         .message(format!("{key}: {dep}"))
@@ -105,7 +105,7 @@ impl EbuildPkgCheck for Check {
                 .iter_recursive()
                 .filter(|x| matches!(x, Dependency::AnyOf(_)))
                 .flat_map(|x| x.iter_flatten())
-                .filter(|x| matches!(x.slot_op(), Some(SlotOperator::Equal)))
+                .filter(|x| x.slot_op() == Some(SlotOperator::Equal))
                 .unique()
             {
                 DependencyInvalid
