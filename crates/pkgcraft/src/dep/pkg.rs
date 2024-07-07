@@ -568,7 +568,8 @@ impl Intersects for SortedSet<UseDep> {
             .collect::<OrderedMap<_, OrderedSet<_>>>()
             .into_values()
             .any(|kinds| {
-                kinds.contains(&UseDepKind::Disabled) && kinds.contains(&UseDepKind::Enabled)
+                kinds.contains(&UseDepKind::Enabled(true))
+                    && kinds.contains(&UseDepKind::Enabled(false))
             })
     }
 }

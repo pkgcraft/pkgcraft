@@ -164,24 +164,16 @@ peg::parser!(grammar restrict() for str {
         = "(+)" { UseDepDefault::Enabled }
         / "(-)" { UseDepDefault::Disabled }
 
-    pub(super) rule use_dep() -> UseDep
-        = flag:use_flag() default:use_dep_default()? kind:$(['=' | '?'])? {
+    rule use_dep() -> UseDep
+        = disabled:"!"? flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
             let kind = match kind {
-                Some("=") => UseDepKind::Equal,
-                Some("?") => UseDepKind::EnabledConditional,
-                None => UseDepKind::Enabled,
-                _ => panic!("invalid use dep kind"),
+                "=" => UseDepKind::Equal(disabled.is_none()),
+                "?" => UseDepKind::Conditional(disabled.is_none()),
+                _ => unreachable!("invalid use dep kind"),
             };
             UseDep { kind, flag: flag.to_string(), default }
-        } / "-" flag:use_flag() default:use_dep_default()? {
-            UseDep { kind: UseDepKind::Disabled, flag: flag.to_string(), default }
-        } / "!" flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
-            let kind = match kind {
-                "=" => UseDepKind::NotEqual,
-                "?" => UseDepKind::DisabledConditional,
-                _ => panic!("invalid use dep kind"),
-            };
-            UseDep { kind, flag: flag.to_string(), default }
+        } / disabled:"-"? flag:use_flag() default:use_dep_default()? {
+            UseDep { kind: UseDepKind::Enabled(disabled.is_none()), flag: flag.to_string(), default }
         } / expected!("use dep")
 
     rule use_restricts() -> DepRestrict

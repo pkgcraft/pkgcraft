@@ -162,23 +162,15 @@ peg::parser!(grammar depspec() for str {
         / "(-)" { UseDepDefault::Disabled }
 
     pub(super) rule use_dep() -> UseDep
-        = flag:use_flag() default:use_dep_default()? kind:$(['=' | '?'])? {
+        = disabled:"!"? flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
             let kind = match kind {
-                Some("=") => UseDepKind::Equal,
-                Some("?") => UseDepKind::EnabledConditional,
-                None => UseDepKind::Enabled,
+                "=" => UseDepKind::Equal(disabled.is_none()),
+                "?" => UseDepKind::Conditional(disabled.is_none()),
                 _ => unreachable!("invalid use dep kind"),
             };
             UseDep { kind, flag: flag.to_string(), default }
-        } / "-" flag:use_flag() default:use_dep_default()? {
-            UseDep { kind: UseDepKind::Disabled, flag: flag.to_string(), default }
-        } / "!" flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
-            let kind = match kind {
-                "=" => UseDepKind::NotEqual,
-                "?" => UseDepKind::DisabledConditional,
-                _ => unreachable!("invalid use dep kind"),
-            };
-            UseDep { kind, flag: flag.to_string(), default }
+        } / disabled:"-"? flag:use_flag() default:use_dep_default()? {
+            UseDep { kind: UseDepKind::Enabled(disabled.is_none()), flag: flag.to_string(), default }
         } / expected!("use dep")
 
     rule use_deps() -> Vec<UseDep>
@@ -238,12 +230,11 @@ peg::parser!(grammar depspec() for str {
 
     rule conditional<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = disabled:"!"? flag:use_flag() "?" __ vals:parens(<expr()>) {
-            let kind = if disabled.is_none() {
-                UseDepKind::EnabledConditional
-            } else {
-                UseDepKind::DisabledConditional
+            let use_dep = UseDep {
+                kind: UseDepKind::Conditional(disabled.is_none()),
+                flag: flag.to_string(),
+                default: None,
             };
-            let use_dep = UseDep { kind, flag: flag.to_string(), default: None };
             let deps = vals.into_iter().map(Box::new).collect();
             Dependency::Conditional(use_dep, deps)
         }
