@@ -49,28 +49,37 @@ impl EbuildRawPkgCheck for Check {
                     HeaderInvalid
                         .version(pkg)
                         .message(format!("invalid copyright holder: {holder}"))
+                        .location(1)
                         .report(filter);
                 }
             }
         } else {
-            let message = if !line.trim().starts_with('#') || line.trim().is_empty() {
-                "missing copyright header".to_string()
+            let mut report = HeaderInvalid.version(pkg);
+
+            if !line.trim().starts_with('#') || line.trim().is_empty() {
+                report.message("missing copyright header");
             } else {
-                format!("invalid copyright: {line}")
+                report
+                    .message(format!("invalid copyright: {line}"))
+                    .location(1);
             };
 
-            HeaderInvalid.version(pkg).message(message).report(filter);
+            report.report(filter);
         }
 
         line = lines.next().unwrap_or_default();
         if line != GENTOO_LICENSE_HEADER {
-            let message = if !line.trim().starts_with('#') || line.trim().is_empty() {
-                "missing license header".to_string()
+            let mut report = HeaderInvalid.version(pkg);
+
+            if !line.trim().starts_with('#') || line.trim().is_empty() {
+                report.message("missing license header");
             } else {
-                format!("invalid license: {line}")
+                report
+                    .message(format!("invalid license: {line}"))
+                    .location(2);
             };
 
-            HeaderInvalid.version(pkg).message(message).report(filter);
+            report.report(filter);
         }
     }
 }
