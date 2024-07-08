@@ -13,9 +13,9 @@ use super::{parse, Stringable};
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub enum UseDepKind {
-    Enabled(bool),     // cat/pkg[u] and cat/pkg[-u]
-    Equal(bool),       // cat/pkg[u=] and cat/pkg[-u=]
-    Conditional(bool), // cat/pkg[u?] and cat/pkg[!u?]
+    Enabled,     // cat/pkg[u] and cat/pkg[-u]
+    Equal,       // cat/pkg[u=] and cat/pkg[-u=]
+    Conditional, // cat/pkg[u?] and cat/pkg[!u?]
 }
 
 /// Package USE dependency.
@@ -25,6 +25,7 @@ pub enum UseDepKind {
 pub struct UseDep {
     pub(crate) flag: String,
     pub(crate) kind: UseDepKind,
+    pub(crate) enabled: bool,
     pub(crate) default: Option<bool>,
 }
 
@@ -37,13 +38,13 @@ impl fmt::Display for UseDep {
         };
 
         let flag = &self.flag;
-        match &self.kind {
-            UseDepKind::Enabled(true) => write!(f, "{flag}{default}"),
-            UseDepKind::Enabled(false) => write!(f, "-{flag}{default}"),
-            UseDepKind::Equal(true) => write!(f, "{flag}{default}="),
-            UseDepKind::Equal(false) => write!(f, "!{flag}{default}="),
-            UseDepKind::Conditional(true) => write!(f, "{flag}{default}?"),
-            UseDepKind::Conditional(false) => write!(f, "!{flag}{default}?"),
+        match (&self.kind, &self.enabled) {
+            (UseDepKind::Enabled, true) => write!(f, "{flag}{default}"),
+            (UseDepKind::Enabled, false) => write!(f, "-{flag}{default}"),
+            (UseDepKind::Equal, true) => write!(f, "{flag}{default}="),
+            (UseDepKind::Equal, false) => write!(f, "!{flag}{default}="),
+            (UseDepKind::Conditional, true) => write!(f, "{flag}{default}?"),
+            (UseDepKind::Conditional, false) => write!(f, "!{flag}{default}?"),
         }
     }
 }
@@ -71,22 +72,18 @@ impl UseDep {
     }
 
     /// Return the USE dependency type.
-    pub fn kind(&self) -> &UseDepKind {
-        &self.kind
-    }
-
-    /// Return true if the USE dependency may or must be enabled, otherwise false.
-    pub fn possible(&self) -> bool {
-        match self.kind {
-            UseDepKind::Enabled(val) => val,
-            UseDepKind::Equal(val) => val,
-            UseDepKind::Conditional(val) => val,
-        }
+    pub fn kind(&self) -> UseDepKind {
+        self.kind
     }
 
     /// Return the flag value for the USE dependency.
     pub fn flag(&self) -> &str {
         &self.flag
+    }
+
+    /// Return true if the USE dependency may or must be enabled, otherwise false.
+    pub fn enabled(&self) -> bool {
+        self.enabled
     }
 
     /// Return the USE dependency default.
@@ -97,9 +94,10 @@ impl UseDep {
     /// Determine if a USE dependency matches a set of enabled flags.
     pub(crate) fn matches<S: Stringable>(&self, options: &IndexSet<S>) -> bool {
         let flag = self.flag.as_str();
-        match &self.kind {
-            UseDepKind::Conditional(val) => !(val ^ options.contains(flag)),
-            _ => todo!(),
+        if self.kind == UseDepKind::Conditional {
+            !(self.enabled ^ options.contains(flag))
+        } else {
+            todo!()
         }
     }
 }

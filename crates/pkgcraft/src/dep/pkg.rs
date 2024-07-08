@@ -564,13 +564,11 @@ impl Intersects for SortedSet<UseDep> {
     fn intersects(&self, other: &Self) -> bool {
         !self
             .symmetric_difference(other)
-            .map(|x| (x.flag(), x.kind()))
+            .filter(|x| x.kind() == UseDepKind::Enabled)
+            .map(|x| (x.flag(), x.enabled()))
             .collect::<OrderedMap<_, OrderedSet<_>>>()
             .into_values()
-            .any(|kinds| {
-                kinds.contains(&UseDepKind::Enabled(true))
-                    && kinds.contains(&UseDepKind::Enabled(false))
-            })
+            .any(|vals| vals.len() == 2)
     }
 }
 

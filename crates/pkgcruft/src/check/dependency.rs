@@ -43,7 +43,7 @@ impl EbuildPkgCheck for Check {
                     .use_deps()
                     .into_iter()
                     .flatten()
-                    .filter(|x| matches!(x.kind(), UseDepKind::Conditional(_)))
+                    .filter(|x| matches!(x.kind(), UseDepKind::Conditional))
                     .map(|x| x.flag())
                     .filter(|flag| !pkg.iuse_effective().contains(*flag))
                 {

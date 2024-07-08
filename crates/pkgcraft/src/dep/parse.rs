@@ -163,14 +163,23 @@ peg::parser!(grammar depspec() for str {
 
     pub(super) rule use_dep() -> UseDep
         = disabled:"!"? flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
-            let kind = match kind {
-                "=" => UseDepKind::Equal(disabled.is_none()),
-                "?" => UseDepKind::Conditional(disabled.is_none()),
-                _ => unreachable!("invalid use dep kind"),
-            };
-            UseDep { kind, flag: flag.to_string(), default }
+            UseDep {
+                flag: flag.to_string(),
+                kind: match kind {
+                    "=" => UseDepKind::Equal,
+                    "?" => UseDepKind::Conditional,
+                    _ => unreachable!("invalid use dep kind"),
+                },
+                enabled: disabled.is_none(),
+                default,
+            }
         } / disabled:"-"? flag:use_flag() default:use_dep_default()? {
-            UseDep { kind: UseDepKind::Enabled(disabled.is_none()), flag: flag.to_string(), default }
+            UseDep {
+                flag: flag.to_string(),
+                kind: UseDepKind::Enabled,
+                enabled: disabled.is_none(),
+                default,
+            }
         } / expected!("use dep")
 
     rule use_deps() -> Vec<UseDep>
@@ -231,8 +240,9 @@ peg::parser!(grammar depspec() for str {
     rule conditional<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = disabled:"!"? flag:use_flag() "?" __ vals:parens(<expr()>) {
             let use_dep = UseDep {
-                kind: UseDepKind::Conditional(disabled.is_none()),
                 flag: flag.to_string(),
+                kind: UseDepKind::Conditional,
+                enabled: disabled.is_none(),
                 default: None,
             };
             let deps = vals.into_iter().map(Box::new).collect();

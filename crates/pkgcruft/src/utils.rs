@@ -8,7 +8,7 @@ pub(crate) fn use_starts_with(dep: &Dep, prefixes: &[&str]) -> bool {
     dep.use_deps()
         .map(|u| {
             u.iter()
-                .any(|x| x.possible() && prefixes.iter().any(|s| x.flag().starts_with(*s)))
+                .any(|x| x.enabled() && prefixes.iter().any(|s| x.flag().starts_with(*s)))
         })
         .unwrap_or_default()
 }

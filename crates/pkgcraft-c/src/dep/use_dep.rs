@@ -18,8 +18,9 @@ pub struct UseDepWrapper(dep::UseDep);
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct UseDep {
-    kind: dep::UseDepKind,
     flag: *mut c_char,
+    kind: dep::UseDepKind,
+    enabled: bool,
     // underscore suffix to avoid reserved keyword with cython bindings
     default_: *mut bool,
     dep: *mut UseDepWrapper,
@@ -28,7 +29,8 @@ pub struct UseDep {
 impl From<dep::UseDep> for UseDep {
     fn from(u: dep::UseDep) -> Self {
         UseDep {
-            kind: *u.kind(),
+            kind: u.kind(),
+            enabled: u.enabled(),
             flag: try_ptr_from_str!(u.flag()),
             default_: u.default().map(boxed).unwrap_or(ptr::null_mut()),
             dep: boxed(UseDepWrapper(u)),
