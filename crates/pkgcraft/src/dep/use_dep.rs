@@ -93,9 +93,8 @@ impl UseDep {
 
     /// Determine if a USE dependency matches a set of enabled flags.
     pub(crate) fn matches<S: Stringable>(&self, options: &IndexSet<S>) -> bool {
-        let flag = self.flag.as_str();
         if self.kind == UseDepKind::Conditional {
-            !(self.enabled ^ options.contains(flag))
+            !(self.enabled ^ options.contains(self.flag()))
         } else {
             todo!()
         }
