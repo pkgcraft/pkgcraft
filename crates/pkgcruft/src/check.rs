@@ -32,7 +32,9 @@ mod license;
 mod live;
 mod metadata;
 mod overlay;
+mod properties;
 mod python_update;
+mod restrict;
 mod restrict_test_missing;
 mod ruby_update;
 mod unstable_only;
@@ -69,7 +71,9 @@ pub enum CheckKind {
     Live,
     Metadata,
     Overlay,
+    Properties,
     PythonUpdate,
+    Restrict,
     RestrictTestMissing,
     RubyUpdate,
     UnstableOnly,
@@ -94,7 +98,9 @@ impl From<CheckKind> for Check {
             Live => live::CHECK,
             Metadata => metadata::CHECK,
             Overlay => overlay::CHECK,
+            Properties => properties::CHECK,
             PythonUpdate => python_update::CHECK,
+            Restrict => restrict::CHECK,
             RestrictTestMissing => restrict_test_missing::CHECK,
             RubyUpdate => ruby_update::CHECK,
             UnstableOnly => unstable_only::CHECK,
@@ -247,9 +253,11 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::Keywords => Box::new(keywords::create(repo)),
             CheckKind::License => Box::new(license::create(repo)),
             CheckKind::Overlay => Box::new(overlay::create(repo)),
+            CheckKind::Properties => Box::new(properties::create(repo)),
             CheckKind::PythonUpdate => Box::new(python_update::create(repo)),
-            CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
+            CheckKind::Restrict => Box::new(restrict::create(repo)),
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
+            CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
