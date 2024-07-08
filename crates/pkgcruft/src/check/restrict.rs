@@ -38,15 +38,17 @@ super::register!(Check);
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
         if !self.allowed.is_empty() {
-            for val in pkg
+            let vals = pkg
                 .restrict()
                 .iter_flatten()
-                .unique()
                 .filter(|x| !self.allowed.contains(x.as_str()))
-            {
+                .collect::<HashSet<_>>();
+
+            if !vals.is_empty() {
+                let vals = vals.iter().sorted().join(", ");
                 RestrictInvalid
                     .version(pkg)
-                    .message(format!("RESTRICT not allowed: {val}"))
+                    .message(format!("RESTRICT not allowed: {vals}"))
                     .report(filter);
             }
         }
