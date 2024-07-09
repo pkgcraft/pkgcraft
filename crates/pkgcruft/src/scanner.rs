@@ -19,8 +19,8 @@ use crate::source::PkgFilter;
 pub struct Scanner {
     jobs: usize,
     checks: IndexSet<Check>,
-    reports: IndexSet<ReportKind>,
-    exit: IndexSet<ReportKind>,
+    reports: Arc<IndexSet<ReportKind>>,
+    exit: Arc<IndexSet<ReportKind>>,
     filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
 }
@@ -30,8 +30,8 @@ impl Default for Scanner {
         Self {
             jobs: bounded_jobs(0),
             checks: Check::iter_default().collect(),
-            reports: ReportKind::iter().collect(),
-            exit: Default::default(),
+            reports: Arc::new(ReportKind::iter().collect()),
+            exit: Arc::new(Default::default()),
             filters: Default::default(),
             failed: Arc::new(Default::default()),
         }
@@ -65,7 +65,7 @@ impl Scanner {
     where
         I: IntoIterator<Item = ReportKind>,
     {
-        self.reports = values.into_iter().collect();
+        self.reports = Arc::new(values.into_iter().collect());
         self
     }
 
@@ -74,7 +74,7 @@ impl Scanner {
     where
         I: IntoIterator<Item = ReportKind>,
     {
-        self.exit = values.into_iter().collect();
+        self.exit = Arc::new(values.into_iter().collect());
         self
     }
 
@@ -116,16 +116,14 @@ impl Scanner {
         let restricts = restricts.into_iter().map(Into::into).collect();
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
-        let reports = Arc::new(self.reports.clone());
-        let exit = Arc::new(self.exit.clone());
 
         match repo {
             Repo::Ebuild(repo) => {
                 let runner = Arc::new(SyncCheckRunner::new(repo, &self.filters, &self.checks));
                 let filter = ReportFilter {
                     reports: None,
-                    filter: reports,
-                    exit,
+                    filter: self.reports.clone(),
+                    exit: self.exit.clone(),
                     failed: self.failed.clone(),
                     tx: reports_tx,
                 };
