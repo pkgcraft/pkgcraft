@@ -345,7 +345,7 @@ impl Install {
             .map(|(p, q)| (p.as_path(), q.as_path()))
             .sorted_by_key(|x| x.1)
             .collect();
-        for (dest, files_group) in &files_to_install.iter().group_by(|x| x.1) {
+        for (dest, files_group) in &files_to_install.iter().chunk_by(|x| x.1) {
             let sources = files_group.map(|x| x.0);
             let mut install = Command::new("install");
             if let InstallOpts::Cmd(opts) = &self.file_options {

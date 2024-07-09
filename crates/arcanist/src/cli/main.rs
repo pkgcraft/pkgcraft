@@ -8,6 +8,7 @@ use clap::{
     builder::{BoolishValueParser, NonEmptyStringValueParser},
     value_parser, Arg, ArgAction, ArgMatches, Command,
 };
+use hyper_util::rt::TokioIo;
 use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
@@ -145,7 +146,12 @@ async fn try_main() -> Result<()> {
             let error = format!("failed connecting to arcanist socket: {url}");
             Endpoint::from_static("http://[::]")
                 .user_agent(user_agent)?
-                .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(url.clone())))
+                .connect_with_connector(service_fn(move |_: Uri| {
+                    let path = url.clone();
+                    async {
+                        Ok::<_, std::io::Error>(TokioIo::new(UnixStream::connect(path).await?))
+                    }
+                }))
                 .await
                 .context(error)?
         }
