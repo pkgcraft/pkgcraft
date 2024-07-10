@@ -10,11 +10,11 @@ use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
 use strum::{IntoEnumIterator, VariantNames};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 enum TriStateArg<T: FromStr> {
+    Set(T),
     Add(T),
     Remove(T),
-    Set(T),
 }
 
 impl<T: FromStr<Err = pkgcruft::Error>> FromStr for TriStateArg<T> {
@@ -88,28 +88,24 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(self, scan: bool) -> (IndexSet<Check>, IndexSet<ReportKind>) {
+    pub(crate) fn collapse(mut self, scan: bool) -> (IndexSet<Check>, IndexSet<ReportKind>) {
         // determine enabled check set
         let mut checks: IndexSet<_> = Check::iter_default().collect();
         if !self.checks.is_empty() {
-            let mut add = IndexSet::new();
-            let mut remove = IndexSet::new();
-            let mut set = IndexSet::new();
+            // sort checks by variant
+            self.checks.sort();
+
+            // don't use default checks if neutral options exist
+            if let Some(TriStateArg::Set(_)) = self.checks.first() {
+                checks = Default::default();
+            }
 
             for x in &self.checks {
                 match x {
-                    TriStateArg::Add(val) => add.insert(*val),
-                    TriStateArg::Remove(val) => remove.insert(*val),
-                    TriStateArg::Set(val) => set.insert(*val),
+                    TriStateArg::Set(val) => checks.insert(*val),
+                    TriStateArg::Add(val) => checks.insert(*val),
+                    TriStateArg::Remove(val) => checks.swap_remove(val),
                 };
-            }
-
-            if !set.is_empty() {
-                checks = set;
-            }
-            checks.extend(add);
-            for x in remove {
-                checks.swap_remove(&x);
             }
         }
 
