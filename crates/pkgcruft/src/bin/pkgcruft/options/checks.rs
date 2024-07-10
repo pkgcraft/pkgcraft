@@ -1,28 +1,42 @@
 use std::collections::HashSet;
+use std::str::FromStr;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use indexmap::IndexSet;
-use pkgcruft::check::{Check, CheckKind};
+use pkgcruft::check::Check;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
 use strum::{IntoEnumIterator, VariantNames};
 
+#[derive(Debug, Clone, Copy)]
+enum TriStateArg<T: FromStr> {
+    Add(T),
+    Remove(T),
+    Set(T),
+}
+
+impl<T: FromStr<Err = pkgcruft::Error>> FromStr for TriStateArg<T> {
+    type Err = pkgcruft::Error;
+
+    fn from_str(s: &str) -> pkgcruft::Result<Self> {
+        if let Some(val) = s.strip_prefix('-') {
+            val.parse().map(Self::Remove)
+        } else if let Some(val) = s.strip_prefix('+') {
+            val.parse().map(Self::Add)
+        } else {
+            s.parse().map(Self::Set)
+        }
+    }
+}
+
 #[derive(Debug, Args)]
 #[clap(next_help_heading = Some("Report selection"))]
 pub(crate) struct Checks {
     /// Restrict by check
-    #[arg(
-        short,
-        long,
-        value_name = "CHECK[,...]",
-        value_delimiter = ',',
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(CheckKind::VARIANTS)
-            .map(|s| s.parse::<Check>().unwrap()),
-    )]
-    checks: Vec<Check>,
+    #[arg(short, long, value_name = "CHECK[,...]", value_delimiter = ',')]
+    checks: Vec<TriStateArg<Check>>,
 
     /// Restrict by level
     #[arg(
@@ -75,6 +89,24 @@ pub(crate) struct Checks {
 
 impl Checks {
     pub(crate) fn collapse(self, scan: bool) -> (IndexSet<Check>, IndexSet<ReportKind>) {
+        // determine enabled check set
+        let mut checks: IndexSet<_> = Check::iter_default().collect();
+        if !self.checks.is_empty() {
+            let mut overrides = IndexSet::new();
+
+            for x in &self.checks {
+                match x {
+                    TriStateArg::Add(val) => checks.insert(*val),
+                    TriStateArg::Remove(val) => checks.swap_remove(val),
+                    TriStateArg::Set(val) => overrides.insert(*val),
+                };
+            }
+
+            if !overrides.is_empty() {
+                checks = overrides;
+            }
+        }
+
         // determine enabled report set
         let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
@@ -83,11 +115,7 @@ impl Checks {
         } else if !self.checks.is_empty() {
             // enable reports related to enabled checks
             default_reports = false;
-            self.checks
-                .iter()
-                .flat_map(|x| x.reports)
-                .copied()
-                .collect()
+            checks.iter().flat_map(|x| x.reports).copied().collect()
         } else {
             Default::default()
         };
@@ -129,12 +157,10 @@ impl Checks {
             }
         }
 
-        // determine enabled check set
-        let checks = if !self.checks.is_empty() {
-            self.checks.into_iter().collect()
-        } else {
-            reports.iter().flat_map(Check::iter_report).collect()
-        };
+        // enable checks for target reports if none are explicitly specified
+        if self.checks.is_empty() {
+            checks = reports.iter().flat_map(Check::iter_report).collect();
+        }
 
         (checks, reports)
     }
@@ -167,5 +193,34 @@ mod tests {
         let (checks, reports) = cmd.checks.collapse(false);
         assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
         assert!(!reports.is_empty());
+
+        // only enable checks related to specified reports
+        let cmd = Command::try_parse_from(["cmd", "-r", "DependencyDeprecated"]).unwrap();
+        let (checks, reports) = cmd.checks.collapse(false);
+        assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
+        assert!(!reports.is_empty());
+
+        // verify UnstableOnly is an optional check
+        assert!(Check::iter().any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(!Check::iter_default().any(|x| x.as_ref() == "UnstableOnly"));
+
+        // default checks
+        let cmd = Command::try_parse_from(["cmd"]).unwrap();
+        let (checks, _) = cmd.checks.collapse(true);
+        assert!(checks.iter().map(|x| x.as_ref()).any(|x| x == "Dependency"));
+        // optional checks aren't run by default when scanning
+        assert!(!checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
+
+        // disable checks
+        let cmd = Command::try_parse_from(["cmd", "-c=-Dependency"]).unwrap();
+        let (checks, _) = cmd.checks.collapse(true);
+        assert!(!checks.iter().map(|x| x.as_ref()).any(|x| x == "Dependency"));
+        assert!(checks.len() > 1);
+
+        // enable optional checks in addition to default checks
+        let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly"]).unwrap();
+        let (checks, _) = cmd.checks.collapse(true);
+        assert!(checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(checks.len() > 1);
     }
 }
