@@ -191,11 +191,11 @@ impl Checks {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use pkgcraft::test::assert_ordered_eq;
+    use pkgcraft::test::{assert_err_re, assert_ordered_eq};
 
     use super::*;
 
-    #[derive(Parser)]
+    #[derive(Debug, Parser)]
     struct Command {
         #[clap(flatten)]
         checks: Checks,
@@ -254,5 +254,11 @@ mod tests {
         // error when args cancel out
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency,Dependency"]).unwrap();
         assert!(cmd.checks.collapse(true).is_err());
+
+        // invalid check names in args
+        for arg in ["-c=unknown", "-c=-unknown", "-c=+unknown"] {
+            let r = Command::try_parse_from(["cmd", arg]);
+            assert_err_re!(r, "unknown check: unknown");
+        }
     }
 }
