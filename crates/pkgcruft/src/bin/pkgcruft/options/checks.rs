@@ -207,14 +207,14 @@ mod tests {
         // default checks
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (checks, _) = cmd.checks.collapse(true);
-        assert!(checks.iter().map(|x| x.as_ref()).any(|x| x == "Dependency"));
+        assert!(checks.iter().any(|x| x.as_ref() == "Dependency"));
         // optional checks aren't run by default when scanning
         assert!(!checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
 
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency"]).unwrap();
         let (checks, _) = cmd.checks.collapse(true);
-        assert!(!checks.iter().map(|x| x.as_ref()).any(|x| x == "Dependency"));
+        assert!(!checks.iter().any(|x| x.as_ref() == "Dependency"));
         assert!(checks.len() > 1);
 
         // enable optional checks in addition to default checks
