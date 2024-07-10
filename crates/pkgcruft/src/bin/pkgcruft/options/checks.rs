@@ -21,10 +21,10 @@ impl<T: FromStr<Err = pkgcruft::Error>> FromStr for TriStateArg<T> {
     type Err = pkgcruft::Error;
 
     fn from_str(s: &str) -> pkgcruft::Result<Self> {
-        if let Some(val) = s.strip_prefix('-') {
-            val.parse().map(Self::Remove)
-        } else if let Some(val) = s.strip_prefix('+') {
+        if let Some(val) = s.strip_prefix('+') {
             val.parse().map(Self::Add)
+        } else if let Some(val) = s.strip_prefix('-') {
+            val.parse().map(Self::Remove)
         } else {
             s.parse().map(Self::Set)
         }
