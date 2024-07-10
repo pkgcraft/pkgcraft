@@ -92,18 +92,24 @@ impl Checks {
         // determine enabled check set
         let mut checks: IndexSet<_> = Check::iter_default().collect();
         if !self.checks.is_empty() {
-            let mut overrides = IndexSet::new();
+            let mut add = IndexSet::new();
+            let mut remove = IndexSet::new();
+            let mut set = IndexSet::new();
 
             for x in &self.checks {
                 match x {
-                    TriStateArg::Add(val) => checks.insert(*val),
-                    TriStateArg::Remove(val) => checks.swap_remove(val),
-                    TriStateArg::Set(val) => overrides.insert(*val),
+                    TriStateArg::Add(val) => add.insert(*val),
+                    TriStateArg::Remove(val) => remove.insert(*val),
+                    TriStateArg::Set(val) => set.insert(*val),
                 };
             }
 
-            if !overrides.is_empty() {
-                checks = overrides;
+            if !set.is_empty() {
+                checks = set;
+            }
+            checks.extend(add);
+            for x in remove {
+                checks.swap_remove(&x);
             }
         }
 
