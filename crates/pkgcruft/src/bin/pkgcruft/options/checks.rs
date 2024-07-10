@@ -8,6 +8,7 @@ use pkgcruft::check::Check;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
+use pkgcruft::Error;
 use strum::{IntoEnumIterator, VariantNames};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -17,8 +18,8 @@ enum TriStateArg<T: FromStr> {
     Remove(T),
 }
 
-impl<T: FromStr<Err = pkgcruft::Error>> FromStr for TriStateArg<T> {
-    type Err = pkgcruft::Error;
+impl<T: FromStr<Err = Error>> FromStr for TriStateArg<T> {
+    type Err = Error;
 
     fn from_str(s: &str) -> pkgcruft::Result<Self> {
         if let Some(val) = s.strip_prefix('+') {
@@ -88,7 +89,10 @@ pub(crate) struct Checks {
 }
 
 impl Checks {
-    pub(crate) fn collapse(mut self, scan: bool) -> (IndexSet<Check>, IndexSet<ReportKind>) {
+    pub(crate) fn collapse(
+        mut self,
+        scan: bool,
+    ) -> pkgcruft::Result<(IndexSet<Check>, IndexSet<ReportKind>)> {
         // determine enabled check set
         let mut checks: IndexSet<_> = Check::iter_default().collect();
         if !self.checks.is_empty() {
@@ -164,7 +168,11 @@ impl Checks {
             checks = reports.iter().flat_map(Check::iter_report).collect();
         }
 
-        (checks, reports)
+        if checks.is_empty() {
+            Err(Error::InvalidValue("no checks selected".to_string()))
+        } else {
+            Ok((checks, reports))
+        }
     }
 }
 
@@ -186,19 +194,19 @@ mod tests {
         // verify checks and reports options don't affect each other when both are specified
         let cmd = Command::try_parse_from(["cmd", "-c", "Dependency", "-r", "DependencyInvalid"])
             .unwrap();
-        let (checks, reports) = cmd.checks.collapse(false);
+        let (checks, reports) = cmd.checks.collapse(false).unwrap();
         assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
         assert_ordered_eq!(reports.iter().map(|x| x.as_ref()), ["DependencyInvalid"]);
 
         // reports are populated by checks when unspecified
         let cmd = Command::try_parse_from(["cmd", "-c", "Dependency"]).unwrap();
-        let (checks, reports) = cmd.checks.collapse(false);
+        let (checks, reports) = cmd.checks.collapse(false).unwrap();
         assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
         assert!(!reports.is_empty());
 
         // only enable checks related to specified reports
         let cmd = Command::try_parse_from(["cmd", "-r", "DependencyDeprecated"]).unwrap();
-        let (checks, reports) = cmd.checks.collapse(false);
+        let (checks, reports) = cmd.checks.collapse(false).unwrap();
         assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
         assert!(!reports.is_empty());
 
@@ -208,21 +216,31 @@ mod tests {
 
         // default checks
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let (checks, _) = cmd.checks.collapse(true);
+        let (checks, _) = cmd.checks.collapse(true).unwrap();
         assert!(checks.iter().any(|x| x.as_ref() == "Dependency"));
         // optional checks aren't run by default when scanning
         assert!(!checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
 
+        // enable optional checks in addition to default checks
+        let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly"]).unwrap();
+        let (checks, _) = cmd.checks.collapse(true).unwrap();
+        assert!(checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(checks.len() > 1);
+
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency"]).unwrap();
-        let (checks, _) = cmd.checks.collapse(true);
+        let (checks, _) = cmd.checks.collapse(true).unwrap();
         assert!(!checks.iter().any(|x| x.as_ref() == "Dependency"));
         assert!(checks.len() > 1);
 
-        // enable optional checks in addition to default checks
-        let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly"]).unwrap();
-        let (checks, _) = cmd.checks.collapse(true);
-        assert!(checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
+        // disable option overrides enable option
+        let cmd = Command::try_parse_from(["cmd", "-c=-Dependency,+Dependency"]).unwrap();
+        let (checks, _) = cmd.checks.collapse(true).unwrap();
+        assert!(!checks.iter().any(|x| x.as_ref() == "Dependency"));
         assert!(checks.len() > 1);
+
+        // error when args cancel out
+        let cmd = Command::try_parse_from(["cmd", "-c=-Dependency,Dependency"]).unwrap();
+        assert!(cmd.checks.collapse(true).is_err());
     }
 }
