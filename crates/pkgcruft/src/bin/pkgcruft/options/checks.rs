@@ -3,8 +3,10 @@ use std::str::FromStr;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
+use colored::{Color, Colorize};
 use indexmap::IndexSet;
-use pkgcruft::check::Check;
+use itertools::Itertools;
+use pkgcruft::check::{Check, CheckKind};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
@@ -12,22 +14,32 @@ use pkgcruft::Error;
 use strum::{IntoEnumIterator, VariantNames};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-enum TriStateArg<T: FromStr> {
-    Set(T),
-    Add(T),
-    Remove(T),
+enum TriStateCheck {
+    Set(Check),
+    Add(Check),
+    Remove(Check),
 }
 
-impl<T: FromStr<Err = Error>> FromStr for TriStateArg<T> {
+impl FromStr for TriStateCheck {
     type Err = Error;
 
     fn from_str(s: &str) -> pkgcruft::Result<Self> {
+        let err = |err: Error| -> Error {
+            let possible = CheckKind::iter()
+                .map(|x| x.as_ref().color(Color::Green))
+                .join(", ");
+            let message = indoc::formatdoc! {"
+                {err}
+                    [possible values: {possible}]"};
+            Error::InvalidValue(message)
+        };
+
         if let Some(val) = s.strip_prefix('+') {
-            val.parse().map(Self::Add)
+            val.parse().map(Self::Add).map_err(err)
         } else if let Some(val) = s.strip_prefix('-') {
-            val.parse().map(Self::Remove)
+            val.parse().map(Self::Remove).map_err(err)
         } else {
-            s.parse().map(Self::Set)
+            s.parse().map(Self::Set).map_err(err)
         }
     }
 }
@@ -37,7 +49,7 @@ impl<T: FromStr<Err = Error>> FromStr for TriStateArg<T> {
 pub(crate) struct Checks {
     /// Restrict by check
     #[arg(short, long, value_name = "CHECK[,...]", value_delimiter = ',')]
-    checks: Vec<TriStateArg<Check>>,
+    checks: Vec<TriStateCheck>,
 
     /// Restrict by level
     #[arg(
@@ -100,15 +112,15 @@ impl Checks {
             self.checks.sort();
 
             // don't use default checks if neutral options exist
-            if let Some(TriStateArg::Set(_)) = self.checks.first() {
+            if let Some(TriStateCheck::Set(_)) = self.checks.first() {
                 checks = Default::default();
             }
 
             for x in &self.checks {
                 match x {
-                    TriStateArg::Set(val) => checks.insert(*val),
-                    TriStateArg::Add(val) => checks.insert(*val),
-                    TriStateArg::Remove(val) => checks.swap_remove(val),
+                    TriStateCheck::Set(val) => checks.insert(*val),
+                    TriStateCheck::Add(val) => checks.insert(*val),
+                    TriStateCheck::Remove(val) => checks.swap_remove(val),
                 };
             }
         }
