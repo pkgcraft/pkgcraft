@@ -33,10 +33,10 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi;
-    use crate::macros::assert_err_re;
     use crate::pkg::Build;
     use crate::shell::test::FileTree;
     use crate::shell::{get_build_mut, BuildData};
+    use crate::test::assert_err_re;
 
     #[test]
     fn src_prepare() {

@@ -22,7 +22,7 @@ mod tests {
     use scallop::source;
     use scallop::variables::{bind, optional};
 
-    use crate::macros::assert_err_re;
+    use crate::test::assert_err_re;
 
     #[test]
     fn fatal() {

@@ -31,9 +31,9 @@ mod tests {
     use crate::command::{commands, run_commands};
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::macros::assert_err_re;
     use crate::pkg::Build;
     use crate::shell::{test::FileTree, BuildData};
+    use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, fowners};
     use super::*;

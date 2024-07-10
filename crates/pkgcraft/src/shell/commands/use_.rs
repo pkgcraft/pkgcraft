@@ -38,8 +38,8 @@ make_builtin!("use", use_builtin);
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::macros::assert_err_re;
     use crate::shell::BuildData;
+    use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, use_};

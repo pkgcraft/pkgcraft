@@ -368,9 +368,9 @@ impl Intersects<Dep> for Pkg<'_> {
 mod tests {
     use crate::config::Config;
     use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
-    use crate::macros::assert_err_re;
     use crate::pkg::ebuild::manifest::Checksum;
     use crate::repo::PkgRepository;
+    use crate::test::assert_err_re;
     use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::*;

@@ -55,9 +55,9 @@ make_builtin!("domo", domo_builtin);
 mod tests {
     use std::fs;
 
-    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, domo};

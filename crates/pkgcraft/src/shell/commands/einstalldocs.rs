@@ -99,9 +99,9 @@ make_builtin!("einstalldocs", einstalldocs_builtin);
 mod tests {
     use scallop::source;
 
-    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, einstalldocs};

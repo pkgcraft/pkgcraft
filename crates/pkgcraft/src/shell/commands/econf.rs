@@ -120,9 +120,10 @@ mod tests {
 
     use crate::command::commands;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::macros::{assert_err_re, build_path};
+    use crate::macros::build_path;
     use crate::shell::phase::PhaseKind::SrcConfigure;
     use crate::shell::{BuildData, Scope};
+    use crate::test::assert_err_re;
 
     use super::super::{cmd_scope_tests, econf};
     use super::*;

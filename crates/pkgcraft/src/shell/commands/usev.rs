@@ -33,8 +33,8 @@ make_builtin!("usev", usev_builtin);
 mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::macros::assert_err_re;
     use crate::shell::{assert_stdout, BuildData};
+    use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, usev};

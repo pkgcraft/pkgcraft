@@ -47,7 +47,7 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::command::commands;
-    use crate::macros::assert_err_re;
+    use crate::test::assert_err_re;
 
     use super::super::{cmd_scope_tests, emake};
     use super::*;

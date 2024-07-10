@@ -16,8 +16,8 @@ make_builtin!("useq", useq_builtin);
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::macros::assert_err_re;
     use crate::shell::{get_build_mut, BuildData};
+    use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, useq};

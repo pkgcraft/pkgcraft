@@ -74,8 +74,8 @@ make_builtin!("doman", doman_builtin);
 mod tests {
     use std::fs;
 
-    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
+    use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, doman};
     use super::*;

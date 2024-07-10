@@ -37,8 +37,8 @@ make_builtin!("dobin", dobin_builtin);
 mod tests {
     use std::fs;
 
-    use crate::macros::assert_err_re;
     use crate::shell::test::FileTree;
+    use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, dobin, exeopts, into};
     use super::*;

@@ -35,8 +35,8 @@ make_builtin!("eend", eend_builtin);
 
 #[cfg(test)]
 mod tests {
-    use crate::macros::assert_err_re;
     use crate::shell::assert_stderr;
+    use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, eend};
     use super::*;

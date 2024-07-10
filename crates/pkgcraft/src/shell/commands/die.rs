@@ -42,10 +42,10 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi::{EAPI5, EAPIS_OFFICIAL};
-    use crate::macros::assert_err_re;
     use crate::pkg::Build;
     use crate::shell::phase::PhaseKind;
     use crate::shell::{BuildData, BuildState, Scope};
+    use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, die};
     use super::*;

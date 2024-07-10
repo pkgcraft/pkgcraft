@@ -25,8 +25,8 @@ mod tests {
     use scallop::variables::{self, *};
 
     use crate::eapi::{Feature::NonfatalDie, EAPIS_OFFICIAL};
-    use crate::macros::assert_err_re;
     use crate::shell::BuildData;
+    use crate::test::assert_err_re;
 
     use super::super::{assert, assert_invalid_args, cmd_scope_tests};
     use super::*;

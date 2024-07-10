@@ -564,7 +564,7 @@ fn assert_invalid_args(builtin: Builtin, nums: &[u32]) {
         let args: Vec<_> = (0..*n).map(|n| n.to_string()).collect();
         let args: Vec<_> = args.iter().map(|s| s.as_str()).collect();
         let re = format!("^.*, got {n}");
-        crate::macros::assert_err_re!(builtin(&args), re);
+        crate::test::assert_err_re!(builtin(&args), re);
     }
 }
 
@@ -577,9 +577,9 @@ macro_rules! cmd_scope_tests {
 
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
-            use crate::macros::assert_err_re;
             use crate::pkg::Source;
             use crate::shell::scope::{Scope::*, Scopes};
+            use crate::test::assert_err_re;
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();

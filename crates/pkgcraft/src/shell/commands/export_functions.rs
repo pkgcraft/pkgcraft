@@ -43,9 +43,9 @@ mod tests {
     use scallop::variables::optional;
 
     use crate::config::Config;
-    use crate::macros::assert_err_re;
     use crate::pkg::{Build, Source};
     use crate::shell::BuildData;
+    use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, export_functions};
     use super::*;

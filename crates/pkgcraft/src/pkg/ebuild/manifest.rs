@@ -227,7 +227,7 @@ impl<'a> Iterator for Iter<'a> {
 mod tests {
     use tempfile::tempdir;
 
-    use crate::macros::assert_err_re;
+    use crate::test::assert_err_re;
 
     use super::*;
 

@@ -42,7 +42,7 @@ pub(super) fn new(args: &[&str], builtin: Builtin) -> scallop::Result<ExecStatus
 
 #[cfg(test)]
 mod tests {
-    use crate::macros::assert_err_re;
+    use crate::test::assert_err_re;
 
     use super::super::newbin;
     use super::*;

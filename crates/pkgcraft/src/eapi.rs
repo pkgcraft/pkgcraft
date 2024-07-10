@@ -936,7 +936,7 @@ impl Restriction<&'static Eapi> for Restrict {
 mod tests {
     use tempfile::NamedTempFile;
 
-    use crate::macros::assert_err_re;
+    use crate::test::assert_err_re;
     use crate::test::assert_ordered_eq;
 
     use super::*;

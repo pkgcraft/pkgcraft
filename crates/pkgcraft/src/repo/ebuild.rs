@@ -1173,10 +1173,10 @@ mod tests {
     use crate::config::Config;
     use crate::dep::Dep;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::macros::*;
+    use crate::macros::assert_logs_re;
     use crate::pkg::Package;
     use crate::repo::Contains;
-    use crate::test::{assert_ordered_eq, TEST_DATA};
+    use crate::test::{assert_err_re, assert_ordered_eq, TEST_DATA};
 
     use super::*;
 

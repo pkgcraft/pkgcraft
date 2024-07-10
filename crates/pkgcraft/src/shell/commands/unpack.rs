@@ -124,8 +124,8 @@ mod tests {
     use crate::archive::{Archive, ArchiveFormat};
     use crate::command::run_commands;
     use crate::eapi::{Feature, EAPIS_OFFICIAL};
-    use crate::macros::assert_err_re;
     use crate::shell::BuildData;
+    use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, unpack};
     use super::*;

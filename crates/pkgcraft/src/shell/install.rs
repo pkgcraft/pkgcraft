@@ -364,9 +364,9 @@ mod tests {
     use std::fs;
 
     use crate::command::{commands, run_commands};
-    use crate::macros::assert_err_re;
     use crate::shell::get_build_mut;
     use crate::shell::test::FileTree;
+    use crate::test::assert_err_re;
 
     #[test]
     fn nonexistent() {

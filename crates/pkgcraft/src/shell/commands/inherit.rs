@@ -84,9 +84,9 @@ mod tests {
     use scallop::variables::{optional, string_vec};
 
     use crate::config::Config;
-    use crate::macros::assert_err_re;
     use crate::pkg::Source;
     use crate::shell::BuildData;
+    use crate::test::assert_err_re;
     use crate::test::{assert_ordered_eq, TEST_DATA};
 
     use super::super::{assert_invalid_args, cmd_scope_tests, inherit};
