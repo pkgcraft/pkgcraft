@@ -31,12 +31,12 @@ name = "scallop"
 [dependencies]
 bitflags = "2.6.0"
 indexmap = { version = "2.2.6", features = ["rayon", "serde"] }
-ipc-channel = "0.18.1"
+ipc-channel = "0.18.2"
 libc = "0.2.155"
 nix = { version = "0.29.0", features = ["fs", "mman", "process", "signal"] }
 once_cell = "1.19.0"
 serde = { version = "1.0.204", features = ["derive"] }
-thiserror = "1.0.61"
+thiserror = "1.0.63"
 tracing = "0.1.40"
 
 [build-dependencies]
