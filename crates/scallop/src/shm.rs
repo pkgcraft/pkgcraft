@@ -1,12 +1,11 @@
 use std::ffi::c_void;
 use std::num::NonZeroUsize;
-use std::os::fd::AsRawFd;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use nix::fcntl::OFlag;
 use nix::sys::mman::{mmap, shm_open, shm_unlink, MapFlags, ProtFlags};
 use nix::sys::stat::Mode;
-use nix::unistd::{close, ftruncate};
+use nix::unistd::ftruncate;
 
 use crate::Error;
 
@@ -49,7 +48,6 @@ pub(crate) fn create_shm(prefix: &str, size: usize) -> crate::Result<*mut c_void
         .as_mut()
     };
 
-    close(shm_fd.as_raw_fd())?;
     shm_unlink(name.as_str()).map_err(|e| Error::Base(format!("shm_unlink(): {e}")))?;
 
     Ok(shm_ptr)
