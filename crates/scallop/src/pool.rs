@@ -3,7 +3,7 @@ use std::os::fd::{AsRawFd, RawFd};
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::Errno;
-use nix::unistd::{close, dup2, fork, ForkResult};
+use nix::unistd::{dup2, fork, ForkResult};
 use serde::{Deserialize, Serialize};
 
 use crate::shm::create_shm;
@@ -13,7 +13,6 @@ use crate::{bash, shell, Error};
 pub fn redirect_output(fd: RawFd) -> crate::Result<()> {
     dup2(fd, 1)?;
     dup2(fd, 2)?;
-    close(fd)?;
     Ok(())
 }
 
