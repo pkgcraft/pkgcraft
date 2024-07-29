@@ -290,6 +290,7 @@ where
         match self.rx.recv() {
             Ok(Msg::Val(r)) => Some(r),
             Ok(Msg::Stop) => None,
+            Err(IpcError::Disconnected) => None,
             Err(e) => panic!("output receiver failed: {e}"),
         }
     }
