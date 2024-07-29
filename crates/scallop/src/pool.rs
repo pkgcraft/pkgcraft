@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::os::fd::{AsRawFd, RawFd};
+use std::os::fd::{AsFd, AsRawFd};
 
 use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::Errno;
@@ -10,7 +10,8 @@ use crate::shm::create_shm;
 use crate::{bash, shell, Error};
 
 /// Redirect stdout and stderr to a given raw file descriptor.
-pub fn redirect_output(fd: RawFd) -> crate::Result<()> {
+pub fn redirect_output<T: AsFd>(f: T) -> crate::Result<()> {
+    let fd = f.as_fd().as_raw_fd();
     dup2(fd, 1)?;
     dup2(fd, 2)?;
     Ok(())
@@ -19,7 +20,7 @@ pub fn redirect_output(fd: RawFd) -> crate::Result<()> {
 /// Suppress stdout and stderr.
 pub fn suppress_output() -> crate::Result<()> {
     let f = File::options().write(true).open("/dev/null")?;
-    redirect_output(f.as_raw_fd())?;
+    redirect_output(&f)?;
     Ok(())
 }
 

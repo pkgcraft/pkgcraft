@@ -1,5 +1,4 @@
 use std::fs;
-use std::os::fd::AsRawFd;
 
 use scallop::pool::redirect_output;
 use scallop::{functions, Error, ExecStatus};
@@ -54,7 +53,7 @@ impl<'a> Pretend for ebuild::Pkg<'a> {
 
         // redirect pkg_pretend() output to a temporary file
         let file = NamedTempFile::new()?;
-        redirect_output(file.as_raw_fd())?;
+        redirect_output(&file)?;
 
         // execute function capturing output
         let result = func.execute(&[]);
