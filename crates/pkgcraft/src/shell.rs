@@ -248,7 +248,7 @@ impl<'a> BuildData<'a> {
 
     fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::raw::Pkg<'a>) {
         // TODO: remove this hack once BuildData is reworked
-        let p = unsafe { mem::transmute(pkg) };
+        let p: &crate::pkg::ebuild::raw::Pkg = unsafe { mem::transmute(pkg) };
         let data = BuildData {
             state: BuildState::Metadata(p),
             ..BuildData::new()
@@ -258,7 +258,7 @@ impl<'a> BuildData<'a> {
 
     fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
         // TODO: remove this hack once BuildData is reworked
-        let p = unsafe { mem::transmute(pkg) };
+        let p: &crate::pkg::ebuild::Pkg = unsafe { mem::transmute(pkg) };
         let data = BuildData {
             state: BuildState::Build(p),
             ..BuildData::new()

@@ -129,7 +129,7 @@ impl Syncable for Repo {
                         .skip(1)
                         .collect();
                     entry
-                        .unpack(&tmp_dir.path().join(&stripped_path))
+                        .unpack(tmp_dir.path().join(&stripped_path))
                         .map_err(|e| Error::RepoSync(format!("failed unpacking archive: {e}")))?;
                     Ok(stripped_path)
                 })
