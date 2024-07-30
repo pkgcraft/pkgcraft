@@ -65,7 +65,7 @@ strum = { version = "0.26.3", features = ["derive"] }
 tar = { version = "0.4.41", optional = true }
 tempfile = "3.10.1"
 thiserror = "1.0.63"
-tokio = { version = "1.39.1", features = ["full"], optional = true }
+tokio = { version = "1.39.2", features = ["full"], optional = true }
 toml = "0.8.16"
 tracing = "0.1.40"
 walkdir = "2.5.0"
