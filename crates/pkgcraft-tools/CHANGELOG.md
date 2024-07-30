@@ -1,3 +1,8 @@
+# 0.0.16 (2024-07-29)
+
+## Fixed
+- Fix file descriptor handling in pkgcraft for rust-1.80.0 support.
+
 # 0.0.15 (2024-06-21)
 
 ## Changed
