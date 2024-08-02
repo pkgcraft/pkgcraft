@@ -242,7 +242,7 @@ impl<'a> Pkg<'a> {
             .get_or_init(|| {
                 self.repo
                     .pkg_metadata(self.cpn())
-                    .expect("failed request metadata")
+                    .expect("failed requesting metadata")
             })
             .as_ref()
     }
