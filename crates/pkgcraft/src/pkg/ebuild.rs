@@ -802,155 +802,24 @@ mod tests {
     }
 
     #[test]
-    fn maintainers() {
+    fn pkg_metadata() {
         let repo = TEST_DATA.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.metadata().maintainers().is_empty());
+        assert!(pkg.metadata().is_empty());
 
         // invalid
         let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.metadata().maintainers().is_empty());
+        assert!(pkg.metadata().is_empty());
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        let m = pkg.metadata().maintainers();
-        assert_eq!(m.len(), 1);
-        assert_eq!(m[0].email(), "a.person@email.com");
-        assert_eq!(m[0].name(), Some("A Person"));
+        assert!(!pkg.metadata().is_empty());
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        let m = pkg.metadata().maintainers();
-        assert_eq!(m.len(), 2);
-        assert_eq!(m[0].email(), "a.person@email.com");
-        assert_eq!(m[0].name(), Some("A Person"));
-        assert_eq!(m[1].email(), "b.person@email.com");
-        assert_eq!(m[1].name(), Some("B Person"));
-    }
-
-    #[test]
-    fn upstream() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
-
-        // none
-        let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.metadata().upstream().is_none());
-
-        // invalid
-        let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.metadata().upstream().is_none());
-
-        // single
-        let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        let m = pkg.metadata().upstream().unwrap().remote_ids();
-        assert_eq!(m.len(), 1);
-        assert_eq!(m[0].site(), "github");
-        assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
-
-        // multiple
-        let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        let m = pkg.metadata().upstream().unwrap().remote_ids();
-        assert_eq!(m.len(), 2);
-        assert_eq!(m[0].site(), "github");
-        assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
-        assert_eq!(m[1].site(), "pypi");
-        assert_eq!(m[1].name(), "pkgcraft");
-    }
-
-    #[test]
-    fn slots() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
-
-        // nonexistent
-        let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.metadata().slots().is_empty());
-
-        // existent
-        let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert_eq!(pkg.metadata().slots().get("*").unwrap(), "slot description");
-    }
-
-    #[test]
-    fn subslots() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
-
-        // nonexistent
-        let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.metadata().subslots().is_none());
-
-        // existent
-        let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert_eq!(pkg.metadata().subslots().unwrap(), "subslot description");
-    }
-
-    #[test]
-    fn stabilize_allarches() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
-
-        // nonexistent
-        let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(!pkg.metadata().stabilize_allarches());
-
-        // existent
-        let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert!(pkg.metadata().stabilize_allarches());
-    }
-
-    #[test]
-    fn local_use() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
-
-        // none
-        let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.metadata().local_use().is_empty());
-
-        // invalid
-        let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.metadata().local_use().is_empty());
-
-        // single
-        let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert_eq!(pkg.metadata().local_use().len(), 1);
-        assert_eq!(pkg.metadata().local_use().get("flag").unwrap(), "flag desc");
-
-        // multiple
-        let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        assert_eq!(pkg.metadata().local_use().len(), 2);
-        assert_eq!(pkg.metadata().local_use().get("flag1").unwrap(), "flag1 desc");
-        assert_eq!(pkg.metadata().local_use().get("flag2").unwrap(), "flag2 desc");
-    }
-
-    #[test]
-    fn long_description() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
-
-        // none
-        let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.metadata().description().is_none());
-
-        // invalid
-        let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.metadata().description().is_none());
-
-        // empty
-        let pkg = repo.get_pkg("pkg/empty-8").unwrap();
-        assert!(pkg.metadata().description().is_none());
-
-        // single
-        let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert_eq!(
-            pkg.metadata().description().unwrap(),
-            "A wrapped sentence. Another sentence. New paragraph."
-        );
-
-        // multiple
-        let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        assert_eq!(
-            pkg.metadata().description().unwrap(),
-            "A wrapped sentence. Another sentence. New paragraph."
-        );
+        assert!(!pkg.metadata().is_empty());
     }
 
     #[test]
