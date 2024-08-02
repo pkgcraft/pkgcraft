@@ -238,24 +238,20 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's shared metadata.
     pub fn metadata(&self) -> &xml::Metadata {
-        self.metadata
-            .get_or_init(|| {
-                self.repo
-                    .pkg_metadata(self.cpn())
-                    .expect("failed requesting metadata")
-            })
-            .as_ref()
+        self.metadata.get_or_init(|| {
+            self.repo
+                .pkg_metadata(self.cpn())
+                .expect("failed requesting metadata")
+        })
     }
 
     /// Return a package's manifest.
     pub fn manifest(&self) -> &Manifest {
-        self.manifest
-            .get_or_init(|| {
-                self.repo
-                    .pkg_manifest(self.cpn())
-                    .expect("failed requesting manifest")
-            })
-            .as_ref()
+        self.manifest.get_or_init(|| {
+            self.repo
+                .pkg_manifest(self.cpn())
+                .expect("failed requesting manifest")
+        })
     }
 
     /// Return a package's distfiles.
