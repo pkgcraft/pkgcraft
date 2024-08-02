@@ -154,7 +154,7 @@ pub enum MaintainerStatus {
     Unknown,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct UpstreamMaintainer {
     name: String,
     email: Option<String>,
@@ -175,7 +175,7 @@ impl UpstreamMaintainer {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Upstream {
     remote_ids: OrderedSet<RemoteId>,
     maintainers: Vec<UpstreamMaintainer>,
@@ -248,7 +248,7 @@ impl TryFrom<Node<'_, '_>> for Upstream {
 }
 
 /// Package metadata contained in metadata.xml files as defined by GLEP 68.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Metadata {
     maintainers: Vec<Maintainer>,
     upstream: Option<Upstream>,
@@ -318,6 +318,11 @@ impl Metadata {
                 .filter_map(|x| x.text().map(|s| s.split_whitespace().join(" ")))
                 .join("")
         })
+    }
+
+    /// Return true if metadata is nonexistent, false otherwise.
+    pub fn is_empty(&self) -> bool {
+        self == &Self::default()
     }
 
     /// Return a package's maintainers.
