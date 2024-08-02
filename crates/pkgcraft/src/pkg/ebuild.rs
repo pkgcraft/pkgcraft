@@ -3,7 +3,6 @@ use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
-use indexmap::IndexMap;
 use itertools::Either;
 
 use crate::dep::{Cpv, Dep};
@@ -54,9 +53,9 @@ where
 pub struct Pkg<'a> {
     cpv: Cpv,
     repo: &'a Repo,
-    meta: Metadata<'a>,
+    data: Metadata<'a>,
     iuse_effective: OnceLock<OrderedSet<String>>,
-    xml: OnceLock<Arc<xml::Metadata>>,
+    metadata: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
 }
 
@@ -72,13 +71,13 @@ impl<'a> TryFrom<raw::Pkg<'a>> for Pkg<'a> {
     type Error = Error;
 
     fn try_from(pkg: raw::Pkg) -> crate::Result<Pkg> {
-        let meta = pkg.metadata()?;
+        let data = pkg.metadata()?;
         Ok(Pkg {
             cpv: pkg.cpv,
             repo: pkg.repo,
-            meta,
+            data,
             iuse_effective: OnceLock::new(),
-            xml: OnceLock::new(),
+            metadata: OnceLock::new(),
             manifest: OnceLock::new(),
         })
     }
@@ -125,12 +124,12 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's description.
     pub fn description(&self) -> &str {
-        &self.meta.description
+        &self.data.description
     }
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.meta.slot.subslot().unwrap_or_else(|| self.slot())
+        self.data.slot.subslot().unwrap_or_else(|| self.slot())
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
@@ -159,130 +158,103 @@ impl<'a> Pkg<'a> {
 
     /// Return a package's BDEPEND.
     pub fn bdepend(&self) -> &DependencySet<Dep> {
-        &self.meta.bdepend
+        &self.data.bdepend
     }
 
     /// Return a package's DEPEND.
     pub fn depend(&self) -> &DependencySet<Dep> {
-        &self.meta.depend
+        &self.data.depend
     }
 
     /// Return a package's IDEPEND.
     pub fn idepend(&self) -> &DependencySet<Dep> {
-        &self.meta.idepend
+        &self.data.idepend
     }
 
     /// Return a package's PDEPEND.
     pub fn pdepend(&self) -> &DependencySet<Dep> {
-        &self.meta.pdepend
+        &self.data.pdepend
     }
 
     /// Return a package's RDEPEND.
     pub fn rdepend(&self) -> &DependencySet<Dep> {
-        &self.meta.rdepend
+        &self.data.rdepend
     }
 
     /// Return a package's LICENSE.
     pub fn license(&self) -> &DependencySet<String> {
-        &self.meta.license
+        &self.data.license
     }
 
     /// Return a package's PROPERTIES.
     pub fn properties(&self) -> &DependencySet<String> {
-        &self.meta.properties
+        &self.data.properties
     }
 
     /// Return a package's REQUIRED_USE.
     pub fn required_use(&self) -> &DependencySet<String> {
-        &self.meta.required_use
+        &self.data.required_use
     }
 
     /// Return a package's RESTRICT.
     pub fn restrict(&self) -> &DependencySet<String> {
-        &self.meta.restrict
+        &self.data.restrict
     }
 
     /// Return a package's SRC_URI.
     pub fn src_uri(&self) -> &DependencySet<Uri> {
-        &self.meta.src_uri
+        &self.data.src_uri
     }
 
     /// Return a package's homepage.
     pub fn homepage(&self) -> &OrderedSet<String> {
-        &self.meta.homepage
+        &self.data.homepage
     }
 
     /// Return a package's defined phases
     pub fn defined_phases(&self) -> &OrderedSet<Phase> {
-        &self.meta.defined_phases
+        &self.data.defined_phases
     }
 
     /// Return a package's keywords.
     pub fn keywords(&self) -> &OrderedSet<keyword::Keyword> {
-        &self.meta.keywords
+        &self.data.keywords
     }
 
     /// Return a package's IUSE.
     pub fn iuse(&self) -> &OrderedSet<iuse::Iuse> {
-        &self.meta.iuse
+        &self.data.iuse
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &OrderedSet<&'a Eclass> {
-        &self.meta.inherit
+        &self.data.inherit
     }
 
     /// Return the ordered set of inherited eclasses for a package.
     pub fn inherited(&self) -> &OrderedSet<&'a Eclass> {
-        &self.meta.inherited
+        &self.data.inherited
     }
 
-    /// Return a package's XML metadata.
-    fn xml(&self) -> &xml::Metadata {
-        self.xml
-            .get_or_init(|| self.repo.pkg_xml(self.cpn()))
+    /// Return a package's shared metadata.
+    pub fn metadata(&self) -> &xml::Metadata {
+        self.metadata
+            .get_or_init(|| {
+                self.repo
+                    .pkg_metadata(self.cpn())
+                    .expect("failed request metadata")
+            })
             .as_ref()
-    }
-
-    /// Return a package's maintainers.
-    pub fn maintainers(&self) -> &[xml::Maintainer] {
-        &self.xml().maintainers
-    }
-
-    /// Return a package's upstream info.
-    pub fn upstream(&self) -> Option<&xml::Upstream> {
-        self.xml().upstream.as_ref()
-    }
-
-    /// Return a package's slot descriptions.
-    pub fn slots(&self) -> &IndexMap<String, String> {
-        &self.xml().slots
-    }
-
-    /// Return a package's subslots description.
-    pub fn subslots(&self) -> Option<&str> {
-        self.xml().subslots.as_deref()
-    }
-
-    /// Return a package's architecture-independent status.
-    pub fn stabilize_allarches(&self) -> bool {
-        self.xml().stabilize_allarches
-    }
-
-    /// Return a package's local USE flag mapping.
-    pub fn local_use(&self) -> &IndexMap<String, String> {
-        &self.xml().local_use
-    }
-
-    /// Return a package's long description.
-    pub fn long_description(&self) -> Option<&str> {
-        self.xml().long_desc.as_deref()
     }
 
     /// Return a package's manifest.
     pub fn manifest(&self) -> &Manifest {
         self.manifest
-            .get_or_init(|| self.repo.pkg_manifest(self.cpn()))
+            .get_or_init(|| {
+                self.repo
+                    .pkg_manifest(self.cpn())
+                    .expect("failed requesting manifest")
+            })
             .as_ref()
     }
 
@@ -306,7 +278,7 @@ impl<'a> Pkg<'a> {
 
 impl<'a> Package for Pkg<'a> {
     fn eapi(&self) -> &'static Eapi {
-        self.meta.eapi
+        self.data.eapi
     }
 
     fn cpv(&self) -> &Cpv {
@@ -325,7 +297,7 @@ impl<'a> RepoPackage for Pkg<'a> {
 impl<'a> EbuildPackage for Pkg<'a> {
     fn iuse_effective(&self) -> &OrderedSet<String> {
         self.iuse_effective.get_or_init(|| {
-            self.meta
+            self.data
                 .iuse
                 .iter()
                 .map(|x| x.flag().to_string())
@@ -334,7 +306,7 @@ impl<'a> EbuildPackage for Pkg<'a> {
     }
 
     fn slot(&self) -> &str {
-        self.meta.slot.slot()
+        self.data.slot.slot()
     }
 }
 
@@ -839,22 +811,22 @@ mod tests {
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.maintainers().is_empty());
+        assert!(pkg.metadata().maintainers().is_empty());
 
         // invalid
         let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.maintainers().is_empty());
+        assert!(pkg.metadata().maintainers().is_empty());
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        let m = pkg.maintainers();
+        let m = pkg.metadata().maintainers();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].email(), "a.person@email.com");
         assert_eq!(m[0].name(), Some("A Person"));
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        let m = pkg.maintainers();
+        let m = pkg.metadata().maintainers();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].email(), "a.person@email.com");
         assert_eq!(m[0].name(), Some("A Person"));
@@ -868,22 +840,22 @@ mod tests {
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.upstream().is_none());
+        assert!(pkg.metadata().upstream().is_none());
 
         // invalid
         let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.upstream().is_none());
+        assert!(pkg.metadata().upstream().is_none());
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        let m = pkg.upstream().unwrap().remote_ids();
+        let m = pkg.metadata().upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].site(), "github");
         assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        let m = pkg.upstream().unwrap().remote_ids();
+        let m = pkg.metadata().upstream().unwrap().remote_ids();
         assert_eq!(m.len(), 2);
         assert_eq!(m[0].site(), "github");
         assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
@@ -897,11 +869,11 @@ mod tests {
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.slots().is_empty());
+        assert!(pkg.metadata().slots().is_empty());
 
         // existent
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert_eq!(pkg.slots().get("*").unwrap(), "slot description");
+        assert_eq!(pkg.metadata().slots().get("*").unwrap(), "slot description");
     }
 
     #[test]
@@ -910,11 +882,11 @@ mod tests {
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.subslots().is_none());
+        assert!(pkg.metadata().subslots().is_none());
 
         // existent
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert_eq!(pkg.subslots().unwrap(), "subslot description");
+        assert_eq!(pkg.metadata().subslots().unwrap(), "subslot description");
     }
 
     #[test]
@@ -923,11 +895,11 @@ mod tests {
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(!pkg.stabilize_allarches());
+        assert!(!pkg.metadata().stabilize_allarches());
 
         // existent
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert!(pkg.stabilize_allarches());
+        assert!(pkg.metadata().stabilize_allarches());
     }
 
     #[test]
@@ -936,22 +908,22 @@ mod tests {
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.local_use().is_empty());
+        assert!(pkg.metadata().local_use().is_empty());
 
         // invalid
         let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.local_use().is_empty());
+        assert!(pkg.metadata().local_use().is_empty());
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        assert_eq!(pkg.local_use().len(), 1);
-        assert_eq!(pkg.local_use().get("flag").unwrap(), "flag desc");
+        assert_eq!(pkg.metadata().local_use().len(), 1);
+        assert_eq!(pkg.metadata().local_use().get("flag").unwrap(), "flag desc");
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        assert_eq!(pkg.local_use().len(), 2);
-        assert_eq!(pkg.local_use().get("flag1").unwrap(), "flag1 desc");
-        assert_eq!(pkg.local_use().get("flag2").unwrap(), "flag2 desc");
+        assert_eq!(pkg.metadata().local_use().len(), 2);
+        assert_eq!(pkg.metadata().local_use().get("flag1").unwrap(), "flag1 desc");
+        assert_eq!(pkg.metadata().local_use().get("flag2").unwrap(), "flag2 desc");
     }
 
     #[test]
@@ -960,27 +932,27 @@ mod tests {
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
-        assert!(pkg.long_description().is_none());
+        assert!(pkg.metadata().description().is_none());
 
         // invalid
         let pkg = repo.get_pkg("pkg/bad-8").unwrap();
-        assert!(pkg.long_description().is_none());
+        assert!(pkg.metadata().description().is_none());
 
         // empty
         let pkg = repo.get_pkg("pkg/empty-8").unwrap();
-        assert!(pkg.long_description().is_none());
+        assert!(pkg.metadata().description().is_none());
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
         assert_eq!(
-            pkg.long_description().unwrap(),
+            pkg.metadata().description().unwrap(),
             "A wrapped sentence. Another sentence. New paragraph."
         );
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
         assert_eq!(
-            pkg.long_description().unwrap(),
+            pkg.metadata().description().unwrap(),
             "A wrapped sentence. Another sentence. New paragraph."
         );
     }

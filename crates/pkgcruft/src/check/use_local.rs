@@ -35,7 +35,11 @@ super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
-        let local_use = pkgs[0].local_use();
+        let metadata = self
+            .repo
+            .pkg_metadata(cpn)
+            .expect("failed requesting metadata");
+        let local_use = metadata.local_use();
         let sorted_flags = local_use
             .keys()
             .map(|s| s.as_str())

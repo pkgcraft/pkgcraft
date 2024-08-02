@@ -116,7 +116,7 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
             Description(r) => r.matches(pkg.description()),
             Slot(r) => r.matches(pkg.slot()),
             Subslot(r) => r.matches(pkg.subslot()),
-            RawSubslot(r) => match (r, pkg.meta.slot.subslot()) {
+            RawSubslot(r) => match (r, pkg.data.slot.subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
@@ -210,14 +210,14 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            LongDescription(r) => match (r, pkg.long_description()) {
+            LongDescription(r) => match (r, pkg.metadata().description()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
             },
             Maintainers(r) => match r {
-                Some(r) => r.matches(pkg.maintainers()),
-                None => pkg.maintainers().is_empty(),
+                Some(r) => r.matches(pkg.metadata().maintainers()),
+                None => pkg.metadata().maintainers().is_empty(),
             },
         }
     }

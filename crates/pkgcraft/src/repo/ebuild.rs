@@ -116,12 +116,14 @@ where
     }
 
     /// Get the cache data related to a given package Cpv.
-    fn get(&self, cpn: &Cpn) -> Arc<T> {
+    fn get(&self, cpn: &Cpn) -> crate::Result<Arc<T>> {
         let (tx, rx) = bounded(0);
-        self.tx
-            .send(Msg::Key(cpn.to_string(), tx))
-            .expect("failed requesting pkg manifest data");
-        rx.recv().expect("failed receiving pkg manifest data")
+        self.tx.send(Msg::Key(cpn.to_string(), tx)).map_err(|e| {
+            Error::InvalidValue(format!("failed requesting pkg manifest data: {cpn}: {e}"))
+        })?;
+        rx.recv().map_err(|e| {
+            Error::InvalidValue(format!("failed receiving pkg manifest data: {cpn}: {e}"))
+        })
     }
 }
 
@@ -152,7 +154,7 @@ pub struct Repo {
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
-    xml_cache: OnceLock<ArcCache<xml::Metadata>>,
+    metadata_cache: OnceLock<ArcCache<xml::Metadata>>,
     manifest_cache: OnceLock<ArcCache<Manifest>>,
     categories_xml: OnceLock<IndexMap<String, String>>,
 }
@@ -464,15 +466,15 @@ impl Repo {
         })
     }
 
-    /// Return the shared XML metadata for a given package.
-    pub(crate) fn pkg_xml(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
-        self.xml_cache
+    /// Return the shared metadata for a given package.
+    pub fn pkg_metadata(&self, cpn: &Cpn) -> crate::Result<Arc<xml::Metadata>> {
+        self.metadata_cache
             .get_or_init(|| ArcCache::<xml::Metadata>::new(self.arc()))
             .get(cpn)
     }
 
-    /// Return the shared manifest data for a given package.
-    pub(crate) fn pkg_manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
+    /// Return the shared manifest for a given package.
+    pub fn pkg_manifest(&self, cpn: &Cpn) -> crate::Result<Arc<Manifest>> {
         self.manifest_cache
             .get_or_init(|| ArcCache::<Manifest>::new(self.arc()))
             .get(cpn)

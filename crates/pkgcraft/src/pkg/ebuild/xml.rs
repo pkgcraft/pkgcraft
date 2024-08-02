@@ -249,14 +249,14 @@ impl TryFrom<Node<'_, '_>> for Upstream {
 
 /// Package metadata contained in metadata.xml files as defined by GLEP 68.
 #[derive(Debug, Default, Clone)]
-pub(crate) struct Metadata {
-    pub(super) maintainers: Vec<Maintainer>,
-    pub(super) upstream: Option<Upstream>,
-    pub(super) slots: IndexMap<String, String>,
-    pub(super) subslots: Option<String>,
-    pub(super) stabilize_allarches: bool,
-    pub(super) local_use: IndexMap<String, String>,
-    pub(super) long_desc: Option<String>,
+pub struct Metadata {
+    maintainers: Vec<Maintainer>,
+    upstream: Option<Upstream>,
+    slots: IndexMap<String, String>,
+    subslots: Option<String>,
+    stabilize_allarches: bool,
+    local_use: IndexMap<String, String>,
+    description: Option<String>,
 }
 
 impl ArcCacheData for Metadata {
@@ -275,7 +275,7 @@ impl ArcCacheData for Metadata {
                 "slots" => Self::parse_slots(node, &mut data),
                 "stabilize-allarches" => data.stabilize_allarches = true,
                 "use" if en => Self::parse_use(node, &mut data),
-                "longdescription" if en => Self::parse_long_desc(node, &mut data),
+                "longdescription" if en => Self::parse_description(node, &mut data),
                 _ => (),
             }
         }
@@ -312,12 +312,47 @@ impl Metadata {
         }
     }
 
-    fn parse_long_desc(node: Node, data: &mut Self) {
-        data.long_desc = node.text().map(|_| {
+    fn parse_description(node: Node, data: &mut Self) {
+        data.description = node.text().map(|_| {
             node.children()
                 .filter_map(|x| x.text().map(|s| s.split_whitespace().join(" ")))
                 .join("")
         })
+    }
+
+    /// Return a package's maintainers.
+    pub fn maintainers(&self) -> &[Maintainer] {
+        &self.maintainers
+    }
+
+    /// Return a package's upstream info.
+    pub fn upstream(&self) -> Option<&Upstream> {
+        self.upstream.as_ref()
+    }
+
+    /// Return a package's slot descriptions.
+    pub fn slots(&self) -> &IndexMap<String, String> {
+        &self.slots
+    }
+
+    /// Return a package's subslots description.
+    pub fn subslots(&self) -> Option<&str> {
+        self.subslots.as_deref()
+    }
+
+    /// Return a package's architecture-independent status.
+    pub fn stabilize_allarches(&self) -> bool {
+        self.stabilize_allarches
+    }
+
+    /// Return a package's local USE flag mapping.
+    pub fn local_use(&self) -> &IndexMap<String, String> {
+        &self.local_use
+    }
+
+    /// Return a package's description.
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
 }
 
