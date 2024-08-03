@@ -2,7 +2,7 @@ name: pkgcraft-c
 
 on:
   push:
-    branches: [main, pkgcraft-c]
+    branches: ['**']
     paths:
       - "crates/scallop/**"
       - "crates/pkgcraft/**"
