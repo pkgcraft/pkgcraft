@@ -14,14 +14,14 @@ rust-version.workspace = true
 [dependencies]
 anyhow = "1.0.86"
 async-stream = "0.3.5"
-clap = { version = "4.5.13", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.5.14", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.14.0", default-features = false, features = ["toml"] }
 futures = "0.3.30"
-hyper-util = "0.1.6"
+hyper-util = "0.1.7"
 pkgcraft = { path = "../pkgcraft", version = "0.0.17" }
 prost = "0.13.1"
 regex = "1.10.6"
-serde = { version = "1.0.204", features = ["derive"] }
+serde = { version = "1.0.205", features = ["derive"] }
 thiserror = "1.0.63"
 tokio = { version = "1.39", features = ["full"] }
 tokio-stream = { version = "0.1.15", features = ["net"] }
@@ -38,9 +38,9 @@ tower = "0.4.13"
 tonic-build = "0.12.1"
 
 [dev-dependencies]
-assert_cmd = "2.0.15"
+assert_cmd = "2.0.16"
 regex = "1.10.6"
-tempfile = "3.11.0"
+tempfile = "3.12.0"
 
 [lib]
 name = "arcanist"
