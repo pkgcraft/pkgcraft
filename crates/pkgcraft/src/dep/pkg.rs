@@ -119,7 +119,7 @@ impl fmt::Display for SlotDep {
             (Some(slot), Some(op)) => write!(f, "{slot}{op}")?,
             (Some(slot), None) => write!(f, "{slot}")?,
             (None, Some(op)) => write!(f, "{op}")?,
-            (None, None) => (),
+            (None, None) => unreachable!("invalid slot dep"),
         }
         Ok(())
     }
