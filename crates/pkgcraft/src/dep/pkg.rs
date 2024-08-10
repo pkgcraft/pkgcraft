@@ -496,20 +496,15 @@ impl fmt::Display for Dep {
 
         // append version operator with cpv
         let cpn = &self.cpn;
-        if let Some(version) = &self.version {
-            let ver = version.without_op();
-            match version.op() {
-                Some(Operator::Less) => write!(f, "<{cpn}-{ver}")?,
-                Some(Operator::LessOrEqual) => write!(f, "<={cpn}-{ver}")?,
-                Some(Operator::Equal) => write!(f, "={cpn}-{ver}")?,
-                Some(Operator::EqualGlob) => write!(f, "={cpn}-{ver}*")?,
-                Some(Operator::Approximate) => write!(f, "~{cpn}-{ver}")?,
-                Some(Operator::GreaterOrEqual) => write!(f, ">={cpn}-{ver}")?,
-                Some(Operator::Greater) => write!(f, ">{cpn}-{ver}")?,
-                None => unreachable!("invalid dep"),
-            }
-        } else {
-            write!(f, "{cpn}")?;
+        match self.version().map(|v| (v.without_op(), v.op().unwrap())) {
+            Some((ver, Operator::Less)) => write!(f, "<{cpn}-{ver}")?,
+            Some((ver, Operator::LessOrEqual)) => write!(f, "<={cpn}-{ver}")?,
+            Some((ver, Operator::Equal)) => write!(f, "={cpn}-{ver}")?,
+            Some((ver, Operator::EqualGlob)) => write!(f, "={cpn}-{ver}*")?,
+            Some((ver, Operator::Approximate)) => write!(f, "~{cpn}-{ver}")?,
+            Some((ver, Operator::GreaterOrEqual)) => write!(f, ">={cpn}-{ver}")?,
+            Some((ver, Operator::Greater)) => write!(f, ">{cpn}-{ver}")?,
+            None => write!(f, "{cpn}")?,
         }
 
         // append slot dep
