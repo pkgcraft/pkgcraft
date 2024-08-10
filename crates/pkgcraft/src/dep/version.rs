@@ -219,15 +219,14 @@ pub enum Operator {
 impl Operator {
     /// Determine if two versions intersect for an operator.
     fn intersects(&self, lhs: &Version, rhs: &Version) -> bool {
-        use Operator::*;
-        match self {
-            Less => NonOpVersion(rhs) < NonOpVersion(lhs),
-            LessOrEqual => NonOpVersion(rhs) <= NonOpVersion(lhs),
-            Equal => NonOpVersion(rhs) == NonOpVersion(lhs),
-            EqualGlob => rhs.starts_with(lhs),
-            Approximate => NonRevisionVersion(rhs) == NonRevisionVersion(lhs),
-            GreaterOrEqual => NonOpVersion(rhs) >= NonOpVersion(lhs),
-            Greater => NonOpVersion(rhs) > NonOpVersion(lhs),
+        match &self {
+            Self::Less => NonOpVersion(rhs) < NonOpVersion(lhs),
+            Self::LessOrEqual => NonOpVersion(rhs) <= NonOpVersion(lhs),
+            Self::Equal => NonOpVersion(rhs) == NonOpVersion(lhs),
+            Self::EqualGlob => rhs.starts_with(lhs),
+            Self::Approximate => NonRevisionVersion(rhs) == NonRevisionVersion(lhs),
+            Self::GreaterOrEqual => NonOpVersion(rhs) >= NonOpVersion(lhs),
+            Self::Greater => NonOpVersion(rhs) > NonOpVersion(lhs),
         }
     }
 }
