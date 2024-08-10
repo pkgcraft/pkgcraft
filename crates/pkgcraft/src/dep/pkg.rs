@@ -108,20 +108,19 @@ impl fmt::Display for Slot {
 
 /// Package slot dependency.
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
-pub struct SlotDep {
-    pub(crate) slot: Option<Slot>,
-    pub(crate) op: Option<SlotOperator>,
+pub enum SlotDep {
+    Op(SlotOperator),
+    Slot(Slot),
+    SlotOp(Slot, SlotOperator),
 }
 
 impl fmt::Display for SlotDep {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (&self.slot, &self.op) {
-            (Some(slot), Some(op)) => write!(f, "{slot}{op}")?,
-            (Some(slot), None) => write!(f, "{slot}")?,
-            (None, Some(op)) => write!(f, "{op}")?,
-            (None, None) => unreachable!("invalid slot dep"),
+        match &self {
+            Self::Op(op) => write!(f, "{op}"),
+            Self::Slot(slot) => write!(f, "{slot}"),
+            Self::SlotOp(slot, op) => write!(f, "{slot}{op}"),
         }
-        Ok(())
     }
 }
 
@@ -133,12 +132,20 @@ impl SlotDep {
 
     /// Return the slot if it exists.
     pub fn slot(&self) -> Option<&Slot> {
-        self.slot.as_ref()
+        match &self {
+            Self::Op(_) => None,
+            Self::Slot(slot) => Some(slot),
+            Self::SlotOp(slot, _) => Some(slot),
+        }
     }
 
     /// Return the slot operator if it exists.
     pub fn op(&self) -> Option<SlotOperator> {
-        self.op
+        match &self {
+            Self::Op(op) => Some(*op),
+            Self::Slot(_) => None,
+            Self::SlotOp(_, op) => Some(*op),
+        }
     }
 }
 
@@ -452,7 +459,7 @@ impl Dep {
     pub fn slot(&self) -> Option<&str> {
         self.slot_dep
             .as_ref()
-            .and_then(|s| s.slot.as_ref())
+            .and_then(|s| s.slot())
             .map(|s| s.slot())
     }
 
@@ -460,13 +467,13 @@ impl Dep {
     pub fn subslot(&self) -> Option<&str> {
         self.slot_dep
             .as_ref()
-            .and_then(|s| s.slot.as_ref())
+            .and_then(|s| s.slot())
             .and_then(|s| s.subslot())
     }
 
     /// Return a package dependency's slot operator if it exists.
     pub fn slot_op(&self) -> Option<SlotOperator> {
-        self.slot_dep.as_ref().and_then(|s| s.op)
+        self.slot_dep.as_ref().and_then(|s| s.op())
     }
 
     /// Return a package dependency's repository if it exists.

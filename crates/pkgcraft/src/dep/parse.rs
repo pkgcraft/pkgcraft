@@ -130,12 +130,10 @@ peg::parser!(grammar depspec() for str {
         = name:$(slot_name() ("/" slot_name())?) { Slot { name: name.to_string() } }
 
     pub(super) rule slot_dep() -> SlotDep
-        = "=" { SlotDep { slot: None, op: Some(SlotOperator::Equal) } }
-        / "*" { SlotDep { slot: None, op: Some(SlotOperator::Star) } }
-        / slot:slot() op:$("=")? {
-            let op = op.map(|_| SlotOperator::Equal);
-            SlotDep { slot: Some(slot), op }
-        }
+        = "=" { SlotDep::Op(SlotOperator::Equal) }
+        / "*" { SlotDep::Op(SlotOperator::Star) }
+        / slot:slot() "=" { SlotDep::SlotOp(slot, SlotOperator::Equal) }
+        / slot:slot() { SlotDep::Slot(slot) }
 
     rule slot_dep_str() -> SlotDep
         = ":" slot_dep:slot_dep() { slot_dep }
