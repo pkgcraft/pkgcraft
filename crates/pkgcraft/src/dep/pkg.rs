@@ -658,6 +658,11 @@ mod tests {
                 assert_eq!(d.slot_op(), e.slot_op, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(d.use_deps(), e.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
+
+                // verify serialization support
+                let s = serde_json::to_string(&d).unwrap();
+                let obj: Dep = serde_json::from_str(&s).unwrap();
+                assert_eq!(d, obj);
             }
             for eapi in EAPIS.difference(&passing_eapis) {
                 let result = eapi.dep(s);

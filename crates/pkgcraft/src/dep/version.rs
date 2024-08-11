@@ -657,6 +657,11 @@ mod tests {
             let ver = result.unwrap();
             assert_eq!(ver.to_string(), s.as_str());
             assert!(format!("{ver:?}").contains(s));
+
+            // verify serialization support
+            let s = serde_json::to_string(&ver).unwrap();
+            let obj: Version = serde_json::from_str(&s).unwrap();
+            assert_eq!(ver, obj);
         }
 
         // forced with and without operators
