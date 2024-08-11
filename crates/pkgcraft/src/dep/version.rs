@@ -654,7 +654,9 @@ mod tests {
         for s in &TEST_DATA.version_toml.valid {
             let result = Version::try_new(s);
             assert!(result.is_ok(), "{s:?} failed");
-            assert_eq!(result.unwrap().to_string(), s.as_str());
+            let ver = result.unwrap();
+            assert_eq!(ver.to_string(), s.as_str());
+            assert!(format!("{ver:?}").contains(s));
         }
 
         // forced with and without operators
