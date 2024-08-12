@@ -827,13 +827,12 @@ pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI_PKGCRAFT);
 
 /// Ordered set of official, supported EAPIs.
 pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
-    let mut eapis = IndexSet::new();
     let mut eapi: &Eapi = &EAPI_LATEST_OFFICIAL;
+    let mut eapis = IndexSet::from([eapi]);
     while let Some(x) = eapi.parent {
-        eapis.insert(eapi);
+        eapis.insert(x);
         eapi = x;
     }
-    eapis.insert(eapi);
     // reverse so it's in chronological order
     eapis.reverse();
     eapis
@@ -841,15 +840,15 @@ pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 
 /// Ordered set of unofficial EAPIs.
 pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
-    let mut eapis = IndexSet::new();
     let mut eapi: &Eapi = &EAPI_LATEST;
+    let mut eapis = IndexSet::from([eapi]);
     while let Some(x) = eapi.parent {
-        eapis.insert(eapi);
-        if EAPIS_OFFICIAL.contains(x) {
+        if *EAPI_LATEST_OFFICIAL == x {
             break;
-        } else {
-            eapi = x;
         }
+
+        eapis.insert(x);
+        eapi = x;
     }
     // reverse so it's in chronological order
     eapis.reverse();
