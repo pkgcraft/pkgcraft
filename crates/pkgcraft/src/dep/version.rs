@@ -219,7 +219,7 @@ pub enum Operator {
 impl Operator {
     /// Determine if two versions intersect for an operator.
     fn intersects(&self, lhs: &Version, rhs: &Version) -> bool {
-        match &self {
+        match self {
             Self::Less => NonOpVersion(rhs) < NonOpVersion(lhs),
             Self::LessOrEqual => NonOpVersion(rhs) <= NonOpVersion(lhs),
             Self::Equal => NonOpVersion(rhs) == NonOpVersion(lhs),

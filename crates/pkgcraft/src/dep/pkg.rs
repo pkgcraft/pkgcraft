@@ -116,7 +116,7 @@ pub enum SlotDep {
 
 impl fmt::Display for SlotDep {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &self {
+        match self {
             Self::Op(op) => write!(f, "{op}"),
             Self::Slot(slot) => write!(f, "{slot}"),
             Self::SlotOp(slot, op) => write!(f, "{slot}{op}"),
@@ -132,7 +132,7 @@ impl SlotDep {
 
     /// Return the slot if it exists.
     pub fn slot(&self) -> Option<&Slot> {
-        match &self {
+        match self {
             Self::Op(_) => None,
             Self::Slot(slot) => Some(slot),
             Self::SlotOp(slot, _) => Some(slot),
@@ -141,7 +141,7 @@ impl SlotDep {
 
     /// Return the slot operator if it exists.
     pub fn op(&self) -> Option<SlotOperator> {
-        match &self {
+        match self {
             Self::Op(op) => Some(*op),
             Self::Slot(_) => None,
             Self::SlotOp(_, op) => Some(*op),
