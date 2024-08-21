@@ -76,7 +76,7 @@ assert_cmd = { version = "2.0.16", optional = true }
 [dev-dependencies]
 criterion = "0.5"
 ctor = "0.2.8"
-serde_json = "1.0.122"
+serde_test = "1.0.177"
 tracing-test = "0.2.5"
 
 [[bench]]

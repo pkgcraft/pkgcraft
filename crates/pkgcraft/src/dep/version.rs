@@ -636,6 +636,7 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use itertools::Itertools;
+    use serde_test::{assert_tokens, Token};
 
     use crate::test::TEST_DATA;
     use crate::utils::hash;
@@ -658,10 +659,8 @@ mod tests {
             assert_eq!(ver.to_string(), s.as_str());
             assert!(format!("{ver:?}").contains(s));
 
-            // verify serialization support
-            let s = serde_json::to_string(&ver).unwrap();
-            let obj: Version = serde_json::from_str(&s).unwrap();
-            assert_eq!(ver, obj);
+            // verify serde support
+            assert_tokens(&ver, &[Token::Str(s)]);
         }
 
         // forced with and without operators
