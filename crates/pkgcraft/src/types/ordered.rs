@@ -111,13 +111,15 @@ impl<T: Ordered> DerefMut for OrderedSet<T> {
     }
 }
 
-impl<'de, T: Ordered + Deserialize<'de>> Deserialize<'de> for OrderedSet<T> {
+impl<'de, T> Deserialize<'de> for OrderedSet<T>
+where
+    T: Ordered + Deserialize<'de>,
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let vals: Vec<T> = Deserialize::deserialize(deserializer)?;
-        Ok(vals.into_iter().collect())
+        IndexSet::deserialize(deserializer).map(OrderedSet)
     }
 }
 
@@ -225,13 +227,15 @@ impl<T: Ordered> DerefMut for SortedSet<T> {
     }
 }
 
-impl<'de, T: Ordered + Deserialize<'de>> Deserialize<'de> for SortedSet<T> {
+impl<'de, T> Deserialize<'de> for SortedSet<T>
+where
+    T: Ordered + Deserialize<'de>,
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let vals: Vec<T> = Deserialize::deserialize(deserializer)?;
-        Ok(vals.into_iter().collect())
+        IndexSet::deserialize(deserializer).map(SortedSet)
     }
 }
 
@@ -435,8 +439,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        let vals: Vec<(K, V)> = Deserialize::deserialize(deserializer)?;
-        Ok(vals.into_iter().collect())
+        IndexMap::deserialize(deserializer).map(OrderedMap)
     }
 }
 
