@@ -29,32 +29,12 @@ pub use use_dep::{UseDep, UseDepKind};
 pub use version::{Operator, Revision, Version};
 
 pub trait Stringable:
-    Debug
-    + Display
-    + Default
-    + PartialEq
-    + Eq
-    + PartialOrd
-    + Ord
-    + Clone
-    + Hash
-    + Borrow<str>
-    + AsRef<str>
+    Debug + Display + Default + Ord + Clone + Hash + Borrow<str> + AsRef<str>
 {
 }
 
 impl<T> Stringable for T where
-    T: Debug
-        + Display
-        + Default
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord
-        + Clone
-        + Hash
-        + Borrow<str>
-        + AsRef<str>
+    T: Debug + Display + Default + Ord + Clone + Hash + Borrow<str> + AsRef<str>
 {
 }
 

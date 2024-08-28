@@ -89,7 +89,7 @@ pub trait Package:
     }
 }
 
-pub trait RepoPackage: Package + PartialEq + Eq + PartialOrd + Ord {
+pub trait RepoPackage: Package + Ord {
     type Repo: Repository;
 
     /// Return a package's repo.
