@@ -27,11 +27,11 @@ test = ["pkgcraft/test"]
 [dependencies]
 aho-corasick = "1.1.3"
 anyhow = "1.0.86"
-camino = "1.1.7"
-clap = { version = "4.5.14", features = ["derive"] }
+camino = "1.1.9"
+clap = { version = "4.5.16", features = ["derive"] }
 clap-verbosity-flag = "2.2.1"
 humantime = "2.1.0"
-indexmap = { version = "2.3.0", features = ["serde"] }
+indexmap = { version = "2.4.0", features = ["serde"] }
 indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
