@@ -72,8 +72,8 @@ fn main() {
         .build();
 
     // statically link with bash library
-    println!("cargo:rustc-link-search=native={bash_build_dir}");
-    println!("cargo:rustc-link-lib=static=bash");
+    println!("cargo::rustc-link-search=native={bash_build_dir}");
+    println!("cargo::rustc-link-lib=static=bash");
 
     // `cargo llvm-cov` currently appears to have somewhat naive object detection and erroneously
     // includes the config.status file causing it to error out
@@ -210,5 +210,5 @@ fn main() {
         .expect("failed writing bindings");
 
     // rerun if any bash file changes
-    println!("cargo:rerun-if-changed=bash");
+    println!("cargo::rerun-if-changed=bash");
 }
