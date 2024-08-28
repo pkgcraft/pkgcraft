@@ -5,6 +5,7 @@ on:
     branches: ['**']
     paths:
       - "Cargo.*"
+      - "crates/*/build.rs"
       - "crates/*/src/**"
       - "crates/*/tests/**"
       - "testdata"
