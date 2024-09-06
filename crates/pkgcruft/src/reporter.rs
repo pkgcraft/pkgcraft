@@ -26,7 +26,7 @@ impl Default for Reporter {
 
 impl Reporter {
     /// Run a report through a reporter.
-    pub fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         match self {
             Self::Simple(r) => r.report(report, output),
             Self::Fancy(r) => r.report(report, output),
@@ -46,7 +46,7 @@ impl From<SimpleReporter> for Reporter {
 }
 
 impl SimpleReporter {
-    fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         writeln!(output, "{report}")?;
         Ok(())
     }
@@ -64,7 +64,7 @@ impl From<FancyReporter> for Reporter {
 }
 
 impl FancyReporter {
-    fn report(&mut self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         let key = match report.scope() {
             ReportScope::Version(cpv, _) => cpv.cpn().to_string(),
             ReportScope::Package(cpn) => cpn.to_string(),
@@ -113,7 +113,7 @@ impl From<JsonReporter> for Reporter {
 }
 
 impl JsonReporter {
-    fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report<W: Write>(&self, report: &Report, output: &mut W) -> crate::Result<()> {
         writeln!(output, "{}", report.to_json())?;
         Ok(())
     }
@@ -131,7 +131,7 @@ impl From<FormatReporter> for Reporter {
 }
 
 impl FormatReporter {
-    fn report(&self, report: &Report, output: &mut dyn Write) -> crate::Result<()> {
+    fn report<W: Write>(&self, report: &Report, output: &mut W) -> crate::Result<()> {
         let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind().to_string())]
             .into_iter()
             .collect();
