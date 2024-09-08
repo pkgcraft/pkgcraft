@@ -2,7 +2,11 @@ use std::collections::HashSet;
 use std::ops::Deref;
 use std::sync::OnceLock;
 
+use once_cell::sync::Lazy;
+
 use crate::report::Location;
+
+static LANGUAGE: Lazy<tree_sitter::Language> = Lazy::new(|| tree_sitter_bash::LANGUAGE.into());
 
 /// Lazily parse the given data into a bash parse tree.
 pub(crate) fn lazy_parse(data: &[u8]) -> Tree {
@@ -26,7 +30,7 @@ impl<'a> Tree<'a> {
             // because parser.parse() requires a mutable Parser reference.
             let mut parser = tree_sitter::Parser::new();
             parser
-                .set_language(&tree_sitter_bash::language())
+                .set_language(&LANGUAGE)
                 .expect("failed loading bash grammar");
             parser.parse(self.data, None).expect("failed parsing bash")
         })
