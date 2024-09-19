@@ -3,14 +3,13 @@ use std::process::ExitCode;
 
 use clap::builder::{ArgPredicate, PossibleValuesParser, TypedValueParser};
 use clap::Args;
-use pkgcraft::cli::TargetRestrictions;
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcruft::report::ReportKind;
 use pkgcruft::scanner::Scanner;
 use pkgcruft::source::PkgFilter;
 use strum::VariantNames;
 
-use crate::args::StdinOrArgs;
 use crate::options;
 
 #[derive(Debug, Args)]
@@ -54,7 +53,7 @@ pub(crate) struct Command {
         default_value_if("repo", ArgPredicate::IsPresent, Some("*")),
         help_heading = "Arguments",
     )]
-    targets: Vec<String>,
+    targets: Vec<MaybeStdinVec<String>>,
 }
 
 impl Command {
@@ -68,7 +67,7 @@ impl Command {
         // determine target restrictions
         let targets = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .targets(self.targets.stdin_or_args().split_whitespace())?;
+            .targets(self.targets.iter().flatten())?;
 
         // create report scanner
         let scanner = Scanner::new()

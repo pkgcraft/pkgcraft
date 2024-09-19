@@ -7,7 +7,6 @@ use pkgcraft::config::Config;
 use scallop::utils::reset_sigpipe;
 use tracing_log::AsTrace;
 
-mod args;
 mod options;
 mod subcmds;
 

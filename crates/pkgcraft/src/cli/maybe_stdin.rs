@@ -181,10 +181,7 @@ where
             }
             Source::Arg(value) => Ok(T::from_str(value)
                 .map_err(|e| StdinError::FromStr(format!("{e}")))
-                .map(|val| Self {
-                    source,
-                    inner: vec![val],
-                })?),
+                .map(|val| Self { source, inner: vec![val] })?),
         }
     }
 }
