@@ -21,9 +21,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::fmt;
 use std::io::{self, read_to_string};
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::is_terminal;
 
@@ -54,7 +56,7 @@ impl FromStr for Source {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "-" => {
-                if STDIN_HAS_BEEN_USED.load(std::sync::atomic::Ordering::Acquire) {
+                if STDIN_HAS_BEEN_USED.load(Ordering::Acquire) {
                     return Err(StdinError::StdInRepeatedUse);
                 }
                 let mut stdin = io::stdin().lock();
@@ -62,7 +64,7 @@ impl FromStr for Source {
                     return Err(StdinError::StdinIsTerminal);
                 }
                 let input = read_to_string(&mut stdin)?;
-                STDIN_HAS_BEEN_USED.store(true, std::sync::atomic::Ordering::SeqCst);
+                STDIN_HAS_BEEN_USED.store(true, Ordering::SeqCst);
                 Ok(Self::Stdin(input))
             }
             arg => Ok(Self::Arg(arg.to_owned())),
@@ -81,7 +83,7 @@ pub struct MaybeStdin<T> {
 impl<T> FromStr for MaybeStdin<T>
 where
     T: FromStr,
-    <T as FromStr>::Err: std::fmt::Display,
+    <T as FromStr>::Err: fmt::Display,
 {
     type Err = StdinError;
 
@@ -105,25 +107,25 @@ impl<T> MaybeStdin<T> {
     }
 }
 
-impl<T> std::fmt::Display for MaybeStdin<T>
+impl<T> fmt::Display for MaybeStdin<T>
 where
-    T: std::fmt::Display,
+    T: fmt::Display,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner.fmt(f)
     }
 }
 
-impl<T> std::fmt::Debug for MaybeStdin<T>
+impl<T> fmt::Debug for MaybeStdin<T>
 where
-    T: std::fmt::Debug,
+    T: fmt::Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner.fmt(f)
     }
 }
 
-impl<T> std::ops::Deref for MaybeStdin<T> {
+impl<T> Deref for MaybeStdin<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -131,7 +133,7 @@ impl<T> std::ops::Deref for MaybeStdin<T> {
     }
 }
 
-impl<T> std::ops::DerefMut for MaybeStdin<T> {
+impl<T> DerefMut for MaybeStdin<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
@@ -148,7 +150,7 @@ pub struct MaybeStdinVec<T> {
 impl<T> FromStr for MaybeStdinVec<T>
 where
     T: FromStr,
-    <T as FromStr>::Err: std::fmt::Display,
+    <T as FromStr>::Err: fmt::Display,
 {
     type Err = StdinError;
 
@@ -178,16 +180,16 @@ impl<T> MaybeStdinVec<T> {
     }
 }
 
-impl<T> std::fmt::Debug for MaybeStdinVec<T>
+impl<T> fmt::Debug for MaybeStdinVec<T>
 where
-    T: std::fmt::Debug,
+    T: fmt::Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner.fmt(f)
     }
 }
 
-impl<T> std::ops::Deref for MaybeStdinVec<T> {
+impl<T> Deref for MaybeStdinVec<T> {
     type Target = Vec<T>;
 
     fn deref(&self) -> &Self::Target {
@@ -195,7 +197,7 @@ impl<T> std::ops::Deref for MaybeStdinVec<T> {
     }
 }
 
-impl<T> std::ops::DerefMut for MaybeStdinVec<T> {
+impl<T> DerefMut for MaybeStdinVec<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
