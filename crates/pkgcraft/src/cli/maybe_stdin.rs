@@ -227,3 +227,21 @@ impl<'a, T> IntoIterator for &'a MaybeStdinVec<T> {
         self.inner.iter()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::env;
+
+    use super::*;
+
+    #[test]
+    fn is_terminal() {
+        env::set_var("PKGCRAFT_IS_TERMINAL", "1");
+        let r: Result<MaybeStdin<String>, StdinError> = "-".parse();
+        eprintln!("foo: {r:?}");
+        assert!(matches!(r, Err(StdinError::StdinIsTerminal)));
+        let r: Result<MaybeStdinVec<String>, StdinError> = "-".parse();
+        eprintln!("foo: {r:?}");
+        assert!(matches!(r, Err(StdinError::StdinIsTerminal)));
+    }
+}
