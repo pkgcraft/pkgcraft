@@ -7,12 +7,12 @@ use std::{env, mem};
 use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use nix::unistd::isatty;
 use once_cell::sync::Lazy;
 use scallop::builtins::{override_funcs, shopt};
 use scallop::variables::*;
 use scallop::{functions, Error, ExecStatus};
 
+use crate::cli::is_terminal;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
@@ -450,7 +450,7 @@ impl<'a> BuildData<'a> {
         if cfg!(feature = "test") {
             Ok(&mut self.stdin.fake)
         } else {
-            if isatty(0).unwrap_or(false) {
+            if is_terminal!(&io::stdin()) {
                 return Err(Error::Base("no input available, stdin is a tty".into()));
             }
             Ok(&mut self.stdin.inner)
