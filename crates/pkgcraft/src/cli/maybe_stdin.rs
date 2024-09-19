@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use std::io::{self, read_to_string, BufRead};
+use std::io::{self, read_to_string};
 use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
 
@@ -29,7 +29,7 @@ use super::is_terminal;
 
 pub(crate) static STDIN_HAS_BEEN_USED: AtomicBool = AtomicBool::new(false);
 
-#[derive(Debug, thiserror::Error)]
+#[derive(thiserror::Error, Debug)]
 pub enum StdinError {
     #[error("stdin argument used more than once")]
     StdInRepeatedUse,
@@ -44,7 +44,7 @@ pub enum StdinError {
 /// Source of the value contents will be either from `stdin` or a CLI arg provided value
 #[derive(Clone)]
 pub enum Source {
-    Stdin,
+    Stdin(String),
     Arg(String),
 }
 
@@ -57,8 +57,13 @@ impl FromStr for Source {
                 if STDIN_HAS_BEEN_USED.load(std::sync::atomic::Ordering::Acquire) {
                     return Err(StdinError::StdInRepeatedUse);
                 }
+                let mut stdin = io::stdin().lock();
+                if is_terminal!(&stdin) {
+                    return Err(StdinError::StdinIsTerminal);
+                }
+                let input = read_to_string(&mut stdin)?;
                 STDIN_HAS_BEEN_USED.store(true, std::sync::atomic::Ordering::SeqCst);
-                Ok(Self::Stdin)
+                Ok(Self::Stdin(input))
             }
             arg => Ok(Self::Arg(arg.to_owned())),
         }
@@ -68,7 +73,7 @@ impl FromStr for Source {
 impl std::fmt::Debug for Source {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Source::Stdin => write!(f, "stdin"),
+            Source::Stdin(_) => write!(f, "stdin"),
             Source::Arg(v) => v.fmt(f),
         }
     }
@@ -92,16 +97,9 @@ where
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let source = Source::from_str(s)?;
         match &source {
-            Source::Stdin => {
-                let mut stdin = io::stdin().lock();
-                if is_terminal!(&stdin) {
-                    return Err(StdinError::StdinIsTerminal);
-                }
-                let input = read_to_string(&mut stdin)?;
-                Ok(T::from_str(input.trim_end())
-                    .map_err(|e| StdinError::FromStr(format!("{e}")))
-                    .map(|val| Self { source, inner: val })?)
-            }
+            Source::Stdin(value) => Ok(T::from_str(value.trim_end())
+                .map_err(|e| StdinError::FromStr(format!("{e}")))
+                .map(|val| Self { source, inner: val })?),
             Source::Arg(value) => Ok(T::from_str(value)
                 .map_err(|e| StdinError::FromStr(format!("{e}")))
                 .map(|val| Self { source, inner: val })?),
@@ -166,13 +164,9 @@ where
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let source = Source::from_str(s)?;
         match &source {
-            Source::Stdin => {
-                let stdin = io::stdin().lock();
-                if is_terminal!(&stdin) {
-                    return Err(StdinError::StdinIsTerminal);
-                }
+            Source::Stdin(value) => {
                 let mut inner = vec![];
-                for arg in stdin.lines().map_while(Result::ok) {
+                for arg in value.lines() {
                     let val = T::from_str(arg.trim_end())
                         .map_err(|e| StdinError::FromStr(format!("{e}")))?;
                     inner.push(val);
