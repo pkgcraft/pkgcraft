@@ -235,13 +235,19 @@ mod tests {
     use super::*;
 
     #[test]
+    fn repeated_use() {
+        let r: Result<MaybeStdin<String>, StdinError> = "-".parse();
+        assert!(r.is_ok());
+        let r: Result<MaybeStdin<String>, StdinError> = "-".parse();
+        assert!(matches!(r, Err(StdinError::StdInRepeatedUse)));
+    }
+
+    #[test]
     fn is_terminal() {
         env::set_var("PKGCRAFT_IS_TERMINAL", "1");
         let r: Result<MaybeStdin<String>, StdinError> = "-".parse();
-        eprintln!("foo: {r:?}");
         assert!(matches!(r, Err(StdinError::StdinIsTerminal)));
         let r: Result<MaybeStdinVec<String>, StdinError> = "-".parse();
-        eprintln!("foo: {r:?}");
         assert!(matches!(r, Err(StdinError::StdinIsTerminal)));
     }
 }
