@@ -225,6 +225,8 @@ impl<'a, T> IntoIterator for &'a MaybeStdinVec<T> {
 mod tests {
     use std::env;
 
+    use crate::test::assert_ordered_eq;
+
     use super::*;
 
     #[test]
@@ -242,5 +244,28 @@ mod tests {
         assert!(matches!(r, Err(StdinError::StdinIsTerminal)));
         let r: Result<MaybeStdinVec<String>, StdinError> = "-".parse();
         assert!(matches!(r, Err(StdinError::StdinIsTerminal)));
+    }
+
+    #[test]
+    fn maybe_stdin() {
+        // TODO: test from faked stdin
+        let mut value: MaybeStdin<String> = "test".parse().unwrap();
+        assert_eq!(value.to_string(), "test");
+        assert!(format!("{value:?}").contains("test"));
+        assert_eq!(value.len(), 4);
+        value.push_str("test");
+        assert_eq!(value.into_inner(), "testtest");
+    }
+
+    #[test]
+    fn maybe_stdin_vec() {
+        // TODO: test from faked stdin
+        let mut values: MaybeStdinVec<usize> = "12".parse().unwrap();
+        assert!(format!("{values:?}").contains("12"));
+        assert_eq!(values.len(), 1);
+        values.push(13);
+        assert_ordered_eq!(values.clone().into_iter(), [12, 13]);
+        assert_ordered_eq!((&values).into_iter(), [&12, &13]);
+        assert_eq!(values.into_inner(), [12, 13]);
     }
 }
