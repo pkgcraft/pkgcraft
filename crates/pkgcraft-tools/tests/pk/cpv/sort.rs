@@ -15,12 +15,12 @@ fn stdin() {
         .assert()
         .failure();
 
-    // remaining args ignored when "-" specified
+    // remaining args aren't ignored when "-" specified
     cmd("pk cpv sort -")
         .args(["c/c-1", "b/b-1"])
-        .write_stdin("z/z-1 a/a-1")
+        .write_stdin("z/z-1\na/a-1")
         .assert()
-        .stdout("a/a-1\nz/z-1\n");
+        .stdout("a/a-1\nb/b-1\nc/c-1\nz/z-1\n");
 }
 
 #[test]

@@ -14,12 +14,12 @@ fn stdin() {
         .assert()
         .failure();
 
-    // remaining args ignored when "-" specified
+    // remaining args aren't ignored when "-" specified
     cmd("pk version set -")
         .args(["2.11", "2.8"])
-        .write_stdin("2.10 2.9")
+        .write_stdin("2.10\n2.9")
         .assert()
-        .stdout("2.10\n2.9\n");
+        .stdout("2.10\n2.9\n2.11\n2.8\n");
 }
 
 #[test]

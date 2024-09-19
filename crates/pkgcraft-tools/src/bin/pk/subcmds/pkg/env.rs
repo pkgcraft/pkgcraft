@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::cli::target_restriction;
+use pkgcraft::cli::{target_restriction, MaybeStdinVec};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
@@ -15,8 +15,6 @@ use pkgcraft::Error;
 use scallop::pool::PoolIter;
 use scallop::variables::{self, ShellVariable};
 use strum::IntoEnumIterator;
-
-use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
@@ -31,12 +29,12 @@ pub(crate) struct Command {
     // positionals
     /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".")]
-    targets: Vec<String>,
+    targets: Vec<MaybeStdinVec<String>>,
 }
 
 // TODO: support other repo types such as configured and binpkg
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         let external: HashSet<_> = variables::visible().into_iter().collect();
         let bash: HashSet<_> = ["PIPESTATUS"].into_iter().collect();
         let pms: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
@@ -97,9 +95,9 @@ impl Command {
         // determine target restrictions
         let targets: Vec<_> = self
             .targets
-            .stdin_or_args()
-            .split_whitespace()
-            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
+            .iter()
+            .flatten()
+            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), s))
             .try_collect()?;
 
         // find matching packages from targeted repos

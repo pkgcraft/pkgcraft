@@ -3,13 +3,11 @@ use std::process::ExitCode;
 
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::cli::target_restriction;
+use pkgcraft::cli::{target_restriction, MaybeStdinVec};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::restrict::Restrict;
-
-use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
@@ -44,17 +42,17 @@ pub(crate) struct Command {
     // positionals
     /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".")]
-    targets: Vec<String>,
+    targets: Vec<MaybeStdinVec<String>>,
 }
 
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target restrictions
         let targets: Vec<_> = self
             .targets
-            .stdin_or_args()
-            .split_whitespace()
-            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
+            .iter()
+            .flatten()
+            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), s))
             .try_collect()?;
 
         for (repo_set, restrict) in targets {

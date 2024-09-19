@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::Args;
-use pkgcraft::cli::target_restriction;
+use pkgcraft::cli::{target_restriction, MaybeStdinVec};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Source};
 use pkgcraft::repo::RepoFormat;
@@ -12,8 +12,6 @@ use pkgcraft::utils::bounded_jobs;
 use pkgcraft::Error;
 use scallop::pool::PoolIter;
 use tracing::error;
-
-use crate::args::StdinOrArgs;
 
 /// Duration bound to apply against elapsed time values.
 #[derive(Debug, Copy, Clone)]
@@ -80,7 +78,7 @@ pub(crate) struct Command {
     // positionals
     /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".")]
-    targets: Vec<String>,
+    targets: Vec<MaybeStdinVec<String>>,
 }
 
 // Truncate a duration to microsecond precision.
@@ -217,15 +215,15 @@ where
 }
 
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // default to running a job on each physical CPU in order to limit contention
         let jobs = bounded_jobs(self.jobs.unwrap_or(num_cpus::get_physical()));
 
         // loop over targets, tracking overall failure status
         let mut status = ExitCode::SUCCESS;
-        for target in self.targets.stdin_or_args().split_whitespace() {
+        for s in self.targets.iter().flatten() {
             // determine target restriction
-            let (repos, restrict) = target_restriction(config, Some(RepoFormat::Ebuild), &target)?;
+            let (repos, restrict) = target_restriction(config, Some(RepoFormat::Ebuild), s)?;
 
             // find matching packages from targeted repos
             let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));

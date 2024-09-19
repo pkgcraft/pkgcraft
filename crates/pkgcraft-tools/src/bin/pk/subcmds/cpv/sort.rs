@@ -3,21 +3,21 @@ use std::process::ExitCode;
 
 use clap::Args;
 use itertools::Itertools;
+use pkgcraft::cli::MaybeStdinVec;
 use pkgcraft::dep::Cpv;
-
-use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
-    values: Vec<String>,
+    values: Vec<MaybeStdinVec<String>>,
 }
 
 impl Command {
-    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let mut values: Vec<_> = self
             .values
-            .stdin_or_args()
-            .split_whitespace()
+            .iter()
+            .flatten()
+            .flat_map(|s| s.split_whitespace())
             .map(Cpv::try_new)
             .try_collect()?;
 

@@ -11,12 +11,12 @@ fn stdin() {
     // invalid args
     cmd("pk dep sort -").write_stdin("a/b/c").assert().failure();
 
-    // remaining args ignored when "-" specified
+    // remaining args aren't ignored when "-" specified
     cmd("pk dep sort -")
         .args(["c/c", "b/b"])
-        .write_stdin("z/z a/a")
+        .write_stdin("z/z\na/a")
         .assert()
-        .stdout("a/a\nz/z\n");
+        .stdout("a/a\nb/b\nc/c\nz/z\n");
 }
 
 #[test]

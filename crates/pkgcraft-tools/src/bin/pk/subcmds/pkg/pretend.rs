@@ -3,14 +3,12 @@ use std::process::ExitCode;
 
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::cli::target_restriction;
+use pkgcraft::cli::{target_restriction, MaybeStdinVec};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Pretend};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
-
-use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
@@ -21,13 +19,13 @@ pub(crate) struct Command {
     // positionals
     /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".")]
-    targets: Vec<String>,
+    targets: Vec<MaybeStdinVec<String>>,
 }
 
 // TODO: use configured ebuild repos instead of raw ones
 // TODO: support binpkg repos
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<Option<String>> {
             let pkg = ebuild::Pkg::try_from(pkg)?;
             pkg.pretend()
@@ -40,9 +38,9 @@ impl Command {
         // determine target restrictions
         let targets: Vec<_> = self
             .targets
-            .stdin_or_args()
-            .split_whitespace()
-            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), &s))
+            .iter()
+            .flatten()
+            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), s))
             .try_collect()?;
 
         // find matching packages from targeted repos

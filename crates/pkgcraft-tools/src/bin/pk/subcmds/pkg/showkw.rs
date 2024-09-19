@@ -4,11 +4,9 @@ use std::process::ExitCode;
 use clap::builder::ArgPredicate;
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::cli::TargetRestrictions;
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::PkgRepository;
-
-use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
@@ -26,7 +24,7 @@ pub(crate) struct Command {
         default_value_if("repo", ArgPredicate::IsPresent, Some("*")),
         help_heading = "Arguments",
     )]
-    targets: Vec<String>,
+    targets: Vec<MaybeStdinVec<String>>,
 }
 
 impl Command {
@@ -34,7 +32,7 @@ impl Command {
         // determine target restrictions
         let targets = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .targets(self.targets.stdin_or_args().split_whitespace())?;
+            .targets(self.targets.iter().flatten())?;
 
         let mut stdout = io::stdout().lock();
         for (repo_set, restricts) in targets {

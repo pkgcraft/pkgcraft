@@ -1,12 +1,10 @@
-use std::mem;
 use std::process::ExitCode;
 
 use anyhow::{anyhow, bail};
 use clap::Args;
 use itertools::Itertools;
+use pkgcraft::cli::MaybeStdinVec;
 use pkgcraft::dep::Version;
-
-use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
@@ -27,15 +25,14 @@ pub(crate) struct Command {
             Expressions are read from standard input if `-` is used."#
         }
     )]
-    values: Vec<String>,
+    values: Vec<MaybeStdinVec<String>>,
 }
 
 impl Command {
-    pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
 
-        let values = mem::take(&mut self.values);
-        for s in values.stdin_or_args() {
+        for s in self.values.iter().flatten() {
             let (lhs, op, rhs) = s
                 .split_whitespace()
                 .collect_tuple()

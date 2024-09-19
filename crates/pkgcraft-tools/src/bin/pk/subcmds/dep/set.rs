@@ -4,21 +4,21 @@ use std::process::ExitCode;
 use clap::Args;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use pkgcraft::cli::MaybeStdinVec;
 use pkgcraft::dep::Dep;
-
-use crate::args::StdinOrArgs;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
-    values: Vec<String>,
+    values: Vec<MaybeStdinVec<String>>,
 }
 
 impl Command {
-    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let values: IndexSet<_> = self
             .values
-            .stdin_or_args()
-            .split_whitespace()
+            .iter()
+            .flatten()
+            .flat_map(|s| s.split_whitespace())
             .map(Dep::try_new)
             .try_collect()?;
 

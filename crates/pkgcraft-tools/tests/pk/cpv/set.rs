@@ -11,12 +11,12 @@ fn stdin() {
     // invalid args
     cmd("pk cpv set -").write_stdin("=a/b-1").assert().failure();
 
-    // remaining args ignored when "-" specified
+    // remaining args aren't ignored when "-" specified
     cmd("pk cpv set -")
         .args(["a/b-1", "a/b-2"])
-        .write_stdin("x/y-1 cat/pkg-2")
+        .write_stdin("x/y-1\ncat/pkg-2")
         .assert()
-        .stdout("x/y-1\ncat/pkg-2\n");
+        .stdout("x/y-1\ncat/pkg-2\na/b-1\na/b-2\n");
 }
 
 #[test]

@@ -1,12 +1,11 @@
 use std::io::{self, Write};
-use std::mem;
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::cli::MaybeStdinVec;
 use pkgcraft::dep::Version;
 use strum::{Display, EnumIter, EnumString};
 
-use crate::args::StdinOrArgs;
 use crate::format::{EnumVariable, FormatString};
 
 #[derive(Debug, Args)]
@@ -14,8 +13,8 @@ pub(crate) struct Command {
     /// Output using a custom format
     #[arg(short, long)]
     format: Option<String>,
-    /// Values to parse (uses stdin if "-")
-    values: Vec<String>,
+    /// Values to parse
+    values: Vec<MaybeStdinVec<String>>,
 }
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -50,13 +49,17 @@ impl<'a> FormatString<'a> for Command {
 }
 
 impl Command {
-    pub(super) fn run(mut self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let mut status = ExitCode::SUCCESS;
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
 
-        let values = mem::take(&mut self.values);
-        for s in values.stdin_or_args().split_whitespace() {
-            if let Ok(ver) = Version::try_new(&s) {
+        for s in self
+            .values
+            .iter()
+            .flatten()
+            .flat_map(|s| s.split_whitespace())
+        {
+            if let Ok(ver) = Version::try_new(s) {
                 if let Some(fmt) = &self.format {
                     writeln!(stdout, "{}", self.format_str(fmt, &ver)?)?;
                 }
