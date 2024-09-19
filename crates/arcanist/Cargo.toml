@@ -12,12 +12,12 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-anyhow = "1.0.87"
+anyhow = "1.0.89"
 async-stream = "0.3.5"
 clap = { version = "4.5.17", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.14.0", default-features = false, features = ["toml"] }
 futures = "0.3.30"
-hyper-util = "0.1.7"
+hyper-util = "0.1.8"
 pkgcraft = { path = "../pkgcraft", version = "0.0.17" }
 prost = "0.13.2"
 regex = "1.10.6"
