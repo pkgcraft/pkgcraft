@@ -42,7 +42,7 @@ pub enum StdinError {
 }
 
 /// Source of the value contents will be either from `stdin` or a CLI arg provided value
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Source {
     Stdin(String),
     Arg(String),
@@ -66,15 +66,6 @@ impl FromStr for Source {
                 Ok(Self::Stdin(input))
             }
             arg => Ok(Self::Arg(arg.to_owned())),
-        }
-    }
-}
-
-impl std::fmt::Debug for Source {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Source::Stdin(_) => write!(f, "stdin"),
-            Source::Arg(v) => v.fmt(f),
         }
     }
 }
