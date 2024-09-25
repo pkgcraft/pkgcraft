@@ -17,10 +17,9 @@ make_builtin!("newconfd", newconfd_builtin);
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::io::Write;
 
+    use crate::io::stdin;
     use crate::shell::test::FileTree;
-    use crate::shell::write_stdin;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, newconfd};
     use super::*;
@@ -47,7 +46,7 @@ mod tests {
         );
 
         // re-run using data from stdin
-        write_stdin!("pkgcraft");
+        stdin().inject("pkgcraft").unwrap();
         newconfd(&["-", "pkgcraft"]).unwrap();
         file_tree.assert(
             r#"

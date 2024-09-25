@@ -17,10 +17,10 @@ make_builtin!("newdoc", newdoc_builtin);
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::io::Write;
 
+    use crate::io::stdin;
     use crate::shell::test::FileTree;
-    use crate::shell::{write_stdin, BuildData};
+    use crate::shell::BuildData;
     use crate::test::TEST_DATA;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, newdoc};
@@ -51,13 +51,13 @@ mod tests {
         );
 
         // re-run using data from stdin
-        write_stdin!("stdin");
+        stdin().inject("pkgcraft").unwrap();
         newdoc(&["-", "newfile"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/doc/pkg-1/newfile"
-            data = "stdin"
+            data = "pkgcraft"
             mode = 0o100644
         "#,
         );

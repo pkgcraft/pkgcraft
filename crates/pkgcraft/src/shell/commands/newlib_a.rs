@@ -17,10 +17,9 @@ make_builtin!("newlib.a", newlib_a_builtin);
 #[cfg(test)]
 mod tests {
     use std::fs;
-    use std::io::Write;
 
+    use crate::io::stdin;
     use crate::shell::test::FileTree;
-    use crate::shell::write_stdin;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, into, newlib_a};
     use super::*;
@@ -47,7 +46,7 @@ mod tests {
         );
 
         // custom install dir using data from stdin
-        write_stdin!("pkgcraft");
+        stdin().inject("pkgcraft").unwrap();
         into(&["/"]).unwrap();
         newlib_a(&["-", "pkgcraft.a"]).unwrap();
         file_tree.assert(

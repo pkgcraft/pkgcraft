@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::{env, mem};
 
 use camino::Utf8Path;
@@ -12,7 +12,6 @@ use scallop::builtins::{override_funcs, shopt};
 use scallop::variables::*;
 use scallop::{functions, Error, ExecStatus};
 
-use crate::cli::is_terminal;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
@@ -38,31 +37,6 @@ mod utils;
 
 use environment::Variable;
 use scope::Scope;
-
-struct Stdin {
-    inner: io::Stdin,
-    fake: io::Cursor<Vec<u8>>,
-}
-
-impl Default for Stdin {
-    fn default() -> Self {
-        Self {
-            inner: io::stdin(),
-            fake: io::Cursor::new(vec![]),
-        }
-    }
-}
-
-#[cfg(test)]
-macro_rules! write_stdin {
-    ($($arg:tt)*) => {{
-        let build = crate::shell::get_build_mut();
-        write!(build.stdin.fake, $($arg)*).unwrap();
-        build.stdin.fake.set_position(0);
-    }}
-}
-#[cfg(test)]
-use write_stdin;
 
 struct Stdout {
     inner: io::Stdout,
@@ -187,7 +161,6 @@ pub(crate) struct BuildData<'a> {
     /// nonfatal status set by the related builtin
     nonfatal: bool,
 
-    stdin: Stdin,
     stdout: Stdout,
     stderr: Stderr,
 
@@ -444,17 +417,6 @@ impl<'a> BuildData<'a> {
             }
         }
         Ok(())
-    }
-
-    fn stdin(&mut self) -> scallop::Result<&mut dyn Read> {
-        if cfg!(feature = "test") {
-            Ok(&mut self.stdin.fake)
-        } else {
-            if is_terminal!(&io::stdin()) {
-                return Err(Error::Base("no input available, stdin is a tty".into()));
-            }
-            Ok(&mut self.stdin.inner)
-        }
     }
 
     fn stdout(&mut self) -> &mut dyn Write {

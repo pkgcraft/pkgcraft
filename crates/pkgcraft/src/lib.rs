@@ -6,6 +6,7 @@ pub mod dep;
 pub mod eapi;
 pub mod error;
 pub(crate) mod files;
+pub(crate) mod io;
 pub mod macros;
 pub mod pkg;
 pub mod repo;

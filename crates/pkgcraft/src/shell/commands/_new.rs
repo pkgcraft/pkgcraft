@@ -5,7 +5,7 @@ use scallop::builtins::Builtin;
 use scallop::{Error, ExecStatus};
 use tempfile::tempdir;
 
-use crate::shell::get_build_mut;
+use crate::io::stdin;
 use crate::utils::is_single_component;
 
 // Underlying implementation for new* builtins.
@@ -27,7 +27,7 @@ pub(super) fn new(args: &[&str], builtin: Builtin) -> scallop::Result<ExecStatus
     if source == "-" {
         let mut file = File::create(&dest)
             .map_err(|e| Error::Base(format!("failed opening file: {dest:?}: {e}")))?;
-        io::copy(get_build_mut().stdin()?, &mut file)
+        io::copy(&mut stdin(), &mut file)
             .map_err(|e| Error::Base(format!("failed writing stdin to file: {dest:?}: {e}")))?;
     } else {
         fs::copy(source, &dest)
