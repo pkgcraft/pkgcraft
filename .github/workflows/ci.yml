@@ -44,18 +44,6 @@ jobs:
         rust-version: ${{ fromJson(needs.setup.outputs.rust-version) }}
 
     steps:
-    - name: Free disk space for coverage data
-      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
-      uses: jlumbroso/free-disk-space@main
-      with:
-        android: true
-        dotnet: true
-        haskell: true
-        docker-images: false
-        tool-cache: false
-        large-packages: false
-        swap-storage: false
-
     - name: Checkout pkgcraft workspace
       uses: actions/checkout@v4
       with:
@@ -106,35 +94,11 @@ jobs:
     - name: Install protoc for arcanist
       uses: taiki-e/install-action@protoc
 
-    - name: Install cargo-llvm-cov
-      if: ${{ matrix.rust-version == 'stable' }}
-      uses: taiki-e/install-action@cargo-llvm-cov
-
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
 
     - name: Build and run tests
-      run: |
-        # set up environment for coverage support
-        if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          source <(cargo llvm-cov show-env --export-prefix)
-        fi
-
-        cargo nextest run --all-features --workspace --tests
-
-        # generate coverage report
-        if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          cargo llvm-cov report --lcov --output-path lcov.info
-        fi
-
-    - name: Upload build artifacts
-      if: ${{ matrix.rust-version == 'stable' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage
-        path: lcov.info
-        if-no-files-found: error
-        retention-days: 3
+      run: cargo nextest run --all-features --workspace --tests
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
@@ -147,23 +111,3 @@ jobs:
           ~/.cargo/git/db
           target
         key: ${{ steps.restore-cache.outputs.cache-primary-key }}
-
-  coverage:
-    if: ${{ github.ref_name == 'main' }}
-    needs: test
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: coverage/lcov.info
-        fail_ci_if_error: true
