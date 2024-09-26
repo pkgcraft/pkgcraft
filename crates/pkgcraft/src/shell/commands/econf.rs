@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::process::Command;
 
 use indexmap::{IndexMap, IndexSet};
@@ -7,9 +8,9 @@ use regex::Regex;
 use scallop::{variables, Error, ExecStatus};
 
 use crate::command::RunCommand;
+use crate::io::stdout;
 use crate::shell::get_build_mut;
 use crate::shell::utils::{configure, get_libdir};
-use crate::shell::write_stdout;
 
 use super::make_builtin;
 
@@ -102,7 +103,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         };
     }
 
-    write_stdout!("{}", econf.to_vec().join(" "))?;
+    write!(stdout(), "{}", econf.to_vec().join(" "))?;
     econf.run()?;
     Ok(ExecStatus::Success)
 }

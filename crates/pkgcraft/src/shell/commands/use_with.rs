@@ -18,7 +18,8 @@ make_builtin!("use_with", use_with_builtin);
 mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::shell::{assert_stdout, get_build_mut, BuildData};
+    use crate::io::stdout;
+    use crate::shell::{get_build_mut, BuildData};
     use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
@@ -55,7 +56,7 @@ mod tests {
             (vec!["!use", "opt"], ExecStatus::Success, "--with-opt"),
         ] {
             assert_eq!(use_with(&args).unwrap(), status);
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
         }
 
         // check EAPIs that support three arg variant
@@ -70,7 +71,7 @@ mod tests {
                 (&["!use", "opt", "val"], ExecStatus::Success, "--with-opt=val"),
             ] {
                 assert_eq!(use_with(args).unwrap(), status);
-                assert_stdout!(expected);
+                assert_eq!(stdout().get(), expected);
             }
         }
 
@@ -86,7 +87,7 @@ mod tests {
             (vec!["!use", "opt"], ExecStatus::Failure(1), "--without-opt"),
         ] {
             assert_eq!(use_with(&args).unwrap(), status);
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
         }
 
         // check EAPIs that support three arg variant
@@ -102,7 +103,7 @@ mod tests {
                 (&["!use", "opt", "val"], ExecStatus::Failure(1), "--without-opt=val"),
             ] {
                 assert_eq!(use_with(args).unwrap(), status);
-                assert_stdout!(expected);
+                assert_eq!(stdout().get(), expected);
             }
         }
     }

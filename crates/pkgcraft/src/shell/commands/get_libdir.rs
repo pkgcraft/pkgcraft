@@ -1,7 +1,9 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
+use crate::io::stdout;
 use crate::shell::utils::get_libdir;
-use crate::shell::write_stdout;
 
 use super::make_builtin;
 
@@ -14,7 +16,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let libdir = get_libdir(Some("lib")).unwrap();
-    write_stdout!("{libdir}")?;
+    write!(stdout(), "{libdir}")?;
 
     Ok(ExecStatus::Success)
 }
@@ -26,7 +28,7 @@ make_builtin!("get_libdir", get_libdir_builtin);
 mod tests {
     use scallop::variables::*;
 
-    use crate::shell::assert_stdout;
+    use crate::io::stdout;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, get_libdir};
     use super::*;
@@ -46,7 +48,7 @@ mod tests {
                 abi_var.bind(val, None, None).unwrap();
             }
             assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
-            assert_stdout!("lib");
+            assert_eq!(stdout().get(), "lib");
         }
     }
 
@@ -57,7 +59,7 @@ mod tests {
             abi_var.bind(abi, None, None).unwrap();
             bind(format!("LIBDIR_{abi}"), libdir, None, None).unwrap();
             assert_eq!(get_libdir(&[]).unwrap(), ExecStatus::Success);
-            assert_stdout!(libdir);
+            assert_eq!(stdout().get(), libdir);
         }
     }
 }

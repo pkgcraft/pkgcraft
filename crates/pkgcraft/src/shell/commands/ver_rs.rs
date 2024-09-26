@@ -1,6 +1,9 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
-use crate::shell::{get_build_mut, write_stdout};
+use crate::io::stdout;
+use crate::shell::get_build_mut;
 
 use super::{make_builtin, parse};
 
@@ -41,7 +44,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             });
     }
 
-    write_stdout!("{}", version_parts.join(""))?;
+    let mut stdout = stdout();
+    write!(stdout, "{}", version_parts.join(""))?;
+    stdout.flush()?;
 
     Ok(ExecStatus::Success)
 }
@@ -54,7 +59,7 @@ mod tests {
     use scallop::source;
 
     use crate::config::Config;
-    use crate::shell::{assert_stdout, BuildData};
+    use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
@@ -102,7 +107,7 @@ mod tests {
             BuildData::from_raw_pkg(&raw_pkg);
 
             let r = ver_rs(&args).unwrap();
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
             assert_eq!(r, ExecStatus::Success);
         }
 
@@ -125,13 +130,13 @@ mod tests {
             BuildData::from_raw_pkg(&raw_pkg);
 
             let r = ver_rs(&args).unwrap();
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
             assert_eq!(r, ExecStatus::Success);
 
             // test pulling version from $PV
             args.pop();
             let r = ver_rs(&args).unwrap();
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
             assert_eq!(r, ExecStatus::Success);
         }
     }

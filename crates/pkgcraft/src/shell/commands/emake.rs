@@ -1,11 +1,12 @@
+use std::io::Write;
 use std::process::Command;
 
 use scallop::variables::{self, string_vec};
 use scallop::{Error, ExecStatus};
 
 use crate::command::RunCommand;
+use crate::io::stdout;
 use crate::shell::utils::makefile_exists;
-use crate::shell::write_stdout;
 
 use super::make_builtin;
 
@@ -30,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // arguments override user options
     emake.args(args);
 
-    write_stdout!("{}", emake.to_vec().join(" "))?;
+    write!(stdout(), "{}", emake.to_vec().join(" "))?;
     emake.run()?;
     Ok(ExecStatus::Success)
 }

@@ -1,6 +1,8 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
-use crate::shell::write_stdout;
+use crate::io::stdout;
 
 use super::{make_builtin, use_};
 
@@ -21,10 +23,12 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         _ => return Err(Error::Base(format!("requires 1 to 5 args, got {}", args.len()))),
     };
 
+    let mut stdout = stdout();
     match use_(&[flag])? {
-        ExecStatus::Success => write_stdout!("{}{}", vals[0], vals[2])?,
-        ExecStatus::Failure(_) => write_stdout!("{}{}", vals[1], vals[3])?,
+        ExecStatus::Success => write!(stdout, "{}{}", vals[0], vals[2])?,
+        ExecStatus::Failure(_) => write!(stdout, "{}{}", vals[1], vals[3])?,
     }
+    stdout.flush()?;
 
     Ok(ExecStatus::Success)
 }
@@ -37,7 +41,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkg::Build;
-    use crate::shell::{assert_stdout, get_build_mut, BuildData};
+    use crate::shell::{get_build_mut, BuildData};
     use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
@@ -74,7 +78,7 @@ mod tests {
             (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
         ] {
             usex(&args).unwrap();
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
         }
 
         // enabled
@@ -86,7 +90,7 @@ mod tests {
             (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
         ] {
             usex(&args).unwrap();
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
         }
     }
 

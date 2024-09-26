@@ -1,6 +1,8 @@
+use std::io::Write;
+
 use scallop::ExecStatus;
 
-use crate::shell::write_stdout;
+use crate::io::stdout;
 
 use super::_query_cmd::query_cmd;
 use super::make_builtin;
@@ -13,10 +15,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     cpvs.sort();
 
     if let Some(cpv) = cpvs.last() {
-        write_stdout!("{cpv}")?;
+        write!(stdout(), "{cpv}")?;
         Ok(ExecStatus::Success)
     } else {
-        write_stdout!("")?;
+        write!(stdout(), "")?;
         Ok(ExecStatus::Failure(1))
     }
 }

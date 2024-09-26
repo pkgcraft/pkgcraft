@@ -29,10 +29,10 @@ impl Stdin {
     /// Inject data into fake stdin for testing.
     #[cfg(test)]
     pub(crate) fn inject(&mut self, data: &str) -> io::Result<usize> {
-        if let Ok(StdinInternal::Fake(fake)) = self.inner.lock().as_deref_mut() {
-            let r = fake.write(data.as_bytes());
-            fake.set_position(0);
-            r
+        if let Ok(StdinInternal::Fake(f)) = self.inner.lock().as_deref_mut() {
+            let result = f.write(data.as_bytes());
+            f.set_position(0);
+            result
         } else {
             Err(Error::new(ErrorKind::Other, "stdin injection only valid during testing"))
         }
@@ -42,14 +42,14 @@ impl Stdin {
 impl Read for Stdin {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
-            Ok(StdinInternal::Real(stdin)) => {
-                if is_terminal!(stdin) {
+            Ok(StdinInternal::Real(f)) => {
+                if is_terminal!(f) {
                     Err(Error::new(ErrorKind::Other, "stdin is a terminal"))
                 } else {
-                    stdin.read(buf)
+                    f.read(buf)
                 }
             }
-            Ok(StdinInternal::Fake(fake)) => fake.read(buf),
+            Ok(StdinInternal::Fake(f)) => f.read(buf),
             Err(e) => Err(Error::new(ErrorKind::Other, format!("failed getting stdin: {e}"))),
         }
     }
@@ -58,15 +58,80 @@ impl Read for Stdin {
 impl Write for Stdin {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
-            Ok(StdinInternal::Fake(fake)) => fake.write(buf),
+            Ok(StdinInternal::Fake(f)) => f.write(buf),
             _ => Err(Error::new(ErrorKind::Other, "failed getting stdin")),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match self.inner.lock().as_deref_mut() {
-            Ok(StdinInternal::Fake(fake)) => fake.flush(),
+            Ok(StdinInternal::Fake(f)) => f.flush(),
             _ => Err(Error::new(ErrorKind::Other, "failed getting stdin")),
+        }
+    }
+}
+
+pub(crate) fn stdout() -> Stdout {
+    static INSTANCE: OnceLock<Mutex<StdoutInternal>> = OnceLock::new();
+    Stdout {
+        inner: INSTANCE.get_or_init(|| {
+            Mutex::new(if cfg!(not(test)) || scallop::shell::in_subshell() {
+                StdoutInternal::Real(io::stdout())
+            } else {
+                StdoutInternal::Fake(Cursor::new(vec![]))
+            })
+        }),
+    }
+}
+
+enum StdoutInternal {
+    Real(io::Stdout),
+    Fake(Cursor<Vec<u8>>),
+}
+
+pub(crate) struct Stdout {
+    inner: &'static Mutex<StdoutInternal>,
+}
+
+impl Stdout {
+    /// Assert stdout data for testing.
+    #[cfg(test)]
+    pub(crate) fn get(&mut self) -> String {
+        if let Ok(StdoutInternal::Fake(f)) = self.inner.lock().as_deref_mut() {
+            let output = std::str::from_utf8(f.get_ref()).unwrap();
+            let output = String::from(output);
+            f.set_position(0);
+            f.get_mut().clear();
+            output
+        } else {
+            panic!("stdout assertion only valid during testing")
+        }
+    }
+}
+
+impl Read for Stdout {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self.inner.lock().as_deref_mut() {
+            Ok(StdoutInternal::Fake(f)) => f.read(buf),
+            _ => Err(Error::new(ErrorKind::Other, "failed getting stdout")),
+        }
+    }
+}
+
+impl Write for Stdout {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self.inner.lock().as_deref_mut() {
+            Ok(StdoutInternal::Fake(f)) => f.write(buf),
+            Ok(StdoutInternal::Real(f)) => f.write(buf),
+            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stdout")),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self.inner.lock().as_deref_mut() {
+            Ok(StdoutInternal::Fake(f)) => f.flush(),
+            Ok(StdoutInternal::Real(f)) => f.flush(),
+            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stdout")),
         }
     }
 }

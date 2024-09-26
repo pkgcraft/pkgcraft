@@ -1,7 +1,10 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::UsevTwoArgs;
-use crate::shell::{get_build_mut, write_stdout};
+use crate::io::stdout;
+use crate::shell::get_build_mut;
 
 use super::{make_builtin, use_};
 
@@ -20,7 +23,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let ret = use_(&[flag])?;
     if bool::from(&ret) {
-        write_stdout!("{value}")?;
+        write!(stdout(), "{value}")?;
     }
 
     Ok(ret)
@@ -33,7 +36,7 @@ make_builtin!("usev", usev_builtin);
 mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::shell::{assert_stdout, BuildData};
+    use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
@@ -72,7 +75,7 @@ mod tests {
             [(&["use"], ExecStatus::Failure(1), ""), (&["!use"], ExecStatus::Success, "use")]
         {
             assert_eq!(usev(args).unwrap(), status);
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
         }
 
         // check EAPIs that support two arg variant
@@ -87,7 +90,7 @@ mod tests {
                 (&["!use", "out"], ExecStatus::Success, "out"),
             ] {
                 assert_eq!(usev(args).unwrap(), status);
-                assert_stdout!(expected);
+                assert_eq!(stdout().get(), expected);
             }
         }
 
@@ -100,7 +103,7 @@ mod tests {
             [(&["use"], ExecStatus::Success, "use"), (&["!use"], ExecStatus::Failure(1), "")]
         {
             assert_eq!(usev(args).unwrap(), status);
-            assert_stdout!(expected);
+            assert_eq!(stdout().get(), expected);
         }
 
         // check EAPIs that support two arg variant
@@ -116,7 +119,7 @@ mod tests {
                 (&["!use", "out"], ExecStatus::Failure(1), ""),
             ] {
                 assert_eq!(usev(args).unwrap(), status);
-                assert_stdout!(expected);
+                assert_eq!(stdout().get(), expected);
             }
         }
     }

@@ -1,6 +1,8 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
-use crate::shell::write_stdout;
+use crate::io::stdout;
 
 use super::use_;
 
@@ -23,10 +25,10 @@ pub(super) fn use_conf(
     let ret = use_(&[flag])?;
 
     match (ret, value) {
-        (ExecStatus::Success, None) => write_stdout!("--{enabled}-{opt}")?,
-        (ExecStatus::Success, Some(value)) => write_stdout!("--{enabled}-{opt}={value}")?,
-        (ExecStatus::Failure(_), None) => write_stdout!("--{disabled}-{opt}")?,
-        (ExecStatus::Failure(_), Some(value)) => write_stdout!("--{disabled}-{opt}={value}")?,
+        (ExecStatus::Success, None) => write!(stdout(), "--{enabled}-{opt}")?,
+        (ExecStatus::Success, Some(value)) => write!(stdout(), "--{enabled}-{opt}={value}")?,
+        (ExecStatus::Failure(_), None) => write!(stdout(), "--{disabled}-{opt}")?,
+        (ExecStatus::Failure(_), Some(value)) => write!(stdout(), "--{disabled}-{opt}={value}")?,
     }
 
     Ok(ret)

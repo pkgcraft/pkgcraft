@@ -38,52 +38,6 @@ mod utils;
 use environment::Variable;
 use scope::Scope;
 
-struct Stdout {
-    inner: io::Stdout,
-    fake: io::Cursor<Vec<u8>>,
-}
-
-impl Default for Stdout {
-    fn default() -> Self {
-        Self {
-            inner: io::stdout(),
-            fake: io::Cursor::new(vec![]),
-        }
-    }
-}
-
-macro_rules! write_stdout {
-    ($($arg:tt)*) => {{
-        let build = crate::shell::get_build_mut();
-        write!(build.stdout(), $($arg)*)?;
-        build.stdout().flush()
-    }}
-}
-use write_stdout;
-
-#[cfg(test)]
-macro_rules! get_stdout {
-    () => {{
-        let build = crate::shell::get_build_mut();
-        let output = std::str::from_utf8(build.stdout.fake.get_ref()).unwrap();
-        let output = String::from(output);
-        build.stdout.fake = std::io::Cursor::new(vec![]);
-        output
-    }};
-}
-#[cfg(test)]
-use get_stdout;
-
-#[cfg(test)]
-macro_rules! assert_stdout {
-    ($expected:expr) => {
-        let output = crate::shell::get_stdout!();
-        assert_eq!(output, $expected);
-    };
-}
-#[cfg(test)]
-use assert_stdout;
-
 struct Stderr {
     inner: io::Stderr,
     fake: io::Cursor<Vec<u8>>,
@@ -161,7 +115,6 @@ pub(crate) struct BuildData<'a> {
     /// nonfatal status set by the related builtin
     nonfatal: bool,
 
-    stdout: Stdout,
     stderr: Stderr,
 
     // cache of variable values
@@ -417,14 +370,6 @@ impl<'a> BuildData<'a> {
             }
         }
         Ok(())
-    }
-
-    fn stdout(&mut self) -> &mut dyn Write {
-        if cfg!(not(test)) || scallop::shell::in_subshell() {
-            &mut self.stdout.inner
-        } else {
-            &mut self.stdout.fake
-        }
     }
 
     fn stderr(&mut self) -> &mut dyn Write {

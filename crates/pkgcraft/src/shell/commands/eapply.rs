@@ -1,12 +1,13 @@
 use std::fmt;
 use std::fs::File;
+use std::io::Write;
 use std::process::Command;
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
 use scallop::{Error, ExecStatus};
 
-use crate::shell::write_stdout;
+use crate::io::stdout;
 
 use super::make_builtin;
 
@@ -130,17 +131,18 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("no patches specified".to_string()));
     }
 
+    let mut stdout = stdout();
     for patches in FindPatches(files.iter()) {
         let (dir, patches) = patches?;
         if let Some(path) = &dir {
-            write_stdout!("Applying patches from {path}\n")?;
+            writeln!(stdout, "Applying patches from {path}")?;
         }
 
         for patch in patches {
             if dir.is_some() {
-                write_stdout!("  {patch}...\n")?;
+                writeln!(stdout, "  {patch}...")?;
             } else {
-                write_stdout!("Applying {patch}...\n")?;
+                writeln!(stdout, "Applying {patch}...")?;
             }
             patch.apply(&options)?;
         }
