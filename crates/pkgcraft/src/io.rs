@@ -98,11 +98,8 @@ impl Stdout {
     #[cfg(test)]
     pub(crate) fn get(&mut self) -> String {
         if let Ok(StdoutInternal::Fake(f)) = self.inner.lock().as_deref_mut() {
-            let output = std::str::from_utf8(f.get_ref()).unwrap();
-            let output = String::from(output);
             f.set_position(0);
-            f.get_mut().clear();
-            output
+            String::from_utf8(std::mem::take(f.get_mut())).unwrap()
         } else {
             panic!("stdout assertion only valid during testing")
         }
@@ -163,11 +160,8 @@ impl Stderr {
     #[cfg(test)]
     pub(crate) fn get(&mut self) -> String {
         if let Ok(StderrInternal::Fake(f)) = self.inner.lock().as_deref_mut() {
-            let output = std::str::from_utf8(f.get_ref()).unwrap();
-            let output = String::from(output);
             f.set_position(0);
-            f.get_mut().clear();
-            output
+            String::from_utf8(std::mem::take(f.get_mut())).unwrap()
         } else {
             panic!("stderr assertion only valid during testing")
         }
