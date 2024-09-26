@@ -1,9 +1,12 @@
+use std::io::Write;
+
 use is_executable::IsExecutable;
 use scallop::ExecStatus;
 
+use crate::io::stderr;
 use crate::shell::commands::{econf, einstalldocs::install_docs_from, emake, unpack};
 use crate::shell::utils::{configure, makefile_exists};
-use crate::shell::{write_stderr, BuildData};
+use crate::shell::BuildData;
 
 use super::emake_install;
 
@@ -11,9 +14,10 @@ pub(crate) fn pkg_nofetch(build: &mut BuildData) -> scallop::Result<ExecStatus> 
     // TODO: only output URLs for missing distfiles
     if !build.distfiles.is_empty() {
         let pkg = build.pkg()?;
-        write_stderr!("The following files must be manually downloaded for {pkg}:\n")?;
+        let mut stderr = stderr();
+        writeln!(stderr, "The following files must be manually downloaded for {pkg}:")?;
         for url in &build.distfiles {
-            write_stderr!("{url}\n")?;
+            writeln!(stderr, "{url}")?;
         }
     }
 

@@ -1,6 +1,9 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
-use crate::shell::{unescape::unescape_iter, write_stderr};
+use crate::io::stderr;
+use crate::shell::unescape::unescape_iter;
 
 use super::make_builtin;
 
@@ -13,7 +16,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let msg = unescape_iter(args)?.join(" ");
-    write_stderr!("* {msg}\n")?;
+    writeln!(stderr(), "* {msg}")?;
 
     // TODO: log these messages in some fashion
 
@@ -25,8 +28,6 @@ make_builtin!("elog", elog_builtin);
 
 #[cfg(test)]
 mod tests {
-    use crate::shell::assert_stderr;
-
     use super::super::{assert_invalid_args, cmd_scope_tests, elog};
     use super::*;
 
@@ -47,7 +48,7 @@ mod tests {
             (vec![r"msg1\\msg2"], "* msg1\\msg2\n"),
         ] {
             elog(&args).unwrap();
-            assert_stderr!(expected);
+            assert_eq!(stderr().get(), expected);
         }
     }
 }

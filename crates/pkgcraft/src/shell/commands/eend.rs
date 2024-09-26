@@ -1,6 +1,9 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
-use crate::shell::{unescape::unescape_iter, write_stderr};
+use crate::io::stderr;
+use crate::shell::unescape::unescape_iter;
 
 use super::make_builtin;
 
@@ -17,14 +20,15 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     // TODO: support column-based formatting for success/failure indicators
+    let mut stderr = stderr();
     if status == 0 {
-        write_stderr!("[ ok ]\n")?;
+        writeln!(stderr, "[ ok ]")?;
     } else {
         if !args.is_empty() {
             let msg = unescape_iter(args)?.join(" ");
-            write_stderr!("{msg} ")?;
+            write!(stderr, "{msg} ")?;
         }
-        write_stderr!("[ !! ]\n")?;
+        writeln!(stderr, "[ !! ]")?;
     }
 
     Ok(ExecStatus::from(status))
@@ -35,7 +39,6 @@ make_builtin!("eend", eend_builtin);
 
 #[cfg(test)]
 mod tests {
-    use crate::shell::assert_stderr;
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, eend};
@@ -66,7 +69,7 @@ mod tests {
             (vec!["1", "msg1", "msg2"], "msg1 msg2 [ !! ]\n"),
         ] {
             eend(&args).unwrap();
-            assert_stderr!(expected);
+            assert_eq!(stderr().get(), expected);
         }
     }
 }

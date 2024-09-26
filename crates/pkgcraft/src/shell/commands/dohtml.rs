@@ -1,14 +1,16 @@
 use std::collections::HashSet;
 use std::fmt;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use scallop::{Error, ExecStatus};
 use walkdir::DirEntry;
 
+use crate::io::stderr;
 use crate::macros::build_path;
 use crate::shell::environment::Variable::DOCDESTTREE;
-use crate::shell::{get_build_mut, write_stderr};
+use crate::shell::get_build_mut;
 
 use super::make_builtin;
 
@@ -78,7 +80,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     if opts.verbose {
-        write_stderr!("{opts}")?;
+        write!(stderr(), "{opts}")?;
     }
 
     // TODO: replace csv expansion with clap arg parsing?
@@ -162,7 +164,7 @@ mod tests {
     use std::fs;
 
     use crate::shell::test::FileTree;
-    use crate::shell::{assert_stderr, BuildData};
+    use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
@@ -207,7 +209,7 @@ mod tests {
               excluded dirs: none
               doc prefix: none
         "#};
-        assert_stderr!(s);
+        assert_eq!(stderr().get(), s);
 
         // extra options
         dohtml(&["-V", "-A", "svg,tiff", "-p", "docs", "index.html"]).unwrap();
@@ -221,7 +223,7 @@ mod tests {
               excluded dirs: none
               doc prefix: docs
         "#};
-        assert_stderr!(s);
+        assert_eq!(stderr().get(), s);
     }
 
     #[test]

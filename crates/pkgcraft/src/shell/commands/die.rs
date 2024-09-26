@@ -1,7 +1,10 @@
+use std::io::Write;
+
 use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::NonfatalDie;
-use crate::shell::{get_build_mut, write_stderr};
+use crate::io::stderr;
+use crate::shell::get_build_mut;
 
 use super::make_builtin;
 
@@ -23,7 +26,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     if nonfatal {
         if !msg.is_empty() {
-            write_stderr!("{msg}\n")?;
+            writeln!(stderr(), "{msg}")?;
         }
         Ok(ExecStatus::Failure(1))
     } else {

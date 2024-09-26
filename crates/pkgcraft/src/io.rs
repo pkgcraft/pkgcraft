@@ -135,3 +135,68 @@ impl Write for Stdout {
         }
     }
 }
+
+pub(crate) fn stderr() -> Stderr {
+    static INSTANCE: OnceLock<Mutex<StderrInternal>> = OnceLock::new();
+    Stderr {
+        inner: INSTANCE.get_or_init(|| {
+            Mutex::new(if cfg!(not(test)) || scallop::shell::in_subshell() {
+                StderrInternal::Real(io::stderr())
+            } else {
+                StderrInternal::Fake(Cursor::new(vec![]))
+            })
+        }),
+    }
+}
+
+enum StderrInternal {
+    Real(io::Stderr),
+    Fake(Cursor<Vec<u8>>),
+}
+
+pub(crate) struct Stderr {
+    inner: &'static Mutex<StderrInternal>,
+}
+
+impl Stderr {
+    /// Assert stderr data for testing.
+    #[cfg(test)]
+    pub(crate) fn get(&mut self) -> String {
+        if let Ok(StderrInternal::Fake(f)) = self.inner.lock().as_deref_mut() {
+            let output = std::str::from_utf8(f.get_ref()).unwrap();
+            let output = String::from(output);
+            f.set_position(0);
+            f.get_mut().clear();
+            output
+        } else {
+            panic!("stderr assertion only valid during testing")
+        }
+    }
+}
+
+impl Read for Stderr {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self.inner.lock().as_deref_mut() {
+            Ok(StderrInternal::Fake(f)) => f.read(buf),
+            _ => Err(Error::new(ErrorKind::Other, "failed getting stderr")),
+        }
+    }
+}
+
+impl Write for Stderr {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self.inner.lock().as_deref_mut() {
+            Ok(StderrInternal::Fake(f)) => f.write(buf),
+            Ok(StderrInternal::Real(f)) => f.write(buf),
+            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stderr")),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self.inner.lock().as_deref_mut() {
+            Ok(StderrInternal::Fake(f)) => f.flush(),
+            Ok(StderrInternal::Real(f)) => f.flush(),
+            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stderr")),
+        }
+    }
+}

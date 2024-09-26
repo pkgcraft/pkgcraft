@@ -1,7 +1,6 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
-use std::io::{self, Write};
 use std::{env, mem};
 
 use camino::Utf8Path;
@@ -38,52 +37,6 @@ mod utils;
 use environment::Variable;
 use scope::Scope;
 
-struct Stderr {
-    inner: io::Stderr,
-    fake: io::Cursor<Vec<u8>>,
-}
-
-impl Default for Stderr {
-    fn default() -> Self {
-        Self {
-            inner: io::stderr(),
-            fake: io::Cursor::new(vec![]),
-        }
-    }
-}
-
-macro_rules! write_stderr {
-    ($($arg:tt)*) => {{
-        let build = crate::shell::get_build_mut();
-        write!(build.stderr(), $($arg)*)?;
-        build.stderr().flush()
-    }}
-}
-use write_stderr;
-
-#[cfg(test)]
-macro_rules! get_stderr {
-    () => {{
-        let build = crate::shell::get_build_mut();
-        let output = std::str::from_utf8(build.stderr.fake.get_ref()).unwrap();
-        let output = String::from(output);
-        build.stderr.fake = std::io::Cursor::new(vec![]);
-        output
-    }};
-}
-#[cfg(test)]
-use get_stderr;
-
-#[cfg(test)]
-macro_rules! assert_stderr {
-    ($expected:expr) => {
-        let output = crate::shell::get_stderr!();
-        assert_eq!(output, $expected);
-    };
-}
-#[cfg(test)]
-use assert_stderr;
-
 #[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum BuildState<'a> {
@@ -114,8 +67,6 @@ pub(crate) struct BuildData<'a> {
 
     /// nonfatal status set by the related builtin
     nonfatal: bool,
-
-    stderr: Stderr,
 
     // cache of variable values
     env: HashMap<Variable, String>,
@@ -370,14 +321,6 @@ impl<'a> BuildData<'a> {
             }
         }
         Ok(())
-    }
-
-    fn stderr(&mut self) -> &mut dyn Write {
-        if cfg!(not(test)) || scallop::shell::in_subshell() {
-            &mut self.stderr.inner
-        } else {
-            &mut self.stderr.fake
-        }
     }
 
     fn destdir(&self) -> &str {
