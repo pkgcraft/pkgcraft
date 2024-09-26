@@ -23,8 +23,6 @@ pub fn cmd<S: AsRef<str>>(cmd: S) -> Command {
     cmd.args(&args[1..]);
     // disable config loading by default for pkgcraft-related commands
     cmd.env("PKGCRAFT_NO_CONFIG", "1");
-    // force real IO handles for stdin/stdout/stderr
-    cmd.env("PKGCRAFT_IO_REAL", "1");
     cmd
 }
 
