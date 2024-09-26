@@ -8,7 +8,7 @@ pub(crate) fn stdin() -> Stdin {
     Stdin {
         inner: INSTANCE.get_or_init(|| {
             Mutex::new(if cfg!(test) {
-                StdinInternal::Fake(Cursor::new(vec![]))
+                StdinInternal::Fake(Cursor::default())
             } else {
                 StdinInternal::Real(io::stdin())
             })
@@ -78,7 +78,7 @@ pub(crate) fn stdout() -> Stdout {
             Mutex::new(if cfg!(not(test)) || scallop::shell::in_subshell() {
                 StdoutInternal::Real(io::stdout())
             } else {
-                StdoutInternal::Fake(Cursor::new(vec![]))
+                StdoutInternal::Fake(Cursor::default())
             })
         }),
     }
@@ -143,7 +143,7 @@ pub(crate) fn stderr() -> Stderr {
             Mutex::new(if cfg!(not(test)) || scallop::shell::in_subshell() {
                 StderrInternal::Real(io::stderr())
             } else {
-                StderrInternal::Fake(Cursor::new(vec![]))
+                StderrInternal::Fake(Cursor::default())
             })
         }),
     }
