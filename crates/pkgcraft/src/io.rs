@@ -7,7 +7,7 @@ pub(crate) fn stdin() -> Stdin {
     static INSTANCE: OnceLock<Mutex<StdinInternal>> = OnceLock::new();
     Stdin {
         inner: INSTANCE.get_or_init(|| {
-            Mutex::new(if cfg!(feature = "test") && std::env::var("PKGCRAFT_IO_REAL").is_err() {
+            Mutex::new(if cfg!(test) && std::env::var_os("PKGCRAFT_IO_REAL").is_none() {
                 StdinInternal::Fake(Cursor::new(vec![]))
             } else {
                 StdinInternal::Real(io::stdin())

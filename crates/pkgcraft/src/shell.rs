@@ -420,7 +420,7 @@ impl<'a> BuildData<'a> {
     }
 
     fn stdout(&mut self) -> &mut dyn Write {
-        if cfg!(not(feature = "test")) || scallop::shell::in_subshell() {
+        if cfg!(not(test)) || scallop::shell::in_subshell() {
             &mut self.stdout.inner
         } else {
             &mut self.stdout.fake
@@ -428,7 +428,7 @@ impl<'a> BuildData<'a> {
     }
 
     fn stderr(&mut self) -> &mut dyn Write {
-        if cfg!(not(feature = "test")) || scallop::shell::in_subshell() {
+        if cfg!(not(test)) || scallop::shell::in_subshell() {
             &mut self.stderr.inner
         } else {
             &mut self.stderr.fake
@@ -528,7 +528,7 @@ fn update_build(state: BuildData<'static>) {
     let build = get_build_mut();
 
     // TODO: handle resets in external process pool
-    if cfg!(feature = "test") && !matches!(build.state, BuildState::Empty(_)) {
+    if cfg!(test) && !matches!(build.state, BuildState::Empty(_)) {
         scallop::shell::reset(&["PATH"]);
     }
 
