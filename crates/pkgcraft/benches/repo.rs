@@ -9,7 +9,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "");
     let repo = config.temp_repo("test", 0, None).unwrap();
     for i in 0..100 {
-        repo.create_raw_pkg(&format!("cat/pkg-{i}"), &[]).unwrap();
+        repo.create_raw_pkg(format!("cat/pkg-{i}"), &[]).unwrap();
     }
 
     c.bench_function("repo-ebuild-iter", |b| {
