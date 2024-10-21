@@ -12,18 +12,18 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow = "1.0.90"
 async-stream = "0.3.6"
-clap = { version = "4.5.19", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.5.20", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.14.0", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 hyper-util = "0.1.9"
 pkgcraft = { path = "../pkgcraft", version = "0.0.17" }
 prost = "0.13.3"
 regex = "1.11.0"
-serde = { version = "1.0.210", features = ["derive"] }
+serde = { version = "1.0.211", features = ["derive"] }
 thiserror = "1.0.64"
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.41", features = ["full"] }
 tokio-stream = { version = "0.1.16", features = ["net"] }
 tonic = { version = "0.12.3", features = ["tls", "gzip"] }
 url = "2.5.2"
