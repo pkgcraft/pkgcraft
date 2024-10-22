@@ -1,7 +1,7 @@
 use std::collections::HashSet;
+use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::{Error, ExecStatus};
 
@@ -11,8 +11,8 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Install man pages into /usr/share/man.";
 
-static DETECT_LANG_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(?P<name>\w+)\.(?P<lang>[a-z]{2}(_[A-Z]{2})?)$").unwrap());
+static DETECT_LANG_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?P<name>\w+)\.(?P<lang>[a-z]{2}(_[A-Z]{2})?)$").unwrap());
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {

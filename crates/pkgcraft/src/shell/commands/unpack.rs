@@ -1,8 +1,8 @@
 use std::ops::BitOr;
+use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use scallop::{Error, ExecStatus};
 use walkdir::WalkDir;
@@ -19,12 +19,12 @@ const LONG_DOC: &str = "\
 Unpacks one or more source archives, in order, into the current directory.";
 
 // unpacked file required permissions: a+r,u+w,go-w
-static FILE_MODE: Lazy<Mode> = Lazy::new(|| {
+static FILE_MODE: LazyLock<Mode> = LazyLock::new(|| {
     Mode::S_IRUSR | Mode::S_IRGRP | Mode::S_IROTH | Mode::S_IWUSR & !Mode::S_IWGRP & !Mode::S_IWOTH
 });
 // unpacked dir required permissions: a+rx,u+w,go-w
-static DIR_MODE: Lazy<Mode> =
-    Lazy::new(|| *FILE_MODE | Mode::S_IXUSR | Mode::S_IXGRP | Mode::S_IXOTH);
+static DIR_MODE: LazyLock<Mode> =
+    LazyLock::new(|| *FILE_MODE | Mode::S_IXUSR | Mode::S_IXGRP | Mode::S_IXOTH);
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {

@@ -1,8 +1,8 @@
 use std::fs;
 use std::io::Write;
+use std::sync::LazyLock;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 use pkgcruft::test::*;
@@ -12,7 +12,7 @@ use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
-pub(crate) static QA_PRIMARY_FILE: Lazy<NamedTempFile> = Lazy::new(|| {
+pub(crate) static QA_PRIMARY_FILE: LazyLock<NamedTempFile> = LazyLock::new(|| {
     let mut file = NamedTempFile::new().unwrap();
     let output = cmd("pkgcruft scan -R json")
         .arg(qa_repo("qa-primary"))

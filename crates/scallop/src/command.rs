@@ -1,9 +1,9 @@
 use std::ffi::{CStr, CString};
 use std::ptr;
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use bitflags::bitflags;
-use once_cell::sync::Lazy;
 
 use crate::error::{ok_or_error, Error};
 use crate::{bash, ExecStatus};
@@ -50,7 +50,8 @@ impl Drop for Command {
     }
 }
 
-static COMMAND_MARKER: Lazy<CString> = Lazy::new(|| CString::new("Command::from_str").unwrap());
+static COMMAND_MARKER: LazyLock<CString> =
+    LazyLock::new(|| CString::new("Command::from_str").unwrap());
 
 impl FromStr for Command {
     type Err = Error;

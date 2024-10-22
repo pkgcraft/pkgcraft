@@ -3,12 +3,12 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
+use std::sync::LazyLock;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Either;
-use once_cell::sync::Lazy;
 use strum::EnumString;
 
 use crate::archive::Archive;
@@ -522,7 +522,7 @@ impl Eapi {
     }
 }
 
-static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
+static OLD_EAPIS: LazyLock<IndexSet<String>> = LazyLock::new(|| {
     let end = EAPIS_OFFICIAL[0]
         .id
         .parse()
@@ -530,7 +530,7 @@ static OLD_EAPIS: Lazy<IndexSet<String>> = Lazy::new(|| {
     (0..end).map(|s| s.to_string()).collect()
 });
 
-pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
     use crate::shell::environment::Variable::*;
@@ -729,7 +729,7 @@ pub static EAPI5: Lazy<Eapi> = Lazy::new(|| {
         .finalize()
 });
 
-pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::commands::*;
     use crate::shell::phase::{eapi6::*, PhaseKind::*};
     use crate::shell::scope::Scopes::*;
@@ -754,7 +754,7 @@ pub static EAPI6: Lazy<Eapi> = Lazy::new(|| {
         .finalize()
 });
 
-pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
     use crate::shell::environment::Variable::*;
@@ -793,7 +793,7 @@ pub static EAPI7: Lazy<Eapi> = Lazy::new(|| {
         .finalize()
 });
 
-pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
     use Feature::*;
@@ -812,10 +812,10 @@ pub static EAPI8: Lazy<Eapi> = Lazy::new(|| {
 });
 
 /// Reference to the most recent, official EAPI.
-pub static EAPI_LATEST_OFFICIAL: Lazy<&'static Eapi> = Lazy::new(|| &EAPI8);
+pub static EAPI_LATEST_OFFICIAL: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI8);
 
 /// The latest EAPI with extensions on top.
-pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
+pub static EAPI_PKGCRAFT: LazyLock<Eapi> = LazyLock::new(|| {
     use Feature::*;
     Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL))
         .enable_features([RepoIds])
@@ -823,10 +823,10 @@ pub static EAPI_PKGCRAFT: Lazy<Eapi> = Lazy::new(|| {
 });
 
 /// Reference to the most recent EAPI.
-pub static EAPI_LATEST: Lazy<&'static Eapi> = Lazy::new(|| &EAPI_PKGCRAFT);
+pub static EAPI_LATEST: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI_PKGCRAFT);
 
 /// Ordered set of official, supported EAPIs.
-pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
+pub static EAPIS_OFFICIAL: LazyLock<IndexSet<&'static Eapi>> = LazyLock::new(|| {
     let mut eapi: &Eapi = &EAPI_LATEST_OFFICIAL;
     let mut eapis = IndexSet::from([eapi]);
     while let Some(x) = eapi.parent {
@@ -839,7 +839,7 @@ pub static EAPIS_OFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 });
 
 /// Ordered set of unofficial EAPIs.
-pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
+pub static EAPIS_UNOFFICIAL: LazyLock<IndexSet<&'static Eapi>> = LazyLock::new(|| {
     let mut eapi: &Eapi = &EAPI_LATEST;
     let mut eapis = IndexSet::from([eapi]);
     while let Some(x) = eapi.parent {
@@ -856,7 +856,7 @@ pub static EAPIS_UNOFFICIAL: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
 });
 
 /// Ordered set of EAPIs.
-pub static EAPIS: Lazy<IndexSet<&'static Eapi>> = Lazy::new(|| {
+pub static EAPIS: LazyLock<IndexSet<&'static Eapi>> = LazyLock::new(|| {
     EAPIS_OFFICIAL
         .iter()
         .chain(EAPIS_UNOFFICIAL.iter())

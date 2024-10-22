@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 use std::str;
+use std::sync::LazyLock;
 
 use assert_cmd::Command as assert_command;
-use once_cell::sync::Lazy;
 use tempfile::Builder;
 
-static TARGET_DIR: Lazy<String> = Lazy::new(|| {
+static TARGET_DIR: LazyLock<String> = LazyLock::new(|| {
     let tmp_dir = PathBuf::from(env!("CARGO_BIN_EXE_arcanist"));
     tmp_dir.parent().unwrap().to_str().unwrap().to_owned()
 });

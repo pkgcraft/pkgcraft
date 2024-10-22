@@ -1,9 +1,9 @@
 use std::io::Write;
 use std::process::Command;
+use std::sync::LazyLock;
 
 use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use scallop::{variables, Error, ExecStatus};
 
@@ -14,7 +14,8 @@ use crate::shell::utils::{configure, get_libdir};
 
 use super::make_builtin;
 
-static CONFIG_OPT_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
+static CONFIG_OPT_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
 const LONG_DOC: &str = "Run a package's configure script.";
 
 #[doc = stringify!(LONG_DOC)]

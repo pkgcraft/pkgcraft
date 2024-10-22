@@ -3,10 +3,10 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
+use std::sync::LazyLock;
 use std::{cmp, fmt};
 
 use indexmap::IndexSet;
-use once_cell::sync::Lazy;
 use scallop::builtins::Builtin;
 
 use super::get_build_mut;
@@ -324,7 +324,7 @@ impl Command {
 }
 
 /// Ordered set of all known builtins.
-pub(crate) static BUILTINS: Lazy<IndexSet<Builtin>> = Lazy::new(|| {
+pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
     [
         adddeny,
         addpredict,

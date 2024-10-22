@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 use std::{env, mem};
 
 use camino::Utf8Path;
@@ -336,7 +337,7 @@ impl<'a> BuildData<'a> {
     }
 
     fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
-        Lazy::force(&BASH);
+        LazyLock::force(&BASH);
         let eapi = self.eapi();
 
         // remove external metadata vars from the environment
@@ -405,6 +406,7 @@ impl<'a> BuildData<'a> {
     }
 }
 
+// TODO: move to LazyLock once LazyLock::get_mut() is stabilized or state tracking is rewritten
 static mut STATE: Lazy<UnsafeCell<BuildData<'static>>> =
     Lazy::new(|| UnsafeCell::new(BuildData::new()));
 
@@ -426,7 +428,7 @@ fn update_build(state: BuildData<'static>) {
 type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
-pub(crate) static BASH: Lazy<()> = Lazy::new(|| {
+pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
     // TODO: remove this hack once build state tracking is reworked
     #[allow(static_mut_refs)]
     unsafe {

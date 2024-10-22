@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::ffi::{c_void, CStr};
-
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 use crate::bash;
 use crate::variables::optional;
@@ -24,7 +23,7 @@ pub fn shopt_opts() -> HashSet<String> {
 }
 
 /// Return the set of all shell options used with the `set` builtin.
-pub static SET_OPTS: Lazy<HashSet<String>> = Lazy::new(|| {
+pub static SET_OPTS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     let mut opts = HashSet::new();
     let mut i = 0;
     unsafe {
@@ -39,7 +38,7 @@ pub static SET_OPTS: Lazy<HashSet<String>> = Lazy::new(|| {
 });
 
 /// Return the set of all shell options used with the `shopt` builtin.
-pub static SHOPT_OPTS: Lazy<HashSet<String>> = Lazy::new(|| {
+pub static SHOPT_OPTS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     let mut opts = HashSet::new();
     let mut i = 0;
     unsafe {

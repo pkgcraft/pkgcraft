@@ -1,12 +1,11 @@
 use std::collections::HashSet;
 use std::ops::Deref;
-use std::sync::OnceLock;
-
-use once_cell::sync::Lazy;
+use std::sync::{LazyLock, OnceLock};
 
 use crate::report::Location;
 
-static LANGUAGE: Lazy<tree_sitter::Language> = Lazy::new(|| tree_sitter_bash::LANGUAGE.into());
+static LANGUAGE: LazyLock<tree_sitter::Language> =
+    LazyLock::new(|| tree_sitter_bash::LANGUAGE.into());
 
 /// Lazily parse the given data into a bash parse tree.
 pub(crate) fn lazy_parse(data: &[u8]) -> Tree {

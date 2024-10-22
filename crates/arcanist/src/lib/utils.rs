@@ -4,9 +4,9 @@ use std::io;
 use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::process::Stdio;
+use std::sync::LazyLock;
 use std::time::Duration;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use tokio::{
     io::AsyncBufReadExt,
@@ -17,8 +17,8 @@ use tokio::{
 
 use crate::error::Error;
 
-static ARCANIST_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^arcanist listening at: (?P<socket>.+)$").unwrap());
+static ARCANIST_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new("^arcanist listening at: (?P<socket>.+)$").unwrap());
 
 pub async fn spawn<S, I, A, O>(
     socket: S,

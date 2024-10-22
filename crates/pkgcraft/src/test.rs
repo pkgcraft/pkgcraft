@@ -1,9 +1,9 @@
+use std::sync::LazyLock;
 use std::{env, fs, process};
 
 use assert_cmd::Command;
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use tempfile::TempDir;
@@ -36,7 +36,7 @@ fn initialize() {
         env::var("NEXTEST").expect("tests must be run via cargo-nextest");
     }
     // initialize bash
-    Lazy::force(&crate::shell::BASH);
+    LazyLock::force(&crate::shell::BASH);
 }
 
 #[serde_as]
@@ -170,7 +170,7 @@ impl TestData {
     }
 }
 
-pub static TEST_DATA: Lazy<TestData> = Lazy::new(|| {
+pub static TEST_DATA: LazyLock<TestData> = LazyLock::new(|| {
     let path = build_path!(env!("CARGO_MANIFEST_DIR"), "testdata");
 
     // load valid repos from test data, ignoring purposefully broken ones
@@ -230,7 +230,7 @@ fn is_patch(entry: &DirEntry) -> bool {
     path.is_file() && path.extension().map(|s| s == "patch").unwrap_or_default()
 }
 
-pub static TEST_DATA_PATCHED: Lazy<TestDataPatched> = Lazy::new(|| {
+pub static TEST_DATA_PATCHED: LazyLock<TestDataPatched> = LazyLock::new(|| {
     let tmpdir = TempDir::new().unwrap();
     let tmppath = Utf8Path::from_path(tmpdir.path()).unwrap();
     let mut config = Config::new("pkgcraft", "");

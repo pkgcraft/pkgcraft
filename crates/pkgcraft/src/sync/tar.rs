@@ -2,11 +2,11 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use flate2::read::GzDecoder;
 use futures::StreamExt;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use reqwest::header::{HeaderMap, ETAG};
 use serde::{Deserialize, Serialize};
@@ -16,8 +16,8 @@ use tempfile::Builder;
 use crate::sync::{Syncable, Syncer};
 use crate::Error;
 
-static HANDLED_URI_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^tar\+(?P<url>https://.+)$").unwrap());
+static HANDLED_URI_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^tar\+(?P<url>https://.+)$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {

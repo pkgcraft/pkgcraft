@@ -1,14 +1,15 @@
 use std::io::{self, Write};
 use std::path::Path;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::sync::{Syncable, Syncer};
 use crate::Error;
 
-static HANDLED_URI_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(https|git)://.+\.git$").unwrap());
+static HANDLED_URI_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(https|git)://.+\.git$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {

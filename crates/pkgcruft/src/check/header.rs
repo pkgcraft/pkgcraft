@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use pkgcraft::pkg::ebuild::raw::Pkg;
 use regex::Regex;
 
@@ -19,7 +20,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-static COPYRIGHT_REGEX: Lazy<Regex> = Lazy::new(|| {
+static COPYRIGHT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^# Copyright ((?P<begin>\d{4})-)?(?P<end>\d{4}) (?P<holder>.+)$").unwrap()
 });
 

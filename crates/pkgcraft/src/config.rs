@@ -1,9 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::eapi::Eapi;
@@ -140,7 +139,7 @@ impl From<&Config> for Arc<Settings> {
 impl Config {
     pub fn new(name: &str, prefix: &str) -> Self {
         // initialize bash
-        Lazy::force(&shell::BASH);
+        LazyLock::force(&shell::BASH);
 
         let path = ConfigPath::new(name, prefix);
         Config { path, ..Default::default() }

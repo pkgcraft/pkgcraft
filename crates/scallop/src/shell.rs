@@ -1,10 +1,9 @@
 use std::cmp::min;
 use std::ffi::{c_char, c_int, CStr, CString};
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 use std::{env, mem, process, ptr};
 
 use nix::unistd::{getpid, Pid};
-use once_cell::sync::Lazy;
 
 use crate::shm::create_shm;
 use crate::{bash, error, ExecStatus};
@@ -181,7 +180,7 @@ where
 }
 
 /// Version string related to the bundled bash release.
-pub static BASH_VERSION: Lazy<String> = Lazy::new(|| unsafe {
+pub static BASH_VERSION: LazyLock<String> = LazyLock::new(|| unsafe {
     let version = CStr::from_ptr(bash::DIST_VERSION).to_str().unwrap();
     format!("{version}.{}", bash::PATCH_LEVEL)
 });

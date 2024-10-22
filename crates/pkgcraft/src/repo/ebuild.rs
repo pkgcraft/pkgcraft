@@ -1,14 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::sync::{Arc, OnceLock, Weak};
+use std::sync::{Arc, LazyLock, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use tracing::warn;
 
@@ -37,7 +36,7 @@ pub mod temp;
 pub use metadata::Metadata;
 
 // root level directories that aren't categories
-static FAKE_CATEGORIES: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+static FAKE_CATEGORIES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     ["eclass", "profiles", "metadata", "licenses"]
         .into_iter()
         .collect()

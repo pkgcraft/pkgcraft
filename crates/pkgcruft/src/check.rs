@@ -3,10 +3,10 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
-use once_cell::sync::Lazy;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild;
 use pkgcraft::repo::{ebuild::Repo, Repository};
@@ -363,15 +363,15 @@ impl AsRef<Utf8Path> for Check {
 }
 
 /// The mapping of all report variants to the checks that can generate them.
-static REPORT_CHECKS: Lazy<OrderedMap<ReportKind, OrderedSet<Check>>> = Lazy::new(|| {
+static REPORT_CHECKS: LazyLock<OrderedMap<ReportKind, OrderedSet<Check>>> = LazyLock::new(|| {
     Check::iter()
         .flat_map(|c| c.reports.iter().copied().map(move |r| (r, c)))
         .collect()
 });
 
 /// The mapping of all source variants to the checks that use them.
-static SOURCE_CHECKS: Lazy<OrderedMap<SourceKind, OrderedSet<Check>>> =
-    Lazy::new(|| Check::iter().map(|c| (c.source, c)).collect());
+static SOURCE_CHECKS: LazyLock<OrderedMap<SourceKind, OrderedSet<Check>>> =
+    LazyLock::new(|| Check::iter().map(|c| (c.source, c)).collect());
 
 #[cfg(test)]
 mod tests {
