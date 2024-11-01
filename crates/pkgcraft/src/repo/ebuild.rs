@@ -727,12 +727,13 @@ impl Repository for Repo {
                     [_] if self.packages(cat).contains(s) => {
                         restricts.push(DepRestrict::package(s));
                     }
-                    [_, _] if s.ends_with(".ebuild") => {
-                        if let Ok(cpv) = self.cpv_from_path(&path) {
-                            restricts.push(DepRestrict::Version(Some(cpv.version)));
-                        } else {
-                            break;
+                    [_, _] => {
+                        if let Some(p) = s.strip_suffix(".ebuild") {
+                            if let Ok(cpv) = Cpv::try_new(format!("{cat}/{p}")) {
+                                restricts.push(DepRestrict::Version(Some(cpv.version)));
+                            }
                         }
+                        break;
                     }
                     _ => break,
                 }
