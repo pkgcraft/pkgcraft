@@ -729,8 +729,7 @@ impl Repository for Repo {
                     }
                     [_, _] if s.ends_with(".ebuild") => {
                         if let Ok(cpv) = self.cpv_from_path(&path) {
-                            let ver = cpv.version().clone();
-                            restricts.push(DepRestrict::Version(Some(ver)));
+                            restricts.push(DepRestrict::Version(Some(cpv.version)));
                         } else {
                             break;
                         }
