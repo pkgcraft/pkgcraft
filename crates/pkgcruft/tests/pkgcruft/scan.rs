@@ -1,8 +1,7 @@
 use std::env;
 
 use pkgcraft::repo::Repository;
-use pkgcraft::test::cmd;
-use pkgcraft::test::TEST_DATA;
+use pkgcraft::test::{cmd, TEST_DATA};
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -339,7 +338,7 @@ fn filters() {
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert!(reports.is_empty());
+        assert_eq!(&reports, &[]);
 
         // latest slots
         let reports = cmd("pkgcruft scan -j1 -R json")
@@ -376,7 +375,7 @@ fn filters() {
             .arg(primary_repo_path.join("Keywords/KeywordsLive"))
             .to_reports()
             .unwrap();
-        assert!(reports.is_empty());
+        assert_eq!(&reports, &[]);
 
         // stable
         let reports = cmd("pkgcruft scan -j1 -R json")
