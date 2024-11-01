@@ -989,22 +989,27 @@ impl<'a> IterCpv<'a> {
         let mut pkg_restricts = vec![];
         let mut ver_restricts = vec![];
 
-        // extract restrictions for package filtering
+        // extract restrictions for optimized Cpv generation
+        let mut match_restrict = |restrict: &Restrict| match restrict {
+            Restrict::Dep(Category(r)) => {
+                cat_restricts.push(r.clone());
+            }
+            Restrict::Dep(r @ Package(_)) => {
+                pkg_restricts.push(r.clone());
+            }
+            Restrict::Dep(r @ Version(_)) => {
+                ver_restricts.push(r.clone());
+            }
+            _ => (),
+        };
+
+        // extract restrictions from matching variants
         if let Some(Restrict::And(vals)) = restrict {
             for r in vals.iter().map(Deref::deref) {
-                match r {
-                    Restrict::Dep(Category(r)) => {
-                        cat_restricts.push(r.clone());
-                    }
-                    Restrict::Dep(r @ Package(_)) => {
-                        pkg_restricts.push(r.clone());
-                    }
-                    Restrict::Dep(r @ Version(_)) => {
-                        ver_restricts.push(r.clone());
-                    }
-                    _ => (),
-                }
+                match_restrict(r);
             }
+        } else if let Some(r) = restrict {
+            match_restrict(r);
         }
 
         Self {
