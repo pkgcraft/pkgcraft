@@ -733,9 +733,11 @@ impl Repository for Repo {
                                 restricts.push(DepRestrict::Version(Some(cpv.version)));
                             }
                         }
+                    }
+                    _ => {
+                        restricts.clear();
                         break;
                     }
-                    _ => break,
                 }
             }
 
