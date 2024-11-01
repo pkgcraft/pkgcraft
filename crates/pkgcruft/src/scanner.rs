@@ -151,6 +151,7 @@ fn producer(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for r in restricts {
+            // TODO: add support for versioned restrictions
             for cpn in repo.iter_cpn_restrict(r) {
                 tx.send(cpn).ok();
             }
