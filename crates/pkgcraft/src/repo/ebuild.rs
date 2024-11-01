@@ -717,30 +717,31 @@ impl Repository for Repo {
         let path = path.as_ref().canonicalize_utf8().ok()?;
         if let Ok(relpath) = path.strip_prefix(self.path()) {
             let mut restricts = vec![];
-            let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();
-            for (i, s) in components.iter().enumerate() {
-                match (i, s) {
-                    (0, s) => {
-                        if self.categories().contains(*s) {
-                            restricts.push(DepRestrict::category(*s));
+            let mut cat = "";
+            for s in relpath.components().map(|p| p.as_str()) {
+                match &restricts[..] {
+                    [] => {
+                        if self.categories().contains(s) {
+                            cat = s;
+                            restricts.push(DepRestrict::category(s));
                         } else {
                             break;
                         }
                     }
-                    (1, s) => {
-                        if self.packages(components[0]).contains(*s) {
-                            restricts.push(DepRestrict::package(*s));
+                    [_] => {
+                        if self.packages(cat).contains(s) {
+                            restricts.push(DepRestrict::package(s));
                         } else {
                             break;
                         }
                     }
-                    (2, s) if s.ends_with(".ebuild") => {
+                    [_, _] if s.ends_with(".ebuild") => {
                         if let Ok(cpv) = self.cpv_from_path(&path) {
                             let ver = cpv.version().clone();
                             restricts.push(DepRestrict::Version(Some(ver)));
                         }
                     }
-                    _ => (),
+                    _ => break,
                 }
             }
 
