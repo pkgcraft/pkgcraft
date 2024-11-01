@@ -150,6 +150,13 @@ fn path_targets() {
         .unwrap();
     assert_eq!(&expected, &reports);
 
+    // non-package dir
+    let reports = cmd("pkgcruft scan -j1 -R json")
+        .arg(repo.join("licenses"))
+        .to_reports()
+        .unwrap();
+    assert_eq!(&reports, &[]);
+
     // TODO: test overlay dir
 
     // category dir
