@@ -33,7 +33,7 @@ name = "bench"
 harness = false
 
 [dependencies]
-anyhow = "1.0.90"
+anyhow = "1.0.92"
 camino = "1.1.9"
 clap = { version = "4.5.20", features = ["derive"] }
 clap-verbosity-flag = "2.2.2"
@@ -44,13 +44,13 @@ indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.17" }
-regex = "1.11.0"
+regex = "1.11.1"
 scallop = { path = "../scallop", version = "0.0.17" }
-serde = { version = "1.0.211", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.132"
 strfmt = "0.2.4"
 strum = { version = "0.26.3", features = ["derive"] }
-thiserror = "1.0.64"
+thiserror = "1.0.66"
 tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.18"
