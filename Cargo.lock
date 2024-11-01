@@ -1833,6 +1833,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "peg",
+ "pretty_assertions",
  "rayon",
  "regex",
  "reqwest",

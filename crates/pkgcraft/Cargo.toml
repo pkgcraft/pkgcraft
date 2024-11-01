@@ -24,7 +24,7 @@ git = ["dep:git2"]
 # enable repo syncing over https, e.g. tar+https
 https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
 # external test support
-test = ["dep:assert_cmd"]
+test = ["dep:assert_cmd", "dep:pretty_assertions"]
 
 [dependencies]
 blake2 = "0.10.6"
@@ -72,6 +72,7 @@ walkdir = "2.5.0"
 
 # exported test support deps
 assert_cmd = { version = "2.0.16", optional = true }
+pretty_assertions = { version = "1.4.1", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"

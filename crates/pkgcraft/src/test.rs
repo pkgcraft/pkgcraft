@@ -314,7 +314,7 @@ macro_rules! assert_ordered_eq {
         let a: Vec<_> = $iter1.into_iter().collect();
         let b: Vec<_> = $iter2.into_iter().collect();
         let msg = $msg;
-        assert_eq!(a, b, "{msg}");
+        pretty_assertions::assert_eq!(a, b, "{msg}");
     }};
 
     ($iter1:expr, $iter2:expr $(,)?) => {{
@@ -332,7 +332,7 @@ macro_rules! assert_unordered_eq {
         a.sort();
         b.sort();
         let msg = $msg;
-        assert_eq!(a, b, "{msg}");
+        pretty_assertions::assert_eq!(a, b, "{msg}");
     }};
 
     ($iter1:expr, $iter2:expr $(,)?) => {{
