@@ -230,8 +230,7 @@ impl Iterator for Iter {
 mod tests {
     use pkgcraft::dep::Dep;
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::TEST_DATA;
-    use pretty_assertions::assert_eq;
+    use pkgcraft::test::{assert_ordered_eq, TEST_DATA};
 
     use crate::check::CheckKind;
     use crate::test::glob_reports;
@@ -246,44 +245,44 @@ mod tests {
         // repo level
         let scanner = Scanner::new().jobs(1);
         let expected = glob_reports!("{repo_path}/**/reports.json");
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &expected);
+        let reports = scanner.run(repo, [repo]);
+        assert_ordered_eq!(reports, expected);
 
         // specific checks
         let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &expected);
+        let reports = scanner.run(repo, [repo]);
+        assert_ordered_eq!(reports, expected);
 
         // specific reports
         let scanner = Scanner::new()
             .jobs(1)
             .reports([ReportKind::DependencyDeprecated]);
         let expected = glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &expected);
+        let reports = scanner.run(repo, [repo]);
+        assert_ordered_eq!(reports, expected);
 
         // no checks
         let checks: [Check; 0] = [];
         let scanner = Scanner::new().jobs(1).checks(checks);
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &[]);
+        let reports = scanner.run(repo, [repo]);
+        assert_ordered_eq!(reports, []);
 
         // no reports
         let scanner = Scanner::new().jobs(1).reports([]);
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &[]);
+        let reports = scanner.run(repo, [repo]);
+        assert_ordered_eq!(reports, []);
 
         // non-matching restriction
         let scanner = Scanner::new().jobs(1);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports: Vec<_> = scanner.run(repo, [&dep]).collect();
-        assert_eq!(&reports, &[]);
+        let reports = scanner.run(repo, [&dep]);
+        assert_ordered_eq!(reports, []);
 
         // empty repo
         let repo = TEST_DATA.repo("empty").unwrap();
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &[]);
+        let reports = scanner.run(repo, [repo]);
+        assert_ordered_eq!(reports, []);
     }
 
     #[test]
