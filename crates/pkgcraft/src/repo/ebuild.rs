@@ -720,25 +720,19 @@ impl Repository for Repo {
             let mut cat = "";
             for s in relpath.components().map(|p| p.as_str()) {
                 match &restricts[..] {
-                    [] => {
-                        if self.categories().contains(s) {
-                            cat = s;
-                            restricts.push(DepRestrict::category(s));
-                        } else {
-                            break;
-                        }
+                    [] if self.categories().contains(s) => {
+                        cat = s;
+                        restricts.push(DepRestrict::category(s));
                     }
-                    [_] => {
-                        if self.packages(cat).contains(s) {
-                            restricts.push(DepRestrict::package(s));
-                        } else {
-                            break;
-                        }
+                    [_] if self.packages(cat).contains(s) => {
+                        restricts.push(DepRestrict::package(s));
                     }
                     [_, _] if s.ends_with(".ebuild") => {
                         if let Ok(cpv) = self.cpv_from_path(&path) {
                             let ver = cpv.version().clone();
                             restricts.push(DepRestrict::Version(Some(ver)));
+                        } else {
+                            break;
                         }
                     }
                     _ => break,
