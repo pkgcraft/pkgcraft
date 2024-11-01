@@ -1377,6 +1377,63 @@ mod tests {
     }
 
     #[test]
+    fn iter_cpn() {
+        let mut config = Config::default();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let mut iter = repo.iter_cpn();
+        for cpn in ["cat1/pkg", "cat2/pkg"] {
+            assert_eq!(iter.next(), Some(Cpn::try_new(cpn).unwrap()));
+        }
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn iter_cpn_restrict() {
+        let mut config = Config::default();
+        let repo = config.temp_repo("test", 0, None).unwrap();
+        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkga-1", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkga-2", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkgb-1", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkgb-2", &[]).unwrap();
+        repo.create_raw_pkg("cat1/pkgb-3", &[]).unwrap();
+
+        // no matches via existing Cpv
+        let cpv = Cpv::try_new("cat1/pkga-1").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
+
+        // no matches via nonexistent Cpv
+        let cpv = Cpv::try_new("cat/nonexistent-1").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
+
+        // single match via Cpn
+        let cpn = Cpn::try_new("cat1/pkga").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [cpn]);
+
+        // no matches via Cpn
+        let cpn = Cpn::try_new("cat/nonexistent").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [] as [Cpn; 0]);
+
+        // single match via package name
+        let restrict = DepRestrict::package("pkgb");
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict).map(|c| c.to_string()), ["cat1/pkgb"]);
+
+        // no matches via package name
+        let restrict = DepRestrict::package("nonexistent");
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+
+        // all Cpns match
+        let restrict = Restrict::True;
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), repo.iter_cpn());
+
+        // no Cpns match
+        let restrict = Restrict::False;
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+    }
+
+    #[test]
     fn iter_cpv() {
         let mut config = Config::default();
         let repo = config.temp_repo("test", 0, None).unwrap();
