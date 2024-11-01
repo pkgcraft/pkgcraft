@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::sync::{Arc, LazyLock, OnceLock, Weak};
 use std::{fmt, fs, io, iter, thread};
 
@@ -866,9 +865,7 @@ impl<'a> IterCpn<'a> {
 
         // extract restrictions from matching variants
         if let Some(Restrict::And(vals)) = restrict {
-            for r in vals.iter().map(Deref::deref) {
-                match_restrict(r);
-            }
+            vals.iter().for_each(|x| match_restrict(x));
         } else if let Some(r) = restrict {
             match_restrict(r);
         }
@@ -1004,9 +1001,7 @@ impl<'a> IterCpv<'a> {
 
         // extract restrictions from matching variants
         if let Some(Restrict::And(vals)) = restrict {
-            for r in vals.iter().map(Deref::deref) {
-                match_restrict(r);
-            }
+            vals.iter().for_each(|x| match_restrict(x));
         } else if let Some(r) = restrict {
             match_restrict(r);
         }
