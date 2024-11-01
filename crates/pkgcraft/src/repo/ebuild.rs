@@ -721,11 +721,19 @@ impl Repository for Repo {
             let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();
             for (i, s) in components.iter().enumerate() {
                 match (i, s) {
-                    (0, s) if self.categories().contains(*s) => {
-                        restricts.push(DepRestrict::category(*s));
+                    (0, s) => {
+                        if self.categories().contains(*s) {
+                            restricts.push(DepRestrict::category(*s));
+                        } else {
+                            break;
+                        }
                     }
-                    (1, s) if self.packages(components[0]).contains(*s) => {
-                        restricts.push(DepRestrict::package(*s));
+                    (1, s) => {
+                        if self.packages(components[0]).contains(*s) {
+                            restricts.push(DepRestrict::package(*s));
+                        } else {
+                            break;
+                        }
                     }
                     (2, s) if s.ends_with(".ebuild") => {
                         if let Ok(cpv) = self.cpv_from_path(&path) {
