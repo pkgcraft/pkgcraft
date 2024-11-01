@@ -715,9 +715,8 @@ impl Repository for Repo {
 
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
         let path = path.as_ref().canonicalize_utf8().ok()?;
-        if self.contains(&path) {
+        if let Ok(relpath) = path.strip_prefix(self.path()) {
             let mut restricts = vec![];
-            let relpath = path.strip_prefix(self.path()).unwrap_or(&path);
             let components: Vec<_> = relpath.components().map(|c| c.as_str()).collect();
             for (i, s) in components.iter().enumerate() {
                 match (i, s) {
@@ -745,12 +744,18 @@ impl Repository for Repo {
                 }
             }
 
-            if restricts.is_empty() {
+            if !restricts.is_empty() {
+                // package path
+                Some(Restrict::and(restricts))
+            } else if relpath == "" {
+                // repo root path
                 Some(Restrict::True)
             } else {
-                Some(Restrict::and(restricts))
+                // non-package path
+                Some(Restrict::False)
             }
         } else {
+            // non-repo path
             None
         }
     }
