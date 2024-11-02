@@ -713,46 +713,53 @@ impl Repository for Repo {
     }
 
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
-        let path = path.as_ref().canonicalize_utf8().ok()?;
-        if let Ok(relpath) = path.strip_prefix(self.path()) {
-            let mut restricts = vec![];
-            let mut cat = "";
-            for s in relpath.components().map(|p| p.as_str()) {
-                match &restricts[..] {
-                    [] if self.categories().contains(s) => {
-                        cat = s;
-                        restricts.push(DepRestrict::category(s));
-                    }
-                    [_] if self.packages(cat).contains(s) => {
-                        restricts.push(DepRestrict::package(s));
-                    }
-                    [_, _] => {
-                        if let Some(p) = s.strip_suffix(".ebuild") {
-                            if let Ok(cpv) = Cpv::try_new(format!("{cat}/{p}")) {
-                                restricts.push(DepRestrict::Version(Some(cpv.version)));
-                            }
+        // normalize path to inspect relative components
+        let path = path.as_ref();
+        let mut abspath = if !path.is_absolute() {
+            self.path().join(path)
+        } else {
+            path.to_path_buf()
+        };
+        abspath = abspath.canonicalize_utf8().ok()?;
+        let Ok(relpath) = abspath.strip_prefix(self.path()) else {
+            // non-repo path
+            return None;
+        };
+
+        let mut restricts = vec![];
+        let mut cat = "";
+        for s in relpath.components().map(|p| p.as_str()) {
+            match &restricts[..] {
+                [] if self.categories().contains(s) => {
+                    cat = s;
+                    restricts.push(DepRestrict::category(s));
+                }
+                [_] if self.packages(cat).contains(s) => {
+                    restricts.push(DepRestrict::package(s));
+                }
+                [_, _] => {
+                    if let Some(p) = s.strip_suffix(".ebuild") {
+                        if let Ok(cpv) = Cpv::try_new(format!("{cat}/{p}")) {
+                            restricts.push(DepRestrict::Version(Some(cpv.version)));
                         }
                     }
-                    _ => {
-                        restricts.clear();
-                        break;
-                    }
+                }
+                _ => {
+                    restricts.clear();
+                    break;
                 }
             }
+        }
 
-            if !restricts.is_empty() {
-                // package path
-                Some(Restrict::and(restricts))
-            } else if relpath == "" {
-                // repo root path
-                Some(Restrict::True)
-            } else {
-                // non-package path
-                Some(Restrict::False)
-            }
+        if !restricts.is_empty() {
+            // package path
+            Some(Restrict::and(restricts))
+        } else if relpath == "" {
+            // repo root path
+            Some(Restrict::True)
         } else {
-            // non-repo path
-            None
+            // non-package path
+            Some(Restrict::False)
         }
     }
 
