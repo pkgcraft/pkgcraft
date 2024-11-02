@@ -249,6 +249,20 @@ mod tests {
         let reports = scanner.run(repo, [repo]);
         assert_ordered_eq!(reports, expected);
 
+        // category level
+        let scanner = Scanner::new().jobs(1);
+        let expected = glob_reports!("{repo_path}/Keywords/**/reports.json");
+        let restrict = repo.restrict_from_path("Keywords").unwrap();
+        let reports = scanner.run(repo, [restrict]);
+        assert_ordered_eq!(reports, expected);
+
+        // package level
+        let scanner = Scanner::new().jobs(1);
+        let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
+        let restrict = repo.restrict_from_path("Keywords/KeywordsLive").unwrap();
+        let reports = scanner.run(repo, [restrict]);
+        assert_ordered_eq!(reports, expected);
+
         // specific checks
         let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
