@@ -103,11 +103,15 @@ pub(crate) struct BuildData<'a> {
 
 impl BuildData<'_> {
     fn new() -> Self {
-        use Variable::*;
-        let env = [(DESTTREE, "/usr"), (INSDESTTREE, ""), (DOCDESTTREE, ""), (EXEDESTTREE, "")]
-            .into_iter()
-            .map(|(v, s)| (v, s.to_string()))
-            .collect();
+        let env = [
+            (Variable::DESTTREE, "/usr"),
+            (Variable::INSDESTTREE, ""),
+            (Variable::DOCDESTTREE, ""),
+            (Variable::EXEDESTTREE, ""),
+        ]
+        .into_iter()
+        .map(|(v, s)| (v, s.to_string()))
+        .collect();
 
         Self {
             insopts: ["-m0644".to_string()].into_iter().collect(),
@@ -146,12 +150,11 @@ impl BuildData<'_> {
 
     /// Get the current EAPI.
     fn eapi(&self) -> &'static Eapi {
-        use BuildState::*;
         match &self.state {
-            Empty(eapi) => eapi,
-            Metadata(pkg) => pkg.eapi(),
-            Build(pkg) => pkg.eapi(),
-            Merge => todo!(),
+            BuildState::Empty(eapi) => eapi,
+            BuildState::Metadata(pkg) => pkg.eapi(),
+            BuildState::Build(pkg) => pkg.eapi(),
+            BuildState::Merge => todo!(),
         }
     }
 
