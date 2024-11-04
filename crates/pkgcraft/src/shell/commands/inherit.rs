@@ -25,10 +25,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
 
+    let eclasses = get_build_mut().ebuild_repo()?.eclasses();
     for name in args {
-        let eclass = get_build_mut()
-            .ebuild_repo()?
-            .eclasses()
+        let eclass = eclasses
             .get(*name)
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
