@@ -16,26 +16,23 @@ use crate::traits::Contains;
 use super::EbuildRepo;
 
 /// Configured ebuild repository.
-#[derive(Debug)]
-struct Repo {
+#[derive(Debug, Clone)]
+pub struct ConfiguredRepo {
     raw: EbuildRepo,
     settings: Arc<Settings>,
 }
 
 impl<'a> From<&'a ConfiguredRepo> for &'a EbuildRepo {
     fn from(repo: &'a ConfiguredRepo) -> Self {
-        &repo.0.raw
+        &repo.raw
     }
 }
-
-#[derive(Debug, Clone)]
-pub struct ConfiguredRepo(Arc<Repo>);
 
 impl Deref for ConfiguredRepo {
     type Target = EbuildRepo;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.raw
+        &self.raw
     }
 }
 
@@ -57,17 +54,17 @@ make_repo_traits!(ConfiguredRepo);
 
 impl ConfiguredRepo {
     pub(super) fn new(raw: EbuildRepo, settings: Arc<Settings>) -> Self {
-        ConfiguredRepo(Arc::new(Repo { raw, settings }))
+        ConfiguredRepo { raw, settings }
     }
 
     pub(crate) fn repo_config(&self) -> &RepoConfig {
-        self.0.raw.repo_config()
+        self.raw.repo_config()
     }
 }
 
 impl fmt::Display for ConfiguredRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0.raw)
+        write!(f, "{}", self.raw)
     }
 }
 
@@ -78,23 +75,23 @@ impl PkgRepository for ConfiguredRepo {
     type IterRestrict = IterRestrict;
 
     fn categories(&self) -> IndexSet<String> {
-        self.0.raw.categories()
+        self.raw.categories()
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
-        self.0.raw.packages(cat)
+        self.raw.packages(cat)
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
-        self.0.raw.versions(cat, pkg)
+        self.raw.versions(cat, pkg)
     }
 
     fn len(&self) -> usize {
-        self.0.raw.len()
+        self.raw.len()
     }
 
     fn iter_cpv(&self) -> Self::IterCpv {
-        self.0.raw.iter_cpv()
+        self.raw.iter_cpv()
     }
 
     fn iter(&self) -> Self::Iter {
@@ -111,19 +108,19 @@ impl PkgRepository for ConfiguredRepo {
 
 impl Contains<&Cpn> for ConfiguredRepo {
     fn contains(&self, cpn: &Cpn) -> bool {
-        self.0.raw.contains(cpn)
+        self.raw.contains(cpn)
     }
 }
 
 impl Contains<&Cpv> for ConfiguredRepo {
     fn contains(&self, cpv: &Cpv) -> bool {
-        self.0.raw.contains(cpv)
+        self.raw.contains(cpv)
     }
 }
 
 impl Contains<&Dep> for ConfiguredRepo {
     fn contains(&self, dep: &Dep) -> bool {
-        self.0.raw.contains(dep)
+        self.raw.contains(dep)
     }
 }
 
@@ -133,19 +130,19 @@ impl Repository for ConfiguredRepo {
     }
 
     fn id(&self) -> &str {
-        self.0.raw.id()
+        self.raw.id()
     }
 
     fn priority(&self) -> i32 {
-        self.0.raw.priority()
+        self.raw.priority()
     }
 
     fn path(&self) -> &Utf8Path {
-        self.0.raw.path()
+        self.raw.path()
     }
 
     fn sync(&self) -> crate::Result<()> {
-        self.0.raw.sync()
+        self.raw.sync()
     }
 }
 
@@ -155,7 +152,7 @@ impl IntoIterator for &ConfiguredRepo {
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            iter: super::Iter::new(&self.0.raw, None),
+            iter: super::Iter::new(&self.raw, None),
             repo: self.clone(),
         }
     }
@@ -172,7 +169,7 @@ impl Iterator for Iter {
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|pkg| Pkg::new(self.repo.clone(), self.repo.0.settings.clone(), pkg))
+            .map(|pkg| Pkg::new(self.repo.clone(), self.repo.settings.clone(), pkg))
     }
 }
 
