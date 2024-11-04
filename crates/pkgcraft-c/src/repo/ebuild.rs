@@ -92,7 +92,9 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
     len: *mut usize,
 ) -> *mut *mut Repo {
     let repo = try_repo_from_ptr!(r);
-    iter_to_array!(repo.masters(), len, |r: EbuildRepo| { Box::into_raw(Box::new(r.into())) })
+    iter_to_array!(repo.masters().iter().cloned(), len, |r: EbuildRepo| {
+        Box::into_raw(Box::new(r.into()))
+    })
 }
 
 /// Return an ebuild repo's inherited licenses.

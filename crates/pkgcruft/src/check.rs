@@ -235,7 +235,7 @@ impl Check {
             CheckContext::Gentoo => repo.name() == "gentoo",
             CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
             CheckContext::Optional => selected.contains(self),
-            CheckContext::Overlay => repo.masters().next().is_some(),
+            CheckContext::Overlay => !repo.masters().is_empty(),
         })
     }
 }

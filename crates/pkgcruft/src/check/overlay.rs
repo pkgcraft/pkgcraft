@@ -22,7 +22,7 @@ pub(super) static CHECK: super::Check = super::Check {
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     let mut eclasses = repo.eclasses().clone();
     for repo in repo.masters() {
-        for pkg in &repo {
+        for pkg in repo {
             for eclass in pkg.inherited() {
                 eclasses.swap_remove(eclass);
             }

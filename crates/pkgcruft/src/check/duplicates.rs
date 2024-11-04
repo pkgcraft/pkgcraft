@@ -19,21 +19,19 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &EbuildRepo) -> impl UnversionedPkgCheck {
-    Check {
-        repos: repo.masters().collect(),
-    }
+pub(super) fn create(repo: &'static EbuildRepo) -> impl UnversionedPkgCheck {
+    Check { repo }
 }
 
 struct Check {
-    repos: Vec<EbuildRepo>,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);
 
 impl UnversionedPkgCheck for Check {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
-        for repo in &self.repos {
+        for repo in self.repo.masters() {
             if repo.contains(cpn) {
                 PackageOverride
                     .package(cpn)

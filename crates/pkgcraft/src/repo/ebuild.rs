@@ -144,7 +144,7 @@ struct Repo {
     metadata: Metadata,
     config: RepoConfig,
     repo: Weak<Self>,
-    masters: OnceLock<Vec<Weak<Self>>>,
+    masters: OnceLock<Vec<EbuildRepo>>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -236,7 +236,7 @@ impl EbuildRepo {
         let (masters, nonexistent): (Vec<_>, Vec<_>) =
             self.metadata().config.masters.iter().partition_map(|id| {
                 match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
-                    Some(Self(r)) => Either::Left(Arc::downgrade(r)),
+                    Some(r) => Either::Left(r.clone()),
                     None => Either::Right(id.as_str()),
                 }
             });
@@ -281,19 +281,14 @@ impl EbuildRepo {
     }
 
     /// Return the repo inheritance sequence.
-    pub fn masters(&self) -> impl DoubleEndedIterator<Item = Self> + '_ {
-        self.0
-            .masters
-            .get()
-            .expect("finalize() uncalled")
-            .iter()
-            .map(|r| Self(r.upgrade().expect("unconfigured repo")))
+    pub fn masters(&self) -> &[Self] {
+        self.0.masters.get().expect("finalize() uncalled")
     }
 
     /// Return the complete repo inheritance sequence.
     pub fn trees(&self) -> impl DoubleEndedIterator<Item = Self> + '_ {
         let repo = self.0.repo.upgrade().expect("unconfigured repo");
-        self.masters().chain([Self(repo)])
+        self.masters().iter().cloned().chain([Self(repo)])
     }
 
     /// Return the ordered map of inherited eclasses.
@@ -1210,9 +1205,9 @@ mod tests {
         let repo = config
             .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
             .unwrap();
-        let repo = repo.as_ebuild().unwrap();
-        assert!(repo.masters().next().is_none());
-        assert_ordered_eq!(repo.trees().map(|r| r.id().to_string()), ["a"]);
+        let primary_repo = repo.as_ebuild().unwrap();
+        assert!(primary_repo.masters().is_empty());
+        assert_ordered_eq!(primary_repo.trees(), [primary_repo.clone()]);
 
         // nonexistent
         let repo = EbuildRepo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters"))
@@ -1225,9 +1220,9 @@ mod tests {
         let repo = config
             .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
             .unwrap();
-        let repo = repo.as_ebuild().unwrap();
-        assert_ordered_eq!(repo.masters().map(|r| r.id().to_string()), ["a"]);
-        assert_ordered_eq!(repo.trees().map(|r| r.id().to_string()), ["a", "b"]);
+        let secondary_repo = repo.as_ebuild().unwrap();
+        assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
+        assert_ordered_eq!(secondary_repo.trees(), [primary_repo.clone(), secondary_repo.clone()]);
     }
 
     #[test]
