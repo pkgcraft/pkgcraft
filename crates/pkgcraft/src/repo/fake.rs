@@ -20,7 +20,7 @@ type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
 #[derive(Debug)]
-struct Repo {
+struct InternalFakeRepo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
@@ -28,7 +28,7 @@ struct Repo {
 }
 
 #[derive(Debug, Clone)]
-pub struct FakeRepo(Arc<Repo>);
+pub struct FakeRepo(Arc<InternalFakeRepo>);
 
 impl PartialEq for FakeRepo {
     fn eq(&self, other: &Self) -> bool {
@@ -49,7 +49,7 @@ make_repo_traits!(FakeRepo);
 
 impl FakeRepo {
     pub fn new(id: &str, priority: i32) -> Self {
-        Self(Arc::new(Repo {
+        Self(Arc::new(InternalFakeRepo {
             id: id.to_string(),
             repo_config: RepoConfig { priority, ..Default::default() },
             pkgmap: Default::default(),
@@ -84,7 +84,7 @@ impl FakeRepo {
             priority,
             ..Default::default()
         };
-        let mut repo = Self(Arc::new(Repo {
+        let mut repo = Self(Arc::new(InternalFakeRepo {
             id: id.to_string(),
             repo_config,
             pkgmap: Default::default(),

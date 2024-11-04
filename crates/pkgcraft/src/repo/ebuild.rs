@@ -24,7 +24,7 @@ use crate::traits::Intersects;
 use crate::xml::parse_xml_with_dtd;
 use crate::Error;
 
-use super::{make_repo_traits, Contains, PkgRepository, Repo as BaseRepo, RepoFormat, Repository};
+use super::{make_repo_traits, Contains, PkgRepository, Repo, RepoFormat, Repository};
 
 pub mod cache;
 pub mod configured;
@@ -140,7 +140,7 @@ where
 }
 
 #[derive(Debug)]
-struct Repo {
+struct InternalEbuildRepo {
     metadata: Metadata,
     config: RepoConfig,
     masters: OnceLock<Vec<EbuildRepo>>,
@@ -156,7 +156,7 @@ struct Repo {
 }
 
 #[derive(Clone)]
-pub struct EbuildRepo(Arc<Repo>);
+pub struct EbuildRepo(Arc<InternalEbuildRepo>);
 
 impl fmt::Debug for EbuildRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -205,7 +205,7 @@ impl EbuildRepo {
             ..Default::default()
         };
 
-        Ok(Self(Arc::new(Repo {
+        Ok(Self(Arc::new(InternalEbuildRepo {
             metadata,
             config,
             masters: OnceLock::new(),
@@ -222,10 +222,7 @@ impl EbuildRepo {
     }
 
     /// Finalize the repo, collapsing repo dependencies into references.
-    pub(super) fn finalize(
-        &self,
-        existing_repos: &IndexMap<String, BaseRepo>,
-    ) -> crate::Result<()> {
+    pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {
         // skip finalized, stand-alone repos
         if self.0.masters.get().is_some() {
             return Ok(());
