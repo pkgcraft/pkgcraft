@@ -101,7 +101,7 @@ pub(crate) struct BuildData<'a> {
     incrementals: HashMap<Key, Deque<String>>,
 }
 
-impl<'a> BuildData<'a> {
+impl BuildData<'_> {
     fn new() -> Self {
         use Variable::*;
         let env = [(DESTTREE, "/usr"), (INSDESTTREE, ""), (DOCDESTTREE, ""), (EXEDESTTREE, "")]
@@ -124,7 +124,7 @@ impl<'a> BuildData<'a> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::raw::Pkg) {
+    fn from_raw_pkg(pkg: &crate::pkg::ebuild::raw::Pkg) {
         // TODO: remove this hack once BuildData is reworked
         let p: &crate::pkg::ebuild::raw::Pkg = unsafe { mem::transmute(pkg) };
         let data = BuildData {
@@ -134,7 +134,7 @@ impl<'a> BuildData<'a> {
         update_build(data);
     }
 
-    fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg) {
+    fn from_pkg(pkg: &crate::pkg::ebuild::Pkg) {
         // TODO: remove this hack once BuildData is reworked
         let p: &crate::pkg::ebuild::Pkg = unsafe { mem::transmute(pkg) };
         let data = BuildData {
@@ -156,7 +156,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current CPV if it exists.
-    fn cpv(&'a self) -> scallop::Result<&'a Cpv> {
+    fn cpv(&self) -> scallop::Result<&Cpv> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.cpv()),
             BuildState::Build(pkg) => Ok(pkg.cpv()),
@@ -184,7 +184,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current ebuild package being built if it exists.
-    fn ebuild_pkg(&'a self) -> scallop::Result<Box<dyn EbuildPackage + 'a>> {
+    fn ebuild_pkg(&self) -> scallop::Result<Box<dyn EbuildPackage + '_>> {
         match &self.state {
             BuildState::Build(pkg) => Ok(Box::new(pkg)),
             _ => Err(Error::Base(format!("ebuild pkg invalid for scope: {}", self.scope))),
@@ -192,7 +192,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current package being manipulated if it exists.
-    fn pkg(&'a self) -> scallop::Result<Box<dyn Package + 'a>> {
+    fn pkg(&self) -> scallop::Result<Box<dyn Package + '_>> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(Box::new(pkg)),
             BuildState::Build(pkg) => Ok(Box::new(pkg)),
