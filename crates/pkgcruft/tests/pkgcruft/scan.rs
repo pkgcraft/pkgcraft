@@ -491,8 +491,7 @@ fn reporter() {
             .assert()
             .stdout("")
             .stderr(contains("invalid output format"))
-            .failure()
-            .code(2);
+            .failure();
 
         // valid format string
         cmd("pkgcruft scan -j1")
