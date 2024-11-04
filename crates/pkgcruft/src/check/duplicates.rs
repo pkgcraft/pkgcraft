@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use pkgcraft::dep::Cpn;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::traits::Contains;
 
@@ -21,14 +19,14 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl UnversionedPkgCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl UnversionedPkgCheck {
     Check {
         repos: repo.masters().collect(),
     }
 }
 
 struct Check {
-    repos: Vec<Arc<Repo>>,
+    repos: Vec<EbuildRepo>,
 }
 
 super::register!(Check);

@@ -1,4 +1,5 @@
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -18,49 +19,52 @@ use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
-#[derive(Debug, Default)]
-pub struct Repo {
+#[derive(Debug)]
+struct Repo {
     id: String,
     repo_config: RepoConfig,
     pkgmap: PkgMap,
     cpvs: OrderedSet<Cpv>,
 }
 
-impl PartialEq for Repo {
+#[derive(Debug, Clone)]
+pub struct FakeRepo(Arc<Repo>);
+
+impl PartialEq for FakeRepo {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.cpvs == other.cpvs
+        self.0.id == other.0.id && self.0.cpvs == other.0.cpvs
     }
 }
 
-impl Eq for Repo {}
+impl Eq for FakeRepo {}
 
-impl Hash for Repo {
+impl Hash for FakeRepo {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-        self.cpvs.hash(state);
+        self.0.id.hash(state);
+        self.0.cpvs.hash(state);
     }
 }
 
-make_repo_traits!(Repo);
+make_repo_traits!(FakeRepo);
 
-impl Repo {
+impl FakeRepo {
     pub fn new(id: &str, priority: i32) -> Self {
-        let repo_config = RepoConfig { priority, ..Default::default() };
-        Self {
+        Self(Arc::new(Repo {
             id: id.to_string(),
-            repo_config,
-            ..Default::default()
-        }
+            repo_config: RepoConfig { priority, ..Default::default() },
+            pkgmap: Default::default(),
+            cpvs: Default::default(),
+        }))
     }
 
-    pub fn pkgs<I>(mut self, iter: I) -> Self
+    pub fn pkgs<I>(mut self, iter: I) -> crate::Result<Self>
     where
         I: IntoIterator,
         I::Item: TryInto<Cpv>,
         <I::Item as TryInto<Cpv>>::Error: fmt::Display,
     {
-        self.extend(iter);
-        self
+        self.extend(iter)?;
+        Ok(self)
     }
 
     pub fn from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
@@ -80,42 +84,44 @@ impl Repo {
             priority,
             ..Default::default()
         };
-        let mut repo = Self {
+        let mut repo = Self(Arc::new(Repo {
             id: id.to_string(),
             repo_config,
-            ..Default::default()
-        };
-        repo.extend(data.lines());
+            pkgmap: Default::default(),
+            cpvs: Default::default(),
+        }));
+        repo.extend(data.lines())?;
         Ok(repo)
     }
 
     pub(super) fn repo_config(&self) -> &RepoConfig {
-        &self.repo_config
+        &self.0.repo_config
     }
-}
 
-impl<T> Extend<T> for Repo
-where
-    T: TryInto<Cpv>,
-    <T as TryInto<Cpv>>::Error: fmt::Display,
-{
-    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        let orig_len = self.cpvs.len();
+    pub fn extend<I, T>(&mut self, iter: I) -> crate::Result<()>
+    where
+        I: IntoIterator<Item = T>,
+        T: TryInto<Cpv>,
+        <T as TryInto<Cpv>>::Error: fmt::Display,
+    {
+        let repo = Arc::get_mut(&mut self.0)
+            .ok_or_else(|| Error::InvalidValue("repo already in use".to_string()))?;
+        let orig_len = repo.cpvs.len();
         for s in iter {
             match s.try_into() {
                 Ok(cpv) => {
-                    self.cpvs.insert(cpv);
+                    repo.cpvs.insert(cpv);
                 }
                 Err(e) => error!("{e}"),
             }
         }
 
-        if orig_len != self.cpvs.len() {
-            self.cpvs.sort();
+        if orig_len != repo.cpvs.len() {
+            repo.cpvs.sort();
 
             // recreate entire PkgMap structure to preserve correct ordering
             let mut pkgmap = PkgMap::new();
-            for cpv in &self.cpvs {
+            for cpv in &repo.cpvs {
                 pkgmap
                     .entry(cpv.category().into())
                     .or_default()
@@ -123,37 +129,41 @@ where
                     .or_default()
                     .insert(cpv.version().clone());
             }
-            self.pkgmap = pkgmap;
+            repo.pkgmap = pkgmap;
         }
+
+        Ok(())
     }
 }
 
-impl fmt::Display for Repo {
+impl fmt::Display for FakeRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.id)
+        write!(f, "{}", self.0.id)
     }
 }
 
-impl PkgRepository for Repo {
-    type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = IterCpv<'a> where Self: 'a;
-    type Iter<'a> = Iter<'a> where Self: 'a;
-    type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
+impl PkgRepository for FakeRepo {
+    type Pkg = Pkg;
+    type IterCpv = IterCpv;
+    type Iter = Iter;
+    type IterRestrict = IterRestrict;
 
     // TODO: cache categories/packages/versions values in OnceCell fields?
     fn categories(&self) -> IndexSet<String> {
-        self.pkgmap.keys().map(|k| k.to_string()).collect()
+        self.0.pkgmap.keys().map(|k| k.to_string()).collect()
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
-        self.pkgmap
+        self.0
+            .pkgmap
             .get(cat)
             .map(|pkgs| pkgs.keys().map(|k| k.to_string()).collect())
             .unwrap_or_default()
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
-        self.pkgmap
+        self.0
+            .pkgmap
             .get(cat)
             .and_then(|pkgs| pkgs.get(pkg))
             .cloned()
@@ -161,18 +171,20 @@ impl PkgRepository for Repo {
     }
 
     fn len(&self) -> usize {
-        self.cpvs.len()
+        self.0.cpvs.len()
     }
 
-    fn iter_cpv(&self) -> Self::IterCpv<'_> {
-        IterCpv { iter: self.cpvs.iter() }
+    fn iter_cpv(&self) -> Self::IterCpv {
+        IterCpv {
+            iter: self.0.cpvs.clone().into_iter(),
+        }
     }
 
-    fn iter(&self) -> Self::Iter<'_> {
+    fn iter(&self) -> Self::Iter {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         IterRestrict {
             iter: self.into_iter(),
             restrict: val.into(),
@@ -180,93 +192,93 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpn> for Repo {
+impl Contains<&Cpn> for FakeRepo {
     fn contains(&self, cpn: &Cpn) -> bool {
         self.iter_restrict(cpn).next().is_some()
     }
 }
 
-impl Contains<&Cpv> for Repo {
+impl Contains<&Cpv> for FakeRepo {
     fn contains(&self, cpv: &Cpv) -> bool {
-        self.cpvs.contains(cpv)
+        self.0.cpvs.contains(cpv)
     }
 }
 
-impl Contains<&Dep> for Repo {
+impl Contains<&Dep> for FakeRepo {
     fn contains(&self, dep: &Dep) -> bool {
         self.iter_restrict(dep).next().is_some()
     }
 }
 
-impl Repository for Repo {
+impl Repository for FakeRepo {
     fn format(&self) -> RepoFormat {
-        self.repo_config.format
+        self.0.repo_config.format
     }
 
     fn id(&self) -> &str {
-        &self.id
+        &self.0.id
     }
 
     fn priority(&self) -> i32 {
-        self.repo_config.priority
+        self.0.repo_config.priority
     }
 
     fn path(&self) -> &Utf8Path {
-        &self.repo_config.location
+        &self.0.repo_config.location
     }
 
     fn sync(&self) -> crate::Result<()> {
-        self.repo_config.sync()
+        self.0.repo_config.sync()
     }
 }
 
-impl<'a> IntoIterator for &'a Repo {
-    type Item = Pkg<'a>;
-    type IntoIter = Iter<'a>;
+impl IntoIterator for &FakeRepo {
+    type Item = Pkg;
+    type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            iter: self.cpvs.iter(),
-            repo: self,
+            iter: self.0.cpvs.clone().into_iter(),
+            repo: self.clone(),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct IterCpv<'a> {
-    iter: indexmap::set::Iter<'a, Cpv>,
+pub struct IterCpv {
+    iter: indexmap::set::IntoIter<Cpv>,
 }
 
-impl<'a> Iterator for IterCpv<'a> {
+impl Iterator for IterCpv {
     type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().cloned()
+        self.iter.next()
     }
 }
 
 #[derive(Debug)]
-pub struct Iter<'a> {
-    iter: indexmap::set::Iter<'a, Cpv>,
-    repo: &'a Repo,
+pub struct Iter {
+    iter: indexmap::set::IntoIter<Cpv>,
+    repo: FakeRepo,
 }
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = Pkg<'a>;
+impl Iterator for Iter {
+    type Item = Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|cpv| Pkg::new(cpv, self.repo))
+        self.iter.next().map(|cpv| Pkg::new(cpv, self.repo.clone()))
     }
 }
 
 #[derive(Debug)]
-pub struct IterRestrict<'a> {
-    iter: Iter<'a>,
+pub struct IterRestrict {
+    iter: Iter,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for IterRestrict<'a> {
-    type Item = Pkg<'a>;
+impl Iterator for IterRestrict {
+    type Item = Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
@@ -287,28 +299,30 @@ mod tests {
 
     #[test]
     fn id() {
-        let repo = Repo::new("fake", 0);
+        let repo = FakeRepo::new("fake", 0);
         assert_eq!(repo.id(), "fake");
     }
 
     #[test]
     fn categories() {
-        let mut repo = Repo::new("fake", 0);
+        let mut repo = FakeRepo::new("fake", 0);
         // empty repo
         assert!(repo.categories().is_empty());
         // existing pkgs
-        repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
+        repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"])
+            .unwrap();
         assert_ordered_eq!(repo.categories(), ["cat1", "cat2"])
     }
 
     #[test]
     fn packages() {
-        let mut repo: Repo;
+        let mut repo: FakeRepo;
         // empty repo
-        repo = Repo::new("fake", 0);
+        repo = FakeRepo::new("fake", 0);
         assert!(repo.packages("cat").is_empty());
         // existing pkgs
-        repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
+        repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"])
+            .unwrap();
         assert!(repo.packages("cat").is_empty());
         assert_ordered_eq!(repo.packages("cat1"), ["pkg-a"]);
         assert_ordered_eq!(repo.packages("cat2"), ["pkg-b"]);
@@ -317,12 +331,13 @@ mod tests {
     #[test]
     fn versions() {
         let ver = |s: &str| Version::try_new(s).unwrap();
-        let mut repo: Repo;
+        let mut repo: FakeRepo;
         // empty repo
-        repo = Repo::new("fake", 0);
+        repo = FakeRepo::new("fake", 0);
         assert!(repo.versions("cat", "pkg").is_empty());
         // existing pkgs
-        repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"]);
+        repo.extend(["cat1/pkg-a-1", "cat1/pkg-a-2", "cat2/pkg-b-3"])
+            .unwrap();
         assert!(repo.versions("cat", "pkg").is_empty());
         assert_ordered_eq!(repo.versions("cat1", "pkg-a"), [ver("1"), ver("2")]);
         assert_ordered_eq!(repo.versions("cat2", "pkg-b"), [ver("3")]);
@@ -330,26 +345,28 @@ mod tests {
 
     #[test]
     fn len() {
-        let mut repo = Repo::new("fake", 0);
+        let mut repo = FakeRepo::new("fake", 0);
         assert_eq!(repo.len(), 0);
-        repo.extend(["cat/pkg-0"]);
+        repo.extend(["cat/pkg-0"]).unwrap();
         assert_eq!(repo.len(), 1);
-        repo.extend(["cat/pkg-0", "cat1/pkg1-1", "cat2/pkg2-2"]);
+        repo.extend(["cat/pkg-0", "cat1/pkg1-1", "cat2/pkg2-2"])
+            .unwrap();
         assert_eq!(repo.len(), 3);
     }
 
     #[traced_test]
     #[test]
     fn extend() {
-        let mut repo = Repo::new("fake", 0).pkgs(["cat/pkg-2"]);
+        let mut repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-2"]).unwrap();
         assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-2"]);
 
         // add valid cpv
-        repo.extend(["cat/pkg-0"]);
+        repo.extend(["cat/pkg-0"]).unwrap();
         assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-0", "cat/pkg-2"]);
 
         // add multiple cpvs, invalid cpvs logged and ignored
-        repo.extend(["cat/pkg-3", "cat/pkg", "cat/pkg-1", "a/b-0"]);
+        repo.extend(["cat/pkg-3", "cat/pkg", "cat/pkg-1", "a/b-0"])
+            .unwrap();
         assert_ordered_eq!(
             repo.iter().map(|x| x.cpv().to_string()),
             ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]
@@ -357,7 +374,7 @@ mod tests {
         assert_logs_re!("invalid cpv: cat/pkg");
 
         // re-add existing cpvs
-        repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]);
+        repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]).unwrap();
         assert_ordered_eq!(
             repo.iter().map(|x| x.cpv().to_string()),
             ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]
@@ -366,7 +383,7 @@ mod tests {
 
     #[test]
     fn contains() {
-        let repo = Repo::new("fake", 0).pkgs(["cat/pkg-0"]);
+        let repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-0"]).unwrap();
 
         // path is always false due to fake repo
         assert!(!repo.contains("cat/pkg"));
@@ -386,7 +403,9 @@ mod tests {
 
     #[test]
     fn iter() {
-        let repo = Repo::new("fake", 0).pkgs(["cat/pkg-0", "acat/bpkg-1"]);
+        let repo = FakeRepo::new("fake", 0)
+            .pkgs(["cat/pkg-0", "acat/bpkg-1"])
+            .unwrap();
         let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
         assert_eq!(cpvs, ["acat/bpkg-1", "cat/pkg-0"]);
     }

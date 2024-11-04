@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -13,12 +14,15 @@ use crate::Error;
 use super::cache::{Cache, MetadataCache};
 
 /// An eclass in an ebuild repository.
-#[derive(Debug, Clone)]
-pub struct Eclass {
+#[derive(Debug)]
+struct InternalEclass {
     name: String,
     path: Utf8PathBuf,
     chksum: String,
 }
+
+#[derive(Debug, Clone)]
+pub struct Eclass(Arc<InternalEclass>);
 
 impl Eclass {
     /// Create a new eclass.
@@ -27,11 +31,11 @@ impl Eclass {
             let data = fs::read(path)
                 .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
 
-            Ok(Self {
+            Ok(Self(Arc::new(InternalEclass {
                 name: parse::eclass_name(name)?.to_string(),
                 path: path.to_path_buf(),
                 chksum: cache.chksum(data),
-            })
+            })))
         } else {
             Err(Error::InvalidValue(format!("invalid eclass: {path}")))
         }
@@ -39,23 +43,23 @@ impl Eclass {
 
     /// Return the name of the eclass.
     pub fn name(&self) -> &str {
-        &self.name
+        &self.0.name
     }
 
     /// Return the full path of the eclass.
     pub fn path(&self) -> &Utf8Path {
-        &self.path
+        &self.0.path
     }
 
     /// Return the MD5 checksum of the eclass.
     pub(crate) fn chksum(&self) -> &str {
-        &self.chksum
+        &self.0.chksum
     }
 }
 
 impl PartialEq for Eclass {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.0.name == other.0.name
     }
 }
 
@@ -63,25 +67,25 @@ impl Eq for Eclass {}
 
 impl Hash for Eclass {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
+        self.0.name.hash(state);
     }
 }
 
 impl Borrow<str> for Eclass {
     fn borrow(&self) -> &str {
-        &self.name
+        &self.0.name
     }
 }
 
 impl Borrow<str> for &Eclass {
     fn borrow(&self) -> &str {
-        &self.name
+        &self.0.name
     }
 }
 
 impl Ord for Eclass {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.name.cmp(&other.name)
+        self.0.name.cmp(&other.0.name)
     }
 }
 
@@ -93,13 +97,13 @@ impl PartialOrd for Eclass {
 
 impl fmt::Display for Eclass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.0.name)
     }
 }
 
 impl SourceBash for Eclass {
     fn source_bash(&self) -> scallop::Result<ExecStatus> {
-        source::file(&self.path)
+        source::file(&self.0.path)
     }
 }
 
@@ -113,7 +117,7 @@ mod tests {
     #[test]
     fn try_new() {
         let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
-        let cache = repo.metadata.cache();
+        let cache = repo.metadata().cache();
 
         // nonexistent path
         assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass"), cache).is_err());

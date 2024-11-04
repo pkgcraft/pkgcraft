@@ -6,7 +6,7 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::Arch;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::KeywordsDropped;
 use crate::scanner::ReportFilter;
@@ -24,7 +24,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
     Check { arches: repo.arches() }
 }
 

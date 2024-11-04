@@ -5,7 +5,7 @@ use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
 
@@ -41,7 +41,7 @@ enum Eclass {
 
 impl Eclass {
     /// USE_EXPAND targets pulled from the given repo.
-    fn targets<'a>(&self, repo: &'a Repo) -> IndexSet<&'a str> {
+    fn targets<'a>(&self, repo: &'a EbuildRepo) -> IndexSet<&'a str> {
         match self {
             Self::PythonR1 => use_expand(repo, "python_targets", "python"),
             Self::PythonSingleR1 => use_expand(repo, "python_single_target", "python"),
@@ -73,12 +73,12 @@ fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
     prefixes.iter().filter_map(|x| s.strip_prefix(x)).next()
 }
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check { repo }
 }
 
 struct Check {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);

@@ -4,7 +4,7 @@ use crate::dep::{Cpv, Dep};
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::macros::bool_not_equal;
 use crate::pkg;
-use crate::repo::{fake::Repo, Repository};
+use crate::repo::{fake::FakeRepo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::traits::Intersects;
@@ -12,26 +12,26 @@ use crate::traits::Intersects;
 use super::{make_pkg_traits, Package, RepoPackage};
 
 #[derive(Clone)]
-pub struct Pkg<'a> {
+pub struct Pkg {
     cpv: Cpv,
-    repo: &'a Repo,
+    repo: FakeRepo,
 }
 
-make_pkg_traits!(Pkg<'_>);
+make_pkg_traits!(Pkg);
 
-impl fmt::Debug for Pkg<'_> {
+impl fmt::Debug for Pkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Pkg {{ {self} }}")
     }
 }
 
-impl<'a> Pkg<'a> {
-    pub(crate) fn new(cpv: &'a Cpv, repo: &'a Repo) -> Self {
-        Self { cpv: cpv.clone(), repo }
+impl Pkg {
+    pub(crate) fn new(cpv: Cpv, repo: FakeRepo) -> Self {
+        Self { cpv, repo }
     }
 }
 
-impl<'a> Package for Pkg<'a> {
+impl Package for Pkg {
     fn eapi(&self) -> &'static Eapi {
         &EAPI_LATEST_OFFICIAL
     }
@@ -41,15 +41,15 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-impl<'a> RepoPackage for Pkg<'a> {
-    type Repo = &'a Repo;
+impl RepoPackage for Pkg {
+    type Repo = FakeRepo;
 
-    fn repo(&self) -> Self::Repo {
-        self.repo
+    fn repo(&self) -> &Self::Repo {
+        &self.repo
     }
 }
 
-impl Restriction<&Pkg<'_>> for BaseRestrict {
+impl Restriction<&Pkg> for BaseRestrict {
     fn matches(&self, pkg: &Pkg) -> bool {
         use BaseRestrict::*;
         crate::restrict::restrict_match! {self, pkg,
@@ -59,8 +59,8 @@ impl Restriction<&Pkg<'_>> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for DepRestrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl Restriction<&Pkg> for DepRestrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
         use DepRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
@@ -69,8 +69,8 @@ impl<'a> Restriction<&'a Pkg<'a>> for DepRestrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl Restriction<&Pkg> for pkg::Restrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
         use pkg::Restrict::*;
         match self {
             Eapi(r) => r.matches(pkg.eapi()),
@@ -80,7 +80,7 @@ impl<'a> Restriction<&'a Pkg<'a>> for pkg::Restrict {
     }
 }
 
-impl Intersects<Dep> for Pkg<'_> {
+impl Intersects<Dep> for Pkg {
     fn intersects(&self, dep: &Dep) -> bool {
         bool_not_equal!(self.cpn(), dep.cpn());
 
@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn display_and_debug() {
-        let repo = Repo::new("test", 0).pkgs(["cat/pkg-1"]);
+        let repo = FakeRepo::new("test", 0).pkgs(["cat/pkg-1"]).unwrap();
         let pkg = repo.iter().next().unwrap();
         let s = pkg.to_string();
         assert!(format!("{pkg:?}").contains(&s));
@@ -125,22 +125,22 @@ mod tests {
     #[test]
     fn cmp() {
         // unmatching pkgs sorted by dep attributes
-        let r1 = Repo::new("b", 0).pkgs(["cat/pkg-1"]);
-        let r2 = Repo::new("a", 0).pkgs(["cat/pkg-0"]);
+        let r1 = FakeRepo::new("b", 0).pkgs(["cat/pkg-1"]).unwrap();
+        let r2 = FakeRepo::new("a", 0).pkgs(["cat/pkg-0"]).unwrap();
         let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
         // matching pkgs sorted by repo priority
-        let r1 = Repo::new("a", -1).pkgs(["cat/pkg-0"]);
-        let r2 = Repo::new("b", 0).pkgs(["cat/pkg-0"]);
+        let r1 = FakeRepo::new("a", -1).pkgs(["cat/pkg-0"]).unwrap();
+        let r2 = FakeRepo::new("b", 0).pkgs(["cat/pkg-0"]).unwrap();
         let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
         // matching pkgs sorted by repo id since repos have matching priorities
-        let r1 = Repo::new("b", 0).pkgs(["cat/pkg-0"]);
-        let r2 = Repo::new("a", 0).pkgs(["cat/pkg-0"]);
+        let r1 = FakeRepo::new("b", 0).pkgs(["cat/pkg-0"]).unwrap();
+        let r2 = FakeRepo::new("a", 0).pkgs(["cat/pkg-0"]).unwrap();
         let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn intersects_dep() {
-        let repo = Repo::new("test", 0).pkgs(["cat/pkg-1"]);
+        let repo = FakeRepo::new("test", 0).pkgs(["cat/pkg-1"]).unwrap();
         let pkg = repo.iter().next().unwrap();
 
         for (s, expected) in [
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn restrict() {
-        let repo = Repo::new("test", 0).pkgs(["cat/pkg-1"]);
+        let repo = FakeRepo::new("test", 0).pkgs(["cat/pkg-1"]).unwrap();
         let pkg = repo.iter().next().unwrap();
 
         // eapi

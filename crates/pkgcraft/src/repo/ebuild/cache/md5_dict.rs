@@ -15,7 +15,7 @@ use crate::files::{atomic_write_file, is_file};
 use crate::pkg::ebuild::metadata::{Key, Metadata, MetadataRaw};
 use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, raw::Pkg};
 use crate::pkg::{Package, RepoPackage};
-use crate::repo::ebuild::{Eclass, Repo};
+use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::shell::phase::Phase;
 use crate::traits::Contains;
 use crate::utils::digest;
@@ -64,17 +64,18 @@ impl fmt::Display for Md5DictKey {
 pub struct Md5DictEntry(IndexMap<Md5DictKey, String>);
 
 /// Deserialize a cache entry value to its Metadata field value.
-fn deserialize<'a>(
-    meta: &mut Metadata<'a>,
+fn deserialize(
+    meta: &mut Metadata,
     eapi: &'static Eapi,
-    repo: &'a Repo,
+    repo: &EbuildRepo,
     key: &Key,
     val: &str,
 ) -> crate::Result<()> {
     // return the Eclass for a given identifier if it exists
-    let eclass = |name: &str| -> crate::Result<&Eclass> {
+    let eclass = |name: &str| -> crate::Result<Eclass> {
         repo.eclasses()
             .get(name)
+            .cloned()
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {name}")))
     };
 
@@ -151,7 +152,7 @@ fn deserialize<'a>(
 }
 
 impl CacheEntry for Md5DictEntry {
-    fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
+    fn to_metadata(&self, pkg: &Pkg) -> crate::Result<Metadata> {
         let mut meta = Metadata::default();
 
         for key in pkg.eapi().mandatory_keys() {
@@ -285,7 +286,7 @@ fn serialize(meta: &Metadata, key: &Key) -> Option<(Md5DictKey, String)> {
     }
 }
 
-impl From<&Metadata<'_>> for Md5DictEntry {
+impl From<&Metadata> for Md5DictEntry {
     fn from(meta: &Metadata) -> Self {
         meta.eapi
             .metadata_keys()
@@ -357,7 +358,7 @@ impl Cache for Md5Dict {
         atomic_write_file(&path, &pkg.cpv().pf(), entry.to_bytes())
     }
 
-    fn remove(&self, _repo: &Repo) -> crate::Result<()> {
+    fn remove(&self, _repo: &EbuildRepo) -> crate::Result<()> {
         let path = &self.path;
         fs::remove_dir_all(path)
             .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))

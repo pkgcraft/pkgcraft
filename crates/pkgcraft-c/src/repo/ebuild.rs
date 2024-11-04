@@ -1,10 +1,9 @@
 use std::ffi::c_char;
-use std::sync::Arc;
 
 use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::repo::ebuild::Repo as EbuildRepo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repo;
 
 use crate::macros::*;
@@ -16,8 +15,8 @@ macro_rules! try_repo_from_ptr {
     ( $var:expr ) => {{
         let repo = $crate::macros::try_ref_from_ptr!($var);
         match repo {
-            Repo::Ebuild(r) => r.as_ref(),
-            Repo::Configured(r) => r.as_ref().into(),
+            Repo::Ebuild(r) => r,
+            Repo::Configured(r) => r.into(),
             _ => panic!("invalid repo type: {repo:?}"),
         }
     }};
@@ -44,7 +43,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_arches(
     len: *mut usize,
 ) -> *mut *mut c_char {
     let repo = try_repo_from_ptr!(r);
-    iter_to_array!(repo.metadata.arches().iter(), len, str_to_raw)
+    iter_to_array!(repo.metadata().arches().iter(), len, str_to_raw)
 }
 
 /// Return an ebuild repo's metadata categories.
@@ -57,7 +56,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_categories(
     len: *mut usize,
 ) -> *mut *mut c_char {
     let repo = try_repo_from_ptr!(r);
-    iter_to_array!(repo.metadata.categories().iter(), len, str_to_raw)
+    iter_to_array!(repo.metadata().categories().iter(), len, str_to_raw)
 }
 
 /// Return an ebuild repo's metadata licenses.
@@ -70,7 +69,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_licenses(
     len: *mut usize,
 ) -> *mut *mut c_char {
     let repo = try_repo_from_ptr!(r);
-    iter_to_array!(repo.metadata.licenses().iter(), len, str_to_raw)
+    iter_to_array!(repo.metadata().licenses().iter(), len, str_to_raw)
 }
 
 /// Return an ebuild repo's EAPI.
@@ -93,9 +92,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
     len: *mut usize,
 ) -> *mut *mut Repo {
     let repo = try_repo_from_ptr!(r);
-    iter_to_array!(repo.masters(), len, |r: Arc<EbuildRepo>| {
-        Box::into_raw(Box::new(Repo::Ebuild(r)))
-    })
+    iter_to_array!(repo.masters(), len, |r: EbuildRepo| { Box::into_raw(Box::new(r.into())) })
 }
 
 /// Return an ebuild repo's inherited licenses.
@@ -126,7 +123,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
 ) -> bool {
     ffi_catch_panic! {
         let repo = try_repo_from_ptr!(r);
-        let format = repo.metadata.cache().format();
+        let format = repo.metadata().cache().format();
 
         let cache = if let Some(path) = try_opt_str_from_ptr!(path) {
             format.from_path(path)

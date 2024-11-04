@@ -1,6 +1,6 @@
 use pkgcraft::pkg::ebuild::raw::Pkg;
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::bash::Tree;
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated};
@@ -19,12 +19,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildRawPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildRawPkgCheck {
     Check { repo }
 }
 
 struct Check {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);
@@ -32,9 +32,9 @@ super::register!(Check);
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
         let eapi = pkg.eapi().as_str();
-        if self.repo.metadata.config.eapis_deprecated.contains(eapi) {
+        if self.repo.metadata().config.eapis_deprecated.contains(eapi) {
             EapiDeprecated.version(pkg).message(eapi).report(filter);
-        } else if self.repo.metadata.config.eapis_banned.contains(eapi) {
+        } else if self.repo.metadata().config.eapis_banned.contains(eapi) {
             EapiBanned.version(pkg).message(eapi).report(filter);
         }
     }

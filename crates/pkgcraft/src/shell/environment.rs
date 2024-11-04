@@ -158,8 +158,8 @@ impl BuildVariable {
     }
 
     /// Determine if the variable is exported to a given scope.
-    pub(crate) fn exported<S: Borrow<Scope>>(&self, scope: S) -> bool {
-        self.scopes.contains(scope.borrow())
+    pub(crate) fn exported(&self, scope: &Scope) -> bool {
+        self.scopes.contains(scope)
     }
 
     /// Variable value does not vary between phases.
@@ -232,7 +232,7 @@ mod tests {
                             let internal = if eapi
                                 .env()
                                 .get(&var)
-                                .is_some_and(|v| v.exported(scope) || v.exported(Global))
+                                .is_some_and(|v| v.exported(scope) || v.exported(&Global))
                             {
                                 "yes"
                             } else {
@@ -275,7 +275,7 @@ mod tests {
 
                             BuildData::from_pkg(&pkg);
                             pkg.build().unwrap();
-                            if !eapi.env().get(&var).is_some_and(|v| v.exported(Global)) {
+                            if !eapi.env().get(&var).is_some_and(|v| v.exported(&Global)) {
                                 assert!(
                                     variables::optional(var).is_none(),
                                     "EAPI {eapi}: ${var} is leaking into global scope"

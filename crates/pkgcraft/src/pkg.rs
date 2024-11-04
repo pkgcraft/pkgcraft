@@ -16,15 +16,15 @@ pub mod fake;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Clone)]
-pub enum Pkg<'a> {
-    Configured(ebuild::configured::Pkg<'a>, &'a Repo),
-    Ebuild(ebuild::Pkg<'a>, &'a Repo),
-    Fake(fake::Pkg<'a>, &'a Repo),
+pub enum Pkg {
+    Configured(ebuild::configured::Pkg, Repo),
+    Ebuild(ebuild::Pkg, Repo),
+    Fake(fake::Pkg, Repo),
 }
 
-make_pkg_traits!(Pkg<'_>);
+make_pkg_traits!(Pkg);
 
-impl fmt::Debug for Pkg<'_> {
+impl fmt::Debug for Pkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Configured(pkg, _) => write!(f, "Configured({pkg:?})"),
@@ -93,7 +93,7 @@ pub trait RepoPackage: Package + Ord {
     type Repo: Repository;
 
     /// Return a package's repo.
-    fn repo(&self) -> Self::Repo;
+    fn repo(&self) -> &Self::Repo;
 }
 
 pub(crate) trait Build: Package {
@@ -190,7 +190,7 @@ macro_rules! make_pkg_traits {
 }
 use make_pkg_traits;
 
-impl<'a> Package for Pkg<'a> {
+impl Package for Pkg {
     fn eapi(&self) -> &'static Eapi {
         match self {
             Self::Configured(pkg, _) => pkg.eapi(),
@@ -208,10 +208,10 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-impl<'a> RepoPackage for Pkg<'a> {
-    type Repo = &'a Repo;
+impl RepoPackage for Pkg {
+    type Repo = Repo;
 
-    fn repo(&self) -> Self::Repo {
+    fn repo(&self) -> &Self::Repo {
         match self {
             Self::Configured(_, repo) => repo,
             Self::Ebuild(_, repo) => repo,
@@ -220,7 +220,7 @@ impl<'a> RepoPackage for Pkg<'a> {
     }
 }
 
-impl Intersects<Dep> for Pkg<'_> {
+impl Intersects<Dep> for Pkg {
     fn intersects(&self, dep: &Dep) -> bool {
         match self {
             Self::Configured(pkg, _) => pkg.intersects(dep),
@@ -248,7 +248,7 @@ where
 {
     type Repo = T::Repo;
 
-    fn repo(&self) -> Self::Repo {
+    fn repo(&self) -> &Self::Repo {
         (*self).repo()
     }
 }
@@ -303,8 +303,8 @@ impl From<Restrict> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl Restriction<&Pkg> for Restrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
         use Restrict::*;
         match self {
             Eapi(r) => r.matches(pkg.eapi()),
@@ -317,8 +317,8 @@ impl<'a> Restriction<&'a Pkg<'a>> for Restrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl Restriction<&Pkg> for BaseRestrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
         use BaseRestrict::*;
         crate::restrict::restrict_match! {self, pkg,
             Dep(r) => r.matches(pkg),
@@ -327,8 +327,8 @@ impl<'a> Restriction<&'a Pkg<'a>> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a Pkg<'a>> for DepRestrict {
-    fn matches(&self, pkg: &'a Pkg<'a>) -> bool {
+impl Restriction<&Pkg> for DepRestrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
         use DepRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
@@ -350,22 +350,40 @@ mod tests {
     #[test]
     fn ordering() {
         // unmatching pkgs sorted by dep attributes
-        let r1: Repo = fake::Repo::new("b", 0).pkgs(["cat/pkg-1"]).into();
-        let r2: Repo = fake::Repo::new("a", 0).pkgs(["cat/pkg-0"]).into();
+        let r1: Repo = fake::FakeRepo::new("b", 0)
+            .pkgs(["cat/pkg-1"])
+            .unwrap()
+            .into();
+        let r2: Repo = fake::FakeRepo::new("a", 0)
+            .pkgs(["cat/pkg-0"])
+            .unwrap()
+            .into();
         let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
         // matching pkgs sorted by repo priority
-        let r1: Repo = fake::Repo::new("a", -1).pkgs(["cat/pkg-0"]).into();
-        let r2: Repo = fake::Repo::new("b", 0).pkgs(["cat/pkg-0"]).into();
+        let r1: Repo = fake::FakeRepo::new("a", -1)
+            .pkgs(["cat/pkg-0"])
+            .unwrap()
+            .into();
+        let r2: Repo = fake::FakeRepo::new("b", 0)
+            .pkgs(["cat/pkg-0"])
+            .unwrap()
+            .into();
         let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
         // matching pkgs sorted by repo id since repos have matching priorities
-        let r1: Repo = fake::Repo::new("2", 0).pkgs(["cat/pkg-0"]).into();
-        let r2: Repo = fake::Repo::new("1", 0).pkgs(["cat/pkg-0"]).into();
+        let r1: Repo = fake::FakeRepo::new("2", 0)
+            .pkgs(["cat/pkg-0"])
+            .unwrap()
+            .into();
+        let r2: Repo = fake::FakeRepo::new("1", 0)
+            .pkgs(["cat/pkg-0"])
+            .unwrap()
+            .into();
         let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
@@ -374,7 +392,7 @@ mod tests {
     #[test]
     fn package_trait_attributes() {
         let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
-        let r: Repo = fake::Repo::new("test", 0).pkgs([&cpv]).into();
+        let r: Repo = fake::FakeRepo::new("test", 0).pkgs([&cpv]).unwrap().into();
         let pkg = r.iter_restrict(&cpv).next().unwrap();
         assert_eq!(pkg.eapi(), *EAPI_LATEST_OFFICIAL);
         assert_eq!(pkg.p(), "pkg-1");
@@ -388,7 +406,7 @@ mod tests {
     #[test]
     fn intersects_dep() {
         let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
-        let r: Repo = fake::Repo::new("test", 0).pkgs([&cpv]).into();
+        let r: Repo = fake::FakeRepo::new("test", 0).pkgs([&cpv]).unwrap().into();
         let pkg = r.iter_restrict(&cpv).next().unwrap();
 
         for (s, expected) in [

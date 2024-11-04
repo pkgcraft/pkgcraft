@@ -2,7 +2,7 @@ use itertools::Itertools;
 use pkgcraft::dep::{Dependency, Operator, SlotOperator, UseDepKind};
 use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPackage, Pkg};
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{
@@ -23,12 +23,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check { repo }
 }
 
 struct Check {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);

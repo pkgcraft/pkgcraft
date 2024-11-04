@@ -1,6 +1,6 @@
 use camino::Utf8Path;
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::Repo as EbuildRepo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 
 /// Convert a target ebuild repo arg into an ebuild repo reference.
 pub(crate) fn target_ebuild_repo<'a>(
@@ -16,9 +16,9 @@ pub(crate) fn target_ebuild_repo<'a>(
         anyhow::bail!("unknown repo: {target}");
     };
 
-    if let Some(r) = config.repos.get(&id).and_then(|r| r.as_ebuild()) {
-        Ok(r.as_ref())
-    } else {
-        anyhow::bail!("non-ebuild repo: {target}")
-    }
+    config
+        .repos
+        .get(&id)
+        .and_then(|r| r.as_ebuild())
+        .ok_or_else(|| anyhow::anyhow!("non-ebuild repo: {target}"))
 }

@@ -20,7 +20,7 @@ pub enum PkgFormat {
     Fake,
 }
 
-impl From<&Pkg<'_>> for PkgFormat {
+impl From<&Pkg> for PkgFormat {
     fn from(pkg: &Pkg) -> Self {
         match pkg {
             Pkg::Configured(_, _) => Self::Configured,
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_version(p: *mut Pkg) -> *mut Version {
 /// # Safety
 /// The arguments must be non-null Pkg pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_cmp<'a>(p1: *mut Pkg<'a>, p2: *mut Pkg<'a>) -> c_int {
+pub unsafe extern "C" fn pkgcraft_pkg_cmp(p1: *mut Pkg, p2: *mut Pkg) -> c_int {
     let pkg1 = try_ref_from_ptr!(p1);
     let pkg2 = try_ref_from_ptr!(p2);
 

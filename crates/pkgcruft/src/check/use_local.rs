@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{
     UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
@@ -23,12 +23,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
     Check { repo }
 }
 
 struct Check {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);
@@ -63,7 +63,7 @@ impl EbuildPkgSetCheck for Check {
                     .report(filter);
             }
 
-            if let Some(global_desc) = self.repo.metadata.use_global().get(flag) {
+            if let Some(global_desc) = self.repo.metadata().use_global().get(flag) {
                 if global_desc == desc {
                     UseLocalGlobal.package(cpn).message(flag).report(filter);
                 }

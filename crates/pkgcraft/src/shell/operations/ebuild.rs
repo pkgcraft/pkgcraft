@@ -11,7 +11,7 @@ use crate::shell::{get_build_mut, BuildData};
 
 use super::OperationKind;
 
-impl<'a> Build for ebuild::Pkg<'a> {
+impl Build for ebuild::Pkg {
     fn build(&self) -> scallop::Result<()> {
         get_build_mut()
             .source_ebuild(&self.path())
@@ -25,7 +25,7 @@ impl<'a> Build for ebuild::Pkg<'a> {
     }
 }
 
-impl<'a> Pretend for ebuild::Pkg<'a> {
+impl Pretend for ebuild::Pkg {
     fn pretend(&self) -> scallop::Result<Option<String>> {
         let Ok(op) = self.eapi().operation(OperationKind::Pretend) else {
             // ignore packages with EAPIs lacking pkg_pretend() support
@@ -74,14 +74,14 @@ impl<'a> Pretend for ebuild::Pkg<'a> {
     }
 }
 
-impl<'a> Source for ebuild::raw::Pkg<'a> {
+impl Source for ebuild::raw::Pkg {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_raw_pkg(self);
         get_build_mut().source_ebuild(self.data())
     }
 }
 
-impl<'a> Source for ebuild::Pkg<'a> {
+impl Source for ebuild::Pkg {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
         get_build_mut().source_ebuild(&self.path())

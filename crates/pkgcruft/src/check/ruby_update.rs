@@ -5,7 +5,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 
 use crate::report::ReportKind::RubyUpdate;
@@ -28,12 +28,12 @@ pub(super) static CHECK: super::Check = super::Check {
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check { repo, targets: OnceLock::new() }
 }
 
 struct Check {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
     targets: OnceLock<IndexSet<&'static str>>,
 }
 

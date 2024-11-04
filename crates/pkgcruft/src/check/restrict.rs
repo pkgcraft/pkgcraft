@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::RestrictInvalid;
 use crate::scanner::ReportFilter;
@@ -20,11 +20,11 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         allowed: repo
             .trees()
-            .flat_map(|x| x.metadata.config.restrict_allowed.clone())
+            .flat_map(|r| r.metadata().config.restrict_allowed.clone())
             .collect(),
     }
 }

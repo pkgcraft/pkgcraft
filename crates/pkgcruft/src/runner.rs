@@ -3,7 +3,7 @@ use std::time::Instant;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use tracing::debug;
 
 use crate::bash;
@@ -19,7 +19,7 @@ pub(super) struct SyncCheckRunner {
 
 impl SyncCheckRunner {
     pub(super) fn new(
-        repo: &'static Repo,
+        repo: &'static EbuildRepo,
         filters: &IndexSet<PkgFilter>,
         checks: &IndexSet<Check>,
     ) -> Self {
@@ -70,7 +70,7 @@ enum CheckRunner {
 }
 
 impl CheckRunner {
-    fn new(source: SourceKind, repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
+    fn new(source: SourceKind, repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         match source {
             SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, filters)),
             SourceKind::EbuildRawPkg => {
@@ -106,11 +106,11 @@ struct EbuildPkgCheckRunner {
     pkg_checks: Vec<EbuildPkgRunner>,
     pkg_set_checks: Vec<EbuildPkgSetRunner>,
     source: source::EbuildPkg,
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 impl EbuildPkgCheckRunner {
-    fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
+    fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             pkg_checks: Default::default(),
             pkg_set_checks: Default::default(),
@@ -158,11 +158,11 @@ impl EbuildPkgCheckRunner {
 struct EbuildRawPkgCheckRunner {
     checks: Vec<EbuildRawPkgRunner>,
     source: source::EbuildRawPkg,
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 impl EbuildRawPkgCheckRunner {
-    fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
+    fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             checks: Default::default(),
             source: source::EbuildRawPkg::new(repo, filters),
@@ -194,11 +194,11 @@ impl EbuildRawPkgCheckRunner {
 /// Check runner for unversioned package checks.
 struct UnversionedPkgCheckRunner {
     checks: Vec<UnversionedPkgRunner>,
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 impl UnversionedPkgCheckRunner {
-    fn new(repo: &'static Repo) -> Self {
+    fn new(repo: &'static EbuildRepo) -> Self {
         Self {
             checks: Default::default(),
             repo,

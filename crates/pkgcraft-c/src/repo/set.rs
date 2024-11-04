@@ -146,10 +146,10 @@ pub unsafe extern "C" fn pkgcraft_repo_set_free(r: *mut RepoSet) {
 /// The repo argument must be a non-null Repo pointer and the restrict argument can be a
 /// Restrict pointer or NULL to iterate over all packages.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_set_iter<'a>(
+pub unsafe extern "C" fn pkgcraft_repo_set_iter(
     s: *mut RepoSet,
     restrict: *mut Restrict,
-) -> *mut RepoSetIter<'a> {
+) -> *mut RepoSetIter {
     let s = try_ref_from_ptr!(s);
     let iter = match unsafe { restrict.as_ref() } {
         Some(r) => s.iter_restrict(r.clone()),

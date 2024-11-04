@@ -26,7 +26,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .parse()
             .map_err(|_| Error::Base(format!("invalid phase: {arg}")))?;
         if eapi.phases().contains(&phase) {
-            build.eclass_phases.insert(phase, eclass);
+            build.eclass_phases.insert(phase, eclass.clone());
         } else {
             return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
         }

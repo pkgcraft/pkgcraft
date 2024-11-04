@@ -3,7 +3,7 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::ReportKind::UnstableOnly;
@@ -22,10 +22,10 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
         stable: repo
-            .metadata
+            .metadata()
             .arches_desc()
             .get("stable")
             .cloned()

@@ -56,8 +56,8 @@ impl RepoFormat {
         }
 
         let repo: Repo = match self {
-            Self::Ebuild => ebuild::Repo::from_path(id, priority, &abspath)?.into(),
-            Self::Fake => fake::Repo::from_path(id, priority, &abspath)?.into(),
+            Self::Ebuild => ebuild::EbuildRepo::from_path(id, priority, &abspath)?.into(),
+            Self::Fake => fake::FakeRepo::from_path(id, priority, &abspath)?.into(),
             Self::Empty => empty::Repo::from_path(id, priority, &abspath)?.into(),
             _ => {
                 return Err(Error::LoadRepo {
@@ -109,9 +109,9 @@ impl RepoFormat {
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Debug, Clone)]
 pub enum Repo {
-    Configured(Arc<ebuild::configured::Repo>),
-    Ebuild(Arc<ebuild::Repo>),
-    Fake(Arc<fake::Repo>),
+    Configured(ebuild::configured::ConfiguredRepo),
+    Ebuild(ebuild::EbuildRepo),
+    Fake(fake::FakeRepo),
     Unsynced(Arc<empty::Repo>),
 }
 
@@ -121,21 +121,21 @@ impl From<&Repo> for Repo {
     }
 }
 
-impl From<ebuild::Repo> for Repo {
-    fn from(repo: ebuild::Repo) -> Self {
-        Self::Ebuild(Arc::new(repo))
+impl From<ebuild::EbuildRepo> for Repo {
+    fn from(repo: ebuild::EbuildRepo) -> Self {
+        Self::Ebuild(repo)
     }
 }
 
-impl From<ebuild::configured::Repo> for Repo {
-    fn from(repo: ebuild::configured::Repo) -> Self {
-        Self::Configured(Arc::new(repo))
+impl From<ebuild::configured::ConfiguredRepo> for Repo {
+    fn from(repo: ebuild::configured::ConfiguredRepo) -> Self {
+        Self::Configured(repo)
     }
 }
 
-impl From<fake::Repo> for Repo {
-    fn from(repo: fake::Repo) -> Self {
-        Self::Fake(Arc::new(repo))
+impl From<fake::FakeRepo> for Repo {
+    fn from(repo: fake::FakeRepo) -> Self {
+        Self::Fake(repo)
     }
 }
 
@@ -239,9 +239,10 @@ impl Repo {
     }
 
     pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {
-        match self {
-            Self::Ebuild(repo) => repo.finalize(existing_repos, Arc::downgrade(repo)),
-            _ => Ok(()),
+        if let Self::Ebuild(repo) = self {
+            repo.finalize(existing_repos)
+        } else {
+            Ok(())
         }
     }
 
@@ -255,14 +256,14 @@ impl Repo {
     }
 }
 
-pub enum IterCpv<'a> {
-    Configured(ebuild::IterCpv<'a>),
-    Ebuild(ebuild::IterCpv<'a>),
-    Fake(fake::IterCpv<'a>),
+pub enum IterCpv {
+    Configured(ebuild::IterCpv),
+    Ebuild(ebuild::IterCpv),
+    Fake(fake::IterCpv),
     Empty,
 }
 
-impl Iterator for IterCpv<'_> {
+impl Iterator for IterCpv {
     type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -276,56 +277,56 @@ impl Iterator for IterCpv<'_> {
 }
 
 #[allow(clippy::large_enum_variant)]
-pub enum Iter<'a> {
-    Ebuild(ebuild::Iter<'a>, &'a Repo),
-    Configured(ebuild::configured::Iter<'a>, &'a Repo),
-    Fake(fake::Iter<'a>, &'a Repo),
+pub enum Iter {
+    Ebuild(ebuild::Iter, Repo),
+    Configured(ebuild::configured::Iter, Repo),
+    Fake(fake::Iter, Repo),
     Empty,
 }
 
-impl<'a> IntoIterator for &'a Repo {
-    type Item = Pkg<'a>;
-    type IntoIter = Iter<'a>;
+impl IntoIterator for &Repo {
+    type Item = Pkg;
+    type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Repo::Ebuild(repo) => Iter::Ebuild(repo.into_iter(), self),
-            Repo::Configured(repo) => Iter::Configured(repo.into_iter(), self),
-            Repo::Fake(repo) => Iter::Fake(repo.into_iter(), self),
+            Repo::Ebuild(repo) => Iter::Ebuild(repo.into_iter(), self.clone()),
+            Repo::Configured(repo) => Iter::Configured(repo.into_iter(), self.clone()),
+            Repo::Fake(repo) => Iter::Fake(repo.into_iter(), self.clone()),
             Repo::Unsynced(_) => Iter::Empty,
         }
     }
 }
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = Pkg<'a>;
+impl Iterator for Iter {
+    type Item = Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo)),
-            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo)),
-            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo)),
+            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo.clone())),
+            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo.clone())),
+            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo.clone())),
             Self::Empty => None,
         }
     }
 }
 
 #[allow(clippy::large_enum_variant)]
-pub enum IterRestrict<'a> {
-    Configured(ebuild::configured::IterRestrict<'a>, &'a Repo),
-    Ebuild(ebuild::IterRestrict<'a>, &'a Repo),
-    Fake(fake::IterRestrict<'a>, &'a Repo),
+pub enum IterRestrict {
+    Configured(ebuild::configured::IterRestrict, Repo),
+    Ebuild(ebuild::IterRestrict, Repo),
+    Fake(fake::IterRestrict, Repo),
     Empty,
 }
 
-impl<'a> Iterator for IterRestrict<'a> {
-    type Item = Pkg<'a>;
+impl Iterator for IterRestrict {
+    type Item = Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo)),
-            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo)),
-            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo)),
+            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo.clone())),
+            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo.clone())),
+            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo.clone())),
             Self::Empty => None,
         }
     }
@@ -339,21 +340,10 @@ pub trait PkgRepository:
     + for<'a> Contains<&'a Cpv>
     + for<'a> Contains<&'a Dep>
 {
-    type Pkg<'a>: Package
-    where
-        Self: 'a;
-
-    type IterCpv<'a>: Iterator<Item = Cpv>
-    where
-        Self: 'a;
-
-    type Iter<'a>: Iterator<Item = Self::Pkg<'a>>
-    where
-        Self: 'a;
-
-    type IterRestrict<'a>: Iterator<Item = Self::Pkg<'a>>
-    where
-        Self: 'a;
+    type Pkg: Package;
+    type IterCpv: Iterator<Item = Cpv>;
+    type Iter: Iterator<Item = Self::Pkg>;
+    type IterRestrict: Iterator<Item = Self::Pkg>;
 
     fn categories(&self) -> IndexSet<String>;
     fn packages(&self, cat: &str) -> IndexSet<String>;
@@ -367,9 +357,9 @@ pub trait PkgRepository:
         }
         count
     }
-    fn iter_cpv(&self) -> Self::IterCpv<'_>;
-    fn iter(&self) -> Self::Iter<'_>;
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_>;
+    fn iter_cpv(&self) -> Self::IterCpv;
+    fn iter(&self) -> Self::Iter;
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict;
 
     fn is_empty(&self) -> bool {
         self.iter().next().is_none()
@@ -393,14 +383,14 @@ pub trait Repository: PkgRepository + fmt::Display {
     fn sync(&self) -> crate::Result<()>;
 }
 
-impl<'a, T> PkgRepository for &'a T
+impl<T> PkgRepository for &T
 where
     T: PkgRepository,
 {
-    type Pkg<'b> = T::Pkg<'b> where Self: 'b;
-    type IterCpv<'b> = T::IterCpv<'b> where Self: 'b;
-    type Iter<'b> = T::Iter<'b> where Self: 'b;
-    type IterRestrict<'b> = T::IterRestrict<'b> where Self: 'b;
+    type Pkg = T::Pkg;
+    type IterCpv = T::IterCpv;
+    type Iter = T::Iter;
+    type IterRestrict = T::IterRestrict;
 
     fn categories(&self) -> IndexSet<String> {
         (*self).categories()
@@ -414,18 +404,18 @@ where
     fn len(&self) -> usize {
         (*self).len()
     }
-    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+    fn iter_cpv(&self) -> Self::IterCpv {
         (*self).iter_cpv()
     }
-    fn iter(&self) -> Self::Iter<'_> {
+    fn iter(&self) -> Self::Iter {
         (*self).iter()
     }
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         (*self).iter_restrict(val)
     }
 }
 
-impl<'a, T: Repository + PkgRepository> Repository for &'a T {
+impl<T: Repository + PkgRepository> Repository for &T {
     fn format(&self) -> RepoFormat {
         (*self).format()
     }
@@ -458,10 +448,10 @@ impl fmt::Display for Repo {
 }
 
 impl PkgRepository for Repo {
-    type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = IterCpv<'a> where Self: 'a;
-    type Iter<'a> = Iter<'a> where Self: 'a;
-    type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
+    type Pkg = Pkg;
+    type IterCpv = IterCpv;
+    type Iter = Iter;
+    type IterRestrict = IterRestrict;
 
     fn categories(&self) -> IndexSet<String> {
         match self {
@@ -499,7 +489,7 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+    fn iter_cpv(&self) -> Self::IterCpv {
         match self {
             Self::Configured(repo) => IterCpv::Ebuild(repo.iter_cpv()),
             Self::Ebuild(repo) => IterCpv::Ebuild(repo.iter_cpv()),
@@ -508,15 +498,17 @@ impl PkgRepository for Repo {
         }
     }
 
-    fn iter(&self) -> Self::Iter<'_> {
+    fn iter(&self) -> Self::Iter {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         match self {
-            Self::Configured(repo) => IterRestrict::Configured(repo.iter_restrict(val), self),
-            Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val), self),
-            Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val), self),
+            Self::Configured(repo) => {
+                IterRestrict::Configured(repo.iter_restrict(val), self.clone())
+            }
+            Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val), self.clone()),
+            Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val), self.clone()),
             Self::Unsynced(_) => IterRestrict::Empty,
         }
     }
@@ -709,16 +701,16 @@ mod tests {
 
     #[test]
     fn traits() {
-        let ebuild_repo = ebuild::temp::Repo::new("test", None, 0, None).unwrap();
-        let e_repo = (&ebuild_repo).into();
-        let f_repo: Repo = fake::Repo::new("fake", 0).into();
+        let temp_repo = ebuild::temp::Repo::new("test", None, 0, None).unwrap();
+        let e_repo = temp_repo.clone().into();
+        let f_repo: Repo = fake::FakeRepo::new("fake", 0).into();
         assert!(e_repo != f_repo);
         assert!(e_repo > f_repo);
 
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
 
-        let f_repo: Repo = fake::Repo::new("test", 0).into();
+        let f_repo: Repo = fake::FakeRepo::new("test", 0).into();
         assert!(e_repo != f_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);

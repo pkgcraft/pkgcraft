@@ -1,6 +1,6 @@
 use indexmap::IndexSet;
 use pkgcraft::pkg::ebuild::Pkg;
-use pkgcraft::repo::ebuild::{Eclass, Repo};
+use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
 
 use crate::report::ReportKind::EclassUnused;
 use crate::scanner::ReportFilter;
@@ -19,12 +19,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
-    let mut eclasses: IndexSet<_> = repo.eclasses().iter().collect();
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
+    let mut eclasses = repo.eclasses().clone();
     for repo in repo.masters() {
-        for pkg in &*repo {
+        for pkg in &repo {
             for eclass in pkg.inherited() {
-                eclasses.swap_remove(*eclass);
+                eclasses.swap_remove(eclass);
             }
         }
     }
@@ -33,7 +33,7 @@ pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
 }
 
 struct Check {
-    eclasses: IndexSet<&'static Eclass>,
+    eclasses: IndexSet<Eclass>,
 }
 
 super::register!(Check);

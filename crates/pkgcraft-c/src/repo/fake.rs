@@ -1,11 +1,9 @@
 use std::ffi::{c_char, c_int};
 use std::slice;
-use std::sync::Arc;
 
-use pkgcraft::repo::fake::Repo as FakeRepo;
+use pkgcraft::repo::fake::FakeRepo;
 use pkgcraft::repo::Repo;
 
-use crate::error::Error;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 
@@ -29,7 +27,7 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_new(
             let s = try_str_from_ptr!(*ptr);
             cpv_strs.push(s);
         }
-        let repo = FakeRepo::new(id, priority).pkgs(cpv_strs);
+        let repo = unwrap_or_panic!(FakeRepo::new(id, priority).pkgs(cpv_strs));
         Box::into_raw(Box::new(repo.into()))
     }
 }
@@ -49,9 +47,6 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_extend(
     ffi_catch_panic! {
         let repo = try_mut_from_ptr!(r);
         let repo = repo.as_fake_mut().expect("invalid repo type");
-        let repo = unwrap_or_panic!(
-            Arc::get_mut(repo).ok_or_else(|| Error::new("failed getting mutable repo ref"))
-        );
 
         let mut cpv_strs = vec![];
         for s in unsafe { slice::from_raw_parts(cpvs, len) } {
@@ -59,7 +54,7 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_extend(
             cpv_strs.push(s);
         }
 
-        repo.extend(cpv_strs);
+        unwrap_or_panic!(repo.extend(cpv_strs));
         r
     }
 }

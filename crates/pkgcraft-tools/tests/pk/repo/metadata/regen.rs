@@ -42,7 +42,7 @@ fn empty_repo() {
         .stderr("")
         .success();
 
-    assert!(!repo.metadata.cache().path().exists());
+    assert!(!repo.metadata().cache().path().exists());
 }
 
 #[test]
@@ -71,7 +71,7 @@ fn single() {
         .stdout("")
         .stderr("")
         .success();
-    let path = repo.metadata.cache().path().join("cat/pkg-1");
+    let path = repo.metadata().cache().path().join("cat/pkg-1");
     assert!(path.exists());
     let prev_modified = fs::metadata(&path).unwrap().modified().unwrap();
 
@@ -156,7 +156,7 @@ fn multiple() {
         .stderr("")
         .success();
 
-    let path = repo.metadata.cache().path();
+    let path = repo.metadata().cache().path();
     assert!(path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
     assert!(path.join("other").exists());
@@ -189,7 +189,7 @@ fn pkg_with_invalid_eapi() {
         .failure()
         .code(2);
 
-    let path = repo.metadata.cache().path();
+    let path = repo.metadata().cache().path();
     assert!(!path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
 }
@@ -207,7 +207,7 @@ fn pkg_with_invalid_dep() {
         .failure()
         .code(2);
 
-    let path = repo.metadata.cache().path();
+    let path = repo.metadata().cache().path();
     assert!(!path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
 }
@@ -233,7 +233,7 @@ fn data_content() {
     };
 
     // record expected metadata file content
-    let expected: IndexMap<_, _> = metadata_content(repo.metadata.cache().path().as_str());
+    let expected: IndexMap<_, _> = metadata_content(repo.metadata().cache().path().as_str());
 
     // regenerate metadata
     for opt in ["-p", "--path"] {

@@ -5,7 +5,7 @@ use indexmap::IndexSet;
 use itertools::{Either, Itertools};
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus;
 use pkgcraft::pkg::ebuild::{self, EbuildPackage};
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict, Restriction};
 use pkgcraft::types::OrderedMap;
@@ -104,11 +104,10 @@ impl PkgFilters {
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
-        repo: &'static Repo,
+        repo: &'static EbuildRepo,
         val: R,
-    ) -> Box<dyn Iterator<Item = ebuild::Pkg<'static>> + '_> {
-        let mut iter: Box<dyn Iterator<Item = ebuild::Pkg<'static>>> =
-            Box::new(repo.iter_restrict(val));
+    ) -> Box<dyn Iterator<Item = ebuild::Pkg> + '_> {
+        let mut iter: Box<dyn Iterator<Item = ebuild::Pkg>> = Box::new(repo.iter_restrict(val));
 
         for filter in &self.0 {
             iter = match filter {
@@ -169,12 +168,12 @@ pub(crate) trait IterRestrict {
 }
 
 pub(crate) struct EbuildPkg {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
     filters: PkgFilters,
 }
 
 impl EbuildPkg {
-    pub(crate) fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
+    pub(crate) fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             repo,
             filters: PkgFilters(filters),
@@ -183,7 +182,7 @@ impl EbuildPkg {
 }
 
 impl IterRestrict for EbuildPkg {
-    type Item = ebuild::Pkg<'static>;
+    type Item = ebuild::Pkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
@@ -194,12 +193,12 @@ impl IterRestrict for EbuildPkg {
 }
 
 pub(crate) struct EbuildRawPkg {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
     filters: PkgFilters,
 }
 
 impl EbuildRawPkg {
-    pub(crate) fn new(repo: &'static Repo, filters: IndexSet<PkgFilter>) -> Self {
+    pub(crate) fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             repo,
             filters: PkgFilters(filters),
@@ -208,7 +207,7 @@ impl EbuildRawPkg {
 }
 
 impl IterRestrict for EbuildRawPkg {
-    type Item = ebuild::raw::Pkg<'static>;
+    type Item = ebuild::raw::Pkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,

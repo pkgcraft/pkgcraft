@@ -9,7 +9,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild;
-use pkgcraft::repo::{ebuild::Repo, Repository};
+use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
@@ -230,7 +230,7 @@ impl Check {
     }
 
     /// Determine if a check is enabled for a scanning run.
-    pub(crate) fn enabled(&self, repo: &Repo, selected: &IndexSet<Self>) -> bool {
+    pub(crate) fn enabled(&self, repo: &EbuildRepo, selected: &IndexSet<Self>) -> bool {
         self.context.iter().all(|x| match x {
             CheckContext::Gentoo => repo.name() == "gentoo",
             CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
@@ -242,11 +242,11 @@ impl Check {
 
 /// Create a check runner from a given check.
 pub(crate) trait ToRunner<T> {
-    fn to_runner(&self, repo: &'static Repo) -> T;
+    fn to_runner(&self, repo: &'static EbuildRepo) -> T;
 }
 
 impl ToRunner<EbuildPkgRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> EbuildPkgRunner {
+    fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildPkgRunner {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
@@ -264,7 +264,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
 }
 
 impl ToRunner<EbuildPkgSetRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> EbuildPkgSetRunner {
+    fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildPkgSetRunner {
         match &self.kind {
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
@@ -277,7 +277,7 @@ impl ToRunner<EbuildPkgSetRunner> for Check {
 }
 
 impl ToRunner<EbuildRawPkgRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> EbuildRawPkgRunner {
+    fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildRawPkgRunner {
         match &self.kind {
             CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
             CheckKind::Header => Box::new(header::create()),
@@ -290,7 +290,7 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
 }
 
 impl ToRunner<UnversionedPkgRunner> for Check {
-    fn to_runner(&self, repo: &'static Repo) -> UnversionedPkgRunner {
+    fn to_runner(&self, repo: &'static EbuildRepo) -> UnversionedPkgRunner {
         match &self.kind {
             CheckKind::Duplicates => Box::new(duplicates::create(repo)),
             _ => unreachable!("unsupported check: {self}"),

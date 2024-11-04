@@ -7,11 +7,11 @@ use crate::repo::ebuild::Eclass;
 use super::phase::PhaseKind;
 
 /// Marker used to denote valid or current build state scope.
-#[derive(Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub(crate) enum Scope {
     #[default]
     Global,
-    Eclass(Option<&'static Eclass>),
+    Eclass(Option<Eclass>),
     Phase(PhaseKind),
 }
 
@@ -21,9 +21,9 @@ impl Scope {
     }
 }
 
-impl From<&'static Eclass> for Scope {
-    fn from(value: &'static Eclass) -> Self {
-        Self::Eclass(Some(value))
+impl From<&Eclass> for Scope {
+    fn from(value: &Eclass) -> Self {
+        Self::Eclass(Some(value.clone()))
     }
 }
 

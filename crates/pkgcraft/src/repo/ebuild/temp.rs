@@ -1,6 +1,6 @@
 use std::io::Write;
 use std::ops::Deref;
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -12,6 +12,8 @@ use crate::pkg::ebuild::{self, metadata::Key};
 use crate::repo::Repo as BaseRepo;
 use crate::Error;
 
+use super::EbuildRepo;
+
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub struct Repo {
@@ -19,7 +21,7 @@ pub struct Repo {
     path: Utf8PathBuf,
     id: String,
     priority: i32,
-    repo: OnceLock<Arc<super::Repo>>,
+    repo: OnceLock<EbuildRepo>,
 }
 
 impl Repo {
@@ -69,11 +71,10 @@ impl Repo {
         })
     }
 
-    fn repo(&self) -> &Arc<super::Repo> {
+    fn repo(&self) -> &EbuildRepo {
         self.repo.get_or_init(|| {
-            let repo = super::Repo::from_path(&self.id, self.priority, &self.path)
-                .unwrap_or_else(|e| panic!("failed creating temporary ebuild repo: {e}"));
-            Arc::new(repo)
+            EbuildRepo::from_path(&self.id, self.priority, &self.path)
+                .unwrap_or_else(|e| panic!("failed creating temporary ebuild repo: {e}"))
         })
     }
 
@@ -115,7 +116,7 @@ impl Repo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        ebuild::raw::Pkg::try_new(cpv, self)
+        ebuild::raw::Pkg::try_new(cpv, self.repo().clone())
     }
 
     /// Create a [`ebuild::Pkg`] from ebuild field settings.
@@ -136,7 +137,7 @@ impl Repo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        ebuild::raw::Pkg::try_new(cpv, self)
+        ebuild::raw::Pkg::try_new(cpv, self.repo().clone())
     }
 
     /// Create a [`ebuild::Pkg`] from an ebuild using raw data.
@@ -174,7 +175,7 @@ impl Repo {
 }
 
 impl Deref for Repo {
-    type Target = super::Repo;
+    type Target = EbuildRepo;
 
     fn deref(&self) -> &Self::Target {
         self.repo()
@@ -183,6 +184,6 @@ impl Deref for Repo {
 
 impl From<&Repo> for BaseRepo {
     fn from(value: &Repo) -> Self {
-        BaseRepo::Ebuild(value.repo().clone())
+        value.repo().clone().into()
     }
 }

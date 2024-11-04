@@ -65,7 +65,7 @@ impl<T> ArcCache<T>
 where
     T: ArcCacheData + Send + Sync + 'static,
 {
-    fn new(repo: Arc<Repo>) -> Self {
+    fn new(repo: EbuildRepo) -> Self {
         let (tx, rx) = bounded(10);
 
         let thread = thread::spawn(move || {
@@ -139,13 +139,12 @@ where
     }
 }
 
-#[derive(Default)]
-pub struct Repo {
-    id: String,
+#[derive(Debug)]
+struct Repo {
+    metadata: Metadata,
     config: RepoConfig,
-    pub metadata: Metadata,
+    repo: Weak<Self>,
     masters: OnceLock<Vec<Weak<Self>>>,
-    trees: OnceLock<Vec<Weak<Self>>>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -157,39 +156,42 @@ pub struct Repo {
     categories_xml: OnceLock<IndexMap<String, String>>,
 }
 
-impl fmt::Debug for Repo {
+#[derive(Clone)]
+pub struct EbuildRepo(Arc<Repo>);
+
+impl fmt::Debug for EbuildRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Repo")
-            .field("id", &self.id)
-            .field("repo_config", &self.repo_config())
+            .field("id", &self.id())
+            .field("repo_config", self.repo_config())
             .field("name", &self.name())
             .finish()
     }
 }
 
-impl PartialEq for Repo {
+impl PartialEq for EbuildRepo {
     fn eq(&self, other: &Self) -> bool {
         self.id() == other.id() && self.repo_config() == other.repo_config()
     }
 }
 
-impl Eq for Repo {}
+impl Eq for EbuildRepo {}
 
-impl Hash for Repo {
+impl Hash for EbuildRepo {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.path().hash(state);
     }
 }
 
-impl From<&Repo> for Restrict {
-    fn from(repo: &Repo) -> Self {
+impl From<&EbuildRepo> for Restrict {
+    fn from(repo: &EbuildRepo) -> Self {
         repo.restrict_from_path(repo).unwrap()
     }
 }
 
-make_repo_traits!(Repo);
+make_repo_traits!(EbuildRepo);
 
-impl Repo {
+impl EbuildRepo {
     /// Create an ebuild repo from a given path.
     pub(crate) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
@@ -197,35 +199,44 @@ impl Repo {
         P: AsRef<Utf8Path>,
     {
         let path = path.as_ref();
-
+        let metadata = Metadata::try_new(id.as_ref(), path)?;
         let config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
             ..Default::default()
         };
 
-        Ok(Self {
+        Ok(Self(Arc::new_cyclic(|repo| Repo {
+            metadata,
             config,
-            metadata: Metadata::try_new(id.as_ref(), path)?,
-            ..Default::default()
-        })
+            repo: repo.clone(),
+            masters: OnceLock::new(),
+            arches: OnceLock::new(),
+            licenses: OnceLock::new(),
+            license_groups: OnceLock::new(),
+            mirrors: OnceLock::new(),
+            eclasses: OnceLock::new(),
+            use_expand: OnceLock::new(),
+            metadata_cache: OnceLock::new(),
+            manifest_cache: OnceLock::new(),
+            categories_xml: OnceLock::new(),
+        })))
     }
 
     /// Finalize the repo, collapsing repo dependencies into references.
     pub(super) fn finalize(
         &self,
         existing_repos: &IndexMap<String, BaseRepo>,
-        repo: Weak<Self>,
     ) -> crate::Result<()> {
         // skip finalized, stand-alone repos
-        if self.masters.get().is_some() && self.trees.get().is_some() {
+        if self.0.masters.get().is_some() {
             return Ok(());
         }
 
         let (masters, nonexistent): (Vec<_>, Vec<_>) =
-            self.metadata.config.masters.iter().partition_map(|id| {
+            self.metadata().config.masters.iter().partition_map(|id| {
                 match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
-                    Some(r) => Either::Left(Arc::downgrade(r)),
+                    Some(Self(r)) => Either::Left(Arc::downgrade(r)),
                     None => Either::Right(id.as_str()),
                 }
             });
@@ -238,10 +249,8 @@ impl Repo {
             });
         }
 
-        self.trees
-            .set(masters.iter().cloned().chain([repo]).collect())
-            .unwrap_or_else(|_| panic!("trees already set: {}", self.id()));
-        self.masters
+        self.0
+            .masters
             .set(masters)
             .unwrap_or_else(|_| panic!("masters already set: {}", self.id()));
 
@@ -259,49 +268,41 @@ impl Repo {
 
     /// Return the repo config.
     pub(super) fn repo_config(&self) -> &RepoConfig {
-        &self.config
+        &self.0.config
+    }
+
+    pub fn metadata(&self) -> &Metadata {
+        &self.0.metadata
     }
 
     /// Return the repo EAPI (set in profiles/eapi).
     pub fn eapi(&self) -> &'static Eapi {
-        self.metadata.eapi
+        self.metadata().eapi
     }
 
     /// Return the repo inheritance sequence.
-    pub fn masters(&self) -> impl DoubleEndedIterator<Item = Arc<Self>> + '_ {
-        self.masters
+    pub fn masters(&self) -> impl DoubleEndedIterator<Item = Self> + '_ {
+        self.0
+            .masters
             .get()
             .expect("finalize() uncalled")
             .iter()
-            .map(|p| p.upgrade().expect("unconfigured repo"))
+            .map(|r| Self(r.upgrade().expect("unconfigured repo")))
     }
 
     /// Return the complete repo inheritance sequence.
-    pub fn trees(&self) -> impl DoubleEndedIterator<Item = Arc<Self>> + '_ {
-        self.trees
-            .get()
-            .expect("finalize() uncalled")
-            .iter()
-            .map(|p| p.upgrade().expect("unconfigured repo"))
-    }
-
-    /// Return an Arc-wrapped repo reference.
-    fn arc(&self) -> Arc<Self> {
-        self.trees
-            .get()
-            .expect("finalize() uncalled")
-            .last()
-            .map(|p| p.upgrade().expect("unconfigured repo"))
-            .expect("finalize() uncalled")
+    pub fn trees(&self) -> impl DoubleEndedIterator<Item = Self> + '_ {
+        let repo = self.0.repo.upgrade().expect("unconfigured repo");
+        self.masters().chain([Self(repo)])
     }
 
     /// Return the ordered map of inherited eclasses.
     pub fn eclasses(&self) -> &IndexSet<Eclass> {
-        self.eclasses.get_or_init(|| {
+        self.0.eclasses.get_or_init(|| {
             let mut eclasses: IndexSet<_> = self
                 .trees()
                 .rev()
-                .flat_map(|r| r.metadata.eclasses().clone())
+                .flat_map(|r| r.metadata().eclasses().clone())
                 .collect();
             eclasses.sort();
             eclasses
@@ -310,11 +311,11 @@ impl Repo {
 
     /// Return the ordered map of inherited USE_EXPAND flags.
     pub fn use_expand(&self) -> &IndexMap<String, IndexMap<String, String>> {
-        self.use_expand.get_or_init(|| {
+        self.0.use_expand.get_or_init(|| {
             let mut use_expand: IndexMap<_, _> = self
                 .trees()
                 .rev()
-                .flat_map(|r| r.metadata.use_expand().clone())
+                .flat_map(|r| r.metadata().use_expand().clone())
                 .collect();
             use_expand.sort_keys();
             use_expand
@@ -367,7 +368,7 @@ impl Repo {
                 })
         };
 
-        self.categories_xml.get_or_init(|| {
+        self.0.categories_xml.get_or_init(|| {
             self.categories()
                 .iter()
                 .filter_map(|cat| {
@@ -414,11 +415,11 @@ impl Repo {
 
     /// Return the set of inherited architectures sorted by name.
     pub fn arches(&self) -> &IndexSet<Arch> {
-        self.arches.get_or_init(|| {
+        self.0.arches.get_or_init(|| {
             let mut arches: IndexSet<_> = self
                 .trees()
                 .rev()
-                .flat_map(|r| r.metadata.arches().clone())
+                .flat_map(|r| r.metadata().arches().clone())
                 .collect();
             arches.sort();
             arches
@@ -427,11 +428,11 @@ impl Repo {
 
     /// Return the set of inherited licenses sorted by name.
     pub fn licenses(&self) -> &IndexSet<String> {
-        self.licenses.get_or_init(|| {
+        self.0.licenses.get_or_init(|| {
             let mut licenses: IndexSet<_> = self
                 .trees()
                 .rev()
-                .flat_map(|r| r.metadata.licenses().clone())
+                .flat_map(|r| r.metadata().licenses().clone())
                 .collect();
             licenses.sort();
             licenses
@@ -440,11 +441,11 @@ impl Repo {
 
     /// Return the mapping of license groups merged via inheritance.
     pub fn license_groups(&self) -> &IndexMap<String, IndexSet<String>> {
-        self.license_groups.get_or_init(|| {
+        self.0.license_groups.get_or_init(|| {
             let mut license_groups: IndexMap<_, _> = self
                 .trees()
                 .rev()
-                .flat_map(|r| r.metadata.license_groups().clone())
+                .flat_map(|r| r.metadata().license_groups().clone())
                 .collect();
             license_groups.sort_keys();
             license_groups
@@ -453,11 +454,11 @@ impl Repo {
 
     /// Return the set of mirrors merged via inheritance.
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
-        self.mirrors.get_or_init(|| {
+        self.0.mirrors.get_or_init(|| {
             let mut mirrors: IndexMap<_, _> = self
                 .trees()
                 .rev()
-                .flat_map(|r| r.metadata.mirrors().clone())
+                .flat_map(|r| r.metadata().mirrors().clone())
                 .collect();
             mirrors.sort_keys();
             mirrors
@@ -466,15 +467,17 @@ impl Repo {
 
     /// Return the shared metadata for a given package.
     pub fn pkg_metadata(&self, cpn: &Cpn) -> crate::Result<Arc<xml::Metadata>> {
-        self.metadata_cache
-            .get_or_init(|| ArcCache::<xml::Metadata>::new(self.arc()))
+        self.0
+            .metadata_cache
+            .get_or_init(|| ArcCache::<xml::Metadata>::new(self.clone()))
             .get(cpn)
     }
 
     /// Return the shared manifest for a given package.
     pub fn pkg_manifest(&self, cpn: &Cpn) -> crate::Result<Arc<Manifest>> {
-        self.manifest_cache
-            .get_or_init(|| ArcCache::<Manifest>::new(self.arc()))
+        self.0
+            .manifest_cache
+            .get_or_init(|| ArcCache::<Manifest>::new(self.clone()))
             .get(cpn)
     }
 
@@ -509,23 +512,23 @@ impl Repo {
     }
 
     pub fn iter_cpn(&self) -> IterCpn {
-        IterCpn::new(self, None)
+        IterCpn::new(self.clone(), None)
     }
 
     /// Return a filtered iterator of unversioned Deps for the repo.
-    pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpnRestrict<'_> {
+    pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpnRestrict {
         let restrict = val.into();
         IterCpnRestrict {
-            iter: IterCpn::new(self, Some(&restrict)),
+            iter: IterCpn::new(self.clone(), Some(&restrict)),
             restrict,
         }
     }
 
     /// Return a filtered iterator of Cpvs for the repo.
-    pub fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpvRestrict<'_> {
+    pub fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpvRestrict {
         let restrict = val.into();
         IterCpvRestrict {
-            iter: IterCpv::new(self, Some(&restrict)),
+            iter: IterCpv::new(self.clone(), Some(&restrict)),
             restrict,
         }
     }
@@ -536,7 +539,7 @@ impl Repo {
     }
 
     /// Return a filtered iterator of raw packages for the repo.
-    pub fn iter_raw_restrict<R: Into<Restrict>>(&self, val: R) -> IterRawRestrict<'_> {
+    pub fn iter_raw_restrict<R: Into<Restrict>>(&self, val: R) -> IterRawRestrict {
         let restrict = val.into();
         IterRawRestrict {
             iter: IterRaw::new(self, Some(&restrict)),
@@ -559,14 +562,14 @@ impl Repo {
         Error: From<<T as TryInto<Cpv>>::Error>,
     {
         let cpv = value.try_into()?;
-        ebuild::raw::Pkg::try_new(cpv, self)
+        ebuild::raw::Pkg::try_new(cpv, self.clone())
     }
 
     /// Scan the deprecated package list returning the first match for a given dependency.
     pub fn deprecated(&self, dep: &Dep) -> Option<&Dep> {
         if dep.blocker().is_none() {
             if let Some(pkg) = self
-                .metadata
+                .metadata()
                 .pkg_deprecated()
                 .iter()
                 .find(|x| x.intersects(dep))
@@ -585,28 +588,28 @@ impl Repo {
     }
 
     /// Return a configured repo using the given config settings.
-    pub fn configure<T: Into<Arc<Settings>>>(&self, settings: T) -> configured::Repo {
-        configured::Repo::new(self.arc(), settings.into())
+    pub fn configure<T: Into<Arc<Settings>>>(&self, settings: T) -> configured::ConfiguredRepo {
+        configured::ConfiguredRepo::new(self.clone(), settings.into())
     }
 }
 
-impl fmt::Display for Repo {
+impl fmt::Display for EbuildRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.name(), self.path())
     }
 }
 
-impl PkgRepository for Repo {
-    type Pkg<'a> = ebuild::Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = IterCpv<'a> where Self: 'a;
-    type Iter<'a> = Iter<'a> where Self: 'a;
-    type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
+impl PkgRepository for EbuildRepo {
+    type Pkg = ebuild::Pkg;
+    type IterCpv = IterCpv;
+    type Iter = Iter;
+    type IterRestrict = IterRestrict;
 
     fn categories(&self) -> IndexSet<String> {
         // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories: IndexSet<_> = self
             .trees()
-            .flat_map(|r| r.metadata.categories().clone())
+            .flat_map(|r| r.metadata().categories().clone())
             .collect();
         categories.sort();
         if categories.is_empty() {
@@ -675,14 +678,14 @@ impl PkgRepository for Repo {
     }
 
     fn iter_cpv(&self) -> IterCpv {
-        IterCpv::new(self, None)
+        IterCpv::new(self.clone(), None)
     }
 
-    fn iter(&self) -> Self::Iter<'_> {
+    fn iter(&self) -> Self::Iter {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         let restrict = val.into();
         IterRestrict {
             iter: Iter::new(self, Some(&restrict)),
@@ -691,17 +694,17 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Repository for Repo {
+impl Repository for EbuildRepo {
     fn format(&self) -> RepoFormat {
         self.repo_config().format
     }
 
     fn id(&self) -> &str {
-        &self.metadata.id
+        &self.metadata().id
     }
 
     fn name(&self) -> &str {
-        &self.metadata.name
+        &self.metadata().name
     }
 
     fn priority(&self) -> i32 {
@@ -768,27 +771,27 @@ impl Repository for Repo {
     }
 }
 
-impl Contains<&Cpn> for Repo {
+impl Contains<&Cpn> for EbuildRepo {
     fn contains(&self, cpn: &Cpn) -> bool {
         self.path().join(cpn.to_string()).exists()
     }
 }
 
-impl Contains<&Cpv> for Repo {
+impl Contains<&Cpv> for EbuildRepo {
     fn contains(&self, cpv: &Cpv) -> bool {
         self.path().join(cpv.relpath()).exists()
     }
 }
 
-impl Contains<&Dep> for Repo {
+impl Contains<&Dep> for EbuildRepo {
     fn contains(&self, dep: &Dep) -> bool {
         self.iter_restrict(dep).next().is_some()
     }
 }
 
-impl<'a> IntoIterator for &'a Repo {
-    type Item = ebuild::Pkg<'a>;
-    type IntoIter = Iter<'a>;
+impl IntoIterator for &EbuildRepo {
+    type Item = ebuild::Pkg;
+    type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
         Iter::new(self, None)
@@ -796,20 +799,20 @@ impl<'a> IntoIterator for &'a Repo {
 }
 
 /// Iterable of valid ebuild packages.
-pub struct Iter<'a> {
-    iter: IterRaw<'a>,
-    repo: &'a Repo,
+pub struct Iter {
+    iter: IterRaw,
+    repo: EbuildRepo,
 }
 
-impl<'a> Iter<'a> {
-    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
+impl Iter {
+    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         let iter = IterRaw::new(repo, restrict);
-        Self { iter, repo }
+        Self { iter, repo: repo.clone() }
     }
 }
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = ebuild::Pkg<'a>;
+impl Iterator for Iter {
+    type Item = ebuild::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         for raw_pkg in &mut self.iter {
@@ -823,24 +826,24 @@ impl<'a> Iterator for Iter<'a> {
 }
 
 /// Iterable of valid, raw ebuild packages.
-pub struct IterRaw<'a> {
-    iter: IterCpv<'a>,
-    repo: &'a Repo,
+pub struct IterRaw {
+    iter: IterCpv,
+    repo: EbuildRepo,
 }
 
-impl<'a> IterRaw<'a> {
-    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
-        let iter = IterCpv::new(repo, restrict);
-        Self { iter, repo }
+impl IterRaw {
+    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
+        let iter = IterCpv::new(repo.clone(), restrict);
+        Self { iter, repo: repo.clone() }
     }
 }
 
-impl<'a> Iterator for IterRaw<'a> {
-    type Item = ebuild::raw::Pkg<'a>;
+impl Iterator for IterRaw {
+    type Item = ebuild::raw::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         for cpv in &mut self.iter {
-            match ebuild::raw::Pkg::try_new(cpv, self.repo) {
+            match ebuild::raw::Pkg::try_new(cpv, self.repo.clone()) {
                 Ok(pkg) => return Some(pkg),
                 Err(e) => warn!("{}: {e}", self.repo.id()),
             }
@@ -850,10 +853,10 @@ impl<'a> Iterator for IterRaw<'a> {
 }
 
 /// Iterable of [`Cpn`] objects.
-pub struct IterCpn<'a>(Box<dyn Iterator<Item = Cpn> + 'a>);
+pub struct IterCpn(Box<dyn Iterator<Item = Cpn>>);
 
-impl<'a> IterCpn<'a> {
-    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
+impl IterCpn {
+    fn new(repo: EbuildRepo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package};
         use StrRestrict::Equal;
         let mut cat_restricts = vec![];
@@ -974,7 +977,7 @@ impl<'a> IterCpn<'a> {
     }
 }
 
-impl<'a> Iterator for IterCpn<'a> {
+impl Iterator for IterCpn {
     type Item = Cpn;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -983,10 +986,10 @@ impl<'a> Iterator for IterCpn<'a> {
 }
 
 /// Iterable of [`Cpv`] objects.
-pub struct IterCpv<'a>(Box<dyn Iterator<Item = Cpv> + 'a>);
+pub struct IterCpv(Box<dyn Iterator<Item = Cpv>>);
 
-impl<'a> IterCpv<'a> {
-    fn new(repo: &'a Repo, restrict: Option<&Restrict>) -> Self {
+impl IterCpv {
+    fn new(repo: EbuildRepo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package, Version};
         use StrRestrict::Equal;
         let mut cat_restricts = vec![];
@@ -1109,7 +1112,7 @@ impl<'a> IterCpv<'a> {
                     repo.categories()
                         .into_iter()
                         .filter(move |s| cat_restrict.matches(s.as_str()))
-                        .flat_map(|s| repo.cpvs_from_category(&s))
+                        .flat_map(move |s| repo.cpvs_from_category(&s))
                         .filter(move |cpv| pkg_restrict.matches(cpv)),
                 )
             }
@@ -1117,7 +1120,7 @@ impl<'a> IterCpv<'a> {
     }
 }
 
-impl<'a> Iterator for IterCpv<'a> {
+impl Iterator for IterCpv {
     type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1126,13 +1129,13 @@ impl<'a> Iterator for IterCpv<'a> {
 }
 
 /// Iterable of valid ebuild packages matching a given restriction.
-pub struct IterRestrict<'a> {
-    iter: Iter<'a>,
+pub struct IterRestrict {
+    iter: Iter,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for IterRestrict<'a> {
-    type Item = ebuild::Pkg<'a>;
+impl Iterator for IterRestrict {
+    type Item = ebuild::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
@@ -1140,12 +1143,12 @@ impl<'a> Iterator for IterRestrict<'a> {
 }
 
 /// Iterable of [`Cpn`] objects matching a given restriction.
-pub struct IterCpnRestrict<'a> {
-    iter: IterCpn<'a>,
+pub struct IterCpnRestrict {
+    iter: IterCpn,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for IterCpnRestrict<'a> {
+impl Iterator for IterCpnRestrict {
     type Item = Cpn;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1154,12 +1157,12 @@ impl<'a> Iterator for IterCpnRestrict<'a> {
 }
 
 /// Iterable of [`Cpv`] objects matching a given restriction.
-pub struct IterCpvRestrict<'a> {
-    iter: IterCpv<'a>,
+pub struct IterCpvRestrict {
+    iter: IterCpv,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for IterCpvRestrict<'a> {
+impl Iterator for IterCpvRestrict {
     type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1168,13 +1171,13 @@ impl<'a> Iterator for IterCpvRestrict<'a> {
 }
 
 /// Iterable of valid, raw ebuild packages matching a given restriction.
-pub struct IterRawRestrict<'a> {
-    iter: IterRaw<'a>,
+pub struct IterRawRestrict {
+    iter: IterRaw,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for IterRawRestrict<'a> {
-    type Item = ebuild::raw::Pkg<'a>;
+impl Iterator for IterRawRestrict {
+    type Item = ebuild::raw::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
@@ -1203,7 +1206,7 @@ mod tests {
         let repos_dir = TEST_DATA.path().join("repos");
 
         // none
-        let repo = Repo::from_path("a", 0, repos_dir.join("valid/primary")).unwrap();
+        let repo = EbuildRepo::from_path("a", 0, repos_dir.join("valid/primary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
             .unwrap();
@@ -1212,13 +1215,13 @@ mod tests {
         assert_ordered_eq!(repo.trees().map(|r| r.id().to_string()), ["a"]);
 
         // nonexistent
-        let repo =
-            Repo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters")).unwrap();
+        let repo = EbuildRepo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters"))
+            .unwrap();
         let r = config.add_repo_path(repo.id(), repo.path().as_str(), 0, false);
         assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
 
         // single
-        let repo = Repo::from_path("b", 0, repos_dir.join("valid/secondary")).unwrap();
+        let repo = EbuildRepo::from_path("b", 0, repos_dir.join("valid/secondary")).unwrap();
         let repo = config
             .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
             .unwrap();
@@ -1233,7 +1236,7 @@ mod tests {
 
         // invalid profiles/eapi file
         let path = repos_dir.join("invalid-eapi");
-        let r = Repo::from_path(&path, 0, &path);
+        let r = EbuildRepo::from_path(&path, 0, &path);
         assert_err_re!(
             r,
             format!(r##"^invalid repo: {path}: profiles/eapi: invalid EAPI: "# invalid\\n8""##)
@@ -1241,7 +1244,7 @@ mod tests {
 
         // nonexistent profiles/repo_name file
         let path = repos_dir.join("missing-name");
-        let r = Repo::from_path(&path, 0, &path);
+        let r = EbuildRepo::from_path(&path, 0, &path);
         assert_err_re!(
             r,
             format!("^invalid repo: {path}: profiles/repo_name: No such file or directory")
@@ -1256,7 +1259,7 @@ mod tests {
         assert_eq!(repo.name(), "primary");
 
         // repo id differs from name
-        let repo = Repo::from_path("name", 0, repo.path()).unwrap();
+        let repo = EbuildRepo::from_path("name", 0, repo.path()).unwrap();
         assert_eq!(repo.id(), "name");
         assert_eq!(repo.name(), "primary");
     }

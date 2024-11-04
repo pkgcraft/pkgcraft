@@ -90,9 +90,9 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given duration per package.
-fn benchmark<'a, I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
+fn benchmark<I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = ebuild::raw::Pkg<'a>>,
+    I: Iterator<Item = ebuild::raw::Pkg>,
 {
     let mut failed = false;
     let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<(String, Vec<Duration>)> {
@@ -166,9 +166,9 @@ where
 }
 
 /// Run package sourcing a single time per package.
-fn source<'a, I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
+fn source<I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = ebuild::raw::Pkg<'a>>,
+    I: Iterator<Item = ebuild::raw::Pkg>,
 {
     let mut failed = false;
     let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<(String, Duration)> {

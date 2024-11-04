@@ -12,7 +12,7 @@ fn run() {
     repo.create_pkg("cat/a-1", &[]).unwrap();
     repo.create_pkg("cat/b-1", &[]).unwrap();
     repo.create_pkg("cat/b-2", &[]).unwrap();
-    let path = repo.metadata.cache().path();
+    let path = repo.metadata().cache().path();
 
     // generate cache
     cmd("pk repo metadata regen")

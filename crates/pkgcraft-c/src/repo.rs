@@ -221,7 +221,7 @@ pub unsafe extern "C" fn pkgcraft_repo_free(r: *mut Repo) {
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_iter_cpv<'a>(r: *mut Repo) -> *mut RepoIterCpv<'a> {
+pub unsafe extern "C" fn pkgcraft_repo_iter_cpv(r: *mut Repo) -> *mut RepoIterCpv {
     let repo = try_ref_from_ptr!(r);
     Box::into_raw(Box::new(repo.iter_cpv()))
 }
@@ -254,7 +254,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_free(i: *mut RepoIterCpv) {
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_iter<'a>(r: *mut Repo) -> *mut RepoIter<'a> {
+pub unsafe extern "C" fn pkgcraft_repo_iter(r: *mut Repo) -> *mut RepoIter {
     let repo = try_ref_from_ptr!(r);
     Box::into_raw(Box::new(repo.iter()))
 }
@@ -288,10 +288,10 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_free(i: *mut RepoIter) {
 /// The repo argument must be a non-null Repo pointer and the restrict argument must be a non-null
 /// Restrict pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_iter_restrict<'a>(
+pub unsafe extern "C" fn pkgcraft_repo_iter_restrict(
     repo: *mut Repo,
     restrict: *mut Restrict,
-) -> *mut RepoIterRestrict<'a> {
+) -> *mut RepoIterRestrict {
     let repo = try_ref_from_ptr!(repo);
     let restrict = try_ref_from_ptr!(restrict);
     Box::into_raw(Box::new(repo.iter_restrict(restrict.clone())))

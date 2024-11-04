@@ -13,82 +13,95 @@ use crate::repo::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
 
+use super::EbuildRepo;
+
 /// Configured ebuild repository.
 #[derive(Debug)]
-pub struct Repo {
-    raw: Arc<super::Repo>,
+struct Repo {
+    raw: EbuildRepo,
     settings: Arc<Settings>,
 }
 
-impl<'a> From<&'a Repo> for &'a super::Repo {
-    fn from(repo: &'a Repo) -> Self {
-        repo.raw.as_ref()
+impl<'a> From<&'a ConfiguredRepo> for &'a EbuildRepo {
+    fn from(repo: &'a ConfiguredRepo) -> Self {
+        &repo.0.raw
     }
 }
 
-impl PartialEq for Repo {
+#[derive(Debug, Clone)]
+pub struct ConfiguredRepo(Arc<Repo>);
+
+impl Deref for ConfiguredRepo {
+    type Target = EbuildRepo;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.raw
+    }
+}
+
+impl PartialEq for ConfiguredRepo {
     fn eq(&self, other: &Self) -> bool {
         self.path() == other.path()
     }
 }
 
-impl Eq for Repo {}
+impl Eq for ConfiguredRepo {}
 
-impl Hash for Repo {
+impl Hash for ConfiguredRepo {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.path().hash(state);
     }
 }
 
-make_repo_traits!(Repo);
+make_repo_traits!(ConfiguredRepo);
 
-impl Repo {
-    pub(super) fn new(raw: Arc<super::Repo>, settings: Arc<Settings>) -> Self {
-        Repo { raw, settings }
+impl ConfiguredRepo {
+    pub(super) fn new(raw: EbuildRepo, settings: Arc<Settings>) -> Self {
+        ConfiguredRepo(Arc::new(Repo { raw, settings }))
     }
 
     pub(crate) fn repo_config(&self) -> &RepoConfig {
-        self.raw.repo_config()
+        self.0.raw.repo_config()
     }
 }
 
-impl fmt::Display for Repo {
+impl fmt::Display for ConfiguredRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.raw)
+        write!(f, "{}", self.0.raw)
     }
 }
 
-impl PkgRepository for Repo {
-    type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = <super::Repo as PkgRepository>::IterCpv<'a> where Self: 'a;
-    type Iter<'a> = Iter<'a> where Self: 'a;
-    type IterRestrict<'a> = IterRestrict<'a> where Self: 'a;
+impl PkgRepository for ConfiguredRepo {
+    type Pkg = Pkg;
+    type IterCpv = <EbuildRepo as PkgRepository>::IterCpv;
+    type Iter = Iter;
+    type IterRestrict = IterRestrict;
 
     fn categories(&self) -> IndexSet<String> {
-        self.raw.categories()
+        self.0.raw.categories()
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
-        self.raw.packages(cat)
+        self.0.raw.packages(cat)
     }
 
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
-        self.raw.versions(cat, pkg)
+        self.0.raw.versions(cat, pkg)
     }
 
     fn len(&self) -> usize {
-        self.raw.len()
+        self.0.raw.len()
     }
 
-    fn iter_cpv(&self) -> Self::IterCpv<'_> {
-        self.raw.iter_cpv()
+    fn iter_cpv(&self) -> Self::IterCpv {
+        self.0.raw.iter_cpv()
     }
 
-    fn iter(&self) -> Self::Iter<'_> {
+    fn iter(&self) -> Self::Iter {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         IterRestrict {
             iter: self.into_iter(),
             restrict: val.into(),
@@ -96,91 +109,83 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpn> for Repo {
+impl Contains<&Cpn> for ConfiguredRepo {
     fn contains(&self, cpn: &Cpn) -> bool {
-        self.raw.contains(cpn)
+        self.0.raw.contains(cpn)
     }
 }
 
-impl Contains<&Cpv> for Repo {
+impl Contains<&Cpv> for ConfiguredRepo {
     fn contains(&self, cpv: &Cpv) -> bool {
-        self.raw.contains(cpv)
+        self.0.raw.contains(cpv)
     }
 }
 
-impl Contains<&Dep> for Repo {
+impl Contains<&Dep> for ConfiguredRepo {
     fn contains(&self, dep: &Dep) -> bool {
-        self.raw.contains(dep)
+        self.0.raw.contains(dep)
     }
 }
 
-impl Repository for Repo {
+impl Repository for ConfiguredRepo {
     fn format(&self) -> RepoFormat {
         RepoFormat::Configured
     }
 
     fn id(&self) -> &str {
-        self.raw.id()
+        self.0.raw.id()
     }
 
     fn priority(&self) -> i32 {
-        self.raw.priority()
+        self.0.raw.priority()
     }
 
     fn path(&self) -> &Utf8Path {
-        self.raw.path()
+        self.0.raw.path()
     }
 
     fn sync(&self) -> crate::Result<()> {
-        self.raw.sync()
+        self.0.raw.sync()
     }
 }
 
-impl<'a> IntoIterator for &'a Repo {
-    type Item = Pkg<'a>;
-    type IntoIter = Iter<'a>;
+impl IntoIterator for &ConfiguredRepo {
+    type Item = Pkg;
+    type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            iter: super::Iter::new(self.raw.as_ref(), None),
-            repo: self,
+            iter: super::Iter::new(&self.0.raw, None),
+            repo: self.clone(),
         }
     }
 }
 
-pub struct Iter<'a> {
-    iter: super::Iter<'a>,
-    repo: &'a Repo,
+pub struct Iter {
+    iter: super::Iter,
+    repo: ConfiguredRepo,
 }
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = Pkg<'a>;
+impl Iterator for Iter {
+    type Item = Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|pkg| Pkg::new(self.repo, self.repo.settings.as_ref(), pkg))
+            .map(|pkg| Pkg::new(self.repo.clone(), self.repo.0.settings.clone(), pkg))
     }
 }
 
-pub struct IterRestrict<'a> {
-    iter: Iter<'a>,
+pub struct IterRestrict {
+    iter: Iter,
     restrict: Restrict,
 }
 
-impl<'a> Iterator for IterRestrict<'a> {
-    type Item = Pkg<'a>;
+impl Iterator for IterRestrict {
+    type Item = Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))
-    }
-}
-
-impl Deref for Repo {
-    type Target = super::Repo;
-
-    fn deref(&self) -> &Self::Target {
-        &self.raw
     }
 }
 

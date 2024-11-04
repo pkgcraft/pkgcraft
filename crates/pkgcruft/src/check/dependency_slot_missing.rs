@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
-use pkgcraft::repo::{ebuild::Repo, PkgRepository};
+use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 
 use crate::report::ReportKind::DependencySlotMissing;
 use crate::scanner::ReportFilter;
@@ -19,12 +19,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check { repo }
 }
 
 struct Check {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);

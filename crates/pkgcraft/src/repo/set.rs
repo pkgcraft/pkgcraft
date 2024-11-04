@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::Pkg;
-use crate::repo::ebuild::Repo as EbuildRepo;
+use crate::repo::ebuild::EbuildRepo;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
@@ -29,9 +29,7 @@ impl RepoSet {
 
     /// Iterate over all ebuild repos in the set.
     pub fn ebuild(&self) -> impl Iterator<Item = &EbuildRepo> {
-        self.repos
-            .iter()
-            .filter_map(|r| r.as_ebuild().map(|x| x.as_ref()))
+        self.repos.iter().filter_map(|r| r.as_ebuild())
     }
 
     /// Filter a repo set using repo restrictions.
@@ -87,10 +85,10 @@ impl From<&Repo> for RepoSet {
 }
 
 impl PkgRepository for RepoSet {
-    type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = IterCpv where Self: 'a;
-    type Iter<'a> = Iter<'a> where Self: 'a;
-    type IterRestrict<'a> = Iter<'a> where Self: 'a;
+    type Pkg = Pkg;
+    type IterCpv = IterCpv;
+    type Iter = Iter;
+    type IterRestrict = Iter;
 
     fn categories(&self) -> IndexSet<String> {
         let mut cats: IndexSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
@@ -118,17 +116,17 @@ impl PkgRepository for RepoSet {
         self.iter().count()
     }
 
-    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+    fn iter_cpv(&self) -> Self::IterCpv {
         let mut cpvs: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpv()).collect();
         cpvs.sort();
         IterCpv(cpvs.into_iter())
     }
 
-    fn iter(&self) -> Self::Iter<'_> {
+    fn iter(&self) -> Self::Iter {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict<'_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         let restrict = val.into();
 
         // extract repo restrictions for filtering
@@ -156,7 +154,8 @@ impl PkgRepository for RepoSet {
 
         Iter(Box::new(
             self.repos
-                .iter()
+                .clone()
+                .into_iter()
                 .filter(move |r| repo_restrict.matches(r.id()))
                 .flat_map(move |r| r.iter_restrict(restrict.clone())),
         ))
@@ -204,19 +203,19 @@ impl IntoIterator for RepoSet {
 // replace boxed type with a generic type.
 //
 // See https://github.com/rust-lang/rust/issues/63063
-pub struct Iter<'a>(Box<dyn Iterator<Item = Pkg<'a>> + 'a>);
+pub struct Iter(Box<dyn Iterator<Item = Pkg>>);
 
-impl<'a> IntoIterator for &'a RepoSet {
-    type Item = Pkg<'a>;
-    type IntoIter = Iter<'a>;
+impl IntoIterator for &RepoSet {
+    type Item = Pkg;
+    type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter(Box::new(self.repos.iter().flat_map(|r| r.into_iter())))
+        Iter(Box::new(self.repos.clone().into_iter().flat_map(|r| r.into_iter())))
     }
 }
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = Pkg<'a>;
+impl Iterator for Iter {
+    type Item = Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
@@ -355,7 +354,8 @@ impl SubAssign<&Repo> for RepoSet {
 mod tests {
     use crate::config::Config;
     use crate::pkg::RepoPackage;
-    use crate::repo::{fake, Contains, Repository};
+    use crate::repo::fake::FakeRepo;
+    use crate::repo::{Contains, Repository};
     use crate::test::assert_ordered_eq;
     use crate::utils::hash;
 
@@ -369,16 +369,16 @@ mod tests {
         assert_eq!(hash(s1), hash(s2));
 
         // different parameter order are still sorted lexically by repo id
-        let r1: Repo = fake::Repo::new("r1", 0).into();
-        let r2: Repo = fake::Repo::new("r2", 0).into();
+        let r1: Repo = FakeRepo::new("r1", 0).into();
+        let r2: Repo = FakeRepo::new("r2", 0).into();
         let s1 = RepoSet::from_iter([&r1, &r2]);
         let s2 = RepoSet::from_iter([&r2, &r1]);
         assert_eq!(s1, s2);
         assert_eq!(hash(s1), hash(s2));
 
         // higher priority repos come before lower priority ones
-        let r1: Repo = fake::Repo::new("r1", -1).into();
-        let r2: Repo = fake::Repo::new("r2", 0).into();
+        let r1: Repo = FakeRepo::new("r1", -1).into();
+        let r2: Repo = FakeRepo::new("r2", 0).into();
         let s1 = RepoSet::from_iter([&r1]);
         let s2 = RepoSet::from_iter([&r2]);
         assert!(s2 < s1);
@@ -391,8 +391,8 @@ mod tests {
         let s = RepoSet::new();
         assert!(s.repos.is_empty());
 
-        let r1: Repo = fake::Repo::new("r1", 0).into();
-        let r2: Repo = fake::Repo::new("r2", 0).into();
+        let r1: Repo = FakeRepo::new("r1", 0).into();
+        let r2: Repo = FakeRepo::new("r2", 0).into();
         let s = RepoSet::from_iter([&r1, &r2]);
         assert_ordered_eq!(&s.repos, [&r1, &r2]);
         // different parameter order are still sorted lexically by repo id
@@ -400,8 +400,8 @@ mod tests {
         assert_ordered_eq!(&s.repos, [&r1, &r2]);
 
         // higher priority repos come before lower priority ones
-        let r1: Repo = fake::Repo::new("r1", -1).into();
-        let r2: Repo = fake::Repo::new("r2", 0).into();
+        let r1: Repo = FakeRepo::new("r1", -1).into();
+        let r2: Repo = FakeRepo::new("r2", 0).into();
         let s = RepoSet::from_iter([&r1, &r2]);
         assert_ordered_eq!(&s.repos, [&r2, &r1]);
     }
@@ -410,7 +410,7 @@ mod tests {
     fn repo_traits() {
         let mut config = Config::default();
         let ebuild_repo = config.temp_repo("test", 0, None).unwrap();
-        let fake_repo = fake::Repo::new("fake", 0);
+        let fake_repo = FakeRepo::new("fake", 0);
 
         let e_repo: Repo = (&ebuild_repo).into();
         let f_repo: Repo = fake_repo.into();
@@ -457,7 +457,7 @@ mod tests {
         assert!(s.contains(&dep));
 
         // multiple pkgs of different types
-        let fake_repo = fake::Repo::new("fake", 0).pkgs(["cat/pkg-1"]);
+        let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
         let f_repo: Repo = fake_repo.into();
         let s = RepoSet::from_iter([&e_repo, &f_repo]);
         assert_ordered_eq!(s.categories(), ["cat"]);
@@ -482,10 +482,10 @@ mod tests {
         let cpv2 = Cpv::try_new("cat/pkg-2").unwrap();
         let cpv3 = Cpv::try_new("cat/pkg-3").unwrap();
         let cpv4 = Cpv::try_new("cat/pkg-4").unwrap();
-        let r1: Repo = fake::Repo::new("1", 0).pkgs([&cpv1]).into();
-        let r2: Repo = fake::Repo::new("2", 0).pkgs([&cpv2]).into();
-        let r3: Repo = fake::Repo::new("3", 0).pkgs([&cpv3]).into();
-        let r4: Repo = fake::Repo::new("4", 0).pkgs([&cpv4]).into();
+        let r1: Repo = FakeRepo::new("1", 0).pkgs([&cpv1]).unwrap().into();
+        let r2: Repo = FakeRepo::new("2", 0).pkgs([&cpv2]).unwrap().into();
+        let r3: Repo = FakeRepo::new("3", 0).pkgs([&cpv3]).unwrap().into();
+        let r4: Repo = FakeRepo::new("4", 0).pkgs([&cpv4]).unwrap().into();
 
         // intersection
         // repo set and repo

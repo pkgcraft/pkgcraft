@@ -4,7 +4,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::dep::{Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
-use crate::repo::ebuild::{Eclass, Repo};
+use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::shell::phase::Phase;
 use crate::types::OrderedSet;
 use crate::Error;
@@ -73,7 +73,7 @@ impl MetadataRaw {
 /// This is created via deserializing metadata cache entries or pulled directly from the
 /// environment after sourcing an ebuild.
 #[derive(Debug, Default, Clone)]
-pub struct Metadata<'a> {
+pub struct Metadata {
     pub(crate) eapi: &'static Eapi,
     pub(crate) description: String,
     pub(crate) slot: Slot,
@@ -91,17 +91,17 @@ pub struct Metadata<'a> {
     pub(crate) defined_phases: OrderedSet<Phase>,
     pub(crate) keywords: OrderedSet<Keyword>,
     pub(crate) iuse: OrderedSet<Iuse>,
-    pub(crate) inherit: OrderedSet<&'a Eclass>,
-    pub(crate) inherited: OrderedSet<&'a Eclass>,
+    pub(crate) inherit: OrderedSet<Eclass>,
+    pub(crate) inherited: OrderedSet<Eclass>,
     pub(crate) chksum: String,
 }
 
-impl<'a> Metadata<'a> {
+impl Metadata {
     /// Deserialize a metadata string value to its field value.
     pub(crate) fn deserialize(
         &mut self,
         eapi: &'static Eapi,
-        repo: &'a Repo,
+        repo: &EbuildRepo,
         key: &Key,
         val: &str,
     ) -> crate::Result<()> {

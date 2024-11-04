@@ -6,7 +6,7 @@ use std::thread;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
 use pkgcraft::dep::Cpn;
-use pkgcraft::repo::{ebuild, Repo};
+use pkgcraft::repo::{ebuild::EbuildRepo, Repo};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
@@ -145,7 +145,7 @@ impl Scanner {
 // TODO: use multiple producers to push restrictions
 /// Create a producer thread that sends restrictions over the channel to the workers.
 fn producer(
-    repo: &'static ebuild::Repo,
+    repo: &'static EbuildRepo,
     restricts: Vec<Restrict>,
     tx: Sender<Cpn>,
 ) -> thread::JoinHandle<()> {

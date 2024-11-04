@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Stable;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::ReportKind::{
@@ -22,12 +22,12 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check { repo }
 }
 
 struct Check {
-    repo: &'static Repo,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);
@@ -55,7 +55,7 @@ impl EbuildPkgCheck for Check {
         }
 
         let eapi = pkg.eapi().as_str();
-        if self.repo.metadata.config.eapis_testing.contains(eapi) {
+        if self.repo.metadata().config.eapis_testing.contains(eapi) {
             let keywords = pkg
                 .keywords()
                 .iter()

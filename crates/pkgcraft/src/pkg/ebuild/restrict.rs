@@ -44,8 +44,8 @@ impl From<Restrict> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for BaseRestrict {
-    fn matches(&self, pkg: &'a ebuild::raw::Pkg<'a>) -> bool {
+impl Restriction<&ebuild::raw::Pkg> for BaseRestrict {
+    fn matches(&self, pkg: &ebuild::raw::Pkg) -> bool {
         crate::restrict::restrict_match! {self, pkg,
             Self::Dep(r) => r.matches(pkg),
             Self::Pkg(r) => r.matches(pkg),
@@ -53,8 +53,8 @@ impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for DepRestrict {
-    fn matches(&self, pkg: &'a ebuild::raw::Pkg<'a>) -> bool {
+impl Restriction<&ebuild::raw::Pkg> for DepRestrict {
+    fn matches(&self, pkg: &ebuild::raw::Pkg) -> bool {
         use DepRestrict::*;
         match self {
             Repo(Some(r)) => r.matches(pkg.repo().id()),
@@ -63,8 +63,8 @@ impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for DepRestrict {
     }
 }
 
-impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for pkg::Restrict {
-    fn matches(&self, pkg: &'a ebuild::raw::Pkg<'a>) -> bool {
+impl Restriction<&ebuild::raw::Pkg> for pkg::Restrict {
+    fn matches(&self, pkg: &ebuild::raw::Pkg) -> bool {
         use pkg::Restrict::*;
         match self {
             Repo(r) => r.matches(pkg.repo().id()),
@@ -73,8 +73,8 @@ impl<'a> Restriction<&'a ebuild::raw::Pkg<'a>> for pkg::Restrict {
     }
 }
 
-impl<'a> Restriction<&'a ebuild::Pkg<'a>> for BaseRestrict {
-    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
+impl Restriction<&ebuild::Pkg> for BaseRestrict {
+    fn matches(&self, pkg: &ebuild::Pkg) -> bool {
         crate::restrict::restrict_match! {self, pkg,
             Self::Dep(r) => r.matches(pkg),
             Self::Pkg(r) => r.matches(pkg),
@@ -82,8 +82,8 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for BaseRestrict {
     }
 }
 
-impl<'a> Restriction<&'a ebuild::Pkg<'a>> for DepRestrict {
-    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
+impl Restriction<&ebuild::Pkg> for DepRestrict {
+    fn matches(&self, pkg: &ebuild::Pkg) -> bool {
         use DepRestrict::*;
         match self {
             Slot(Some(r)) => r.matches(pkg.slot()),
@@ -94,8 +94,8 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for DepRestrict {
     }
 }
 
-impl<'a> Restriction<&'a ebuild::Pkg<'a>> for pkg::Restrict {
-    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
+impl Restriction<&ebuild::Pkg> for pkg::Restrict {
+    fn matches(&self, pkg: &ebuild::Pkg) -> bool {
         use pkg::Restrict::*;
         match self {
             Ebuild(r) => r.matches(pkg),
@@ -105,8 +105,8 @@ impl<'a> Restriction<&'a ebuild::Pkg<'a>> for pkg::Restrict {
     }
 }
 
-impl<'a> Restriction<&'a ebuild::Pkg<'a>> for Restrict {
-    fn matches(&self, pkg: &'a ebuild::Pkg<'a>) -> bool {
+impl Restriction<&ebuild::Pkg> for Restrict {
+    fn matches(&self, pkg: &ebuild::Pkg) -> bool {
         use self::Restrict::*;
         match self {
             Ebuild(r) => match pkg.ebuild() {

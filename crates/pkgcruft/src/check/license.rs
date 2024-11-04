@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::Pkg, Package};
-use pkgcraft::repo::ebuild::Repo;
+use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{LicenseDeprecated, LicenseMissing, LicenseUnneeded};
 use crate::scanner::ReportFilter;
@@ -19,7 +19,7 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static Repo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         deprecated: repo
             .license_groups()

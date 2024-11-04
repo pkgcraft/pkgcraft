@@ -161,11 +161,10 @@ impl TestData {
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::Repo> {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::EbuildRepo> {
         self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
-                .map(|r| r.as_ref())
         })
     }
 }
@@ -216,11 +215,10 @@ impl TestDataPatched {
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::Repo> {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::EbuildRepo> {
         self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
-                .map(|r| r.as_ref())
         })
     }
 }
@@ -301,7 +299,7 @@ pub static TEST_DATA_PATCHED: LazyLock<TestDataPatched> = LazyLock::new(|| {
     // TODO: remove this once implicit metadata regen issues are fixed (#178)
     // explicitly regen metadata caches for patched repos
     for repo in repos.iter().filter_map(|r| r.as_ebuild()) {
-        repo.metadata.cache().regen().run(repo).unwrap();
+        repo.metadata().cache().regen().run(repo).unwrap();
     }
 
     TestDataPatched { tmpdir, config }

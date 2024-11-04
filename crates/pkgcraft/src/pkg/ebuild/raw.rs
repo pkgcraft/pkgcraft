@@ -7,31 +7,31 @@ use crate::eapi::{self, Eapi};
 use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
-use crate::repo::{ebuild::Repo, Repository};
+use crate::repo::{ebuild::EbuildRepo, Repository};
 use crate::traits::{FilterLines, Intersects};
 use crate::Error;
 
 use super::metadata::{Metadata, MetadataRaw};
 
 #[derive(Clone)]
-pub struct Pkg<'a> {
+pub struct Pkg {
     pub(super) cpv: Cpv,
-    pub(super) repo: &'a Repo,
+    pub(super) repo: EbuildRepo,
     pub(super) eapi: &'static Eapi,
     data: String,
     chksum: String,
 }
 
-make_pkg_traits!(Pkg<'_>);
+make_pkg_traits!(Pkg);
 
-impl fmt::Debug for Pkg<'_> {
+impl fmt::Debug for Pkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Pkg {{ {self} }}")
     }
 }
 
-impl<'a> Pkg<'a> {
-    pub(crate) fn try_new(cpv: Cpv, repo: &'a Repo) -> crate::Result<Self> {
+impl Pkg {
+    pub(crate) fn try_new(cpv: Cpv, repo: EbuildRepo) -> crate::Result<Self> {
         let relpath = cpv.relpath();
         let data = fs::read_to_string(repo.path().join(&relpath)).map_err(|e| {
             Error::IO(format!("{}: failed reading ebuild: {relpath}: {e}", repo.id()))
@@ -42,7 +42,7 @@ impl<'a> Pkg<'a> {
             err: e.to_string(),
         })?;
 
-        let chksum = repo.metadata.cache().chksum(&data);
+        let chksum = repo.metadata().cache().chksum(&data);
         Ok(Self { cpv, repo, eapi, data, chksum })
     }
 
@@ -85,7 +85,7 @@ impl<'a> Pkg<'a> {
     /// Load raw metadata from the cache if valid, otherwise source it from the ebuild.
     pub fn metadata_raw(&self) -> crate::Result<MetadataRaw> {
         self.repo
-            .metadata
+            .metadata()
             .cache()
             .get(self)
             .map(|c| c.into_metadata_raw())
@@ -97,9 +97,9 @@ impl<'a> Pkg<'a> {
     }
 
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.
-    pub(crate) fn metadata(&self) -> crate::Result<Metadata<'a>> {
+    pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
         self.repo
-            .metadata
+            .metadata()
             .cache()
             .get(self)
             .and_then(|c| c.to_metadata(self))
@@ -111,7 +111,7 @@ impl<'a> Pkg<'a> {
     }
 }
 
-impl<'a> Package for Pkg<'a> {
+impl Package for Pkg {
     fn eapi(&self) -> &'static Eapi {
         self.eapi
     }
@@ -121,15 +121,15 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-impl<'a> RepoPackage for Pkg<'a> {
-    type Repo = &'a Repo;
+impl RepoPackage for Pkg {
+    type Repo = EbuildRepo;
 
-    fn repo(&self) -> Self::Repo {
-        self.repo
+    fn repo(&self) -> &Self::Repo {
+        &self.repo
     }
 }
 
-impl Intersects<Dep> for Pkg<'_> {
+impl Intersects<Dep> for Pkg {
     fn intersects(&self, dep: &Dep) -> bool {
         bool_not_equal!(self.cpn(), dep.cpn());
 

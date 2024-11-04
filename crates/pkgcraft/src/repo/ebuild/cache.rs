@@ -14,13 +14,13 @@ use crate::repo::{PkgRepository, Repository};
 use crate::traits::Contains;
 use crate::utils::bounded_jobs;
 
-use super::Repo;
+use super::EbuildRepo;
 
 pub(crate) mod md5_dict;
 
 pub trait CacheEntry {
     /// Deserialize a cache entry to package metadata.
-    fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>>;
+    fn to_metadata(&self, pkg: &Pkg) -> crate::Result<Metadata>;
     /// Convert a cache entry into raw package metadata.
     fn into_metadata_raw(self) -> MetadataRaw;
     /// Verify a cache entry is valid.
@@ -40,7 +40,7 @@ pub trait Cache {
     /// Update the cache with the given package metadata.
     fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()>;
     /// Forcibly remove the entire cache.
-    fn remove(&self, repo: &Repo) -> crate::Result<()>;
+    fn remove(&self, repo: &EbuildRepo) -> crate::Result<()>;
     /// Remove outdated entries from the cache.
     fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()>;
 }
@@ -76,7 +76,7 @@ pub enum MetadataCacheEntry {
 }
 
 impl CacheEntry for MetadataCacheEntry {
-    fn to_metadata<'a>(&self, pkg: &Pkg<'a>) -> crate::Result<Metadata<'a>> {
+    fn to_metadata(&self, pkg: &Pkg) -> crate::Result<Metadata> {
         match self {
             Self::Md5Dict(entry) => entry.to_metadata(pkg),
         }
@@ -133,7 +133,7 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn remove(&self, repo: &Repo) -> crate::Result<()> {
+    fn remove(&self, repo: &EbuildRepo) -> crate::Result<()> {
         let path = self.path();
         if !path.starts_with(repo.path()) {
             return Err(Error::IO(format!("removal unsupported for external cache: {path}")));
@@ -227,13 +227,13 @@ impl MetadataCacheRegen<'_> {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn run(&self, repo: &Repo) -> crate::Result<()> {
+    pub fn run(&self, repo: &EbuildRepo) -> crate::Result<()> {
         // collapse lazy repo fields used during metadata generation
         repo.collapse_cache_regen();
 
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| -> scallop::Result<()> {
-            let pkg = Pkg::try_new(cpv, repo)?;
+            let pkg = Pkg::try_new(cpv, repo.clone())?;
             let meta = Metadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
             if !self.verify {
                 self.cache.update(&pkg, &meta)?;
@@ -277,7 +277,7 @@ impl MetadataCacheRegen<'_> {
                     .into_par_iter()
                     .filter(|cpv| {
                         pb.inc(1);
-                        Pkg::try_new(cpv.clone(), repo)
+                        Pkg::try_new(cpv.clone(), repo.clone())
                             .and_then(|pkg| self.cache.get(&pkg))
                             .is_err()
                     })
@@ -346,7 +346,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.metadata.cache().regen().run(&repo);
+        let r = repo.metadata().cache().regen().run(&repo);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

@@ -13,7 +13,7 @@ use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Repo {
     id: String,
     repo_config: RepoConfig,
@@ -75,10 +75,10 @@ impl fmt::Display for Repo {
 }
 
 impl PkgRepository for Repo {
-    type Pkg<'a> = Pkg<'a> where Self: 'a;
-    type IterCpv<'a> = iter::Empty<Cpv> where Self: 'a;
-    type Iter<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
-    type IterRestrict<'a> = iter::Empty<Self::Pkg<'a>> where Self: 'a;
+    type Pkg = Pkg;
+    type IterCpv = iter::Empty<Cpv>;
+    type Iter = iter::Empty<Self::Pkg>;
+    type IterRestrict = iter::Empty<Self::Pkg>;
 
     fn categories(&self) -> IndexSet<String> {
         Default::default()
@@ -96,16 +96,16 @@ impl PkgRepository for Repo {
         0
     }
 
-    fn iter_cpv(&self) -> Self::IterCpv<'_> {
+    fn iter_cpv(&self) -> Self::IterCpv {
         iter::empty::<Cpv>()
     }
 
-    fn iter(&self) -> Self::Iter<'_> {
-        iter::empty::<Self::Pkg<'_>>()
+    fn iter(&self) -> Self::Iter {
+        iter::empty::<Self::Pkg>()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::IterRestrict<'_> {
-        iter::empty::<Self::Pkg<'_>>()
+    fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::IterRestrict {
+        iter::empty::<Self::Pkg>()
     }
 }
 

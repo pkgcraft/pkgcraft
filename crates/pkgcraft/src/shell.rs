@@ -21,7 +21,7 @@ use crate::repo::ebuild::Eclass;
 use crate::repo::Repository;
 use crate::restrict::Restrict;
 use crate::traits::SourceBash;
-use crate::types::Deque;
+use crate::types::{Deque, OrderedSet};
 
 pub mod commands;
 pub mod environment;
@@ -42,8 +42,8 @@ use scope::Scope;
 #[derive(Debug)]
 pub(crate) enum BuildState<'a> {
     Empty(&'static Eapi),
-    Metadata(&'a crate::pkg::ebuild::raw::Pkg<'a>),
-    Build(&'a crate::pkg::ebuild::Pkg<'a>),
+    Metadata(&'a crate::pkg::ebuild::raw::Pkg),
+    Build(&'a crate::pkg::ebuild::Pkg),
     Merge,
 }
 
@@ -58,7 +58,7 @@ struct Scoped(Scope);
 
 impl Drop for Scoped {
     fn drop(&mut self) {
-        get_build_mut().scope = self.0;
+        get_build_mut().scope = self.0.clone();
     }
 }
 
@@ -91,12 +91,12 @@ pub(crate) struct BuildData<'a> {
     strip_exclude: IndexSet<String>,
 
     /// phases defined by eclasses
-    eclass_phases: IndexMap<phase::PhaseKind, &'a Eclass>,
+    eclass_phases: IndexMap<phase::PhaseKind, Eclass>,
 
     /// set of directly inherited eclasses
-    inherit: IndexSet<&'a Eclass>,
+    inherit: OrderedSet<Eclass>,
     /// complete set of inherited eclasses
-    inherited: IndexSet<&'a Eclass>,
+    inherited: OrderedSet<Eclass>,
     /// incremental metadata fields
     incrementals: HashMap<Key, Deque<String>>,
 }
@@ -124,7 +124,7 @@ impl<'a> BuildData<'a> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::raw::Pkg<'a>) {
+    fn from_raw_pkg(pkg: &'a crate::pkg::ebuild::raw::Pkg) {
         // TODO: remove this hack once BuildData is reworked
         let p: &crate::pkg::ebuild::raw::Pkg = unsafe { mem::transmute(pkg) };
         let data = BuildData {
@@ -134,7 +134,7 @@ impl<'a> BuildData<'a> {
         update_build(data);
     }
 
-    fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg<'a>) {
+    fn from_pkg(pkg: &'a crate::pkg::ebuild::Pkg) {
         // TODO: remove this hack once BuildData is reworked
         let p: &crate::pkg::ebuild::Pkg = unsafe { mem::transmute(pkg) };
         let data = BuildData {
@@ -165,7 +165,7 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current ebuild repo if it exists.
-    fn ebuild_repo(&self) -> scallop::Result<&'a crate::repo::ebuild::Repo> {
+    fn ebuild_repo(&self) -> scallop::Result<&crate::repo::ebuild::EbuildRepo> {
         match &self.state {
             BuildState::Metadata(pkg) => Ok(pkg.repo()),
             BuildState::Build(pkg) => Ok(pkg.repo()),
@@ -174,10 +174,10 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current repo if it exists.
-    fn repo(&self) -> scallop::Result<Repo<'a>> {
+    fn repo(&self) -> scallop::Result<Repo> {
         match &self.state {
-            BuildState::Metadata(pkg) => Ok(Repo::Ebuild(pkg.repo())),
-            BuildState::Build(pkg) => Ok(Repo::Ebuild(pkg.repo())),
+            BuildState::Metadata(pkg) => Ok(Repo::Ebuild(pkg.repo().clone())),
+            BuildState::Build(pkg) => Ok(Repo::Ebuild(pkg.repo().clone())),
             BuildState::Merge => Ok(Repo::Binary),
             _ => Err(Error::Base(format!("repo invalid for scope: {}", self.scope))),
         }
@@ -203,7 +203,7 @@ impl<'a> BuildData<'a> {
     /// Change the current build to a temporary scope, reverting to the previous value when
     /// the returned value is dropped.
     fn scoped<T: Into<Scope>>(&mut self, value: T) -> Scoped {
-        let scoped = Scoped(self.scope);
+        let scoped = Scoped(self.scope.clone());
         self.scope = value.into();
         scoped
     }
@@ -217,9 +217,9 @@ impl<'a> BuildData<'a> {
     }
 
     /// Get the current eclass if it exists.
-    fn eclass(&self) -> scallop::Result<&'a Eclass> {
+    fn eclass(&self) -> scallop::Result<Eclass> {
         match &self.scope {
-            Scope::Eclass(Some(e)) => Ok(e),
+            Scope::Eclass(Some(eclass)) => Ok(eclass.clone()),
             scope => Err(Error::Base(format!("eclass invalid for scope: {scope}"))),
         }
     }
@@ -297,7 +297,7 @@ impl<'a> BuildData<'a> {
     /// Cache and set build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
         for var in self.eapi().env() {
-            if var.exported(self.scope) {
+            if var.exported(&self.scope) {
                 if let Some(val) = self.env.get(var.borrow()) {
                     var.bind(val)?;
                 } else {
@@ -317,7 +317,7 @@ impl<'a> BuildData<'a> {
     fn override_var(&mut self, var: Variable, val: &str) -> scallop::Result<()> {
         if let Some(var) = self.eapi().env().get(&var) {
             self.env.insert(var.into(), val.to_string());
-            if var.exported(self.scope) {
+            if var.exported(&self.scope) {
                 var.bind(val)?;
             }
         }
@@ -443,12 +443,12 @@ pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
 
 /// Repo wrapper for commands supporting both source and binary operations.
 #[derive(Debug)]
-enum Repo<'a> {
-    Ebuild(&'a crate::repo::ebuild::Repo),
+enum Repo {
+    Ebuild(crate::repo::ebuild::EbuildRepo),
     Binary,
 }
 
-impl Repo<'_> {
+impl Repo {
     fn path(&self) -> &Utf8Path {
         match self {
             Self::Ebuild(repo) => repo.path(),

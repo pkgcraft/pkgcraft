@@ -8,7 +8,7 @@ use crate::Error;
 
 use super::get_build_mut;
 
-impl TryFrom<&Pkg<'_>> for MetadataRaw {
+impl TryFrom<&Pkg> for MetadataRaw {
     type Error = Error;
 
     fn try_from(pkg: &Pkg) -> crate::Result<Self> {
@@ -32,10 +32,10 @@ impl TryFrom<&Pkg<'_>> for MetadataRaw {
     }
 }
 
-impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
+impl TryFrom<&Pkg> for Metadata {
     type Error = Error;
 
-    fn try_from(pkg: &Pkg<'a>) -> crate::Result<Self> {
+    fn try_from(pkg: &Pkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 
@@ -57,8 +57,8 @@ impl<'a> TryFrom<&Pkg<'a>> for Metadata<'a> {
                         .copied()
                         .collect();
                 }
-                INHERIT => meta.inherit = build.inherit.iter().copied().collect(),
-                INHERITED => meta.inherited = build.inherited.iter().copied().collect(),
+                INHERIT => meta.inherit = build.inherit.clone(),
+                INHERITED => meta.inherited = build.inherited.clone(),
                 key => {
                     if let Some(val) = build.incrementals.get(key) {
                         let s = val.iter().join(" ");

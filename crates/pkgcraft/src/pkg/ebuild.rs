@@ -9,7 +9,7 @@ use crate::dep::{Cpv, Dep};
 use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
 use crate::macros::bool_not_equal;
-use crate::repo::ebuild::{Eclass, Repo};
+use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::Repository;
 use crate::shell::phase::Phase;
 use crate::traits::{Contains, Intersects, ToRef};
@@ -50,24 +50,24 @@ where
 }
 
 #[derive(Clone)]
-pub struct Pkg<'a> {
+pub struct Pkg {
     cpv: Cpv,
-    repo: &'a Repo,
-    data: Metadata<'a>,
+    repo: EbuildRepo,
+    data: Metadata,
     iuse_effective: OnceLock<OrderedSet<String>>,
     metadata: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
 }
 
-make_pkg_traits!(Pkg<'_>);
+make_pkg_traits!(Pkg);
 
-impl fmt::Debug for Pkg<'_> {
+impl fmt::Debug for Pkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Pkg {{ {self} }}")
     }
 }
 
-impl<'a> TryFrom<raw::Pkg<'a>> for Pkg<'a> {
+impl TryFrom<raw::Pkg> for Pkg {
     type Error = Error;
 
     fn try_from(pkg: raw::Pkg) -> crate::Result<Pkg> {
@@ -83,7 +83,7 @@ impl<'a> TryFrom<raw::Pkg<'a>> for Pkg<'a> {
     }
 }
 
-impl<'a> Pkg<'a> {
+impl Pkg {
     /// Return the path of the package's ebuild file path relative to the repository root.
     pub fn relpath(&self) -> Utf8PathBuf {
         self.cpv.relpath()
@@ -102,7 +102,7 @@ impl<'a> Pkg<'a> {
     /// Return true if a package is globally deprecated in its repo, false otherwise.
     pub fn deprecated(&self) -> bool {
         self.repo
-            .metadata
+            .metadata()
             .pkg_deprecated()
             .iter()
             .any(|x| self.intersects(x))
@@ -116,7 +116,7 @@ impl<'a> Pkg<'a> {
     /// Return true if a package is globally masked in its repo, false otherwise.
     pub fn masked(&self) -> bool {
         self.repo
-            .metadata
+            .metadata()
             .pkg_mask()
             .iter()
             .any(|x| self.intersects(x))
@@ -227,12 +227,12 @@ impl<'a> Pkg<'a> {
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
-    pub fn inherit(&self) -> &OrderedSet<&'a Eclass> {
+    pub fn inherit(&self) -> &OrderedSet<Eclass> {
         &self.data.inherit
     }
 
     /// Return the ordered set of inherited eclasses for a package.
-    pub fn inherited(&self) -> &OrderedSet<&'a Eclass> {
+    pub fn inherited(&self) -> &OrderedSet<Eclass> {
         &self.data.inherited
     }
 
@@ -272,7 +272,7 @@ impl<'a> Pkg<'a> {
     }
 }
 
-impl<'a> Package for Pkg<'a> {
+impl Package for Pkg {
     fn eapi(&self) -> &'static Eapi {
         self.data.eapi
     }
@@ -282,15 +282,15 @@ impl<'a> Package for Pkg<'a> {
     }
 }
 
-impl<'a> RepoPackage for Pkg<'a> {
-    type Repo = &'a Repo;
+impl RepoPackage for Pkg {
+    type Repo = EbuildRepo;
 
-    fn repo(&self) -> Self::Repo {
-        self.repo
+    fn repo(&self) -> &Self::Repo {
+        &self.repo
     }
 }
 
-impl<'a> EbuildPackage for Pkg<'a> {
+impl EbuildPackage for Pkg {
     fn iuse_effective(&self) -> &OrderedSet<String> {
         self.iuse_effective.get_or_init(|| {
             self.data
@@ -306,7 +306,7 @@ impl<'a> EbuildPackage for Pkg<'a> {
     }
 }
 
-impl Intersects<Dep> for Pkg<'_> {
+impl Intersects<Dep> for Pkg {
     fn intersects(&self, dep: &Dep) -> bool {
         bool_not_equal!(self.cpn(), dep.cpn());
 
@@ -792,13 +792,13 @@ mod tests {
 
         // direct inherit
         let pkg = repo.get_pkg("inherit/direct-8").unwrap();
-        assert_ordered_eq!(pkg.inherit(), [&a]);
-        assert_ordered_eq!(pkg.inherited(), [&a]);
+        assert_ordered_eq!(pkg.inherit(), [a]);
+        assert_ordered_eq!(pkg.inherited(), [a]);
 
         // indirect inherit
         let pkg = repo.get_pkg("inherit/indirect-8").unwrap();
-        assert_ordered_eq!(pkg.inherit(), [&b]);
-        assert_ordered_eq!(pkg.inherited(), [&b, &a]);
+        assert_ordered_eq!(pkg.inherit(), [b]);
+        assert_ordered_eq!(pkg.inherited(), [b, a]);
     }
 
     #[test]
