@@ -1,4 +1,4 @@
-use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
+use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
@@ -25,7 +25,7 @@ fn nonexistent_repo() {
 
 #[test]
 fn multiple_repos_not_supported() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     cmd("pk repo leaf")
         .args([repo.path(), repo.path()])
         .assert()
@@ -48,7 +48,7 @@ fn empty_repo() {
 
 #[test]
 fn single() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/dep-1", &[]).unwrap();
     repo.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
@@ -62,7 +62,7 @@ fn single() {
 
 #[test]
 fn multiple() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/dep-1", &[]).unwrap();
     repo.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
@@ -78,7 +78,7 @@ fn multiple() {
 
 #[test]
 fn none() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/a-1", &["DEPEND=>=cat/b-1"])
         .unwrap();
     repo.create_raw_pkg("cat/b-1", &["DEPEND=>=cat/a-1"])

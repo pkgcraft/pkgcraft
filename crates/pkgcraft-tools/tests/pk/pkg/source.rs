@@ -1,6 +1,6 @@
 use std::env;
 
-use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
+use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::prelude::*;
@@ -53,7 +53,7 @@ fn pkg_target_from_stdin() {
 
 #[test]
 fn invalid_pkgs() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     let path = repo.path();
     let data = indoc::formatdoc! {r#"
         EAPI=8
@@ -100,7 +100,7 @@ fn invalid_pkgs() {
 
 #[test]
 fn path_targets() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat1/a-1", &[]).unwrap();
     repo.create_raw_pkg("cat1/b-1", &[]).unwrap();
     repo.create_raw_pkg("cat2/c-1", &[]).unwrap();
@@ -143,7 +143,7 @@ fn path_targets() {
 fn bound_and_sort() {
     use std::os::fd::AsRawFd;
 
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/fast-1", &[]).unwrap();
     let f = std::fs::File::open(repo.path().join("profiles/repo_name")).unwrap();
     let fd = f.as_raw_fd();

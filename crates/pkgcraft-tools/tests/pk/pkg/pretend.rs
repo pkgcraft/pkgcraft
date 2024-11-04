@@ -1,6 +1,6 @@
 use std::env;
 
-use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
+use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, TEST_DATA};
 use predicates::str::contains;
@@ -62,7 +62,7 @@ fn pkg_target_from_stdin() {
 
 #[test]
 fn path_targets() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg_from_str("cat1/a-1", SUCCESS_WITH_OUTPUT)
         .unwrap();
     repo.create_raw_pkg_from_str("cat1/b-1", SUCCESS_WITH_OUTPUT)

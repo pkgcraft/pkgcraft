@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::eapi::Eapi;
 use crate::macros::build_path;
-use crate::repo::ebuild::temp::Repo as TempRepo;
+use crate::repo::ebuild::temp::EbuildTempRepo;
 use crate::repo::{Repo, RepoFormat};
 use crate::utils::find_existing_path;
 use crate::{shell, Error};
@@ -319,7 +319,7 @@ impl Config {
         name: &str,
         priority: i32,
         eapi: Option<&Eapi>,
-    ) -> crate::Result<TempRepo> {
+    ) -> crate::Result<EbuildTempRepo> {
         let temp_repo = self.repos.create_temp(name, priority, eapi)?;
         let repo = (&temp_repo).into();
         self.add_repo(&repo, false)?;
@@ -426,7 +426,7 @@ mod tests {
         assert!(config.repos.is_empty());
 
         // single repo
-        let t1 = TempRepo::new("test", None, 0, None).unwrap();
+        let t1 = EbuildTempRepo::new("test", None, 0, None).unwrap();
         let data = indoc::formatdoc! {r#"
             [a]
             location = {}
@@ -459,7 +459,7 @@ mod tests {
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
-        let t2 = TempRepo::new("r2", None, 0, None).unwrap();
+        let t2 = EbuildTempRepo::new("r2", None, 0, None).unwrap();
         let data = indoc::formatdoc! {r#"
             [b]
             location = {}
@@ -494,7 +494,7 @@ mod tests {
 
         // multiple config files in a specified directory
         let mut config = Config::new("pkgcraft", "");
-        let t3 = TempRepo::new("r3", None, 0, None).unwrap();
+        let t3 = EbuildTempRepo::new("r3", None, 0, None).unwrap();
         let tmpdir = tempdir().unwrap();
         let conf_dir = tmpdir.path();
         let conf_path = conf_dir.to_str().unwrap();

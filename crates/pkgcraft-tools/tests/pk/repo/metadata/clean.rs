@@ -1,13 +1,13 @@
 use std::fs;
 
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
+use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 
 #[test]
 fn run() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_pkg("a/b-1", &[]).unwrap();
     repo.create_pkg("cat/a-1", &[]).unwrap();
     repo.create_pkg("cat/b-1", &[]).unwrap();

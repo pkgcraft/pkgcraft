@@ -9,14 +9,14 @@ use tempfile::TempDir;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::pkg::ebuild::{self, metadata::Key};
-use crate::repo::Repo as BaseRepo;
+use crate::repo::Repo;
 use crate::Error;
 
 use super::EbuildRepo;
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
-pub struct Repo {
+pub struct EbuildTempRepo {
     tempdir: TempDir,
     path: Utf8PathBuf,
     id: String,
@@ -24,7 +24,7 @@ pub struct Repo {
     repo: OnceLock<EbuildRepo>,
 }
 
-impl Repo {
+impl EbuildTempRepo {
     /// Create a temporary repo at a given path or inside `env::temp_dir()`.
     pub fn new(
         id: &str,
@@ -174,7 +174,7 @@ impl Repo {
     }
 }
 
-impl Deref for Repo {
+impl Deref for EbuildTempRepo {
     type Target = EbuildRepo;
 
     fn deref(&self) -> &Self::Target {
@@ -182,8 +182,8 @@ impl Deref for Repo {
     }
 }
 
-impl From<&Repo> for BaseRepo {
-    fn from(value: &Repo) -> Self {
+impl From<&EbuildTempRepo> for Repo {
+    fn from(value: &EbuildTempRepo) -> Self {
         value.repo().clone().into()
     }
 }

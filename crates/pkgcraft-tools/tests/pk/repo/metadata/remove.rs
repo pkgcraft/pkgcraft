@@ -1,5 +1,5 @@
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::repo::ebuild::temp::Repo as TempRepo;
+use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 use tempfile::tempdir;
@@ -8,7 +8,7 @@ use crate::predicates::lines_contain;
 
 #[test]
 fn run() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_pkg("cat/a-1", &[]).unwrap();
     let path = repo.metadata().cache().path();
 

@@ -2,7 +2,7 @@ use std::{env, fs};
 
 use indexmap::IndexMap;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::repo::{ebuild::temp::Repo as TempRepo, Repository};
+use pkgcraft::repo::{ebuild::temp::EbuildTempRepo, Repository};
 use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
@@ -61,7 +61,7 @@ fn progress() {
 
 #[test]
 fn single() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/pkg-1", &["EAPI=7"]).unwrap();
 
     // default target is the current working directory
@@ -115,7 +115,7 @@ fn single() {
 
 #[test]
 fn jobs() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
 
     for opt in ["-j", "--jobs"] {
@@ -145,7 +145,7 @@ fn jobs() {
 
 #[test]
 fn multiple() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_pkg("cat/a-1", &[]).unwrap();
     repo.create_pkg("cat/b-1", &[]).unwrap();
     repo.create_pkg("other/pkg-1", &[]).unwrap();
@@ -178,7 +178,7 @@ fn multiple() {
 
 #[test]
 fn pkg_with_invalid_eapi() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/a-1", &["EAPI=invalid"]).ok();
     repo.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata regen")
@@ -196,7 +196,7 @@ fn pkg_with_invalid_eapi() {
 
 #[test]
 fn pkg_with_invalid_dep() {
-    let repo = TempRepo::new("test", None, 0, None).unwrap();
+    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
     repo.create_raw_pkg("cat/a-1", &["DEPEND=cat/pkg[]"]).ok();
     repo.create_raw_pkg("cat/b-1", &["DEPEND=cat/pkg"]).unwrap();
     cmd("pk repo metadata regen")

@@ -2,12 +2,12 @@ use std::ffi::c_char;
 use std::slice;
 
 use pkgcraft::eapi::Eapi;
+use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 use crate::repo::Repository;
-use crate::types::EbuildTempRepo;
 
 /// Create a temporary ebuild repository.
 ///
