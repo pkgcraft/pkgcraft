@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, LazyLock, OnceLock, Weak};
+use std::sync::{Arc, LazyLock, OnceLock};
 use std::{fmt, fs, io, iter, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -143,7 +143,6 @@ where
 struct Repo {
     metadata: Metadata,
     config: RepoConfig,
-    repo: Weak<Self>,
     masters: OnceLock<Vec<EbuildRepo>>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
@@ -206,10 +205,9 @@ impl EbuildRepo {
             ..Default::default()
         };
 
-        Ok(Self(Arc::new_cyclic(|repo| Repo {
+        Ok(Self(Arc::new(Repo {
             metadata,
             config,
-            repo: repo.clone(),
             masters: OnceLock::new(),
             arches: OnceLock::new(),
             licenses: OnceLock::new(),
@@ -286,9 +284,8 @@ impl EbuildRepo {
     }
 
     /// Return the complete repo inheritance sequence.
-    pub fn trees(&self) -> impl DoubleEndedIterator<Item = Self> + '_ {
-        let repo = self.0.repo.upgrade().expect("unconfigured repo");
-        self.masters().iter().cloned().chain([Self(repo)])
+    pub fn trees(&self) -> impl DoubleEndedIterator<Item = &Self> {
+        self.masters().iter().chain([self])
     }
 
     /// Return the ordered map of inherited eclasses.
@@ -1207,7 +1204,7 @@ mod tests {
             .unwrap();
         let primary_repo = repo.as_ebuild().unwrap();
         assert!(primary_repo.masters().is_empty());
-        assert_ordered_eq!(primary_repo.trees(), [primary_repo.clone()]);
+        assert_ordered_eq!(primary_repo.trees(), [primary_repo]);
 
         // nonexistent
         let repo = EbuildRepo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters"))
@@ -1222,7 +1219,7 @@ mod tests {
             .unwrap();
         let secondary_repo = repo.as_ebuild().unwrap();
         assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
-        assert_ordered_eq!(secondary_repo.trees(), [primary_repo.clone(), secondary_repo.clone()]);
+        assert_ordered_eq!(secondary_repo.trees(), [primary_repo, secondary_repo]);
     }
 
     #[test]
