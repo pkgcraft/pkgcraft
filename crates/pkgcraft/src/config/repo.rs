@@ -299,12 +299,12 @@ impl Config {
                 .map(|(name, repo)| (name.to_string(), (*repo).clone())),
         );
 
-        for repo in new_repos.values() {
+        for (name, repo) in &new_repos {
             // finalize repos, reverting to the previous set if errors occur
             if let Err(e) = repo.finalize(&self.repos) {
                 self.repos = orig_repos;
                 self.configured = orig_configured;
-                return Err(e);
+                return Err(Error::Config(format!("{name}: {e}")));
             }
 
             // create configured ebuild repos

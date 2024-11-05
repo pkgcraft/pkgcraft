@@ -238,18 +238,13 @@ impl EbuildRepo {
 
         if !nonexistent.is_empty() {
             let repos = nonexistent.join(", ");
-            return Err(Error::InvalidRepo {
-                id: self.id().to_string(),
-                err: format!("unconfigured repos: {repos}"),
-            });
+            return Err(Error::InvalidValue(format!("nonexistent masters: {repos}")));
         }
 
         self.0
             .masters
             .set(masters)
-            .unwrap_or_else(|_| panic!("masters already set: {}", self.id()));
-
-        Ok(())
+            .map_err(|_| Error::InvalidValue("already initialized".to_string()))
     }
 
     /// Collapse required lazy fields for metadata regeneration that leverages process-based
@@ -1207,7 +1202,7 @@ mod tests {
         let repo = EbuildRepo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters"))
             .unwrap();
         let r = config.add_repo_path(repo.id(), repo.path().as_str(), 0, false);
-        assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
+        assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
 
         // single
         let repo = EbuildRepo::from_path("b", 0, repos_dir.join("valid/secondary")).unwrap();

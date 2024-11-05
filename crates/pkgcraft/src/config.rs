@@ -490,7 +490,7 @@ mod tests {
         "#};
         fs::write(path, data).unwrap();
         let r = config.load_portage_conf(Some(conf_path));
-        assert_err_re!(r, "^.* unconfigured repos: nonexistent1, nonexistent2$");
+        assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
 
         // multiple config files in a specified directory
         let mut config = Config::new("pkgcraft", "");
