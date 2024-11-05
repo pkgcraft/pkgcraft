@@ -123,7 +123,7 @@ impl Config {
         };
 
         // finalize, sort, and add repos to the config
-        config.extend(&repos, settings, false)?;
+        let _ = config.extend(&repos, settings, false)?;
         Ok(config)
     }
 
@@ -255,7 +255,7 @@ impl Config {
         repos: I,
         settings: &Arc<super::Settings>,
         external: bool,
-    ) -> crate::Result<Vec<Repo>> {
+    ) -> crate::Result<impl Iterator<Item = Repo>> {
         let mut existing_repos = vec![];
         let mut overriding_repos = vec![];
         let mut new_repos = IndexMap::new();
@@ -315,10 +315,7 @@ impl Config {
         self.configured.sort();
 
         // combine and return existing and new repos
-        Ok(existing_repos
-            .into_iter()
-            .chain(new_repos.into_values())
-            .collect())
+        Ok(existing_repos.into_iter().chain(new_repos.into_values()))
     }
 
     pub fn iter(&self) -> ReposIter<'_> {

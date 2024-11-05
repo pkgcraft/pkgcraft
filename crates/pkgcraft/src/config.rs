@@ -202,7 +202,7 @@ impl Config {
         let repos = portage::load_repos_conf(repos_conf)?;
         if !repos.is_empty() {
             // add repos to config
-            self.repos.extend(&repos, &self.settings, false)?;
+            let _ = self.repos.extend(&repos, &self.settings, false)?;
         }
 
         Ok(())
@@ -280,9 +280,8 @@ impl Config {
     pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<Repo> {
         self.repos
             .extend([repo], &self.settings, external)
-            .map(|repos| {
+            .map(|mut repos| {
                 repos
-                    .into_iter()
                     .next()
                     .unwrap_or_else(|| panic!("failed adding repo: {repo}"))
             })
