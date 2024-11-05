@@ -1187,27 +1187,23 @@ mod tests {
     #[test]
     fn masters() {
         let mut config = Config::default();
-        let repos_dir = TEST_DATA.path().join("repos");
+        let repos = TEST_DATA.path().join("repos");
 
         // none
-        let repo = EbuildRepo::from_path("a", 0, repos_dir.join("valid/primary")).unwrap();
         let repo = config
-            .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
+            .add_repo_path("a", repos.join("valid/primary"), 0, false)
             .unwrap();
         let primary_repo = repo.as_ebuild().unwrap();
         assert!(primary_repo.masters().is_empty());
         assert_ordered_eq!(primary_repo.trees(), [primary_repo]);
 
         // nonexistent
-        let repo = EbuildRepo::from_path("test", 0, repos_dir.join("invalid/nonexistent-masters"))
-            .unwrap();
-        let r = config.add_repo_path(repo.id(), repo.path().as_str(), 0, false);
+        let r = config.add_repo_path("test", repos.join("invalid/nonexistent-masters"), 0, false);
         assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
 
         // single
-        let repo = EbuildRepo::from_path("b", 0, repos_dir.join("valid/secondary")).unwrap();
         let repo = config
-            .add_repo_path(repo.id(), repo.path().as_str(), 0, false)
+            .add_repo_path("b", repos.join("valid/secondary"), 0, false)
             .unwrap();
         let secondary_repo = repo.as_ebuild().unwrap();
         assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
@@ -1216,10 +1212,10 @@ mod tests {
 
     #[test]
     fn invalid() {
-        let repos_dir = TEST_DATA.path().join("repos/invalid");
+        let repos = TEST_DATA.path().join("repos");
 
         // invalid profiles/eapi file
-        let path = repos_dir.join("invalid-eapi");
+        let path = repos.join("invalid/invalid-eapi");
         let r = EbuildRepo::from_path(&path, 0, &path);
         assert_err_re!(
             r,
@@ -1227,7 +1223,7 @@ mod tests {
         );
 
         // nonexistent profiles/repo_name file
-        let path = repos_dir.join("missing-name");
+        let path = repos.join("invalid/missing-name");
         let r = EbuildRepo::from_path(&path, 0, &path);
         assert_err_re!(
             r,
@@ -1251,14 +1247,14 @@ mod tests {
     #[test]
     fn eapi() {
         let mut config = Config::default();
-        let repos_dir = TEST_DATA.path().join("repos/invalid");
+        let repos = TEST_DATA.path().join("repos");
 
         // nonexistent profiles/eapi file uses EAPI 0 which isn't supported
-        let r = config.add_repo_path("test", repos_dir.join("unsupported-eapi"), 0, false);
+        let r = config.add_repo_path("test", repos.join("invalid/unsupported-eapi"), 0, false);
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: 0$");
 
         // unknown EAPI
-        let r = config.add_repo_path("test", repos_dir.join("unknown-eapi"), 0, false);
+        let r = config.add_repo_path("test", repos.join("invalid/unknown-eapi"), 0, false);
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: unknown$");
 
         // supported EAPI
