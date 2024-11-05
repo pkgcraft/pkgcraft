@@ -50,6 +50,7 @@ impl fmt::Display for Scope {
 }
 
 /// Multi-scope type for EAPI registration.
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub(crate) enum Scopes {
     All,
     Eclass,
