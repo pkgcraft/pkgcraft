@@ -172,9 +172,8 @@ pub fn target_restriction(
             {
                 // configured repo path restrict
                 return Ok((repo.into(), restrict));
-            } else if let Ok(repo) = repo_format.load_from_nested_path(path, 0, true) {
+            } else if let Ok(repo) = config.add_format_repo_nested_path(path, 0, repo_format) {
                 // external repo path restrict
-                config.add_repo(&repo, true)?;
                 let restrict = repo.restrict_from_path(path).expect("invalid repo path");
                 return Ok((repo.into(), restrict));
             } else {
@@ -209,8 +208,7 @@ pub fn target_restriction(
                             if let Some(repo) = repo_set.repos.iter().find(|r| r.path() == path) {
                                 repo.clone()
                             } else {
-                                let repo = repo_format.load_from_path(&path, &path, 0, true)?;
-                                config.add_repo(&repo, true)?
+                                config.add_format_repo_path(&path, &path, 0, true, repo_format)?
                             };
 
                         return Ok((repo.into(), Restrict::and(restricts)));
