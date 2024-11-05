@@ -331,7 +331,7 @@ mod tests {
     #[test]
     fn regen_errors() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         // create a large number of packages with a subshelled, invalid scope builtin call
         for pv in 0..50 {
@@ -341,12 +341,12 @@ mod tests {
                 SLOT=0
                 VAR=$(best_version cat/pkg)
             "#};
-            repo.create_raw_pkg_from_str(format!("cat/pkg-{pv}"), data)
+            temp.create_raw_pkg_from_str(format!("cat/pkg-{pv}"), data)
                 .unwrap();
         }
 
         // run regen asserting that errors occurred
-        let r = repo.metadata().cache().regen().run(&repo);
+        let r = temp.metadata().cache().regen().run(&temp);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

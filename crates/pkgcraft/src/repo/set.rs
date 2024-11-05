@@ -409,11 +409,9 @@ mod tests {
     #[test]
     fn repo_traits() {
         let mut config = Config::default();
-        let ebuild_repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
         let fake_repo = FakeRepo::new("fake", 0);
 
-        let e_repo: Repo = (&ebuild_repo).into();
-        let f_repo: Repo = fake_repo.into();
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let dep = Dep::try_new("=cat/pkg-1").unwrap();
@@ -431,7 +429,9 @@ mod tests {
         assert!(!s.contains(&dep));
 
         // repo set with no pkgs
-        let s = RepoSet::from_iter([&e_repo, &f_repo]);
+        let e_repo: Repo = (&temp).into();
+        let f_repo: Repo = fake_repo.into();
+        let s = RepoSet::from_iter([e_repo, f_repo.clone()]);
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
@@ -443,7 +443,9 @@ mod tests {
         assert!(!s.contains(&dep));
 
         // single ebuild
-        ebuild_repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let e_repo: Repo = (&temp).into();
+        let s = RepoSet::from_iter([e_repo, f_repo]);
         assert_ordered_eq!(s.categories(), ["cat"]);
         assert_ordered_eq!(s.packages("cat"), ["pkg"]);
         assert_ordered_eq!(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
@@ -458,8 +460,9 @@ mod tests {
 
         // multiple pkgs of different types
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
+        let e_repo: Repo = (&temp).into();
         let f_repo: Repo = fake_repo.into();
-        let s = RepoSet::from_iter([&e_repo, &f_repo]);
+        let s = RepoSet::from_iter([e_repo, f_repo]);
         assert_ordered_eq!(s.categories(), ["cat"]);
         assert_ordered_eq!(s.packages("cat"), ["pkg"]);
         assert_ordered_eq!(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);

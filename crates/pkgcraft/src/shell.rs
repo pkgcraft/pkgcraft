@@ -481,7 +481,7 @@ mod tests {
     #[test]
     fn global_scope_external_command() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             // external commands are denied via restricted shell setting PATH=/dev/null
@@ -493,7 +493,7 @@ mod tests {
                 ls /
                 VAR=2
             "#};
-            let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
             let r = raw_pkg.source();
             assert_eq!(variables::optional("VAR").unwrap(), "1");
             assert_err_re!(r, "unknown command: ls");
@@ -503,7 +503,7 @@ mod tests {
     #[test]
     fn global_scope_absolute_path_command() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
         scallop::builtins::set(["-e"]).unwrap();
@@ -516,7 +516,7 @@ mod tests {
             /bin/ls /
             VAR=2
         "#};
-        let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
+        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
         let r = raw_pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
@@ -525,7 +525,7 @@ mod tests {
     #[test]
     fn failglob() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
@@ -534,7 +534,7 @@ mod tests {
                 SLOT=0
                 DOCS=( nonexistent* )
             "#};
-            let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
             let r = raw_pkg.source();
             if eapi.has(GlobalFailglob) {
                 assert_err_re!(r, "^line 4: no match: nonexistent\\*$");
@@ -547,7 +547,7 @@ mod tests {
     #[test]
     fn cmd_overrides() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             for cmd in eapi.commands().iter().filter(|b| !b.is_phase()) {
@@ -557,7 +557,7 @@ mod tests {
                     SLOT=0
                     {cmd}() {{ :; }}
                 "#};
-                let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                 let r = raw_pkg.source();
                 assert_err_re!(r, format!("EAPI {eapi} functionality overridden: {cmd}$"));
             }
@@ -567,7 +567,7 @@ mod tests {
     #[test]
     fn direct_phase_calls() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         for eapi in &*EAPIS {
             for phase in eapi.phases() {
@@ -579,7 +579,7 @@ mod tests {
                     {phase}() {{ :; }}
                     pkg_setup() {{ {phase}; }}
                 "#};
-                let pkg = repo.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
                 BuildData::from_pkg(&pkg);
                 let r = pkg.build();
                 assert_err_re!(r, format!("line 5: {phase}: error: direct phase call$"));
@@ -592,7 +592,7 @@ mod tests {
                     {phase}() {{ :; }}
                     {phase}
                 "#};
-                let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
                 let r = raw_pkg.source();
                 assert_err_re!(r, format!("line 5: {phase}: error: direct phase call$"));
             }

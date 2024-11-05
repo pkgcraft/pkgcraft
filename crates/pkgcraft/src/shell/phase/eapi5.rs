@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn src_install() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         // default src_install only handles DOCS and not HTML_DOCS
         for eapi in eapi::range("..6").unwrap() {
@@ -89,7 +89,7 @@ mod tests {
                     DOCS={s1}
                     HTML_DOCS={s2}
                 "#};
-                let pkg = repo.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
                 BuildData::from_pkg(&pkg);
                 let file_tree = FileTree::new();
                 fs::write("a.txt", "data").unwrap();

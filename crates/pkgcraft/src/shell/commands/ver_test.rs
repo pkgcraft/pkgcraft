@@ -113,7 +113,7 @@ mod tests {
         .collect();
 
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         let inverted_op_map: HashMap<_, _> =
             [("==", "!="), ("!=", "=="), ("<", ">="), (">", "<="), ("<=", ">"), (">=", "<")]
@@ -121,7 +121,7 @@ mod tests {
                 .collect();
 
         for (expr, (v1, op, v2)) in TEST_DATA.version_toml.compares() {
-            let raw_pkg = repo.create_raw_pkg(format!("cat/pkg-{v1}"), &[]).unwrap();
+            let raw_pkg = temp.create_raw_pkg(format!("cat/pkg-{v1}"), &[]).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
 
             let inverted_op = op_map[inverted_op_map[op]];

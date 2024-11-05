@@ -34,7 +34,7 @@ mod tests {
     #[test]
     fn valid_phase() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing default_src_prepare command"
@@ -45,7 +45,7 @@ mod tests {
                 VAR=2
             }
         "#};
-        let pkg = repo.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        let pkg = temp.create_pkg_from_str("cat/pkg-1", data).unwrap();
         BuildData::from_pkg(&pkg);
         pkg.build().unwrap();
         // verify default src_prepare() was run
@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn invalid_phase() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing default_src_prepare command"
@@ -68,7 +68,7 @@ mod tests {
                 VAR=2
             }
         "#};
-        let pkg = repo.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        let pkg = temp.create_pkg_from_str("cat/pkg-1", data).unwrap();
         BuildData::from_pkg(&pkg);
         let r = pkg.build();
         assert_err_re!(r, "line 6: default_src_prepare: error: disabled in pkg_setup scope$");

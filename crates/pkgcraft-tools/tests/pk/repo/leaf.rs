@@ -25,9 +25,9 @@ fn nonexistent_repo() {
 
 #[test]
 fn multiple_repos_not_supported() {
-    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
+    let temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
     cmd("pk repo leaf")
-        .args([repo.path(), repo.path()])
+        .args([temp.path(), temp.path()])
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -48,12 +48,12 @@ fn empty_repo() {
 
 #[test]
 fn single() {
-    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    repo.create_raw_pkg("cat/dep-1", &[]).unwrap();
-    repo.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+    temp.create_raw_pkg("cat/dep-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
     cmd("pk repo leaf")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("cat/leaf-1\n")
         .stderr("")
@@ -62,14 +62,14 @@ fn single() {
 
 #[test]
 fn multiple() {
-    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    repo.create_raw_pkg("cat/dep-1", &[]).unwrap();
-    repo.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+    temp.create_raw_pkg("cat/dep-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    repo.create_raw_pkg("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
+    temp.create_raw_pkg("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
         .unwrap();
     cmd("pk repo leaf")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("cat/leaf-1\ncat/leaf-2\n")
         .stderr("")
@@ -78,13 +78,13 @@ fn multiple() {
 
 #[test]
 fn none() {
-    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    repo.create_raw_pkg("cat/a-1", &["DEPEND=>=cat/b-1"])
+    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+    temp.create_raw_pkg("cat/a-1", &["DEPEND=>=cat/b-1"])
         .unwrap();
-    repo.create_raw_pkg("cat/b-1", &["DEPEND=>=cat/a-1"])
+    temp.create_raw_pkg("cat/b-1", &["DEPEND=>=cat/a-1"])
         .unwrap();
     cmd("pk repo leaf")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr("")

@@ -66,8 +66,8 @@ mod tests {
     #[test]
     fn enabled_and_disabled() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        let pkg = repo.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let pkg = temp.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
 
         // disabled
@@ -97,7 +97,7 @@ mod tests {
     #[test]
     fn subshell() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
@@ -111,7 +111,7 @@ mod tests {
                     [[ ${{enabled}} == "yes" ]] || die "usex failed enabled"
                 }}
             "#};
-            let pkg = repo.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_pkg(&pkg);
             get_build_mut().use_.insert("use2".to_string());
             let r = pkg.build();
@@ -128,7 +128,7 @@ mod tests {
                     VAR=2
                 }}
             "#};
-            let pkg = repo.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
             BuildData::from_pkg(&pkg);
             let r = pkg.build();
             assert_err_re!(r, "line 7: usex: error: requires 1 to 5 args, got 0$");

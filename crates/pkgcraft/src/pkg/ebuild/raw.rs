@@ -186,14 +186,14 @@ mod tests {
     #[test]
     fn data() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing data content"
             SLOT=0
         "#};
-        let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         assert_eq!(raw_pkg.data(), data);
         assert!(!raw_pkg.chksum().is_empty());
     }

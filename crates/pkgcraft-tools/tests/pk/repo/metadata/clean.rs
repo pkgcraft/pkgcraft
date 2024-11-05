@@ -7,16 +7,16 @@ use pkgcraft::test::cmd;
 
 #[test]
 fn run() {
-    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    repo.create_pkg("a/b-1", &[]).unwrap();
-    repo.create_pkg("cat/a-1", &[]).unwrap();
-    repo.create_pkg("cat/b-1", &[]).unwrap();
-    repo.create_pkg("cat/b-2", &[]).unwrap();
-    let path = repo.metadata().cache().path();
+    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+    temp.create_pkg("a/b-1", &[]).unwrap();
+    temp.create_pkg("cat/a-1", &[]).unwrap();
+    temp.create_pkg("cat/b-1", &[]).unwrap();
+    temp.create_pkg("cat/b-2", &[]).unwrap();
+    let path = temp.metadata().cache().path();
 
     // generate cache
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -33,7 +33,7 @@ fn run() {
 
     // no outdated entries removes only unrelated files
     cmd("pk repo metadata clean")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -49,12 +49,12 @@ fn run() {
     // remove pkgs and create old and temp files
     fs::write(path.join("cat/a-0"), "").unwrap();
     fs::write(path.join("cat/.a-1"), "").unwrap();
-    fs::remove_dir_all(repo.path().join("cat/b")).unwrap();
-    fs::remove_dir_all(repo.path().join("a")).unwrap();
+    fs::remove_dir_all(temp.path().join("cat/b")).unwrap();
+    fs::remove_dir_all(temp.path().join("a")).unwrap();
 
     // outdated cache files and directories are removed
     cmd("pk repo metadata clean")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr("")

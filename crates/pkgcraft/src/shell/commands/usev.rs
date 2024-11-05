@@ -66,8 +66,8 @@ mod tests {
     #[test]
     fn enabled_and_disabled() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        let pkg = repo.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let pkg = temp.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
 
         // disabled
@@ -80,7 +80,7 @@ mod tests {
 
         // check EAPIs that support two arg variant
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(UsevTwoArgs)) {
-            let pkg = repo
+            let pkg = temp
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
             BuildData::from_pkg(&pkg);
@@ -95,7 +95,7 @@ mod tests {
         }
 
         // enabled
-        let pkg = repo.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = temp.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().use_.insert("use".to_string());
 
@@ -108,7 +108,7 @@ mod tests {
 
         // check EAPIs that support two arg variant
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| e.has(UsevTwoArgs)) {
-            let pkg = repo
+            let pkg = temp
                 .create_pkg("cat/pkg-1", &["IUSE=use", &format!("EAPI={eapi}")])
                 .unwrap();
             BuildData::from_pkg(&pkg);

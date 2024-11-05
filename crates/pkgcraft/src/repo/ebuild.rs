@@ -1265,71 +1265,70 @@ mod tests {
     #[test]
     fn len() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
-        assert_eq!(repo.len(), 0);
-        assert!(repo.is_empty());
-        repo.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert_eq!(repo.len(), 1);
-        assert!(!repo.is_empty());
-        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        assert_eq!(repo.len(), 2);
-        assert!(!repo.is_empty());
+        assert_eq!(temp.len(), 0);
+        assert!(temp.is_empty());
+        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        assert_eq!(temp.len(), 1);
+        assert!(!temp.is_empty());
+        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        assert_eq!(temp.len(), 2);
+        assert!(!temp.is_empty());
     }
 
     #[test]
     fn categories() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
-        assert!(repo.categories().is_empty());
-        fs::create_dir(repo.path().join("cat")).unwrap();
-        assert_ordered_eq!(repo.categories(), ["cat"]);
-        fs::create_dir(repo.path().join("a-cat")).unwrap();
-        fs::create_dir(repo.path().join("z-cat")).unwrap();
-        assert_ordered_eq!(repo.categories(), ["a-cat", "cat", "z-cat"]);
+        assert!(temp.categories().is_empty());
+        fs::create_dir(temp.path().join("cat")).unwrap();
+        assert_ordered_eq!(temp.repo().unwrap().categories(), ["cat"]);
+        fs::create_dir(temp.path().join("a-cat")).unwrap();
+        fs::create_dir(temp.path().join("z-cat")).unwrap();
+        assert_ordered_eq!(temp.repo().unwrap().categories(), ["a-cat", "cat", "z-cat"]);
     }
 
     #[test]
     fn packages() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
-        assert!(repo.packages("cat").is_empty());
-        fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
-        assert_ordered_eq!(repo.packages("cat"), ["pkg"]);
-        fs::create_dir_all(repo.path().join("a-cat/pkg-z")).unwrap();
-        fs::create_dir_all(repo.path().join("a-cat/pkg-a")).unwrap();
-        assert_ordered_eq!(repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
+        assert!(temp.packages("cat").is_empty());
+        fs::create_dir_all(temp.path().join("cat/pkg")).unwrap();
+        assert_ordered_eq!(temp.repo().unwrap().packages("cat"), ["pkg"]);
+        fs::create_dir_all(temp.path().join("a-cat/pkg-z")).unwrap();
+        fs::create_dir_all(temp.path().join("a-cat/pkg-a")).unwrap();
+        assert_ordered_eq!(temp.repo().unwrap().packages("a-cat"), ["pkg-a", "pkg-z"]);
     }
 
     #[test]
     fn versions() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
         let ver = |s: &str| Version::try_new(s).unwrap();
 
-        assert!(repo.versions("cat", "pkg").is_empty());
-        fs::create_dir_all(repo.path().join("cat/pkg")).unwrap();
-        fs::File::create(repo.path().join("cat/pkg/pkg-1.ebuild")).unwrap();
-        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1")]);
+        assert!(temp.versions("cat", "pkg").is_empty());
+        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        assert_ordered_eq!(temp.versions("cat", "pkg"), [ver("1")]);
 
         // unmatching ebuilds are ignored
-        fs::File::create(repo.path().join("cat/pkg/foo-2.ebuild")).unwrap();
-        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1")]);
+        fs::File::create(temp.path().join("cat/pkg/foo-2.ebuild")).unwrap();
+        assert_ordered_eq!(temp.versions("cat", "pkg"), [ver("1")]);
 
         // wrongly named files are ignored
-        fs::File::create(repo.path().join("cat/pkg/pkg-2.txt")).unwrap();
-        fs::File::create(repo.path().join("cat/pkg/pkg-2..ebuild")).unwrap();
-        fs::File::create(repo.path().join("cat/pkg/pkg-2ebuild")).unwrap();
-        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1")]);
+        fs::File::create(temp.path().join("cat/pkg/pkg-2.txt")).unwrap();
+        fs::File::create(temp.path().join("cat/pkg/pkg-2..ebuild")).unwrap();
+        fs::File::create(temp.path().join("cat/pkg/pkg-2ebuild")).unwrap();
+        assert_ordered_eq!(temp.versions("cat", "pkg"), [ver("1")]);
 
-        fs::File::create(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1"), ver("2")]);
+        fs::File::create(temp.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
+        assert_ordered_eq!(temp.versions("cat", "pkg"), [ver("1"), ver("2")]);
 
-        fs::create_dir_all(repo.path().join("a-cat/pkg10a")).unwrap();
-        fs::File::create(repo.path().join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
-        assert_ordered_eq!(repo.versions("a-cat", "pkg10a"), [ver("0-r0")]);
+        fs::create_dir_all(temp.path().join("a-cat/pkg10a")).unwrap();
+        fs::File::create(temp.path().join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
+        assert_ordered_eq!(temp.versions("a-cat", "pkg10a"), [ver("0-r0")]);
     }
 
     #[test]
@@ -1369,10 +1368,10 @@ mod tests {
     #[test]
     fn iter_cpn() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let mut iter = repo.iter_cpn();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let mut iter = temp.iter_cpn();
         for cpn in ["cat1/pkg", "cat2/pkg"] {
             assert_eq!(iter.next(), Some(Cpn::try_new(cpn).unwrap()));
         }
@@ -1382,54 +1381,54 @@ mod tests {
     #[test]
     fn iter_cpn_restrict() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkga-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkga-2", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkgb-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkgb-2", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkgb-3", &[]).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkga-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkga-2", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkgb-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkgb-2", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkgb-3", &[]).unwrap();
 
         // no matches via existing Cpv
         let cpv = Cpv::try_new("cat1/pkga-1").unwrap();
-        assert_ordered_eq!(repo.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
+        assert_ordered_eq!(temp.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
 
         // no matches via nonexistent Cpv
         let cpv = Cpv::try_new("cat/nonexistent-1").unwrap();
-        assert_ordered_eq!(repo.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
+        assert_ordered_eq!(temp.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
 
         // single match via Cpn
         let cpn = Cpn::try_new("cat1/pkga").unwrap();
-        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [cpn]);
+        assert_ordered_eq!(temp.iter_cpn_restrict(&cpn), [cpn]);
 
         // no matches via Cpn
         let cpn = Cpn::try_new("cat/nonexistent").unwrap();
-        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [] as [Cpn; 0]);
+        assert_ordered_eq!(temp.iter_cpn_restrict(&cpn), [] as [Cpn; 0]);
 
         // single match via package name
         let restrict = DepRestrict::package("pkgb");
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict).map(|c| c.to_string()), ["cat1/pkgb"]);
+        assert_ordered_eq!(temp.iter_cpn_restrict(restrict).map(|c| c.to_string()), ["cat1/pkgb"]);
 
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+        assert_ordered_eq!(temp.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
 
         // all Cpns match
         let restrict = Restrict::True;
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), repo.iter_cpn());
+        assert_ordered_eq!(temp.iter_cpn_restrict(restrict), temp.iter_cpn());
 
         // no Cpns match
         let restrict = Restrict::False;
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+        assert_ordered_eq!(temp.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
     }
 
     #[test]
     fn iter_cpv() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let mut iter = repo.iter_cpv();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let mut iter = temp.iter_cpv();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             assert_eq!(iter.next(), Some(Cpv::try_new(cpv).unwrap()));
         }
@@ -1439,60 +1438,60 @@ mod tests {
     #[test]
     fn iter_cpv_restrict() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkga-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkga-2", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkgb-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkgb-2", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkgb-3", &[]).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkga-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkga-2", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkgb-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkgb-2", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkgb-3", &[]).unwrap();
 
         // single match via Cpv
         let cpv = Cpv::try_new("cat1/pkga-1").unwrap();
-        assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), [cpv]);
+        assert_ordered_eq!(temp.iter_cpv_restrict(&cpv), [cpv]);
 
         // no matches via Cpv
         let cpv = Cpv::try_new("cat/nonexistent-1").unwrap();
-        assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), []);
+        assert_ordered_eq!(temp.iter_cpv_restrict(&cpv), []);
 
         // multiple matches via Cpn
         let cpn = Cpn::try_new("cat1/pkga").unwrap();
         assert_ordered_eq!(
-            repo.iter_cpv_restrict(&cpn).map(|c| c.to_string()),
+            temp.iter_cpv_restrict(&cpn).map(|c| c.to_string()),
             ["cat1/pkga-1", "cat1/pkga-2"]
         );
 
         // no matches via Cpn
         let cpn = Cpn::try_new("cat/nonexistent").unwrap();
-        assert_ordered_eq!(repo.iter_cpv_restrict(&cpn), []);
+        assert_ordered_eq!(temp.iter_cpv_restrict(&cpn), []);
 
         // multiple matches via package name
         let restrict = DepRestrict::package("pkgb");
         assert_ordered_eq!(
-            repo.iter_cpv_restrict(restrict).map(|c| c.to_string()),
+            temp.iter_cpv_restrict(restrict).map(|c| c.to_string()),
             ["cat1/pkgb-1", "cat1/pkgb-2", "cat1/pkgb-3"]
         );
 
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
-        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), []);
+        assert_ordered_eq!(temp.iter_cpv_restrict(restrict), []);
 
         // all Cpvs match
         let restrict = Restrict::True;
-        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), repo.iter_cpv());
+        assert_ordered_eq!(temp.iter_cpv_restrict(restrict), temp.iter_cpv());
 
         // no Cpvs match
         let restrict = Restrict::False;
-        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), []);
+        assert_ordered_eq!(temp.iter_cpv_restrict(restrict), []);
     }
 
     #[test]
     fn iter() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
-        repo.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        repo.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let mut iter = repo.iter();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
+        temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
+        let mut iter = temp.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             assert_eq!(iter.next().map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));
         }

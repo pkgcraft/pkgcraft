@@ -33,20 +33,20 @@ mod tests {
     #[test]
     fn eclass() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         let eclass = indoc::indoc! {r#"
             # stub eclass
             debug-print "eclass: ${ECLASS}"
         "#};
-        repo.create_eclass("e1", eclass).unwrap();
+        temp.create_eclass("e1", eclass).unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
             DESCRIPTION="testing debug-print"
             SLOT=0
         "#};
-        let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         raw_pkg.source().unwrap();
         assert_logs_re!("eclass: e1$");
     }
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn global() {
         let mut config = Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         let eclass = indoc::indoc! {r#"
             # stub eclass
@@ -63,7 +63,7 @@ mod tests {
                 debug-print ${FUNCNAME}: "$@"
             }
         "#};
-        repo.create_eclass("e1", eclass).unwrap();
+        temp.create_eclass("e1", eclass).unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
@@ -71,7 +71,7 @@ mod tests {
             SLOT=0
             e1_func msg 1 2 3
         "#};
-        let raw_pkg = repo.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
         raw_pkg.source().unwrap();
         assert_logs_re!("e1_func: msg 1 2 3$");
     }

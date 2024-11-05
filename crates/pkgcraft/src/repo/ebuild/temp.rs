@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::ops::Deref;
-use std::sync::OnceLock;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -9,7 +8,7 @@ use tempfile::TempDir;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::pkg::ebuild::{self, metadata::Key};
-use crate::repo::Repo;
+use crate::repo::{Repo, RepoFormat};
 use crate::Error;
 
 use super::EbuildRepo;
@@ -21,7 +20,7 @@ pub struct EbuildTempRepo {
     path: Utf8PathBuf,
     id: String,
     priority: i32,
-    repo: OnceLock<EbuildRepo>,
+    repo: Repo,
 }
 
 impl EbuildTempRepo {
@@ -62,25 +61,25 @@ impl EbuildTempRepo {
         let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;
 
+        let repo = RepoFormat::Ebuild.load_from_path(id, &path, priority, true)?;
+
         Ok(Self {
             tempdir,
             path,
             id: id.to_string(),
             priority,
-            repo: OnceLock::new(),
+            repo,
         })
     }
 
-    fn repo(&self) -> &EbuildRepo {
-        self.repo.get_or_init(|| {
-            EbuildRepo::from_path(&self.id, self.priority, &self.path)
-                .unwrap_or_else(|e| panic!("failed creating temporary ebuild repo: {e}"))
-        })
+    pub fn repo(&mut self) -> crate::Result<&EbuildRepo> {
+        self.repo = RepoFormat::Ebuild.load_from_path(&self.id, &self.path, self.priority, true)?;
+        Ok(self.repo.as_ebuild().unwrap())
     }
 
     /// Create a [`ebuild::raw::Pkg`] from ebuild field settings.
     pub fn create_raw_pkg<S: AsRef<str>>(
-        &self,
+        &mut self,
         cpv: S,
         data: &[&str],
     ) -> crate::Result<ebuild::raw::Pkg> {
@@ -116,18 +115,22 @@ impl EbuildTempRepo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
-        ebuild::raw::Pkg::try_new(cpv, self.repo().clone())
+        ebuild::raw::Pkg::try_new(cpv, self.repo()?.clone())
     }
 
     /// Create a [`ebuild::Pkg`] from ebuild field settings.
-    pub fn create_pkg<S: AsRef<str>>(&self, cpv: S, data: &[&str]) -> crate::Result<ebuild::Pkg> {
+    pub fn create_pkg<S: AsRef<str>>(
+        &mut self,
+        cpv: S,
+        data: &[&str],
+    ) -> crate::Result<ebuild::Pkg> {
         let raw_pkg = self.create_raw_pkg(cpv, data)?;
         raw_pkg.try_into()
     }
 
     /// Create an ebuild file in the repo from raw data.
     pub fn create_raw_pkg_from_str<S: AsRef<str>>(
-        &self,
+        &mut self,
         cpv: S,
         data: &str,
     ) -> crate::Result<ebuild::raw::Pkg> {
@@ -137,12 +140,12 @@ impl EbuildTempRepo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
-        ebuild::raw::Pkg::try_new(cpv, self.repo().clone())
+        ebuild::raw::Pkg::try_new(cpv, self.repo()?.clone())
     }
 
     /// Create a [`ebuild::Pkg`] from an ebuild using raw data.
     pub fn create_pkg_from_str<S: AsRef<str>>(
-        &self,
+        &mut self,
         cpv: S,
         data: &str,
     ) -> crate::Result<ebuild::Pkg> {
@@ -151,11 +154,12 @@ impl EbuildTempRepo {
     }
 
     /// Create an eclass in the repo.
-    pub fn create_eclass(&self, name: &str, data: &str) -> crate::Result<Utf8PathBuf> {
+    pub fn create_eclass(&mut self, name: &str, data: &str) -> crate::Result<Utf8PathBuf> {
         let path = self.path.join(format!("eclass/{name}.eclass"));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating eclass dir: {e}")))?;
         fs::write(&path, data).map_err(|e| Error::IO(format!("failed writing to eclass: {e}")))?;
+        self.repo()?;
         Ok(path)
     }
 
@@ -178,12 +182,12 @@ impl Deref for EbuildTempRepo {
     type Target = EbuildRepo;
 
     fn deref(&self) -> &Self::Target {
-        self.repo()
+        self.repo.as_ebuild().unwrap()
     }
 }
 
 impl From<&EbuildTempRepo> for Repo {
     fn from(value: &EbuildTempRepo) -> Self {
-        value.repo().clone().into()
+        value.repo.clone()
     }
 }

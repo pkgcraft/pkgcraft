@@ -8,13 +8,13 @@ use crate::predicates::lines_contain;
 
 #[test]
 fn run() {
-    let repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    repo.create_pkg("cat/a-1", &[]).unwrap();
-    let path = repo.metadata().cache().path();
+    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+    temp.create_pkg("cat/a-1", &[]).unwrap();
+    let path = temp.metadata().cache().path();
 
     // generate cache
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -25,7 +25,7 @@ fn run() {
 
     // remove cache
     cmd("pk repo metadata remove")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -35,7 +35,7 @@ fn run() {
 
     // missing cache removal is ignored
     cmd("pk repo metadata remove")
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -47,7 +47,7 @@ fn run() {
     // external cache removal isn't supported
     cmd("pk repo metadata remove")
         .args(["-p", cache_path])
-        .arg(repo.path())
+        .arg(temp.path())
         .assert()
         .stdout("")
         .stderr(lines_contain([format!("external cache: {cache_path}")]))
