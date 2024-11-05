@@ -277,7 +277,7 @@ impl Config {
                     overriding_repos.push(repo);
                 }
             } else {
-                new_repos.insert(name, repo);
+                new_repos.insert(name.to_string(), repo.clone());
             }
         }
 
@@ -293,11 +293,7 @@ impl Config {
         let orig_configured = self.configured.clone();
 
         // add new repos to config so finalization works for overlays
-        self.repos.extend(
-            new_repos
-                .iter()
-                .map(|(name, repo)| (name.to_string(), (*repo).clone())),
-        );
+        self.repos.extend(new_repos.clone());
 
         for (name, repo) in &new_repos {
             // finalize repos, reverting to the previous set if errors occur
@@ -321,7 +317,7 @@ impl Config {
         // combine and return existing and new repos
         Ok(existing_repos
             .into_iter()
-            .chain(new_repos.into_values().cloned())
+            .chain(new_repos.into_values())
             .collect())
     }
 
