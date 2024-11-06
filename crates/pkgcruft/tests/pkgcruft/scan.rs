@@ -175,6 +175,13 @@ fn path_targets() {
         .unwrap();
     assert_eq!(&expected, &reports);
 
+    // ebuild file
+    let reports = cmd("pkgcruft scan -j1 -R json")
+        .arg(repo.join("Dependency/DependencyDeprecated/DependencyDeprecated-0.ebuild"))
+        .to_reports()
+        .unwrap();
+    assert_eq!(&expected[..1], &reports);
+
     // multiple absolute paths in the same repo
     let expected = glob_reports!(
         "{repo}/Dependency/**/reports.json",
@@ -207,7 +214,7 @@ fn repo() {
 
     env::set_current_dir(repo).unwrap();
     for path in [".", "./", repo.as_ref()] {
-        // implicit target
+        // implicit repo target
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args(["--repo", path])
             .to_reports()
@@ -224,7 +231,7 @@ fn repo() {
         let expected = glob_reports!("{repo}/Dependency/**/reports.json");
         assert_eq!(&expected, &reports);
 
-        // pkg target
+        // package target
         let reports = cmd("pkgcruft scan -j1 -R json")
             .args(["--repo", path])
             .arg("DependencyDeprecated")
@@ -232,6 +239,30 @@ fn repo() {
             .unwrap();
         let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
         assert_eq!(&expected, &reports);
+
+        // Cpn target
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args(["--repo", path])
+            .arg("Dependency/DependencyDeprecated")
+            .to_reports()
+            .unwrap();
+        assert_eq!(&expected, &reports);
+
+        // Cpv target
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args(["--repo", path])
+            .arg("Dependency/DependencyDeprecated-0")
+            .to_reports()
+            .unwrap();
+        assert_eq!(&expected[..1], &reports);
+
+        // P target
+        let reports = cmd("pkgcruft scan -j1 -R json")
+            .args(["--repo", path])
+            .arg("DependencyDeprecated-0")
+            .to_reports()
+            .unwrap();
+        assert_eq!(&expected[..1], &reports);
     }
 
     // TODO: test overlay

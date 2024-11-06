@@ -5,7 +5,6 @@ use std::thread;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
-use pkgcraft::dep::Cpn;
 use pkgcraft::repo::{ebuild::EbuildRepo, Repo};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
@@ -14,7 +13,7 @@ use strum::IntoEnumIterator;
 use crate::check::Check;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
-use crate::source::PkgFilter;
+use crate::source::{PkgFilter, Target};
 
 pub struct Scanner {
     jobs: usize,
@@ -147,13 +146,19 @@ impl Scanner {
 fn producer(
     repo: &'static EbuildRepo,
     restricts: Vec<Restrict>,
-    tx: Sender<Cpn>,
+    tx: Sender<Target>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for r in restricts {
-            // TODO: add support for versioned restrictions
-            for cpn in repo.iter_cpn_restrict(r) {
-                tx.send(cpn).ok();
+            let mut unversioned = false;
+            for cpn in repo.iter_cpn_restrict(&r) {
+                unversioned = true;
+                tx.send(Target::Cpn(cpn)).ok();
+            }
+            if !unversioned {
+                for cpv in repo.iter_cpv_restrict(&r) {
+                    tx.send(Target::Cpv(cpv)).ok();
+                }
             }
         }
     })
@@ -196,11 +201,11 @@ impl ReportFilter {
 fn worker(
     runner: Arc<SyncCheckRunner>,
     mut filter: ReportFilter,
-    rx: Receiver<Cpn>,
+    rx: Receiver<Target>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        for cpn in rx {
-            runner.run(&cpn, &mut filter);
+        for target in rx {
+            runner.run(&target, &mut filter);
             filter.process();
         }
     })
@@ -243,23 +248,32 @@ mod tests {
         let repo = TEST_DATA.repo("qa-primary").unwrap();
         let repo_path = repo.path();
 
-        // repo level
+        // repo target
         let scanner = Scanner::new().jobs(1);
         let expected = glob_reports!("{repo_path}/**/reports.json");
         let reports = scanner.run(repo, [repo]);
         assert_ordered_eq!(reports, expected);
 
-        // category level
+        // category target
         let scanner = Scanner::new().jobs(1);
         let expected = glob_reports!("{repo_path}/Keywords/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords").unwrap();
         let reports = scanner.run(repo, [restrict]);
         assert_ordered_eq!(reports, expected);
 
-        // package level
+        // package target
         let scanner = Scanner::new().jobs(1);
         let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords/KeywordsLive").unwrap();
+        let reports = scanner.run(repo, [restrict]);
+        assert_ordered_eq!(reports, expected);
+
+        // version target
+        let scanner = Scanner::new().jobs(1);
+        let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
+        let restrict = repo
+            .restrict_from_path("Keywords/KeywordsLive/KeywordsLive-9999.ebuild")
+            .unwrap();
         let reports = scanner.run(repo, [restrict]);
         assert_ordered_eq!(reports, expected);
 

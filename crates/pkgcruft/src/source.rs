@@ -1,8 +1,10 @@
+use std::fmt;
 use std::str::FromStr;
 
 use colored::{Color, Colorize};
 use indexmap::IndexSet;
 use itertools::{Either, Itertools};
+use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus;
 use pkgcraft::pkg::ebuild::{self, EbuildPackage};
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -157,6 +159,30 @@ impl PkgFilters {
         }
 
         iter
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum Target {
+    Cpn(Cpn),
+    Cpv(Cpv),
+}
+
+impl fmt::Display for Target {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Cpn(cpn) => cpn.fmt(f),
+            Self::Cpv(cpv) => cpv.fmt(f),
+        }
+    }
+}
+
+impl From<&Target> for Restrict {
+    fn from(value: &Target) -> Restrict {
+        match value {
+            Target::Cpn(cpn) => cpn.into(),
+            Target::Cpv(cpv) => cpv.into(),
+        }
     }
 }
 
