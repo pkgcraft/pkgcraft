@@ -123,6 +123,20 @@ impl Restriction<&Dep> for Restrict {
     }
 }
 
+impl Restriction<&str> for Restrict {
+    fn matches(&self, s: &str) -> bool {
+        use self::Restrict::*;
+        match self {
+            Category(r) => r.matches(s),
+            Package(r) => r.matches(s),
+            Slot(Some(r)) => r.matches(s),
+            Subslot(Some(r)) => r.matches(s),
+            Repo(Some(r)) => r.matches(s),
+            _ => false,
+        }
+    }
+}
+
 impl Restriction<&Cow<'_, Dep>> for Restrict {
     fn matches(&self, value: &Cow<'_, Dep>) -> bool {
         self.matches(value.as_ref())
