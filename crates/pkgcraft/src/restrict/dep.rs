@@ -51,16 +51,15 @@ impl Restrict {
 
 impl Restriction<&Cpn> for Restrict {
     fn matches(&self, cpn: &Cpn) -> bool {
-        use self::Restrict::*;
         match self {
-            Category(r) => r.matches(cpn.category()),
-            Package(r) => r.matches(cpn.package()),
-            Version(None) => true,
-            Blocker(None) => true,
-            Slot(None) => true,
-            Subslot(None) => true,
-            UseDeps(None) => true,
-            Repo(None) => true,
+            Self::Category(r) => r.matches(cpn.category()),
+            Self::Package(r) => r.matches(cpn.package()),
+            Self::Version(None) => true,
+            Self::Blocker(None) => true,
+            Self::Slot(None) => true,
+            Self::Subslot(None) => true,
+            Self::UseDeps(None) => true,
+            Self::Repo(None) => true,
             _ => false,
         }
     }
@@ -68,16 +67,15 @@ impl Restriction<&Cpn> for Restrict {
 
 impl Restriction<&Cpv> for Restrict {
     fn matches(&self, cpv: &Cpv) -> bool {
-        use self::Restrict::*;
         match self {
-            Category(r) => r.matches(cpv.category()),
-            Package(r) => r.matches(cpv.package()),
-            Version(Some(v)) => v.intersects(cpv.version()),
-            Blocker(None) => true,
-            Slot(None) => true,
-            Subslot(None) => true,
-            UseDeps(None) => true,
-            Repo(None) => true,
+            Self::Category(r) => r.matches(cpv.category()),
+            Self::Package(r) => r.matches(cpv.package()),
+            Self::Version(Some(v)) => v.intersects(cpv.version()),
+            Self::Blocker(None) => true,
+            Self::Slot(None) => true,
+            Self::Subslot(None) => true,
+            Self::UseDeps(None) => true,
+            Self::Repo(None) => true,
             _ => false,
         }
     }
@@ -85,36 +83,35 @@ impl Restriction<&Cpv> for Restrict {
 
 impl Restriction<&Dep> for Restrict {
     fn matches(&self, dep: &Dep) -> bool {
-        use self::Restrict::*;
         match self {
-            Category(r) => r.matches(dep.category()),
-            Package(r) => r.matches(dep.package()),
-            Blocker(b) => match (b, dep.blocker()) {
+            Self::Category(r) => r.matches(dep.category()),
+            Self::Package(r) => r.matches(dep.package()),
+            Self::Blocker(b) => match (b, dep.blocker()) {
                 (Some(b), Some(blocker)) => *b == blocker,
                 (None, None) => true,
                 _ => false,
             },
-            Version(v) => match (v, dep.version()) {
+            Self::Version(v) => match (v, dep.version()) {
                 (Some(v), Some(ver)) => v.intersects(ver),
                 (None, None) => true,
                 _ => false,
             },
-            Slot(r) => match (r, dep.slot()) {
+            Self::Slot(r) => match (r, dep.slot()) {
                 (Some(r), Some(slot)) => r.matches(slot),
                 (None, None) => true,
                 _ => false,
             },
-            Subslot(r) => match (r, dep.subslot()) {
+            Self::Subslot(r) => match (r, dep.subslot()) {
                 (Some(r), Some(subslot)) => r.matches(subslot),
                 (None, None) => true,
                 _ => false,
             },
-            UseDeps(u) => match (u, dep.use_deps()) {
+            Self::UseDeps(u) => match (u, dep.use_deps()) {
                 (Some(u), Some(use_deps)) => u.is_subset(use_deps),
                 (None, None) => true,
                 _ => false,
             },
-            Repo(r) => match (r, dep.repo()) {
+            Self::Repo(r) => match (r, dep.repo()) {
                 (Some(r), Some(repo)) => r.matches(repo),
                 (None, None) => true,
                 _ => false,
@@ -125,13 +122,12 @@ impl Restriction<&Dep> for Restrict {
 
 impl Restriction<&str> for Restrict {
     fn matches(&self, s: &str) -> bool {
-        use self::Restrict::*;
         match self {
-            Category(r) => r.matches(s),
-            Package(r) => r.matches(s),
-            Slot(Some(r)) => r.matches(s),
-            Subslot(Some(r)) => r.matches(s),
-            Repo(Some(r)) => r.matches(s),
+            Self::Category(r) => r.matches(s),
+            Self::Package(r) => r.matches(s),
+            Self::Slot(Some(r)) => r.matches(s),
+            Self::Subslot(Some(r)) => r.matches(s),
+            Self::Repo(Some(r)) => r.matches(s),
             _ => false,
         }
     }

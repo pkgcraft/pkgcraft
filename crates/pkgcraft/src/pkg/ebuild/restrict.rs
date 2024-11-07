@@ -55,9 +55,8 @@ impl Restriction<&ebuild::raw::Pkg> for BaseRestrict {
 
 impl Restriction<&ebuild::raw::Pkg> for DepRestrict {
     fn matches(&self, pkg: &ebuild::raw::Pkg) -> bool {
-        use DepRestrict::*;
         match self {
-            Repo(Some(r)) => r.matches(pkg.repo().id()),
+            Self::Repo(Some(r)) => r.matches(pkg.repo().id()),
             r => r.matches(pkg.cpv()),
         }
     }
@@ -65,9 +64,8 @@ impl Restriction<&ebuild::raw::Pkg> for DepRestrict {
 
 impl Restriction<&ebuild::raw::Pkg> for pkg::Restrict {
     fn matches(&self, pkg: &ebuild::raw::Pkg) -> bool {
-        use pkg::Restrict::*;
         match self {
-            Repo(r) => r.matches(pkg.repo().id()),
+            Self::Repo(r) => r.matches(pkg.repo().id()),
             _ => false,
         }
     }
@@ -84,11 +82,10 @@ impl Restriction<&ebuild::Pkg> for BaseRestrict {
 
 impl Restriction<&ebuild::Pkg> for DepRestrict {
     fn matches(&self, pkg: &ebuild::Pkg) -> bool {
-        use DepRestrict::*;
         match self {
-            Slot(Some(r)) => r.matches(pkg.slot()),
-            Subslot(Some(r)) => r.matches(pkg.subslot()),
-            Repo(Some(r)) => r.matches(pkg.repo().id()),
+            Self::Slot(Some(r)) => r.matches(pkg.slot()),
+            Self::Subslot(Some(r)) => r.matches(pkg.subslot()),
+            Self::Repo(Some(r)) => r.matches(pkg.repo().id()),
             r => r.matches(pkg.cpv()),
         }
     }
@@ -96,97 +93,95 @@ impl Restriction<&ebuild::Pkg> for DepRestrict {
 
 impl Restriction<&ebuild::Pkg> for pkg::Restrict {
     fn matches(&self, pkg: &ebuild::Pkg) -> bool {
-        use pkg::Restrict::*;
         match self {
-            Ebuild(r) => r.matches(pkg),
-            Eapi(r) => r.matches(pkg.eapi()),
-            Repo(r) => r.matches(pkg.repo().id()),
+            Self::Ebuild(r) => r.matches(pkg),
+            Self::Eapi(r) => r.matches(pkg.eapi()),
+            Self::Repo(r) => r.matches(pkg.repo().id()),
         }
     }
 }
 
 impl Restriction<&ebuild::Pkg> for Restrict {
     fn matches(&self, pkg: &ebuild::Pkg) -> bool {
-        use self::Restrict::*;
         match self {
-            Ebuild(r) => match pkg.ebuild() {
+            Self::Ebuild(r) => match pkg.ebuild() {
                 Ok(s) => r.matches(&s),
                 Err(_) => false,
             },
-            Description(r) => r.matches(pkg.description()),
-            Slot(r) => r.matches(pkg.slot()),
-            Subslot(r) => r.matches(pkg.subslot()),
-            RawSubslot(r) => match (r, pkg.data.slot.subslot()) {
+            Self::Description(r) => r.matches(pkg.description()),
+            Self::Slot(r) => r.matches(pkg.slot()),
+            Self::Subslot(r) => r.matches(pkg.subslot()),
+            Self::RawSubslot(r) => match (r, pkg.data.slot.subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
             },
-            Dependencies(r) => match (r, pkg.dependencies(&[])) {
+            Self::Dependencies(r) => match (r, pkg.dependencies(&[])) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Depend(r) => match (r, pkg.depend()) {
+            Self::Depend(r) => match (r, pkg.depend()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Bdepend(r) => match (r, pkg.bdepend()) {
+            Self::Bdepend(r) => match (r, pkg.bdepend()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Idepend(r) => match (r, pkg.idepend()) {
+            Self::Idepend(r) => match (r, pkg.idepend()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Pdepend(r) => match (r, pkg.pdepend()) {
+            Self::Pdepend(r) => match (r, pkg.pdepend()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Rdepend(r) => match (r, pkg.rdepend()) {
+            Self::Rdepend(r) => match (r, pkg.rdepend()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            License(r) => match (r, pkg.license()) {
+            Self::License(r) => match (r, pkg.license()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Properties(r) => match (r, pkg.properties()) {
+            Self::Properties(r) => match (r, pkg.properties()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            RequiredUse(r) => match (r, pkg.required_use()) {
+            Self::RequiredUse(r) => match (r, pkg.required_use()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Restrict(r) => match (r, pkg.restrict()) {
+            Self::Restrict(r) => match (r, pkg.restrict()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            SrcUri(r) => match (r, pkg.src_uri()) {
+            Self::SrcUri(r) => match (r, pkg.src_uri()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Homepage(r) => match (r, pkg.homepage()) {
+            Self::Homepage(r) => match (r, pkg.homepage()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Iuse(r) => match (r, pkg.iuse_effective()) {
+            Self::Iuse(r) => match (r, pkg.iuse_effective()) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Inherit(r) => match (r, pkg.inherit()) {
+            Self::Inherit(r) => match (r, pkg.inherit()) {
                 (Some(r), val) => {
                     let val = val.into_iter().map(|x| x.to_string()).collect();
                     r.matches(&val)
@@ -194,7 +189,7 @@ impl Restriction<&ebuild::Pkg> for Restrict {
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Inherited(r) => match (r, pkg.inherited()) {
+            Self::Inherited(r) => match (r, pkg.inherited()) {
                 (Some(r), val) => {
                     let val = val.into_iter().map(|x| x.to_string()).collect();
                     r.matches(&val)
@@ -202,7 +197,7 @@ impl Restriction<&ebuild::Pkg> for Restrict {
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            Keywords(r) => match (r, pkg.keywords()) {
+            Self::Keywords(r) => match (r, pkg.keywords()) {
                 (Some(r), val) => {
                     let val = val.into_iter().map(|x| x.to_string()).collect();
                     r.matches(&val)
@@ -210,12 +205,12 @@ impl Restriction<&ebuild::Pkg> for Restrict {
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },
-            LongDescription(r) => match (r, pkg.metadata().description()) {
+            Self::LongDescription(r) => match (r, pkg.metadata().description()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,
             },
-            Maintainers(r) => match r {
+            Self::Maintainers(r) => match r {
                 Some(r) => r.matches(pkg.metadata().maintainers()),
                 None => pkg.metadata().maintainers().is_empty(),
             },
