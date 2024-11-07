@@ -849,12 +849,8 @@ impl IterCpn {
         // extract matching restrictions for optimized iteration
         if let Some(restrict) = restrict {
             let mut match_restrict = |restrict: &Restrict| match restrict {
-                Restrict::Dep(Category(r)) => {
-                    cat_restricts.push(r.clone());
-                }
-                Restrict::Dep(Package(r)) => {
-                    pkg_restricts.push(r.clone());
-                }
+                Restrict::Dep(Category(r)) => cat_restricts.push(r.clone()),
+                Restrict::Dep(Package(r)) => pkg_restricts.push(r.clone()),
                 _ => (),
             };
 
@@ -972,15 +968,9 @@ impl IterCpv {
         // extract matching restrictions for optimized iteration
         if let Some(restrict) = restrict {
             let mut match_restrict = |restrict: &Restrict| match restrict {
-                Restrict::Dep(Category(r)) => {
-                    cat_restricts.push(r.clone());
-                }
-                Restrict::Dep(Package(r)) => {
-                    pkg_restricts.push(r.clone());
-                }
-                Restrict::Dep(r @ Version(_)) => {
-                    ver_restricts.push(r.clone());
-                }
+                Restrict::Dep(Category(r)) => cat_restricts.push(r.clone()),
+                Restrict::Dep(Package(r)) => pkg_restricts.push(r.clone()),
+                Restrict::Dep(r @ Version(_)) => ver_restricts.push(r.clone()),
                 _ => (),
             };
 
