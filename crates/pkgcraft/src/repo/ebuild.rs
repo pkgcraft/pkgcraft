@@ -894,6 +894,19 @@ impl IterCpn {
                     Box::new(iter::empty())
                 }
             }
+            ([Equal(cat)], _) => {
+                let cat = std::mem::take(cat);
+                let pkg_restrict = Restrict::and(pkg_restricts);
+                Box::new(
+                    repo.packages(&cat)
+                        .into_iter()
+                        .filter(move |pn| pkg_restrict.matches(pn.as_str()))
+                        .map(move |pn| Cpn {
+                            category: cat.clone(),
+                            package: pn,
+                        }),
+                )
+            }
             ([], [Package(Equal(pn))]) => {
                 let pn = std::mem::take(pn);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
