@@ -896,7 +896,6 @@ impl IterCpn {
             }
             ([], [Package(Equal(pn))]) => {
                 let pn = std::mem::take(pn);
-
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
                     let cpn = Cpn {
                         category: cat,
@@ -910,13 +909,7 @@ impl IterCpn {
                 }))
             }
             ([], [_, ..]) => {
-                // convert package restricts into string restrictions
-                let pkg_restrict =
-                    Restrict::and(pkg_restricts.into_iter().filter_map(|r| match r {
-                        Package(x) => Some(x),
-                        _ => None,
-                    }));
-
+                let pkg_restrict = Restrict::and(pkg_restricts);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
                     repo.packages(&cat)
                         .into_iter()
@@ -1052,13 +1045,7 @@ impl IterCpv {
                 }))
             }
             ([], [_, ..], _) => {
-                // convert package restricts into string restrictions
-                let pkg_restrict =
-                    Restrict::and(pkg_restricts.into_iter().filter_map(|r| match r {
-                        Package(x) => Some(x),
-                        _ => None,
-                    }));
-
+                let pkg_restrict = Restrict::and(pkg_restricts);
                 let ver_restrict = match ver_restricts.len() {
                     0 => Restrict::True,
                     1 => ver_restricts.remove(0).into(),
