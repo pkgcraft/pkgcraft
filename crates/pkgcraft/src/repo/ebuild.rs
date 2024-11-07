@@ -1030,22 +1030,6 @@ impl IterCpv {
                         .collect::<Vec<_>>()
                 }))
             }
-            ([], [_, ..], _) => {
-                let pkg_restrict = Restrict::and(pkg_restricts);
-                let ver_restrict = Restrict::and(ver_restricts);
-                Box::new(repo.categories().into_iter().flat_map(move |cat| {
-                    if let Ok(entries) = repo.path().join(&cat).read_dir_utf8() {
-                        entries
-                            .filter_map(|e| e.ok())
-                            .filter(|e| pkg_restrict.matches(e.file_name()))
-                            .flat_map(|e| repo.cpvs_from_package(&cat, e.file_name()))
-                            .filter(|cpv| ver_restrict.matches(cpv))
-                            .collect::<Vec<_>>()
-                    } else {
-                        Default::default()
-                    }
-                }))
-            }
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
                 let pkg_restrict = Restrict::and(pkg_restricts);
