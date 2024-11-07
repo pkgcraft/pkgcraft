@@ -922,18 +922,8 @@ impl IterCpn {
                 }))
             }
             _ => {
-                let cat_restrict = match cat_restricts.len() {
-                    0 => Restrict::True,
-                    1 => cat_restricts.remove(0).into(),
-                    _ => Restrict::and(cat_restricts),
-                };
-
-                let pkg_restrict = match pkg_restricts.len() {
-                    0 => Restrict::True,
-                    1 => pkg_restricts.remove(0).into(),
-                    _ => Restrict::and(pkg_restricts),
-                };
-
+                let cat_restrict = Restrict::and(cat_restricts);
+                let pkg_restrict = Restrict::and(pkg_restricts);
                 Box::new(
                     repo.categories()
                         .into_iter()
@@ -1017,12 +1007,7 @@ impl IterCpv {
                 }
             }
             ([Equal(cat)], [Package(Equal(pn))], _) => {
-                let ver_restrict = match ver_restricts.len() {
-                    0 => Restrict::True,
-                    1 => ver_restricts.remove(0).into(),
-                    _ => Restrict::and(ver_restricts),
-                };
-
+                let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(
                     repo.cpvs_from_package(cat, pn)
                         .into_iter()
@@ -1031,12 +1016,7 @@ impl IterCpv {
             }
             ([], [Package(Equal(pn))], _) => {
                 let pn = std::mem::take(pn);
-                let ver_restrict = match ver_restricts.len() {
-                    0 => Restrict::True,
-                    1 => ver_restricts.remove(0).into(),
-                    _ => Restrict::and(ver_restricts),
-                };
-
+                let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
                     repo.cpvs_from_package(&cat, &pn)
                         .into_iter()
@@ -1046,12 +1026,7 @@ impl IterCpv {
             }
             ([], [_, ..], _) => {
                 let pkg_restrict = Restrict::and(pkg_restricts);
-                let ver_restrict = match ver_restricts.len() {
-                    0 => Restrict::True,
-                    1 => ver_restricts.remove(0).into(),
-                    _ => Restrict::and(ver_restricts),
-                };
-
+                let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
                     if let Ok(entries) = repo.path().join(&cat).read_dir_utf8() {
                         entries
@@ -1066,19 +1041,8 @@ impl IterCpv {
                 }))
             }
             _ => {
-                let cat_restrict = match cat_restricts.len() {
-                    0 => Restrict::True,
-                    1 => cat_restricts.remove(0).into(),
-                    _ => Restrict::and(cat_restricts),
-                };
-
-                pkg_restricts.extend(ver_restricts);
-                let pkg_restrict = match pkg_restricts.len() {
-                    0 => Restrict::True,
-                    1 => pkg_restricts.remove(0).into(),
-                    _ => Restrict::and(pkg_restricts),
-                };
-
+                let cat_restrict = Restrict::and(cat_restricts);
+                let pkg_restrict = Restrict::and(pkg_restricts.into_iter().chain(ver_restricts));
                 Box::new(
                     repo.categories()
                         .into_iter()
