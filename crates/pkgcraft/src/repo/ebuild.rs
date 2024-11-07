@@ -907,19 +907,25 @@ impl IterCpn {
                         }),
                 )
             }
-            ([], [Package(Equal(pn))]) => {
+            (_, [Package(Equal(pn))]) => {
                 let pn = std::mem::take(pn);
-                Box::new(repo.categories().into_iter().flat_map(move |cat| {
-                    let cpn = Cpn {
-                        category: cat,
-                        package: pn.to_string(),
-                    };
-                    if repo.contains(&cpn) {
-                        vec![cpn]
-                    } else {
-                        vec![]
-                    }
-                }))
+                let cat_restrict = Restrict::and(cat_restricts);
+                Box::new(
+                    repo.categories()
+                        .into_iter()
+                        .filter(move |cat| cat_restrict.matches(cat.as_str()))
+                        .flat_map(move |cat| {
+                            let cpn = Cpn {
+                                category: cat,
+                                package: pn.to_string(),
+                            };
+                            if repo.contains(&cpn) {
+                                vec![cpn]
+                            } else {
+                                vec![]
+                            }
+                        }),
+                )
             }
             ([], [_, ..]) => {
                 let pkg_restrict = Restrict::and(pkg_restricts);
