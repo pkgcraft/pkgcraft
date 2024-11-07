@@ -927,19 +927,6 @@ impl IterCpn {
                         }),
                 )
             }
-            ([], [_, ..]) => {
-                let pkg_restrict = Restrict::and(pkg_restricts);
-                Box::new(repo.categories().into_iter().flat_map(move |cat| {
-                    repo.packages(&cat)
-                        .into_iter()
-                        .filter(|pn| pkg_restrict.matches(pn.as_str()))
-                        .map(|pn| Cpn {
-                            category: cat.clone(),
-                            package: pn,
-                        })
-                        .collect::<Vec<_>>()
-                }))
-            }
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
                 let pkg_restrict = Restrict::and(pkg_restricts);
