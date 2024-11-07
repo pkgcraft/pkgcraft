@@ -193,7 +193,7 @@ impl Config {
                         Error::Config(format!("failed removing repo config: {path:?}: {e}"))
                     })?;
                 }
-                self.repos.shift_remove(name as &str);
+                self.repos.shift_remove(name);
             }
         }
         Ok(())
@@ -240,8 +240,8 @@ impl Config {
     }
 
     /// Get a repo.
-    pub fn get(&self, key: &str) -> Option<&Repo> {
-        self.repos.get(key)
+    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&Repo> {
+        self.repos.get(key.as_ref())
     }
 
     /// Returns true if no repos exist and false otherwise.
