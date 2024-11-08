@@ -35,7 +35,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let current_dir = current_dir()?;
     let eapi = build.eapi();
-    let distdir = build.env(DISTDIR)?;
+    let distdir = build.env(DISTDIR);
 
     // Determine the source for a given archive target. Basic filenames are prefixed with
     // DISTDIR while all other types are unprefixed including conditionally supported absolute

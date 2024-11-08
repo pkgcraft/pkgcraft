@@ -127,7 +127,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     let build = get_build_mut();
-    let subdir = match build.env(DOCDESTTREE)? {
+    let subdir = match build.env(DOCDESTTREE) {
         "" => "html",
         val => val,
     };
@@ -136,7 +136,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .as_ref()
         .map(|s| s.trim_start_matches('/'))
         .unwrap_or_default();
-    let dest = build_path!("/usr/share/doc", build.pkg()?.cpv().pf(), subdir, doc_prefix);
+    let dest = build_path!("/usr/share/doc", build.cpv().pf(), subdir, doc_prefix);
     let install = build.install().dest(dest)?;
 
     let (dirs, files): (Vec<_>, Vec<_>) =

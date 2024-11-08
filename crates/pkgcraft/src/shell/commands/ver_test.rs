@@ -11,7 +11,7 @@ const LONG_DOC: &str = "Perform comparisons on package version strings.";
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let (op, cmp) = match args[..] {
         [op, rhs] => {
-            let lhs = get_build_mut().cpv()?.version();
+            let lhs = get_build_mut().cpv().version();
             let rhs = Version::try_new_without_op(rhs)?;
             (op, lhs.cmp(&rhs))
         }

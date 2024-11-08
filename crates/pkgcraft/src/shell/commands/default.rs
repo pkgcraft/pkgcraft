@@ -13,7 +13,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let phase = build.phase()?;
+    let phase = build.phase();
     let default_phase = format!("default_{phase}");
 
     if let Some(cmd) = build.eapi().commands().get(default_phase.as_str()) {

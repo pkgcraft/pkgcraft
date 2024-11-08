@@ -57,7 +57,7 @@ mod tests {
             let build = get_build_mut();
             build.scope = Scope::Phase(PhaseKind::SrcInstall);
             into(&["/test/path"]).unwrap();
-            assert_eq!(build.env(DESTTREE).unwrap(), "/test/path");
+            assert_eq!(build.env(DESTTREE), "/test/path");
 
             // verify conditional EAPI environment export
             let build_var = eapi.env().get(&DESTTREE).unwrap();

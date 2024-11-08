@@ -40,6 +40,6 @@ mod tests {
     #[test]
     fn set_path() {
         exeinto(&["/test/path"]).unwrap();
-        assert_eq!(get_build_mut().env(EXEDESTTREE).unwrap(), "/test/path");
+        assert_eq!(get_build_mut().env(EXEDESTTREE), "/test/path");
     }
 }

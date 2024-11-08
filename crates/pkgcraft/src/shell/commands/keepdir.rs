@@ -18,7 +18,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let install = build.install();
 
     // use custom file name including pkg info
-    let pkg = build.ebuild_pkg()?;
+    let pkg = build.ebuild_pkg();
     let (cat, pkg, slot) = (pkg.cpv().category(), pkg.cpv().package(), pkg.slot());
     let file_name = format!(".keep_{cat}_{pkg}_{slot}");
 

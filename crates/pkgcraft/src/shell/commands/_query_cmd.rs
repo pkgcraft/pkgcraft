@@ -23,5 +23,5 @@ pub(crate) fn query_cmd(args: &[&str]) -> scallop::Result<Vec<Cpv>> {
     let dep = eapi.dep(dep)?;
 
     // TODO: pull the install repo related to the root setting
-    Ok(build.repo()?.iter_cpv_restrict(&dep).collect())
+    Ok(build.repo().iter_cpv_restrict(&dep).collect())
 }

@@ -18,8 +18,7 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
     destination: &str,
 ) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
-    let dest =
-        build_path!("/usr/share/doc", build.pkg()?.cpv().pf(), destination.trim_start_matches('/'));
+    let dest = build_path!("/usr/share/doc", build.cpv().pf(), destination.trim_start_matches('/'));
     let install = build.install().dest(dest)?;
 
     let (dirs, files): (Vec<_>, Vec<_>) =
@@ -50,7 +49,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let dest = build.env(DOCDESTTREE)?;
+    let dest = build.env(DOCDESTTREE);
     install_docs(recursive, args, dest)
 }
 

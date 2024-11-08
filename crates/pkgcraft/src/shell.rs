@@ -36,13 +36,11 @@ mod utils;
 use environment::Variable;
 use scope::Scope;
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum BuildState<'a> {
     Empty(&'static Eapi),
     Metadata(&'a crate::pkg::ebuild::raw::Pkg),
     Build(&'a crate::pkg::ebuild::Pkg),
-    Merge,
 }
 
 impl Default for BuildState<'_> {
@@ -152,51 +150,50 @@ impl BuildData<'_> {
             BuildState::Empty(eapi) => eapi,
             BuildState::Metadata(pkg) => pkg.eapi(),
             BuildState::Build(pkg) => pkg.eapi(),
-            BuildState::Merge => todo!(),
         }
     }
 
     /// Get the current CPV if it exists.
-    fn cpv(&self) -> scallop::Result<&Cpv> {
+    fn cpv(&self) -> &Cpv {
         match &self.state {
-            BuildState::Metadata(pkg) => Ok(pkg.cpv()),
-            BuildState::Build(pkg) => Ok(pkg.cpv()),
-            _ => Err(Error::Base(format!("cpv invalid for scope: {}", self.scope))),
+            BuildState::Metadata(pkg) => pkg.cpv(),
+            BuildState::Build(pkg) => pkg.cpv(),
+            _ => panic!("cpv invalid for scope: {}", self.scope),
         }
     }
 
     /// Get the current ebuild repo if it exists.
-    fn ebuild_repo(&self) -> scallop::Result<&crate::repo::ebuild::EbuildRepo> {
+    fn ebuild_repo(&self) -> &crate::repo::ebuild::EbuildRepo {
         match &self.state {
-            BuildState::Metadata(pkg) => Ok(pkg.repo()),
-            BuildState::Build(pkg) => Ok(pkg.repo()),
-            _ => Err(Error::Base(format!("ebuild repo invalid for scope: {}", self.scope))),
+            BuildState::Metadata(pkg) => pkg.repo(),
+            BuildState::Build(pkg) => pkg.repo(),
+            _ => panic!("ebuild repo invalid for scope: {}", self.scope),
         }
     }
 
     /// Get the current repo if it exists.
-    fn repo(&self) -> scallop::Result<Repo> {
+    fn repo(&self) -> Repo {
         match &self.state {
-            BuildState::Metadata(pkg) => Ok(pkg.repo().clone().into()),
-            BuildState::Build(pkg) => Ok(pkg.repo().clone().into()),
-            _ => Err(Error::Base(format!("repo invalid for scope: {}", self.scope))),
+            BuildState::Metadata(pkg) => pkg.repo().clone().into(),
+            BuildState::Build(pkg) => pkg.repo().clone().into(),
+            _ => panic!("repo invalid for scope: {}", self.scope),
         }
     }
 
     /// Get the current ebuild package being built if it exists.
-    fn ebuild_pkg(&self) -> scallop::Result<Box<dyn EbuildPackage + '_>> {
+    fn ebuild_pkg(&self) -> Box<dyn EbuildPackage + '_> {
         match &self.state {
-            BuildState::Build(pkg) => Ok(Box::new(pkg)),
-            _ => Err(Error::Base(format!("ebuild pkg invalid for scope: {}", self.scope))),
+            BuildState::Build(pkg) => Box::new(pkg),
+            _ => panic!("ebuild pkg invalid for scope: {}", self.scope),
         }
     }
 
     /// Get the current package being manipulated if it exists.
-    fn pkg(&self) -> scallop::Result<Box<dyn Package + '_>> {
+    fn pkg(&self) -> Box<dyn Package + '_> {
         match &self.state {
-            BuildState::Metadata(pkg) => Ok(Box::new(pkg)),
-            BuildState::Build(pkg) => Ok(Box::new(pkg)),
-            _ => Err(Error::Base(format!("pkg invalid for scope: {}", self.scope))),
+            BuildState::Metadata(pkg) => Box::new(pkg),
+            BuildState::Build(pkg) => Box::new(pkg),
+            _ => panic!("pkg invalid for scope: {}", self.scope),
         }
     }
 
@@ -209,67 +206,65 @@ impl BuildData<'_> {
     }
 
     /// Get the current build phase if it exists.
-    fn phase(&self) -> scallop::Result<&phase::Phase> {
+    fn phase(&self) -> &phase::Phase {
         match &self.scope {
-            Scope::Phase(k) => Ok(self.eapi().phases().get(k).expect("unknown scope phase")),
-            scope => Err(Error::Base(format!("phase invalid for scope: {scope}"))),
+            Scope::Phase(k) => self.eapi().phases().get(k).expect("unknown scope phase"),
+            scope => panic!("phase invalid for scope: {scope}"),
         }
     }
 
     /// Get the current eclass if it exists.
-    fn eclass(&self) -> scallop::Result<Eclass> {
+    fn eclass(&self) -> Eclass {
         match &self.scope {
-            Scope::Eclass(Some(eclass)) => Ok(eclass.clone()),
-            scope => Err(Error::Base(format!("eclass invalid for scope: {scope}"))),
+            Scope::Eclass(Some(eclass)) => eclass.clone(),
+            scope => panic!("eclass invalid for scope: {scope}"),
         }
     }
 
     /// Get the cached value for a given build variable from the build state.
-    fn env<V>(&self, var: V) -> scallop::Result<&str>
+    fn env<V>(&self, var: V) -> &str
     where
         V: Borrow<Variable> + std::fmt::Display,
     {
-        self.env
+        &self
+            .env
             .get(var.borrow())
-            .map(|s| s.as_str())
-            .ok_or_else(|| Error::Base(format!("{var} unset")))
+            .unwrap_or_else(|| panic!("{var} unset"))
     }
 
     /// Get the value for a given build variable from the build state.
-    fn get_var(&self, var: Variable) -> scallop::Result<String> {
+    fn get_var(&self, var: Variable) -> String {
         use Variable::*;
         match var {
-            CATEGORY => self.cpv().map(|o| o.category().to_string()),
-            P => self.cpv().map(|o| o.p()),
-            PF => self.cpv().map(|o| o.pf()),
-            PN => self.cpv().map(|o| o.package().to_string()),
-            PR => self.cpv().map(|o| o.pr()),
-            PV => self.cpv().map(|o| o.pv()),
-            PVR => self.cpv().map(|o| o.pvr()),
+            CATEGORY => self.cpv().category().to_string(),
+            P => self.cpv().p(),
+            PF => self.cpv().pf(),
+            PN => self.cpv().package().to_string(),
+            PR => self.cpv().pr(),
+            PV => self.cpv().pv(),
+            PVR => self.cpv().pvr(),
 
             FILESDIR => {
-                let cpv = self.cpv()?;
-                let path = build_path!(self.repo()?.path(), cpv.category(), cpv.package(), "files");
-                Ok(path.to_string())
+                let cpv = self.cpv();
+                let path = build_path!(self.repo().path(), cpv.category(), cpv.package(), "files");
+                path.to_string()
             }
-            PORTDIR => self.repo().map(|r| r.path().to_string()),
-            ECLASSDIR => self.repo().map(|r| r.path().join("eclass").to_string()),
+            PORTDIR => self.repo().path().to_string(),
+            ECLASSDIR => self.repo().path().join("eclass").to_string(),
 
             // TODO: alter based on config settings
-            ROOT => Ok("".to_string()),
-            EROOT => Ok("".to_string()),
-            SYSROOT => Ok("".to_string()),
-            ESYSROOT => Ok("".to_string()),
-            BROOT => Ok("".to_string()),
-            EPREFIX => Ok("".to_string()),
+            ROOT => Default::default(),
+            EROOT => Default::default(),
+            SYSROOT => Default::default(),
+            ESYSROOT => Default::default(),
+            BROOT => Default::default(),
+            EPREFIX => Default::default(),
 
             // TODO: pull these values from the config
             T => {
                 let path = std::env::temp_dir();
-                let path = path
-                    .to_str()
-                    .ok_or_else(|| Error::Base(format!("non-unicode system tempdir: {path:?}")))?;
-                Ok(path.to_string())
+                let path = path.to_str().expect("non-unicode system tempdir: {path:?}");
+                path.to_string()
             }
             TMPDIR => self.get_var(T),
             HOME => self.get_var(T),
@@ -279,18 +274,18 @@ impl BuildData<'_> {
             D => self.get_var(T),
             S => self.get_var(T),
 
-            DESTTREE => Ok("/usr".to_string()),
-            INSDESTTREE | DOCDESTTREE | EXEDESTTREE => Ok("".to_string()),
+            DESTTREE => "/usr".to_string(),
+            INSDESTTREE | DOCDESTTREE | EXEDESTTREE => Default::default(),
 
-            EBUILD_PHASE => self.phase().map(|p| p.name().to_string()),
-            EBUILD_PHASE_FUNC => self.phase().map(|p| p.to_string()),
+            EBUILD_PHASE => self.phase().name().to_string(),
+            EBUILD_PHASE_FUNC => self.phase().to_string(),
 
             // TODO: alter for build vs install pkg state variants
-            REPLACING_VERSIONS => Ok("".to_string()),
-            REPLACED_BY_VERSION => Ok("".to_string()),
-            MERGE_TYPE => Ok("source".to_string()),
-            A => Ok("".to_string()),
-            USE => Ok("".to_string()),
+            REPLACING_VERSIONS => Default::default(),
+            REPLACED_BY_VERSION => Default::default(),
+            MERGE_TYPE => "source".to_string(),
+            A => Default::default(),
+            USE => Default::default(),
         }
     }
 
@@ -301,7 +296,7 @@ impl BuildData<'_> {
                 if let Some(val) = self.env.get(var.borrow()) {
                     var.bind(val)?;
                 } else {
-                    let val = self.get_var(var.into())?;
+                    let val = self.get_var(var.into());
                     var.bind(&val)?;
                     // cache static values when not generating metadata
                     if !matches!(self.state, BuildState::Metadata(_)) && var.is_static() {

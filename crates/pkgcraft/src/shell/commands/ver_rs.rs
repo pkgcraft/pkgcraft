@@ -11,7 +11,7 @@ const LONG_DOC: &str = "Perform string substitution on package version strings."
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let pv = get_build_mut().cpv()?.pv();
+    let pv = get_build_mut().cpv().pv();
     let (ver, args) = match args.len() {
         n if n < 2 => return Err(Error::Base(format!("requires 2 or more args, got {n}"))),
 

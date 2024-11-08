@@ -31,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let mut dirs = HashSet::new();
     let mut files = vec![];
-    let filename = format!("{}.mo", build.pkg()?.cpv().package());
+    let filename = format!("{}.mo", build.cpv().package());
 
     for path in args.iter().map(Utf8Path::new) {
         let dir = match path.file_stem() {

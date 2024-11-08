@@ -13,7 +13,7 @@ use super::emake_install;
 pub(crate) fn pkg_nofetch(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: only output URLs for missing distfiles
     if !build.distfiles.is_empty() {
-        let pkg = build.pkg()?;
+        let pkg = build.pkg();
         let mut stderr = stderr();
         writeln!(stderr, "The following files must be manually downloaded for {pkg}:")?;
         for url in &build.distfiles {

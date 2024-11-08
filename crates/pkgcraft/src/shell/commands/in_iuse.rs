@@ -14,7 +14,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
     };
 
-    let pkg = get_build_mut().ebuild_pkg()?;
+    let pkg = get_build_mut().ebuild_pkg();
     Ok(ExecStatus::from(pkg.iuse_effective().contains(*flag)))
 }
 

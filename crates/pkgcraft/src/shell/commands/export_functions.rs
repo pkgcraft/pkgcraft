@@ -18,7 +18,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let eclass = build.eclass()?;
+    let eclass = build.eclass();
     let eapi = build.eapi();
 
     for arg in args {
