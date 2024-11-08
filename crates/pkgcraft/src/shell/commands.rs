@@ -621,7 +621,6 @@ macro_rules! cmd_scope_tests {
                                     EAPI={eapi}
                                     DESCRIPTION="testing global scope failures"
                                     SLOT=0
-                                    LICENSE="MIT"
                                     VAR=1
                                     {cmd}
                                     VAR=2
@@ -666,7 +665,6 @@ macro_rules! cmd_scope_tests {
                         EAPI={eapi}
                         DESCRIPTION="testing command disabled in EAPI failures"
                         SLOT=0
-                        LICENSE="MIT"
                         VAR=1
                         {cmd}
                         VAR=2
