@@ -226,8 +226,7 @@ impl BuildData<'_> {
     where
         V: Borrow<Variable> + std::fmt::Display,
     {
-        &self
-            .env
+        self.env
             .get(var.borrow())
             .unwrap_or_else(|| panic!("{var} unset"))
     }
