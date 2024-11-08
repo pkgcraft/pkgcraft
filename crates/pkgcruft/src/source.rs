@@ -61,6 +61,55 @@ pub enum PkgFilter {
     Stable(bool),
 }
 
+impl PkgFilter {
+    /// Apply filter across an iterator of packages.
+    fn filter<'a>(
+        &'a self,
+        iter: Box<dyn Iterator<Item = ebuild::Pkg> + 'a>,
+    ) -> Box<dyn Iterator<Item = ebuild::Pkg> + 'a> {
+        match self {
+            Self::Latest(inverted) => {
+                let items: Vec<_> = iter.collect();
+                let len = items.len();
+                if *inverted {
+                    Box::new(items.into_iter().take(len - 1))
+                } else {
+                    Box::new(items.into_iter().skip(len - 1))
+                }
+            }
+            Self::LatestSlots(inverted) => Box::new(
+                iter.map(|pkg| (pkg.slot().to_string(), pkg))
+                    .collect::<OrderedMap<_, Vec<_>>>()
+                    .into_values()
+                    .flat_map(|pkgs| {
+                        let len = pkgs.len();
+                        if *inverted {
+                            Either::Left(pkgs.into_iter().take(len - 1))
+                        } else {
+                            Either::Right(pkgs.into_iter().skip(len - 1))
+                        }
+                    }),
+            ),
+            Self::Live(inverted) => Box::new(iter.filter(move |pkg| inverted ^ pkg.live())),
+            Self::Masked(inverted) => Box::new(iter.filter(move |pkg| inverted ^ pkg.masked())),
+            Self::Stable(inverted) => {
+                let status = if *inverted {
+                    KeywordStatus::Unstable
+                } else {
+                    KeywordStatus::Stable
+                };
+                Box::new(iter.filter(move |pkg| {
+                    !pkg.keywords().is_empty()
+                        && pkg.keywords().iter().all(|k| k.status() == status)
+                }))
+            }
+            Self::Restrict(inverted, restrict) => {
+                Box::new(iter.filter(move |pkg| inverted ^ restrict.matches(pkg)))
+            }
+        }
+    }
+}
+
 impl FromStr for PkgFilter {
     type Err = Error;
 
@@ -111,51 +160,8 @@ impl PkgFilters {
     ) -> Box<dyn Iterator<Item = ebuild::Pkg> + '_> {
         let mut iter: Box<dyn Iterator<Item = ebuild::Pkg>> = Box::new(repo.iter_restrict(val));
 
-        for filter in &self.0 {
-            iter = match filter {
-                PkgFilter::Latest(inverted) => {
-                    let items: Vec<_> = iter.collect();
-                    let len = items.len();
-                    if *inverted {
-                        Box::new(items.into_iter().take(len - 1))
-                    } else {
-                        Box::new(items.into_iter().skip(len - 1))
-                    }
-                }
-                PkgFilter::LatestSlots(inverted) => Box::new(
-                    iter.map(|pkg| (pkg.slot().to_string(), pkg))
-                        .collect::<OrderedMap<_, Vec<_>>>()
-                        .into_values()
-                        .flat_map(|pkgs| {
-                            let len = pkgs.len();
-                            if *inverted {
-                                Either::Left(pkgs.into_iter().take(len - 1))
-                            } else {
-                                Either::Right(pkgs.into_iter().skip(len - 1))
-                            }
-                        }),
-                ),
-                PkgFilter::Live(inverted) => {
-                    Box::new(iter.filter(move |pkg| inverted ^ pkg.live()))
-                }
-                PkgFilter::Masked(inverted) => {
-                    Box::new(iter.filter(move |pkg| inverted ^ pkg.masked()))
-                }
-                PkgFilter::Stable(inverted) => {
-                    let status = if *inverted {
-                        KeywordStatus::Unstable
-                    } else {
-                        KeywordStatus::Stable
-                    };
-                    Box::new(iter.filter(move |pkg| {
-                        !pkg.keywords().is_empty()
-                            && pkg.keywords().iter().all(|k| k.status() == status)
-                    }))
-                }
-                PkgFilter::Restrict(inverted, restrict) => {
-                    Box::new(iter.filter(move |pkg| inverted ^ restrict.matches(pkg)))
-                }
-            }
+        for f in &self.0 {
+            iter = f.filter(iter);
         }
 
         iter
