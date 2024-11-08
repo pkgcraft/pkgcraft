@@ -36,20 +36,16 @@ super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, _cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
-        // ignore packages lacking keywords
-        let pkgs = pkgs
-            .iter()
-            .filter(|p| !p.keywords().is_empty())
-            .collect::<Vec<_>>();
-        if pkgs.len() <= 1 {
-            return;
-        };
-
         let mut seen = HashSet::new();
         let mut previous = HashSet::new();
         let mut changes = HashMap::<_, _>::new();
 
-        for pkg in &pkgs {
+        for pkg in pkgs {
+            // skip packages without keywords
+            if pkg.keywords().is_empty() {
+                continue;
+            }
+
             let arches = pkg
                 .keywords()
                 .iter()
@@ -96,13 +92,13 @@ impl EbuildPkgSetCheck for Check {
 
         #[allow(clippy::mutable_key_type)] // false positive due to ebuild pkg OnceLock usage
         let mut dropped = HashMap::<_, Vec<_>>::new();
-        for (arch, pkg) in &changes {
+        for (arch, pkg) in changes {
             // TODO: report all pkgs with dropped keywords in verbose mode?
             // only report the latest pkg with dropped keywords
             dropped.entry(pkg).or_default().push(arch);
         }
 
-        for (pkg, arches) in &dropped {
+        for (pkg, arches) in dropped {
             KeywordsDropped
                 .version(pkg)
                 .message(arches.iter().sorted().join(", "))
