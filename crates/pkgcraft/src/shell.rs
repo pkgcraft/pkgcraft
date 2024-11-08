@@ -4,7 +4,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 use std::{env, mem};
 
-use camino::Utf8Path;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
@@ -18,8 +17,7 @@ use crate::macros::build_path;
 use crate::pkg::ebuild::{metadata::Key, EbuildPackage};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::Eclass;
-use crate::repo::Repository;
-use crate::restrict::Restrict;
+use crate::repo::{Repo, Repository};
 use crate::traits::SourceBash;
 use crate::types::{Deque, OrderedSet};
 
@@ -179,9 +177,8 @@ impl BuildData<'_> {
     /// Get the current repo if it exists.
     fn repo(&self) -> scallop::Result<Repo> {
         match &self.state {
-            BuildState::Metadata(pkg) => Ok(Repo::Ebuild(pkg.repo().clone())),
-            BuildState::Build(pkg) => Ok(Repo::Ebuild(pkg.repo().clone())),
-            BuildState::Merge => Ok(Repo::Binary),
+            BuildState::Metadata(pkg) => Ok(pkg.repo().clone().into()),
+            BuildState::Build(pkg) => Ok(pkg.repo().clone().into()),
             _ => Err(Error::Base(format!("repo invalid for scope: {}", self.scope))),
         }
     }
@@ -443,29 +440,6 @@ pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
     // restrict builtin loading and toggling
     scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
 });
-
-/// Repo wrapper for commands supporting both source and binary operations.
-#[derive(Debug)]
-enum Repo {
-    Ebuild(crate::repo::ebuild::EbuildRepo),
-    Binary,
-}
-
-impl Repo {
-    fn path(&self) -> &Utf8Path {
-        match self {
-            Self::Ebuild(repo) => repo.path(),
-            Self::Binary => todo!(),
-        }
-    }
-
-    fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Cpv> + '_ {
-        match self {
-            Self::Ebuild(repo) => repo.iter_cpv_restrict(val),
-            Self::Binary => todo!(),
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
