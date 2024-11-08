@@ -49,8 +49,7 @@ impl EbuildPkgCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::TEST_DATA;
-    use pretty_assertions::assert_eq;
+    use pkgcraft::test::{assert_ordered_eq, TEST_DATA};
 
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
@@ -64,7 +63,7 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new().jobs(1).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports: Vec<_> = scanner.run(repo, [repo]).collect();
-        assert_eq!(&reports, &expected);
+        let reports = scanner.run(repo, [repo]);
+        assert_ordered_eq!(reports, expected);
     }
 }

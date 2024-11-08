@@ -376,7 +376,7 @@ static SOURCE_CHECKS: LazyLock<OrderedMap<SourceKind, OrderedSet<Check>>> =
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
-    use pretty_assertions::assert_eq;
+    use pkgcraft::test::assert_ordered_eq;
     use strum::IntoEnumIterator;
 
     use super::*;
@@ -387,11 +387,11 @@ mod tests {
         let kinds: Vec<_> = CheckKind::iter().collect();
         let ordered: Vec<_> = CheckKind::iter().map(|x| x.to_string()).sorted().collect();
         let ordered: Vec<_> = ordered.iter().map(|s| s.parse().unwrap()).collect();
-        assert_eq!(&kinds, &ordered);
+        assert_ordered_eq!(&kinds, &ordered);
 
         // verify all CheckKind variants map to implemented checks
         let checks: Vec<_> = Check::iter().map(|x| x.kind).collect();
-        assert_eq!(&kinds, &checks);
+        assert_ordered_eq!(&kinds, &checks);
     }
 
     #[test]

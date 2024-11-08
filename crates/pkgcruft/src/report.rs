@@ -564,7 +564,7 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
-    use pretty_assertions::assert_eq;
+    use pkgcraft::test::assert_ordered_eq;
     use strum::IntoEnumIterator;
 
     use super::*;
@@ -599,8 +599,8 @@ mod tests {
         reports.sort();
 
         // compare reports via string serialization for better diff output
-        let expected: Vec<_> = expected.iter().map(|r| r.to_string()).collect();
-        let reports: Vec<_> = reports.iter().map(|r| r.to_string()).collect();
-        assert_eq!(&expected, &reports);
+        let expected = expected.iter().map(|r| r.to_string());
+        let reports = reports.iter().map(|r| r.to_string());
+        assert_ordered_eq!(expected, reports);
     }
 }
