@@ -423,11 +423,6 @@ type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
 pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
-    // TODO: remove this hack once build state tracking is reworked
-    #[allow(static_mut_refs)]
-    unsafe {
-        Lazy::force(&STATE)
-    };
     scallop::shell::init(false);
     // all builtins are enabled by default, access is restricted at runtime based on scope
     scallop::builtins::register(&*commands::BUILTINS);
