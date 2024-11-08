@@ -2,6 +2,7 @@ use scallop::Error;
 
 use crate::dep::Cpv;
 use crate::eapi::Feature::{QueryDeps, QueryHostRoot};
+use crate::repo::PkgRepository;
 use crate::shell::get_build_mut;
 
 /// Underlying query support for has_version and best_version.

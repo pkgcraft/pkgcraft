@@ -145,6 +145,7 @@ impl fmt::Display for FakeRepo {
 impl PkgRepository for FakeRepo {
     type Pkg = Pkg;
     type IterCpv = IterCpv;
+    type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
     type IterRestrict = IterRestrict;
 
@@ -177,6 +178,13 @@ impl PkgRepository for FakeRepo {
     fn iter_cpv(&self) -> Self::IterCpv {
         IterCpv {
             iter: self.0.cpvs.clone().into_iter(),
+        }
+    }
+
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
+        IterCpvRestrict {
+            iter: self.iter_cpv(),
+            restrict: value.into(),
         }
     }
 
@@ -254,6 +262,20 @@ impl Iterator for IterCpv {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
+    }
+}
+
+#[derive(Debug)]
+pub struct IterCpvRestrict {
+    iter: IterCpv,
+    restrict: Restrict,
+}
+
+impl Iterator for IterCpvRestrict {
+    type Item = Cpv;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|cpv| self.restrict.matches(cpv))
     }
 }
 

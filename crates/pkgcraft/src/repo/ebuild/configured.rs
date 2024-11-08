@@ -71,6 +71,7 @@ impl fmt::Display for ConfiguredRepo {
 impl PkgRepository for ConfiguredRepo {
     type Pkg = Pkg;
     type IterCpv = <EbuildRepo as PkgRepository>::IterCpv;
+    type IterCpvRestrict = <EbuildRepo as PkgRepository>::IterCpvRestrict;
     type Iter = Iter;
     type IterRestrict = IterRestrict;
 
@@ -92,6 +93,10 @@ impl PkgRepository for ConfiguredRepo {
 
     fn iter_cpv(&self) -> Self::IterCpv {
         self.raw.iter_cpv()
+    }
+
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
+        self.raw.iter_cpv_restrict(value)
     }
 
     fn iter(&self) -> Self::Iter {

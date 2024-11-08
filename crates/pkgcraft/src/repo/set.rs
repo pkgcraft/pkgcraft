@@ -87,6 +87,7 @@ impl From<&Repo> for RepoSet {
 impl PkgRepository for RepoSet {
     type Pkg = Pkg;
     type IterCpv = IterCpv;
+    type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
     type IterRestrict = Iter;
 
@@ -120,6 +121,13 @@ impl PkgRepository for RepoSet {
         let mut cpvs: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpv()).collect();
         cpvs.sort();
         IterCpv(cpvs.into_iter())
+    }
+
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
+        IterCpvRestrict {
+            iter: self.iter_cpv(),
+            restrict: value.into(),
+        }
     }
 
     fn iter(&self) -> Self::Iter {
@@ -187,6 +195,19 @@ impl Iterator for IterCpv {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
+    }
+}
+
+pub struct IterCpvRestrict {
+    iter: IterCpv,
+    restrict: Restrict,
+}
+
+impl Iterator for IterCpvRestrict {
+    type Item = Cpv;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|cpv| self.restrict.matches(cpv))
     }
 }
 

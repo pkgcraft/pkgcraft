@@ -508,15 +508,6 @@ impl EbuildRepo {
         }
     }
 
-    /// Return a filtered iterator of Cpvs for the repo.
-    pub fn iter_cpv_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpvRestrict {
-        let restrict = val.into();
-        IterCpvRestrict {
-            iter: IterCpv::new(self.clone(), Some(&restrict)),
-            restrict,
-        }
-    }
-
     /// Return an iterator of raw packages for the repo.
     pub fn iter_raw(&self) -> IterRaw {
         IterRaw::new(self, None)
@@ -586,6 +577,7 @@ impl fmt::Display for EbuildRepo {
 impl PkgRepository for EbuildRepo {
     type Pkg = ebuild::Pkg;
     type IterCpv = IterCpv;
+    type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
     type IterRestrict = IterRestrict;
 
@@ -663,6 +655,14 @@ impl PkgRepository for EbuildRepo {
 
     fn iter_cpv(&self) -> IterCpv {
         IterCpv::new(self.clone(), None)
+    }
+
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
+        let restrict = value.into();
+        IterCpvRestrict {
+            iter: IterCpv::new(self.clone(), Some(&restrict)),
+            restrict,
+        }
     }
 
     fn iter(&self) -> Self::Iter {

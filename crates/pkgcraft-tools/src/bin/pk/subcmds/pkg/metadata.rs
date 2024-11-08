@@ -6,7 +6,7 @@ use itertools::Itertools;
 use pkgcraft::cli::{target_restriction, MaybeStdinVec};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
-use pkgcraft::repo::RepoFormat;
+use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Restrict;
 
 #[derive(Debug, Args)]

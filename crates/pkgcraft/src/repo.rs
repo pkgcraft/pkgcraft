@@ -276,6 +276,26 @@ impl Iterator for IterCpv {
     }
 }
 
+pub enum IterCpvRestrict {
+    Configured(ebuild::IterCpvRestrict),
+    Ebuild(ebuild::IterCpvRestrict),
+    Fake(fake::IterCpvRestrict),
+    Empty,
+}
+
+impl Iterator for IterCpvRestrict {
+    type Item = Cpv;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Configured(iter) => iter.next(),
+            Self::Ebuild(iter) => iter.next(),
+            Self::Fake(iter) => iter.next(),
+            Self::Empty => None,
+        }
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 pub enum Iter {
     Ebuild(ebuild::Iter, Repo),
@@ -342,6 +362,7 @@ pub trait PkgRepository:
 {
     type Pkg: Package;
     type IterCpv: Iterator<Item = Cpv>;
+    type IterCpvRestrict: Iterator<Item = Cpv>;
     type Iter: Iterator<Item = Self::Pkg>;
     type IterRestrict: Iterator<Item = Self::Pkg>;
 
@@ -357,8 +378,17 @@ pub trait PkgRepository:
         }
         count
     }
+
+    /// Return an iterator of Cpvs for the repo.
     fn iter_cpv(&self) -> Self::IterCpv;
+
+    /// Return a filtered iterator of Cpvs for the repo.
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict;
+
+    /// Return an iterator of packages for the repo.
     fn iter(&self) -> Self::Iter;
+
+    /// Return a filtered iterator of packages for the repo.
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict;
 
     fn is_empty(&self) -> bool {
@@ -389,6 +419,7 @@ where
 {
     type Pkg = T::Pkg;
     type IterCpv = T::IterCpv;
+    type IterCpvRestrict = T::IterCpvRestrict;
     type Iter = T::Iter;
     type IterRestrict = T::IterRestrict;
 
@@ -406,6 +437,9 @@ where
     }
     fn iter_cpv(&self) -> Self::IterCpv {
         (*self).iter_cpv()
+    }
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
+        (*self).iter_cpv_restrict(value)
     }
     fn iter(&self) -> Self::Iter {
         (*self).iter()
@@ -450,6 +484,7 @@ impl fmt::Display for Repo {
 impl PkgRepository for Repo {
     type Pkg = Pkg;
     type IterCpv = IterCpv;
+    type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
     type IterRestrict = IterRestrict;
 
@@ -495,6 +530,15 @@ impl PkgRepository for Repo {
             Self::Ebuild(repo) => IterCpv::Ebuild(repo.iter_cpv()),
             Self::Fake(repo) => IterCpv::Fake(repo.iter_cpv()),
             Self::Unsynced(_) => IterCpv::Empty,
+        }
+    }
+
+    fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
+        match self {
+            Self::Configured(repo) => IterCpvRestrict::Ebuild(repo.iter_cpv_restrict(value)),
+            Self::Ebuild(repo) => IterCpvRestrict::Ebuild(repo.iter_cpv_restrict(value)),
+            Self::Fake(repo) => IterCpvRestrict::Fake(repo.iter_cpv_restrict(value)),
+            Self::Unsynced(_) => IterCpvRestrict::Empty,
         }
     }
 

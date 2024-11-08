@@ -5,7 +5,7 @@ use std::thread;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
-use pkgcraft::repo::{ebuild::EbuildRepo, Repo};
+use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository, Repo};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
