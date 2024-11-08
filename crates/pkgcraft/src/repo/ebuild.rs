@@ -968,8 +968,8 @@ impl IterCpv {
         // extract matching restrictions for optimized iteration
         if let Some(restrict) = restrict {
             let mut match_restrict = |restrict: &Restrict| match restrict {
-                Restrict::Dep(Category(r)) => cat_restricts.push(r.clone()),
-                Restrict::Dep(Package(r)) => pkg_restricts.push(r.clone()),
+                Restrict::Dep(r @ Category(_)) => cat_restricts.push(r.clone()),
+                Restrict::Dep(r @ Package(_)) => pkg_restricts.push(r.clone()),
                 Restrict::Dep(r @ Version(_)) => ver_restricts.push(r.clone()),
                 _ => (),
             };
@@ -992,7 +992,7 @@ impl IterCpv {
                 cpvs.par_sort();
                 Box::new(cpvs.into_iter())
             }
-            ([Equal(cat)], [Equal(pn)], [Version(Some(ver))])
+            ([Category(Equal(cat))], [Package(Equal(pn))], [Version(Some(ver))])
                 if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
             {
                 let cpv = Cpv::try_from((cat, pn, ver.without_op())).expect("invalid Cpv");
@@ -1002,7 +1002,7 @@ impl IterCpv {
                     Box::new(iter::empty())
                 }
             }
-            ([Equal(cat)], [Equal(pn)], _) => {
+            ([Category(Equal(cat))], [Package(Equal(pn))], _) => {
                 let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(
                     repo.cpvs_from_package(cat, pn)
@@ -1010,7 +1010,7 @@ impl IterCpv {
                         .filter(move |cpv| ver_restrict.matches(cpv)),
                 )
             }
-            ([], [Equal(pn)], _) => {
+            ([], [Package(Equal(pn))], _) => {
                 let pn = std::mem::take(pn);
                 let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
