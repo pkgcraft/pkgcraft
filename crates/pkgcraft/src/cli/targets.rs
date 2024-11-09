@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use camino::Utf8Path;
-use indexmap::IndexMap;
 use itertools::Itertools;
 
 use crate::config::Config;
@@ -10,6 +9,7 @@ use crate::repo::{Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
+use crate::types::IndexMap;
 use crate::utils::current_dir;
 use crate::Error;
 
@@ -128,28 +128,15 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target restrictions.
-    pub fn targets<I>(
-        mut self,
-        values: I,
-    ) -> crate::Result<impl Iterator<Item = (RepoSet, Vec<Restrict>)>>
+    pub fn targets<I>(mut self, values: I) -> crate::Result<IndexMap<RepoSet, Vec<Restrict>>>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
     {
-        // determine target restrictions
-        let targets: Vec<_> = values
+        values
             .into_iter()
             .map(|s| self.target_restriction(s.as_ref()))
-            .try_collect()?;
-
-        // TODO: Implement custom types for ordered maps of ordered collections so FromIterator
-        // works directly instead of instead of having to first collect to a vector.
-        let mut collapsed_targets = IndexMap::<_, Vec<_>>::new();
-        for (set, restrict) in targets {
-            collapsed_targets.entry(set).or_default().push(restrict);
-        }
-
-        Ok(collapsed_targets.into_iter())
+            .try_collect()
     }
 }
 
