@@ -4,9 +4,16 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Clone)]
 pub struct Deque<T>(pub(crate) VecDeque<T>);
 
+impl<T> Default for Deque<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
 impl<T> Deque<T> {
+    /// Construct a new, empty Deque<T>.
     pub fn new() -> Self {
-        Self(VecDeque::new())
+        Self::default()
     }
 
     pub fn extend_left<I>(&mut self, iter: I)
@@ -17,12 +24,6 @@ impl<T> Deque<T> {
         for item in iter.into_iter().rev() {
             self.push_front(item);
         }
-    }
-}
-
-impl<T> Default for Deque<T> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
