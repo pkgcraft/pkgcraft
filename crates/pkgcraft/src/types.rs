@@ -3,6 +3,8 @@ use std::hash::Hash;
 
 mod deque;
 pub use deque::Deque;
+mod index_map;
+pub use index_map::IndexMap;
 mod ordered_map;
 pub use ordered_map::OrderedMap;
 mod ordered_set;
