@@ -98,11 +98,11 @@ impl FakeRepo {
         &self.0.repo_config
     }
 
-    pub fn extend<I, T>(&mut self, iter: I) -> crate::Result<()>
+    pub fn extend<I>(&mut self, iter: I) -> crate::Result<()>
     where
-        I: IntoIterator<Item = T>,
-        T: TryInto<Cpv>,
-        <T as TryInto<Cpv>>::Error: fmt::Display,
+        I: IntoIterator,
+        I::Item: TryInto<Cpv>,
+        <I::Item as TryInto<Cpv>>::Error: fmt::Display,
     {
         let repo = Arc::get_mut(&mut self.0)
             .ok_or_else(|| Error::InvalidValue("repo already in use".to_string()))?;
