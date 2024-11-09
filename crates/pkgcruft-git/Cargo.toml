@@ -1,0 +1,32 @@
+[package]
+name = "pkgcruft-git"
+version = "0.0.1"
+description = "client and server for pkgcruft pre-receive git hook support"
+homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
+repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
+readme = "README.md"
+license = "MIT"
+autotests = false
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["client", "server"]
+client = []
+server = []
+
+[[bin]]
+name = "pkgcruft-git-client"
+required-features = ["client"]
+
+[[bin]]
+name = "pkgcruft-git-server"
+required-features = ["server"]
+
+[dependencies]
+anyhow = "1.0.93"
+pkgcruft = { path = "../pkgcruft", version = "0.0.4" }

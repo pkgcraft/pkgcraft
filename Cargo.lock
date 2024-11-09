@@ -2072,6 +2072,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkgcruft-git"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "pkgcruft",
+]
+
+[[package]]
 name = "plotters"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
