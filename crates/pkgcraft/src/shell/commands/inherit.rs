@@ -14,8 +14,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
+    let build = get_build_mut();
+
     // force incrementals to be restored between nested inherits
-    let incrementals: Vec<(_, _)> = get_build_mut()
+    let incrementals: Vec<(_, _)> = build
         .eapi()
         .incremental_keys()
         .iter()
@@ -25,25 +27,27 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
 
-    let eclasses = get_build_mut().ebuild_repo().eclasses();
     for name in args {
-        let eclass = eclasses
+        let eclass = build
+            .ebuild_repo()
+            .eclasses()
             .get(*name)
+            .cloned()
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
         // track direct inherits
-        if !get_build_mut().scope.is_eclass() {
-            get_build_mut().inherit.insert(eclass.clone());
+        if !build.scope.is_eclass() {
+            build.inherit.insert(eclass.clone());
         }
 
         // track all inherits
-        if !get_build_mut().inherited.insert(eclass.clone()) {
+        if !build.inherited.insert(eclass.clone()) {
             // skip previous and nested inherits
             continue;
         }
 
         // track build scope
-        let _scope = get_build_mut().scoped(eclass);
+        let _scope = build.scoped(eclass.clone());
 
         // update $ECLASS and $INHERITED variables
         eclass_var.bind(name, None, None)?;
@@ -66,11 +70,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // append metadata keys that incrementally accumulate
         for (key, var) in &incrementals {
             if let Some(data) = var.to_vec() {
-                get_build_mut()
-                    .incrementals
-                    .entry(*key)
-                    .or_default()
-                    .extend(data);
+                build.incrementals.entry(*key).or_default().extend(data);
             }
         }
     }

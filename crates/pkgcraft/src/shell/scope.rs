@@ -21,9 +21,9 @@ impl Scope {
     }
 }
 
-impl From<&Eclass> for Scope {
-    fn from(value: &Eclass) -> Self {
-        Self::Eclass(Some(value.clone()))
+impl From<Eclass> for Scope {
+    fn from(value: Eclass) -> Self {
+        Self::Eclass(Some(value))
     }
 }
 
