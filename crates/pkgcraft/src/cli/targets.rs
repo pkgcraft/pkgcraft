@@ -152,8 +152,8 @@ impl<'a> TargetRestrictions<'a> {
         values
             .into_iter()
             .map(move |s| self.target_restriction(s.as_ref()))
-            .flat_map(|r| {
-                let iter: Box<dyn Iterator<Item = crate::Result<pkg::Pkg>>> = match r {
+            .flat_map(move |result| {
+                let iter: Box<dyn Iterator<Item = crate::Result<pkg::Pkg>>> = match result {
                     Ok((set, restrict)) => Box::new(set.iter_restrict(restrict).map(Ok)),
                     Err(e) => Box::new([Err(e)].into_iter()),
                 };
@@ -175,6 +175,32 @@ impl<'a> TargetRestrictions<'a> {
             Ok(pkg) => Err(Error::InvalidValue(format!("non-ebuild pkg: {pkg}"))),
             Err(e) => Err(e),
         })
+    }
+
+    /// Determine target raw ebuild packages.
+    pub fn pkgs_ebuild_raw<I>(
+        mut self,
+        values: I,
+    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::raw::Pkg>> + use<'a, I>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        values
+            .into_iter()
+            .map(move |s| self.target_restriction(s.as_ref()))
+            .flat_map(move |result| {
+                let iter: Box<dyn Iterator<Item = crate::Result<pkg::ebuild::raw::Pkg>>> =
+                    match result {
+                        Ok((set, restrict)) => Box::new(
+                            set.into_iter()
+                                .filter_map(|r| r.into_ebuild().ok())
+                                .flat_map(move |r| r.iter_raw_restrict(&restrict).map(Ok)),
+                        ),
+                        Err(e) => Box::new([Err(e)].into_iter()),
+                    };
+                iter
+            })
     }
 }
 
