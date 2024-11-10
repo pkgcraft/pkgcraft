@@ -1060,7 +1060,11 @@ impl Iterator for IterRestrict {
     type Item = ebuild::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.find(|pkg| self.restrict.matches(pkg))
+        if self.restrict == Restrict::False {
+            None
+        } else {
+            self.iter.find(|pkg| self.restrict.matches(pkg))
+        }
     }
 }
 
@@ -1074,7 +1078,11 @@ impl Iterator for IterCpnRestrict {
     type Item = Cpn;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.find(|cpn| self.restrict.matches(cpn))
+        if self.restrict == Restrict::False {
+            None
+        } else {
+            self.iter.find(|cpn| self.restrict.matches(cpn))
+        }
     }
 }
 
@@ -1088,7 +1096,11 @@ impl Iterator for IterCpvRestrict {
     type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.find(|cpv| self.restrict.matches(cpv))
+        if self.restrict == Restrict::False {
+            None
+        } else {
+            self.iter.find(|cpv| self.restrict.matches(cpv))
+        }
     }
 }
 
@@ -1102,7 +1114,11 @@ impl Iterator for IterRawRestrict {
     type Item = ebuild::raw::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.find(|pkg| self.restrict.matches(pkg))
+        if self.restrict == Restrict::False {
+            None
+        } else {
+            self.iter.find(|pkg| self.restrict.matches(pkg))
+        }
     }
 }
 
