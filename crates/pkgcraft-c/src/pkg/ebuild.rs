@@ -105,8 +105,8 @@ macro_rules! try_pkg_from_ptr {
     ( $var:expr ) => {{
         let pkg = $crate::macros::try_ref_from_ptr!($var);
         match pkg {
-            Pkg::Ebuild(p, _) => p,
-            Pkg::Configured(p, _) => p.into(),
+            Pkg::Ebuild(p) => p,
+            Pkg::Configured(p) => p.into(),
             _ => panic!("invalid pkg type: {pkg:?}"),
         }
     }};

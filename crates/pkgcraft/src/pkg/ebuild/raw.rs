@@ -124,8 +124,8 @@ impl Package for Pkg {
 impl RepoPackage for Pkg {
     type Repo = EbuildRepo;
 
-    fn repo(&self) -> &Self::Repo {
-        &self.repo
+    fn repo(&self) -> Self::Repo {
+        self.repo.clone()
     }
 }
 
@@ -204,7 +204,7 @@ mod tests {
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.eapi(), &*EAPI8);
         assert_eq!(raw_pkg.cpv().to_string(), "optional/none-8");
-        assert_eq!(raw_pkg.repo(), repo);
+        assert_eq!(&raw_pkg.repo(), repo);
     }
 
     #[test]

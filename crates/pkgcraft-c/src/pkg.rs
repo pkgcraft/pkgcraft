@@ -23,9 +23,9 @@ pub enum PkgFormat {
 impl From<&Pkg> for PkgFormat {
     fn from(pkg: &Pkg) -> Self {
         match pkg {
-            Pkg::Configured(_, _) => Self::Configured,
-            Pkg::Ebuild(_, _) => Self::Ebuild,
-            Pkg::Fake(_, _) => Self::Fake,
+            Pkg::Configured(_) => Self::Configured,
+            Pkg::Ebuild(_) => Self::Ebuild,
+            Pkg::Fake(_) => Self::Fake,
         }
     }
 }
@@ -55,9 +55,9 @@ pub unsafe extern "C" fn pkgcraft_pkg_cpv(p: *mut Pkg) -> *mut Cpv {
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_repo(p: *mut Pkg) -> *const Repo {
+pub unsafe extern "C" fn pkgcraft_pkg_repo(p: *mut Pkg) -> *mut Repo {
     let pkg = try_ref_from_ptr!(p);
-    pkg.repo()
+    Box::into_raw(Box::new(pkg.repo()))
 }
 
 /// Return a package's EAPI.

@@ -62,10 +62,10 @@ impl TryFrom<&Pkg> for Metadata {
                 key => {
                     if let Some(val) = build.incrementals.get(key) {
                         let s = val.iter().join(" ");
-                        meta.deserialize(eapi, repo, key, &s)?;
+                        meta.deserialize(eapi, &repo, key, &s)?;
                     } else if let Some(val) = variables::optional(key) {
                         let s = val.split_whitespace().join(" ");
-                        meta.deserialize(eapi, repo, key, &s)?;
+                        meta.deserialize(eapi, &repo, key, &s)?;
                     } else if eapi.mandatory_keys().contains(key) {
                         return Err(Error::InvalidValue(format!("missing required value: {key}")));
                     }

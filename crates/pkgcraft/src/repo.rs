@@ -298,9 +298,9 @@ impl Iterator for IterCpvRestrict {
 
 #[allow(clippy::large_enum_variant)]
 pub enum Iter {
-    Ebuild(ebuild::Iter, Repo),
-    Configured(ebuild::configured::Iter, Repo),
-    Fake(fake::Iter, Repo),
+    Ebuild(ebuild::Iter),
+    Configured(ebuild::configured::Iter),
+    Fake(fake::Iter),
     Empty,
 }
 
@@ -310,9 +310,9 @@ impl IntoIterator for &Repo {
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Repo::Ebuild(repo) => Iter::Ebuild(repo.into_iter(), self.clone()),
-            Repo::Configured(repo) => Iter::Configured(repo.into_iter(), self.clone()),
-            Repo::Fake(repo) => Iter::Fake(repo.into_iter(), self.clone()),
+            Repo::Ebuild(repo) => Iter::Ebuild(repo.into_iter()),
+            Repo::Configured(repo) => Iter::Configured(repo.into_iter()),
+            Repo::Fake(repo) => Iter::Fake(repo.into_iter()),
             Repo::Unsynced(_) => Iter::Empty,
         }
     }
@@ -323,9 +323,9 @@ impl Iterator for Iter {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo.clone())),
-            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo.clone())),
-            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo.clone())),
+            Self::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
+            Self::Configured(iter) => iter.next().map(Pkg::Configured),
+            Self::Fake(iter) => iter.next().map(Pkg::Fake),
             Self::Empty => None,
         }
     }
@@ -333,9 +333,9 @@ impl Iterator for Iter {
 
 #[allow(clippy::large_enum_variant)]
 pub enum IterRestrict {
-    Configured(ebuild::configured::IterRestrict, Repo),
-    Ebuild(ebuild::IterRestrict, Repo),
-    Fake(fake::IterRestrict, Repo),
+    Configured(ebuild::configured::IterRestrict),
+    Ebuild(ebuild::IterRestrict),
+    Fake(fake::IterRestrict),
     Empty,
 }
 
@@ -344,9 +344,9 @@ impl Iterator for IterRestrict {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Configured(iter, repo) => iter.next().map(|p| Pkg::Configured(p, repo.clone())),
-            Self::Ebuild(iter, repo) => iter.next().map(|p| Pkg::Ebuild(p, repo.clone())),
-            Self::Fake(iter, repo) => iter.next().map(|p| Pkg::Fake(p, repo.clone())),
+            Self::Configured(iter) => iter.next().map(Pkg::Configured),
+            Self::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
+            Self::Fake(iter) => iter.next().map(Pkg::Fake),
             Self::Empty => None,
         }
     }
@@ -548,11 +548,9 @@ impl PkgRepository for Repo {
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         match self {
-            Self::Configured(repo) => {
-                IterRestrict::Configured(repo.iter_restrict(val), self.clone())
-            }
-            Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val), self.clone()),
-            Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val), self.clone()),
+            Self::Configured(repo) => IterRestrict::Configured(repo.iter_restrict(val)),
+            Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val)),
+            Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val)),
             Self::Unsynced(_) => IterRestrict::Empty,
         }
     }
@@ -699,8 +697,20 @@ macro_rules! make_repo_traits {
             }
         }
 
+        impl From<$x> for crate::restrict::dep::Restrict {
+            fn from(r: $x) -> Self {
+                crate::restrict::dep::Restrict::repo(Some(r.id()))
+            }
+        }
+
         impl From<&$x> for crate::pkg::Restrict {
             fn from(r: &$x) -> Self {
+                crate::pkg::Restrict::repo(r.id())
+            }
+        }
+
+        impl From<$x> for crate::pkg::Restrict {
+            fn from(r: $x) -> Self {
                 crate::pkg::Restrict::repo(r.id())
             }
         }

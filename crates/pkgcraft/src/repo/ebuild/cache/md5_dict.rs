@@ -163,7 +163,7 @@ impl CacheEntry for Md5DictEntry {
 
         for key in pkg.eapi().metadata_keys() {
             if let Some(val) = self.0.get(key) {
-                deserialize(&mut meta, pkg.eapi(), pkg.repo(), key, val)?;
+                deserialize(&mut meta, pkg.eapi(), &pkg.repo(), key, val)?;
             }
         }
 
@@ -195,8 +195,9 @@ impl CacheEntry for Md5DictEntry {
 
         // verify eclass checksums
         if let Some(val) = self.0.get(&Key::INHERITED) {
+            let repo = pkg.repo();
             for (name, chksum) in val.split_whitespace().tuples() {
-                let Some(eclass) = pkg.repo().eclasses().get(name) else {
+                let Some(eclass) = repo.eclasses().get(name) else {
                     return Err(Error::InvalidValue(format!("nonexistent eclass: {name}")));
                 };
 

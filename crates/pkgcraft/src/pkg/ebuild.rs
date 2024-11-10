@@ -285,8 +285,8 @@ impl Package for Pkg {
 impl RepoPackage for Pkg {
     type Repo = EbuildRepo;
 
-    fn repo(&self) -> &Self::Repo {
-        &self.repo
+    fn repo(&self) -> Self::Repo {
+        self.repo.clone()
     }
 }
 

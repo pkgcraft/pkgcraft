@@ -184,7 +184,7 @@ impl Hash for EbuildRepo {
 
 impl From<&EbuildRepo> for Restrict {
     fn from(repo: &EbuildRepo) -> Self {
-        repo.restrict_from_path(repo).unwrap()
+        repo.restrict_from_path(repo.path()).unwrap()
     }
 }
 

@@ -163,7 +163,7 @@ impl BuildData<'_> {
     }
 
     /// Get the current ebuild repo if it exists.
-    fn ebuild_repo(&self) -> &crate::repo::ebuild::EbuildRepo {
+    fn ebuild_repo(&self) -> crate::repo::ebuild::EbuildRepo {
         match &self.state {
             BuildState::Metadata(pkg) => pkg.repo(),
             BuildState::Build(pkg) => pkg.repo(),
@@ -174,8 +174,8 @@ impl BuildData<'_> {
     /// Get the current repo if it exists.
     fn repo(&self) -> Repo {
         match &self.state {
-            BuildState::Metadata(pkg) => pkg.repo().clone().into(),
-            BuildState::Build(pkg) => pkg.repo().clone().into(),
+            BuildState::Metadata(pkg) => pkg.repo().into(),
+            BuildState::Build(pkg) => pkg.repo().into(),
             _ => panic!("repo invalid for scope: {}", self.scope),
         }
     }

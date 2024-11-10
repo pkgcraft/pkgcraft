@@ -17,9 +17,9 @@ pub mod fake;
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Clone)]
 pub enum Pkg {
-    Configured(ebuild::configured::Pkg, Repo),
-    Ebuild(ebuild::Pkg, Repo),
-    Fake(fake::Pkg, Repo),
+    Configured(ebuild::configured::Pkg),
+    Ebuild(ebuild::Pkg),
+    Fake(fake::Pkg),
 }
 
 make_pkg_traits!(Pkg);
@@ -27,9 +27,9 @@ make_pkg_traits!(Pkg);
 impl fmt::Debug for Pkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Configured(pkg, _) => write!(f, "Configured({pkg:?})"),
-            Self::Ebuild(pkg, _) => write!(f, "Ebuild({pkg:?})"),
-            Self::Fake(pkg, _) => write!(f, "Fake({pkg:?})"),
+            Self::Configured(pkg) => write!(f, "Configured({pkg:?})"),
+            Self::Ebuild(pkg) => write!(f, "Ebuild({pkg:?})"),
+            Self::Fake(pkg) => write!(f, "Fake({pkg:?})"),
         }
     }
 }
@@ -93,7 +93,7 @@ pub trait RepoPackage: Package + Ord {
     type Repo: Repository;
 
     /// Return a package's repo.
-    fn repo(&self) -> &Self::Repo;
+    fn repo(&self) -> Self::Repo;
 }
 
 pub(crate) trait Build: Package {
@@ -138,7 +138,7 @@ macro_rules! make_pkg_traits {
 
         impl Ord for $x {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                self.cpv().cmp(other.cpv()).then_with(|| self.repo().cmp(other.repo()))
+                self.cpv().cmp(other.cpv()).then_with(|| self.repo().cmp(&other.repo()))
             }
         }
 
@@ -193,17 +193,17 @@ use make_pkg_traits;
 impl Package for Pkg {
     fn eapi(&self) -> &'static Eapi {
         match self {
-            Self::Configured(pkg, _) => pkg.eapi(),
-            Self::Ebuild(pkg, _) => pkg.eapi(),
-            Self::Fake(pkg, _) => pkg.eapi(),
+            Self::Configured(pkg) => pkg.eapi(),
+            Self::Ebuild(pkg) => pkg.eapi(),
+            Self::Fake(pkg) => pkg.eapi(),
         }
     }
 
     fn cpv(&self) -> &Cpv {
         match self {
-            Self::Configured(pkg, _) => pkg.cpv(),
-            Self::Ebuild(pkg, _) => pkg.cpv(),
-            Self::Fake(pkg, _) => pkg.cpv(),
+            Self::Configured(pkg) => pkg.cpv(),
+            Self::Ebuild(pkg) => pkg.cpv(),
+            Self::Fake(pkg) => pkg.cpv(),
         }
     }
 }
@@ -211,11 +211,11 @@ impl Package for Pkg {
 impl RepoPackage for Pkg {
     type Repo = Repo;
 
-    fn repo(&self) -> &Self::Repo {
+    fn repo(&self) -> Self::Repo {
         match self {
-            Self::Configured(_, repo) => repo,
-            Self::Ebuild(_, repo) => repo,
-            Self::Fake(_, repo) => repo,
+            Self::Configured(pkg) => pkg.repo().into(),
+            Self::Ebuild(pkg) => pkg.repo().into(),
+            Self::Fake(pkg) => pkg.repo().into(),
         }
     }
 }
@@ -223,9 +223,9 @@ impl RepoPackage for Pkg {
 impl Intersects<Dep> for Pkg {
     fn intersects(&self, dep: &Dep) -> bool {
         match self {
-            Self::Configured(pkg, _) => pkg.intersects(dep),
-            Self::Ebuild(pkg, _) => pkg.intersects(dep),
-            Self::Fake(pkg, _) => pkg.intersects(dep),
+            Self::Configured(pkg) => pkg.intersects(dep),
+            Self::Ebuild(pkg) => pkg.intersects(dep),
+            Self::Fake(pkg) => pkg.intersects(dep),
         }
     }
 }
@@ -248,7 +248,7 @@ where
 {
     type Repo = T::Repo;
 
-    fn repo(&self) -> &Self::Repo {
+    fn repo(&self) -> Self::Repo {
         (*self).repo()
     }
 }
@@ -310,7 +310,7 @@ impl Restriction<&Pkg> for Restrict {
             Eapi(r) => r.matches(pkg.eapi()),
             Repo(r) => r.matches(pkg.repo().id()),
             Ebuild(r) => match pkg {
-                Pkg::Ebuild(p, _) => r.matches(p),
+                Pkg::Ebuild(p) => r.matches(p),
                 _ => false,
             },
         }
