@@ -2,8 +2,7 @@ use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::Args;
-use itertools::Itertools;
-use pkgcraft::cli::{target_restriction, MaybeStdinVec};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
@@ -48,38 +47,37 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target restrictions
-        let targets: Vec<_> = self
-            .targets
-            .iter()
-            .flatten()
-            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), s))
-            .try_collect()?;
+        let targets = TargetRestrictions::new(config)
+            .repo_format(RepoFormat::Ebuild)
+            .targets(self.targets.iter().flatten())?;
 
-        for (repo_set, restrict) in targets {
-            for repo in repo_set.ebuild() {
-                let format = self.format.unwrap_or(repo.metadata().cache().format());
+        for (repo_set, restricts) in targets {
+            for restrict in restricts {
+                for repo in repo_set.ebuild() {
+                    let format = self.format.unwrap_or(repo.metadata().cache().format());
 
-                let cache = if let Some(path) = self.path.as_ref() {
-                    format.from_path(path)
-                } else {
-                    format.from_repo(repo)
-                };
+                    let cache = if let Some(path) = self.path.as_ref() {
+                        format.from_path(path)
+                    } else {
+                        format.from_repo(repo)
+                    };
 
-                let mut regen = cache.regen();
-                regen
-                    .jobs(self.jobs.unwrap_or_default())
-                    .force(self.force)
-                    .progress(stdout().is_terminal() && !self.no_progress && !self.output)
-                    .output(self.output)
-                    .verify(self.verify);
+                    let mut regen = cache.regen();
+                    regen
+                        .jobs(self.jobs.unwrap_or_default())
+                        .force(self.force)
+                        .progress(stdout().is_terminal() && !self.no_progress && !self.output)
+                        .output(self.output)
+                        .verify(self.verify);
 
-                // TODO: use parallel Cpv restriction iterator
-                // skip repo level targets that needlessly slow down regen
-                if restrict != Restrict::True {
-                    regen.targets(repo.iter_cpv_restrict(&restrict));
+                    // TODO: use parallel Cpv restriction iterator
+                    // skip repo level targets that needlessly slow down regen
+                    if restrict != Restrict::True {
+                        regen.targets(repo.iter_cpv_restrict(&restrict));
+                    }
+
+                    regen.run(repo)?;
                 }
-
-                regen.run(repo)?;
             }
         }
 

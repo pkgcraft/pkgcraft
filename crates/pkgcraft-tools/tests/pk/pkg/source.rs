@@ -13,9 +13,8 @@ fn invalid_cwd_target() {
     cmd("pk pkg source")
         .assert()
         .stdout("")
-        .stderr(contains("invalid repo path"))
-        .failure()
-        .code(2);
+        .stderr(contains("invalid ebuild repo"))
+        .failure();
 }
 
 #[test]
@@ -25,8 +24,7 @@ fn nonexistent_path_target() {
         .assert()
         .stdout("")
         .stderr(contains(format!("invalid path target: {path}: No such file or directory")))
-        .failure()
-        .code(2);
+        .failure();
 }
 
 #[test]

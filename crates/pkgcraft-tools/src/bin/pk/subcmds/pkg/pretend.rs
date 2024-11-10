@@ -2,8 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use itertools::Itertools;
-use pkgcraft::cli::{target_restriction, MaybeStdinVec};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Pretend};
 use pkgcraft::repo::RepoFormat;
@@ -26,8 +25,8 @@ pub(crate) struct Command {
 // TODO: support binpkg repos
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<Option<String>> {
-            let pkg = ebuild::Pkg::try_from(pkg)?;
+        let func = |pkg: pkgcraft::Result<ebuild::raw::Pkg>| -> scallop::Result<Option<String>> {
+            let pkg = ebuild::Pkg::try_from(pkg?)?;
             pkg.pretend()
         };
 
@@ -35,20 +34,10 @@ impl Command {
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
         let mut status = ExitCode::SUCCESS;
 
-        // determine target restrictions
-        let targets: Vec<_> = self
-            .targets
-            .iter()
-            .flatten()
-            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), s))
-            .try_collect()?;
-
-        // find matching packages from targeted repos
-        let pkgs = targets.iter().flat_map(|(repo_set, restrict)| {
-            repo_set
-                .ebuild()
-                .flat_map(move |repo| repo.iter_raw_restrict(restrict))
-        });
+        // find matching packages
+        let pkgs = TargetRestrictions::new(config)
+            .repo_format(RepoFormat::Ebuild)
+            .pkgs_ebuild_raw(self.targets.iter().flatten());
 
         // run pkg_pretend across selected pkgs
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());

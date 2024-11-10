@@ -3,8 +3,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use itertools::Itertools;
-use pkgcraft::cli::{target_restriction, MaybeStdinVec};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
@@ -72,43 +71,32 @@ impl Command {
             var.to_vec().map(|v| (var.to_string(), v.join(" ")))
         };
 
-        let func = |pkg: Pkg| -> scallop::Result<(String, Vec<(String, String)>)> {
-            // TODO: move error mapping into pkgcraft for pkg sourcing
-            pkg.source().map_err(|e| Error::InvalidPkg {
-                id: pkg.to_string(),
-                err: e.to_string(),
-            })?;
+        let func =
+            |pkg: pkgcraft::Result<Pkg>| -> scallop::Result<(String, Vec<(String, String)>)> {
+                let pkg = pkg?;
+                // TODO: move error mapping into pkgcraft for pkg sourcing
+                pkg.source().map_err(|e| Error::InvalidPkg {
+                    id: pkg.to_string(),
+                    err: e.to_string(),
+                })?;
 
-            let env: Vec<(_, _)> = variables::visible()
-                .into_iter()
-                .filter(filter)
-                .filter_map(value)
-                .collect();
+                let env: Vec<(_, _)> = variables::visible()
+                    .into_iter()
+                    .filter(filter)
+                    .filter_map(value)
+                    .collect();
 
-            Ok((pkg.to_string(), env))
-        };
+                Ok((pkg.to_string(), env))
+            };
 
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
         let mut status = ExitCode::SUCCESS;
 
-        // determine target restrictions
-        let targets: Vec<_> = self
-            .targets
-            .iter()
-            .flatten()
-            .map(|s| target_restriction(config, Some(RepoFormat::Ebuild), s))
-            .try_collect()?;
-
-        // find matching packages from targeted repos
-        let pkgs = targets
-            .iter()
-            .flat_map(|(repo_set, restrict)| {
-                repo_set
-                    .ebuild()
-                    .flat_map(move |repo| repo.iter_raw_restrict(restrict))
-            })
-            .peekable();
+        // find matching packages
+        let pkgs = TargetRestrictions::new(config)
+            .repo_format(RepoFormat::Ebuild)
+            .pkgs_ebuild_raw(self.targets.iter().flatten());
 
         // source ebuilds and output ebuild-specific environment variables
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());

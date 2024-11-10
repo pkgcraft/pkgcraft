@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::Args;
-use pkgcraft::cli::{target_restriction, MaybeStdinVec};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild, Source};
 use pkgcraft::repo::RepoFormat;
@@ -92,26 +92,28 @@ macro_rules! micros {
 /// Run package sourcing benchmarks for a given duration per package.
 fn benchmark<I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = ebuild::raw::Pkg>,
+    I: Iterator<Item = pkgcraft::Result<ebuild::raw::Pkg>>,
 {
     let mut failed = false;
-    let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<(String, Vec<Duration>)> {
-        let mut data = vec![];
-        let mut elapsed = Duration::new(0, 0);
-        while elapsed < duration {
-            let start = Instant::now();
-            // TODO: move error mapping into pkgcraft for pkg sourcing
-            pkg.source().map_err(|e| Error::InvalidPkg {
-                id: pkg.to_string(),
-                err: e.to_string(),
-            })?;
-            let source_elapsed = micros!(start.elapsed());
-            data.push(source_elapsed);
-            elapsed += source_elapsed;
-            scallop::shell::reset(&[]);
-        }
-        Ok((pkg.to_string(), data))
-    };
+    let func =
+        |pkg: pkgcraft::Result<ebuild::raw::Pkg>| -> scallop::Result<(String, Vec<Duration>)> {
+            let pkg = pkg?;
+            let mut data = vec![];
+            let mut elapsed = Duration::new(0, 0);
+            while elapsed < duration {
+                let start = Instant::now();
+                // TODO: move error mapping into pkgcraft for pkg sourcing
+                pkg.source().map_err(|e| Error::InvalidPkg {
+                    id: pkg.to_string(),
+                    err: e.to_string(),
+                })?;
+                let source_elapsed = micros!(start.elapsed());
+                data.push(source_elapsed);
+                elapsed += source_elapsed;
+                scallop::shell::reset(&[]);
+            }
+            Ok((pkg.to_string(), data))
+        };
 
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
@@ -168,10 +170,11 @@ where
 /// Run package sourcing a single time per package.
 fn source<I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = ebuild::raw::Pkg>,
+    I: Iterator<Item = pkgcraft::Result<ebuild::raw::Pkg>>,
 {
     let mut failed = false;
-    let func = |pkg: ebuild::raw::Pkg| -> scallop::Result<(String, Duration)> {
+    let func = |pkg: pkgcraft::Result<ebuild::raw::Pkg>| -> scallop::Result<(String, Duration)> {
+        let pkg = pkg?;
         let start = Instant::now();
         // TODO: move error mapping into pkgcraft for pkg sourcing
         pkg.source().map_err(|e| Error::InvalidPkg {
@@ -221,22 +224,20 @@ impl Command {
 
         // loop over targets, tracking overall failure status
         let mut status = ExitCode::SUCCESS;
-        for s in self.targets.iter().flatten() {
-            // determine target restriction
-            let (repos, restrict) = target_restriction(config, Some(RepoFormat::Ebuild), s)?;
 
-            // find matching packages from targeted repos
-            let pkgs = repos.ebuild().flat_map(|r| r.iter_raw_restrict(&restrict));
+        // find matching packages
+        let pkgs = TargetRestrictions::new(config)
+            .repo_format(RepoFormat::Ebuild)
+            .pkgs_ebuild_raw(self.targets.iter().flatten());
 
-            let target_failed = if let Some(duration) = self.bench {
-                benchmark(duration.into(), jobs, pkgs, self.sort)
-            } else {
-                source(jobs, pkgs, &self.bound, self.sort)
-            }?;
+        let target_failed = if let Some(duration) = self.bench {
+            benchmark(duration.into(), jobs, pkgs, self.sort)
+        } else {
+            source(jobs, pkgs, &self.bound, self.sort)
+        }?;
 
-            if target_failed {
-                status = ExitCode::FAILURE;
-            }
+        if target_failed {
+            status = ExitCode::FAILURE;
         }
 
         Ok(status)
