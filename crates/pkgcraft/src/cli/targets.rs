@@ -4,8 +4,9 @@ use camino::Utf8Path;
 use itertools::Itertools;
 
 use crate::config::Config;
+use crate::pkg;
 use crate::repo::set::RepoSet;
-use crate::repo::{Repo, RepoFormat, Repository};
+use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
@@ -137,6 +138,43 @@ impl<'a> TargetRestrictions<'a> {
             .into_iter()
             .map(|s| self.target_restriction(s.as_ref()))
             .try_collect()
+    }
+
+    /// Determine target packages.
+    pub fn pkgs<I>(
+        mut self,
+        values: I,
+    ) -> impl Iterator<Item = crate::Result<pkg::Pkg>> + use<'a, I>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        values
+            .into_iter()
+            .map(move |s| self.target_restriction(s.as_ref()))
+            .flat_map(|r| {
+                let iter: Box<dyn Iterator<Item = crate::Result<pkg::Pkg>>> = match r {
+                    Ok((set, restrict)) => Box::new(set.iter_restrict(restrict).map(Ok)),
+                    Err(e) => Box::new([Err(e)].into_iter()),
+                };
+                iter
+            })
+    }
+
+    /// Determine target ebuild packages.
+    pub fn pkgs_ebuild<I>(
+        self,
+        values: I,
+    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::Pkg>> + use<'a, I>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        self.pkgs(values).map(|r| match r {
+            Ok(pkg::Pkg::Ebuild(pkg)) => Ok(pkg),
+            Ok(pkg) => Err(Error::InvalidValue(format!("non-ebuild pkg: {pkg}"))),
+            Err(e) => Err(e),
+        })
     }
 }
 
