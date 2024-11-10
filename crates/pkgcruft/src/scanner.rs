@@ -92,10 +92,9 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<I>(&self, repo: &Repo, restricts: I) -> impl Iterator<Item = Report>
+    pub fn run<T>(&self, repo: &Repo, restrict: T) -> impl Iterator<Item = Report>
     where
-        I: IntoIterator,
-        I::Item: Into<Restrict>,
+        T: Into<Restrict>,
     {
         // TODO: Drop this hack once lifetime handling is improved for thread usage.
         // Currently, it's not possible to use std::thread::scope() as the related Scope
@@ -112,7 +111,6 @@ impl Scanner {
         // this workaround shouldn't cause any issues to make that pain worth it.
         let repo: &'static Repo = unsafe { std::mem::transmute(repo) };
 
-        let restricts = restricts.into_iter().map(Into::into).collect();
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
 
@@ -129,7 +127,7 @@ impl Scanner {
 
                 Iter {
                     reports_rx,
-                    _producer: producer(repo, restricts, restrict_tx),
+                    _producer: producer(repo, restrict.into(), restrict_tx),
                     _workers: (0..self.jobs)
                         .map(|_| worker(runner.clone(), filter.clone(), restrict_rx.clone()))
                         .collect(),
@@ -145,20 +143,20 @@ impl Scanner {
 /// Create a producer thread that sends restrictions over the channel to the workers.
 fn producer(
     repo: &'static EbuildRepo,
-    restricts: Vec<Restrict>,
+    restrict: Restrict,
     tx: Sender<Target>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        for r in restricts {
-            let mut unversioned = false;
-            for cpn in repo.iter_cpn_restrict(&r) {
-                unversioned = true;
-                tx.send(Target::Cpn(cpn)).ok();
-            }
-            if !unversioned {
-                for cpv in repo.iter_cpv_restrict(&r) {
-                    tx.send(Target::Cpv(cpv)).ok();
-                }
+        let mut unversioned = false;
+
+        for cpn in repo.iter_cpn_restrict(&restrict) {
+            unversioned = true;
+            tx.send(Target::Cpn(cpn)).ok();
+        }
+
+        if !unversioned {
+            for cpv in repo.iter_cpv_restrict(&restrict) {
+                tx.send(Target::Cpv(cpv)).ok();
             }
         }
     })
@@ -251,21 +249,21 @@ mod tests {
         // repo target
         let scanner = Scanner::new().jobs(1);
         let expected = glob_reports!("{repo_path}/**/reports.json");
-        let reports = scanner.run(repo, [repo]);
+        let reports = scanner.run(repo, repo);
         assert_ordered_eq!(reports, expected);
 
         // category target
         let scanner = Scanner::new().jobs(1);
         let expected = glob_reports!("{repo_path}/Keywords/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords").unwrap();
-        let reports = scanner.run(repo, [restrict]);
+        let reports = scanner.run(repo, restrict);
         assert_ordered_eq!(reports, expected);
 
         // package target
         let scanner = Scanner::new().jobs(1);
         let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords/KeywordsLive").unwrap();
-        let reports = scanner.run(repo, [restrict]);
+        let reports = scanner.run(repo, restrict);
         assert_ordered_eq!(reports, expected);
 
         // version target
@@ -274,13 +272,13 @@ mod tests {
         let restrict = repo
             .restrict_from_path("Keywords/KeywordsLive/KeywordsLive-9999.ebuild")
             .unwrap();
-        let reports = scanner.run(repo, [restrict]);
+        let reports = scanner.run(repo, restrict);
         assert_ordered_eq!(reports, expected);
 
         // specific checks
         let scanner = Scanner::new().jobs(1).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-        let reports = scanner.run(repo, [repo]);
+        let reports = scanner.run(repo, repo);
         assert_ordered_eq!(reports, expected);
 
         // specific reports
@@ -288,29 +286,29 @@ mod tests {
             .jobs(1)
             .reports([ReportKind::DependencyDeprecated]);
         let expected = glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
-        let reports = scanner.run(repo, [repo]);
+        let reports = scanner.run(repo, repo);
         assert_ordered_eq!(reports, expected);
 
         // no checks
         let checks: [Check; 0] = [];
         let scanner = Scanner::new().jobs(1).checks(checks);
-        let reports = scanner.run(repo, [repo]);
+        let reports = scanner.run(repo, repo);
         assert_ordered_eq!(reports, []);
 
         // no reports
         let scanner = Scanner::new().jobs(1).reports([]);
-        let reports = scanner.run(repo, [repo]);
+        let reports = scanner.run(repo, repo);
         assert_ordered_eq!(reports, []);
 
         // non-matching restriction
         let scanner = Scanner::new().jobs(1);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports = scanner.run(repo, [&dep]);
+        let reports = scanner.run(repo, &dep);
         assert_ordered_eq!(reports, []);
 
         // empty repo
         let repo = TEST_DATA.repo("empty").unwrap();
-        let reports = scanner.run(repo, [repo]);
+        let reports = scanner.run(repo, repo);
         assert_ordered_eq!(reports, []);
     }
 
@@ -320,14 +318,14 @@ mod tests {
 
         // no reports flagged for failures
         let scanner = Scanner::new().jobs(1);
-        scanner.run(repo, [repo]).count();
+        scanner.run(repo, repo).count();
         assert!(!scanner.failed());
 
         // fail on specified report variant
         let scanner = Scanner::new()
             .jobs(1)
             .exit([ReportKind::DependencyDeprecated]);
-        scanner.run(repo, [repo]).count();
+        scanner.run(repo, repo).count();
         assert!(scanner.failed());
     }
 }

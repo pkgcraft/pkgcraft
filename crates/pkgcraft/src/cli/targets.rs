@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use camino::Utf8Path;
-use itertools::Itertools;
 
 use crate::config::Config;
 use crate::pkg;
@@ -10,7 +9,6 @@ use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
-use crate::types::IndexMap;
 use crate::utils::current_dir;
 use crate::Error;
 
@@ -129,15 +127,18 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target restrictions.
-    pub fn targets<I>(mut self, values: I) -> crate::Result<IndexMap<RepoSet, Vec<Restrict>>>
+    pub fn targets<I>(
+        mut self,
+        values: I,
+    ) -> impl Iterator<Item = crate::Result<(RepoSet, Restrict)>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
+        <I as IntoIterator>::IntoIter: 'a,
     {
         values
             .into_iter()
-            .map(|s| self.target_restriction(s.as_ref()))
-            .try_collect()
+            .map(move |s| self.target_restriction(s.as_ref()))
     }
 
     /// Determine target packages.

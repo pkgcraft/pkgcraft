@@ -63,7 +63,7 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new().jobs(1).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, [repo]);
+        let reports = scanner.run(repo, repo);
         assert_ordered_eq!(reports, expected);
     }
 }

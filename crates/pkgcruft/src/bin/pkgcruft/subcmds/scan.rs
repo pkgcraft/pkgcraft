@@ -67,7 +67,7 @@ impl Command {
         // determine target restrictions
         let targets = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .targets(self.targets.iter().flatten())?;
+            .targets(self.targets.iter().flatten());
 
         // create report scanner
         let scanner = Scanner::new()
@@ -79,9 +79,10 @@ impl Command {
 
         // run scanner for all targets
         let mut stdout = io::stdout().lock();
-        for (repo_set, restricts) in targets {
+        for target in targets {
+            let (repo_set, restrict) = target?;
             for repo in repo_set {
-                for report in scanner.run(&repo, &restricts) {
+                for report in scanner.run(&repo, &restrict) {
                     reporter.report(&report, &mut stdout)?;
                 }
             }
