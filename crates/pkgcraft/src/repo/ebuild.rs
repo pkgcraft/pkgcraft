@@ -728,8 +728,13 @@ impl Repository for EbuildRepo {
                     if let Some(p) = s.strip_suffix(".ebuild") {
                         if let Ok(cpv) = Cpv::try_new(format!("{cat}/{p}")) {
                             restricts.push(DepRestrict::Version(Some(cpv.version)));
+                            continue;
                         }
                     }
+
+                    // don't generate restrictions for non-ebuild path
+                    restricts.clear();
+                    break;
                 }
                 _ => {
                     restricts.clear();
