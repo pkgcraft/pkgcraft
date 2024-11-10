@@ -141,13 +141,11 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target packages.
-    pub fn pkgs<I>(
-        mut self,
-        values: I,
-    ) -> impl Iterator<Item = crate::Result<pkg::Pkg>> + use<'a, I>
+    pub fn pkgs<I>(mut self, values: I) -> impl Iterator<Item = crate::Result<pkg::Pkg>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
+        <I as IntoIterator>::IntoIter: 'a,
     {
         values
             .into_iter()
@@ -165,10 +163,11 @@ impl<'a> TargetRestrictions<'a> {
     pub fn pkgs_ebuild<I>(
         self,
         values: I,
-    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::Pkg>> + use<'a, I>
+    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::Pkg>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
+        <I as IntoIterator>::IntoIter: 'a,
     {
         self.pkgs(values).map(|r| match r {
             Ok(pkg::Pkg::Ebuild(pkg)) => Ok(pkg),
@@ -181,10 +180,11 @@ impl<'a> TargetRestrictions<'a> {
     pub fn pkgs_ebuild_raw<I>(
         mut self,
         values: I,
-    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::raw::Pkg>> + use<'a, I>
+    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::raw::Pkg>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
+        <I as IntoIterator>::IntoIter: 'a,
     {
         values
             .into_iter()
