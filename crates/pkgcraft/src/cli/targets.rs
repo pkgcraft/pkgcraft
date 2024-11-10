@@ -112,6 +112,9 @@ impl<'a> TargetRestrictions<'a> {
             .ok()
             .map(|path| self.repo_from_nested_path(path));
 
+        // avoid treating `cat/pkg/` as path restriction
+        let target = target.trim_end_matches('/');
+
         match (restrict::parse::dep(target), path_target, repo_target) {
             // prefer dep restrictions for valid cat/pkg paths
             (Ok(restrict), Ok(_), _) if target.contains('/') => self.dep_restriction(restrict),
