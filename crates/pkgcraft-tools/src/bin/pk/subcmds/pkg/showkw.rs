@@ -6,7 +6,6 @@ use clap::Args;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
-use pkgcraft::repo::PkgRepository;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
@@ -29,24 +28,14 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine target restrictions
-        let targets = TargetRestrictions::new(config)
+        let pkgs = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .targets(self.targets.iter().flatten())?;
+            .pkgs_ebuild(self.targets.iter().flatten());
 
         let mut stdout = io::stdout().lock();
-        for (repo_set, restricts) in targets {
-            // find matching packages from targeted repos
-            let pkgs = restricts.iter().flat_map(|r| {
-                repo_set
-                    .ebuild()
-                    .flat_map(move |repo| repo.iter_restrict(r))
-            });
-
-            // TODO: use tabular formatting output
-            for pkg in pkgs {
-                writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
-            }
+        for pkg in pkgs {
+            let pkg = pkg?;
+            writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
         }
 
         Ok(ExitCode::SUCCESS)
