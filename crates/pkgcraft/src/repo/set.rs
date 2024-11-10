@@ -48,7 +48,7 @@ impl RepoSet {
             if !repo_restricts.is_empty() {
                 let set = self
                     .into_iter()
-                    .filter(|r| repo_restricts.iter().all(|res| res.matches(r.id())))
+                    .filter(|repo| repo_restricts.iter().all(|r| r.matches(repo.id())))
                     .collect();
                 return (set, Restrict::and(restricts));
             }
