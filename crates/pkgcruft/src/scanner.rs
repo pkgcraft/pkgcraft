@@ -173,15 +173,15 @@ pub(crate) struct ReportFilter {
 
 impl ReportFilter {
     /// Conditionally add a report based on filter inclusion.
-    pub(crate) fn report(&mut self, report: &Report) {
+    pub(crate) fn report(&mut self, report: Report) {
         if self.filter.contains(report.kind()) {
             if self.exit.contains(report.kind()) {
                 self.failed.store(true, Ordering::Relaxed);
             }
 
             match self.reports.as_mut() {
-                Some(reports) => reports.push(report.clone()),
-                None => self.reports = Some(vec![report.clone()]),
+                Some(reports) => reports.push(report),
+                None => self.reports = Some(vec![report]),
             }
         }
     }

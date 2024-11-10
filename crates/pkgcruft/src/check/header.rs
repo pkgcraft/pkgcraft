@@ -58,9 +58,9 @@ impl EbuildRawPkgCheck for Check {
             let mut report = HeaderInvalid.version(pkg);
 
             if !line.trim().starts_with('#') || line.trim().is_empty() {
-                report.message("missing copyright header");
+                report = report.message("missing copyright header");
             } else {
-                report
+                report = report
                     .message(format!("invalid copyright: {line}"))
                     .location(1);
             };
@@ -73,9 +73,9 @@ impl EbuildRawPkgCheck for Check {
             let mut report = HeaderInvalid.version(pkg);
 
             if !line.trim().starts_with('#') || line.trim().is_empty() {
-                report.message("missing license header");
+                report = report.message("missing license header");
             } else {
-                report
+                report = report
                     .message(format!("invalid license: {line}"))
                     .location(2);
             };

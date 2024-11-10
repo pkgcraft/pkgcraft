@@ -269,7 +269,7 @@ pub(crate) struct ReportBuilder(Report);
 
 impl ReportBuilder {
     /// Add a report message.
-    pub(crate) fn message<S>(&mut self, value: S) -> &mut Self
+    pub(crate) fn message<S>(mut self, value: S) -> Self
     where
         S: fmt::Display,
     {
@@ -278,7 +278,7 @@ impl ReportBuilder {
     }
 
     /// Add a location reference.
-    pub(crate) fn location<L>(&mut self, value: L) -> &mut Self
+    pub(crate) fn location<L>(mut self, value: L) -> Self
     where
         L: Into<Location>,
     {
@@ -290,8 +290,8 @@ impl ReportBuilder {
     }
 
     /// Pass the report to the scanning filter for processing.
-    pub(crate) fn report(&mut self, filter: &mut ReportFilter) {
-        filter.report(&self.0)
+    pub(crate) fn report(self, filter: &mut ReportFilter) {
+        filter.report(self.0)
     }
 }
 
