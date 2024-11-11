@@ -144,8 +144,7 @@ impl Scanner {
     }
 }
 
-// TODO: use multiple producers to push restrictions
-/// Create a producer thread that sends restrictions over the channel to the workers.
+/// Create a producer thread that sends targets over a channel to workers.
 fn producer(
     repo: &'static EbuildRepo,
     restrict: Restrict,
