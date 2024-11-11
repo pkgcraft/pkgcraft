@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
+use std::{iter, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
@@ -92,7 +92,7 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<T>(&self, repo: &Repo, restrict: T) -> impl Iterator<Item = Report>
+    pub fn run<T>(&self, repo: &Repo, restrict: T) -> Box<dyn Iterator<Item = Report>>
     where
         T: Into<Restrict>,
     {
@@ -111,6 +111,12 @@ impl Scanner {
         // this workaround shouldn't cause any issues to make that pain worth it.
         let repo: &'static Repo = unsafe { std::mem::transmute(repo) };
 
+        // return early for static, non-matching restriction
+        let restrict = restrict.into();
+        if restrict == Restrict::False {
+            return Box::new(iter::empty());
+        }
+
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
 
@@ -125,14 +131,14 @@ impl Scanner {
                     tx: reports_tx,
                 };
 
-                Iter {
+                Box::new(Iter {
                     reports_rx,
-                    _producer: producer(repo, restrict.into(), restrict_tx),
+                    _producer: producer(repo, restrict, restrict_tx),
                     _workers: (0..self.jobs)
                         .map(|_| worker(runner.clone(), filter.clone(), restrict_rx.clone()))
                         .collect(),
                     reports: Default::default(),
-                }
+                })
             }
             _ => todo!("add support for other repo types"),
         }
