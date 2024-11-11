@@ -66,3 +66,9 @@ criterion = "0.5"
 predicates = "3.1.2"
 pretty_assertions = "1.4.1"
 tempfile = "3.14.0"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/{ name }-{ version }/{ name }-{ version }-{ target }.tar.xz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "txz"
+disabled-strategies = ["quick-install", "compile"]

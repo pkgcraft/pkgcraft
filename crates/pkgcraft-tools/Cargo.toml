@@ -50,3 +50,9 @@ walkdir = "2.5.0"
 
 [[test]]
 name = "pk"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/{ name }-{ version }/{ name }-{ version }-{ target }.tar.xz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "txz"
+disabled-strategies = ["quick-install", "compile"]
