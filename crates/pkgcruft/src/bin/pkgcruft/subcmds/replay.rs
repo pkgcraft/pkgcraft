@@ -32,12 +32,13 @@ pub(crate) struct Command {
     #[clap(flatten)]
     options: Options,
 
-    /// Target file path
+    /// Target file paths
     #[arg(
         help_heading = "Arguments",
         value_hint = ValueHint::FilePath,
+        required = true,
     )]
-    file: String,
+    files: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -79,7 +80,7 @@ impl Replay {
 
     fn run(
         &self,
-        target: String,
+        target: &str,
     ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
         let reports = self.reports.as_ref();
         let pkgs = self.pkgs.as_ref();
@@ -87,7 +88,7 @@ impl Replay {
             let iter = Iter::from_reader(io::stdin().lock(), reports, pkgs);
             Ok(Either::Left(iter))
         } else {
-            let iter = Iter::try_from_file(&target, reports, pkgs)?;
+            let iter = Iter::try_from_file(target, reports, pkgs)?;
             Ok(Either::Right(iter))
         }
     }
@@ -100,18 +101,21 @@ impl Command {
 
         let replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
 
-        let reports = if self.options.sort {
-            let mut reports: Vec<_> = replay.run(self.file)?.try_collect()?;
+        let mut reports = vec![];
+        for file in &self.files {
+            for report in replay.run(file)? {
+                reports.push(report?);
+            }
+        }
+
+        if self.options.sort {
             reports.sort();
-            Either::Left(reports.into_iter().map(Ok))
-        } else {
-            Either::Right(replay.run(self.file)?)
-        };
+        }
 
         let mut stdout = io::stdout().lock();
         let mut reporter = self.options.reporter.collapse();
         for report in reports {
-            reporter.report(&(report?), &mut stdout)?;
+            reporter.report(&report, &mut stdout)?;
         }
 
         Ok(ExitCode::SUCCESS)

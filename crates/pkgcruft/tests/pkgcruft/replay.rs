@@ -94,6 +94,14 @@ fn file_targets() {
         .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
+
+    // multiple
+    cmd("pkgcruft replay")
+        .args([QA_PRIMARY_FILE.path(), QA_PRIMARY_FILE.path()])
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
 }
 
 #[test]
