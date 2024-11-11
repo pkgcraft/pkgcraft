@@ -715,6 +715,7 @@ impl Repository for EbuildRepo {
 
         let mut restricts = vec![];
         let mut cat = "";
+        let mut pn = "";
         for s in relpath.components().map(|p| p.as_str()) {
             match &restricts[..] {
                 [] if self.categories().contains(s) => {
@@ -722,13 +723,18 @@ impl Repository for EbuildRepo {
                     restricts.push(DepRestrict::category(s));
                 }
                 [_] if self.packages(cat).contains(s) => {
+                    pn = s;
                     restricts.push(DepRestrict::package(s));
                 }
                 [_, _] => {
                     if let Some(p) = s.strip_suffix(".ebuild") {
                         if let Ok(cpv) = Cpv::try_new(format!("{cat}/{p}")) {
-                            restricts.push(DepRestrict::Version(Some(cpv.version)));
-                            continue;
+                            if pn == cpv.package() {
+                                restricts.push(DepRestrict::Version(Some(cpv.version)));
+                                continue;
+                            } else {
+                                warn!("{}: unmatched ebuild: {path}", self.id());
+                            }
                         }
                     }
 
