@@ -119,18 +119,17 @@ impl Scanner {
 
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
+        let filter = ReportFilter {
+            reports: None,
+            filter: self.reports.clone(),
+            exit: self.exit.clone(),
+            failed: self.failed.clone(),
+            tx: reports_tx,
+        };
 
         match repo {
             Repo::Ebuild(repo) => {
                 let runner = Arc::new(SyncCheckRunner::new(repo, &self.filters, &self.checks));
-                let filter = ReportFilter {
-                    reports: None,
-                    filter: self.reports.clone(),
-                    exit: self.exit.clone(),
-                    failed: self.failed.clone(),
-                    tx: reports_tx,
-                };
-
                 Box::new(Iter {
                     reports_rx,
                     _producer: producer(repo, restrict, restrict_tx),
