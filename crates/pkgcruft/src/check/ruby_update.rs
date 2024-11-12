@@ -128,12 +128,12 @@ mod tests {
         let filter = "category != 'stub'".parse().unwrap();
         let scanner = Scanner::new().jobs(1).checks([CHECK]).filters([filter]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_ordered_eq!(reports, expected);
 
         // gentoo fixed
         let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_ordered_eq!(reports, []);
     }
 }

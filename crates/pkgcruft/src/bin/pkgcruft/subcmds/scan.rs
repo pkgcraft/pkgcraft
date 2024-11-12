@@ -82,7 +82,7 @@ impl Command {
         for target in targets {
             let (repo_set, restrict) = target?;
             for repo in repo_set {
-                for report in scanner.run(&repo, &restrict) {
+                for report in scanner.run(&repo, &restrict)? {
                     reporter.report(&report, &mut stdout)?;
                 }
             }
