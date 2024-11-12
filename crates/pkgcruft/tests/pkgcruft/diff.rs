@@ -9,7 +9,7 @@ fn missing_args() {
     cmd("pkgcruft diff")
         .assert()
         .stdout("")
-        .stderr(contains("FILE1"))
+        .stderr(contains("OLD"))
         .failure()
         .code(2);
 
@@ -17,7 +17,7 @@ fn missing_args() {
     cmd("pkgcruft diff file1.json")
         .assert()
         .stdout("")
-        .stderr(contains("FILE2"))
+        .stderr(contains("NEW"))
         .failure()
         .code(2);
 }

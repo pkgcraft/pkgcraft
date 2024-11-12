@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::io;
+use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{Args, ValueHint};
@@ -32,13 +32,13 @@ pub(crate) struct Command {
     #[clap(flatten)]
     options: Options,
 
-    /// Target file path
-    #[arg(help_heading = "Arguments", value_hint = ValueHint::FilePath)]
-    file1: String,
+    /// Old file path
+    #[arg(help_heading = "Arguments", display_order = 0, value_hint = ValueHint::FilePath)]
+    old: String,
 
-    /// Target file path
-    #[arg(help_heading = "Arguments", value_hint = ValueHint::FilePath)]
-    file2: String,
+    /// New file path
+    #[arg(help_heading = "Arguments", display_order = 1, value_hint = ValueHint::FilePath)]
+    new: String,
 }
 
 #[derive(Debug, Default)]
@@ -94,19 +94,32 @@ impl Command {
 
         let replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
 
-        let reports1: HashSet<_> = replay.run(self.file1)?.try_collect()?;
-        let reports2: HashSet<_> = replay.run(self.file2)?.try_collect()?;
-        let mut reports: Vec<_> = reports1.symmetric_difference(&reports2).collect();
+        let old: HashSet<_> = replay.run(self.old)?.try_collect()?;
+        let new: HashSet<_> = replay.run(self.new)?.try_collect()?;
+        let mut removed: Vec<_> = old.difference(&new).collect();
+        let mut added: Vec<_> = new.difference(&old).collect();
 
         if self.options.sort {
-            reports.sort();
+            removed.sort();
+            added.sort();
         }
 
         // TODO: output context for reports from the first file vs the second file
         let mut stdout = io::stdout().lock();
         let mut reporter = self.options.reporter.collapse();
-        for report in reports {
-            reporter.report(report, &mut stdout)?;
+
+        if !removed.is_empty() {
+            writeln!(stdout, "REMOVED")?;
+            for report in removed {
+                reporter.report(report, &mut stdout)?;
+            }
+        }
+
+        if !added.is_empty() {
+            writeln!(stdout, "ADDED")?;
+            for report in added {
+                reporter.report(report, &mut stdout)?;
+            }
         }
 
         Ok(ExitCode::SUCCESS)
