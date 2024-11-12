@@ -90,9 +90,6 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
         I: Iterator<Item = O>,
         F: FnOnce(O) -> T,
     {
-        // enable internal bash SIGCHLD handler
-        unsafe { bash::set_sigchld_handler() };
-
         let mut sem = SharedSemaphore::new(size)?;
         let (tx, rx): (IpcSender<T>, IpcReceiver<T>) =
             ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
@@ -101,6 +98,8 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 shell::fork_init();
+                // enable internal bash SIGCHLD handler
+                unsafe { bash::set_sigchld_handler() };
 
                 if suppress {
                     // suppress stdout and stderr in forked processes
@@ -174,9 +173,6 @@ where
         O: Serialize + for<'a> Deserialize<'a>,
         F: FnOnce(I) -> O,
     {
-        // enable internal bash SIGCHLD handler
-        unsafe { bash::set_sigchld_handler() };
-
         let mut sem = SharedSemaphore::new(size)?;
         let (input_tx, input_rx): (IpcSender<Msg<I>>, IpcReceiver<Msg<I>>) = ipc::channel()
             .map_err(|e| Error::Base(format!("failed creating input channel: {e}")))?;
@@ -187,6 +183,8 @@ where
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 shell::fork_init();
+                // enable internal bash SIGCHLD handler
+                unsafe { bash::set_sigchld_handler() };
 
                 if suppress {
                     // suppress stdout and stderr in forked processes
