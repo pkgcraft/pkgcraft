@@ -240,7 +240,8 @@ impl Pkg {
     pub fn metadata(&self) -> &xml::Metadata {
         self.metadata.get_or_init(|| {
             self.repo
-                .pkg_metadata(self.cpn())
+                .metadata()
+                .pkg(self.cpn())
                 .expect("failed requesting metadata")
         })
     }

@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use std::{fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
@@ -18,6 +18,7 @@ use crate::files::{
 };
 use crate::pkg::ebuild::keyword::Arch;
 use crate::pkg::ebuild::manifest::HashType;
+use crate::pkg::ebuild::xml;
 use crate::repo::RepoFormat;
 use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
@@ -238,6 +239,7 @@ pub struct Metadata {
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceLock<IndexSet<Dep>>,
     pkg_mask: OnceLock<IndexSet<Dep>>,
+    pkg_metadata: OnceLock<super::ArcCache<xml::Metadata>>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
     use_global: OnceLock<IndexMap<String, String>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
@@ -564,6 +566,13 @@ impl Metadata {
                 })
                 .collect()
         })
+    }
+
+    /// Return the shared package metadata for a given [`Cpn`].
+    pub fn pkg(&self, cpn: &Cpn) -> crate::Result<Arc<xml::Metadata>> {
+        self.pkg_metadata
+            .get_or_init(|| super::ArcCache::<xml::Metadata>::new(&self.id, &self.path))
+            .get(cpn)
     }
 
     /// Return the ordered set of package updates.

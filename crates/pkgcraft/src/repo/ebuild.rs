@@ -16,7 +16,7 @@ use crate::eapi::Eapi;
 use crate::files::{has_ext_utf8, is_dir_utf8, is_file_utf8, is_hidden_utf8, sorted_dir_list_utf8};
 use crate::macros::build_path;
 use crate::pkg::ebuild::keyword::Arch;
-use crate::pkg::ebuild::{self, manifest::Manifest, xml};
+use crate::pkg::ebuild::{self, manifest::Manifest};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -65,8 +65,10 @@ impl<T> ArcCache<T>
 where
     T: ArcCacheData + Send + Sync + 'static,
 {
-    fn new(repo: EbuildRepo) -> Self {
+    fn new(repo_id: &str, repo_path: &Utf8Path) -> Self {
         let (tx, rx) = bounded(10);
+        let repo_id = repo_id.to_string();
+        let repo_path = repo_path.to_path_buf();
 
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
@@ -75,11 +77,11 @@ where
                 match rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
                     Ok(Msg::Key(s, tx)) => {
-                        let path = build_path!(repo.path(), &s, T::RELPATH);
+                        let path = build_path!(&repo_path, &s, T::RELPATH);
                         let data = fs::read_to_string(&path)
                             .map_err(|e| {
                                 if e.kind() != io::ErrorKind::NotFound {
-                                    warn!("{}: failed reading: {path}: {e}", repo.id());
+                                    warn!("{repo_id}: failed reading: {path}: {e}");
                                 }
                             })
                             .unwrap_or_default();
@@ -93,7 +95,7 @@ where
                                 // fallback to default value on parsing failure
                                 let val = T::parse(&data)
                                     .map_err(|e| {
-                                        warn!("{}: failed parsing: {path}: {e}", repo.id());
+                                        warn!("{repo_id}: failed parsing: {path}: {e}");
                                     })
                                     .unwrap_or_default();
 
@@ -150,7 +152,6 @@ struct InternalEbuildRepo {
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
-    metadata_cache: OnceLock<ArcCache<xml::Metadata>>,
     manifest_cache: OnceLock<ArcCache<Manifest>>,
     categories_xml: OnceLock<IndexMap<String, String>>,
 }
@@ -215,7 +216,6 @@ impl EbuildRepo {
             mirrors: OnceLock::new(),
             eclasses: OnceLock::new(),
             use_expand: OnceLock::new(),
-            metadata_cache: OnceLock::new(),
             manifest_cache: OnceLock::new(),
             categories_xml: OnceLock::new(),
         })))
@@ -449,19 +449,11 @@ impl EbuildRepo {
         })
     }
 
-    /// Return the shared metadata for a given package.
-    pub fn pkg_metadata(&self, cpn: &Cpn) -> crate::Result<Arc<xml::Metadata>> {
-        self.0
-            .metadata_cache
-            .get_or_init(|| ArcCache::<xml::Metadata>::new(self.clone()))
-            .get(cpn)
-    }
-
     /// Return the shared manifest for a given package.
     pub fn pkg_manifest(&self, cpn: &Cpn) -> crate::Result<Arc<Manifest>> {
         self.0
             .manifest_cache
-            .get_or_init(|| ArcCache::<Manifest>::new(self.clone()))
+            .get_or_init(|| ArcCache::<Manifest>::new(self.id(), self.path()))
             .get(cpn)
     }
 
