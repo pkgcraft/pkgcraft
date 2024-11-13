@@ -500,8 +500,8 @@ impl EbuildRepo {
     }
 
     /// Return a filtered iterator of unversioned Deps for the repo.
-    pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpnRestrict {
-        IterCpnRestrict::new(self, val.into())
+    pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> IterCpnRestrict {
+        IterCpnRestrict::new(self, value.into())
     }
 
     /// Return an iterator of raw packages for the repo.
@@ -510,8 +510,8 @@ impl EbuildRepo {
     }
 
     /// Return a filtered iterator of raw packages for the repo.
-    pub fn iter_raw_restrict<R: Into<Restrict>>(&self, val: R) -> IterRawRestrict {
-        let restrict = val.into();
+    pub fn iter_raw_restrict<R: Into<Restrict>>(&self, value: R) -> IterRawRestrict {
+        let restrict = value.into();
         IterRawRestrict {
             iter: IterRaw::new(self, Some(&restrict)),
             restrict,
@@ -654,19 +654,15 @@ impl PkgRepository for EbuildRepo {
     }
 
     fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
-        let restrict = value.into();
-        IterCpvRestrict {
-            iter: IterCpv::new(self.clone(), Some(&restrict)),
-            restrict,
-        }
+        IterCpvRestrict::new(self, value.into())
     }
 
     fn iter(&self) -> Self::Iter {
         self.into_iter()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
-        let restrict = val.into();
+    fn iter_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterRestrict {
+        let restrict = value.into();
         IterRestrict {
             iter: Iter::new(self, Some(&restrict)),
             restrict,
@@ -1088,6 +1084,15 @@ impl Iterator for IterCpnRestrict {
 pub struct IterCpvRestrict {
     iter: IterCpv,
     restrict: Restrict,
+}
+
+impl IterCpvRestrict {
+    fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
+        Self {
+            iter: IterCpv::new(repo.clone(), Some(&restrict)),
+            restrict,
+        }
+    }
 }
 
 impl Iterator for IterCpvRestrict {
