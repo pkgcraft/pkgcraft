@@ -9,19 +9,21 @@ use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use crossbeam_channel::{bounded, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use rayon::prelude::*;
 use strum::{AsRefStr, Display, EnumString};
 use tracing::{error, warn};
 
 use crate::dep::{parse, Cpn, Dep};
 use crate::eapi::Eapi;
 use crate::files::{
-    has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8, sorted_dir_list,
+    atomic_write_file, has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8,
+    sorted_dir_list,
 };
 use crate::macros::build_path;
 use crate::pkg::ebuild::keyword::Arch;
 use crate::pkg::ebuild::manifest::{HashType, Manifest};
 use crate::pkg::ebuild::xml;
-use crate::repo::RepoFormat;
+use crate::repo::{PkgRepository, RepoFormat};
 use crate::traits::{ArcCacheData, FilterLines};
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
@@ -778,6 +780,46 @@ impl Metadata {
                 })
                 .collect()
         })
+    }
+
+    /// Update the local USE flag description cache.
+    pub fn use_local_update(&self, repo: &super::EbuildRepo) -> crate::Result<()> {
+        // TODO: use native parallel Cpn iterator
+        let data = repo
+            .categories()
+            .into_par_iter()
+            .flat_map(|cat| {
+                repo.packages(&cat)
+                    .into_iter()
+                    .map(|pn| Cpn {
+                        category: cat.to_string(),
+                        package: pn,
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .filter_map(|cpn| match self.pkg(&cpn) {
+                Ok(meta) => Some((cpn, meta)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let mut data = data
+            .par_iter()
+            .flat_map_iter(|(cpn, meta)| {
+                meta.local_use()
+                    .iter()
+                    .map(|(name, desc)| (cpn, name, desc))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        data.par_sort();
+        let data = data
+            .iter()
+            .map(|(cpn, name, desc)| format!("{cpn}:{name} - {desc}\n"))
+            .join("");
+        let path = self.path.join("profiles");
+        atomic_write_file(&path, "use.local.desc", data)
     }
 }
 
