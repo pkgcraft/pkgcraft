@@ -246,7 +246,7 @@ where
     T: ArcCacheData + Send + Sync + 'static,
 {
     fn new() -> Self {
-        let (tx, rx) = bounded(10);
+        let (tx, rx) = bounded(num_cpus::get());
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
             let mut cache = HashMap::<_, Arc<T>>::new();
