@@ -6,7 +6,7 @@ use itertools::Itertools;
 use roxmltree::Node;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::repo::ebuild::ArcCacheData;
+use crate::traits::ArcCacheData;
 use crate::types::OrderedSet;
 use crate::xml::parse_xml_with_dtd;
 use crate::Error;

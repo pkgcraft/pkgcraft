@@ -1,11 +1,12 @@
 use std::borrow::Borrow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::{Arc, OnceLock};
-use std::{fs, io};
+use std::{fs, io, thread};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
+use crossbeam_channel::{bounded, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumString};
@@ -16,11 +17,12 @@ use crate::eapi::Eapi;
 use crate::files::{
     has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8, sorted_dir_list,
 };
+use crate::macros::build_path;
 use crate::pkg::ebuild::keyword::Arch;
-use crate::pkg::ebuild::manifest::HashType;
+use crate::pkg::ebuild::manifest::{HashType, Manifest};
 use crate::pkg::ebuild::xml;
 use crate::repo::RepoFormat;
-use crate::traits::FilterLines;
+use crate::traits::{ArcCacheData, FilterLines};
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
@@ -222,6 +224,100 @@ fn is_eclass(e: &Utf8DirEntry) -> bool {
     is_file_utf8(e) && !is_hidden_utf8(e) && has_ext_utf8(e, "eclass")
 }
 
+#[derive(Debug)]
+struct ArcCache<T>
+where
+    T: ArcCacheData + Send + Sync,
+{
+    thread: Option<thread::JoinHandle<()>>,
+    tx: Sender<Msg<T>>,
+}
+
+enum Msg<T: ArcCacheData + Send + Sync> {
+    Key(String, Sender<Arc<T>>),
+    Stop,
+}
+
+impl<T> ArcCache<T>
+where
+    T: ArcCacheData + Send + Sync + 'static,
+{
+    fn new(repo_id: &str, repo_path: &Utf8Path) -> Self {
+        let (tx, rx) = bounded(10);
+        let repo_id = repo_id.to_string();
+        let repo_path = repo_path.to_path_buf();
+
+        let thread = thread::spawn(move || {
+            // TODO: limit cache size using an LRU cache with set capacity
+            let mut cache = HashMap::<_, (_, Arc<T>)>::new();
+            loop {
+                match rx.recv() {
+                    Ok(Msg::Stop) | Err(RecvError) => break,
+                    Ok(Msg::Key(s, tx)) => {
+                        let path = build_path!(&repo_path, &s, T::RELPATH);
+                        let data = fs::read_to_string(&path)
+                            .map_err(|e| {
+                                if e.kind() != io::ErrorKind::NotFound {
+                                    warn!("{repo_id}: failed reading: {path}: {e}");
+                                }
+                            })
+                            .unwrap_or_default();
+
+                        // evict cache entries based on file content hash
+                        let hash = blake3::hash(data.as_bytes());
+
+                        let val = match cache.get(&s) {
+                            Some((cached_hash, val)) if cached_hash == &hash => val.clone(),
+                            _ => {
+                                // fallback to default value on parsing failure
+                                let val = T::parse(&data)
+                                    .map_err(|e| {
+                                        warn!("{repo_id}: failed parsing: {path}: {e}");
+                                    })
+                                    .unwrap_or_default();
+
+                                // insert Arc-wrapped value into the cache and return a copy
+                                let val = Arc::new(val);
+                                cache.insert(s, (hash, val.clone()));
+                                val
+                            }
+                        };
+
+                        tx.send(val).expect("failed sending shared pkg data");
+                    }
+                }
+            }
+        });
+
+        Self { thread: Some(thread), tx }
+    }
+
+    /// Get the cache data related to a given package Cpv.
+    fn get(&self, cpn: &Cpn) -> crate::Result<Arc<T>> {
+        let (tx, rx) = bounded(0);
+        self.tx.send(Msg::Key(cpn.to_string(), tx)).map_err(|e| {
+            Error::InvalidValue(format!("failed requesting pkg manifest data: {cpn}: {e}"))
+        })?;
+        rx.recv().map_err(|e| {
+            Error::InvalidValue(format!("failed receiving pkg manifest data: {cpn}: {e}"))
+        })
+    }
+}
+
+// Note that the thread will currently be killed without joining on exit since
+// ArcCache is contained in a OnceLock that doesn't call drop().
+impl<T> Drop for ArcCache<T>
+where
+    T: ArcCacheData + Send + Sync,
+{
+    fn drop(&mut self) {
+        self.tx.send(Msg::Stop).unwrap();
+        if let Some(thread) = self.thread.take() {
+            thread.join().unwrap();
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Metadata {
     pub(super) id: String,
@@ -239,7 +335,8 @@ pub struct Metadata {
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceLock<IndexSet<Dep>>,
     pkg_mask: OnceLock<IndexSet<Dep>>,
-    pkg_metadata: OnceLock<super::ArcCache<xml::Metadata>>,
+    pkg_metadata: OnceLock<ArcCache<xml::Metadata>>,
+    manifest_cache: OnceLock<ArcCache<Manifest>>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
     use_global: OnceLock<IndexMap<String, String>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
@@ -571,7 +668,14 @@ impl Metadata {
     /// Return the shared package metadata for a given [`Cpn`].
     pub fn pkg(&self, cpn: &Cpn) -> crate::Result<Arc<xml::Metadata>> {
         self.pkg_metadata
-            .get_or_init(|| super::ArcCache::<xml::Metadata>::new(&self.id, &self.path))
+            .get_or_init(|| ArcCache::<xml::Metadata>::new(&self.id, &self.path))
+            .get(cpn)
+    }
+
+    /// Return the shared package manifest for a given [`Cpn`].
+    pub fn manifest(&self, cpn: &Cpn) -> crate::Result<Arc<Manifest>> {
+        self.manifest_cache
+            .get_or_init(|| ArcCache::<Manifest>::new(&self.id, &self.path))
             .get(cpn)
     }
 

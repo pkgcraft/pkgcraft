@@ -250,7 +250,8 @@ impl Pkg {
     pub fn manifest(&self) -> &Manifest {
         self.manifest.get_or_init(|| {
             self.repo
-                .pkg_manifest(self.cpn())
+                .metadata()
+                .manifest(self.cpn())
                 .expect("failed requesting manifest")
         })
     }

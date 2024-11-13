@@ -7,7 +7,7 @@ use itertools::Itertools;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::build_path;
-use crate::repo::ebuild::ArcCacheData;
+use crate::traits::ArcCacheData;
 use crate::types::OrderedSet;
 use crate::utils::digest;
 use crate::Error;
