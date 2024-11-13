@@ -1,6 +1,5 @@
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, OnceLock};
 use std::{fmt, fs, iter};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -31,13 +30,6 @@ pub use eclass::Eclass;
 mod metadata;
 pub mod temp;
 pub use metadata::Metadata;
-
-// root level directories that aren't categories
-static FAKE_CATEGORIES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
-    ["eclass", "profiles", "metadata", "licenses"]
-        .into_iter()
-        .collect()
-});
 
 #[derive(Debug)]
 struct InternalEbuildRepo {
@@ -200,34 +192,6 @@ impl EbuildRepo {
             use_expand.sort_keys();
             use_expand
         })
-    }
-
-    /// Return a repo's category dirs from the filesystem.
-    fn category_dirs(&self) -> IndexSet<String> {
-        let entries = match sorted_dir_list_utf8(self.path()) {
-            Ok(vals) => vals,
-            Err(e) => {
-                warn!("{}: {}: {e}", self.id(), self.path());
-                return Default::default();
-            }
-        };
-
-        entries
-            .into_iter()
-            .filter(|e| {
-                is_dir_utf8(e) && !is_hidden_utf8(e) && !FAKE_CATEGORIES.contains(e.file_name())
-            })
-            .filter_map(|entry| {
-                let path = entry.path();
-                match dep::parse::category(entry.file_name()) {
-                    Ok(_) => Some(entry.file_name().to_string()),
-                    Err(e) => {
-                        warn!("{}: {path}: {e}", self.id());
-                        None
-                    }
-                }
-            })
-            .collect()
     }
 
     /// Return the mapping of repo categories to their descriptions.
@@ -460,11 +424,7 @@ impl PkgRepository for EbuildRepo {
             .flat_map(|r| r.metadata().categories().clone())
             .collect();
         categories.sort();
-        if categories.is_empty() {
-            self.category_dirs()
-        } else {
-            categories
-        }
+        categories
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
@@ -1122,10 +1082,10 @@ mod tests {
         let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         assert!(temp.categories().is_empty());
-        fs::create_dir(temp.path().join("cat")).unwrap();
+        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         assert_ordered_eq!(temp.repo().unwrap().categories(), ["cat"]);
-        fs::create_dir(temp.path().join("a-cat")).unwrap();
-        fs::create_dir(temp.path().join("z-cat")).unwrap();
+        temp.create_raw_pkg("a-cat/pkg-1", &[]).unwrap();
+        temp.create_raw_pkg("z-cat/pkg-1", &[]).unwrap();
         assert_ordered_eq!(temp.repo().unwrap().categories(), ["a-cat", "cat", "z-cat"]);
     }
 

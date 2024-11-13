@@ -3,12 +3,14 @@ use std::ops::Deref;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use itertools::Itertools;
 use tempfile::TempDir;
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
+use crate::files::atomic_write_file;
 use crate::pkg::ebuild::{self, metadata::Key};
-use crate::repo::{Repo, RepoFormat};
+use crate::repo::{PkgRepository, Repo, RepoFormat};
 use crate::Error;
 
 use super::EbuildRepo;
@@ -77,6 +79,15 @@ impl EbuildTempRepo {
         Ok(self.repo.as_ebuild().unwrap())
     }
 
+    /// Add a category into an ebuild repo's profiles/categories file.
+    fn add_category(&mut self, category: &str) -> crate::Result<()> {
+        let mut categories = self.repo()?.categories();
+        categories.insert(category.to_string());
+        categories.sort();
+        let data = categories.iter().map(|value| format!("{value}\n")).join("");
+        atomic_write_file(&self.path.join("profiles"), "categories", data)
+    }
+
     /// Create a [`ebuild::raw::Pkg`] from ebuild field settings.
     pub fn create_raw_pkg<S: AsRef<str>>(
         &mut self,
@@ -115,6 +126,7 @@ impl EbuildTempRepo {
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 
+        self.add_category(cpv.category())?;
         ebuild::raw::Pkg::try_new(cpv, self.repo()?.clone())
     }
 
@@ -140,6 +152,7 @@ impl EbuildTempRepo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
+        self.add_category(cpv.category())?;
         ebuild::raw::Pkg::try_new(cpv, self.repo()?.clone())
     }
 
