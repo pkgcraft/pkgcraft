@@ -511,11 +511,7 @@ impl EbuildRepo {
 
     /// Return a filtered iterator of raw packages for the repo.
     pub fn iter_raw_restrict<R: Into<Restrict>>(&self, value: R) -> IterRawRestrict {
-        let restrict = value.into();
-        IterRawRestrict {
-            iter: IterRaw::new(self, Some(&restrict)),
-            restrict,
-        }
+        IterRawRestrict::new(self, value.into())
     }
 
     /// Retrieve a package from the repo given its [`Cpv`].
@@ -1111,6 +1107,15 @@ impl Iterator for IterCpvRestrict {
 pub struct IterRawRestrict {
     iter: IterRaw,
     restrict: Restrict,
+}
+
+impl IterRawRestrict {
+    fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
+        Self {
+            iter: IterRaw::new(repo, Some(&restrict)),
+            restrict,
+        }
+    }
 }
 
 impl Iterator for IterRawRestrict {
