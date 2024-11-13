@@ -185,38 +185,38 @@ pub struct MetadataCacheRegen<'a> {
 
 impl MetadataCacheRegen<'_> {
     /// Set the number of parallel jobs to run.
-    pub fn jobs(&mut self, jobs: usize) -> &mut Self {
+    pub fn jobs(mut self, jobs: usize) -> Self {
         self.jobs = bounded_jobs(jobs);
         self
     }
 
     /// Force metadata regeneration across all packages.
-    pub fn force(&mut self, value: bool) -> &mut Self {
+    pub fn force(mut self, value: bool) -> Self {
         self.force = value;
         self
     }
 
     /// Show a progress bar during cache regeneration.
-    pub fn progress(&mut self, value: bool) -> &mut Self {
+    pub fn progress(mut self, value: bool) -> Self {
         self.progress = value;
         self
     }
 
     /// Allow output from stdout and stderr during cache regeneration.
-    pub fn output(&mut self, value: bool) -> &mut Self {
+    pub fn output(mut self, value: bool) -> Self {
         self.output = value;
         self
     }
 
     /// Perform metadata verification without writing to the cache.
-    pub fn verify(&mut self, value: bool) -> &mut Self {
+    pub fn verify(mut self, value: bool) -> Self {
         self.verify = value;
         self.clean = false;
         self
     }
 
     /// Specify package targets for cache regeneration.
-    pub fn targets<I>(&mut self, value: I) -> &mut Self
+    pub fn targets<I>(mut self, value: I) -> Self
     where
         I: IntoIterator<Item = Cpv>,
     {
@@ -227,7 +227,7 @@ impl MetadataCacheRegen<'_> {
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn run(&self, repo: &EbuildRepo) -> crate::Result<()> {
+    pub fn run(self, repo: &EbuildRepo) -> crate::Result<()> {
         // collapse lazy repo fields used during metadata generation
         repo.collapse_cache_regen();
 

@@ -135,12 +135,16 @@ impl Scanner {
         match repo {
             Repo::Ebuild(repo) => {
                 // force target metadata regen
-                let mut regen = repo.metadata().cache().regen();
-                regen.jobs(self.jobs).progress(false);
+                let mut regen = repo
+                    .metadata()
+                    .cache()
+                    .regen()
+                    .jobs(self.jobs)
+                    .progress(false);
                 // TODO: use parallel Cpv restriction iterator
                 // skip repo level targets that needlessly slow down regen
                 if restrict != Restrict::True {
-                    regen.targets(repo.iter_cpv_restrict(&restrict));
+                    regen = regen.targets(repo.iter_cpv_restrict(&restrict));
                 }
                 regen
                     .run(repo)

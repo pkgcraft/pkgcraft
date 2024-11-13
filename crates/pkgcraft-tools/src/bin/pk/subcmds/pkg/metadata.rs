@@ -62,8 +62,8 @@ impl Command {
                     format.from_repo(repo)
                 };
 
-                let mut regen = cache.regen();
-                regen
+                let mut regen = cache
+                    .regen()
                     .jobs(self.jobs.unwrap_or_default())
                     .force(self.force)
                     .progress(stdout().is_terminal() && !self.no_progress && !self.output)
@@ -73,7 +73,7 @@ impl Command {
                 // TODO: use parallel Cpv restriction iterator
                 // skip repo level targets that needlessly slow down regen
                 if restrict != Restrict::True {
-                    regen.targets(repo.iter_cpv_restrict(&restrict));
+                    regen = regen.targets(repo.iter_cpv_restrict(&restrict));
                 }
 
                 regen.run(repo)?;
