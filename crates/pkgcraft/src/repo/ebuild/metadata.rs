@@ -268,7 +268,7 @@ where
     }
 
     /// Get a copy of the cache data related to a given [`Cpn`].
-    fn get(&self, repo_path: &Utf8Path, repo_id: &str, cpn: &Cpn) -> crate::Result<Arc<T>> {
+    fn get(&self, repo_path: &Utf8Path, repo_id: &str, cpn: &Cpn) -> Arc<T> {
         let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
         let data = fs::read_to_string(&path)
             .map_err(|e| {
@@ -281,13 +281,13 @@ where
         let (tx, rx) = bounded(0);
         self.tx
             .send(Msg::Key(cpn.clone(), tx))
-            .map_err(|e| Error::InvalidValue(format!("failed requesting pkg data: {cpn}: {e}")))?;
+            .unwrap_or_else(|e| panic!("failed requesting pkg data: {cpn}: {e}"));
         let value = rx
             .recv()
-            .map_err(|e| Error::InvalidValue(format!("failed receiving pkg data: {cpn}: {e}")))?;
+            .unwrap_or_else(|e| panic!("failed receiving pkg data: {cpn}: {e}"));
 
         match value {
-            Some(value) => Ok(value),
+            Some(value) => value,
             None => {
                 // fallback to default value on parsing failure
                 let value = Arc::new(
@@ -299,8 +299,8 @@ where
                 );
                 self.tx
                     .send(Msg::Insert(cpn.clone(), value.clone()))
-                    .unwrap();
-                Ok(value)
+                    .unwrap_or_else(|e| panic!("failed sending cache data: {cpn}: {e}"));
+                value
             }
         }
     }
@@ -668,14 +668,14 @@ impl Metadata {
     }
 
     /// Return the package metadata for a given [`Cpn`].
-    pub fn pkg(&self, cpn: &Cpn) -> crate::Result<Arc<xml::Metadata>> {
+    pub fn pkg(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
         self.pkg_metadata
             .get_or_init(ArcCache::<xml::Metadata>::new)
             .get(&self.path, &self.id, cpn)
     }
 
     /// Return the package manifest for a given [`Cpn`].
-    pub fn manifest(&self, cpn: &Cpn) -> crate::Result<Arc<Manifest>> {
+    pub fn manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
         self.manifest_cache
             .get_or_init(ArcCache::<Manifest>::new)
             .get(&self.path, &self.id, cpn)
@@ -797,15 +797,12 @@ impl Metadata {
                     })
                     .collect::<Vec<_>>()
             })
-            .filter_map(|cpn| match self.pkg(&cpn) {
-                Ok(meta) => Some((cpn, meta)),
-                _ => None,
-            })
+            .map(|cpn| (self.pkg(&cpn), cpn))
             .collect::<Vec<_>>();
 
         let mut data = data
             .par_iter()
-            .flat_map_iter(|(cpn, meta)| {
+            .flat_map_iter(|(meta, cpn)| {
                 meta.local_use()
                     .iter()
                     .map(|(name, desc)| (cpn, name, desc))
