@@ -30,6 +30,10 @@ pub(crate) struct Command {
     #[arg(long)]
     format: Option<CacheFormat>,
 
+    /// Update local USE cache
+    #[arg(long)]
+    use_local: bool,
+
     // positionals
     /// Target repository
     #[arg(default_value = ".", help_heading = "Arguments")]
@@ -53,6 +57,10 @@ impl Command {
             .force(self.force)
             .progress(stdout().is_terminal() && !self.no_progress)
             .run(repo)?;
+
+        if self.use_local {
+            repo.metadata().use_local_update(repo)?;
+        }
 
         Ok(ExitCode::SUCCESS)
     }
