@@ -501,11 +501,7 @@ impl EbuildRepo {
 
     /// Return a filtered iterator of unversioned Deps for the repo.
     pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, val: R) -> IterCpnRestrict {
-        let restrict = val.into();
-        IterCpnRestrict {
-            iter: IterCpn::new(self.clone(), Some(&restrict)),
-            restrict,
-        }
+        IterCpnRestrict::new(self, val.into())
     }
 
     /// Return an iterator of raw packages for the repo.
@@ -1065,6 +1061,15 @@ impl Iterator for IterRestrict {
 pub struct IterCpnRestrict {
     iter: IterCpn,
     restrict: Restrict,
+}
+
+impl IterCpnRestrict {
+    fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
+        Self {
+            iter: IterCpn::new(repo.clone(), Some(&restrict)),
+            restrict,
+        }
+    }
 }
 
 impl Iterator for IterCpnRestrict {
