@@ -147,7 +147,7 @@ impl EbuildPkgCheckRunner {
             if !pkgs.is_empty() {
                 for check in &self.pkg_set_checks {
                     let now = Instant::now();
-                    check.run(cpn, &pkgs[..], filter);
+                    check.run(cpn, &pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
                 }
             }
