@@ -82,10 +82,12 @@ impl EbuildTempRepo {
     /// Add a category into an ebuild repo's profiles/categories file.
     fn add_category(&mut self, category: &str) -> crate::Result<()> {
         let mut categories = self.repo()?.categories();
-        categories.insert(category.to_string());
-        categories.sort();
-        let data = categories.iter().map(|value| format!("{value}\n")).join("");
-        atomic_write_file(&self.path.join("profiles"), "categories", data)
+        if categories.insert(category.to_string()) {
+            categories.sort();
+            let data = categories.iter().map(|value| format!("{value}\n")).join("");
+            atomic_write_file(&self.path.join("profiles"), "categories", data)?;
+        }
+        Ok(())
     }
 
     /// Create a [`ebuild::raw::Pkg`] from ebuild field settings.
