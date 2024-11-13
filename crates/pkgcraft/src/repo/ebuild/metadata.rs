@@ -269,15 +269,6 @@ where
 
     /// Get a copy of the cache data related to a given [`Cpn`].
     fn get(&self, repo_path: &Utf8Path, repo_id: &str, cpn: &Cpn) -> Arc<T> {
-        let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
-        let data = fs::read_to_string(&path)
-            .map_err(|e| {
-                if e.kind() != io::ErrorKind::NotFound {
-                    warn!("{repo_id}: failed reading: {repo_path}: {e}");
-                }
-            })
-            .unwrap_or_default();
-
         let (tx, rx) = bounded(0);
         self.tx
             .send(Msg::Key(cpn.clone(), tx))
@@ -285,7 +276,15 @@ where
         rx.recv()
             .unwrap_or_else(|e| panic!("failed receiving pkg data: {cpn}: {e}"))
             .unwrap_or_else(|| {
-                // parse value and insert it into the cache
+                // parse data and insert value into the cache
+                let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
+                let data = fs::read_to_string(&path)
+                    .map_err(|e| {
+                        if e.kind() != io::ErrorKind::NotFound {
+                            warn!("{repo_id}: failed reading: {repo_path}: {e}");
+                        }
+                    })
+                    .unwrap_or_default();
                 let value = Arc::new(
                     T::parse(&data)
                         .map_err(|e| {
