@@ -236,7 +236,8 @@ where
 }
 
 enum Msg<T: ArcCacheData + Send + Sync> {
-    Key(String, Sender<Arc<T>>),
+    Key(Cpn, Sender<Option<Arc<T>>>),
+    Insert(Cpn, Arc<T>),
     Stop,
 }
 
@@ -244,48 +245,20 @@ impl<T> ArcCache<T>
 where
     T: ArcCacheData + Send + Sync + 'static,
 {
-    fn new(repo_id: &str, repo_path: &Utf8Path) -> Self {
+    fn new() -> Self {
         let (tx, rx) = bounded(10);
-        let repo_id = repo_id.to_string();
-        let repo_path = repo_path.to_path_buf();
-
         let thread = thread::spawn(move || {
             // TODO: limit cache size using an LRU cache with set capacity
-            let mut cache = HashMap::<_, (_, Arc<T>)>::new();
+            let mut cache = HashMap::<_, Arc<T>>::new();
             loop {
                 match rx.recv() {
                     Ok(Msg::Stop) | Err(RecvError) => break,
-                    Ok(Msg::Key(s, tx)) => {
-                        let path = build_path!(&repo_path, &s, T::RELPATH);
-                        let data = fs::read_to_string(&path)
-                            .map_err(|e| {
-                                if e.kind() != io::ErrorKind::NotFound {
-                                    warn!("{repo_id}: failed reading: {path}: {e}");
-                                }
-                            })
-                            .unwrap_or_default();
-
-                        // evict cache entries based on file content hash
-                        let hash = blake3::hash(data.as_bytes());
-
-                        let val = match cache.get(&s) {
-                            Some((cached_hash, val)) if cached_hash == &hash => val.clone(),
-                            _ => {
-                                // fallback to default value on parsing failure
-                                let val = T::parse(&data)
-                                    .map_err(|e| {
-                                        warn!("{repo_id}: failed parsing: {path}: {e}");
-                                    })
-                                    .unwrap_or_default();
-
-                                // insert Arc-wrapped value into the cache and return a copy
-                                let val = Arc::new(val);
-                                cache.insert(s, (hash, val.clone()));
-                                val
-                            }
-                        };
-
-                        tx.send(val).expect("failed sending shared pkg data");
+                    Ok(Msg::Insert(cpn, value)) => {
+                        cache.insert(cpn, value);
+                    }
+                    Ok(Msg::Key(cpn, tx)) => {
+                        let value = cache.get(&cpn).cloned();
+                        tx.send(value).expect("failed sending pkg data");
                     }
                 }
             }
@@ -294,15 +267,42 @@ where
         Self { thread: Some(thread), tx }
     }
 
-    /// Get the cache data related to a given package Cpv.
-    fn get(&self, cpn: &Cpn) -> crate::Result<Arc<T>> {
+    /// Get a copy of the cache data related to a given [`Cpn`].
+    fn get(&self, repo_path: &Utf8Path, repo_id: &str, cpn: &Cpn) -> crate::Result<Arc<T>> {
+        let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
+        let data = fs::read_to_string(&path)
+            .map_err(|e| {
+                if e.kind() != io::ErrorKind::NotFound {
+                    warn!("{repo_id}: failed reading: {repo_path}: {e}");
+                }
+            })
+            .unwrap_or_default();
+
         let (tx, rx) = bounded(0);
-        self.tx.send(Msg::Key(cpn.to_string(), tx)).map_err(|e| {
-            Error::InvalidValue(format!("failed requesting pkg manifest data: {cpn}: {e}"))
-        })?;
-        rx.recv().map_err(|e| {
-            Error::InvalidValue(format!("failed receiving pkg manifest data: {cpn}: {e}"))
-        })
+        self.tx
+            .send(Msg::Key(cpn.clone(), tx))
+            .map_err(|e| Error::InvalidValue(format!("failed requesting pkg data: {cpn}: {e}")))?;
+        let value = rx
+            .recv()
+            .map_err(|e| Error::InvalidValue(format!("failed receiving pkg data: {cpn}: {e}")))?;
+
+        match value {
+            Some(value) => Ok(value),
+            None => {
+                // fallback to default value on parsing failure
+                let value = Arc::new(
+                    T::parse(&data)
+                        .map_err(|e| {
+                            warn!("{repo_id}: failed parsing: {repo_path}: {e}");
+                        })
+                        .unwrap_or_default(),
+                );
+                self.tx
+                    .send(Msg::Insert(cpn.clone(), value.clone()))
+                    .unwrap();
+                Ok(value)
+            }
+        }
     }
 }
 
@@ -667,18 +667,18 @@ impl Metadata {
         })
     }
 
-    /// Return the shared package metadata for a given [`Cpn`].
+    /// Return the package metadata for a given [`Cpn`].
     pub fn pkg(&self, cpn: &Cpn) -> crate::Result<Arc<xml::Metadata>> {
         self.pkg_metadata
-            .get_or_init(|| ArcCache::<xml::Metadata>::new(&self.id, &self.path))
-            .get(cpn)
+            .get_or_init(ArcCache::<xml::Metadata>::new)
+            .get(&self.path, &self.id, cpn)
     }
 
-    /// Return the shared package manifest for a given [`Cpn`].
+    /// Return the package manifest for a given [`Cpn`].
     pub fn manifest(&self, cpn: &Cpn) -> crate::Result<Arc<Manifest>> {
         self.manifest_cache
-            .get_or_init(|| ArcCache::<Manifest>::new(&self.id, &self.path))
-            .get(cpn)
+            .get_or_init(ArcCache::<Manifest>::new)
+            .get(&self.path, &self.id, cpn)
     }
 
     /// Return the ordered set of package updates.
