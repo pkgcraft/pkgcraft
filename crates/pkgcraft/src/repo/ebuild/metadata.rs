@@ -239,14 +239,14 @@ impl<T: PkgCacheData> PkgCache<T> {
             let data = fs::read_to_string(&path)
                 .map_err(|e| {
                     if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{repo_id}: failed reading: {repo_path}: {e}");
+                        warn!("{repo_id}: failed reading: {path}: {e}");
                     }
                 })
                 .unwrap_or_default();
             let value = Arc::new(
                 T::parse(&data)
                     .map_err(|e| {
-                        warn!("{repo_id}: failed parsing: {repo_path}: {e}");
+                        warn!("{repo_id}: failed parsing: {path}: {e}");
                     })
                     // fallback to default value on parsing failure
                     .unwrap_or_default(),
