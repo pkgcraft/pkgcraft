@@ -140,8 +140,7 @@ pub(crate) fn atomic_write_file<C: AsRef<[u8]>>(
     data: C,
 ) -> crate::Result<()> {
     // create parent dir
-    fs::create_dir_all(path)
-        .map_err(|e| Error::IO(format!("failed creating metadata dir: {path}: {e}")))?;
+    fs::create_dir_all(path).map_err(|e| Error::IO(format!("failed creating dir: {path}: {e}")))?;
 
     // TODO: support custom temporary file path formats
     let tmp_path = path.join(format!(".{file_name}"));
