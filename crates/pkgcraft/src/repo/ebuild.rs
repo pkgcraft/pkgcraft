@@ -794,15 +794,11 @@ impl IntoIterator for &EbuildRepo {
 }
 
 /// Iterable of valid ebuild packages.
-pub struct Iter {
-    iter: IterRaw,
-    repo: EbuildRepo,
-}
+pub struct Iter(IterRaw);
 
 impl Iter {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
-        let iter = IterRaw::new(repo, restrict);
-        Self { iter, repo: repo.clone() }
+        Self(IterRaw::new(repo, restrict))
     }
 }
 
@@ -810,13 +806,7 @@ impl Iterator for Iter {
     type Item = ebuild::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for raw_pkg in &mut self.iter {
-            match raw_pkg.try_into() {
-                Ok(pkg) => return Some(pkg),
-                Err(e) => warn!("{}: {e}", self.repo.id()),
-            }
-        }
-        None
+        self.0.find_map(|raw_pkg| raw_pkg.try_into().ok())
     }
 }
 
@@ -837,13 +827,8 @@ impl Iterator for IterRaw {
     type Item = ebuild::raw::Pkg;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for cpv in &mut self.iter {
-            match ebuild::raw::Pkg::try_new(cpv, self.repo.clone()) {
-                Ok(pkg) => return Some(pkg),
-                Err(e) => warn!("{}: {e}", self.repo.id()),
-            }
-        }
-        None
+        self.iter
+            .find_map(|cpv| ebuild::raw::Pkg::try_new(cpv, self.repo.clone()).ok())
     }
 }
 
@@ -1132,12 +1117,9 @@ impl Iterator for IterRawRestrict {
 mod tests {
     use std::fs;
 
-    use tracing_test::traced_test;
-
     use crate::config::Config;
     use crate::dep::Dep;
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::macros::assert_logs_re;
     use crate::pkg::Package;
     use crate::repo::Contains;
     use crate::test::{assert_err_re, assert_ordered_eq, TEST_DATA};
@@ -1500,16 +1482,6 @@ mod tests {
         // invalid Cpv
         assert!(repo.get_pkg("invalid").is_err());
         assert!(repo.get_pkg_raw("invalid-0").is_err());
-    }
-
-    #[traced_test]
-    #[test]
-    fn invalid_pkgs() {
-        let repo = TEST_DATA.ebuild_repo("bad").unwrap();
-        for cpv in repo.iter_cpv() {
-            assert!(repo.iter_restrict(&cpv).next().is_none());
-            assert_logs_re!(format!("bad: invalid pkg: {cpv}::bad: "));
-        }
     }
 
     #[test]
