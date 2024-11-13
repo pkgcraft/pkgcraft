@@ -160,7 +160,7 @@ impl MetadataCache {
             cache: self,
             jobs: num_cpus::get(),
             force: false,
-            progress: false,
+            progress: ProgressBar::hidden(),
             output: false,
             clean: true,
             verify: false,
@@ -175,7 +175,7 @@ pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
     jobs: usize,
     force: bool,
-    progress: bool,
+    progress: ProgressBar,
     output: bool,
     clean: bool,
     verify: bool,
@@ -198,7 +198,11 @@ impl MetadataCacheRegen<'_> {
 
     /// Show a progress bar during cache regeneration.
     pub fn progress(mut self, value: bool) -> Self {
-        self.progress = value;
+        if value {
+            self.progress = ProgressBar::new(0);
+            self.progress
+                .set_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
+        }
         self
     }
 
@@ -242,14 +246,6 @@ impl MetadataCacheRegen<'_> {
         };
         let (pool, results_iter) = PoolSendIter::new(self.jobs, func, !self.output)?;
 
-        // use progress bar to show completion progress if enabled
-        let pb = if self.progress {
-            ProgressBar::new(0)
-        } else {
-            ProgressBar::hidden()
-        };
-        pb.set_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
-
         let mut cpvs = if !self.targeted {
             // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
             // pull all package Cpvs from the repo
@@ -262,7 +258,7 @@ impl MetadataCacheRegen<'_> {
         };
 
         // set progression length encompassing all pkgs
-        pb.set_length(cpvs.len().try_into().unwrap());
+        self.progress.set_length(cpvs.len().try_into().unwrap());
 
         if self.cache.path().exists() {
             // remove outdated cache entries
@@ -272,11 +268,11 @@ impl MetadataCacheRegen<'_> {
 
             if !self.force {
                 // run cache validation in a thread pool
-                pb.set_message("validating metadata:");
+                self.progress.set_message("validating metadata:");
                 cpvs = cpvs
                     .into_par_iter()
                     .filter(|cpv| {
-                        pb.inc(1);
+                        self.progress.inc(1);
                         Pkg::try_new(cpv.clone(), repo.clone())
                             .and_then(|pkg| self.cache.get(&pkg))
                             .is_err()
@@ -284,17 +280,17 @@ impl MetadataCacheRegen<'_> {
                     .collect();
 
                 // reset progression in case validation decreased cpvs
-                pb.set_position(0);
-                pb.set_length(cpvs.len().try_into().unwrap());
+                self.progress.set_position(0);
+                self.progress.set_length(cpvs.len().try_into().unwrap());
             }
         }
 
         let mut errors = 0;
         if !cpvs.is_empty() {
             if self.verify {
-                pb.set_message("verifying metadata:");
+                self.progress.set_message("verifying metadata:");
             } else {
-                pb.set_message("generating metadata:");
+                self.progress.set_message("generating metadata:");
             }
 
             // send cpvs to the process pool
@@ -302,7 +298,7 @@ impl MetadataCacheRegen<'_> {
 
             // iterate over returned results, tracking progress and errors
             for r in results_iter {
-                pb.inc(1);
+                self.progress.inc(1);
 
                 // log errors
                 if let Err(e) = r {
