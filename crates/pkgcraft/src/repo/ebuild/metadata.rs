@@ -282,27 +282,23 @@ where
         self.tx
             .send(Msg::Key(cpn.clone(), tx))
             .unwrap_or_else(|e| panic!("failed requesting pkg data: {cpn}: {e}"));
-        let value = rx
-            .recv()
-            .unwrap_or_else(|e| panic!("failed receiving pkg data: {cpn}: {e}"));
-
-        match value {
-            Some(value) => value,
-            None => {
-                // fallback to default value on parsing failure
+        rx.recv()
+            .unwrap_or_else(|e| panic!("failed receiving pkg data: {cpn}: {e}"))
+            .unwrap_or_else(|| {
+                // parse value and insert it into the cache
                 let value = Arc::new(
                     T::parse(&data)
                         .map_err(|e| {
                             warn!("{repo_id}: failed parsing: {repo_path}: {e}");
                         })
+                        // fallback to default value on parsing failure
                         .unwrap_or_default(),
                 );
                 self.tx
                     .send(Msg::Insert(cpn.clone(), value.clone()))
                     .unwrap_or_else(|e| panic!("failed sending cache data: {cpn}: {e}"));
                 value
-            }
-        }
+            })
     }
 }
 
