@@ -274,8 +274,8 @@ pub struct Metadata {
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceLock<IndexSet<Dep>>,
     pkg_mask: OnceLock<IndexSet<Dep>>,
-    pkg_metadata: OnceLock<PkgCache<xml::Metadata>>,
-    manifest_cache: OnceLock<PkgCache<Manifest>>,
+    pkg_metadata: PkgCache<xml::Metadata>,
+    manifest_cache: PkgCache<Manifest>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
     use_global: OnceLock<IndexMap<String, String>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
@@ -606,16 +606,12 @@ impl Metadata {
 
     /// Return the package metadata for a given [`Cpn`].
     pub fn pkg(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
-        self.pkg_metadata
-            .get_or_init(PkgCache::<xml::Metadata>::default)
-            .get(&self.path, &self.id, cpn)
+        self.pkg_metadata.get(&self.path, &self.id, cpn)
     }
 
     /// Return the package manifest for a given [`Cpn`].
     pub fn manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
-        self.manifest_cache
-            .get_or_init(PkgCache::<Manifest>::default)
-            .get(&self.path, &self.id, cpn)
+        self.manifest_cache.get(&self.path, &self.id, cpn)
     }
 
     /// Return the ordered set of package updates.
