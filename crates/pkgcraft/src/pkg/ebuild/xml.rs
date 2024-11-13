@@ -305,8 +305,11 @@ impl Metadata {
             if let Some(name) = n.attribute("name") {
                 let desc = n
                     .children()
-                    .filter_map(|x| x.text().map(|s| s.split_whitespace().join(" ")))
-                    .join("");
+                    .filter(|x| !x.is_comment())
+                    .filter_map(|x| x.text())
+                    .join("")
+                    .split_whitespace()
+                    .join(" ");
                 data.local_use.insert(name.to_string(), desc);
             }
         }
