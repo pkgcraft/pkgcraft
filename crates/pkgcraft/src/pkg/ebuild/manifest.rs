@@ -7,7 +7,7 @@ use itertools::Itertools;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::build_path;
-use crate::traits::ArcCacheData;
+use crate::traits::PkgCacheData;
 use crate::types::OrderedSet;
 use crate::utils::digest;
 use crate::Error;
@@ -135,7 +135,7 @@ impl Default for Manifest {
     }
 }
 
-impl ArcCacheData for Manifest {
+impl PkgCacheData for Manifest {
     const RELPATH: &'static str = "Manifest";
 
     fn parse(data: &str) -> crate::Result<Self> {

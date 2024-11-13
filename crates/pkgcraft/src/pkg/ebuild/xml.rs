@@ -6,7 +6,7 @@ use itertools::Itertools;
 use roxmltree::Node;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::traits::ArcCacheData;
+use crate::traits::PkgCacheData;
 use crate::types::OrderedSet;
 use crate::xml::parse_xml_with_dtd;
 use crate::Error;
@@ -259,7 +259,7 @@ pub struct Metadata {
     description: Option<String>,
 }
 
-impl ArcCacheData for Metadata {
+impl PkgCacheData for Metadata {
     const RELPATH: &'static str = "metadata.xml";
 
     fn parse(data: &str) -> crate::Result<Self> {

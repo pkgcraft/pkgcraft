@@ -1,12 +1,11 @@
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::{Arc, OnceLock};
-use std::{fs, io, thread};
+use std::{fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
-use crossbeam_channel::{bounded, RecvError, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -24,7 +23,7 @@ use crate::pkg::ebuild::keyword::Arch;
 use crate::pkg::ebuild::manifest::{HashType, Manifest};
 use crate::pkg::ebuild::xml;
 use crate::repo::{PkgRepository, RepoFormat};
-use crate::traits::{ArcCacheData, FilterLines};
+use crate::traits::{FilterLines, PkgCacheData};
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
@@ -226,91 +225,34 @@ fn is_eclass(e: &Utf8DirEntry) -> bool {
     is_file_utf8(e) && !is_hidden_utf8(e) && has_ext_utf8(e, "eclass")
 }
 
-#[derive(Debug)]
-struct ArcCache<T>
-where
-    T: ArcCacheData + Send + Sync,
-{
-    thread: Option<thread::JoinHandle<()>>,
-    tx: Sender<Msg<T>>,
-}
+#[derive(Debug, Default)]
+struct PkgCache<T: PkgCacheData>(dashmap::DashMap<Cpn, Arc<T>>);
 
-enum Msg<T: ArcCacheData + Send + Sync> {
-    Key(Cpn, Sender<Option<Arc<T>>>),
-    Insert(Cpn, Arc<T>),
-    Stop,
-}
-
-impl<T> ArcCache<T>
-where
-    T: ArcCacheData + Send + Sync + 'static,
-{
-    fn new() -> Self {
-        let (tx, rx) = bounded(num_cpus::get());
-        let thread = thread::spawn(move || {
-            // TODO: limit cache size using an LRU cache with set capacity
-            let mut cache = HashMap::<_, Arc<T>>::new();
-            loop {
-                match rx.recv() {
-                    Ok(Msg::Stop) | Err(RecvError) => break,
-                    Ok(Msg::Insert(cpn, value)) => {
-                        cache.insert(cpn, value);
-                    }
-                    Ok(Msg::Key(cpn, tx)) => {
-                        let value = cache.get(&cpn).cloned();
-                        tx.send(value).expect("failed sending pkg data");
-                    }
-                }
-            }
-        });
-
-        Self { thread: Some(thread), tx }
-    }
-
+impl<T: PkgCacheData> PkgCache<T> {
     /// Get a copy of the cache data related to a given [`Cpn`].
     fn get(&self, repo_path: &Utf8Path, repo_id: &str, cpn: &Cpn) -> Arc<T> {
-        let (tx, rx) = bounded(0);
-        self.tx
-            .send(Msg::Key(cpn.clone(), tx))
-            .unwrap_or_else(|e| panic!("failed requesting pkg data: {cpn}: {e}"));
-        rx.recv()
-            .unwrap_or_else(|e| panic!("failed receiving pkg data: {cpn}: {e}"))
-            .unwrap_or_else(|| {
-                // parse data and insert value into the cache
-                let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
-                let data = fs::read_to_string(&path)
+        if let Some(value) = self.0.get(cpn) {
+            value.clone()
+        } else {
+            // parse data and insert value into the cache
+            let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
+            let data = fs::read_to_string(&path)
+                .map_err(|e| {
+                    if e.kind() != io::ErrorKind::NotFound {
+                        warn!("{repo_id}: failed reading: {repo_path}: {e}");
+                    }
+                })
+                .unwrap_or_default();
+            let value = Arc::new(
+                T::parse(&data)
                     .map_err(|e| {
-                        if e.kind() != io::ErrorKind::NotFound {
-                            warn!("{repo_id}: failed reading: {repo_path}: {e}");
-                        }
+                        warn!("{repo_id}: failed parsing: {repo_path}: {e}");
                     })
-                    .unwrap_or_default();
-                let value = Arc::new(
-                    T::parse(&data)
-                        .map_err(|e| {
-                            warn!("{repo_id}: failed parsing: {repo_path}: {e}");
-                        })
-                        // fallback to default value on parsing failure
-                        .unwrap_or_default(),
-                );
-                self.tx
-                    .send(Msg::Insert(cpn.clone(), value.clone()))
-                    .unwrap_or_else(|e| panic!("failed sending cache data: {cpn}: {e}"));
-                value
-            })
-    }
-}
-
-// Note that the thread will currently be killed without joining on exit since
-// ArcCache is contained in a OnceLock that doesn't call drop().
-impl<T> Drop for ArcCache<T>
-where
-    T: ArcCacheData + Send + Sync,
-{
-    fn drop(&mut self) {
-        self.tx.send(Msg::Stop).unwrap();
-        if let Some(thread) = self.thread.take() {
-            thread.join().unwrap();
+                    // fallback to default value on parsing failure
+                    .unwrap_or_default(),
+            );
+            self.0.insert(cpn.clone(), value.clone());
+            value
         }
     }
 }
@@ -332,8 +274,8 @@ pub struct Metadata {
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceLock<IndexSet<Dep>>,
     pkg_mask: OnceLock<IndexSet<Dep>>,
-    pkg_metadata: OnceLock<ArcCache<xml::Metadata>>,
-    manifest_cache: OnceLock<ArcCache<Manifest>>,
+    pkg_metadata: OnceLock<PkgCache<xml::Metadata>>,
+    manifest_cache: OnceLock<PkgCache<Manifest>>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
     use_global: OnceLock<IndexMap<String, String>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
@@ -665,14 +607,14 @@ impl Metadata {
     /// Return the package metadata for a given [`Cpn`].
     pub fn pkg(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
         self.pkg_metadata
-            .get_or_init(ArcCache::<xml::Metadata>::new)
+            .get_or_init(PkgCache::<xml::Metadata>::default)
             .get(&self.path, &self.id, cpn)
     }
 
     /// Return the package manifest for a given [`Cpn`].
     pub fn manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
         self.manifest_cache
-            .get_or_init(ArcCache::<Manifest>::new)
+            .get_or_init(PkgCache::<Manifest>::default)
             .get(&self.path, &self.id, cpn)
     }
 

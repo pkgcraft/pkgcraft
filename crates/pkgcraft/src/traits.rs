@@ -87,7 +87,7 @@ impl<T: AsRef<str>> FilterLines for T {
 }
 
 /// Shared data cache trait.
-pub(crate) trait ArcCacheData: Default {
+pub(crate) trait PkgCacheData: Default {
     const RELPATH: &'static str;
     fn parse(data: &str) -> crate::Result<Self>;
 }

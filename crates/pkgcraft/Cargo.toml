@@ -34,6 +34,7 @@ camino = { version = "1.1.9", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.5.20", features = ["derive"] }
 crossbeam-channel = "0.5.13"
+dashmap = "6.1.0"
 digest = "0.10.7"
 enum-as-inner = "0.6.1"
 filetime = "0.2.25"
