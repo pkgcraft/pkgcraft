@@ -818,8 +818,10 @@ pub struct IterRaw {
 
 impl IterRaw {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
-        let iter = IterCpv::new(repo.clone(), restrict);
-        Self { iter, repo: repo.clone() }
+        Self {
+            iter: IterCpv::new(repo.clone(), restrict),
+            repo: repo.clone(),
+        }
     }
 }
 
