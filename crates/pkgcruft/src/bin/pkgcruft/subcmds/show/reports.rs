@@ -1,10 +1,10 @@
-use std::collections::HashSet;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
 use colored::Colorize;
+use indexmap::IndexSet;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use strum::{IntoEnumIterator, VariantNames};
 
@@ -23,7 +23,7 @@ pub(super) struct Subcommand {
 
 impl Subcommand {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        let levels: HashSet<_> = if self.levels.is_empty() {
+        let levels: IndexSet<_> = if self.levels.is_empty() {
             ReportLevel::iter().collect()
         } else {
             self.levels.into_iter().collect()

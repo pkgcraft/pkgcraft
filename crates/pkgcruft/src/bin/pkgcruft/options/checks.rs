@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::str::FromStr;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
@@ -140,14 +139,14 @@ impl Checks {
 
         // enable reports related to levels
         if !self.levels.is_empty() {
-            let levels: HashSet<_> = self.levels.into_iter().collect();
+            let levels: IndexSet<_> = self.levels.into_iter().collect();
             reports.extend(ReportKind::iter().filter(|r| levels.contains(&r.level())));
             default_reports = false;
         }
 
         // enable reports related to check scope
         if !self.scopes.is_empty() {
-            let scopes: HashSet<_> = self.scopes.into_iter().collect();
+            let scopes: IndexSet<_> = self.scopes.into_iter().collect();
             reports.extend(
                 Check::iter()
                     .filter(|c| scopes.contains(&c.scope))

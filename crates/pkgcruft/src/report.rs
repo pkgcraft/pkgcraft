@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 use camino::Utf8Path;
 use colored::Color;
+use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::Repository;
@@ -479,7 +479,7 @@ impl Restriction<&Report> for Restrict {
 pub struct Iter<'a, R: BufRead> {
     reader: R,
     line: String,
-    reports: Option<&'a HashSet<ReportKind>>,
+    reports: Option<&'a IndexSet<ReportKind>>,
     restrict: Option<&'a Restrict>,
 }
 
@@ -487,7 +487,7 @@ impl<'a> Iter<'a, BufReader<File>> {
     /// Try to create a new reports iterator from a file path.
     pub fn try_from_file<P: AsRef<Utf8Path>>(
         path: P,
-        reports: Option<&'a HashSet<ReportKind>>,
+        reports: Option<&'a IndexSet<ReportKind>>,
         restrict: Option<&'a Restrict>,
     ) -> crate::Result<Iter<'a, BufReader<File>>> {
         let path = path.as_ref();
@@ -506,7 +506,7 @@ impl<'a, R: BufRead> Iter<'a, R> {
     /// Create a new reports iterator from a BufRead object.
     pub fn from_reader(
         reader: R,
-        reports: Option<&'a HashSet<ReportKind>>,
+        reports: Option<&'a IndexSet<ReportKind>>,
         restrict: Option<&'a Restrict>,
     ) -> Iter<'a, R> {
         Iter {

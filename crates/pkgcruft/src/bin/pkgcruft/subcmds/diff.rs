@@ -1,8 +1,8 @@
-use std::collections::HashSet;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{Args, ValueHint};
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
@@ -43,7 +43,7 @@ pub(crate) struct Command {
 
 #[derive(Debug, Default)]
 struct Replay {
-    reports: Option<HashSet<ReportKind>>,
+    reports: Option<IndexSet<ReportKind>>,
     pkgs: Option<Restrict>,
 }
 
@@ -94,8 +94,8 @@ impl Command {
 
         let replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
 
-        let old: HashSet<_> = replay.run(self.old)?.try_collect()?;
-        let new: HashSet<_> = replay.run(self.new)?.try_collect()?;
+        let old: IndexSet<_> = replay.run(self.old)?.try_collect()?;
+        let new: IndexSet<_> = replay.run(self.new)?.try_collect()?;
         let mut removed: Vec<_> = old.difference(&new).collect();
         let mut added: Vec<_> = new.difference(&old).collect();
 

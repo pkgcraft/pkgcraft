@@ -1,8 +1,8 @@
-use std::collections::HashSet;
 use std::io;
 use std::process::ExitCode;
 
 use clap::{Args, ValueHint};
+use indexmap::IndexSet;
 use itertools::{Either, Itertools};
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
@@ -43,7 +43,7 @@ pub(crate) struct Command {
 
 #[derive(Debug, Default)]
 struct Replay {
-    reports: Option<HashSet<ReportKind>>,
+    reports: Option<IndexSet<ReportKind>>,
     pkgs: Option<Restrict>,
 }
 
