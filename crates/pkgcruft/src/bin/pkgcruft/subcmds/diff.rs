@@ -6,7 +6,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
-use pkgcruft::reporter::{Reporter, SimpleReporter};
+use pkgcruft::reporter::Reporter;
 
 use crate::options;
 
@@ -103,7 +103,7 @@ impl Command {
         }
 
         let mut stdout = io::stdout().lock();
-        let mut reporter: Reporter = SimpleReporter.into();
+        let mut reporter = Reporter::Simple(Default::default());
 
         for report in removed {
             write!(stdout, "-")?;
