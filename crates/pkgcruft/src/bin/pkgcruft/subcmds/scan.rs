@@ -3,12 +3,13 @@ use std::process::ExitCode;
 
 use clap::builder::{ArgPredicate, PossibleValuesParser, TypedValueParser};
 use clap::Args;
+use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
-use pkgcruft::report::ReportKind;
+use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scanner::Scanner;
 use pkgcruft::source::PkgFilter;
-use strum::VariantNames;
+use strum::{IntoEnumIterator, VariantNames};
 
 use crate::options;
 
@@ -28,6 +29,9 @@ pub(crate) struct Command {
         long,
         value_name = "REPORT[,...]",
         value_delimiter = ',',
+        num_args = 0..=1,
+        default_missing_value = ReportKind::iter()
+            .filter(|x| x.level() <= ReportLevel::Error).join(","),
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(ReportKind::VARIANTS)
             .map(|s| s.parse::<ReportKind>().unwrap()),

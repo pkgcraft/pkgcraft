@@ -35,7 +35,7 @@ harness = false
 [dependencies]
 anyhow = "1.0.93"
 camino = "1.1.9"
-clap = { version = "4.5.20", features = ["derive"] }
+clap = { version = "4.5.20", features = ["derive", "string"] }
 clap-verbosity-flag = "2.2.2"
 colored = "2.1.0"
 crossbeam-channel = "0.5.13"
