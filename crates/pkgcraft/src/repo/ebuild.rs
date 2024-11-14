@@ -31,7 +31,7 @@ mod metadata;
 pub mod temp;
 pub use metadata::Metadata;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct InternalEbuildRepo {
     metadata: Metadata,
     config: RepoConfig,
@@ -98,14 +98,7 @@ impl EbuildRepo {
         Ok(Self(Arc::new(InternalEbuildRepo {
             metadata,
             config,
-            masters: OnceLock::new(),
-            arches: OnceLock::new(),
-            licenses: OnceLock::new(),
-            license_groups: OnceLock::new(),
-            mirrors: OnceLock::new(),
-            eclasses: OnceLock::new(),
-            use_expand: OnceLock::new(),
-            categories_xml: OnceLock::new(),
+            ..Default::default()
         })))
     }
 
