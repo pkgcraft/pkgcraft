@@ -104,22 +104,22 @@ impl Command {
             added.sort();
         }
 
-        // TODO: output context for reports from the first file vs the second file
         let mut stdout = io::stdout().lock();
         let mut reporter = self.options.reporter.collapse();
 
-        if !removed.is_empty() {
-            writeln!(stdout, "REMOVED")?;
-            for report in removed {
-                reporter.report(report, &mut stdout)?;
-            }
-        }
+        // render report into diff output
+        let mut output_report = |prefix: &str, report: &Report| -> anyhow::Result<()> {
+            let mut buf = vec![];
+            reporter.report(report, &mut buf)?;
+            let s = String::from_utf8(buf)?;
+            Ok(writeln!(stdout, "{prefix}{s}")?)
+        };
 
-        if !added.is_empty() {
-            writeln!(stdout, "ADDED")?;
-            for report in added {
-                reporter.report(report, &mut stdout)?;
-            }
+        for report in removed {
+            output_report("-", report)?;
+        }
+        for report in added {
+            output_report("+", report)?;
         }
 
         Ok(ExitCode::SUCCESS)
