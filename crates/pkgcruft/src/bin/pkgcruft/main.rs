@@ -1,6 +1,7 @@
 use std::io::stderr;
 use std::process::ExitCode;
 
+use clap::builder::BoolValueParser;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use pkgcraft::config::Config;
@@ -15,6 +16,18 @@ mod subcmds;
 struct Command {
     #[command(flatten)]
     verbosity: Verbosity,
+
+    /// enable/disable color support
+    #[arg(
+        long,
+        global = true,
+        value_name = "BOOL",
+        num_args = 0..=1,
+        default_missing_value = "true",
+        value_parser = BoolValueParser::new(),
+        hide_possible_values = true,
+    )]
+    color: Option<bool>,
 
     // positional
     #[command(subcommand)]
@@ -35,6 +48,11 @@ fn main() -> anyhow::Result<ExitCode> {
     reset_sigpipe();
 
     let args = Command::parse();
+
+    // ignore the environment and forcibly enable/disable color support
+    if let Some(value) = args.color {
+        colored::control::set_override(value);
+    }
 
     // custom log event formatter
     let format = tracing_subscriber::fmt::format()
