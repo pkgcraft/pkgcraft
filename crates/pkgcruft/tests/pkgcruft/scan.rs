@@ -282,8 +282,8 @@ fn exit() {
 
     // single
     cmd("pkgcruft scan -j1")
-        .args(["--exit", "DependencyDeprecated"])
         .arg(repo)
+        .args(["--exit", "DependencyDeprecated"])
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -292,8 +292,25 @@ fn exit() {
 
     // multiple
     cmd("pkgcruft scan -j1")
-        .args(["--exit", "DependencyDeprecated,EapiBanned"])
         .arg(repo)
+        .args(["--exit", "DependencyDeprecated,EapiBanned"])
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .failure()
+        .code(1);
+
+    // defaults (fail on critical or error level reports)
+    cmd("pkgcruft scan -j1 -r DependencyDeprecated")
+        .arg(repo)
+        .arg("--exit")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+    cmd("pkgcruft scan -j1")
+        .arg(repo)
+        .arg("--exit")
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
