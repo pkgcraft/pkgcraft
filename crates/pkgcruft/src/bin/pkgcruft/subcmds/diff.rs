@@ -6,6 +6,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
+use pkgcruft::reporter::{Reporter, SimpleReporter};
 
 use crate::options;
 
@@ -19,9 +20,6 @@ pub(crate) struct Options {
     /// Sort reports
     #[arg(long)]
     sort: bool,
-
-    #[clap(flatten)]
-    reporter: options::reporter::ReporterOptions,
 }
 
 #[derive(Debug, Args)]
@@ -105,21 +103,15 @@ impl Command {
         }
 
         let mut stdout = io::stdout().lock();
-        let mut reporter = self.options.reporter.collapse();
-
-        // render report into diff output
-        let mut output_report = |prefix: &str, report: &Report| -> anyhow::Result<()> {
-            let mut buf = vec![];
-            reporter.report(report, &mut buf)?;
-            let s = String::from_utf8(buf)?;
-            Ok(writeln!(stdout, "{prefix}{s}")?)
-        };
+        let mut reporter: Reporter = SimpleReporter.into();
 
         for report in removed {
-            output_report("-", report)?;
+            write!(stdout, "-")?;
+            reporter.report(report, &mut stdout)?;
         }
         for report in added {
-            output_report("+", report)?;
+            write!(stdout, "+")?;
+            reporter.report(report, &mut stdout)?;
         }
 
         Ok(ExitCode::SUCCESS)
