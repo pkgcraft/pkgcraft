@@ -2,11 +2,11 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{Args, ValueHint};
+use colored::{Color, Colorize};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
-use pkgcruft::reporter::Reporter;
 
 use crate::options;
 
@@ -103,15 +103,10 @@ impl Command {
         }
 
         let mut stdout = io::stdout().lock();
-        let mut reporter = Reporter::Simple(Default::default());
-
-        for report in removed {
-            write!(stdout, "-")?;
-            reporter.report(report, &mut stdout)?;
-        }
-        for report in added {
-            write!(stdout, "+")?;
-            reporter.report(report, &mut stdout)?;
+        let removed = removed.iter().map(|r| format!("-{r}").color(Color::Red));
+        let added = added.iter().map(|r| format!("+{r}").color(Color::Green));
+        for line in removed.chain(added) {
+            writeln!(stdout, "{line}")?;
         }
 
         Ok(ExitCode::SUCCESS)
