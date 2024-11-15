@@ -1,11 +1,10 @@
 use std::env;
 
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
-use pretty_assertions::assert_eq;
 use tempfile::{tempdir, NamedTempFile};
 
 #[test]
@@ -63,7 +62,7 @@ fn dep_restrict_targets() {
         .stdout;
     let data = String::from_utf8(output).unwrap();
     let data: Vec<_> = data.lines().collect();
-    assert_eq!(&expected, &data);
+    assert_unordered_eq!(&expected, &data);
 
     // nonexistent
     cmd("pkgcruft scan -R simple")
@@ -93,20 +92,20 @@ fn current_dir_targets() {
     // repo dir
     env::set_current_dir(repo).unwrap();
     let expected = glob_reports!("{repo}/**/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json").to_reports().unwrap();
-    assert_eq!(&expected, &reports);
+    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    assert_unordered_eq!(&expected, &reports);
 
     // category dir
     env::set_current_dir(repo.join("Dependency")).unwrap();
     let expected = glob_reports!("{repo}/Dependency/**/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json").to_reports().unwrap();
-    assert_eq!(&expected, &reports);
+    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    assert_unordered_eq!(&expected, &reports);
 
     // package dir
     env::set_current_dir(repo.join("Dependency/DependencyDeprecated")).unwrap();
     let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json").to_reports().unwrap();
-    assert_eq!(&expected, &reports);
+    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    assert_unordered_eq!(&expected, &reports);
 }
 
 #[test]
@@ -144,43 +143,40 @@ fn path_targets() {
 
     // repo dir
     let expected = glob_reports!("{repo}/**/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json")
-        .arg(repo)
-        .to_reports()
-        .unwrap();
-    assert_eq!(&expected, &reports);
+    let reports = cmd("pkgcruft scan -R json").arg(repo).to_reports().unwrap();
+    assert_unordered_eq!(&expected, &reports);
 
     // non-package dir
-    let reports = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -R json")
         .arg(repo.join("licenses"))
         .to_reports()
         .unwrap();
-    assert_eq!(&reports, &[]);
+    assert_unordered_eq!(&reports, &[]);
 
     // TODO: test overlay dir
 
     // category dir
     let expected = glob_reports!("{repo}/Dependency/**/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -R json")
         .arg(repo.join("Dependency"))
         .to_reports()
         .unwrap();
-    assert_eq!(&expected, &reports);
+    assert_unordered_eq!(&expected, &reports);
 
     // package dir
     let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
-    let reports = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -R json")
         .arg(repo.join("Dependency/DependencyDeprecated"))
         .to_reports()
         .unwrap();
-    assert_eq!(&expected, &reports);
+    assert_unordered_eq!(&expected, &reports);
 
     // ebuild file
-    let reports = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -R json")
         .arg(repo.join("Dependency/DependencyDeprecated/DependencyDeprecated-0.ebuild"))
         .to_reports()
         .unwrap();
-    assert_eq!(&expected[..1], &reports);
+    assert_unordered_eq!(&expected[..1], &reports);
 
     // multiple absolute paths in the same repo
     let expected = glob_reports!(
@@ -189,23 +185,23 @@ fn path_targets() {
         "{repo}/Keywords/**/reports.json",
     );
 
-    let reports = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -R json")
         .arg(repo.join("Dependency"))
         .arg(repo.join("EapiStatus"))
         .arg(repo.join("Keywords"))
         .to_reports()
         .unwrap();
-    assert_eq!(&expected, &reports);
+    assert_unordered_eq!(&expected, &reports);
 
     // multiple relative paths in the same repo
     env::set_current_dir(repo).unwrap();
-    let reports = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -R json")
         .arg("Dependency")
         .arg("EapiStatus")
         .arg("Keywords")
         .to_reports()
         .unwrap();
-    assert_eq!(&expected, &reports);
+    assert_unordered_eq!(&expected, &reports);
 }
 
 #[test]
@@ -215,54 +211,54 @@ fn repo() {
     env::set_current_dir(repo).unwrap();
     for path in [".", "./", repo.as_ref()] {
         // implicit repo target
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args(["--repo", path])
             .to_reports()
             .unwrap();
         let expected = glob_reports!("{repo}/**/reports.json");
-        assert_eq!(&expected, &reports);
+        assert_unordered_eq!(&expected, &reports);
 
         // category target
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args(["--repo", path])
             .arg("Dependency/*")
             .to_reports()
             .unwrap();
         let expected = glob_reports!("{repo}/Dependency/**/reports.json");
-        assert_eq!(&expected, &reports);
+        assert_unordered_eq!(&expected, &reports);
 
         // package target
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args(["--repo", path])
             .arg("DependencyDeprecated")
             .to_reports()
             .unwrap();
         let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
-        assert_eq!(&expected, &reports);
+        assert_unordered_eq!(&expected, &reports);
 
         // Cpn target
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args(["--repo", path])
             .arg("Dependency/DependencyDeprecated")
             .to_reports()
             .unwrap();
-        assert_eq!(&expected, &reports);
+        assert_unordered_eq!(&expected, &reports);
 
         // Cpv target
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args(["--repo", path])
             .arg("Dependency/DependencyDeprecated-0")
             .to_reports()
             .unwrap();
-        assert_eq!(&expected[..1], &reports);
+        assert_unordered_eq!(&expected[..1], &reports);
 
         // P target
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args(["--repo", path])
             .arg("DependencyDeprecated-0")
             .to_reports()
             .unwrap();
-        assert_eq!(&expected[..1], &reports);
+        assert_unordered_eq!(&expected[..1], &reports);
     }
 
     // TODO: test overlay
@@ -273,7 +269,7 @@ fn exit() {
     let repo = qa_repo("qa-primary").path();
 
     // none
-    cmd("pkgcruft scan -j1")
+    cmd("pkgcruft scan")
         .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
@@ -281,7 +277,7 @@ fn exit() {
         .success();
 
     // single
-    cmd("pkgcruft scan -j1")
+    cmd("pkgcruft scan")
         .arg(repo)
         .args(["--exit", "DependencyDeprecated"])
         .assert()
@@ -291,7 +287,7 @@ fn exit() {
         .code(1);
 
     // multiple
-    cmd("pkgcruft scan -j1")
+    cmd("pkgcruft scan")
         .arg(repo)
         .args(["--exit", "DependencyDeprecated,EapiBanned"])
         .assert()
@@ -301,14 +297,14 @@ fn exit() {
         .code(1);
 
     // defaults (fail on critical or error level reports)
-    cmd("pkgcruft scan -j1 -r DependencyDeprecated")
+    cmd("pkgcruft scan -r DependencyDeprecated")
         .arg(repo)
         .arg("--exit")
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
-    cmd("pkgcruft scan -j1")
+    cmd("pkgcruft scan")
         .arg(repo)
         .arg("--exit")
         .assert()
@@ -325,16 +321,16 @@ fn filters() {
     let expected = glob_reports!("{gentoo_repo_path}/Header/HeaderInvalid/reports.json");
 
     // none
-    let reports = cmd("pkgcruft scan -j1 -R json")
+    let reports = cmd("pkgcruft scan -R json")
         .args(["-r", "HeaderInvalid"])
         .arg(gentoo_repo_path)
         .to_reports()
         .unwrap();
-    assert_eq!(&reports, &expected);
+    assert_unordered_eq!(&reports, &expected);
 
     for opt in ["-f", "--filters"] {
         // invalid
-        cmd("pkgcruft scan -j1 -R json")
+        cmd("pkgcruft scan -R json")
             .args([opt, "invalid"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
@@ -345,7 +341,7 @@ fn filters() {
             .code(2);
 
         // invalid custom
-        cmd("pkgcruft scan -j1 -R json")
+        cmd("pkgcruft scan -R json")
             .args([opt, "slot = 1"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
@@ -356,7 +352,7 @@ fn filters() {
             .code(2);
 
         // valid and invalid
-        cmd("pkgcruft scan -j1 -R json")
+        cmd("pkgcruft scan -R json")
             .args([opt, "latest"])
             .args([opt, "invalid"])
             .args(["-r", "HeaderInvalid"])
@@ -368,133 +364,133 @@ fn filters() {
             .code(2);
 
         // latest
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "latest"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[4..]);
+        assert_unordered_eq!(&reports, &expected[4..]);
 
         // latest inverted
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!latest"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[..4]);
+        assert_unordered_eq!(&reports, &expected[..4]);
 
         // chaining a filter and its inversion returns no results
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "latest"])
             .args([opt, "!latest"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &[]);
+        assert_unordered_eq!(&reports, &[]);
 
         // latest slots
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "latest-slots"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &[&expected[1..=1], &expected[4..]].concat());
+        assert_unordered_eq!(reports, [&expected[1..=1], &expected[4..]].concat());
 
         // latest slots inverted
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!latest-slots"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &[&expected[..1], &expected[2..4]].concat());
+        assert_unordered_eq!(reports, [&expected[..1], &expected[2..4]].concat());
 
         // live
         let live_reports = glob_reports!("{primary_repo_path}/Keywords/KeywordsLive/reports.json");
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "live"])
             .args(["-r", "KeywordsLive"])
             .arg(primary_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &live_reports);
+        assert_unordered_eq!(&reports, &live_reports);
 
         // live inverted
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!live"])
             .args(["-r", "KeywordsLive"])
             .arg(primary_repo_path.join("Keywords/KeywordsLive"))
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &[]);
+        assert_unordered_eq!(&reports, &[]);
 
         // stable
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "stable"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[..3]);
+        assert_unordered_eq!(&reports, &expected[..3]);
 
         // unstable
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!stable"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[3..]);
+        assert_unordered_eq!(&reports, &expected[3..]);
 
         // stable + latest
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "stable"])
             .args([opt, "latest"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[2..=2]);
+        assert_unordered_eq!(&reports, &expected[2..=2]);
 
         // masked
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "masked"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[..1]);
+        assert_unordered_eq!(&reports, &expected[..1]);
 
         // unmasked
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!masked"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[1..]);
+        assert_unordered_eq!(&reports, &expected[1..]);
 
         // custom
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "slot == '1'"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[2..]);
+        assert_unordered_eq!(&reports, &expected[2..]);
 
         // custom inverted
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!slot == '1'"])
             .args(["-r", "HeaderInvalid"])
             .arg(gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_eq!(&reports, &expected[..2]);
+        assert_unordered_eq!(&reports, &expected[..2]);
     }
 }
 
@@ -505,7 +501,7 @@ fn reporter() {
 
     for opt in ["-R", "--reporter"] {
         // invalid
-        cmd("pkgcruft scan -j1")
+        cmd("pkgcruft scan")
             .args([opt, "invalid"])
             .assert()
             .stdout("")
@@ -515,7 +511,7 @@ fn reporter() {
 
         // valid
         for reporter in ["simple", "fancy", "json"] {
-            cmd("pkgcruft scan -j1")
+            cmd("pkgcruft scan")
                 .args([opt, reporter])
                 .assert()
                 .stdout(predicate::str::is_empty().not())
@@ -524,7 +520,7 @@ fn reporter() {
         }
 
         // missing format string
-        cmd("pkgcruft scan -j1")
+        cmd("pkgcruft scan")
             .args([opt, "format"])
             .assert()
             .stdout("")
@@ -533,7 +529,7 @@ fn reporter() {
             .code(2);
 
         // invalid format string
-        cmd("pkgcruft scan -j1")
+        cmd("pkgcruft scan")
             .args([opt, "format"])
             .args(["--format", "{format}"])
             .assert()
@@ -542,7 +538,7 @@ fn reporter() {
             .failure();
 
         // valid format string
-        cmd("pkgcruft scan -j1")
+        cmd("pkgcruft scan")
             .args([opt, "format"])
             .args(["--format", "{package}"])
             .assert()
@@ -564,7 +560,7 @@ fn checks() {
 
     for opt in ["-c", "--checks"] {
         // invalid
-        cmd("pkgcruft scan -j1 -R json")
+        cmd("pkgcruft scan -R json")
             .args([opt, "invalid"])
             .arg(repo)
             .assert()
@@ -574,20 +570,20 @@ fn checks() {
             .code(2);
 
         // single
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "Dependency"])
             .arg(repo)
             .to_reports()
             .unwrap();
-        assert_eq!(&single_expected, &reports);
+        assert_unordered_eq!(&single_expected, &reports);
 
         // multiple
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "Dependency,EapiStatus,Keywords"])
             .arg(repo)
             .to_reports()
             .unwrap();
-        assert_eq!(&multiple_expected, &reports);
+        assert_unordered_eq!(&multiple_expected, &reports);
     }
 }
 
@@ -599,7 +595,7 @@ fn levels() {
 
     for opt in ["-l", "--levels"] {
         // invalid
-        cmd("pkgcruft scan -j1 -R json")
+        cmd("pkgcruft scan -R json")
             .args([opt, "invalid"])
             .arg(repo)
             .assert()
@@ -609,20 +605,20 @@ fn levels() {
             .code(2);
 
         // single
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "warning"])
             .arg(repo.join("EapiStatus"))
             .to_reports()
             .unwrap();
-        assert_eq!(&single_expected, &reports);
+        assert_unordered_eq!(&single_expected, &reports);
 
         // multiple
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "warning,error"])
             .arg(repo.join("EapiStatus"))
             .to_reports()
             .unwrap();
-        assert_eq!(&multiple_expected, &reports);
+        assert_unordered_eq!(&multiple_expected, &reports);
     }
 }
 
@@ -638,7 +634,7 @@ fn reports() {
 
     for opt in ["-r", "--reports"] {
         // invalid
-        cmd("pkgcruft scan -j1 -R json")
+        cmd("pkgcruft scan -R json")
             .args([opt, "invalid"])
             .arg(repo)
             .assert()
@@ -648,20 +644,20 @@ fn reports() {
             .code(2);
 
         // single
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "DependencyDeprecated"])
             .arg(repo)
             .to_reports()
             .unwrap();
-        assert_eq!(&single_expected, &reports);
+        assert_unordered_eq!(&single_expected, &reports);
 
         // multiple
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "DependencyDeprecated,EapiBanned,KeywordsUnsorted"])
             .arg(repo)
             .to_reports()
             .unwrap();
-        assert_eq!(&multiple_expected, &reports);
+        assert_unordered_eq!(&multiple_expected, &reports);
     }
 }
 
@@ -676,7 +672,7 @@ fn scopes() {
 
     for opt in ["-s", "--scopes"] {
         // invalid
-        cmd("pkgcruft scan -j1 -R json")
+        cmd("pkgcruft scan -R json")
             .args([opt, "invalid"])
             .arg(repo)
             .assert()
@@ -686,21 +682,21 @@ fn scopes() {
             .code(2);
 
         // single
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "version"])
             .arg(repo.join("Dependency/DependencyDeprecated"))
             .arg(repo.join("UseLocal/UseLocal"))
             .to_reports()
             .unwrap();
-        assert_eq!(&single_expected, &reports);
+        assert_unordered_eq!(&single_expected, &reports);
 
         // multiple
-        let reports = cmd("pkgcruft scan -j1 -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "version,package"])
             .arg(repo.join("Dependency/DependencyDeprecated"))
             .arg(repo.join("UseLocal/UseLocal"))
             .to_reports()
             .unwrap();
-        assert_eq!(&multiple_expected, &reports);
+        assert_unordered_eq!(&multiple_expected, &reports);
     }
 }
