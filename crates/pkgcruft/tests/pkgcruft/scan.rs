@@ -5,6 +5,7 @@ use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
+use pretty_assertions::assert_eq;
 use tempfile::{tempdir, NamedTempFile};
 
 #[test]
@@ -202,6 +203,22 @@ fn path_targets() {
         .to_reports()
         .unwrap();
     assert_unordered_eq!(&expected, &reports);
+}
+
+#[test]
+fn jobs() {
+    let repo = qa_repo("qa-primary").path();
+    let expected = glob_reports!("{repo}/**/reports.json");
+
+    for opt in ["-j", "--jobs"] {
+        // serialized scans run in order
+        let reports = cmd("pkgcruft scan -R json")
+            .args([opt, "1"])
+            .arg(repo)
+            .to_reports()
+            .unwrap();
+        assert_eq!(&expected, &reports);
+    }
 }
 
 #[test]
