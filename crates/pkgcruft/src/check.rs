@@ -127,19 +127,9 @@ enum CheckContext {
     Overlay,
 }
 
-pub(crate) trait RegisterCheck: fmt::Display {
-    fn check(&self) -> Check;
-}
-
 /// Implement various traits for a given check type.
 macro_rules! register {
     ($x:ty) => {
-        impl $crate::check::RegisterCheck for $x {
-            fn check(&self) -> $crate::check::Check {
-                CHECK
-            }
-        }
-
         impl std::fmt::Display for $x {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 write!(f, "{CHECK}")
@@ -150,25 +140,25 @@ macro_rules! register {
 use register;
 
 /// Run a check against an unversioned package.
-pub(crate) trait UnversionedPkgCheck: RegisterCheck {
+pub(crate) trait UnversionedPkgCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter);
 }
 pub(crate) type UnversionedPkgRunner = Box<dyn UnversionedPkgCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package version.
-pub(crate) trait EbuildPkgCheck: RegisterCheck {
+pub(crate) trait EbuildPkgCheck: fmt::Display {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter);
 }
 pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
-pub(crate) trait EbuildPkgSetCheck: RegisterCheck {
+pub(crate) trait EbuildPkgSetCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter);
 }
 pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version and lazily parsed bash tree.
-pub(crate) trait EbuildRawPkgCheck: RegisterCheck {
+pub(crate) trait EbuildRawPkgCheck: fmt::Display {
     fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter);
 }
 pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
