@@ -169,7 +169,7 @@ impl MetadataCache {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
     jobs: usize,
