@@ -1,9 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
-use pkgcraft::pkg::ebuild::keyword::Arch;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -25,11 +23,11 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
-    Check { arches: repo.arches() }
+    Check { repo }
 }
 
 struct Check {
-    arches: &'static IndexSet<Arch>,
+    repo: &'static EbuildRepo,
 }
 
 super::register!(Check);
@@ -64,7 +62,7 @@ impl EbuildPkgSetCheck for Check {
             };
 
             for arch in drops {
-                if self.arches.contains(arch) {
+                if self.repo.arches().contains(arch) {
                     changes.insert(arch.clone(), pkg);
                 }
             }
