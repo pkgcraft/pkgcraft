@@ -13,31 +13,31 @@ use crate::traits::Intersects;
 use crate::types::OrderedSet;
 
 use super::metadata::Key;
-use super::EbuildPackage;
+use super::{EbuildPackage, EbuildPkg};
 
 #[derive(Clone)]
-pub struct Pkg {
+pub struct EbuildConfiguredPkg {
     repo: ConfiguredRepo,
     settings: Arc<Settings>,
-    raw: super::Pkg,
+    raw: EbuildPkg,
 }
 
-impl<'a> From<&'a Pkg> for &'a super::Pkg {
-    fn from(pkg: &'a Pkg) -> Self {
+impl<'a> From<&'a EbuildConfiguredPkg> for &'a EbuildPkg {
+    fn from(pkg: &'a EbuildConfiguredPkg) -> Self {
         &pkg.raw
     }
 }
 
-make_pkg_traits!(Pkg);
+make_pkg_traits!(EbuildConfiguredPkg);
 
-impl fmt::Debug for Pkg {
+impl fmt::Debug for EbuildConfiguredPkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Pkg {{ {self} }}")
+        write!(f, "EbuildConfiguredPkg {{ {self} }}")
     }
 }
 
-impl Pkg {
-    pub(crate) fn new(repo: ConfiguredRepo, settings: Arc<Settings>, raw: super::Pkg) -> Self {
+impl EbuildConfiguredPkg {
+    pub(crate) fn new(repo: ConfiguredRepo, settings: Arc<Settings>, raw: EbuildPkg) -> Self {
         Self { repo, settings, raw }
     }
 
@@ -50,56 +50,60 @@ impl Pkg {
 
     /// Return a configured package's evaluated BDEPEND.
     pub fn bdepend(&self) -> DependencySet<&Dep> {
-        self.raw.data.bdepend.evaluate(self.settings.options())
+        self.raw.0.data.bdepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated DEPEND.
     pub fn depend(&self) -> DependencySet<&Dep> {
-        self.raw.data.depend.evaluate(self.settings.options())
+        self.raw.0.data.depend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated IDEPEND.
     pub fn idepend(&self) -> DependencySet<&Dep> {
-        self.raw.data.idepend.evaluate(self.settings.options())
+        self.raw.0.data.idepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated PDEPEND.
     pub fn pdepend(&self) -> DependencySet<&Dep> {
-        self.raw.data.pdepend.evaluate(self.settings.options())
+        self.raw.0.data.pdepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated RDEPEND.
     pub fn rdepend(&self) -> DependencySet<&Dep> {
-        self.raw.data.rdepend.evaluate(self.settings.options())
+        self.raw.0.data.rdepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated LICENSE.
     pub fn license(&self) -> DependencySet<&String> {
-        self.raw.data.license.evaluate(self.settings.options())
+        self.raw.0.data.license.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated PROPERTIES.
     pub fn properties(&self) -> DependencySet<&String> {
-        self.raw.data.properties.evaluate(self.settings.options())
+        self.raw.0.data.properties.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated RESTRICT.
     pub fn required_use(&self) -> DependencySet<&String> {
-        self.raw.data.required_use.evaluate(self.settings.options())
+        self.raw
+            .0
+            .data
+            .required_use
+            .evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated RESTRICT.
     pub fn restrict(&self) -> DependencySet<&String> {
-        self.raw.data.restrict.evaluate(self.settings.options())
+        self.raw.0.data.restrict.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated SRC_URI.
     pub fn src_uri(&self) -> DependencySet<&Uri> {
-        self.raw.data.src_uri.evaluate(self.settings.options())
+        self.raw.0.data.src_uri.evaluate(self.settings.options())
     }
 }
 
-impl Package for Pkg {
+impl Package for EbuildConfiguredPkg {
     fn eapi(&self) -> &'static Eapi {
         self.raw.eapi()
     }
@@ -109,7 +113,7 @@ impl Package for Pkg {
     }
 }
 
-impl RepoPackage for Pkg {
+impl RepoPackage for EbuildConfiguredPkg {
     type Repo = ConfiguredRepo;
 
     fn repo(&self) -> Self::Repo {
@@ -117,7 +121,7 @@ impl RepoPackage for Pkg {
     }
 }
 
-impl EbuildPackage for Pkg {
+impl EbuildPackage for EbuildConfiguredPkg {
     // TODO: combine this with profile and config settings
     fn iuse_effective(&self) -> &OrderedSet<String> {
         self.raw.iuse_effective()
@@ -128,13 +132,13 @@ impl EbuildPackage for Pkg {
     }
 }
 
-impl Restriction<&Pkg> for BaseRestrict {
-    fn matches(&self, pkg: &Pkg) -> bool {
+impl Restriction<&EbuildConfiguredPkg> for BaseRestrict {
+    fn matches(&self, pkg: &EbuildConfiguredPkg) -> bool {
         self.matches(&pkg.raw)
     }
 }
 
-impl Intersects<Dep> for Pkg {
+impl Intersects<Dep> for EbuildConfiguredPkg {
     fn intersects(&self, dep: &Dep) -> bool {
         bool_not_equal!(self.cpn(), dep.cpn());
 

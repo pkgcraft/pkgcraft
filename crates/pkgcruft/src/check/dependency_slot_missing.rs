@@ -1,6 +1,6 @@
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::{EbuildPackage, Pkg};
+use pkgcraft::pkg::ebuild::{EbuildPackage, EbuildPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 
 use crate::report::ReportKind::DependencySlotMissing;
@@ -30,7 +30,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for dep in pkg
             .rdepend()
             .intersection(pkg.depend())

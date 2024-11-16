@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use pkgcraft::dep::Cpn;
-use pkgcraft::pkg::ebuild;
+use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
@@ -157,19 +157,19 @@ pub(crate) type UnversionedPkgRunner = Box<dyn UnversionedPkgCheck + Send + Sync
 
 /// Run a check against a given ebuild package version.
 pub(crate) trait EbuildPkgCheck: RegisterCheck {
-    fn run(&self, pkg: &ebuild::Pkg, filter: &mut ReportFilter);
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter);
 }
 pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package set.
 pub(crate) trait EbuildPkgSetCheck: RegisterCheck {
-    fn run(&self, cpn: &Cpn, pkgs: &[ebuild::Pkg], filter: &mut ReportFilter);
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter);
 }
 pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version and lazily parsed bash tree.
 pub(crate) trait EbuildRawPkgCheck: RegisterCheck {
-    fn run(&self, pkg: &ebuild::raw::Pkg, tree: &Tree, filter: &mut ReportFilter);
+    fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter);
 }
 pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 

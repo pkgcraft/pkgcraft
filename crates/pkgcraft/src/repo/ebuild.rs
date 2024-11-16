@@ -13,7 +13,7 @@ use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
 use crate::files::{has_ext_utf8, is_dir_utf8, is_file_utf8, is_hidden_utf8, sorted_dir_list_utf8};
 use crate::macros::build_path;
-use crate::pkg::ebuild::{self, keyword::Arch};
+use crate::pkg::ebuild::{keyword::Arch, EbuildPkg, EbuildRawPkg};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -352,7 +352,7 @@ impl EbuildRepo {
     }
 
     /// Retrieve a package from the repo given its [`Cpv`].
-    pub fn get_pkg<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<ebuild::Pkg>
+    pub fn get_pkg<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<EbuildPkg>
     where
         Error: From<<T as TryInto<Cpv>>::Error>,
     {
@@ -361,12 +361,12 @@ impl EbuildRepo {
     }
 
     /// Retrieve a raw package from the repo given its [`Cpv`].
-    pub fn get_pkg_raw<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<ebuild::raw::Pkg>
+    pub fn get_pkg_raw<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<EbuildRawPkg>
     where
         Error: From<<T as TryInto<Cpv>>::Error>,
     {
         let cpv = value.try_into()?;
-        ebuild::raw::Pkg::try_new(cpv, self.clone())
+        EbuildRawPkg::try_new(cpv, self.clone())
     }
 
     /// Scan the deprecated package list returning the first match for a given dependency.
@@ -404,7 +404,7 @@ impl fmt::Display for EbuildRepo {
 }
 
 impl PkgRepository for EbuildRepo {
-    type Pkg = ebuild::Pkg;
+    type Pkg = EbuildPkg;
     type IterCpv = IterCpv;
     type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
@@ -606,7 +606,7 @@ impl Contains<&Dep> for EbuildRepo {
 }
 
 impl IntoIterator for &EbuildRepo {
-    type Item = ebuild::Pkg;
+    type Item = EbuildPkg;
     type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -624,7 +624,7 @@ impl Iter {
 }
 
 impl Iterator for Iter {
-    type Item = ebuild::Pkg;
+    type Item = EbuildPkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.find_map(|raw_pkg| raw_pkg.try_into().ok())
@@ -647,11 +647,11 @@ impl IterRaw {
 }
 
 impl Iterator for IterRaw {
-    type Item = ebuild::raw::Pkg;
+    type Item = EbuildRawPkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
-            .find_map(|cpv| ebuild::raw::Pkg::try_new(cpv, self.repo.clone()).ok())
+            .find_map(|cpv| EbuildRawPkg::try_new(cpv, self.repo.clone()).ok())
     }
 }
 
@@ -871,7 +871,7 @@ pub struct IterRestrict {
 }
 
 impl Iterator for IterRestrict {
-    type Item = ebuild::Pkg;
+    type Item = EbuildPkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.restrict == Restrict::False {
@@ -952,7 +952,7 @@ impl IterRawRestrict {
 }
 
 impl Iterator for IterRawRestrict {
-    type Item = ebuild::raw::Pkg;
+    type Item = EbuildRawPkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.restrict == Restrict::False {

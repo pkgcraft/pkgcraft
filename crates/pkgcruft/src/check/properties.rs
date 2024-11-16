@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::PropertiesInvalid;
@@ -36,7 +36,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if !self.allowed.is_empty() {
             let vals = pkg
                 .properties()

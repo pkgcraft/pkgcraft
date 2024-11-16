@@ -3,7 +3,8 @@ use std::ops::Deref;
 use camino::Utf8Path;
 
 use crate::config::Config;
-use crate::pkg;
+use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
+use crate::pkg::Pkg;
 use crate::repo::set::RepoSet;
 use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -145,7 +146,7 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target packages.
-    pub fn pkgs<I>(mut self, values: I) -> impl Iterator<Item = crate::Result<pkg::Pkg>> + 'a
+    pub fn pkgs<I>(mut self, values: I) -> impl Iterator<Item = crate::Result<Pkg>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
@@ -155,7 +156,7 @@ impl<'a> TargetRestrictions<'a> {
             .into_iter()
             .map(move |s| self.target_restriction(s.as_ref()))
             .flat_map(move |result| {
-                let iter: Box<dyn Iterator<Item = crate::Result<pkg::Pkg>>> = match result {
+                let iter: Box<dyn Iterator<Item = crate::Result<Pkg>>> = match result {
                     Ok((set, restrict)) => Box::new(set.iter_restrict(restrict).map(Ok)),
                     Err(e) => Box::new([Err(e)].into_iter()),
                 };
@@ -164,17 +165,14 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target ebuild packages.
-    pub fn pkgs_ebuild<I>(
-        self,
-        values: I,
-    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::Pkg>> + 'a
+    pub fn pkgs_ebuild<I>(self, values: I) -> impl Iterator<Item = crate::Result<EbuildPkg>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
         <I as IntoIterator>::IntoIter: 'a,
     {
         self.pkgs(values).map(|r| match r {
-            Ok(pkg::Pkg::Ebuild(pkg)) => Ok(pkg),
+            Ok(Pkg::Ebuild(pkg)) => Ok(pkg),
             Ok(pkg) => Err(Error::InvalidValue(format!("non-ebuild pkg: {pkg}"))),
             Err(e) => Err(e),
         })
@@ -184,7 +182,7 @@ impl<'a> TargetRestrictions<'a> {
     pub fn pkgs_ebuild_raw<I>(
         mut self,
         values: I,
-    ) -> impl Iterator<Item = crate::Result<pkg::ebuild::raw::Pkg>> + 'a
+    ) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
@@ -194,15 +192,14 @@ impl<'a> TargetRestrictions<'a> {
             .into_iter()
             .map(move |s| self.target_restriction(s.as_ref()))
             .flat_map(move |result| {
-                let iter: Box<dyn Iterator<Item = crate::Result<pkg::ebuild::raw::Pkg>>> =
-                    match result {
-                        Ok((set, restrict)) => Box::new(
-                            set.into_iter()
-                                .filter_map(|r| r.into_ebuild().ok())
-                                .flat_map(move |r| r.iter_raw_restrict(&restrict).map(Ok)),
-                        ),
-                        Err(e) => Box::new([Err(e)].into_iter()),
-                    };
+                let iter: Box<dyn Iterator<Item = crate::Result<EbuildRawPkg>>> = match result {
+                    Ok((set, restrict)) => Box::new(
+                        set.into_iter()
+                            .filter_map(|r| r.into_ebuild().ok())
+                            .flat_map(move |r| r.iter_raw_restrict(&restrict).map(Ok)),
+                    ),
+                    Err(e) => Box::new([Err(e)].into_iter()),
+                };
                 iter
             })
     }

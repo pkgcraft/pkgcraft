@@ -65,8 +65,8 @@ impl PkgFilter {
     /// Apply filter across an iterator of packages.
     fn filter<'a>(
         &'a self,
-        iter: Box<dyn Iterator<Item = ebuild::Pkg> + 'a>,
-    ) -> Box<dyn Iterator<Item = ebuild::Pkg> + 'a> {
+        iter: Box<dyn Iterator<Item = ebuild::EbuildPkg> + 'a>,
+    ) -> Box<dyn Iterator<Item = ebuild::EbuildPkg> + 'a> {
         match self {
             Self::Latest(inverted) => {
                 let items: Vec<_> = iter.collect();
@@ -157,8 +157,9 @@ impl PkgFilters {
         &self,
         repo: &'static EbuildRepo,
         val: R,
-    ) -> Box<dyn Iterator<Item = ebuild::Pkg> + '_> {
-        let mut iter: Box<dyn Iterator<Item = ebuild::Pkg>> = Box::new(repo.iter_restrict(val));
+    ) -> Box<dyn Iterator<Item = ebuild::EbuildPkg> + '_> {
+        let mut iter: Box<dyn Iterator<Item = ebuild::EbuildPkg>> =
+            Box::new(repo.iter_restrict(val));
 
         for f in &self.0 {
             iter = f.filter(iter);
@@ -214,7 +215,7 @@ impl EbuildPkg {
 }
 
 impl IterRestrict for EbuildPkg {
-    type Item = ebuild::Pkg;
+    type Item = ebuild::EbuildPkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
@@ -239,7 +240,7 @@ impl EbuildRawPkg {
 }
 
 impl IterRestrict for EbuildRawPkg {
-    type Item = ebuild::raw::Pkg;
+    type Item = ebuild::EbuildRawPkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,

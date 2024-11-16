@@ -1,8 +1,8 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
+use std::env;
 use std::sync::LazyLock;
-use std::{env, mem};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -14,9 +14,9 @@ use scallop::{functions, Error, ExecStatus};
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
-use crate::pkg::ebuild::{metadata::Key, EbuildPackage};
+use crate::pkg::ebuild::{metadata::Key, EbuildPackage, EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Package, RepoPackage};
-use crate::repo::ebuild::Eclass;
+use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::{Repo, Repository};
 use crate::traits::SourceBash;
 use crate::types::{Deque, OrderedSet};
@@ -37,13 +37,13 @@ use environment::Variable;
 use scope::Scope;
 
 #[derive(Debug)]
-pub(crate) enum BuildState<'a> {
+pub(crate) enum BuildState {
     Empty(&'static Eapi),
-    Metadata(&'a crate::pkg::ebuild::raw::Pkg),
-    Build(&'a crate::pkg::ebuild::Pkg),
+    Metadata(EbuildRawPkg),
+    Build(EbuildPkg),
 }
 
-impl Default for BuildState<'_> {
+impl Default for BuildState {
     fn default() -> Self {
         Self::Empty(Default::default())
     }
@@ -59,8 +59,8 @@ impl Drop for Scoped {
 }
 
 #[derive(Default)]
-pub(crate) struct BuildData<'a> {
-    state: BuildState<'a>,
+pub(crate) struct BuildData {
+    state: BuildState,
 
     /// nonfatal status set by the related builtin
     nonfatal: bool,
@@ -97,7 +97,7 @@ pub(crate) struct BuildData<'a> {
     incrementals: HashMap<Key, Deque<String>>,
 }
 
-impl BuildData<'_> {
+impl BuildData {
     fn new() -> Self {
         let env = [
             (Variable::DESTTREE, "/usr"),
@@ -124,21 +124,17 @@ impl BuildData<'_> {
         get_build_mut().state = BuildState::Empty(eapi);
     }
 
-    fn from_raw_pkg(pkg: &crate::pkg::ebuild::raw::Pkg) {
-        // TODO: remove this hack once BuildData is reworked
-        let p: &crate::pkg::ebuild::raw::Pkg = unsafe { mem::transmute(pkg) };
+    fn from_raw_pkg(pkg: &EbuildRawPkg) {
         let data = BuildData {
-            state: BuildState::Metadata(p),
+            state: BuildState::Metadata(pkg.clone()),
             ..BuildData::new()
         };
         update_build(data);
     }
 
-    fn from_pkg(pkg: &crate::pkg::ebuild::Pkg) {
-        // TODO: remove this hack once BuildData is reworked
-        let p: &crate::pkg::ebuild::Pkg = unsafe { mem::transmute(pkg) };
+    fn from_pkg(pkg: &EbuildPkg) {
         let data = BuildData {
-            state: BuildState::Build(p),
+            state: BuildState::Build(pkg.clone()),
             ..BuildData::new()
         };
         update_build(data);
@@ -163,7 +159,7 @@ impl BuildData<'_> {
     }
 
     /// Get the current ebuild repo if it exists.
-    fn ebuild_repo(&self) -> crate::repo::ebuild::EbuildRepo {
+    fn ebuild_repo(&self) -> EbuildRepo {
         match &self.state {
             BuildState::Metadata(pkg) => pkg.repo(),
             BuildState::Build(pkg) => pkg.repo(),
@@ -401,14 +397,13 @@ impl BuildData<'_> {
 }
 
 // TODO: move to LazyLock once LazyLock::get_mut() is stabilized or state tracking is rewritten
-static mut STATE: Lazy<UnsafeCell<BuildData<'static>>> =
-    Lazy::new(|| UnsafeCell::new(BuildData::new()));
+static mut STATE: Lazy<UnsafeCell<BuildData>> = Lazy::new(|| UnsafeCell::new(BuildData::new()));
 
-fn get_build_mut() -> &'static mut BuildData<'static> {
+fn get_build_mut() -> &'static mut BuildData {
     unsafe { STATE.get_mut() }
 }
 
-fn update_build(state: BuildData<'static>) {
+fn update_build(state: BuildData) {
     let build = get_build_mut();
 
     // TODO: handle resets in external process pool

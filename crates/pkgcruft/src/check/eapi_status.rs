@@ -1,4 +1,4 @@
-use pkgcraft::pkg::ebuild::raw::Pkg;
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
@@ -30,7 +30,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, _tree: &Tree, filter: &mut ReportFilter) {
         let eapi = pkg.eapi().as_str();
         if self.repo.metadata().config.eapis_deprecated.contains(eapi) {
             EapiDeprecated.version(pkg).message(eapi).report(filter);

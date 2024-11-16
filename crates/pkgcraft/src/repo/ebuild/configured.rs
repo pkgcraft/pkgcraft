@@ -8,7 +8,7 @@ use indexmap::IndexSet;
 
 use crate::config::{RepoConfig, Settings};
 use crate::dep::{Cpn, Cpv, Dep, Version};
-use crate::pkg::ebuild::configured::Pkg;
+use crate::pkg::ebuild::EbuildConfiguredPkg;
 use crate::repo::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
@@ -69,7 +69,7 @@ impl fmt::Display for ConfiguredRepo {
 }
 
 impl PkgRepository for ConfiguredRepo {
-    type Pkg = Pkg;
+    type Pkg = EbuildConfiguredPkg;
     type IterCpv = <EbuildRepo as PkgRepository>::IterCpv;
     type IterCpvRestrict = <EbuildRepo as PkgRepository>::IterCpvRestrict;
     type Iter = Iter;
@@ -152,7 +152,7 @@ impl Repository for ConfiguredRepo {
 }
 
 impl IntoIterator for &ConfiguredRepo {
-    type Item = Pkg;
+    type Item = EbuildConfiguredPkg;
     type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -169,12 +169,12 @@ pub struct Iter {
 }
 
 impl Iterator for Iter {
-    type Item = Pkg;
+    type Item = EbuildConfiguredPkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|pkg| Pkg::new(self.repo.clone(), self.repo.settings.clone(), pkg))
+            .map(|pkg| EbuildConfiguredPkg::new(self.repo.clone(), self.repo.settings.clone(), pkg))
     }
 }
 
@@ -184,7 +184,7 @@ pub struct IterRestrict {
 }
 
 impl Iterator for IterRestrict {
-    type Item = Pkg;
+    type Item = EbuildConfiguredPkg;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.find(|pkg| self.restrict.matches(pkg))

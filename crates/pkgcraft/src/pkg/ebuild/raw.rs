@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
@@ -14,7 +15,7 @@ use crate::Error;
 use super::metadata::{Metadata, MetadataRaw};
 
 #[derive(Clone)]
-pub struct Pkg {
+struct InternalEbuildRawPkg {
     pub(super) cpv: Cpv,
     pub(super) repo: EbuildRepo,
     pub(super) eapi: &'static Eapi,
@@ -22,15 +23,18 @@ pub struct Pkg {
     chksum: String,
 }
 
-make_pkg_traits!(Pkg);
+#[derive(Clone)]
+pub struct EbuildRawPkg(Arc<InternalEbuildRawPkg>);
 
-impl fmt::Debug for Pkg {
+make_pkg_traits!(EbuildRawPkg);
+
+impl fmt::Debug for EbuildRawPkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Pkg {{ {self} }}")
+        write!(f, "EbuildRawPkg {{ {self} }}")
     }
 }
 
-impl Pkg {
+impl EbuildRawPkg {
     pub(crate) fn try_new(cpv: Cpv, repo: EbuildRepo) -> crate::Result<Self> {
         let relpath = cpv.relpath();
         let data = fs::read_to_string(repo.path().join(&relpath)).map_err(|e| {
@@ -43,7 +47,7 @@ impl Pkg {
         })?;
 
         let chksum = repo.metadata().cache().chksum(&data);
-        Ok(Self { cpv, repo, eapi, data, chksum })
+        Ok(Self(Arc::new(InternalEbuildRawPkg { cpv, repo, eapi, data, chksum })))
     }
 
     /// Get the parsed EAPI from the given ebuild data content.
@@ -64,27 +68,28 @@ impl Pkg {
 
     /// Return the path of the package's ebuild relative to the repository root.
     pub fn relpath(&self) -> Utf8PathBuf {
-        self.cpv.relpath()
+        self.0.cpv.relpath()
     }
 
     /// Return the absolute path of the package's ebuild.
     pub fn path(&self) -> Utf8PathBuf {
-        self.repo.path().join(self.relpath())
+        self.0.repo.path().join(self.relpath())
     }
 
     /// Return the package's ebuild file content.
     pub fn data(&self) -> &str {
-        &self.data
+        &self.0.data
     }
 
     /// Return the checksum of the package's ebuild file content.
     pub fn chksum(&self) -> &str {
-        &self.chksum
+        &self.0.chksum
     }
 
     /// Load raw metadata from the cache if valid, otherwise source it from the ebuild.
     pub fn metadata_raw(&self) -> crate::Result<MetadataRaw> {
-        self.repo
+        self.0
+            .repo
             .metadata()
             .cache()
             .get(self)
@@ -98,7 +103,8 @@ impl Pkg {
 
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
-        self.repo
+        self.0
+            .repo
             .metadata()
             .cache()
             .get(self)
@@ -111,25 +117,25 @@ impl Pkg {
     }
 }
 
-impl Package for Pkg {
+impl Package for EbuildRawPkg {
     fn eapi(&self) -> &'static Eapi {
-        self.eapi
+        self.0.eapi
     }
 
     fn cpv(&self) -> &Cpv {
-        &self.cpv
+        &self.0.cpv
     }
 }
 
-impl RepoPackage for Pkg {
+impl RepoPackage for EbuildRawPkg {
     type Repo = EbuildRepo;
 
     fn repo(&self) -> Self::Repo {
-        self.repo.clone()
+        self.0.repo.clone()
     }
 }
 
-impl Intersects<Dep> for Pkg {
+impl Intersects<Dep> for EbuildRawPkg {
     fn intersects(&self, dep: &Dep) -> bool {
         bool_not_equal!(self.cpn(), dep.cpn());
 
@@ -142,7 +148,7 @@ impl Intersects<Dep> for Pkg {
         }
 
         if let Some(val) = dep.repo() {
-            bool_not_equal!(self.repo.name(), val);
+            bool_not_equal!(self.0.repo.name(), val);
         }
 
         if let Some(val) = dep.version() {

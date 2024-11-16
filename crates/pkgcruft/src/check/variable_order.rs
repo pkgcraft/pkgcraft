@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::raw::Pkg;
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use strum::{Display, EnumString};
 
 use crate::bash::Tree;
@@ -45,7 +45,7 @@ struct Check;
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter) {
         let mut variables = vec![];
         for node in tree
             .iter_global_nodes()

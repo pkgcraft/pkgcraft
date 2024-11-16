@@ -2,16 +2,16 @@ use itertools::Itertools;
 use scallop::{functions, variables};
 
 use crate::pkg::ebuild::metadata::{Key, Metadata, MetadataRaw};
-use crate::pkg::ebuild::raw::Pkg;
+use crate::pkg::ebuild::EbuildRawPkg;
 use crate::pkg::{Package, RepoPackage, Source};
 use crate::Error;
 
 use super::get_build_mut;
 
-impl TryFrom<&Pkg> for MetadataRaw {
+impl TryFrom<&EbuildRawPkg> for MetadataRaw {
     type Error = Error;
 
-    fn try_from(pkg: &Pkg) -> crate::Result<Self> {
+    fn try_from(pkg: &EbuildRawPkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 
@@ -32,10 +32,10 @@ impl TryFrom<&Pkg> for MetadataRaw {
     }
 }
 
-impl TryFrom<&Pkg> for Metadata {
+impl TryFrom<&EbuildRawPkg> for Metadata {
     type Error = Error;
 
-    fn try_from(pkg: &Pkg) -> crate::Result<Self> {
+    fn try_from(pkg: &EbuildRawPkg) -> crate::Result<Self> {
         // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 

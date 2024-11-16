@@ -12,7 +12,7 @@ use walkdir::{DirEntry, WalkDir};
 use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
-use crate::repo::Repository;
+use crate::repo::{ebuild::EbuildRepo, Repo, Repository};
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -154,14 +154,14 @@ impl TestData {
         &self.config
     }
 
-    pub fn repo(&self, name: &str) -> crate::Result<&crate::repo::Repo> {
+    pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
         self.config
             .repos
             .get(name)
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::EbuildRepo> {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
         self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
@@ -208,14 +208,14 @@ impl TestDataPatched {
         &self.config
     }
 
-    pub fn repo(&self, name: &str) -> crate::Result<&crate::repo::Repo> {
+    pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
         self.config
             .repos
             .get(name)
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&crate::repo::ebuild::EbuildRepo> {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
         self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))

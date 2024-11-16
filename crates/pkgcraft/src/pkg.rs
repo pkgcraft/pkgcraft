@@ -17,8 +17,8 @@ pub mod fake;
 #[allow(clippy::large_enum_variant)]
 #[derive(EnumAsInner, Clone)]
 pub enum Pkg {
-    Configured(ebuild::configured::Pkg),
-    Ebuild(ebuild::Pkg),
+    Configured(ebuild::EbuildConfiguredPkg),
+    Ebuild(ebuild::EbuildPkg),
     Fake(fake::Pkg),
 }
 

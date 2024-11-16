@@ -2,7 +2,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
@@ -40,7 +40,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let arches = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())

@@ -9,7 +9,7 @@ use tempfile::TempDir;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::files::atomic_write_file;
-use crate::pkg::ebuild::{self, metadata::Key};
+use crate::pkg::ebuild::{metadata::Key, EbuildPkg, EbuildRawPkg};
 use crate::repo::{PkgRepository, Repo, RepoFormat};
 use crate::Error;
 
@@ -90,12 +90,12 @@ impl EbuildTempRepo {
         Ok(())
     }
 
-    /// Create a [`ebuild::raw::Pkg`] from ebuild field settings.
+    /// Create an [`EbuildRawPkg`] from ebuild field settings.
     pub fn create_raw_pkg<S: AsRef<str>>(
         &mut self,
         cpv: S,
         data: &[&str],
-    ) -> crate::Result<ebuild::raw::Pkg> {
+    ) -> crate::Result<EbuildRawPkg> {
         use Key::*;
         let cpv = Cpv::try_new(cpv.as_ref())?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
@@ -129,15 +129,11 @@ impl EbuildTempRepo {
         }
 
         self.add_category(cpv.category())?;
-        ebuild::raw::Pkg::try_new(cpv, self.repo()?.clone())
+        EbuildRawPkg::try_new(cpv, self.repo()?.clone())
     }
 
-    /// Create a [`ebuild::Pkg`] from ebuild field settings.
-    pub fn create_pkg<S: AsRef<str>>(
-        &mut self,
-        cpv: S,
-        data: &[&str],
-    ) -> crate::Result<ebuild::Pkg> {
+    /// Create an [`EbuildPkg`] from ebuild field settings.
+    pub fn create_pkg<S: AsRef<str>>(&mut self, cpv: S, data: &[&str]) -> crate::Result<EbuildPkg> {
         let raw_pkg = self.create_raw_pkg(cpv, data)?;
         raw_pkg.try_into()
     }
@@ -147,7 +143,7 @@ impl EbuildTempRepo {
         &mut self,
         cpv: S,
         data: &str,
-    ) -> crate::Result<ebuild::raw::Pkg> {
+    ) -> crate::Result<EbuildRawPkg> {
         let cpv = Cpv::try_new(cpv)?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
@@ -155,15 +151,15 @@ impl EbuildTempRepo {
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         self.add_category(cpv.category())?;
-        ebuild::raw::Pkg::try_new(cpv, self.repo()?.clone())
+        EbuildRawPkg::try_new(cpv, self.repo()?.clone())
     }
 
-    /// Create a [`ebuild::Pkg`] from an ebuild using raw data.
+    /// Create an [`EbuildPkg`] from an ebuild using raw data.
     pub fn create_pkg_from_str<S: AsRef<str>>(
         &mut self,
         cpv: S,
         data: &str,
-    ) -> crate::Result<ebuild::Pkg> {
+    ) -> crate::Result<EbuildPkg> {
         let raw_pkg = self.create_raw_pkg_from_str(cpv, data)?;
         raw_pkg.try_into()
     }

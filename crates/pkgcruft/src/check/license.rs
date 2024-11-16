@@ -1,6 +1,6 @@
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::pkg::{ebuild::Pkg, Package};
+use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{LicenseDeprecated, LicenseMissing, LicenseUnneeded};
@@ -41,7 +41,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
         if licenses.is_empty() {
             if !self.unlicensed_categories.contains(pkg.category()) {

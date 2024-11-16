@@ -13,7 +13,7 @@ use crate::dep::{Cpv, DependencySet, Slot};
 use crate::eapi::Eapi;
 use crate::files::{atomic_write_file, is_file};
 use crate::pkg::ebuild::metadata::{Key, Metadata, MetadataRaw};
-use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, raw::Pkg};
+use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, EbuildRawPkg};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::shell::phase::Phase;
@@ -152,7 +152,7 @@ fn deserialize(
 }
 
 impl CacheEntry for Md5DictEntry {
-    fn to_metadata(&self, pkg: &Pkg) -> crate::Result<Metadata> {
+    fn to_metadata(&self, pkg: &EbuildRawPkg) -> crate::Result<Metadata> {
         let mut meta = Metadata::default();
 
         for key in pkg.eapi().mandatory_keys() {
@@ -183,7 +183,7 @@ impl CacheEntry for Md5DictEntry {
         )
     }
 
-    fn verify(&self, pkg: &Pkg) -> crate::Result<()> {
+    fn verify(&self, pkg: &EbuildRawPkg) -> crate::Result<()> {
         // verify ebuild checksum
         if let Some(val) = self.0.get(&Key::CHKSUM) {
             if val != pkg.chksum() {
@@ -334,7 +334,7 @@ impl Cache for Md5Dict {
         &self.path
     }
 
-    fn get(&self, pkg: &Pkg) -> crate::Result<Self::Entry> {
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
         let path = self.path.join(pkg.cpv().to_string());
         let data = fs::read_to_string(&path).map_err(|e| {
             if e.kind() != io::ErrorKind::NotFound {
@@ -348,7 +348,7 @@ impl Cache for Md5Dict {
         Ok(meta)
     }
 
-    fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()> {
+    fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()> {
         // determine cache entry directory
         let path = self.path.join(pkg.cpv().category());
 

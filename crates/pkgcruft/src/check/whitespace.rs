@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use pkgcraft::pkg::ebuild::raw::Pkg;
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 
 use crate::bash::Tree;
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
@@ -35,7 +35,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter) {
         let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();

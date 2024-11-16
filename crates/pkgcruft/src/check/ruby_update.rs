@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
-use pkgcraft::pkg::{ebuild::Pkg, Package};
+use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 
@@ -47,7 +47,7 @@ impl Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if pkg.category() == "virtual" || !pkg.inherited().contains("ruby-ng") {
             return;
         };

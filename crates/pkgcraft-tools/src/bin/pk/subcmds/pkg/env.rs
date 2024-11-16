@@ -6,7 +6,7 @@ use clap::Args;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
-use pkgcraft::pkg::{ebuild::raw::Pkg, Source};
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
 use pkgcraft::utils::bounded_jobs;
@@ -72,7 +72,7 @@ impl Command {
         };
 
         let func =
-            |pkg: pkgcraft::Result<Pkg>| -> scallop::Result<(String, Vec<(String, String)>)> {
+            |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<(String, String)>)> {
                 let pkg = pkg?;
                 // TODO: move error mapping into pkgcraft for pkg sourcing
                 pkg.source().map_err(|e| Error::InvalidPkg {

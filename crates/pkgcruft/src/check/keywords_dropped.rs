@@ -5,7 +5,7 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::Arch;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::KeywordsDropped;
@@ -35,7 +35,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, _cpn: &Cpn, pkgs: &[Pkg], filter: &mut ReportFilter) {
+    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let mut seen = HashSet::new();
         let mut previous = HashSet::new();
         let mut changes = HashMap::<_, _>::new();

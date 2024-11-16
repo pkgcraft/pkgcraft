@@ -9,7 +9,7 @@ use tracing::error;
 use crate::dep::Cpv;
 use crate::error::{Error, PackageError};
 use crate::pkg::ebuild::metadata::{Metadata, MetadataRaw};
-use crate::pkg::ebuild::raw::Pkg;
+use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::{PkgRepository, Repository};
 use crate::traits::Contains;
 use crate::utils::bounded_jobs;
@@ -20,11 +20,11 @@ pub(crate) mod md5_dict;
 
 pub trait CacheEntry {
     /// Deserialize a cache entry to package metadata.
-    fn to_metadata(&self, pkg: &Pkg) -> crate::Result<Metadata>;
+    fn to_metadata(&self, pkg: &EbuildRawPkg) -> crate::Result<Metadata>;
     /// Convert a cache entry into raw package metadata.
     fn into_metadata_raw(self) -> MetadataRaw;
     /// Verify a cache entry is valid.
-    fn verify(&self, pkg: &Pkg) -> crate::Result<()>;
+    fn verify(&self, pkg: &EbuildRawPkg) -> crate::Result<()>;
 }
 
 pub trait Cache {
@@ -36,9 +36,9 @@ pub trait Cache {
     /// Return the cache's filesystem path.
     fn path(&self) -> &Utf8Path;
     /// Get the cache entry for a given package.
-    fn get(&self, pkg: &Pkg) -> crate::Result<Self::Entry>;
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry>;
     /// Update the cache with the given package metadata.
-    fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()>;
+    fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()>;
     /// Forcibly remove the entire cache.
     fn remove(&self, repo: &EbuildRepo) -> crate::Result<()>;
     /// Remove outdated entries from the cache.
@@ -76,7 +76,7 @@ pub enum MetadataCacheEntry {
 }
 
 impl CacheEntry for MetadataCacheEntry {
-    fn to_metadata(&self, pkg: &Pkg) -> crate::Result<Metadata> {
+    fn to_metadata(&self, pkg: &EbuildRawPkg) -> crate::Result<Metadata> {
         match self {
             Self::Md5Dict(entry) => entry.to_metadata(pkg),
         }
@@ -88,7 +88,7 @@ impl CacheEntry for MetadataCacheEntry {
         }
     }
 
-    fn verify(&self, pkg: &Pkg) -> crate::Result<()> {
+    fn verify(&self, pkg: &EbuildRawPkg) -> crate::Result<()> {
         match self {
             Self::Md5Dict(entry) => entry.verify(pkg),
         }
@@ -121,13 +121,13 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn get(&self, pkg: &Pkg) -> crate::Result<Self::Entry> {
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
         match self {
             Self::Md5Dict(cache) => cache.get(pkg).map(MetadataCacheEntry::Md5Dict),
         }
     }
 
-    fn update(&self, pkg: &Pkg, meta: &Metadata) -> crate::Result<()> {
+    fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()> {
         match self {
             Self::Md5Dict(cache) => cache.update(pkg, meta),
         }
@@ -237,7 +237,7 @@ impl MetadataCacheRegen<'_> {
 
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| -> scallop::Result<()> {
-            let pkg = Pkg::try_new(cpv, repo.clone())?;
+            let pkg = EbuildRawPkg::try_new(cpv, repo.clone())?;
             let meta = Metadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
             if !self.verify {
                 self.cache.update(&pkg, &meta)?;
@@ -273,7 +273,7 @@ impl MetadataCacheRegen<'_> {
                     .into_par_iter()
                     .filter(|cpv| {
                         self.progress.inc(1);
-                        Pkg::try_new(cpv.clone(), repo.clone())
+                        EbuildRawPkg::try_new(cpv.clone(), repo.clone())
                             .and_then(|pkg| self.cache.get(&pkg))
                             .is_err()
                     })

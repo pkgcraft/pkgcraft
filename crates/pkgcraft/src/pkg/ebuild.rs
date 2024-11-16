@@ -18,14 +18,16 @@ use crate::Error;
 
 use super::{make_pkg_traits, Package, RepoPackage};
 
-pub mod configured;
+mod configured;
+pub use configured::EbuildConfiguredPkg;
 pub mod iuse;
 pub mod keyword;
 pub mod manifest;
 use manifest::{Manifest, ManifestFile};
 pub mod metadata;
 use metadata::{Key, Metadata};
-pub mod raw;
+mod raw;
+pub use raw::EbuildRawPkg;
 mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
 pub mod xml;
@@ -49,8 +51,8 @@ where
     }
 }
 
-#[derive(Clone)]
-pub struct Pkg {
+#[derive(Debug)]
+struct InternalEbuildPkg {
     cpv: Cpv,
     repo: EbuildRepo,
     data: Metadata,
@@ -59,39 +61,42 @@ pub struct Pkg {
     manifest: OnceLock<Arc<Manifest>>,
 }
 
-make_pkg_traits!(Pkg);
+#[derive(Clone)]
+pub struct EbuildPkg(Arc<InternalEbuildPkg>);
 
-impl fmt::Debug for Pkg {
+make_pkg_traits!(EbuildPkg);
+
+impl fmt::Debug for EbuildPkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Pkg {{ {self} }}")
+        write!(f, "EbuildPkg {{ {self} }}")
     }
 }
 
-impl TryFrom<raw::Pkg> for Pkg {
+impl TryFrom<EbuildRawPkg> for EbuildPkg {
     type Error = Error;
 
-    fn try_from(pkg: raw::Pkg) -> crate::Result<Pkg> {
+    fn try_from(pkg: EbuildRawPkg) -> crate::Result<Self> {
         let data = pkg.metadata()?;
-        Ok(Pkg {
-            cpv: pkg.cpv,
-            repo: pkg.repo,
+        Ok(Self(Arc::new(InternalEbuildPkg {
+            cpv: pkg.cpv().clone(),
+            repo: pkg.repo(),
             data,
             iuse_effective: OnceLock::new(),
             metadata: OnceLock::new(),
             manifest: OnceLock::new(),
-        })
+        })))
     }
 }
 
-impl Pkg {
+impl EbuildPkg {
     /// Return the path of the package's ebuild file path relative to the repository root.
     pub fn relpath(&self) -> Utf8PathBuf {
-        self.cpv.relpath()
+        self.0.cpv.relpath()
     }
 
     /// Return the absolute path of the package's ebuild file.
     pub fn path(&self) -> Utf8PathBuf {
-        self.repo.path().join(self.relpath())
+        self.0.repo.path().join(self.relpath())
     }
 
     /// Return a package's ebuild file content.
@@ -101,7 +106,8 @@ impl Pkg {
 
     /// Return true if a package is globally deprecated in its repo, false otherwise.
     pub fn deprecated(&self) -> bool {
-        self.repo
+        self.0
+            .repo
             .metadata()
             .pkg_deprecated()
             .iter()
@@ -115,7 +121,8 @@ impl Pkg {
 
     /// Return true if a package is globally masked in its repo, false otherwise.
     pub fn masked(&self) -> bool {
-        self.repo
+        self.0
+            .repo
             .metadata()
             .pkg_mask()
             .iter()
@@ -124,12 +131,12 @@ impl Pkg {
 
     /// Return a package's description.
     pub fn description(&self) -> &str {
-        &self.data.description
+        &self.0.data.description
     }
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.data.slot.subslot().unwrap_or_else(|| self.slot())
+        self.0.data.slot.subslot().unwrap_or_else(|| self.slot())
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
@@ -158,94 +165,96 @@ impl Pkg {
 
     /// Return a package's BDEPEND.
     pub fn bdepend(&self) -> &DependencySet<Dep> {
-        &self.data.bdepend
+        &self.0.data.bdepend
     }
 
     /// Return a package's DEPEND.
     pub fn depend(&self) -> &DependencySet<Dep> {
-        &self.data.depend
+        &self.0.data.depend
     }
 
     /// Return a package's IDEPEND.
     pub fn idepend(&self) -> &DependencySet<Dep> {
-        &self.data.idepend
+        &self.0.data.idepend
     }
 
     /// Return a package's PDEPEND.
     pub fn pdepend(&self) -> &DependencySet<Dep> {
-        &self.data.pdepend
+        &self.0.data.pdepend
     }
 
     /// Return a package's RDEPEND.
     pub fn rdepend(&self) -> &DependencySet<Dep> {
-        &self.data.rdepend
+        &self.0.data.rdepend
     }
 
     /// Return a package's LICENSE.
     pub fn license(&self) -> &DependencySet<String> {
-        &self.data.license
+        &self.0.data.license
     }
 
     /// Return a package's PROPERTIES.
     pub fn properties(&self) -> &DependencySet<String> {
-        &self.data.properties
+        &self.0.data.properties
     }
 
     /// Return a package's REQUIRED_USE.
     pub fn required_use(&self) -> &DependencySet<String> {
-        &self.data.required_use
+        &self.0.data.required_use
     }
 
     /// Return a package's RESTRICT.
     pub fn restrict(&self) -> &DependencySet<String> {
-        &self.data.restrict
+        &self.0.data.restrict
     }
 
     /// Return a package's SRC_URI.
     pub fn src_uri(&self) -> &DependencySet<Uri> {
-        &self.data.src_uri
+        &self.0.data.src_uri
     }
 
     /// Return a package's homepage.
     pub fn homepage(&self) -> &OrderedSet<String> {
-        &self.data.homepage
+        &self.0.data.homepage
     }
 
     /// Return a package's defined phases
     pub fn defined_phases(&self) -> &OrderedSet<Phase> {
-        &self.data.defined_phases
+        &self.0.data.defined_phases
     }
 
     /// Return a package's keywords.
     pub fn keywords(&self) -> &OrderedSet<keyword::Keyword> {
-        &self.data.keywords
+        &self.0.data.keywords
     }
 
     /// Return a package's IUSE.
     pub fn iuse(&self) -> &OrderedSet<iuse::Iuse> {
-        &self.data.iuse
+        &self.0.data.iuse
     }
 
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &OrderedSet<Eclass> {
-        &self.data.inherit
+        &self.0.data.inherit
     }
 
     /// Return the ordered set of inherited eclasses for a package.
     pub fn inherited(&self) -> &OrderedSet<Eclass> {
-        &self.data.inherited
+        &self.0.data.inherited
     }
 
     /// Return a package's shared metadata.
     pub fn metadata(&self) -> &xml::Metadata {
-        self.metadata
-            .get_or_init(|| self.repo.metadata().pkg(self.cpn()))
+        self.0
+            .metadata
+            .get_or_init(|| self.0.repo.metadata().pkg(self.cpn()))
     }
 
     /// Return a package's manifest.
     pub fn manifest(&self) -> &Manifest {
-        self.manifest
-            .get_or_init(|| self.repo.metadata().manifest(self.cpn()))
+        self.0
+            .manifest
+            .get_or_init(|| self.0.repo.metadata().manifest(self.cpn()))
     }
 
     /// Return a package's distfiles.
@@ -266,28 +275,29 @@ impl Pkg {
     }
 }
 
-impl Package for Pkg {
+impl Package for EbuildPkg {
     fn eapi(&self) -> &'static Eapi {
-        self.data.eapi
+        self.0.data.eapi
     }
 
     fn cpv(&self) -> &Cpv {
-        &self.cpv
+        &self.0.cpv
     }
 }
 
-impl RepoPackage for Pkg {
+impl RepoPackage for EbuildPkg {
     type Repo = EbuildRepo;
 
     fn repo(&self) -> Self::Repo {
-        self.repo.clone()
+        self.0.repo.clone()
     }
 }
 
-impl EbuildPackage for Pkg {
+impl EbuildPackage for EbuildPkg {
     fn iuse_effective(&self) -> &OrderedSet<String> {
-        self.iuse_effective.get_or_init(|| {
-            self.data
+        self.0.iuse_effective.get_or_init(|| {
+            self.0
+                .data
                 .iuse
                 .iter()
                 .map(|x| x.flag().to_string())
@@ -296,11 +306,11 @@ impl EbuildPackage for Pkg {
     }
 
     fn slot(&self) -> &str {
-        self.data.slot.slot()
+        self.0.data.slot.slot()
     }
 }
 
-impl Intersects<Dep> for Pkg {
+impl Intersects<Dep> for EbuildPkg {
     fn intersects(&self, dep: &Dep) -> bool {
         bool_not_equal!(self.cpn(), dep.cpn());
 
@@ -315,7 +325,7 @@ impl Intersects<Dep> for Pkg {
         // TODO: compare usedeps to iuse_effective
 
         if let Some(val) = dep.repo() {
-            bool_not_equal!(self.repo.name(), val);
+            bool_not_equal!(self.0.repo.name(), val);
         }
 
         if let Some(val) = dep.version() {
@@ -399,7 +409,7 @@ mod tests {
         // temp repo ebuild creation defaults to the latest EAPI
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let relpath = raw_pkg.relpath();
-        let pkg: Pkg = raw_pkg.try_into().unwrap();
+        let pkg: EbuildPkg = raw_pkg.try_into().unwrap();
         assert_eq!(pkg.relpath(), relpath);
         assert!(!pkg.ebuild().unwrap().is_empty());
     }

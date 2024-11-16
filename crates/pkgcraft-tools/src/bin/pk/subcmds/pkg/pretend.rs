@@ -4,7 +4,8 @@ use std::process::ExitCode;
 use clap::Args;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::{ebuild, Pretend};
+use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
+use pkgcraft::pkg::Pretend;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
@@ -25,8 +26,8 @@ pub(crate) struct Command {
 // TODO: support binpkg repos
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let func = |pkg: pkgcraft::Result<ebuild::raw::Pkg>| -> scallop::Result<Option<String>> {
-            let pkg = ebuild::Pkg::try_from(pkg?)?;
+        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Option<String>> {
+            let pkg = EbuildPkg::try_from(pkg?)?;
             pkg.pretend()
         };
 

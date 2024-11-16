@@ -4,7 +4,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use strum::{AsRefStr, EnumIter, IntoEnumIterator};
@@ -84,7 +84,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         let Some(eclass) = Eclass::iter().find(|x| pkg.inherited().contains(x.as_ref())) else {
             return;
         };

@@ -1,5 +1,5 @@
 use indexmap::IndexSet;
-use pkgcraft::pkg::ebuild::Pkg;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
 
 use crate::report::ReportKind::EclassUnused;
@@ -39,7 +39,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for eclass in self.eclasses.intersection(pkg.inherited()) {
             EclassUnused.version(pkg).message(eclass).report(filter);
         }

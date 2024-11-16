@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use pkgcraft::pkg::ebuild::raw::Pkg;
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use regex::Regex;
 
 use crate::bash::Tree;
@@ -36,7 +36,7 @@ struct Check;
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, _tree: &Tree, filter: &mut ReportFilter) {
         let mut lines = pkg.data().lines();
 
         let mut line = lines.next().unwrap_or_default();

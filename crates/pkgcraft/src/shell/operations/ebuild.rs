@@ -5,13 +5,14 @@ use scallop::{functions, Error, ExecStatus};
 use tempfile::NamedTempFile;
 
 use crate::error::PackageError;
-use crate::pkg::{ebuild, Build, Package, Pretend, Source};
+use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
+use crate::pkg::{Build, Package, Pretend, Source};
 use crate::shell::scope::Scope;
 use crate::shell::{get_build_mut, BuildData};
 
 use super::OperationKind;
 
-impl Build for ebuild::Pkg {
+impl Build for EbuildPkg {
     fn build(&self) -> scallop::Result<()> {
         get_build_mut()
             .source_ebuild(&self.path())
@@ -25,7 +26,7 @@ impl Build for ebuild::Pkg {
     }
 }
 
-impl Pretend for ebuild::Pkg {
+impl Pretend for EbuildPkg {
     fn pretend(&self) -> scallop::Result<Option<String>> {
         let Ok(op) = self.eapi().operation(OperationKind::Pretend) else {
             // ignore packages with EAPIs lacking pkg_pretend() support
@@ -74,14 +75,14 @@ impl Pretend for ebuild::Pkg {
     }
 }
 
-impl Source for ebuild::raw::Pkg {
+impl Source for EbuildRawPkg {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_raw_pkg(self);
         get_build_mut().source_ebuild(self.data())
     }
 }
 
-impl Source for ebuild::Pkg {
+impl Source for EbuildPkg {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
         get_build_mut().source_ebuild(&self.path())

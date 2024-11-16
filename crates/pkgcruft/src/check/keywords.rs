@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Stable;
-use pkgcraft::pkg::{ebuild::Pkg, Package};
+use pkgcraft::pkg::ebuild::{keyword::KeywordStatus::Stable, EbuildPkg};
+use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
@@ -33,7 +33,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if !pkg.keywords().is_empty() && pkg.live() {
             KeywordsLive
                 .version(pkg)

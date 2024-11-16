@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use pkgcraft::dep::{Dependency, Operator, SlotOperator, UseDepKind};
-use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPackage, Pkg};
+use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPackage, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Intersects;
@@ -34,7 +34,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys().iter().copied() {
             let deps = pkg.dependencies(&[key]);
             for dep in deps.iter_flatten().unique() {

@@ -2,7 +2,7 @@ use itertools::Itertools;
 use pkgcraft::dep::DependencySet;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::metadata::Key;
-use pkgcraft::pkg::ebuild::raw::Pkg;
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::pkg::Package;
 
 use crate::bash::Tree;
@@ -42,7 +42,7 @@ struct Check;
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &Pkg, _tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, _tree: &Tree, filter: &mut ReportFilter) {
         let eapi = pkg.eapi();
 
         match pkg.metadata_raw() {
