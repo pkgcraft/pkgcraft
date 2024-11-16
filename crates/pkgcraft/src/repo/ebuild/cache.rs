@@ -254,7 +254,7 @@ impl MetadataCacheRegen<'_> {
                 .flat_map(|s| repo.cpvs_from_category(&s))
                 .collect()
         } else {
-            self.targets.clone()
+            self.targets
         };
 
         // set progression length encompassing all pkgs
