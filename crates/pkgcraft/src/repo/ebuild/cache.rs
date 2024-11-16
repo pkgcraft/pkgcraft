@@ -164,8 +164,7 @@ impl MetadataCache {
             output: false,
             clean: true,
             verify: false,
-            targeted: false,
-            targets: Default::default(),
+            targets: None,
         }
     }
 }
@@ -179,8 +178,7 @@ pub struct MetadataCacheRegen<'a> {
     output: bool,
     clean: bool,
     verify: bool,
-    targeted: bool,
-    targets: IndexSet<Cpv>,
+    targets: Option<IndexSet<Cpv>>,
 }
 
 impl MetadataCacheRegen<'_> {
@@ -220,13 +218,12 @@ impl MetadataCacheRegen<'_> {
     }
 
     /// Specify package targets for cache regeneration.
-    pub fn targets<I>(mut self, value: I) -> Self
+    pub fn targets<I>(mut self, values: I) -> Self
     where
         I: IntoIterator<Item = Cpv>,
     {
-        self.targeted = true;
         self.clean = false;
-        self.targets.extend(value);
+        self.targets = Some(values.into_iter().collect());
         self
     }
 
@@ -246,16 +243,14 @@ impl MetadataCacheRegen<'_> {
         };
         let (pool, results_iter) = PoolSendIter::new(self.jobs, func, !self.output)?;
 
-        let mut cpvs = if !self.targeted {
+        let mut cpvs = self.targets.unwrap_or_else(|| {
             // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
             // pull all package Cpvs from the repo
             repo.categories()
                 .into_par_iter()
                 .flat_map(|s| repo.cpvs_from_category(&s))
                 .collect()
-        } else {
-            self.targets
-        };
+        });
 
         // set progression length encompassing all pkgs
         self.progress.set_length(cpvs.len().try_into().unwrap());
