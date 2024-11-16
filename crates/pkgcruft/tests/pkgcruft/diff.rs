@@ -79,8 +79,8 @@ fn output() {
     "#};
     let new = indoc::indoc! {r#"
         {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
-        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
         {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"message":"empty line"}
+        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
     "#};
 
     let mut old_file = NamedTempFile::new().unwrap();
@@ -88,13 +88,30 @@ fn output() {
     let mut new_file = NamedTempFile::new().unwrap();
     new_file.write_all(new.as_bytes()).unwrap();
 
-    let expected = indoc::indoc! {r#"
-        -cat/pkg-1-r2, line 3, column 28: WhitespaceInvalid: character '\u{2001}'
+    let expected = indoc::indoc! {"
+        -cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
         +cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
-    "#};
+    "};
     let expected: Vec<_> = expected.lines().collect();
 
+    // color disabled
     let output = cmd("pkgcruft diff")
+        .args([old_file.path(), new_file.path()])
+        .output()
+        .unwrap()
+        .stdout;
+    let output = String::from_utf8(output).unwrap();
+    let output: Vec<_> = output.lines().collect();
+    assert_eq!(&output, &expected);
+
+    let expected = indoc::indoc! {"
+        \u{1b}[31m-cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated\u{1b}[0m
+        \u{1b}[32m+cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line\u{1b}[0m
+    "};
+    let expected: Vec<_> = expected.lines().collect();
+
+    // color enabled
+    let output = cmd("pkgcruft diff --color true")
         .args([old_file.path(), new_file.path()])
         .output()
         .unwrap()
