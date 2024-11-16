@@ -212,9 +212,8 @@ impl ReportFilter {
     /// Sort existing reports and send them to the iterator.
     fn process(&mut self) {
         if !self.reports.is_empty() {
-            let mut reports = mem::take(&mut self.reports);
-            reports.sort();
-            self.tx.send(reports).ok();
+            self.reports.sort();
+            self.tx.send(mem::take(&mut self.reports)).ok();
         }
     }
 }
