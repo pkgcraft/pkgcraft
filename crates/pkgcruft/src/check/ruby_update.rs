@@ -112,7 +112,7 @@ impl EbuildPkgCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_ordered_eq, TEST_DATA, TEST_DATA_PATCHED};
+    use pkgcraft::test::{assert_unordered_eq, TEST_DATA, TEST_DATA_PATCHED};
 
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
@@ -126,14 +126,14 @@ mod tests {
         let dir = repo.path().join(CHECK);
         // ignore stub/* ebuilds
         let filter = "category != 'stub'".parse().unwrap();
-        let scanner = Scanner::new().jobs(1).checks([CHECK]).filters([filter]);
+        let scanner = Scanner::new().checks([CHECK]).filters([filter]);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
-        assert_ordered_eq!(reports, expected);
+        assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
         let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
         let reports = scanner.run(repo, repo).unwrap();
-        assert_ordered_eq!(reports, []);
+        assert_unordered_eq!(reports, []);
     }
 }
