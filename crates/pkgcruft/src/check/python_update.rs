@@ -1,13 +1,14 @@
 use std::collections::HashSet;
+use std::sync::OnceLock;
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use strum::{AsRefStr, EnumIter, IntoEnumIterator};
+use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::report::ReportKind::PythonUpdate;
 use crate::scanner::ReportFilter;
@@ -31,7 +32,7 @@ static IUSE_PREFIX_S: &str = "python_single_target_";
 static IMPL_PKG: &str = "dev-lang/python";
 
 /// Supported python eclasses.
-#[derive(AsRefStr, EnumIter, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, EnumIter, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 enum Eclass {
     PythonR1,
@@ -74,11 +75,42 @@ fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
 }
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
-    Check { repo }
+    Check {
+        repo,
+        targets: OnceLock::new(),
+        keys: OnceLock::new(),
+        prefixes: OnceLock::new(),
+    }
 }
 
 struct Check {
     repo: &'static EbuildRepo,
+    targets: OnceLock<IndexMap<Eclass, IndexSet<&'static str>>>,
+    keys: OnceLock<IndexMap<Eclass, Vec<Key>>>,
+    prefixes: OnceLock<IndexMap<Eclass, Vec<&'static str>>>,
+}
+
+impl Check {
+    fn targets(&self, eclass: &Eclass) -> &IndexSet<&'static str> {
+        self.targets
+            .get_or_init(|| Eclass::iter().map(|e| (e, e.targets(self.repo))).collect())
+            .get(eclass)
+            .unwrap_or_else(|| panic!("missing eclass targets: {eclass}"))
+    }
+
+    fn keys(&self, eclass: &Eclass) -> &[Key] {
+        self.keys
+            .get_or_init(|| Eclass::iter().map(|e| (e, e.keys())).collect())
+            .get(eclass)
+            .unwrap_or_else(|| panic!("missing eclass keys: {eclass}"))
+    }
+
+    fn prefixes(&self, eclass: &Eclass) -> &[&'static str] {
+        self.prefixes
+            .get_or_init(|| Eclass::iter().map(|e| (e, e.prefixes())).collect())
+            .get(eclass)
+            .unwrap_or_else(|| panic!("missing eclass prefixes: {eclass}"))
+    }
 }
 
 super::register!(Check);
@@ -90,7 +122,7 @@ impl EbuildPkgCheck for Check {
         };
 
         let deps = pkg
-            .dependencies(&eclass.keys())
+            .dependencies(self.keys(&eclass))
             .into_iter_flatten()
             .filter(|x| x.blocker().is_none())
             .collect::<IndexSet<_>>();
@@ -100,7 +132,7 @@ impl EbuildPkgCheck for Check {
             .iter()
             .filter(|x| x.cpn() == IMPL_PKG)
             .filter_map(|x| x.slot().map(|s| format!("python{}", s.replace('.', "_"))))
-            .sorted_by_key(|x| eclass.targets(self.repo).get_index_of(x.as_str()))
+            .sorted_by_key(|x| self.targets(&eclass).get_index_of(x.as_str()))
             .last()
         else {
             // missing deps
@@ -108,11 +140,12 @@ impl EbuildPkgCheck for Check {
         };
 
         // determine potential targets
-        let mut targets = eclass
-            .targets(self.repo)
+        let mut targets = self
+            .targets(&eclass)
             .into_iter()
             .rev()
-            .take_while(|x| *x != latest)
+            .take_while(|x| *x != &latest)
+            .copied()
             .collect::<Vec<_>>();
 
         if targets.is_empty() {
@@ -123,13 +156,13 @@ impl EbuildPkgCheck for Check {
         // drop targets with missing dependencies
         for pkg in deps
             .iter()
-            .filter(|x| use_starts_with(x, &eclass.prefixes()))
+            .filter(|x| use_starts_with(x, self.prefixes(&eclass)))
             .filter_map(|x| self.repo.iter_restrict(x.no_use_deps()).last())
         {
             let iuse = pkg
                 .iuse()
                 .iter()
-                .filter_map(|x| deprefix(x.flag(), &eclass.prefixes()))
+                .filter_map(|x| deprefix(x.flag(), self.prefixes(&eclass)))
                 .collect::<HashSet<_>>();
             targets.retain(|x| iuse.contains(x));
             if targets.is_empty() {
