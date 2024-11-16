@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::{iter, thread};
+use std::{iter, mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
@@ -114,7 +114,7 @@ impl Scanner {
         // An alternative would be to externally leak the references outside potential
         // loops with a passed in static reference; however, that makes the API worse and
         // this workaround shouldn't cause any issues to make that pain worth it.
-        let repo: &'static Repo = unsafe { std::mem::transmute(repo) };
+        let repo: &'static Repo = unsafe { mem::transmute(repo) };
 
         // return early for static, non-matching restriction
         let restrict = restrict.into();
@@ -125,7 +125,7 @@ impl Scanner {
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
         let filter = ReportFilter {
-            reports: None,
+            reports: Default::default(),
             filter: self.reports.clone(),
             exit: self.exit.clone(),
             failed: self.failed.clone(),
@@ -190,7 +190,7 @@ fn producer(
 
 #[derive(Clone)]
 pub(crate) struct ReportFilter {
-    reports: Option<Vec<Report>>,
+    reports: Vec<Report>,
     filter: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
     failed: Arc<AtomicBool>,
@@ -205,16 +205,14 @@ impl ReportFilter {
                 self.failed.store(true, Ordering::Relaxed);
             }
 
-            match self.reports.as_mut() {
-                Some(reports) => reports.push(report),
-                None => self.reports = Some(vec![report]),
-            }
+            self.reports.push(report);
         }
     }
 
     /// Sort existing reports and send them to the iterator.
     fn process(&mut self) {
-        if let Some(mut reports) = self.reports.take() {
+        if !self.reports.is_empty() {
+            let mut reports = mem::take(&mut self.reports);
             reports.sort();
             self.tx.send(reports).ok();
         }
