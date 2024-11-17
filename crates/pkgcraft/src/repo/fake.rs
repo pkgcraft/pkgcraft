@@ -151,14 +151,14 @@ impl PkgRepository for FakeRepo {
 
     // TODO: cache categories/packages/versions values in OnceCell fields?
     fn categories(&self) -> IndexSet<String> {
-        self.0.pkgmap.keys().map(|k| k.to_string()).collect()
+        self.0.pkgmap.keys().cloned().collect()
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
         self.0
             .pkgmap
             .get(cat)
-            .map(|pkgs| pkgs.keys().map(|k| k.to_string()).collect())
+            .map(|pkgs| pkgs.keys().cloned().collect())
             .unwrap_or_default()
     }
 
