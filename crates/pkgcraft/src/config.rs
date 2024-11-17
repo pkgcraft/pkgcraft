@@ -128,6 +128,8 @@ pub struct Config {
     pub path: ConfigPath,
     pub repos: repo::Config,
     pub settings: Arc<Settings>,
+    /// Flag used to denote when config files have been loaded.
+    loaded: bool,
 }
 
 impl From<&Config> for Arc<Settings> {
@@ -161,6 +163,7 @@ impl Config {
             }
         }
 
+        self.loaded = true;
         Ok(())
     }
 
@@ -172,6 +175,7 @@ impl Config {
             self.load_portage_conf(Some(path))?;
         }
 
+        self.loaded = true;
         Ok(())
     }
 
@@ -205,6 +209,7 @@ impl Config {
             let _ = self.repos.extend(&repos, &self.settings, false)?;
         }
 
+        self.loaded = true;
         Ok(())
     }
 
@@ -278,13 +283,23 @@ impl Config {
 
     /// Add a repo to the config.
     pub fn add_repo(&mut self, repo: &Repo, external: bool) -> crate::Result<Repo> {
-        self.repos
+        let result = self
+            .repos
             .extend([repo], &self.settings, external)
             .map(|mut repos| {
                 repos
                     .next()
                     .unwrap_or_else(|| panic!("failed adding repo: {repo}"))
-            })
+            });
+
+        // try re-adding external repo after loading config files
+        // TODO: only perform this for nonexistent master errors
+        if external && result.is_err() && !self.loaded {
+            self.load()?;
+            self.add_repo(repo, external)
+        } else {
+            result
+        }
     }
 
     /// Return the repo for a given name or path, potentially adding it to the config.
