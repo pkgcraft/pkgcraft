@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+use std::fmt;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
@@ -85,6 +87,49 @@ impl Replay {
     }
 }
 
+/// Wrapper for report differences.
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+enum Change<'a> {
+    Removed(&'a Report),
+    Added(&'a Report),
+}
+
+impl Change<'_> {
+    fn report(&self) -> &Report {
+        match self {
+            Self::Removed(report) => report,
+            Self::Added(report) => report,
+        }
+    }
+}
+
+impl Ord for Change<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.report()
+            .cmp(other.report())
+            .then_with(|| match (self, other) {
+                (Self::Removed(_), Self::Added(_)) => Ordering::Less,
+                (Self::Added(_), Self::Removed(_)) => Ordering::Greater,
+                _ => Ordering::Equal,
+            })
+    }
+}
+
+impl PartialOrd for Change<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl fmt::Display for Change<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Removed(report) => write!(f, "{}", format!("-{report}").color(Color::Red)),
+            Self::Added(report) => write!(f, "{}", format!("+{report}").color(Color::Green)),
+        }
+    }
+}
+
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         // determine enabled checks and reports
@@ -94,19 +139,17 @@ impl Command {
 
         let old: IndexSet<_> = replay.run(self.old)?.try_collect()?;
         let new: IndexSet<_> = replay.run(self.new)?.try_collect()?;
-        let mut removed: Vec<_> = old.difference(&new).collect();
-        let mut added: Vec<_> = new.difference(&old).collect();
+        let removed = old.difference(&new).map(Change::Removed);
+        let added = new.difference(&old).map(Change::Added);
+        let mut changes: Vec<_> = removed.chain(added).collect();
 
         if self.options.sort {
-            removed.sort();
-            added.sort();
+            changes.sort();
         }
 
         let mut stdout = io::stdout().lock();
-        let removed = removed.iter().map(|r| format!("-{r}").color(Color::Red));
-        let added = added.iter().map(|r| format!("+{r}").color(Color::Green));
-        for line in removed.chain(added) {
-            writeln!(stdout, "{line}")?;
+        for change in changes {
+            writeln!(stdout, "{change}")?;
         }
 
         Ok(ExitCode::SUCCESS)
