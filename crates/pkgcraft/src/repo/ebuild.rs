@@ -414,8 +414,9 @@ impl PkgRepository for EbuildRepo {
         // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories: IndexSet<_> = self
             .trees()
-            .flat_map(|r| r.metadata().categories().clone())
+            .flat_map(|r| r.metadata().categories())
             .filter(|x| self.path().join(x).is_dir())
+            .cloned()
             .collect();
         categories.sort();
         categories
