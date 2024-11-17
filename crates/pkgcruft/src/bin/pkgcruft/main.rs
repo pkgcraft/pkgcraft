@@ -68,7 +68,6 @@ fn main() -> anyhow::Result<ExitCode> {
         .init();
 
     let mut config = Config::new("pkgcraft", "");
-    config.load()?;
 
     let cmd = args.command().join(" ");
     args.subcmd.run(&mut config).or_else(|err| {
