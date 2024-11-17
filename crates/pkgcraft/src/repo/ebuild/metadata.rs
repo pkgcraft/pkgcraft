@@ -759,7 +759,6 @@ mod tests {
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::assert_logs_re;
-    use crate::repo::Repository;
     use crate::test::{assert_err_re, assert_ordered_eq, TEST_DATA};
 
     use super::*;

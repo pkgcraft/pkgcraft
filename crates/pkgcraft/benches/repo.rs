@@ -11,12 +11,13 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     for i in 0..100 {
         temp.create_raw_pkg(format!("cat/pkg-{i}"), &[]).unwrap();
     }
+    let repo = temp.repo();
 
     c.bench_function("repo-ebuild-iter", |b| {
         let mut pkgs = 0;
         b.iter(|| {
             pkgs = 0;
-            for _ in temp.iter() {
+            for _ in repo {
                 pkgs += 1;
             }
         });
@@ -28,7 +29,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
         let cpv = Cpv::try_new("cat/pkg-50").unwrap();
         b.iter(|| {
             pkgs = 0;
-            for _ in temp.iter_restrict(&cpv) {
+            for _ in repo.iter_restrict(&cpv) {
                 pkgs += 1;
             }
         });

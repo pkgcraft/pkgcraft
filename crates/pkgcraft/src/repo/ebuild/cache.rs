@@ -337,7 +337,8 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = temp.metadata().cache().regen().run(&temp);
+        let repo = temp.repo();
+        let r = repo.metadata().cache().regen().run(repo);
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

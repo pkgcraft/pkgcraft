@@ -19,7 +19,7 @@ use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct InternalFakeRepo {
     id: String,
     repo_config: RepoConfig,
@@ -104,8 +104,7 @@ impl FakeRepo {
         I::Item: TryInto<Cpv>,
         <I::Item as TryInto<Cpv>>::Error: fmt::Display,
     {
-        let repo = Arc::get_mut(&mut self.0)
-            .ok_or_else(|| Error::InvalidValue("repo already in use".to_string()))?;
+        let mut repo = (*self.0).clone();
         let orig_len = repo.cpvs.len();
         for s in iter {
             match s.try_into() {
@@ -132,6 +131,7 @@ impl FakeRepo {
             repo.pkgmap = pkgmap;
         }
 
+        self.0 = Arc::new(repo);
         Ok(())
     }
 }

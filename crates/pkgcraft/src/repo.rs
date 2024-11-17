@@ -757,8 +757,8 @@ mod tests {
 
     #[test]
     fn traits() {
-        let temp_repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
-        let e_repo = temp_repo.clone().into();
+        let mut temp_repo = EbuildTempRepo::new("test", None, 0, None).unwrap();
+        let e_repo = temp_repo.repo().clone().into();
         let f_repo: Repo = fake::FakeRepo::new("fake", 0).into();
         assert!(e_repo != f_repo);
         assert!(e_repo > f_repo);

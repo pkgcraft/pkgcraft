@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::ops::Deref;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -74,14 +73,20 @@ impl EbuildTempRepo {
         })
     }
 
-    pub fn repo(&mut self) -> crate::Result<&EbuildRepo> {
-        self.repo = RepoFormat::Ebuild.load_from_path(&self.id, &self.path, self.priority, true)?;
-        Ok(self.repo.as_ebuild().unwrap())
+    pub fn path(&self) -> &Utf8Path {
+        &self.path
+    }
+
+    pub fn repo(&mut self) -> &EbuildRepo {
+        self.repo = RepoFormat::Ebuild
+            .load_from_path(&self.id, &self.path, self.priority, true)
+            .unwrap();
+        self.repo.as_ebuild().unwrap()
     }
 
     /// Add a category into an ebuild repo's profiles/categories file.
     fn add_category(&mut self, category: &str) -> crate::Result<()> {
-        let mut categories = self.repo()?.categories();
+        let mut categories = self.repo().categories();
         if categories.insert(category.to_string()) {
             categories.sort();
             let data = categories.iter().map(|value| format!("{value}\n")).join("");
@@ -129,7 +134,7 @@ impl EbuildTempRepo {
         }
 
         self.add_category(cpv.category())?;
-        EbuildRawPkg::try_new(cpv, self.repo()?.clone())
+        EbuildRawPkg::try_new(cpv, self.repo().clone())
     }
 
     /// Create an [`EbuildPkg`] from ebuild field settings.
@@ -151,7 +156,7 @@ impl EbuildTempRepo {
         fs::write(&path, data)
             .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         self.add_category(cpv.category())?;
-        EbuildRawPkg::try_new(cpv, self.repo()?.clone())
+        EbuildRawPkg::try_new(cpv, self.repo().clone())
     }
 
     /// Create an [`EbuildPkg`] from an ebuild using raw data.
@@ -170,7 +175,6 @@ impl EbuildTempRepo {
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating eclass dir: {e}")))?;
         fs::write(&path, data).map_err(|e| Error::IO(format!("failed writing to eclass: {e}")))?;
-        self.repo()?;
         Ok(path)
     }
 
@@ -186,19 +190,5 @@ impl EbuildTempRepo {
             repo_path = path.to_path_buf();
         }
         Ok(repo_path)
-    }
-}
-
-impl Deref for EbuildTempRepo {
-    type Target = EbuildRepo;
-
-    fn deref(&self) -> &Self::Target {
-        self.repo.as_ebuild().unwrap()
-    }
-}
-
-impl From<&EbuildTempRepo> for Repo {
-    fn from(value: &EbuildTempRepo) -> Self {
-        value.repo.clone()
     }
 }

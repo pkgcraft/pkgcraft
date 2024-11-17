@@ -421,7 +421,7 @@ mod tests {
         temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         temp.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
 
-        let mut iter = temp.iter();
+        let mut iter = temp.repo().iter();
         let pkg1 = iter.next().unwrap();
         let pkg2 = iter.next().unwrap();
 

@@ -334,10 +334,10 @@ impl Config {
         priority: i32,
         eapi: Option<&Eapi>,
     ) -> crate::Result<EbuildTempRepo> {
-        let temp_repo = self.repos.create_temp(name, priority, eapi)?;
-        let repo = (&temp_repo).into();
+        let mut temp = self.repos.create_temp(name, priority, eapi)?;
+        let repo = temp.repo().clone().into();
         self.add_repo(&repo, false)?;
-        Ok(temp_repo)
+        Ok(temp)
     }
 }
 

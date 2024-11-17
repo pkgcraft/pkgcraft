@@ -63,21 +63,22 @@ fn progress() {
 fn single() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
     temp.create_raw_pkg("cat/pkg-1", &["EAPI=7"]).unwrap();
+    let repo = temp.repo().clone();
 
     // default target is the current working directory
-    env::set_current_dir(temp.path()).unwrap();
+    env::set_current_dir(repo.path()).unwrap();
     cmd("pk repo metadata regen")
         .assert()
         .stdout("")
         .stderr("")
         .success();
-    let path = temp.metadata().cache().path().join("cat/pkg-1");
+    let path = repo.metadata().cache().path().join("cat/pkg-1");
     assert!(path.exists());
     let prev_modified = fs::metadata(&path).unwrap().modified().unwrap();
 
     // re-run doesn't change cache
     cmd("pk repo metadata regen")
-        .arg(temp.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -89,7 +90,7 @@ fn single() {
     // package changes cause cache updates
     temp.create_raw_pkg("cat/pkg-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata regen")
-        .arg(temp.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -102,7 +103,7 @@ fn single() {
     for opt in ["-f", "--force"] {
         cmd("pk repo metadata regen")
             .arg(opt)
-            .arg(temp.path())
+            .arg(repo.path())
             .assert()
             .stdout("")
             .stderr("")
@@ -117,6 +118,7 @@ fn single() {
 fn jobs() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
     temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+    let repo = temp.repo();
 
     for opt in ["-j", "--jobs"] {
         // invalid
@@ -134,7 +136,7 @@ fn jobs() {
         for val in ["0", "999999"] {
             cmd("pk repo metadata regen")
                 .args([opt, val])
-                .arg(temp.path())
+                .arg(repo.path())
                 .assert()
                 .stdout("")
                 .stderr("")
@@ -149,23 +151,24 @@ fn multiple() {
     temp.create_pkg("cat/a-1", &[]).unwrap();
     temp.create_pkg("cat/b-1", &[]).unwrap();
     temp.create_pkg("other/pkg-1", &[]).unwrap();
+    let repo = temp.repo();
     cmd("pk repo metadata regen")
-        .arg(temp.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")
         .success();
 
-    let path = temp.metadata().cache().path();
+    let path = repo.metadata().cache().path();
     assert!(path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
     assert!(path.join("other").exists());
 
     // outdated cache files and directories are removed
-    fs::remove_dir_all(temp.path().join("cat/b")).unwrap();
-    fs::remove_dir_all(temp.path().join("other")).unwrap();
+    fs::remove_dir_all(repo.path().join("cat/b")).unwrap();
+    fs::remove_dir_all(repo.path().join("other")).unwrap();
     cmd("pk repo metadata regen")
-        .arg(temp.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr("")
@@ -181,15 +184,16 @@ fn pkg_with_invalid_eapi() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
     temp.create_raw_pkg("cat/a-1", &["EAPI=invalid"]).ok();
     temp.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
+    let repo = temp.repo();
     cmd("pk repo metadata regen")
-        .arg(temp.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr(lines_contain(["invalid pkg: cat/a-1", "metadata failures occurred"]))
         .failure()
         .code(2);
 
-    let path = temp.metadata().cache().path();
+    let path = repo.metadata().cache().path();
     assert!(!path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
 }
@@ -199,15 +203,16 @@ fn pkg_with_invalid_dep() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
     temp.create_raw_pkg("cat/a-1", &["DEPEND=cat/pkg[]"]).ok();
     temp.create_raw_pkg("cat/b-1", &["DEPEND=cat/pkg"]).unwrap();
+    let repo = temp.repo();
     cmd("pk repo metadata regen")
-        .arg(temp.path())
+        .arg(repo.path())
         .assert()
         .stdout("")
         .stderr(lines_contain(["invalid pkg: cat/a-1", "metadata failures occurred"]))
         .failure()
         .code(2);
 
-    let path = temp.metadata().cache().path();
+    let path = repo.metadata().cache().path();
     assert!(!path.join("cat/a-1").exists());
     assert!(path.join("cat/b-1").exists());
 }

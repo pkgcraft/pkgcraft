@@ -205,7 +205,7 @@ mod tests {
         let mut temp = config.temp_repo("test", 0, None).unwrap();
         temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
         temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let configured = temp.configure(&config);
+        let configured = temp.repo().configure(&config);
         let mut iter = configured.iter();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             let pkg = iter.next();
@@ -220,7 +220,7 @@ mod tests {
         let mut temp = config.temp_repo("test", 0, None).unwrap();
         temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         temp.create_raw_pkg("cat/pkg-2", &[]).unwrap();
-        let configured = temp.configure(&config);
+        let configured = temp.repo().configure(&config);
 
         // single match via CPV
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
@@ -229,14 +229,14 @@ mod tests {
         assert_eq!(cpvs, [cpv.to_string()]);
 
         // single match via package
-        let pkg = temp.iter().next().unwrap();
-        let iter = temp.iter_restrict(&pkg);
+        let pkg = temp.repo().iter().next().unwrap();
+        let iter = temp.repo().iter_restrict(&pkg);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, [pkg.cpv().to_string()]);
 
         // multiple matches
         let restrict = DepRestrict::package("pkg");
-        let iter = temp.iter_restrict(restrict);
+        let iter = temp.repo().iter_restrict(restrict);
         let cpvs: Vec<_> = iter.map(|p| p.cpv().to_string()).collect();
         assert_eq!(cpvs, ["cat/pkg-1", "cat/pkg-2"]);
     }
