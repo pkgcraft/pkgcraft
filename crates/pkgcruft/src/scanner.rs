@@ -9,11 +9,13 @@ use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository, Repo};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
+use tracing::info;
 
 use crate::check::Check;
 use crate::error::Error;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
+use crate::scope::Scope;
 use crate::source::{PkgFilter, Target};
 
 pub struct Scanner {
@@ -121,6 +123,9 @@ impl Scanner {
         if restrict == Restrict::False {
             return Ok(Box::new(iter::empty()));
         }
+
+        let scan_scope = Scope::from(&restrict);
+        info!("scan scope: {scan_scope}");
 
         let (restrict_tx, restrict_rx) = bounded(self.jobs);
         let (reports_tx, reports_rx) = bounded(self.jobs);
