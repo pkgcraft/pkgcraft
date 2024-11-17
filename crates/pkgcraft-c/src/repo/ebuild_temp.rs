@@ -2,6 +2,7 @@ use std::ffi::{c_char, c_int};
 use std::slice;
 
 use pkgcraft::eapi::Eapi;
+use pkgcraft::pkg::Pkg;
 use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repo;
 
@@ -51,19 +52,19 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_repo(r: *mut EbuildTempRepo) 
     Box::into_raw(Box::new(repo.into()))
 }
 
-/// Create an ebuild file in the repo.
+/// Create an ebuild package in the repo.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_pkg(
     r: *mut EbuildTempRepo,
     cpv: *const c_char,
     key_vals: *mut *mut c_char,
     len: usize,
-) -> *mut c_char {
+) -> *mut Pkg {
     ffi_catch_panic! {
         let temp = try_mut_from_ptr!(r);
         let cpv = try_str_from_ptr!(cpv);
@@ -71,29 +72,29 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
         for ptr in unsafe { slice::from_raw_parts(key_vals, len) } {
             data.push(try_str_from_ptr!(*ptr));
         }
-        let raw_pkg = unwrap_or_panic!(temp.create_raw_pkg(cpv, &data));
-        try_ptr_from_str!(raw_pkg.path().as_str())
+        let pkg = unwrap_or_panic!(temp.create_pkg(cpv, &data));
+        Box::into_raw(Box::new(Pkg::Ebuild(pkg)))
     }
 }
 
-/// Create an ebuild file in the repo from raw data.
+/// Create an ebuild package in the repo from raw data.
 ///
 /// Returns NULL on error.
 ///
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_raw(
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_pkg_from_str(
     r: *mut EbuildTempRepo,
     cpv: *const c_char,
     data: *const c_char,
-) -> *mut c_char {
+) -> *mut Pkg {
     ffi_catch_panic! {
         let temp = try_mut_from_ptr!(r);
         let cpv = try_str_from_ptr!(cpv);
         let data = try_str_from_ptr!(data);
-        let raw_pkg = unwrap_or_panic!(temp.create_raw_pkg_from_str(cpv, data));
-        try_ptr_from_str!(raw_pkg.path().as_str())
+        let pkg = unwrap_or_panic!(temp.create_pkg_from_str(cpv, data));
+        Box::into_raw(Box::new(Pkg::Ebuild(pkg)))
     }
 }
 
