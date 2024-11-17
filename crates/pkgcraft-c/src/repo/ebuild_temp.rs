@@ -1,4 +1,4 @@
-use std::ffi::c_char;
+use std::ffi::{c_char, c_int};
 use std::slice;
 
 use pkgcraft::eapi::Eapi;
@@ -19,11 +19,12 @@ use crate::panic::ffi_catch_panic;
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
     id: *const c_char,
     eapi: *const Eapi,
+    priority: c_int,
 ) -> *mut EbuildTempRepo {
     ffi_catch_panic! {
         let id = try_str_from_ptr!(id);
         let eapi = eapi_or_default!(eapi);
-        let temp = unwrap_or_panic!(EbuildTempRepo::new(id, None, 0, Some(eapi)));
+        let temp = unwrap_or_panic!(EbuildTempRepo::new(id, None, priority, Some(eapi)));
         Box::into_raw(Box::new(temp))
     }
 }
