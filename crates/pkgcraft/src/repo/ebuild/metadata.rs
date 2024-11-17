@@ -236,19 +236,19 @@ impl<T: PkgCacheData> PkgCache<T> {
         } else {
             // parse data and insert value into the cache
             let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
-            let data = fs::read_to_string(&path)
-                .map_err(|e| {
-                    if e.kind() != io::ErrorKind::NotFound {
-                        warn!("{repo_id}: failed reading: {path}: {e}");
-                    }
-                })
-                .unwrap_or_default();
             let value = Arc::new(
-                T::parse(&data)
+                fs::read_to_string(&path)
                     .map_err(|e| {
-                        warn!("{repo_id}: failed parsing: {path}: {e}");
+                        if e.kind() != io::ErrorKind::NotFound {
+                            warn!("{repo_id}: failed reading: {path}: {e}");
+                        }
                     })
-                    // fallback to default value on parsing failure
+                    .and_then(|data| {
+                        T::parse(&data).map_err(|e| {
+                            warn!("{repo_id}: failed parsing: {path}: {e}");
+                        })
+                    })
+                    // fallback to default value on I/O or parsing failures
                     .unwrap_or_default(),
             );
             self.0.insert(cpn.clone(), value.clone());
