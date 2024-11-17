@@ -3,6 +3,7 @@ use std::slice;
 
 use pkgcraft::eapi::Eapi;
 use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
+use pkgcraft::repo::Repo;
 
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
@@ -37,6 +38,17 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(r: *mut EbuildTempRepo) -> *mut c_char {
     let temp = try_ref_from_ptr!(r);
     try_ptr_from_str!(temp.path().as_str())
+}
+
+/// Return the ebuild repo corresponding to the temporary repo.
+///
+/// # Safety
+/// The argument must be a non-null EbuildTempRepo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_repo(r: *mut EbuildTempRepo) -> *mut Repo {
+    let temp = try_mut_from_ptr!(r);
+    let repo = temp.repo().clone();
+    Box::into_raw(Box::new(repo.into()))
 }
 
 /// Create an ebuild file in the repo.
