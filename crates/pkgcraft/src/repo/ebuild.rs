@@ -415,6 +415,7 @@ impl PkgRepository for EbuildRepo {
         let mut categories: IndexSet<_> = self
             .trees()
             .flat_map(|r| r.metadata().categories().clone())
+            .filter(|x| self.path().join(x).is_dir())
             .collect();
         categories.sort();
         categories
