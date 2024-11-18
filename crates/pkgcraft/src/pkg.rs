@@ -186,6 +186,12 @@ macro_rules! make_pkg_traits {
                 other.intersects(self)
             }
         }
+
+        impl From<&$x> for $crate::dep::Cpv {
+            fn from(value: &$x) -> Self {
+                value.cpv().clone()
+            }
+        }
     )+};
 }
 use make_pkg_traits;
