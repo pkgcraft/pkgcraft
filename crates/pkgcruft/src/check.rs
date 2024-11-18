@@ -386,17 +386,19 @@ mod tests {
 
     #[test]
     fn report() {
-        // verify all reports variants have at least one check
-        for kind in ReportKind::iter() {
-            assert!(REPORT_CHECKS.get(&kind).is_some(), "no checks for report: {kind}");
-        }
+        // verify all report variants have at least one check
+        let reports: Vec<_> = ReportKind::iter()
+            .filter(|x| REPORT_CHECKS.get(x).is_none())
+            .collect();
+        assert!(reports.is_empty(), "no checks for reports: {}", reports.iter().join(", "));
     }
 
     #[test]
     fn source() {
         // verify all source variants have at least one check
-        for kind in SourceKind::iter() {
-            assert!(SOURCE_CHECKS.get(&kind).is_some(), "no checks for source: {kind}");
-        }
+        let sources: Vec<_> = SourceKind::iter()
+            .filter(|x| SOURCE_CHECKS.get(x).is_none())
+            .collect();
+        assert!(sources.is_empty(), "no checks for sources: {}", sources.iter().join(", "));
     }
 }
