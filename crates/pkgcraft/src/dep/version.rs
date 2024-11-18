@@ -457,10 +457,7 @@ impl fmt::Display for Version {
 fn fmt(f: &mut fmt::Formatter, v: &Version, rev: bool, op: bool) -> fmt::Result {
     let mut s = String::new();
 
-    write!(s, "{}", v.numbers[0])?;
-    for n in &v.numbers[1..] {
-        write!(s, ".{n}")?;
-    }
+    write!(s, "{}", v.numbers.iter().join("."))?;
 
     if let Some(c) = &v.letter {
         write!(s, "{c}")?;
