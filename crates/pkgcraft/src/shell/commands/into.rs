@@ -10,14 +10,11 @@ Takes exactly one argument and sets the value of DESTTREE.";
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let path = match args[..] {
-        ["/"] => "",
-        [s] => s,
-        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
+    let [path] = args else {
+        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
     };
 
-    let build = get_build_mut();
-    build.override_var(DESTTREE, path)?;
+    get_build_mut().override_var(DESTTREE, path)?;
 
     Ok(ExecStatus::Success)
 }
