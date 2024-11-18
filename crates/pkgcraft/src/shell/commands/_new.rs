@@ -10,9 +10,8 @@ use crate::utils::is_single_component;
 
 // Underlying implementation for new* builtins.
 pub(super) fn new(args: &[&str], builtin: Builtin) -> scallop::Result<ExecStatus> {
-    let (source, name) = match args[..] {
-        [source, name] => (source, name),
-        _ => return Err(Error::Base(format!("requires 2 args, got {}", args.len()))),
+    let [source, name] = args[..] else {
+        return Err(Error::Base(format!("requires 2 args, got {}", args.len())));
     };
 
     // filename can't contain a path separator
