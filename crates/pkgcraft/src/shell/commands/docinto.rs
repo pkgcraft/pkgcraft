@@ -10,14 +10,11 @@ Takes exactly one argument and sets the install path for dodoc and other doc-rel
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let path = match args[..] {
-        ["/"] => "",
-        [s] => s,
-        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
+    let [path] = args else {
+        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
     };
 
-    let build = get_build_mut();
-    build.override_var(DOCDESTTREE, path)?;
+    get_build_mut().override_var(DOCDESTTREE, path)?;
 
     Ok(ExecStatus::Success)
 }
@@ -59,6 +56,15 @@ mod tests {
             r#"
             [[files]]
             path = "/usr/share/doc/pkg-1/examples/file"
+        "#,
+        );
+
+        docinto(&["/"]).unwrap();
+        dodoc(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkg-1/file"
         "#,
         );
     }
