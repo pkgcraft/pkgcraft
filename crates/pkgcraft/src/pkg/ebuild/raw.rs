@@ -37,9 +37,11 @@ impl fmt::Debug for EbuildRawPkg {
 impl EbuildRawPkg {
     pub(crate) fn try_new(cpv: Cpv, repo: EbuildRepo) -> crate::Result<Self> {
         let relpath = cpv.relpath();
-        let data = fs::read_to_string(repo.path().join(&relpath)).map_err(|e| {
-            Error::IO(format!("{}: failed reading ebuild: {relpath}: {e}", repo.id()))
-        })?;
+        let data =
+            fs::read_to_string(repo.path().join(&relpath)).map_err(|e| Error::InvalidPkg {
+                id: format!("{cpv}::{repo}"),
+                err: format!("failed reading ebuild: {relpath}: {e}"),
+            })?;
 
         let eapi = Self::parse_eapi(&data).map_err(|e| Error::InvalidPkg {
             id: format!("{cpv}::{repo}"),

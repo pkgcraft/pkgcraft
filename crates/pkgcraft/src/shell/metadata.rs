@@ -8,11 +8,12 @@ use crate::Error;
 
 use super::get_build_mut;
 
+/// WARNING: This should always be run via a standalone process as it alters the environment and is
+/// not thread friendly in any fashion.
 impl TryFrom<&EbuildRawPkg> for Metadata {
     type Error = Error;
 
     fn try_from(pkg: &EbuildRawPkg) -> crate::Result<Self> {
-        // TODO: run sourcing via an external process pool returning the requested variables
         pkg.source()?;
 
         let eapi = pkg.eapi();

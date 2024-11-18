@@ -11,19 +11,22 @@ use tracing::warn;
 use crate::config::{RepoConfig, Settings};
 use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
+use crate::error::{Error, PackageError};
 use crate::files::{has_ext_utf8, is_dir_utf8, is_file_utf8, is_hidden_utf8, sorted_dir_list_utf8};
 use crate::macros::build_path;
-use crate::pkg::ebuild::{keyword::Arch, EbuildPkg, EbuildRawPkg};
+use crate::pkg::ebuild::{
+    keyword::Arch, metadata::Metadata as PkgMetadata, EbuildPkg, EbuildRawPkg,
+};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Intersects;
 use crate::xml::parse_xml_with_dtd;
-use crate::Error;
 
 use super::{make_repo_traits, Contains, PkgRepository, Repo, RepoFormat, Repository};
 
 pub mod cache;
+use cache::Cache;
 pub mod configured;
 mod eclass;
 pub use eclass::Eclass;
@@ -367,6 +370,18 @@ impl EbuildRepo {
     {
         let cpv = value.try_into()?;
         EbuildRawPkg::try_new(cpv, self.clone())
+    }
+
+    /// Update the package metadata cache for a given [`Cpv`].
+    pub fn update_pkg_metadata(&self, cpv: Cpv, force: bool, verify: bool) -> crate::Result<()> {
+        let pkg = EbuildRawPkg::try_new(cpv, self.clone())?;
+        if force || self.metadata().cache().get(&pkg).is_err() {
+            let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
+            if !verify {
+                self.metadata().cache().update(&pkg, &meta)?;
+            }
+        }
+        Ok(())
     }
 
     /// Scan the deprecated package list returning the first match for a given dependency.

@@ -340,7 +340,7 @@ impl Cache for Md5Dict {
         let path = self.path.join(pkg.cpv().category());
 
         // convert metadata to the cache entry format
-        let entry: Self::Entry = meta.into();
+        let entry = Self::Entry::from(meta);
 
         // atomically create cache file
         atomic_write_file(&path, &pkg.cpv().pf(), entry.to_bytes())

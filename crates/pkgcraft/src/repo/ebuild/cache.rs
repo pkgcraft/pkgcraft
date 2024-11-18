@@ -7,7 +7,7 @@ use strum::{Display, EnumString};
 use tracing::error;
 
 use crate::dep::Cpv;
-use crate::error::{Error, PackageError};
+use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::{PkgRepository, Repository};
@@ -226,12 +226,7 @@ impl MetadataCacheRegen<'_> {
 
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| -> scallop::Result<()> {
-            let pkg = EbuildRawPkg::try_new(cpv, repo.clone())?;
-            let meta = Metadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
-            if !self.verify {
-                self.cache.update(&pkg, &meta)?;
-            }
-            Ok(())
+            Ok(repo.update_pkg_metadata(cpv, true, self.verify)?)
         };
         let (pool, results_iter) = PoolSendIter::new(self.jobs, func, !self.output)?;
 
