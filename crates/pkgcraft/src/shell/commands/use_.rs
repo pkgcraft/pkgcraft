@@ -26,11 +26,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(format!("USE flag not in IUSE: {flag}")));
     }
 
-    let mut ret = build.use_.contains(flag);
-    if negated {
-        ret = !ret;
-    }
-
+    let ret = build.use_.contains(flag) ^ negated;
     Ok(ExecStatus::from(ret))
 }
 
