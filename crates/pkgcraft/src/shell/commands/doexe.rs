@@ -51,6 +51,18 @@ mod tests {
         let file_tree = FileTree::new();
 
         fs::File::create("pkgcraft").unwrap();
+
+        doexe(&["pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/pkgcraft"
+            mode = 0o100755
+        "#,
+        );
+
+        // explicit root dir
+        exeinto(&["/"]).unwrap();
         doexe(&["pkgcraft"]).unwrap();
         file_tree.assert(
             r#"

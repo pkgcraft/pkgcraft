@@ -45,6 +45,28 @@ mod tests {
         "#,
         );
 
+        // explicit root dir
+        exeinto(&["/"]).unwrap();
+        newexe(&["bin", "pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/pkgcraft"
+            mode = 0o100755
+        "#,
+        );
+
+        // custom install dir
+        exeinto(&["/bin"]).unwrap();
+        newexe(&["bin", "pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/bin/pkgcraft"
+            mode = 0o100755
+        "#,
+        );
+
         // custom mode and install dir using data from stdin
         stdin().inject("pkgcraft").unwrap();
         exeinto(&["/opt/bin"]).unwrap();
