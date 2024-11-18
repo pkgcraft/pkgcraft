@@ -9,9 +9,8 @@ Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure oth
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let flag = match args {
-        [flag] => flag,
-        _ => return Err(Error::Base(format!("requires 1 arg, got {}", args.len()))),
+    let [flag] = args else {
+        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
     };
 
     let pkg = get_build_mut().ebuild_pkg();
