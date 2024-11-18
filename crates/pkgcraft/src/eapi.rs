@@ -98,7 +98,6 @@ type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
 #[derive(Default, Clone)]
 pub struct Eapi {
     id: String,
-    parent: Option<&'static Self>,
     features: HashSet<Feature>,
     operations: HashSet<Operation>,
     phases: IndexSet<Phase>,
@@ -219,11 +218,10 @@ impl TryFrom<&Utf8Path> for &'static Eapi {
 }
 
 impl Eapi {
-    /// Create a new Eapi given an identifier and optional parent to inherit from.
-    fn new(id: &str, parent: Option<&'static Eapi>) -> Self {
-        let mut eapi = parent.cloned().unwrap_or_default();
+    /// Create a new Eapi given an identifier and optional Eapi to inherit from.
+    fn new(id: &str, eapi: Option<&'static Eapi>) -> Self {
+        let mut eapi = eapi.cloned().unwrap_or_default();
         eapi.id = id.to_string();
-        eapi.parent = parent;
         eapi
     }
 
@@ -828,34 +826,12 @@ pub static EAPI_PKGCRAFT: LazyLock<Eapi> = LazyLock::new(|| {
 pub static EAPI_LATEST: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI_PKGCRAFT);
 
 /// Ordered set of official, supported EAPIs.
-pub static EAPIS_OFFICIAL: LazyLock<IndexSet<&'static Eapi>> = LazyLock::new(|| {
-    let mut eapi: &Eapi = &EAPI_LATEST_OFFICIAL;
-    let mut eapis = IndexSet::from([eapi]);
-    while let Some(x) = eapi.parent {
-        eapis.insert(x);
-        eapi = x;
-    }
-    // reverse so it's in chronological order
-    eapis.reverse();
-    eapis
-});
+pub static EAPIS_OFFICIAL: LazyLock<IndexSet<&'static Eapi>> =
+    LazyLock::new(|| [&*EAPI5, &*EAPI6, &*EAPI7, &*EAPI8].into_iter().collect());
 
 /// Ordered set of unofficial EAPIs.
-pub static EAPIS_UNOFFICIAL: LazyLock<IndexSet<&'static Eapi>> = LazyLock::new(|| {
-    let mut eapi: &Eapi = &EAPI_LATEST;
-    let mut eapis = IndexSet::from([eapi]);
-    while let Some(x) = eapi.parent {
-        if *EAPI_LATEST_OFFICIAL == x {
-            break;
-        }
-
-        eapis.insert(x);
-        eapi = x;
-    }
-    // reverse so it's in chronological order
-    eapis.reverse();
-    eapis
-});
+pub static EAPIS_UNOFFICIAL: LazyLock<IndexSet<&'static Eapi>> =
+    LazyLock::new(|| [&*EAPI_PKGCRAFT].into_iter().collect());
 
 /// Ordered set of EAPIs.
 pub static EAPIS: LazyLock<IndexSet<&'static Eapi>> = LazyLock::new(|| {
