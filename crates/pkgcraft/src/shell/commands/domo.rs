@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use camino::Utf8Path;
 use scallop::{Error, ExecStatus};
 
+use crate::eapi::Feature::DomoUsesDesttree;
 use crate::macros::build_path;
 use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
@@ -18,16 +19,16 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let build = get_build_mut();
-    let dest = build_path!(
-        build
-            .env
-            .get(&DESTTREE)
-            .map(|s| s.as_str())
-            .unwrap_or("/usr"),
-        "share/locale"
-    );
+    let dest = if build.eapi().has(DomoUsesDesttree) {
+        build.env(DESTTREE)
+    } else {
+        "/usr"
+    };
     let opts = ["-m0644"];
-    let install = build.install().dest(dest)?.file_options(opts);
+    let install = build
+        .install()
+        .dest(build_path!(dest, "share/locale"))?
+        .file_options(opts);
 
     let mut dirs = HashSet::new();
     let mut files = vec![];
@@ -54,12 +55,14 @@ make_builtin!("domo", domo_builtin);
 mod tests {
     use std::fs;
 
+    use crate::config::Config;
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::TEST_DATA;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, domo};
+    use super::super::{assert_invalid_args, cmd_scope_tests, domo, into};
     use super::*;
 
     cmd_scope_tests!(USAGE);
@@ -81,20 +84,31 @@ mod tests {
 
     #[test]
     fn creation() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
-        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
-        BuildData::from_pkg(&pkg);
+        let mut config = Config::default();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
-        let file_tree = FileTree::new();
-
-        fs::File::create("en.mo").unwrap();
-        domo(&["en.mo"]).unwrap();
-        file_tree.assert(
-            r#"
-            [[files]]
-            path = "/usr/share/locale/en/LC_MESSAGES/pkg.mo"
-            mode = 0o100644
-        "#,
-        );
+        // verify DESTTREE is used depending on EAPI
+        for eapi in &*EAPIS_OFFICIAL {
+            let pkg = temp
+                .create_pkg("cat/pkg-1", &[&format!("EAPI={eapi}")])
+                .unwrap();
+            BuildData::from_pkg(&pkg);
+            let file_tree = FileTree::new();
+            fs::File::create("en.mo").unwrap();
+            into(&["opt"]).unwrap();
+            domo(&["en.mo"]).unwrap();
+            let path = if eapi.has(DomoUsesDesttree) {
+                "/opt/share/locale/en/LC_MESSAGES/pkg.mo"
+            } else {
+                "/usr/share/locale/en/LC_MESSAGES/pkg.mo"
+            };
+            file_tree.assert(format!(
+                r#"
+                [[files]]
+                path = "{path}"
+                mode = 0o100644
+            "#
+            ));
+        }
     }
 }

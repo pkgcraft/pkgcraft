@@ -69,6 +69,8 @@ pub enum Feature {
     UnpackCaseInsensitive,
 
     // EAPI 7
+    /// `domo` uses DESTTREE for destination paths
+    DomoUsesDesttree,
     /// `best_version` and `has_version` support -b/-d/-r options
     QueryDeps,
     /// path variables ROOT, EROOT, D, and ED end with a trailing slash
@@ -541,7 +543,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
     use Feature::*;
 
     Eapi::new("5", None)
-        .enable_features([QueryHostRoot, TrailingSlash])
+        .enable_features([DomoUsesDesttree, QueryHostRoot, TrailingSlash])
         .update_commands([
             Command::new(adddeny, [Phases]),
             Command::new(addpredict, [Phases]),
@@ -765,7 +767,7 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
 
     Eapi::new("7", Some(&EAPI6))
         .enable_features([QueryDeps])
-        .disable_features([QueryHostRoot, TrailingSlash])
+        .disable_features([DomoUsesDesttree, QueryHostRoot, TrailingSlash])
         .update_commands([
             Command::new(dostrip, [SrcInstall]),
             Command::new(eqawarn, [All]),
