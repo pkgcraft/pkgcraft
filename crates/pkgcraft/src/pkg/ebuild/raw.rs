@@ -12,7 +12,7 @@ use crate::repo::{ebuild::EbuildRepo, Repository};
 use crate::traits::{FilterLines, Intersects};
 use crate::Error;
 
-use super::metadata::{Metadata, MetadataRaw};
+use super::metadata::Metadata;
 
 #[derive(Clone)]
 struct InternalEbuildRawPkg {
@@ -84,21 +84,6 @@ impl EbuildRawPkg {
     /// Return the checksum of the package's ebuild file content.
     pub fn chksum(&self) -> &str {
         &self.0.chksum
-    }
-
-    /// Load raw metadata from the cache if valid, otherwise source it from the ebuild.
-    pub fn metadata_raw(&self) -> crate::Result<MetadataRaw> {
-        self.0
-            .repo
-            .metadata()
-            .cache()
-            .get(self)
-            .map(|c| c.into_metadata_raw())
-            .or_else(|_| self.try_into())
-            .map_err(|e| Error::InvalidPkg {
-                id: self.to_string(),
-                err: e.to_string(),
-            })
     }
 
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.

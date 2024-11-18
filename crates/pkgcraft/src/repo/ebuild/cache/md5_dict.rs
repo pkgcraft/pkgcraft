@@ -12,7 +12,7 @@ use walkdir::WalkDir;
 use crate::dep::{Cpv, DependencySet, Slot};
 use crate::eapi::Eapi;
 use crate::files::{atomic_write_file, is_file};
-use crate::pkg::ebuild::metadata::{Key, Metadata, MetadataRaw};
+use crate::pkg::ebuild::metadata::{Key, Metadata};
 use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, EbuildRawPkg};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{EbuildRepo, Eclass};
@@ -168,19 +168,6 @@ impl CacheEntry for Md5DictEntry {
         }
 
         Ok(meta)
-    }
-
-    fn into_metadata_raw(self) -> MetadataRaw {
-        use Key::*;
-        MetadataRaw(
-            self.0
-                .into_iter()
-                .filter_map(|(key, val)| match key.0 {
-                    CHKSUM | DEFINED_PHASES | INHERIT | INHERITED => None,
-                    key => Some((key, val)),
-                })
-                .collect(),
-        )
     }
 
     fn verify(&self, pkg: &EbuildRawPkg) -> crate::Result<()> {
