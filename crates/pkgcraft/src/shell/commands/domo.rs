@@ -34,12 +34,11 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let filename = format!("{}.mo", build.cpv().package());
 
     for path in args.iter().map(Utf8Path::new) {
-        let dir = match path.file_stem() {
-            None => continue,
-            Some(v) => Utf8Path::new(v).join("LC_MESSAGES"),
-        };
-        files.push((path, dir.join(&filename)));
-        dirs.insert(dir);
+        if let Some(dir) = path.file_stem().map(Utf8Path::new) {
+            let dir = dir.join("LC_MESSAGES");
+            files.push((path, dir.join(&filename)));
+            dirs.insert(dir);
+        }
     }
 
     install.dirs(dirs)?;
