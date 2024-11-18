@@ -7,7 +7,6 @@ use camino::Utf8Path;
 use colored::Color;
 use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::pkg::Package;
 use pkgcraft::repo::Repository;
 use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
@@ -124,9 +123,6 @@ pub enum ReportKind {
     /// Ebuild has a deprecated license.
     LicenseDeprecated,
 
-    /// Ebuild has invalid LICENSE.
-    LicenseInvalid,
-
     /// Ebuild has a missing license.
     LicenseMissing,
 
@@ -136,8 +132,8 @@ pub enum ReportKind {
     /// Package only has live ebuilds.
     LiveOnly,
 
-    /// Ebuild is missing mandatory metadata values.
-    MetadataMissing,
+    /// Ebuild fails to generate metadata.
+    MetadataError,
 
     /// Overlay package matches the name of a package from a parent repo.
     PackageOverride,
@@ -148,9 +144,6 @@ pub enum ReportKind {
     /// Ebuild can support newer python version(s).
     PythonUpdate,
 
-    /// Ebuild has invalid REQUIRED_USE.
-    RequiredUseInvalid,
-
     /// Ebuild has invalid RESTRICT.
     RestrictInvalid,
 
@@ -159,9 +152,6 @@ pub enum ReportKind {
 
     /// Ebuild can support newer ruby version(s).
     RubyUpdate,
-
-    /// Ebuild has bash failures when sourced.
-    SourcingError,
 
     /// Package only has unstable keywords.
     UnstableOnly,
@@ -193,10 +183,10 @@ pub enum ReportKind {
 
 impl ReportKind {
     /// Create a version scope report.
-    pub(crate) fn version<P: Package>(self, pkg: P) -> ReportBuilder {
+    pub(crate) fn version<T: Into<Cpv>>(self, value: T) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
-            scope: ReportScope::Version(pkg.cpv().clone(), None),
+            scope: ReportScope::Version(value.into(), None),
             message: Default::default(),
         })
     }
@@ -239,19 +229,16 @@ impl ReportKind {
             Self::KeywordsOverlapping => Error,
             Self::KeywordsUnsorted => Style,
             Self::LicenseDeprecated => Warning,
-            Self::LicenseInvalid => Critical,
             Self::LicenseMissing => Error,
             Self::LicenseUnneeded => Warning,
             Self::LiveOnly => Warning,
-            Self::MetadataMissing => Critical,
+            Self::MetadataError => Critical,
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
             Self::PythonUpdate => Info,
-            Self::RequiredUseInvalid => Critical,
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
             Self::RubyUpdate => Info,
-            Self::SourcingError => Critical,
             Self::UnstableOnly => Info,
             Self::UseLocalDescMissing => Error,
             Self::UseLocalGlobal => Warning,

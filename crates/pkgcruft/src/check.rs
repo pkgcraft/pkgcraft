@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
-use pkgcraft::dep::Cpn;
+use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
@@ -139,11 +139,17 @@ macro_rules! register {
 }
 use register;
 
-/// Run a check against an unversioned package.
-pub(crate) trait UnversionedPkgCheck: fmt::Display {
+/// Run a check against a Cpn.
+pub(crate) trait CpnCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter);
 }
-pub(crate) type UnversionedPkgRunner = Box<dyn UnversionedPkgCheck + Send + Sync>;
+pub(crate) type CpnRunner = Box<dyn CpnCheck + Send + Sync>;
+
+/// Run a check against a Cpv.
+pub(crate) trait CpvCheck: fmt::Display {
+    fn run(&self, cpv: &Cpv, filter: &mut ReportFilter);
+}
+pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
 
 /// Run a check against a given ebuild package version.
 pub(crate) trait EbuildPkgCheck: fmt::Display {
@@ -271,7 +277,6 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
         match &self.kind {
             CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
             CheckKind::Header => Box::new(header::create()),
-            CheckKind::Metadata => Box::new(metadata::create()),
             CheckKind::VariableOrder => Box::new(variable_order::create()),
             CheckKind::Whitespace => Box::new(whitespace::create()),
             _ => unreachable!("unsupported check: {self}"),
@@ -279,10 +284,19 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
     }
 }
 
-impl ToRunner<UnversionedPkgRunner> for Check {
-    fn to_runner(&self, repo: &'static EbuildRepo) -> UnversionedPkgRunner {
+impl ToRunner<CpnRunner> for Check {
+    fn to_runner(&self, repo: &'static EbuildRepo) -> CpnRunner {
         match &self.kind {
             CheckKind::Duplicates => Box::new(duplicates::create(repo)),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
+}
+
+impl ToRunner<CpvRunner> for Check {
+    fn to_runner(&self, repo: &'static EbuildRepo) -> CpvRunner {
+        match &self.kind {
+            CheckKind::Metadata => Box::new(metadata::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }

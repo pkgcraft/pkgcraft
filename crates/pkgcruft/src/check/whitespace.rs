@@ -140,12 +140,12 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new().checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // primary fixed
         let repo = TEST_DATA_PATCHED.repo("qa-primary").unwrap();
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
     }
 }

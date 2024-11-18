@@ -17,7 +17,7 @@ pub fn bench(c: &mut Criterion) {
         for check in Check::iter() {
             group.bench_function(check.to_string(), |b| {
                 let scanner = Scanner::new().checks([check]);
-                b.iter(|| scanner.run(&repo, &repo).unwrap().count());
+                b.iter(|| scanner.run(&repo, &repo).count());
             });
         }
     } else {

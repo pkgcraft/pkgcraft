@@ -10,7 +10,7 @@ pub fn bench(c: &mut Criterion) {
         let scanner = Scanner::new();
         let mut count = 0;
         b.iter(|| {
-            count = scanner.run(repo, repo).unwrap().count();
+            count = scanner.run(repo, repo).count();
         });
         assert!(count > 0);
     });
