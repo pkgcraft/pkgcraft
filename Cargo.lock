@@ -1983,7 +1983,6 @@ dependencies = [
  "md-5",
  "nix",
  "num_cpus",
- "once_cell",
  "peg",
  "pretty_assertions",
  "rayon",

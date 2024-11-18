@@ -6,7 +6,6 @@ use std::sync::LazyLock;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use scallop::builtins::{override_funcs, shopt};
 use scallop::variables::*;
 use scallop::{functions, Error, ExecStatus};
@@ -396,11 +395,11 @@ impl BuildData {
     }
 }
 
-// TODO: move to LazyLock once LazyLock::get_mut() is stabilized or state tracking is rewritten
-static mut STATE: Lazy<UnsafeCell<BuildData>> = Lazy::new(|| UnsafeCell::new(BuildData::new()));
+static mut STATE: LazyLock<UnsafeCell<BuildData>> =
+    LazyLock::new(|| UnsafeCell::new(BuildData::new()));
 
-fn get_build_mut() -> &'static mut BuildData {
-    unsafe { STATE.get_mut() }
+fn get_build_mut<'a>() -> &'a mut BuildData {
+    unsafe { UnsafeCell::raw_get(&*STATE).as_mut().unwrap() }
 }
 
 fn update_build(state: BuildData) {
