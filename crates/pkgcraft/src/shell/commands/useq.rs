@@ -35,7 +35,7 @@ mod tests {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
-        assert_err_re!(useq(&["use"]), "^.* not in IUSE$");
+        assert_err_re!(useq(&["use"]), "^USE flag not in IUSE: use$");
     }
 
     #[test]

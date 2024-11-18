@@ -23,7 +23,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let pkg = build.ebuild_pkg();
 
     if !pkg.iuse_effective().contains(flag) {
-        return Err(Error::Base(format!("USE flag {flag:?} not in IUSE")));
+        return Err(Error::Base(format!("USE flag not in IUSE: {flag}")));
     }
 
     let mut ret = build.use_.contains(flag);
@@ -59,7 +59,7 @@ mod tests {
         let repo = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
-        assert_err_re!(use_(&["use"]), "^.* not in IUSE$");
+        assert_err_re!(use_(&["use"]), "^USE flag not in IUSE: use$");
     }
 
     #[test]
