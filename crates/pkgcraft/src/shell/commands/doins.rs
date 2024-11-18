@@ -90,6 +90,17 @@ mod tests {
         "#,
         );
 
+        // explicit root dir
+        insinto(&["/"]).unwrap();
+        doins(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/file"
+            mode = 0o100644
+        "#,
+        );
+
         for dir in ["newdir", "/newdir"] {
             // recursive using `insinto` and `insopts`
             fs::create_dir_all("dir/subdir").unwrap();

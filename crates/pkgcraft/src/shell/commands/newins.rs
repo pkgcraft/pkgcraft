@@ -21,7 +21,7 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, newins};
+    use super::super::{assert_invalid_args, cmd_scope_tests, insinto, newins};
     use super::*;
 
     cmd_scope_tests!(USAGE);
@@ -45,13 +45,36 @@ mod tests {
         "#,
         );
 
-        // re-run using data from stdin
-        stdin().inject("pkgcraft").unwrap();
-        newins(&["-", "pkgcraft"]).unwrap();
+        // explicit root dir
+        insinto(&["/"]).unwrap();
+        newins(&["file", "pkgcraft"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
             path = "/pkgcraft"
+            mode = 0o100644
+        "#,
+        );
+
+        // custom install dir
+        insinto(&["/etc"]).unwrap();
+        newins(&["file", "pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/etc/pkgcraft"
+            mode = 0o100644
+        "#,
+        );
+
+        // install data from stdin
+        stdin().inject("pkgcraft").unwrap();
+        insinto(&["/opt"]).unwrap();
+        newins(&["-", "pkgcraft"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/opt/pkgcraft"
             data = "pkgcraft"
             mode = 0o100644
         "#,
