@@ -69,10 +69,9 @@ impl Command {
         let mut reporter = self.reporter.collapse();
 
         // determine target restrictions
-        let targets: Vec<_> = TargetRestrictions::new(config)
+        let targets = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .targets(self.targets.iter().flatten())
-            .collect();
+            .targets(self.targets.iter().flatten());
 
         // create report scanner
         let scanner = Scanner::new()
@@ -87,7 +86,7 @@ impl Command {
         for target in targets {
             let (repo_set, restrict) = target?;
             for repo in repo_set {
-                for report in scanner.run(&repo, &restrict) {
+                for report in scanner.run(&repo, &restrict)? {
                     reporter.report(&report, &mut stdout)?;
                 }
             }

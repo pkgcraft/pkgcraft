@@ -1,8 +1,8 @@
 use std::time::Instant;
 
 use indexmap::{IndexMap, IndexSet};
-use itertools::{Either, Itertools};
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use itertools::Itertools;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use tracing::debug;
 
 use crate::bash;
@@ -65,8 +65,7 @@ impl SyncCheckRunner {
 enum CheckRunner {
     EbuildPkg(EbuildPkgCheckRunner),
     EbuildRawPkg(EbuildRawPkgCheckRunner),
-    Cpn(CpnCheckRunner),
-    Cpv(CpvCheckRunner),
+    UnversionedPkg(UnversionedPkgCheckRunner),
 }
 
 impl CheckRunner {
@@ -76,8 +75,9 @@ impl CheckRunner {
             SourceKind::EbuildRawPkg => {
                 Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, filters))
             }
-            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(repo)),
-            SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(repo)),
+            SourceKind::UnversionedPkg => {
+                Self::UnversionedPkg(UnversionedPkgCheckRunner::new(repo))
+            }
         }
     }
 
@@ -86,8 +86,7 @@ impl CheckRunner {
         match self {
             Self::EbuildPkg(r) => r.add_check(check),
             Self::EbuildRawPkg(r) => r.add_check(check),
-            Self::Cpn(r) => r.add_check(check),
-            Self::Cpv(r) => r.add_check(check),
+            Self::UnversionedPkg(r) => r.add_check(check),
         }
     }
 
@@ -96,8 +95,7 @@ impl CheckRunner {
         match self {
             Self::EbuildPkg(r) => r.run(target, filter),
             Self::EbuildRawPkg(r) => r.run(target, filter),
-            Self::Cpn(r) => r.run(target, filter),
-            Self::Cpv(r) => r.run(target, filter),
+            Self::UnversionedPkg(r) => r.run(target, filter),
         }
     }
 }
@@ -194,13 +192,13 @@ impl EbuildRawPkgCheckRunner {
     }
 }
 
-/// Check runner for Cpn checks.
-struct CpnCheckRunner {
-    checks: Vec<CpnRunner>,
+/// Check runner for unversioned package checks.
+struct UnversionedPkgCheckRunner {
+    checks: Vec<UnversionedPkgRunner>,
     repo: &'static EbuildRepo,
 }
 
-impl CpnCheckRunner {
+impl UnversionedPkgCheckRunner {
     fn new(repo: &'static EbuildRepo) -> Self {
         Self {
             checks: Default::default(),
@@ -223,45 +221,6 @@ impl CpnCheckRunner {
                 let now = Instant::now();
                 check.run(cpn, filter);
                 debug!("{check}: {cpn}: {:?}", now.elapsed());
-            }
-        }
-    }
-}
-
-/// Check runner for Cpv checks.
-struct CpvCheckRunner {
-    checks: Vec<CpvRunner>,
-    repo: &'static EbuildRepo,
-}
-
-impl CpvCheckRunner {
-    fn new(repo: &'static EbuildRepo) -> Self {
-        Self {
-            checks: Default::default(),
-            repo,
-        }
-    }
-
-    /// Add a check to the check runner.
-    fn add_check(&mut self, check: Check) {
-        match &check.scope {
-            Scope::Version => self.checks.push(check.to_runner(self.repo)),
-            _ => unreachable!("unsupported check: {check}"),
-        }
-    }
-
-    /// Run the check runner for a given restriction.
-    fn run(&self, target: &Target, filter: &mut ReportFilter) {
-        let cpvs = match target {
-            Target::Cpn(cpn) => Either::Left(self.repo.iter_cpv_restrict(cpn)),
-            Target::Cpv(cpv) => Either::Right([cpv.clone()].into_iter()),
-        };
-
-        for cpv in cpvs {
-            for check in &self.checks {
-                let now = Instant::now();
-                check.run(&cpv, filter);
-                debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
         }
     }

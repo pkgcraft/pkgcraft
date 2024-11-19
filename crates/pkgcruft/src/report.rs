@@ -7,6 +7,7 @@ use camino::Utf8Path;
 use colored::Color;
 use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
+use pkgcraft::pkg::Package;
 use pkgcraft::repo::Repository;
 use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
@@ -132,9 +133,6 @@ pub enum ReportKind {
     /// Package only has live ebuilds.
     LiveOnly,
 
-    /// Ebuild fails to generate metadata.
-    MetadataError,
-
     /// Overlay package matches the name of a package from a parent repo.
     PackageOverride,
 
@@ -183,10 +181,10 @@ pub enum ReportKind {
 
 impl ReportKind {
     /// Create a version scope report.
-    pub(crate) fn version<T: Into<Cpv>>(self, value: T) -> ReportBuilder {
+    pub(crate) fn version<P: Package>(self, pkg: P) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
-            scope: ReportScope::Version(value.into(), None),
+            scope: ReportScope::Version(pkg.cpv().clone(), None),
             message: Default::default(),
         })
     }
@@ -232,7 +230,6 @@ impl ReportKind {
             Self::LicenseMissing => Error,
             Self::LicenseUnneeded => Warning,
             Self::LiveOnly => Warning,
-            Self::MetadataError => Critical,
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
             Self::PythonUpdate => Info,

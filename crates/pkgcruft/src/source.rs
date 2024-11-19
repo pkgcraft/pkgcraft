@@ -35,8 +35,7 @@ use crate::Error;
 pub enum SourceKind {
     EbuildPkg,
     EbuildRawPkg,
-    Cpn,
-    Cpv,
+    UnversionedPkg,
 }
 
 /// Package filtering variants.

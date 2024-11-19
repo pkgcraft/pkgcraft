@@ -102,12 +102,12 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new().checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
         let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }
