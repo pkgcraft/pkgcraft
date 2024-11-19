@@ -12,7 +12,6 @@ use strum::IntoEnumIterator;
 use tracing::info;
 
 use crate::check::Check;
-use crate::error::Error;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 use crate::scope::Scope;
@@ -151,9 +150,7 @@ impl Scanner {
                 if restrict != Restrict::True {
                     regen = regen.targets(repo.iter_cpv_restrict(&restrict));
                 }
-                regen
-                    .run(repo)
-                    .map_err(|e| Error::InvalidValue(format!("metadata generation failed: {e}")))?;
+                regen.run(repo)?;
 
                 // run checks
                 let runner = Arc::new(SyncCheckRunner::new(repo, &self.filters, &self.checks));
