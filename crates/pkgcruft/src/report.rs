@@ -7,7 +7,6 @@ use camino::Utf8Path;
 use colored::Color;
 use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::pkg::Package;
 use pkgcraft::repo::Repository;
 use pkgcraft::restrict::{Restrict, Restriction};
 use serde::{Deserialize, Serialize};
@@ -181,10 +180,10 @@ pub enum ReportKind {
 
 impl ReportKind {
     /// Create a version scope report.
-    pub(crate) fn version<P: Package>(self, pkg: P) -> ReportBuilder {
+    pub(crate) fn version<T: Into<Cpv>>(self, value: T) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
-            scope: ReportScope::Version(pkg.cpv().clone(), None),
+            scope: ReportScope::Version(value.into(), None),
             message: Default::default(),
         })
     }
