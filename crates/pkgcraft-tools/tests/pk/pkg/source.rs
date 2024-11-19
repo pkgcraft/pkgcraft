@@ -67,7 +67,7 @@ fn invalid_pkgs() {
     cmd(format!("pk pkg source cat/a-1::{path}"))
         .assert()
         .stdout("")
-        .stderr(lines_contain([format!("invalid pkg: cat/a-1::{path}: line 4: die: error: msg")]))
+        .stderr(lines_contain(["invalid pkg: cat/a-1::test: line 4: die: error: msg"]))
         .failure()
         .code(1);
 
