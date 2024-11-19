@@ -1,3 +1,5 @@
+use std::thread;
+
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -275,19 +277,32 @@ impl MetadataCacheRegen<'_> {
                 self.progress.set_message("generating metadata:");
             }
 
-            // send cpvs to the process pool
-            pool.send_iter(cpvs)?;
+            thread::scope(|scope| {
+                // send cpvs to the process pool
+                scope.spawn(move || {
+                    for cpv in cpvs {
+                        pool.send(cpv).ok();
+                    }
+                });
 
-            // iterate over returned results, tracking progress and errors
-            for r in results_iter {
-                self.progress.inc(1);
+                let thread_span = tracing::debug_span!("thread").or_current();
+                scope.spawn(|| {
+                    // hack to force log capturing to work in threads
+                    // https://github.com/dbrgn/tracing-test/issues/23
+                    let _entered = thread_span.entered();
 
-                // log errors
-                if let Err(e) = r {
-                    errors += 1;
-                    error!("{e}");
-                }
-            }
+                    // iterate over returned results, tracking progress and errors
+                    for r in results_iter {
+                        self.progress.inc(1);
+
+                        // log errors
+                        if let Err(e) = r {
+                            errors += 1;
+                            error!("{e}");
+                        }
+                    }
+                });
+            });
         }
 
         if errors > 0 {
