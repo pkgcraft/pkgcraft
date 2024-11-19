@@ -160,6 +160,8 @@ where
     input_tx: IpcSender<Msg<I>>,
 }
 
+unsafe impl<I> Sync for PoolSendIter<I> where I: Serialize + for<'a> Deserialize<'a> {}
+
 impl<I> PoolSendIter<I>
 where
     I: Serialize + for<'a> Deserialize<'a>,
