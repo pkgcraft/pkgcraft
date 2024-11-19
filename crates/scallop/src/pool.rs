@@ -234,18 +234,10 @@ where
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 shell::fork_init();
-                // send values to process pool
-                for value in values.into_iter() {
-                    self.input_tx
-                        .send(Msg::Val(value))
-                        .map_err(|e| Error::Base(format!("failed queuing value: {e}")))?;
+                for value in values {
+                    self.send(value)?;
                 }
-
-                // signal process pool end
-                self.input_tx
-                    .send(Msg::Stop)
-                    .map_err(|e| Error::Base(format!("failed stopping workers: {e}")))?;
-
+                self.stop()?;
                 unsafe { libc::_exit(0) };
             }
             Err(e) => Err(Error::Base(format!("failed starting queuing process: {e}"))),
@@ -260,6 +252,13 @@ where
             .send(Msg::Val(value))
             .map_err(|e| Error::Base(format!("failed queuing value: {e}")))
     }
+
+    /// Signal the process pool end.
+    pub fn stop(&self) -> crate::Result<()> {
+        self.input_tx
+            .send(Msg::Stop)
+            .map_err(|e| Error::Base(format!("failed stopping workers: {e}")))
+    }
 }
 
 impl<I> Drop for PoolSendIter<I>
@@ -267,7 +266,7 @@ where
     I: Serialize + for<'a> Deserialize<'a>,
 {
     fn drop(&mut self) {
-        self.input_tx.send(Msg::Stop).ok();
+        self.stop().ok();
     }
 }
 
