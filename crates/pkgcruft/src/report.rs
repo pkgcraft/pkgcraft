@@ -132,6 +132,9 @@ pub enum ReportKind {
     /// Package only has live ebuilds.
     LiveOnly,
 
+    /// Ebuild fails during metadata generation.
+    MetadataError,
+
     /// Overlay package matches the name of a package from a parent repo.
     PackageOverride,
 
@@ -229,6 +232,7 @@ impl ReportKind {
             Self::LicenseMissing => Error,
             Self::LicenseUnneeded => Warning,
             Self::LiveOnly => Warning,
+            Self::MetadataError => Critical,
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
             Self::PythonUpdate => Info,

@@ -8,18 +8,18 @@ use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, UnversionedPkgCheck};
+use super::{CheckContext, CheckKind, CpnCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Duplicates,
     scope: Scope::Package,
-    source: SourceKind::UnversionedPkg,
+    source: SourceKind::Cpn,
     reports: &[PackageOverride],
     context: &[CheckContext::Optional, CheckContext::Overlay],
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl UnversionedPkgCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl CpnCheck {
     Check { repo }
 }
 
@@ -29,7 +29,7 @@ struct Check {
 
 super::register!(Check);
 
-impl UnversionedPkgCheck for Check {
+impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         for repo in self.repo.masters() {
             if repo.contains(cpn) {
