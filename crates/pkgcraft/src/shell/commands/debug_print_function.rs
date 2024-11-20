@@ -59,7 +59,16 @@ mod tests {
             DESCRIPTION="testing debug-print-function"
             SLOT=0
         "#};
-        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         raw_pkg.source().unwrap();
         assert_logs_re!("e1_func: entering function msg 1 2 3$");
     }
@@ -84,7 +93,16 @@ mod tests {
             SLOT=0
             e1_func msg 1 2 3
         "#};
-        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         raw_pkg.source().unwrap();
         assert_logs_re!("e1_func: entering function msg 1 2 3$");
     }

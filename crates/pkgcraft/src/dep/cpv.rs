@@ -238,6 +238,14 @@ impl TryFrom<&str> for Cpv {
     }
 }
 
+impl TryFrom<String> for Cpv {
+    type Error = Error;
+
+    fn try_from(value: String) -> crate::Result<Self> {
+        Cpv::try_new(value)
+    }
+}
+
 impl From<&Cpv> for Cpv {
     fn from(value: &Cpv) -> Self {
         value.clone()

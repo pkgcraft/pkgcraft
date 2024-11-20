@@ -1,8 +1,9 @@
 use std::{env, fs};
 
 use indexmap::IndexMap;
+use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::repo::{ebuild::temp::EbuildTempRepo, Repository};
+use pkgcraft::repo::Repository;
 use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
@@ -35,7 +36,7 @@ fn nonexistent_repo() {
 #[test]
 fn empty_repo() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
+    let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()
@@ -49,7 +50,7 @@ fn empty_repo() {
 #[test]
 fn progress() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
+    let repo = data.ebuild_repo("empty").unwrap();
     for opt in ["-n", "--no-progress"] {
         cmd("pk repo metadata regen")
             .arg(opt)
@@ -63,9 +64,14 @@ fn progress() {
 
 #[test]
 fn single() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat/pkg-1", &["EAPI=7"]).unwrap();
-    let repo = temp.repo().clone();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
+    temp.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
 
     // default target is the current working directory
     env::set_current_dir(repo.path()).unwrap();
@@ -90,7 +96,7 @@ fn single() {
     let prev_modified = modified;
 
     // package changes cause cache updates
-    temp.create_raw_pkg("cat/pkg-1", &["EAPI=8"]).unwrap();
+    temp.create_ebuild("cat/pkg-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()
@@ -118,9 +124,10 @@ fn single() {
 
 #[test]
 fn jobs() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-    let repo = temp.repo();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+
+    temp.create_ebuild("cat/pkg-1", &[]).unwrap();
 
     for opt in ["-j", "--jobs"] {
         // invalid
@@ -138,7 +145,7 @@ fn jobs() {
         for val in ["0", "999999"] {
             cmd("pk repo metadata regen")
                 .args([opt, val])
-                .arg(repo.path())
+                .arg(temp.path())
                 .assert()
                 .stdout("")
                 .stderr("")
@@ -149,11 +156,18 @@ fn jobs() {
 
 #[test]
 fn multiple() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat/a-1", &[]).unwrap();
-    temp.create_raw_pkg("cat/b-1", &[]).unwrap();
-    temp.create_raw_pkg("other/pkg-1", &[]).unwrap();
-    let repo = temp.repo();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    temp.create_ebuild("cat/a-1", &[]).unwrap();
+    temp.create_ebuild("cat/b-1", &[]).unwrap();
+    temp.create_ebuild("other/pkg-1", &[]).unwrap();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
+    config.finalize().unwrap();
+
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()
@@ -183,10 +197,17 @@ fn multiple() {
 
 #[test]
 fn pkg_with_invalid_eapi() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat/a-1", &["EAPI=invalid"]).ok();
-    temp.create_raw_pkg("cat/b-1", &["EAPI=8"]).unwrap();
-    let repo = temp.repo();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    temp.create_ebuild("cat/a-1", &["EAPI=invalid"]).ok();
+    temp.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
+    config.finalize().unwrap();
+
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()
@@ -202,10 +223,17 @@ fn pkg_with_invalid_eapi() {
 
 #[test]
 fn pkg_with_invalid_dep() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat/a-1", &["DEPEND=cat/pkg[]"]).ok();
-    temp.create_raw_pkg("cat/b-1", &["DEPEND=cat/pkg"]).unwrap();
-    let repo = temp.repo();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    temp.create_ebuild("cat/a-1", &["DEPEND=cat/pkg[]"]).ok();
+    temp.create_ebuild("cat/b-1", &["DEPEND=cat/pkg"]).unwrap();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
+    config.finalize().unwrap();
+
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()
@@ -222,7 +250,7 @@ fn pkg_with_invalid_dep() {
 #[test]
 fn data_content() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+    let repo = data.ebuild_repo("metadata").unwrap();
 
     // determine metadata file content
     let metadata_content = |cache_path: &str| {

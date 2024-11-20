@@ -65,7 +65,7 @@ mod tests {
     fn try_from_raw_pkg() {
         // valid
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
             BuildData::from_raw_pkg(&pkg);
@@ -74,7 +74,7 @@ mod tests {
         }
 
         // invalid
-        let (_pool, repo) = data.ebuild_repo("bad").unwrap();
+        let repo = data.ebuild_repo("bad").unwrap();
         // ignore pkgs with invalid EAPIs
         for pkg in repo.iter_raw().filter_map(Result::ok) {
             BuildData::from_raw_pkg(&pkg);

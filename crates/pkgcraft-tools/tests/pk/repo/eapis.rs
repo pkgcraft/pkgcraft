@@ -25,7 +25,7 @@ fn nonexistent_repo() {
 #[test]
 fn empty_repo() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
+    let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk repo eapis")
         .arg(repo.path())
         .assert()
@@ -37,7 +37,7 @@ fn empty_repo() {
 #[test]
 fn single_repo() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+    let repo = data.ebuild_repo("metadata").unwrap();
     cmd("pk repo eapis")
         .arg(repo.path())
         .assert()
@@ -49,8 +49,8 @@ fn single_repo() {
 #[test]
 fn multiple_repos() {
     let data = test_data();
-    let (_pool, repo1) = data.ebuild_repo("metadata").unwrap();
-    let (_pool, repo2) = data.ebuild_repo("gentoo").unwrap();
+    let repo1 = data.ebuild_repo("metadata").unwrap();
+    let repo2 = data.ebuild_repo("gentoo").unwrap();
     cmd("pk repo eapis")
         .args([repo1.path(), repo2.path()])
         .assert()
@@ -62,7 +62,7 @@ fn multiple_repos() {
 #[test]
 fn option_eapi() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+    let repo = data.ebuild_repo("metadata").unwrap();
 
     // invalid EAPI
     cmd("pk repo eapis --eapi nonexistent")

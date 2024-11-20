@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
-use crate::config::RepoConfig;
+use crate::config::{Config, RepoConfig};
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::Restrict;
@@ -55,7 +55,6 @@ impl RepoFormat {
         id: S,
         path: P,
         priority: i32,
-        finalize: bool,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
         let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
@@ -81,13 +80,6 @@ impl RepoFormat {
             }
         };
 
-        // try to finalize as a stand-alone repo
-        if finalize {
-            let existing = IndexMap::<_, _>::new();
-            repo.finalize(&existing)
-                .map_err(|e| Error::RepoInit(format!("overlay must be added via config: {e}")))?;
-        }
-
         Ok(repo)
     }
 
@@ -96,7 +88,6 @@ impl RepoFormat {
         self,
         path: P,
         priority: i32,
-        finalize: bool,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
         let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
@@ -106,7 +97,7 @@ impl RepoFormat {
 
         let mut path = abspath.as_path();
         while let Some(parent) = path.parent() {
-            match self.load_from_path(path, path, priority, finalize) {
+            match self.load_from_path(path, path, priority) {
                 Err(Error::NotARepo { .. }) => path = parent,
                 result => return result,
             }
@@ -203,13 +194,12 @@ impl Repo {
         id: S,
         path: P,
         priority: i32,
-        finalize: bool,
     ) -> crate::Result<Self> {
         let id = id.as_ref();
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            match format.load_from_path(id, path, priority, finalize) {
+            match format.load_from_path(id, path, priority) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
                 Err(e) => return Err(e),
@@ -227,15 +217,11 @@ impl Repo {
     }
 
     /// Try to load a repo from a potentially nested path.
-    pub fn from_nested_path<P: AsRef<Utf8Path>>(
-        path: P,
-        priority: i32,
-        finalize: bool,
-    ) -> crate::Result<Self> {
+    pub fn from_nested_path<P: AsRef<Utf8Path>>(path: P, priority: i32) -> crate::Result<Self> {
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            match format.load_from_nested_path(path, priority, finalize) {
+            match format.load_from_nested_path(path, priority) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
                 Err(e) => return Err(e),
@@ -252,9 +238,9 @@ impl Repo {
         Err(Error::RepoInit(err.to_string()))
     }
 
-    pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {
+    pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
         if let Self::Ebuild(repo) = self {
-            repo.finalize(existing_repos)
+            repo.finalize(config)
         } else {
             Ok(())
         }

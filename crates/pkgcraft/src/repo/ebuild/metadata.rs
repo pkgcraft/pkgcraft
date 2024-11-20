@@ -923,7 +923,7 @@ mod tests {
     #[test]
     fn eclasses() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("secondary").unwrap();
+        let repo = data.ebuild_repo("secondary").unwrap();
         // uninherited eclasses
         assert_ordered_eq!(repo.metadata().eclasses().iter().map(|e| e.name()), ["b", "c"]);
         // inherited eclasses

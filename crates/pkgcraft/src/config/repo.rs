@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use tracing::error;
 
-use crate::eapi::Eapi;
 use crate::repo::ebuild::temp::EbuildTempRepo;
 use crate::repo::set::RepoSet;
 use crate::repo::{Repo, RepoFormat, Repository};
@@ -107,10 +106,7 @@ impl Config {
         let mut repos = vec![];
         for (name, c) in configs {
             // ignore invalid repos
-            match c
-                .format
-                .load_from_path(&name, &c.location, c.priority, false)
-            {
+            match c.format.load_from_path(&name, &c.location, c.priority) {
                 Ok(repo) => repos.push(repo),
                 Err(err) => error!("{err}"),
             }
@@ -122,7 +118,7 @@ impl Config {
             ..Default::default()
         };
 
-        // finalize, sort, and add repos to the config
+        // add repos to the config
         let _ = config.extend(&repos, settings, false)?;
         Ok(config)
     }
@@ -145,7 +141,7 @@ impl Config {
         };
         config.sync()?;
 
-        let repo = Repo::from_path(name, config.location, priority, false)?;
+        let repo = Repo::from_path(name, config.location, priority)?;
 
         // write repo config file to disk
         let data = toml::to_string(repo.repo_config())
@@ -166,16 +162,7 @@ impl Config {
         // create temporary repo and persist it to disk
         let temp_repo = EbuildTempRepo::new(name, Some(&self.repo_dir), priority, None)?;
         temp_repo.persist(Some(&path))?;
-        Repo::from_path(name, &path, priority, false)
-    }
-
-    pub(super) fn create_temp(
-        &mut self,
-        name: &str,
-        priority: i32,
-        eapi: Option<&Eapi>,
-    ) -> crate::Result<EbuildTempRepo> {
-        EbuildTempRepo::new(name, None, priority, eapi)
+        Repo::from_path(name, &path, priority)
     }
 
     pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
@@ -288,21 +275,10 @@ impl Config {
             return Err(Error::Config(format!("can't override existing repos: {repos}")));
         }
 
-        // copy original repos so they can be reverted to if an error occurs during finalization
-        let orig_repos = self.repos.clone();
-        let orig_configured = self.configured.clone();
-
-        // add new repos to config so finalization works for overlays
+        // add new repos to config
         self.repos.extend(new_repos.clone());
 
-        for (name, repo) in &new_repos {
-            // finalize repos, reverting to the previous set if errors occur
-            if let Err(e) = repo.finalize(&self.repos) {
-                self.repos = orig_repos;
-                self.configured = orig_configured;
-                return Err(Error::Config(format!("{name}: {e}")));
-            }
-
+        for (_name, repo) in &new_repos {
             // create configured ebuild repos
             if let Repo::Ebuild(r) = repo {
                 let configured = r.configure(settings.clone());

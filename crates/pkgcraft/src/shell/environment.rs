@@ -202,7 +202,12 @@ mod tests {
 
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
         let all_scopes: Vec<_> = Scopes::All.into_iter().collect();
 
         for eapi in &*EAPIS_OFFICIAL {
@@ -215,7 +220,8 @@ mod tests {
                                 DESCRIPTION="testing {var} global scope"
                                 SLOT=0
                             "#};
-                            let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                            temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                            let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
                             raw_pkg.source().unwrap();
                             if eapi.env().get(&var).is_some_and(|v| v.exported(scope)) {
                                 assert!(
@@ -269,7 +275,8 @@ mod tests {
                                     :
                                 }}
                             "#};
-                            let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                            temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                            let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                             pkg.source().unwrap();
                             let phase = eapi.phases().get(phase).unwrap();
                             phase.run().unwrap();
@@ -294,7 +301,12 @@ mod tests {
     fn state() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing environment state handling"
@@ -326,7 +338,8 @@ mod tests {
                     || die "broken env saving for locals"
             }
         "#};
-        let pkg = temp.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         pkg.build().unwrap();
     }
@@ -335,7 +348,13 @@ mod tests {
     fn vars_ebuild_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
         for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests
             let phases = eapi.phases()
@@ -357,7 +376,8 @@ mod tests {
                 SLOT=0
                 {phases}
             "#};
-            let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+            let pkg = repo.get_pkg("cat/pkg-1").unwrap();
             pkg.source().unwrap();
             for phase in eapi.phases() {
                 let r = phase.run();
@@ -370,7 +390,13 @@ mod tests {
     fn vars_pkg() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
         for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests
             let phases = eapi
@@ -404,7 +430,8 @@ mod tests {
 
                 {phases}
             "#};
-            let pkg = temp.create_pkg_from_str("cat/pkg-1-r2", &data).unwrap();
+            temp.create_ebuild_from_str("cat/pkg-1-r2", &data).unwrap();
+            let pkg = repo.get_pkg("cat/pkg-1-r2").unwrap();
             pkg.source().unwrap();
             for phase in eapi.phases() {
                 let r = phase.run();

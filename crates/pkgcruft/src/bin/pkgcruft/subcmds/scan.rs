@@ -69,12 +69,14 @@ impl Command {
         let mut reporter = self.reporter.collapse();
 
         // determine target restrictions
-        let (pool, targets) = TargetRestrictions::new(config)
+        let targets: Vec<_> = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .targets(self.targets.iter().flatten())?;
+            .targets(self.targets.iter().flatten())
+            .try_collect()?;
+        config.finalize()?;
 
         // create report scanner
-        let scanner = Scanner::new(&pool)
+        let scanner = Scanner::new()
             .jobs(self.jobs.unwrap_or_default())
             .checks(checks)
             .reports(reports)

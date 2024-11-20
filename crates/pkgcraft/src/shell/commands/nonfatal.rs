@@ -55,7 +55,15 @@ mod tests {
     fn success() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         let status = nonfatal(&["ver_cut", "2-3", "1.2.3"]).unwrap();

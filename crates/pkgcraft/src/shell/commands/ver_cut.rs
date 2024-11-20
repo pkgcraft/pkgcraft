@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn invalid_args() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         assert_invalid_args(ver_cut, &[0, 3]);
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn invalid_range() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
@@ -82,6 +82,12 @@ mod tests {
     fn output() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test1", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         // invalid PV
         for (rng, ver, expected) in [
@@ -91,7 +97,8 @@ mod tests {
             ("2-", "1.2.3.", "2.3."),
             ("2-4", "1.2.3.", "2.3."),
         ] {
-            let raw_pkg = temp.create_raw_pkg("cat/pkg-1.2.3", &[]).unwrap();
+            temp.create_ebuild("cat/pkg-1.2.3", &[]).unwrap();
+            let raw_pkg = repo.get_pkg_raw("cat/pkg-1.2.3").unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
 
             let r = ver_cut(&[rng, ver]).unwrap();
@@ -114,7 +121,8 @@ mod tests {
             ("0", "1.2.3", ""),
             ("4-", "1.2.3", ""),
         ] {
-            let raw_pkg = temp.create_raw_pkg(format!("cat/pkg-{ver}"), &[]).unwrap();
+            temp.create_ebuild(format!("cat/pkg-{ver}"), &[]).unwrap();
+            let raw_pkg = repo.get_pkg_raw(format!("cat/pkg-{ver}")).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
 
             let r = ver_cut(&[rng, ver]).unwrap();
@@ -132,7 +140,15 @@ mod tests {
     fn subshell() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test1", 0, None).unwrap();
-        let raw_pkg = temp.create_raw_pkg("cat/pkg-1.2.3", &[]).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat/pkg-1.2.3", &[]).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1.2.3").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
         source::string("VER=$(ver_cut 2-5 1.2.3)").unwrap();

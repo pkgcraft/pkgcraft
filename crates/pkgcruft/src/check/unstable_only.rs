@@ -75,28 +75,28 @@ mod tests {
     fn check() {
         // unselected
         let data = test_data();
-        let (pool, repo) = data.repo("qa-primary").unwrap();
+        let repo = data.repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
         let restrict = repo.restrict_from_path(&dir).unwrap();
-        let scanner = Scanner::new(&pool);
+        let scanner = Scanner::new();
         let reports = scanner.run(repo, restrict);
         assert_unordered_eq!(reports, []);
 
         // primary unfixed
-        let scanner = Scanner::new(&pool).checks([CHECK]);
+        let scanner = Scanner::new().checks([CHECK]);
         let expected = glob_reports!("{dir}/*/optional.json");
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // empty repo
-        let (_pool, repo) = data.repo("empty").unwrap();
+        let repo = data.repo("empty").unwrap();
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
 
         // primary fixed
         let data = test_data_patched();
-        let (pool, repo) = data.repo("qa-primary").unwrap();
-        let scanner = Scanner::new(&pool).checks([CHECK]);
+        let repo = data.repo("qa-primary").unwrap();
+        let scanner = Scanner::new().checks([CHECK]);
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
     }

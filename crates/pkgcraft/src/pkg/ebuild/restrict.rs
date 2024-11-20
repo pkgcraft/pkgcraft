@@ -274,7 +274,12 @@ mod tests {
     fn ebuild() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         // single
         let data = indoc::indoc! {r#"
@@ -282,14 +287,15 @@ mod tests {
             DESCRIPTION="testing ebuild restrict"
             SLOT=0
         "#};
-        temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing ebuild restrict"
             SLOT=0
             VAR="a b c"
         "#};
-        let pkg = temp.create_pkg_from_str("cat/pkg-2", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-2", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-2").unwrap();
 
         // verify pkg restrictions
         let r = Restrict::Ebuild(StrRestrict::equal("no match"));
@@ -298,11 +304,11 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-2"]);
 
         let r = Restrict::Ebuild(StrRestrict::regex("SLOT=").unwrap());
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1", "cat/pkg-2"],);
     }
 
@@ -310,13 +316,18 @@ mod tests {
     fn description() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        temp.create_ebuild("cat/pkg-1", &["DESCRIPTION=desc1"])
+            .unwrap();
+        temp.create_ebuild("cat/pkg-2", &["DESCRIPTION=desc2"])
+            .unwrap();
+        config.finalize().unwrap();
 
-        temp.create_raw_pkg("cat/pkg-1", &["DESCRIPTION=desc1"])
-            .unwrap();
-        let pkg = temp
-            .create_pkg("cat/pkg-2", &["DESCRIPTION=desc2"])
-            .unwrap();
+        let pkg = repo.get_pkg("cat/pkg-2").unwrap();
 
         // verify pkg restrictions
         let r = Restrict::Description(StrRestrict::equal("no match"));
@@ -325,11 +336,11 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-2"]);
 
         let r = Restrict::Description(StrRestrict::regex("desc").unwrap());
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1", "cat/pkg-2"],);
     }
 
@@ -337,10 +348,16 @@ mod tests {
     fn slot() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
-        temp.create_raw_pkg("cat/pkg-0", &["SLOT=0"]).unwrap();
-        let pkg = temp.create_pkg("cat/pkg-1", &["SLOT=1/2"]).unwrap();
+        temp.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
+        temp.create_ebuild("cat/pkg-1", &["SLOT=1/2"]).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
 
         // verify pkg restrictions
         let r = Restrict::Slot(StrRestrict::equal("2"));
@@ -349,11 +366,11 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1"]);
 
         let r = Restrict::Slot(StrRestrict::regex("0|1").unwrap());
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-0", "cat/pkg-1"],);
     }
 
@@ -361,14 +378,21 @@ mod tests {
     fn subslot() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        temp.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
+        temp.create_ebuild("cat/pkg-1", &["SLOT=1/2"]).unwrap();
+        config.finalize().unwrap();
 
         // no explicit subslot
-        let pkg = temp.create_pkg("cat/pkg-0", &["SLOT=0"]).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-0").unwrap();
         let r = Restrict::RawSubslot(None);
         assert!(r.matches(&pkg));
 
-        let pkg = temp.create_pkg("cat/pkg-1", &["SLOT=1/2"]).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         assert!(!r.matches(&pkg));
 
         // verify pkg restrictions
@@ -378,11 +402,11 @@ mod tests {
         assert!(r.matches(&pkg));
 
         // verify repo restrictions
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1"]);
 
         let r = Restrict::Subslot(StrRestrict::regex("0|2").unwrap());
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-0", "cat/pkg-1"],);
     }
 
@@ -390,15 +414,15 @@ mod tests {
     fn long_description() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
 
-        let pkg = temp.create_pkg("cat/pkg-a-1", &[]).unwrap();
+        temp.create_ebuild("cat/pkg-a-1", &[]).unwrap();
 
-        // pkg lacking long description
-        let r = Restrict::LongDescription(None);
-        assert!(r.matches(&pkg));
-
-        let pkg = temp.create_pkg("cat/pkg-b-1", &[]).unwrap();
+        let path = temp.create_ebuild("cat/pkg-b-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -408,17 +432,9 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
 
-        // pkg with long description
-        let r = Restrict::LongDescription(Some(StrRestrict::regex(".").unwrap()));
-        assert!(r.matches(&pkg));
-
-        // single repo match
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-b-1"]);
-
-        let raw_pkg = temp.create_raw_pkg("cat/pkg-c-1", &[]).unwrap();
+        let path = temp.create_ebuild("cat/pkg-c-1", &[]).unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -428,11 +444,28 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+
+        config.finalize().unwrap();
+
+        // pkg lacking long description
+        let pkg = repo.get_pkg("cat/pkg-a-1").unwrap();
+        let r = Restrict::LongDescription(None);
+        assert!(r.matches(&pkg));
+
+        // pkg with long description
+        let pkg = repo.get_pkg("cat/pkg-b-1").unwrap();
+        let r = Restrict::LongDescription(Some(StrRestrict::regex(".").unwrap()));
+        assert!(r.matches(&pkg));
+
+        // single repo match
+        let r = Restrict::LongDescription(Some(StrRestrict::regex("desc1").unwrap()));
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-b-1"]);
 
         // multiple repo matches
         let r = Restrict::LongDescription(Some(StrRestrict::regex("desc").unwrap()));
-        let pkgs: Vec<_> = temp.repo().iter_restrict(r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
         assert_ordered_eq!(
             pkgs.iter().map(|p| p.cpv().to_string()),
             ["cat/pkg-b-1", "cat/pkg-c-1"],
@@ -443,13 +476,19 @@ mod tests {
     fn maintainers() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         // none
-        temp.create_raw_pkg("noxml/pkg-1", &[]).unwrap();
+        temp.create_ebuild("noxml/pkg-1", &[]).unwrap();
 
         // single
-        let raw_pkg = temp.create_raw_pkg("cat/pkg-a-1", &[]).unwrap();
+        temp.create_ebuild("cat/pkg-a-1", &[]).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-a-1").unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -463,7 +502,8 @@ mod tests {
         fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
 
         // multiple
-        let raw_pkg = temp.create_raw_pkg("cat/pkg-b-1", &[]).unwrap();
+        temp.create_ebuild("cat/pkg-b-1", &[]).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-b-1").unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -482,11 +522,11 @@ mod tests {
 
         // pkgs with no maintainers
         let r: BaseRestrict = Restrict::Maintainers(None).into();
-        let pkgs: Vec<_> = temp.repo().iter_restrict(&r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(&r).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["noxml/pkg-1"]);
 
         // pkgs with maintainers
-        let pkgs: Vec<_> = temp.repo().iter_restrict(!r).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(!r).try_collect().unwrap();
         assert_ordered_eq!(
             pkgs.iter().map(|p| p.cpv().to_string()),
             ["cat/pkg-a-1", "cat/pkg-b-1"],

@@ -212,10 +212,16 @@ mod tests {
     fn iter() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
-        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let repo = temp.repo().configure(&config);
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
+        let repo = repo.configure(&config);
         let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat1/pkg-1", "cat2/pkg-1"]);
     }
@@ -224,10 +230,16 @@ mod tests {
     fn iter_restrict() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
-        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("cat/pkg-2", &[]).unwrap();
-        let repo = temp.repo().configure(&config);
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat/pkg-2", &[]).unwrap();
+        let repo = repo.configure(&config);
 
         // single match via CPV
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();

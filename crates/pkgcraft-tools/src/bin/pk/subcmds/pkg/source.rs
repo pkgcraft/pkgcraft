@@ -4,7 +4,8 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::Args;
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use itertools::Itertools;
+use pkgcraft::cli::{pkgs_ebuild_raw, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
 use pkgcraft::repo::RepoFormat;
@@ -224,10 +225,15 @@ impl Command {
         // loop over targets, tracking overall failure status
         let mut status = ExitCode::SUCCESS;
 
-        // find matching packages
-        let (_pool, pkgs) = TargetRestrictions::new(config)
+        // convert targets to restrictions
+        let targets: Vec<_> = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .pkgs_ebuild_raw(self.targets.iter().flatten())?;
+            .targets(self.targets.iter().flatten())
+            .try_collect()?;
+        config.finalize()?;
+
+        // convert restrictions to pkgs
+        let pkgs = pkgs_ebuild_raw(targets);
 
         let target_failed = if let Some(duration) = self.bench {
             benchmark(duration.into(), jobs, pkgs, self.sort)

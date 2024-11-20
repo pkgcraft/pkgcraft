@@ -72,7 +72,7 @@ mod tests {
         assert_invalid_args(domo, &[0]);
 
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -87,13 +87,18 @@ mod tests {
     fn creation() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         // verify DESTTREE is used depending on EAPI
         for eapi in &*EAPIS_OFFICIAL {
-            let pkg = temp
-                .create_pkg("cat/pkg-1", &[&format!("EAPI={eapi}")])
+            temp.create_ebuild("cat/pkg-1", &[&format!("EAPI={eapi}")])
                 .unwrap();
+            let pkg = repo.get_pkg("cat/pkg-1").unwrap();
             BuildData::from_pkg(&pkg);
             let file_tree = FileTree::new();
             fs::File::create("en.mo").unwrap();

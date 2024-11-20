@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
 use std::env;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -10,7 +10,6 @@ use scallop::builtins::{override_funcs, shopt};
 use scallop::variables::*;
 use scallop::{functions, Error, ExecStatus};
 
-use crate::config::Config;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
@@ -416,27 +415,6 @@ fn update_build(state: BuildData) {
     *build = state;
 }
 
-pub(crate) static mut BUILD_POOL: OnceLock<BuildPool> = OnceLock::new();
-
-pub fn get_build_pool<'a>() -> &'a BuildPool {
-    unsafe {
-        BUILD_POOL
-            .get()
-            .unwrap_or_else(|| panic!("build pool never initialized"))
-    }
-}
-
-pub(crate) fn update_build_pool(config: &Config) -> BuildPool {
-    let pool = BuildPool::new(config, num_cpus::get());
-    unsafe {
-        BUILD_POOL.take();
-        BUILD_POOL
-            .set(pool.clone())
-            .expect("build pool already initialized");
-    }
-    pool
-}
-
 type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
@@ -452,6 +430,7 @@ pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
 mod tests {
     use scallop::variables;
 
+    use crate::config::Config;
     use crate::eapi::{EAPIS, EAPIS_OFFICIAL};
     use crate::pkg::{Build, Source};
     use crate::test::assert_err_re;
@@ -462,6 +441,12 @@ mod tests {
     fn global_scope_external_command() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             // external commands are denied via restricted shell setting PATH=/dev/null
@@ -473,7 +458,8 @@ mod tests {
                 ls /
                 VAR=2
             "#};
-            let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+            let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
             let r = raw_pkg.source();
             assert_eq!(variables::optional("VAR").unwrap(), "1");
             assert_err_re!(r, "unknown command: ls");
@@ -484,6 +470,12 @@ mod tests {
     fn global_scope_absolute_path_command() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
         scallop::builtins::set(["-e"]).unwrap();
@@ -496,7 +488,8 @@ mod tests {
             /bin/ls /
             VAR=2
         "#};
-        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-2", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         let r = raw_pkg.source();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
         assert_err_re!(r, ".+: /bin/ls: restricted: cannot specify `/' in command names$");
@@ -506,6 +499,12 @@ mod tests {
     fn failglob() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
@@ -514,7 +513,8 @@ mod tests {
                 SLOT=0
                 DOCS=( nonexistent* )
             "#};
-            let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+            temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+            let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
             let r = raw_pkg.source();
             if eapi.has(GlobalFailglob) {
                 assert_err_re!(r, "^line 4: no match: nonexistent\\*$");
@@ -528,6 +528,12 @@ mod tests {
     fn cmd_overrides() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             for cmd in eapi.commands().iter().filter(|b| !b.is_phase()) {
@@ -537,7 +543,8 @@ mod tests {
                     SLOT=0
                     {cmd}() {{ :; }}
                 "#};
-                let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
                 let r = raw_pkg.source();
                 assert_err_re!(r, format!("EAPI {eapi} functionality overridden: {cmd}$"));
             }
@@ -548,7 +555,12 @@ mod tests {
     fn direct_phase_calls() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         for eapi in &*EAPIS {
             for phase in eapi.phases() {
@@ -560,7 +572,8 @@ mod tests {
                     {phase}() {{ :; }}
                     pkg_setup() {{ {phase}; }}
                 "#};
-                let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let r = pkg.build();
                 assert_err_re!(r, format!("line 5: {phase}: error: direct phase call$"));
@@ -573,7 +586,8 @@ mod tests {
                     {phase}() {{ :; }}
                     {phase}
                 "#};
-                let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", &data).unwrap();
+                temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
                 let r = raw_pkg.source();
                 assert_err_re!(r, format!("line 5: {phase}: error: direct phase call$"));
             }

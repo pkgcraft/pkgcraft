@@ -59,7 +59,12 @@ mod tests {
     fn creation() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         for dirs in [
             vec!["dir"],
@@ -77,7 +82,8 @@ mod tests {
                     keepdir {args}
                 }}
             "#};
-            let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+            let pkg = repo.get_pkg("cat/pkg-1").unwrap();
             BuildData::from_pkg(&pkg);
             let file_tree = FileTree::new();
             pkg.build().unwrap();

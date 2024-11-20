@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, OnceLock};
-use std::{fmt, fs, iter};
+use std::sync::{Arc, OnceLock, Weak};
+use std::{fmt, fs, iter, mem};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
@@ -8,7 +8,7 @@ use itertools::{Either, Itertools};
 use rayon::prelude::*;
 use tracing::warn;
 
-use crate::config::{RepoConfig, Settings};
+use crate::config::{Config, RepoConfig, Settings};
 use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
 use crate::error::Error;
@@ -18,10 +18,11 @@ use crate::pkg::ebuild::{keyword::Arch, EbuildPkg, EbuildRawPkg};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
+use crate::shell::BuildPool;
 use crate::traits::Intersects;
 use crate::xml::parse_xml_with_dtd;
 
-use super::{make_repo_traits, Contains, PkgRepository, Repo, RepoFormat, Repository};
+use super::{make_repo_traits, Contains, PkgRepository, RepoFormat, Repository};
 
 pub mod cache;
 pub mod configured;
@@ -36,6 +37,7 @@ struct InternalEbuildRepo {
     metadata: Metadata,
     config: RepoConfig,
     masters: OnceLock<Vec<EbuildRepo>>,
+    pool: OnceLock<Weak<BuildPool>>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -102,16 +104,16 @@ impl EbuildRepo {
         })))
     }
 
-    /// Finalize the repo, collapsing repo dependencies into references.
-    pub(super) fn finalize(&self, existing_repos: &IndexMap<String, Repo>) -> crate::Result<()> {
-        // skip finalized, stand-alone repos
+    /// Finalize the repo, resolving repo dependencies into Repo objects.
+    pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
+        // check if the repo has already been initialized
         if self.0.masters.get().is_some() {
             return Ok(());
         }
 
         let (masters, nonexistent): (Vec<_>, Vec<_>) =
             self.metadata().config.masters.iter().partition_map(|id| {
-                match existing_repos.get(id).and_then(|r| r.as_ebuild()) {
+                match config.repos.get(id).and_then(|r| r.as_ebuild()) {
                     Some(r) => Either::Left(r.clone()),
                     None => Either::Right(id.as_str()),
                 }
@@ -125,6 +127,11 @@ impl EbuildRepo {
         self.0
             .masters
             .set(masters)
+            .map_err(|_| Error::InvalidValue("already initialized".to_string()))?;
+
+        self.0
+            .pool
+            .set(Arc::downgrade(config.pool()))
             .map_err(|_| Error::InvalidValue("already initialized".to_string()))?;
 
         // Collapse lazy fields used in metadata regeneration that leverages process-based
@@ -142,6 +149,16 @@ impl EbuildRepo {
         &self.0.config
     }
 
+    /// Return the build pool for the repo.
+    pub fn pool(&self) -> Arc<BuildPool> {
+        self.0
+            .pool
+            .get()
+            .unwrap_or_else(|| panic!("{self}: pool missing, finalize() uncalled"))
+            .upgrade()
+            .unwrap_or_else(|| panic!("{self}: pool dropped"))
+    }
+
     pub fn metadata(&self) -> &Metadata {
         &self.0.metadata
     }
@@ -153,7 +170,10 @@ impl EbuildRepo {
 
     /// Return the repo inheritance sequence.
     pub fn masters(&self) -> &[Self] {
-        self.0.masters.get().expect("finalize() uncalled")
+        self.0
+            .masters
+            .get()
+            .unwrap_or_else(|| panic!("{self}: masters missing, finalize() uncalled"))
     }
 
     /// Return the complete repo inheritance sequence.
@@ -705,8 +725,8 @@ impl IterCpn {
                 Box::new(cpns.into_iter())
             }
             ([Equal(cat)], [Equal(pn)]) => {
-                let cat = std::mem::take(cat);
-                let pn = std::mem::take(pn);
+                let cat = mem::take(cat);
+                let pn = mem::take(pn);
                 let cpn = Cpn { category: cat, package: pn };
                 if repo.contains(&cpn) {
                     Box::new(iter::once(cpn))
@@ -715,7 +735,7 @@ impl IterCpn {
                 }
             }
             ([Equal(cat)], _) => {
-                let cat = std::mem::take(cat);
+                let cat = mem::take(cat);
                 let pkg_restrict = Restrict::and(pkg_restricts);
                 Box::new(
                     repo.packages(&cat)
@@ -728,7 +748,7 @@ impl IterCpn {
                 )
             }
             (_, [Equal(pn)]) => {
-                let pn = std::mem::take(pn);
+                let pn = mem::take(pn);
                 let cat_restrict = Restrict::and(cat_restricts);
                 Box::new(
                     repo.categories()
@@ -835,7 +855,7 @@ impl IterCpv {
                 )
             }
             ([], [Package(Equal(pn))], _) => {
-                let pn = std::mem::take(pn);
+                let pn = mem::take(pn);
                 let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
                     repo.cpvs_from_package(&cat, &pn)
@@ -980,7 +1000,6 @@ impl Iterator for IterRawRestrict {
 mod tests {
     use std::fs;
 
-    use crate::config::Config;
     use crate::dep::Dep;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkg::Package;
@@ -992,25 +1011,38 @@ mod tests {
     #[test]
     fn masters() {
         let data = test_data();
-        let mut config = Config::default();
         let repos = data.path().join("repos");
 
         // none
+        let mut config = Config::default();
         let repo = config
             .add_repo_path("a", repos.join("valid/primary"), 0, false)
             .unwrap();
+        config.finalize().unwrap();
         let primary_repo = repo.as_ebuild().unwrap();
         assert!(primary_repo.masters().is_empty());
         assert_ordered_eq!(primary_repo.trees(), [primary_repo]);
 
         // nonexistent
-        let r = config.add_repo_path("test", repos.join("invalid/nonexistent-masters"), 0, false);
+        let mut config = Config::default();
+        config
+            .add_repo_path("a", repos.join("valid/primary"), 0, false)
+            .unwrap();
+        config
+            .add_repo_path("test", repos.join("invalid/nonexistent-masters"), 0, false)
+            .unwrap();
+        let r = config.finalize();
         assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
 
         // single
+        let mut config = Config::default();
+        config
+            .add_repo_path("a", repos.join("valid/primary"), 0, false)
+            .unwrap();
         let repo = config
             .add_repo_path("b", repos.join("valid/secondary"), 0, false)
             .unwrap();
+        config.finalize().unwrap();
         let secondary_repo = repo.as_ebuild().unwrap();
         assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
         assert_ordered_eq!(secondary_repo.trees(), [primary_repo, secondary_repo]);
@@ -1043,7 +1075,7 @@ mod tests {
         let data = test_data();
 
         // repo id matches name
-        let (_pool, repo) = data.ebuild_repo("primary").unwrap();
+        let repo = data.ebuild_repo("primary").unwrap();
         assert_eq!(repo.id(), "primary");
         assert_eq!(repo.name(), "primary");
 
@@ -1068,84 +1100,111 @@ mod tests {
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: unknown$");
 
         // supported EAPI
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         assert!(EAPIS_OFFICIAL.contains(repo.eapi()));
     }
 
     #[test]
     fn len() {
+        let data = test_data();
+        let repo = data.ebuild_repo("empty").unwrap();
+        assert_eq!(repo.len(), 0);
+        assert!(repo.is_empty());
+
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        config.finalize().unwrap();
 
-        assert_eq!(temp.repo().len(), 0);
-        assert!(temp.repo().is_empty());
-        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert_eq!(temp.repo().len(), 1);
-        assert!(!temp.repo().is_empty());
-        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        assert_eq!(temp.repo().len(), 2);
-        assert!(!temp.repo().is_empty());
+        assert_eq!(repo.len(), 2);
+        assert!(!repo.is_empty());
     }
 
     #[test]
     fn categories() {
+        let data = test_data();
+        let repo = data.ebuild_repo("empty").unwrap();
+        assert!(repo.categories().is_empty());
+
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        temp.create_ebuild("a-cat/pkg-1", &[]).unwrap();
+        temp.create_ebuild("z-cat/pkg-1", &[]).unwrap();
+        config.finalize().unwrap();
 
-        assert!(temp.repo().categories().is_empty());
-        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert_ordered_eq!(temp.repo().categories(), ["cat"]);
-        temp.create_raw_pkg("a-cat/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("z-cat/pkg-1", &[]).unwrap();
-        assert_ordered_eq!(temp.repo().categories(), ["a-cat", "cat", "z-cat"]);
+        assert_ordered_eq!(repo.categories(), ["a-cat", "cat", "z-cat"]);
     }
 
     #[test]
     fn packages() {
         let mut config = Config::default();
         let temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
-        assert!(temp.repo().packages("cat").is_empty());
+        assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(temp.path().join("cat/pkg")).unwrap();
-        assert_ordered_eq!(temp.repo().packages("cat"), ["pkg"]);
+        assert_ordered_eq!(repo.packages("cat"), ["pkg"]);
         fs::create_dir_all(temp.path().join("a-cat/pkg-z")).unwrap();
         fs::create_dir_all(temp.path().join("a-cat/pkg-a")).unwrap();
-        assert_ordered_eq!(temp.repo().packages("a-cat"), ["pkg-a", "pkg-z"]);
+        assert_ordered_eq!(repo.packages("a-cat"), ["pkg-a", "pkg-z"]);
     }
 
     #[test]
     fn versions() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
         let ver = |s: &str| Version::try_new(s).unwrap();
 
-        assert!(temp.repo().versions("cat", "pkg").is_empty());
-        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        assert_ordered_eq!(temp.repo().versions("cat", "pkg"), [ver("1")]);
+        assert!(repo.versions("cat", "pkg").is_empty());
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1")]);
 
         // unmatching ebuilds are ignored
         fs::File::create(temp.path().join("cat/pkg/foo-2.ebuild")).unwrap();
-        assert_ordered_eq!(temp.repo().versions("cat", "pkg"), [ver("1")]);
+        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1")]);
 
         // wrongly named files are ignored
         fs::File::create(temp.path().join("cat/pkg/pkg-2.txt")).unwrap();
         fs::File::create(temp.path().join("cat/pkg/pkg-2..ebuild")).unwrap();
         fs::File::create(temp.path().join("cat/pkg/pkg-2ebuild")).unwrap();
-        assert_ordered_eq!(temp.repo().versions("cat", "pkg"), [ver("1")]);
+        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1")]);
 
         fs::File::create(temp.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
-        assert_ordered_eq!(temp.repo().versions("cat", "pkg"), [ver("1"), ver("2")]);
+        assert_ordered_eq!(repo.versions("cat", "pkg"), [ver("1"), ver("2")]);
 
         fs::create_dir_all(temp.path().join("a-cat/pkg10a")).unwrap();
         fs::File::create(temp.path().join("a-cat/pkg10a/pkg10a-0-r0.ebuild")).unwrap();
-        assert_ordered_eq!(temp.repo().versions("a-cat", "pkg10a"), [ver("0-r0")]);
+        assert_ordered_eq!(repo.versions("a-cat", "pkg10a"), [ver("0-r0")]);
     }
 
     #[test]
     fn contains() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
 
         // path
         assert!(repo.contains(""));
@@ -1181,9 +1240,17 @@ mod tests {
     fn iter_cpn() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let mut iter = temp.repo().iter_cpn();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
+
+        let mut iter = repo.iter_cpn();
         for cpn in ["cat1/pkg", "cat2/pkg"] {
             assert_eq!(iter.next(), Some(Cpn::try_new(cpn).unwrap()));
         }
@@ -1194,58 +1261,67 @@ mod tests {
     fn iter_cpn_restrict() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkga-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkga-2", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkgb-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkgb-2", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkgb-3", &[]).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkga-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkga-2", &[]).unwrap();
+        temp.create_ebuild("cat1/pkgb-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkgb-2", &[]).unwrap();
+        temp.create_ebuild("cat1/pkgb-3", &[]).unwrap();
 
         // no matches via existing Cpv
         let cpv = Cpv::try_new("cat1/pkga-1").unwrap();
-        assert_ordered_eq!(temp.repo().iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
 
         // no matches via nonexistent Cpv
         let cpv = Cpv::try_new("cat/nonexistent-1").unwrap();
-        assert_ordered_eq!(temp.repo().iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
 
         // single match via Cpn
         let cpn = Cpn::try_new("cat1/pkga").unwrap();
-        assert_ordered_eq!(temp.repo().iter_cpn_restrict(&cpn), [cpn]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [cpn]);
 
         // no matches via Cpn
         let cpn = Cpn::try_new("cat/nonexistent").unwrap();
-        assert_ordered_eq!(temp.repo().iter_cpn_restrict(&cpn), [] as [Cpn; 0]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [] as [Cpn; 0]);
 
         // single match via package name
         let restrict = DepRestrict::package("pkgb");
-        assert_ordered_eq!(
-            temp.repo()
-                .iter_cpn_restrict(restrict)
-                .map(|c| c.to_string()),
-            ["cat1/pkgb"]
-        );
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict).map(|c| c.to_string()), ["cat1/pkgb"]);
 
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
-        assert_ordered_eq!(temp.repo().iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
 
         // all Cpns match
         let restrict = Restrict::True;
-        assert_ordered_eq!(temp.repo().iter_cpn_restrict(restrict), temp.repo().iter_cpn());
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), repo.iter_cpn());
 
         // no Cpns match
         let restrict = Restrict::False;
-        assert_ordered_eq!(temp.repo().iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
     }
 
     #[test]
     fn iter_cpv() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let mut iter = temp.repo().iter_cpv();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
+        let mut iter = repo.iter_cpv();
         for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
             assert_eq!(iter.next(), Some(Cpv::try_new(cpv).unwrap()));
         }
@@ -1256,69 +1332,80 @@ mod tests {
     fn iter_cpv_restrict() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkga-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkga-2", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkgb-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkgb-2", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkgb-3", &[]).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkga-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkga-2", &[]).unwrap();
+        temp.create_ebuild("cat1/pkgb-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkgb-2", &[]).unwrap();
+        temp.create_ebuild("cat1/pkgb-3", &[]).unwrap();
 
         // single match via Cpv
         let cpv = Cpv::try_new("cat1/pkga-1").unwrap();
-        assert_ordered_eq!(temp.repo().iter_cpv_restrict(&cpv), [cpv]);
+        assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), [cpv]);
 
         // no matches via Cpv
         let cpv = Cpv::try_new("cat/nonexistent-1").unwrap();
-        assert_ordered_eq!(temp.repo().iter_cpv_restrict(&cpv), []);
+        assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), []);
 
         // multiple matches via Cpn
         let cpn = Cpn::try_new("cat1/pkga").unwrap();
         assert_ordered_eq!(
-            temp.repo().iter_cpv_restrict(&cpn).map(|c| c.to_string()),
+            repo.iter_cpv_restrict(&cpn).map(|c| c.to_string()),
             ["cat1/pkga-1", "cat1/pkga-2"]
         );
 
         // no matches via Cpn
         let cpn = Cpn::try_new("cat/nonexistent").unwrap();
-        assert_ordered_eq!(temp.repo().iter_cpv_restrict(&cpn), []);
+        assert_ordered_eq!(repo.iter_cpv_restrict(&cpn), []);
 
         // multiple matches via package name
         let restrict = DepRestrict::package("pkgb");
         assert_ordered_eq!(
-            temp.repo()
-                .iter_cpv_restrict(restrict)
-                .map(|c| c.to_string()),
+            repo.iter_cpv_restrict(restrict).map(|c| c.to_string()),
             ["cat1/pkgb-1", "cat1/pkgb-2", "cat1/pkgb-3"]
         );
 
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
-        assert_ordered_eq!(temp.repo().iter_cpv_restrict(restrict), []);
+        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), []);
 
         // all Cpvs match
         let restrict = Restrict::True;
-        assert_ordered_eq!(temp.repo().iter_cpv_restrict(restrict), temp.repo().iter_cpv());
+        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), repo.iter_cpv());
 
         // no Cpvs match
         let restrict = Restrict::False;
-        assert_ordered_eq!(temp.repo().iter_cpv_restrict(restrict), []);
+        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), []);
     }
 
     #[test]
     fn iter() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
-        temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
-        temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let pkgs: Vec<_> = temp.repo().iter().try_collect().unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
+        let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["cat1/pkg-1", "cat2/pkg-1"]);
     }
 
     #[test]
     fn iter_restrict() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
 
         // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
@@ -1338,7 +1425,7 @@ mod tests {
     #[test]
     fn get_pkg() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
 
         // existing
         for cpv in ["slot/slot-8", "slot/subslot-8"] {
@@ -1360,9 +1447,9 @@ mod tests {
     #[test]
     fn eclasses() {
         let data = test_data();
-        let (_pool, repo1) = data.ebuild_repo("primary").unwrap();
+        let repo1 = data.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
-        let (_pool, repo2) = data.ebuild_repo("secondary").unwrap();
+        let repo2 = data.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
         // verify the overridden eclass is from the secondary repo
         let overridden_eclass = repo2.eclasses().get("c").unwrap();
@@ -1372,25 +1459,25 @@ mod tests {
     #[test]
     fn arches() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("primary").unwrap();
+        let repo = data.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo.arches(), ["x86"]);
-        let (_pool, repo) = data.ebuild_repo("secondary").unwrap();
+        let repo = data.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo.arches(), ["amd64", "x86"]);
     }
 
     #[test]
     fn licenses() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("primary").unwrap();
+        let repo = data.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo.licenses(), ["a"]);
-        let (_pool, repo) = data.ebuild_repo("secondary").unwrap();
+        let repo = data.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo.licenses(), ["a", "b"]);
     }
 
     #[test]
     fn categories_xml() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
         assert_eq!(repo.categories_xml().get("good").unwrap(), "good");
         // categories with invalid XML data don't have entries
         assert!(repo.categories_xml().get("bad").is_none());

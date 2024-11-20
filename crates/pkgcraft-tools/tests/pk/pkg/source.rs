@@ -1,6 +1,6 @@
 use std::env;
 
-use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
+use pkgcraft::config::Config;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
@@ -30,7 +30,7 @@ fn nonexistent_path_target() {
 #[test]
 fn empty_repo() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
+    let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk pkg source")
         .arg(repo.path())
         .assert()
@@ -42,7 +42,7 @@ fn empty_repo() {
 #[test]
 fn pkg_target_from_stdin() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+    let repo = data.ebuild_repo("metadata").unwrap();
     cmd("pk pkg source -")
         .write_stdin(format!("slot/slot::{}", repo.path()))
         .assert()
@@ -53,16 +53,17 @@ fn pkg_target_from_stdin() {
 
 #[test]
 fn invalid_pkgs() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with global die"
         SLOT=0
         die msg
     "#};
-    temp.create_raw_pkg_from_str("a/pkg-1", &data).unwrap();
-    temp.create_raw_pkg_from_str("cat/a-1", &data).unwrap();
-    temp.create_raw_pkg_from_str("cat/b-1", &data).unwrap();
+    temp.create_ebuild_from_str("a/pkg-1", &data).unwrap();
+    temp.create_ebuild_from_str("cat/a-1", &data).unwrap();
+    temp.create_ebuild_from_str("cat/b-1", &data).unwrap();
     let path = temp.path();
 
     // dep restriction
@@ -100,10 +101,11 @@ fn invalid_pkgs() {
 
 #[test]
 fn path_targets() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat1/a-1", &[]).unwrap();
-    temp.create_raw_pkg("cat1/b-1", &[]).unwrap();
-    temp.create_raw_pkg("cat2/c-1", &[]).unwrap();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    temp.create_ebuild("cat1/a-1", &[]).unwrap();
+    temp.create_ebuild("cat1/b-1", &[]).unwrap();
+    temp.create_ebuild("cat2/c-1", &[]).unwrap();
 
     // repo path
     cmd("pk pkg source")
@@ -143,8 +145,9 @@ fn path_targets() {
 fn bound_and_sort() {
     use std::os::fd::AsRawFd;
 
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat/fast-1", &[]).unwrap();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    temp.create_ebuild("cat/fast-1", &[]).unwrap();
     let f = std::fs::File::open(temp.path().join("profiles/repo_name")).unwrap();
     let fd = f.as_raw_fd();
 
@@ -158,7 +161,7 @@ fn bound_and_sort() {
 
         :
     "#};
-    temp.create_raw_pkg_from_str("cat/slow-1", &data).unwrap();
+    temp.create_ebuild_from_str("cat/slow-1", &data).unwrap();
 
     for opt in ["-b", "--bound"] {
         for (val, pkg) in [

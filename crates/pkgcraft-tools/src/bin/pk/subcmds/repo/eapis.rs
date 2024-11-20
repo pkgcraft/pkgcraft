@@ -3,6 +3,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use itertools::Itertools;
 use pkgcraft::config::Config;
 use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::Package;
@@ -23,8 +24,14 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        for arg in &self.repos {
-            let (_pool, repo) = target_ebuild_repo(config, arg)?;
+        let repos: Vec<_> = self
+            .repos
+            .iter()
+            .map(|x| target_ebuild_repo(config, x))
+            .try_collect()?;
+        config.finalize()?;
+
+        for repo in &repos {
             let mut eapis = HashMap::<_, Vec<_>>::new();
             // TODO: use parallel iterator
             for pkg in repo.iter_raw() {

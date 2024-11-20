@@ -110,7 +110,7 @@ fn file_targets() {
 fn checks() {
     let file = qa_primary_file();
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
@@ -153,7 +153,7 @@ fn checks() {
 fn levels() {
     let file = qa_primary_file();
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
     let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
@@ -192,7 +192,7 @@ fn levels() {
 fn reports() {
     let file = qa_primary_file();
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
@@ -235,7 +235,7 @@ fn reports() {
 fn scopes() {
     let file = qa_primary_file();
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
@@ -277,7 +277,7 @@ fn scopes() {
 fn sources() {
     let file = qa_primary_file();
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",

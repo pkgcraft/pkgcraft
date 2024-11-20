@@ -20,7 +20,9 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let (_pool, repo) = target_ebuild_repo(config, &self.repo)?;
+        let repo = target_ebuild_repo(config, &self.repo)?;
+        config.finalize()?;
+
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();
 

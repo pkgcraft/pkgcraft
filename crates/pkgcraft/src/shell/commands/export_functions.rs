@@ -44,7 +44,6 @@ mod tests {
 
     use crate::config::Config;
     use crate::pkg::{Build, Source};
-    use crate::repo::ebuild::temp::EbuildTempRepo;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
@@ -60,7 +59,8 @@ mod tests {
 
     #[test]
     fn single() {
-        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+        let mut config = Config::default();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -73,9 +73,12 @@ mod tests {
         "#};
         temp.create_eclass("e1", eclass).unwrap();
 
-        let mut config = Config::default();
-        config.add_repo(&temp, false).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -83,7 +86,8 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let pkg = temp.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
 
         // verify the function runs
         assert!(optional("VAR").is_none());
@@ -94,7 +98,8 @@ mod tests {
 
     #[test]
     fn nested() {
-        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+        let mut config = Config::default();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -113,9 +118,12 @@ mod tests {
         "#};
         temp.create_eclass("e2", eclass).unwrap();
 
-        let mut config = Config::default();
-        config.add_repo(&temp, false).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -123,7 +131,8 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let pkg = temp.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         // verify the function runs
         assert!(optional("VAR").is_none());
@@ -133,7 +142,8 @@ mod tests {
 
     #[test]
     fn overridden() {
-        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+        let mut config = Config::default();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -155,9 +165,12 @@ mod tests {
         "#};
         temp.create_eclass("e2", eclass).unwrap();
 
-        let mut config = Config::default();
-        config.add_repo(&temp, false).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -165,7 +178,8 @@ mod tests {
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let pkg = temp.create_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         // verify the function runs
         assert!(optional("VAR").is_none());
@@ -177,7 +191,6 @@ mod tests {
     fn invalid_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -189,13 +202,21 @@ mod tests {
         "#};
         temp.create_eclass("e1", eclass).unwrap();
 
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         let r = raw_pkg.source();
         assert_err_re!(r, "line 2: EXPORT_FUNCTIONS: error: invalid phase: invalid_phase$");
     }
@@ -204,7 +225,6 @@ mod tests {
     fn undefined_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -215,13 +235,21 @@ mod tests {
         "#};
         temp.create_eclass("e1", eclass).unwrap();
 
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
         "#};
-        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         let r = raw_pkg.source();
         assert_err_re!(r, "e1.eclass: undefined phase function: e1_src_configure$");
     }

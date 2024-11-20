@@ -39,7 +39,7 @@ fn nonexistent_path_target() {
 #[test]
 fn empty_repo() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
+    let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk pkg pretend")
         .arg(repo.path())
         .assert()
@@ -51,7 +51,7 @@ fn empty_repo() {
 #[test]
 fn pkg_target_from_stdin() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("phases").unwrap();
+    let repo = data.ebuild_repo("phases").unwrap();
     cmd("pk pkg pretend -")
         .write_stdin(format!("pkg-pretend/success-with-output::{}", repo.path()))
         .assert()
@@ -63,11 +63,11 @@ fn pkg_target_from_stdin() {
 #[test]
 fn path_targets() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg_from_str("cat1/a-1", SUCCESS_WITH_OUTPUT)
+    temp.create_ebuild_from_str("cat1/a-1", SUCCESS_WITH_OUTPUT)
         .unwrap();
-    temp.create_raw_pkg_from_str("cat1/b-1", SUCCESS_WITH_OUTPUT)
+    temp.create_ebuild_from_str("cat1/b-1", SUCCESS_WITH_OUTPUT)
         .unwrap();
-    temp.create_raw_pkg_from_str("cat2/c-1", SUCCESS_WITH_OUTPUT)
+    temp.create_ebuild_from_str("cat2/c-1", SUCCESS_WITH_OUTPUT)
         .unwrap();
 
     // repo path
@@ -106,7 +106,7 @@ fn path_targets() {
 #[test]
 fn output() {
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("phases").unwrap();
+    let repo = data.ebuild_repo("phases").unwrap();
 
     // package lacking pkg_pretend() phase
     cmd("pk pkg pretend")

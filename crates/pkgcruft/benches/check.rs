@@ -12,13 +12,13 @@ pub fn bench(c: &mut Criterion) {
     if let Ok(path) = env::var("PKGCRUFT_BENCH_REPO") {
         let mut config = Config::new("pkgcraft", "");
         let repo = config.add_repo_path(&path, &path, 0, true).unwrap();
-        let pool = config.pool();
+        config.finalize().unwrap();
         // TODO: checkout a specific commit
 
         // run benchmark for every check
         for check in Check::iter() {
             group.bench_function(check.to_string(), |b| {
-                let scanner = Scanner::new(&pool).checks([check]);
+                let scanner = Scanner::new().checks([check]);
                 b.iter(|| scanner.run(&repo, &repo).count());
             });
         }

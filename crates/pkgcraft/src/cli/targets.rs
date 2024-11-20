@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use camino::Utf8Path;
-use itertools::Itertools;
 
 use crate::config::Config;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
@@ -11,7 +10,6 @@ use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
-use crate::shell::BuildPool;
 use crate::utils::current_dir;
 use crate::Error;
 
@@ -133,67 +131,51 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target restrictions.
-    pub fn targets<I>(mut self, values: I) -> crate::Result<(BuildPool, Vec<(RepoSet, Restrict)>)>
+    pub fn targets<I>(
+        mut self,
+        values: I,
+    ) -> impl Iterator<Item = crate::Result<(RepoSet, Restrict)>> + 'a
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
+        <I as IntoIterator>::IntoIter: 'a,
     {
-        let targets: Vec<_> = values
+        values
             .into_iter()
-            .map(|s| self.target_restriction(s.as_ref()))
-            .try_collect()?;
-        Ok((self.config.pool(), targets))
+            .map(move |s| self.target_restriction(s.as_ref()))
     }
+}
 
-    /// Determine target packages.
-    pub fn pkgs<I>(
-        self,
-        values: I,
-    ) -> crate::Result<(BuildPool, impl Iterator<Item = crate::Result<Pkg>>)>
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        let (pool, targets) = self.targets(values)?;
-        let iter = targets
-            .into_iter()
-            .flat_map(|(set, restrict)| set.iter_restrict(restrict));
-        Ok((pool, iter))
-    }
+/// Convert target restrictions to packages.
+pub fn pkgs<I>(values: I) -> impl Iterator<Item = crate::Result<Pkg>>
+where
+    I: IntoIterator<Item = (RepoSet, Restrict)>,
+{
+    values
+        .into_iter()
+        .flat_map(|(set, restrict)| set.iter_restrict(restrict))
+}
 
-    /// Determine target ebuild packages.
-    pub fn pkgs_ebuild<I>(
-        self,
-        values: I,
-    ) -> crate::Result<(BuildPool, impl Iterator<Item = crate::Result<EbuildPkg>>)>
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        let (pool, iter) = self.pkgs(values)?;
-        let iter = iter.filter_map(|r| match r {
-            Ok(Pkg::Ebuild(pkg)) => Some(Ok(pkg)),
-            Ok(_) => None,
-            Err(e) => Some(Err(e)),
-        });
-        Ok((pool, iter))
-    }
+/// Convert target restrictions to ebuild packages.
+pub fn pkgs_ebuild<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildPkg>>
+where
+    I: IntoIterator<Item = (RepoSet, Restrict)>,
+{
+    pkgs(values).filter_map(|r| match r {
+        Ok(Pkg::Ebuild(pkg)) => Some(Ok(pkg)),
+        Ok(_) => None,
+        Err(e) => Some(Err(e)),
+    })
+}
 
-    /// Determine target raw ebuild packages.
-    pub fn pkgs_ebuild_raw<I>(
-        self,
-        values: I,
-    ) -> crate::Result<(BuildPool, impl Iterator<Item = crate::Result<EbuildRawPkg>>)>
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        let (pool, targets) = self.targets(values)?;
-        let iter = targets.into_iter().flat_map(|(set, restrict)| {
-            set.into_iter()
-                .filter_map(|r| r.into_ebuild().ok())
-                .flat_map(move |r| r.iter_raw_restrict(&restrict))
-        });
-        Ok((pool, iter))
-    }
+/// Convert target restrictions to raw ebuild packages.
+pub fn pkgs_ebuild_raw<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildRawPkg>>
+where
+    I: IntoIterator<Item = (RepoSet, Restrict)>,
+{
+    values.into_iter().flat_map(|(set, restrict)| {
+        set.into_iter()
+            .filter_map(|r| r.into_ebuild().ok())
+            .flat_map(move |r| r.iter_raw_restrict(&restrict))
+    })
 }

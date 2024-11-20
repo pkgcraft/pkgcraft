@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn maintainers() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -451,7 +451,7 @@ mod tests {
     #[test]
     fn upstream() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -481,7 +481,7 @@ mod tests {
     #[test]
     fn slots() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -495,7 +495,7 @@ mod tests {
     #[test]
     fn subslots() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -509,7 +509,7 @@ mod tests {
     #[test]
     fn stabilize_allarches() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -523,7 +523,7 @@ mod tests {
     #[test]
     fn local_use() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -548,7 +548,7 @@ mod tests {
     #[test]
     fn long_description() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
+        let repo = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();

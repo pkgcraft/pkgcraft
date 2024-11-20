@@ -391,7 +391,7 @@ mod tests {
     use crate::pkg::RepoPackage;
     use crate::repo::fake::FakeRepo;
     use crate::repo::{Contains, Repository};
-    use crate::test::assert_ordered_eq;
+    use crate::test::{assert_ordered_eq, test_data};
     use crate::utils::hash;
 
     use super::*;
@@ -443,9 +443,8 @@ mod tests {
 
     #[test]
     fn repo_traits() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let data = test_data();
+        let e_repo = data.repo("empty").unwrap();
         let fake_repo = FakeRepo::new("fake", 0);
 
         let cpn = Cpn::try_new("cat/pkg").unwrap();
@@ -465,9 +464,8 @@ mod tests {
         assert!(!s.contains(&dep));
 
         // repo set with no pkgs
-        let e_repo = Repo::from(&temp);
         let f_repo: Repo = fake_repo.into();
-        let s = RepoSet::from_iter([e_repo, f_repo.clone()]);
+        let s = RepoSet::from_iter([e_repo.clone(), f_repo.clone()]);
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
@@ -478,10 +476,14 @@ mod tests {
         assert!(!s.contains(&cpv));
         assert!(!s.contains(&dep));
 
+        let mut config = Config::default();
+        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let e_repo = config.add_repo(&temp, false).unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        config.finalize().unwrap();
+
         // single ebuild
-        temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        let e_repo = Repo::from(&temp);
-        let s = RepoSet::from_iter([e_repo, f_repo]);
+        let s = RepoSet::from_iter([e_repo.clone(), f_repo]);
         assert_ordered_eq!(s.categories(), ["cat"]);
         assert_ordered_eq!(s.packages("cat"), ["pkg"]);
         assert_ordered_eq!(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
@@ -496,7 +498,6 @@ mod tests {
 
         // multiple pkgs of different types
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
-        let e_repo: Repo = temp.repo().clone().into();
         let f_repo: Repo = fake_repo.into();
         let s = RepoSet::from_iter([e_repo, f_repo]);
         assert_ordered_eq!(s.categories(), ["cat"]);

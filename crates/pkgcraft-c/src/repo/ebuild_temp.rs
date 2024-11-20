@@ -2,9 +2,7 @@ use std::ffi::{c_char, c_int};
 use std::slice;
 
 use pkgcraft::eapi::Eapi;
-use pkgcraft::pkg::Pkg;
 use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
-use pkgcraft::repo::Repo;
 
 use crate::eapi::eapi_or_default;
 use crate::macros::*;
@@ -41,17 +39,6 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(r: *mut EbuildTempRepo) 
     try_ptr_from_str!(temp.path().as_str())
 }
 
-/// Return the ebuild repo corresponding to the temporary repo.
-///
-/// # Safety
-/// The argument must be a non-null EbuildTempRepo pointer.
-#[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_repo(r: *mut EbuildTempRepo) -> *mut Repo {
-    let temp = try_mut_from_ptr!(r);
-    let repo = temp.repo().clone();
-    Box::into_raw(Box::new(repo.into()))
-}
-
 /// Create an ebuild package in the repo.
 ///
 /// Returns NULL on error.
@@ -59,12 +46,12 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_repo(r: *mut EbuildTempRepo) 
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_pkg(
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
     r: *mut EbuildTempRepo,
     cpv: *const c_char,
     key_vals: *mut *mut c_char,
     len: usize,
-) -> *mut Pkg {
+) -> *mut c_char {
     ffi_catch_panic! {
         let temp = try_mut_from_ptr!(r);
         let cpv = try_str_from_ptr!(cpv);
@@ -72,8 +59,8 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_pkg(
         for ptr in unsafe { slice::from_raw_parts(key_vals, len) } {
             data.push(try_str_from_ptr!(*ptr));
         }
-        let pkg = unwrap_or_panic!(temp.create_pkg(cpv, &data));
-        Box::into_raw(Box::new(Pkg::Ebuild(pkg)))
+        let path = unwrap_or_panic!(temp.create_ebuild(cpv, &data));
+        try_ptr_from_str!(path.as_str())
     }
 }
 
@@ -84,17 +71,17 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_pkg(
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_pkg_from_str(
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_from_str(
     r: *mut EbuildTempRepo,
     cpv: *const c_char,
     data: *const c_char,
-) -> *mut Pkg {
+) -> *mut c_char {
     ffi_catch_panic! {
         let temp = try_mut_from_ptr!(r);
         let cpv = try_str_from_ptr!(cpv);
         let data = try_str_from_ptr!(data);
-        let pkg = unwrap_or_panic!(temp.create_pkg_from_str(cpv, data));
-        Box::into_raw(Box::new(Pkg::Ebuild(pkg)))
+        let path = unwrap_or_panic!(temp.create_ebuild_from_str(cpv, data));
+        try_ptr_from_str!(path.as_str())
     }
 }
 

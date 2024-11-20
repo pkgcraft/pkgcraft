@@ -123,13 +123,14 @@ impl Settings {
 }
 
 /// System config
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct Config {
     pub path: ConfigPath,
     pub repos: repo::Config,
     pub settings: Arc<Settings>,
     /// Flag used to denote when config files have been loaded.
     loaded: bool,
+    pool: Arc<shell::BuildPool>,
 }
 
 impl From<&Config> for Arc<Settings> {
@@ -140,9 +141,6 @@ impl From<&Config> for Arc<Settings> {
 
 impl Config {
     pub fn new(name: &str, prefix: &str) -> Self {
-        // initialize bash
-        LazyLock::force(&shell::BASH);
-
         let path = ConfigPath::new(name, prefix);
         Config { path, ..Default::default() }
     }
@@ -151,8 +149,8 @@ impl Config {
     /// file loading is skipped if the environment variable PKGCRAFT_NO_CONFIG is defined.
     pub fn load(&mut self) -> crate::Result<()> {
         if env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
-            self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
             self.settings = Arc::new(Settings::default());
+            self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
 
             if self.repos.is_empty() {
                 // ignore error for missing portage config
@@ -231,7 +229,7 @@ impl Config {
         priority: i32,
         external: bool,
     ) -> crate::Result<Repo> {
-        let r = Repo::from_path(name, path, priority, false)?;
+        let r = Repo::from_path(name, path, priority)?;
         self.add_repo(&r, external)
     }
 
@@ -244,7 +242,7 @@ impl Config {
         external: bool,
         format: RepoFormat,
     ) -> crate::Result<Repo> {
-        let r = format.load_from_path(name, path, priority, false)?;
+        let r = format.load_from_path(name, path, priority)?;
         self.add_repo(&r, external)
     }
 
@@ -254,7 +252,7 @@ impl Config {
         path: P,
         priority: i32,
     ) -> crate::Result<Repo> {
-        let r = Repo::from_nested_path(path, priority, false)?;
+        let r = Repo::from_nested_path(path, priority)?;
         self.add_repo(&r, true)
     }
 
@@ -266,7 +264,7 @@ impl Config {
         format: RepoFormat,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        match format.load_from_nested_path(path, priority, false) {
+        match format.load_from_nested_path(path, priority) {
             Err(Error::NotARepo { .. }) => {
                 Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
             }
@@ -292,6 +290,13 @@ impl Config {
                     .next()
                     .unwrap_or_else(|| panic!("failed adding repo: {repo}"))
             });
+
+        // finalize external repo when added
+        if external && result.is_ok() {
+            if let Err(e) = repo.finalize(self) {
+                return Err(Error::Config(format!("{repo}: {e}")));
+            }
+        }
 
         // try re-adding external repo after loading config files
         // TODO: only perform this for nonexistent master errors
@@ -335,13 +340,32 @@ impl Config {
         priority: i32,
         eapi: Option<&Eapi>,
     ) -> crate::Result<EbuildTempRepo> {
-        let temp = self.repos.create_temp(name, priority, eapi)?;
-        self.add_repo(&temp, false)?;
-        Ok(temp)
+        EbuildTempRepo::new(name, None, priority, eapi)
     }
 
-    pub fn pool(&self) -> shell::BuildPool {
-        shell::update_build_pool(self)
+    /// Return the build pool for the config.
+    pub fn pool(&self) -> &Arc<shell::BuildPool> {
+        &self.pool
+    }
+
+    /// Finalize the config repos and start the build pool.
+    pub fn finalize(&self) -> crate::Result<()> {
+        // finalize repos
+        for (name, repo) in &self.repos {
+            if let Err(e) = repo.finalize(self) {
+                return Err(Error::Config(format!("{name}: {e}")));
+            }
+        }
+
+        // initialize bash
+        LazyLock::force(&shell::BASH);
+
+        // start the build pool
+        if !self.pool.running() {
+            self.pool.start(self);
+        }
+
+        Ok(())
     }
 }
 
@@ -508,7 +532,8 @@ mod tests {
             location = {repos_dir}/invalid/nonexistent-masters
         "#};
         fs::write(path, data).unwrap();
-        let r = config.load_portage_conf(Some(conf_path));
+        config.load_portage_conf(Some(conf_path)).unwrap();
+        let r = config.finalize();
         assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
 
         // multiple config files in a specified directory
@@ -536,6 +561,7 @@ mod tests {
         "#, t3.path()};
         fs::write(conf_dir.join("repos.conf/r3.conf"), data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
+        config.finalize().unwrap();
         assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
 
         // reloading directory succeeds

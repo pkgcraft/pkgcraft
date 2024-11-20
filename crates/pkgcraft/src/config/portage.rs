@@ -42,7 +42,7 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
                 };
 
                 // ignore invalid repos
-                match Repo::from_path(name, path, priority, false) {
+                match Repo::from_path(name, path, priority) {
                     Ok(repo) => Some(repo),
                     Err(err) => {
                         error!("{err}");

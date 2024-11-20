@@ -8,11 +8,15 @@ use pkgcraft::test::test_data;
 pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "");
     let mut temp = config.temp_repo("test", 0, None).unwrap();
-    let _pool = config.pool();
     for i in 0..100 {
-        temp.create_raw_pkg(format!("cat/pkg-{i}"), &[]).unwrap();
+        temp.create_ebuild(format!("cat/pkg-{i}"), &[]).unwrap();
     }
-    let repo = temp.repo();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
+    config.finalize().unwrap();
 
     c.bench_function("repo-ebuild-iter", |b| {
         let mut pkgs = 0;
@@ -38,7 +42,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     });
 
     let data = test_data();
-    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+    let repo = data.ebuild_repo("metadata").unwrap();
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {

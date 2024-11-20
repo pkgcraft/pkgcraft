@@ -10,7 +10,6 @@ use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::{PkgRepository, Repository};
-use crate::shell::get_build_pool;
 use crate::traits::Contains;
 use crate::utils::bounded_jobs;
 
@@ -221,7 +220,6 @@ impl MetadataCacheRegen<'_> {
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
     pub fn run(self, repo: &EbuildRepo) -> crate::Result<()> {
-        let pool = get_build_pool();
         let cpvs = self.targets.unwrap_or_else(|| {
             // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
             // pull all package Cpvs from the repo
@@ -251,7 +249,7 @@ impl MetadataCacheRegen<'_> {
                 .into_par_iter()
                 .map(|cpv| {
                     self.progress.inc(1);
-                    pool.metadata(repo, &cpv, self.force, self.verify)
+                    repo.pool().metadata(repo, &cpv, self.force, self.verify)
                 })
                 .filter(|result| {
                     // log errors
@@ -284,7 +282,12 @@ mod tests {
     fn regen_errors() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         // create a large number of packages with a subshelled, invalid scope builtin call
         for pv in 0..50 {
@@ -293,13 +296,12 @@ mod tests {
                 DESCRIPTION="testing metadata generation error handling"
                 SLOT=0
                 VAR=$(best_version cat/pkg)
-            "#};
-            temp.create_raw_pkg_from_str(format!("cat/pkg-{pv}"), data)
+        /   "#};
+            temp.create_ebuild_from_str(format!("cat/pkg-{pv}"), data)
                 .unwrap();
         }
 
         // run regen asserting that errors occurred
-        let repo = temp.repo();
         let r = repo.metadata().cache().regen().run(&repo);
         assert!(r.is_err());
 

@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn invalid_args() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         assert_invalid_args(ver_test, &[0, 1, 4]);
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn overflow() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn invalid_versions() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn invalid_op() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
@@ -118,6 +118,12 @@ mod tests {
 
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         let inverted_op_map: HashMap<_, _> =
             [("==", "!="), ("!=", "=="), ("<", ">="), (">", "<="), ("<=", ">"), (">=", "<")]
@@ -126,7 +132,8 @@ mod tests {
 
         let data = test_data();
         for (expr, (v1, op, v2)) in data.version_toml.compares() {
-            let raw_pkg = temp.create_raw_pkg(format!("cat/pkg-{v1}"), &[]).unwrap();
+            temp.create_ebuild(format!("cat/pkg-{v1}"), &[]).unwrap();
+            let raw_pkg = repo.get_pkg_raw(format!("cat/pkg-{v1}")).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
 
             let inverted_op = op_map[inverted_op_map[op]];

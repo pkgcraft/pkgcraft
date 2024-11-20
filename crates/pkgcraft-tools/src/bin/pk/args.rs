@@ -1,13 +1,9 @@
 use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::shell::BuildPool;
 
 /// Convert a target ebuild repo arg into an ebuild repo reference.
-pub(crate) fn target_ebuild_repo(
-    config: &mut Config,
-    target: &str,
-) -> anyhow::Result<(BuildPool, EbuildRepo)> {
+pub(crate) fn target_ebuild_repo(config: &mut Config, target: &str) -> anyhow::Result<EbuildRepo> {
     let id = if config.repos.get(target).is_some() {
         target.to_string()
     } else if let Ok(abspath) = Utf8Path::new(target).canonicalize_utf8() {
@@ -23,5 +19,4 @@ pub(crate) fn target_ebuild_repo(
         .and_then(|r| r.as_ebuild())
         .cloned()
         .ok_or_else(|| anyhow::anyhow!("non-ebuild repo: {target}"))
-        .map(|repo| (config.pool(), repo))
 }

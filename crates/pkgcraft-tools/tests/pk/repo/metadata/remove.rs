@@ -1,5 +1,5 @@
+use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 use tempfile::tempdir;
@@ -8,9 +8,14 @@ use crate::predicates::lines_contain;
 
 #[test]
 fn run() {
-    let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_raw_pkg("cat/a-1", &[]).unwrap();
-    let repo = temp.repo();
+    let mut config = Config::default();
+    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    temp.create_ebuild("cat/a-1", &[]).unwrap();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
     let path = repo.metadata().cache().path();
 
     // generate cache

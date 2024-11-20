@@ -39,8 +39,15 @@ mod tests {
     fn known_and_unknown() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
-        let pkg = temp.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
+        temp.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
         // unknown

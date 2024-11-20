@@ -395,7 +395,7 @@ mod tests {
     #[test]
     fn load_and_convert() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         let cache = CacheFormat::Md5Dict.from_repo(repo);
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();

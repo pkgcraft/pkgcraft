@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn try_new() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         let cache = repo.metadata().cache();
 
         // nonexistent path

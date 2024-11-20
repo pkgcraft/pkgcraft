@@ -235,7 +235,12 @@ mod tests {
     fn distfile_verification() {
         let mut config = crate::config::Config::default();
         let temp = config.temp_repo("test", 0, None).unwrap();
-        let repo = temp.repo();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         let manifest_hashes = &repo.metadata().config.manifest_hashes;
         let required_hashes = &repo.metadata().config.manifest_required_hashes;

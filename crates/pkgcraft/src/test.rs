@@ -12,7 +12,6 @@ use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
 use crate::repo::{ebuild::EbuildRepo, Repo, Repository};
-use crate::shell::BuildPool;
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -154,26 +153,27 @@ impl TestData {
         &self.config
     }
 
-    pub fn repo(&self, name: &str) -> crate::Result<(BuildPool, &Repo)> {
-        let pool = self.config.pool();
+    pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
         self.config
             .repos
             .get(name)
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
-            .map(|repo| (pool, repo))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<(BuildPool, &EbuildRepo)> {
-        self.repo(name).and_then(|(pool, repo)| {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
+        self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
-                .map(|repo| (pool, repo))
         })
     }
 }
 
+pub fn test_data_path() -> Utf8PathBuf {
+    build_path!(env!("CARGO_MANIFEST_DIR"), "testdata")
+}
+
 pub fn test_data() -> TestData {
-    let path = build_path!(env!("CARGO_MANIFEST_DIR"), "testdata");
+    let path = test_data_path();
 
     // load valid repos from test data, ignoring purposefully broken ones
     let mut config = Config::new("pkgcraft", "");
@@ -188,6 +188,7 @@ pub fn test_data() -> TestData {
         config.add_repo_path(name, path, 0, false).unwrap();
     }
 
+    config.finalize().unwrap();
     TestData {
         path: path.clone(),
         config,
@@ -211,20 +212,17 @@ impl TestDataPatched {
         &self.config
     }
 
-    pub fn repo(&self, name: &str) -> crate::Result<(BuildPool, &Repo)> {
-        let pool = self.config.pool();
+    pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
         self.config
             .repos
             .get(name)
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
-            .map(|repo| (pool, repo))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<(BuildPool, &EbuildRepo)> {
-        self.repo(name).and_then(|(pool, repo)| {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
+        self.repo(name).and_then(|repo| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
-                .map(|repo| (pool, repo))
         })
     }
 }
@@ -303,6 +301,7 @@ pub fn test_data_patched() -> TestDataPatched {
         }
     }
 
+    config.finalize().unwrap();
     TestDataPatched { tmpdir, config }
 }
 

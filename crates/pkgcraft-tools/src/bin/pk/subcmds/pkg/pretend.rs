@@ -2,7 +2,8 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use itertools::Itertools;
+use pkgcraft::cli::{pkgs_ebuild_raw, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::pkg::Pretend;
@@ -35,10 +36,15 @@ impl Command {
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
         let mut status = ExitCode::SUCCESS;
 
-        // find matching packages
-        let (_pool, pkgs) = TargetRestrictions::new(config)
+        // convert targets to restrictions
+        let targets: Vec<_> = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .pkgs_ebuild_raw(self.targets.iter().flatten())?;
+            .targets(self.targets.iter().flatten())
+            .try_collect()?;
+        config.finalize()?;
+
+        // convert restrictions to pkgs
+        let pkgs = pkgs_ebuild_raw(targets);
 
         // run pkg_pretend across selected pkgs
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());

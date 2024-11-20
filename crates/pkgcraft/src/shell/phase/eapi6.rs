@@ -42,7 +42,12 @@ mod tests {
     fn src_prepare() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         let file_content = indoc::indoc! {"
             0
@@ -71,7 +76,8 @@ mod tests {
                     SLOT=0
                     PATCHES={s}
                 "#};
-                let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let r = pkg.build();
                 assert_err_re!(r, "nonexistent file: -p1$");
@@ -85,7 +91,8 @@ mod tests {
                     SLOT=0
                     PATCHES={s}
                 "#};
-                let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let _file_tree = FileTree::new();
                 pkg.build().unwrap();
@@ -100,7 +107,8 @@ mod tests {
                     SLOT=0
                     PATCHES={s}
                 "#};
-                let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let _file_tree = FileTree::new();
                 fs::write("file.txt", file_content).unwrap();
@@ -116,7 +124,12 @@ mod tests {
     fn src_install() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         // default src_install handles DOCS and HTML_DOCS
         for eapi in eapi::range("6..").unwrap() {
@@ -128,7 +141,8 @@ mod tests {
                     DOCS={s1}
                     HTML_DOCS={s2}
                 "#};
-                let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+                temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let file_tree = FileTree::new();
                 fs::write("a.txt", "data").unwrap();

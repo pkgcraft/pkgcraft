@@ -7,7 +7,6 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository, Repo};
 use pkgcraft::restrict::Restrict;
-use pkgcraft::shell::BuildPool;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 use tracing::info;
@@ -20,7 +19,6 @@ use crate::source::{PkgFilter, Target};
 
 pub struct Scanner {
     jobs: usize,
-    _pool: BuildPool,
     checks: IndexSet<Check>,
     reports: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
@@ -28,12 +26,17 @@ pub struct Scanner {
     failed: Arc<AtomicBool>,
 }
 
+impl Default for Scanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Scanner {
     /// Create a new scanner.
-    pub fn new(pool: &BuildPool) -> Self {
+    pub fn new() -> Self {
         Self {
             jobs: bounded_jobs(0),
-            _pool: pool.clone(),
             checks: Check::iter_default().collect(),
             reports: Arc::new(ReportKind::iter().collect()),
             exit: Arc::new(Default::default()),
@@ -248,31 +251,31 @@ mod tests {
     #[test]
     fn run() {
         let data = test_data();
-        let (pool, repo) = data.repo("qa-primary").unwrap();
+        let repo = data.repo("qa-primary").unwrap();
         let repo_path = repo.path();
 
         // repo target
-        let scanner = Scanner::new(&pool);
+        let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/**/reports.json");
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // category target
-        let scanner = Scanner::new(&pool);
+        let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/Keywords/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords").unwrap();
         let reports = scanner.run(repo, restrict);
         assert_unordered_eq!(reports, expected);
 
         // package target
-        let scanner = Scanner::new(&pool);
+        let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords/KeywordsLive").unwrap();
         let reports = scanner.run(repo, restrict);
         assert_unordered_eq!(reports, expected);
 
         // version target
-        let scanner = Scanner::new(&pool);
+        let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
         let restrict = repo
             .restrict_from_path("Keywords/KeywordsLive/KeywordsLive-9999.ebuild")
@@ -281,43 +284,43 @@ mod tests {
         assert_unordered_eq!(reports, expected);
 
         // specific checks
-        let scanner = Scanner::new(&pool).checks([CheckKind::Dependency]);
+        let scanner = Scanner::new().checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // specific reports
-        let scanner = Scanner::new(&pool).reports([ReportKind::DependencyDeprecated]);
+        let scanner = Scanner::new().reports([ReportKind::DependencyDeprecated]);
         let expected = glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // no checks
         let checks: [Check; 0] = [];
-        let scanner = Scanner::new(&pool).checks(checks);
+        let scanner = Scanner::new().checks(checks);
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
 
         // no reports
-        let scanner = Scanner::new(&pool).reports([]);
+        let scanner = Scanner::new().reports([]);
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
 
         // non-matching restriction
-        let scanner = Scanner::new(&pool);
+        let scanner = Scanner::new();
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
         let reports = scanner.run(repo, &dep);
         assert_unordered_eq!(reports, []);
 
         // repo with bad metadata
-        let (_pool, repo) = data.repo("bad").unwrap();
+        let repo = data.repo("bad").unwrap();
         let repo_path = repo.path();
         let expected = glob_reports!("{repo_path}/**/reports.json");
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // empty repo
-        let (_pool, repo) = data.repo("empty").unwrap();
+        let repo = data.repo("empty").unwrap();
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
     }
@@ -325,15 +328,15 @@ mod tests {
     #[test]
     fn failed() {
         let data = test_data();
-        let (pool, repo) = data.repo("qa-primary").unwrap();
+        let repo = data.repo("qa-primary").unwrap();
 
         // no reports flagged for failures
-        let scanner = Scanner::new(&pool);
+        let scanner = Scanner::new();
         scanner.run(repo, repo).count();
         assert!(!scanner.failed());
 
         // fail on specified report variant
-        let scanner = Scanner::new(&pool).exit([ReportKind::DependencyDeprecated]);
+        let scanner = Scanner::new().exit([ReportKind::DependencyDeprecated]);
         scanner.run(repo, repo).count();
         assert!(scanner.failed());
     }

@@ -49,7 +49,13 @@ mod tests {
     fn failure() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
         let data = indoc::formatdoc! {r#"
             EAPI=8
             DESCRIPTION="testing fperms command"
@@ -58,7 +64,8 @@ mod tests {
                 fperms 0777 /nonexistent
             }}
         "#};
-        let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         let _file_tree = FileTree::new();
         run_commands(|| {
@@ -74,7 +81,13 @@ mod tests {
     fn success() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
-        let _pool = config.pool();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}
@@ -89,7 +102,8 @@ mod tests {
                     fperms 0757 file2
                 }}
             "#};
-            let pkg = temp.create_pkg_from_str("cat/pkg-1", &data).unwrap();
+            temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+            let pkg = repo.get_pkg("cat/pkg-1").unwrap();
             BuildData::from_pkg(&pkg);
             let file_tree = FileTree::new();
             run_commands(|| pkg.build().unwrap());

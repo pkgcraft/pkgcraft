@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::shell::{get_build_pool, BuildPool};
+use pkgcraft::shell::BuildPool;
 
 use crate::report::ReportKind::MetadataError;
 use crate::scanner::ReportFilter;
@@ -20,12 +22,12 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl CpvCheck {
-    Check { repo, pool: get_build_pool() }
+    Check { repo, pool: repo.pool() }
 }
 
 struct Check {
     repo: &'static EbuildRepo,
-    pool: &'static BuildPool,
+    pool: Arc<BuildPool>,
 }
 
 super::register!(Check);

@@ -9,7 +9,6 @@ use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{ebuild::EbuildRepo, Repository};
-use crate::shell::get_build_pool;
 use crate::traits::{FilterLines, Intersects};
 use crate::Error;
 
@@ -98,7 +97,7 @@ impl EbuildRawPkg {
             .get(self)
             .and_then(|c| c.to_metadata(self))
             .or_else(|_| {
-                let pool = get_build_pool();
+                let pool = self.0.repo.pool();
                 pool.metadata(&self.0.repo, &self.0.cpv, true, false)?;
                 self.metadata()
             })
@@ -158,7 +157,7 @@ mod tests {
     #[test]
     fn display_and_debug() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         let pkg = repo.iter_raw().next().unwrap().unwrap();
         let s = pkg.to_string();
         assert!(format!("{pkg:?}").contains(&s));
@@ -167,7 +166,7 @@ mod tests {
     #[test]
     fn relpath() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.relpath(), "optional/none/none-8.ebuild");
     }
@@ -175,7 +174,7 @@ mod tests {
     #[test]
     fn path() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.path(), repo.path().join("optional/none/none-8.ebuild"));
     }
@@ -184,13 +183,20 @@ mod tests {
     fn data() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing data content"
             SLOT=0
         "#};
-        let raw_pkg = temp.create_raw_pkg_from_str("cat/pkg-1", data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         assert_eq!(raw_pkg.data(), data);
         assert!(!raw_pkg.chksum().is_empty());
     }
@@ -198,7 +204,7 @@ mod tests {
     #[test]
     fn traits() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
+        let repo = data.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.eapi(), &*EAPI8);
         assert_eq!(raw_pkg.cpv().to_string(), "optional/none-8");
@@ -208,7 +214,7 @@ mod tests {
     #[test]
     fn intersects_dep() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
 
         for (s, expected) in [

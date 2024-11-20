@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn failure() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().user_patches = ["file.patch".to_string()].into_iter().collect();
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn success() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
+        let repo = data.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         get_build_mut().user_patches = ["files/0.patch".to_string(), "files/1.patch".to_string()]

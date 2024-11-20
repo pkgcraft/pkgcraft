@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn pretend() {
         let data = test_data();
-        let (_pool, repo) = data.ebuild_repo("phases").unwrap();
+        let repo = data.ebuild_repo("phases").unwrap();
 
         // no pkg_pretend phase exists
         let pkg = repo.get_pkg("pkg-pretend/none-1").unwrap();
