@@ -112,8 +112,7 @@ mod tests {
         temp.create_eclass("e3", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         // single
@@ -145,8 +144,7 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -167,8 +165,7 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -199,8 +196,7 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -230,8 +226,7 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -267,8 +262,7 @@ mod tests {
         temp.create_eclass("e3", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -296,8 +290,7 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let data = indoc::indoc! {r#"
@@ -326,8 +319,7 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let data = indoc::indoc! {r#"
@@ -373,8 +365,7 @@ mod tests {
         temp.create_eclass("r", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();

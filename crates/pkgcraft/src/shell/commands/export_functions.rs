@@ -74,8 +74,7 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let data = indoc::indoc! {r#"
@@ -115,8 +114,7 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let data = indoc::indoc! {r#"
@@ -158,8 +156,7 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let mut config = Config::default();
-        let repo = temp.repo().clone().into();
-        config.add_repo(&repo, false).unwrap();
+        config.add_repo(&temp, false).unwrap();
         let _pool = config.pool();
 
         let data = indoc::indoc! {r#"

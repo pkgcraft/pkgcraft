@@ -465,7 +465,7 @@ mod tests {
         assert!(!s.contains(&dep));
 
         // repo set with no pkgs
-        let e_repo: Repo = temp.repo().clone().into();
+        let e_repo = Repo::from(&temp);
         let f_repo: Repo = fake_repo.into();
         let s = RepoSet::from_iter([e_repo, f_repo.clone()]);
         assert!(s.categories().is_empty());
@@ -480,7 +480,7 @@ mod tests {
 
         // single ebuild
         temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
-        let e_repo: Repo = temp.repo().clone().into();
+        let e_repo = Repo::from(&temp);
         let s = RepoSet::from_iter([e_repo, f_repo]);
         assert_ordered_eq!(s.categories(), ["cat"]);
         assert_ordered_eq!(s.packages("cat"), ["pkg"]);

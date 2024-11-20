@@ -18,7 +18,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
         let mut pkgs = 0;
         b.iter(|| {
             pkgs = 0;
-            for _ in repo {
+            for _ in &repo {
                 pkgs += 1;
             }
         });

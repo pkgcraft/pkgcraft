@@ -21,7 +21,6 @@ pub struct EbuildTempRepo {
     path: Utf8PathBuf,
     id: String,
     priority: i32,
-    repo: Repo,
 }
 
 impl EbuildTempRepo {
@@ -62,14 +61,11 @@ impl EbuildTempRepo {
         let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;
 
-        let repo = RepoFormat::Ebuild.load_from_path(id, &path, priority, true)?;
-
         Ok(Self {
             tempdir,
             path,
             id: id.to_string(),
             priority,
-            repo,
         })
     }
 
@@ -77,11 +73,12 @@ impl EbuildTempRepo {
         &self.path
     }
 
-    pub fn repo(&mut self) -> &EbuildRepo {
-        self.repo = RepoFormat::Ebuild
+    pub fn repo(&self) -> EbuildRepo {
+        RepoFormat::Ebuild
             .load_from_path(&self.id, &self.path, self.priority, true)
-            .unwrap();
-        self.repo.as_ebuild().unwrap()
+            .unwrap()
+            .into_ebuild()
+            .unwrap()
     }
 
     /// Add a category into an ebuild repo's profiles/categories file.
@@ -190,5 +187,11 @@ impl EbuildTempRepo {
             repo_path = path.to_path_buf();
         }
         Ok(repo_path)
+    }
+}
+
+impl From<&EbuildTempRepo> for Repo {
+    fn from(value: &EbuildTempRepo) -> Self {
+        value.repo().into()
     }
 }

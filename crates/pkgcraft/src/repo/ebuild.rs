@@ -1099,7 +1099,7 @@ mod tests {
     #[test]
     fn packages() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let temp = config.temp_repo("test", 0, None).unwrap();
 
         assert!(temp.repo().packages("cat").is_empty());
         fs::create_dir_all(temp.path().join("cat/pkg")).unwrap();

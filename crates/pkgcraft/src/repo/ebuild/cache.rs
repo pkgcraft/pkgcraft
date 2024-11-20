@@ -300,7 +300,7 @@ mod tests {
 
         // run regen asserting that errors occurred
         let repo = temp.repo();
-        let r = repo.metadata().cache().regen().run(repo);
+        let r = repo.metadata().cache().regen().run(&repo);
         assert!(r.is_err());
 
         // TODO: Skip for now since log capturing doesn't in threads without hacks.
