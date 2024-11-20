@@ -143,7 +143,8 @@ pub(crate) fn atomic_write_file<C: AsRef<[u8]>>(
     fs::create_dir_all(path).map_err(|e| Error::IO(format!("failed creating dir: {path}: {e}")))?;
 
     // TODO: support custom temporary file path formats
-    let tmp_path = path.join(format!(".{file_name}"));
+    let pid = std::process::id();
+    let tmp_path = path.join(format!(".{file_name}.{pid}"));
     let new_path = path.join(file_name);
 
     // write file to temp path
