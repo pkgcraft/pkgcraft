@@ -37,7 +37,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         if recursive {
             install.recursive(dirs, NO_WALKDIR_FILTER)?;
         } else {
-            return Err(Error::Base(format!("trying to install directory as file: {:?}", dirs[0])));
+            let dir = dirs[0].to_string_lossy();
+            return Err(Error::Base(format!("installing directory without -r: {dir}")));
         }
     }
 
@@ -76,7 +77,7 @@ mod tests {
         // non-recursive directory
         fs::create_dir("dir").unwrap();
         let r = doheader(&["dir"]);
-        assert_err_re!(r, "^trying to install directory as file: .*$");
+        assert_err_re!(r, "^installing directory without -r: dir$");
 
         // nonexistent
         let r = doheader(&["nonexistent"]);

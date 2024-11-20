@@ -28,7 +28,8 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
         if recursive {
             install.recursive(dirs, NO_WALKDIR_FILTER)?;
         } else {
-            return Err(Error::Base(format!("non-recursive dir install: {:?}", dirs[0])));
+            let dir = dirs[0].to_string_lossy();
+            return Err(Error::Base(format!("installing directory without -r: {dir}")));
         }
     }
 
@@ -85,7 +86,7 @@ mod tests {
         // non-recursive directory
         fs::create_dir("dir").unwrap();
         let r = dodoc(&["dir"]);
-        assert_err_re!(r, "^non-recursive dir install: .*$");
+        assert_err_re!(r, "^installing directory without -r: dir$");
 
         // nonexistent
         let r = dodoc(&["nonexistent"]);
