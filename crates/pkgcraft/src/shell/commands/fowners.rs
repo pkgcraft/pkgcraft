@@ -49,6 +49,7 @@ mod tests {
     fn failure() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         let data = indoc::formatdoc! {r#"
             EAPI=8
             DESCRIPTION="testing fowners command"
@@ -70,6 +71,7 @@ mod tests {
     fn success() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}

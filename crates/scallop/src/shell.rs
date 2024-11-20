@@ -36,7 +36,7 @@ fn pid() -> Pid {
 }
 
 /// Reinitialize the shell when forking processes.
-pub(crate) fn fork_init() {
+pub fn fork_init() {
     // use new shared memory object for proxying errors
     let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {

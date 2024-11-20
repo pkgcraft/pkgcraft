@@ -8,10 +8,10 @@ use pkgcraft::test::cmd;
 #[test]
 fn run() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_pkg("a/b-1", &[]).unwrap();
-    temp.create_pkg("cat/a-1", &[]).unwrap();
-    temp.create_pkg("cat/b-1", &[]).unwrap();
-    temp.create_pkg("cat/b-2", &[]).unwrap();
+    temp.create_raw_pkg("a/b-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/a-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/b-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/b-2", &[]).unwrap();
     let repo = temp.repo();
     let path = repo.metadata().cache().path();
 

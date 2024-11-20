@@ -59,6 +59,7 @@ mod tests {
     fn creation() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         for dirs in [
             vec!["dir"],

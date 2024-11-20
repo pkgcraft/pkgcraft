@@ -42,6 +42,7 @@ mod tests {
     fn src_prepare() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         let file_content = indoc::indoc! {"
             0
@@ -115,6 +116,7 @@ mod tests {
     fn src_install() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // default src_install handles DOCS and HTML_DOCS
         for eapi in eapi::range("6..").unwrap() {

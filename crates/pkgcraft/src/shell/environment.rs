@@ -202,6 +202,7 @@ mod tests {
 
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         let all_scopes: Vec<_> = Scopes::All.into_iter().collect();
 
         for eapi in &*EAPIS_OFFICIAL {
@@ -293,6 +294,7 @@ mod tests {
     fn state() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing environment state handling"
@@ -333,6 +335,7 @@ mod tests {
     fn vars_ebuild_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests
             let phases = eapi.phases()
@@ -367,6 +370,7 @@ mod tests {
     fn vars_pkg() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests
             let phases = eapi

@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
 use std::env;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, OnceLock};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -10,6 +10,7 @@ use scallop::builtins::{override_funcs, shopt};
 use scallop::variables::*;
 use scallop::{functions, Error, ExecStatus};
 
+use crate::config::Config;
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
@@ -27,6 +28,8 @@ mod install;
 mod metadata;
 pub(crate) mod operations;
 pub(crate) mod phase;
+mod pool;
+pub use pool::BuildPool;
 pub mod scope;
 pub(crate) mod test;
 mod unescape;
@@ -413,6 +416,27 @@ fn update_build(state: BuildData) {
     *build = state;
 }
 
+pub(crate) static mut BUILD_POOL: OnceLock<BuildPool> = OnceLock::new();
+
+pub fn get_build_pool<'a>() -> &'a BuildPool {
+    unsafe {
+        BUILD_POOL
+            .get()
+            .unwrap_or_else(|| panic!("build pool never initialized"))
+    }
+}
+
+pub(crate) fn update_build_pool(config: &Config) -> BuildPool {
+    let pool = BuildPool::new(config, num_cpus::get());
+    unsafe {
+        BUILD_POOL.take();
+        BUILD_POOL
+            .set(pool.clone())
+            .expect("build pool already initialized");
+    }
+    pool
+}
+
 type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
@@ -428,7 +452,6 @@ pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
 mod tests {
     use scallop::variables;
 
-    use crate::config::Config;
     use crate::eapi::{EAPIS, EAPIS_OFFICIAL};
     use crate::pkg::{Build, Source};
     use crate::test::assert_err_re;
@@ -525,6 +548,7 @@ mod tests {
     fn direct_phase_calls() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         for eapi in &*EAPIS {
             for phase in eapi.phases() {

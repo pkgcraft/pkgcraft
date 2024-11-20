@@ -9,7 +9,7 @@ use crate::predicates::lines_contain;
 #[test]
 fn run() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_pkg("cat/a-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/a-1", &[]).unwrap();
     let repo = temp.repo();
     let path = repo.metadata().cache().path();
 

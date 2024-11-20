@@ -13,6 +13,7 @@ use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
 use crate::repo::{ebuild::EbuildRepo, Repo, Repository};
+use crate::shell::BuildPool;
 use crate::types::SortedSet;
 use crate::Error;
 
@@ -154,17 +155,20 @@ impl TestData {
         &self.config
     }
 
-    pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
+    pub fn repo(&self, name: &str) -> crate::Result<(BuildPool, &Repo)> {
+        let pool = self.config.pool();
         self.config
             .repos
             .get(name)
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
+            .map(|repo| (pool, repo))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
-        self.repo(name).and_then(|repo| {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<(BuildPool, &EbuildRepo)> {
+        self.repo(name).and_then(|(pool, repo)| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
+                .map(|repo| (pool, repo))
         })
     }
 }
@@ -208,17 +212,20 @@ impl TestDataPatched {
         &self.config
     }
 
-    pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
+    pub fn repo(&self, name: &str) -> crate::Result<(BuildPool, &Repo)> {
+        let pool = self.config.pool();
         self.config
             .repos
             .get(name)
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
+            .map(|repo| (pool, repo))
     }
 
-    pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
-        self.repo(name).and_then(|repo| {
+    pub fn ebuild_repo(&self, name: &str) -> crate::Result<(BuildPool, &EbuildRepo)> {
+        self.repo(name).and_then(|(pool, repo)| {
             repo.as_ebuild()
                 .ok_or_else(|| Error::InvalidValue(format!("not an ebuild repo: {repo}")))
+                .map(|repo| (pool, repo))
         })
     }
 }
@@ -294,12 +301,6 @@ pub static TEST_DATA_PATCHED: LazyLock<TestDataPatched> = LazyLock::new(|| {
             let repo = config.add_repo_path(name, new_repo, 0, false).unwrap();
             repos.push(repo);
         }
-    }
-
-    // TODO: remove this once implicit metadata regen issues are fixed (#178)
-    // explicitly regen metadata caches for patched repos
-    for repo in repos.iter().filter_map(|r| r.as_ebuild()) {
-        repo.metadata().cache().regen().run(repo).unwrap();
     }
 
     TestDataPatched { tmpdir, config }

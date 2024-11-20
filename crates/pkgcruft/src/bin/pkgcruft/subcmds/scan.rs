@@ -69,12 +69,12 @@ impl Command {
         let mut reporter = self.reporter.collapse();
 
         // determine target restrictions
-        let targets = TargetRestrictions::new(config)
+        let (pool, targets) = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .targets(self.targets.iter().flatten());
+            .targets(self.targets.iter().flatten())?;
 
         // create report scanner
-        let scanner = Scanner::new()
+        let scanner = Scanner::new(&pool)
             .jobs(self.jobs.unwrap_or_default())
             .checks(checks)
             .reports(reports)
@@ -83,10 +83,9 @@ impl Command {
 
         // run scanner for all targets
         let mut stdout = io::stdout().lock();
-        for target in targets {
-            let (repo_set, restrict) = target?;
+        for (repo_set, restrict) in targets {
             for repo in repo_set {
-                for report in scanner.run(&repo, &restrict)? {
+                for report in scanner.run(&repo, &restrict) {
                     reporter.report(&report, &mut stdout)?;
                 }
             }

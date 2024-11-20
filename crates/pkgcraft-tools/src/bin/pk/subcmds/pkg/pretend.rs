@@ -26,8 +26,8 @@ pub(crate) struct Command {
 // TODO: support binpkg repos
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Option<String>> {
-            let pkg = EbuildPkg::try_from(pkg?)?;
+        let func = |pkg: EbuildRawPkg| -> scallop::Result<Option<String>> {
+            let pkg = EbuildPkg::try_from(pkg)?;
             pkg.pretend()
         };
 
@@ -36,9 +36,9 @@ impl Command {
         let mut status = ExitCode::SUCCESS;
 
         // find matching packages
-        let pkgs = TargetRestrictions::new(config)
+        let (_pool, pkgs) = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .pkgs_ebuild_raw(self.targets.iter().flatten());
+            .pkgs_ebuild_raw(self.targets.iter().flatten())?;
 
         // run pkg_pretend across selected pkgs
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());

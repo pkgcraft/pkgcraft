@@ -1,7 +1,7 @@
 use std::env;
 
 use criterion::Criterion;
-use pkgcraft::repo::Repo;
+use pkgcraft::config::Config;
 use pkgcruft::check::Check;
 use pkgcruft::scanner::Scanner;
 
@@ -10,14 +10,16 @@ pub fn bench(c: &mut Criterion) {
     group.sample_size(10);
 
     if let Ok(path) = env::var("PKGCRUFT_BENCH_REPO") {
-        let repo = Repo::from_path(&path, &path, 0, true).unwrap();
+        let mut config = Config::new("pkgcraft", "");
+        let repo = config.add_repo_path(&path, &path, 0, true).unwrap();
+        let pool = config.pool();
         // TODO: checkout a specific commit
 
         // run benchmark for every check
         for check in Check::iter() {
             group.bench_function(check.to_string(), |b| {
-                let scanner = Scanner::new().checks([check]);
-                b.iter(|| scanner.run(&repo, &repo).unwrap().count());
+                let scanner = Scanner::new(&pool).checks([check]);
+                b.iter(|| scanner.run(&repo, &repo).count());
             });
         }
     } else {

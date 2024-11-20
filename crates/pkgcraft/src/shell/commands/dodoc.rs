@@ -78,7 +78,7 @@ mod tests {
         let r = dodoc(&["-r"]);
         assert_err_re!(r, "^requires 1 or more args, got 0");
 
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         let _file_tree = FileTree::new();
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn creation() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 

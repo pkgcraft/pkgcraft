@@ -11,12 +11,10 @@ use tracing::warn;
 use crate::config::{RepoConfig, Settings};
 use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
-use crate::error::{Error, PackageError};
+use crate::error::Error;
 use crate::files::{has_ext_utf8, is_dir_utf8, is_file_utf8, is_hidden_utf8, sorted_dir_list_utf8};
 use crate::macros::build_path;
-use crate::pkg::ebuild::{
-    keyword::Arch, metadata::Metadata as PkgMetadata, EbuildPkg, EbuildRawPkg,
-};
+use crate::pkg::ebuild::{keyword::Arch, EbuildPkg, EbuildRawPkg};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -26,7 +24,6 @@ use crate::xml::parse_xml_with_dtd;
 use super::{make_repo_traits, Contains, PkgRepository, Repo, RepoFormat, Repository};
 
 pub mod cache;
-use cache::Cache;
 pub mod configured;
 mod eclass;
 pub use eclass::Eclass;
@@ -370,18 +367,6 @@ impl EbuildRepo {
     {
         let cpv = value.try_into()?;
         EbuildRawPkg::try_new(cpv, self.clone())
-    }
-
-    /// Update the package metadata cache for a given [`Cpv`].
-    pub fn update_pkg_metadata(&self, cpv: Cpv, force: bool, verify: bool) -> crate::Result<()> {
-        let pkg = EbuildRawPkg::try_new(cpv, self.clone())?;
-        if force || self.metadata().cache().get(&pkg).is_err() {
-            let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
-            if !verify {
-                self.metadata().cache().update(&pkg, &meta)?;
-            }
-        }
-        Ok(())
     }
 
     /// Scan the deprecated package list returning the first match for a given dependency.
@@ -1043,7 +1028,7 @@ mod tests {
     #[test]
     fn id_and_name() {
         // repo id matches name
-        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_eq!(repo.id(), "primary");
         assert_eq!(repo.name(), "primary");
 
@@ -1067,7 +1052,7 @@ mod tests {
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: unknown$");
 
         // supported EAPI
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         assert!(EAPIS_OFFICIAL.contains(repo.eapi()));
     }
 
@@ -1075,6 +1060,7 @@ mod tests {
     fn len() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         assert_eq!(temp.repo().len(), 0);
         assert!(temp.repo().is_empty());
@@ -1142,7 +1128,7 @@ mod tests {
 
     #[test]
     fn contains() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // path
         assert!(repo.contains(""));
@@ -1305,6 +1291,7 @@ mod tests {
     fn iter() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
         temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
         let mut iter = temp.repo().iter();
@@ -1316,7 +1303,7 @@ mod tests {
 
     #[test]
     fn iter_restrict() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
@@ -1339,7 +1326,7 @@ mod tests {
 
     #[test]
     fn get_pkg() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // existing
         for cpv in ["slot/slot-8", "slot/subslot-8"] {
@@ -1360,9 +1347,9 @@ mod tests {
 
     #[test]
     fn eclasses() {
-        let repo1 = TEST_DATA.ebuild_repo("primary").unwrap();
+        let (_pool, repo1) = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
-        let repo2 = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let (_pool, repo2) = TEST_DATA.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
         // verify the overridden eclass is from the secondary repo
         let overridden_eclass = repo2.eclasses().get("c").unwrap();
@@ -1371,23 +1358,23 @@ mod tests {
 
     #[test]
     fn arches() {
-        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo.arches(), ["x86"]);
-        let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo.arches(), ["amd64", "x86"]);
     }
 
     #[test]
     fn licenses() {
-        let repo = TEST_DATA.ebuild_repo("primary").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo.licenses(), ["a"]);
-        let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo.licenses(), ["a", "b"]);
     }
 
     #[test]
     fn categories_xml() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
         assert_eq!(repo.categories_xml().get("good").unwrap(), "good");
         // categories with invalid XML data don't have entries
         assert!(repo.categories_xml().get("bad").is_none());

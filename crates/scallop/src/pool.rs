@@ -25,13 +25,13 @@ pub fn suppress_output() -> crate::Result<()> {
 }
 
 /// Semaphore wrapping libc semaphore calls on top of shared memory.
-struct SharedSemaphore {
+pub struct SharedSemaphore {
     sem: *mut libc::sem_t,
     size: u32,
 }
 
 impl SharedSemaphore {
-    fn new(size: usize) -> crate::Result<Self> {
+    pub fn new(size: usize) -> crate::Result<Self> {
         let ptr = create_shm("scallop-pool-sem", std::mem::size_of::<libc::sem_t>())?;
         let sem = ptr as *mut libc::sem_t;
 
@@ -48,7 +48,7 @@ impl SharedSemaphore {
         }
     }
 
-    fn acquire(&mut self) -> crate::Result<()> {
+    pub fn acquire(&mut self) -> crate::Result<()> {
         if unsafe { libc::sem_wait(self.sem) } == 0 {
             Ok(())
         } else {
@@ -57,7 +57,7 @@ impl SharedSemaphore {
         }
     }
 
-    fn release(&mut self) -> crate::Result<()> {
+    pub fn release(&mut self) -> crate::Result<()> {
         if unsafe { libc::sem_post(self.sem) } == 0 {
             Ok(())
         } else {
@@ -66,7 +66,7 @@ impl SharedSemaphore {
         }
     }
 
-    fn wait(&mut self) -> crate::Result<()> {
+    pub fn wait(&mut self) -> crate::Result<()> {
         for _ in 0..self.size {
             self.acquire()?;
         }

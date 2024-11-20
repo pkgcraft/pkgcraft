@@ -29,7 +29,7 @@ fn nonexistent_path_target() {
 
 #[test]
 fn empty_repo() {
-    let repo = TEST_DATA.ebuild_repo("empty").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
     cmd("pk pkg source")
         .arg(repo.path())
         .assert()
@@ -40,7 +40,7 @@ fn empty_repo() {
 
 #[test]
 fn pkg_target_from_stdin() {
-    let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
     cmd("pk pkg source -")
         .write_stdin(format!("slot/slot::{}", repo.path()))
         .assert()

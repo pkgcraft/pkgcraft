@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn empty_iuse_effective() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         assert_err_re!(use_enable(&["use"]), "^USE flag not in IUSE: use$");
@@ -45,6 +45,7 @@ mod tests {
     fn enabled_and_disabled() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         let pkg = temp.create_pkg("cat/pkg-1", &["IUSE=use"]).unwrap();
         BuildData::from_pkg(&pkg);
 

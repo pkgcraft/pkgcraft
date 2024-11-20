@@ -24,7 +24,7 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         for arg in &self.repos {
-            let repo = target_ebuild_repo(config, arg)?;
+            let (_pool, repo) = target_ebuild_repo(config, arg)?;
             let mut eapis = HashMap::<_, Vec<_>>::new();
             // TODO: use parallel iterator
             for pkg in repo.iter_raw() {

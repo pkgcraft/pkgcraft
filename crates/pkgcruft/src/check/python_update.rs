@@ -184,6 +184,7 @@ mod tests {
     use pkgcraft::test::{assert_unordered_eq, TEST_DATA, TEST_DATA_PATCHED};
 
     use crate::scanner::Scanner;
+    use crate::source::PkgFilter;
     use crate::test::glob_reports;
 
     use super::*;
@@ -191,18 +192,23 @@ mod tests {
     #[test]
     fn check() {
         // gentoo unfixed
-        let repo = TEST_DATA.repo("gentoo").unwrap();
+        let (pool, repo) = TEST_DATA.repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
         // ignore stub/* ebuilds
-        let filter = "category != 'stub'".parse().unwrap();
-        let scanner = Scanner::new().checks([CHECK]).filters([filter]);
+        let filter: PkgFilter = "category != 'stub'".parse().unwrap();
+        let scanner = Scanner::new(&pool)
+            .checks([CHECK])
+            .filters([filter.clone()]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
-        let repo = TEST_DATA_PATCHED.repo("gentoo").unwrap();
-        let reports = scanner.run(repo, repo).unwrap();
+        let (pool, repo) = TEST_DATA_PATCHED.repo("gentoo").unwrap();
+        let scanner = Scanner::new(&pool)
+            .checks([CHECK])
+            .filters([filter.clone()]);
+        let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
     }
 }

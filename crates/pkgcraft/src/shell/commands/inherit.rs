@@ -87,6 +87,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::pkg::Source;
+    use crate::repo::ebuild::temp::EbuildTempRepo;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::{assert_ordered_eq, TEST_DATA};
@@ -103,8 +104,17 @@ mod tests {
 
     #[test]
     fn nonexistent() {
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+
+        let eclass = indoc::indoc! {r#"
+            # stub eclass
+        "#};
+        temp.create_eclass("e3", eclass).unwrap();
+
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test1", 0, None).unwrap();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
 
         // single
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -117,21 +127,15 @@ mod tests {
         assert_err_re!(r, r"^unknown eclass: e1");
 
         // multiple with existing and nonexistent
-        let mut temp = config.temp_repo("test2", 0, None).unwrap();
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
-        let eclass = indoc::indoc! {r#"
-            # stub eclass
-        "#};
-        temp.create_eclass("e1", eclass).unwrap();
-        let r = inherit(&["e1", "e2"]);
+        let r = inherit(&["e3", "e2"]);
         assert_err_re!(r, r"^unknown eclass: e2");
     }
 
     #[test]
     fn source_failure() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -139,6 +143,11 @@ mod tests {
             unknown_cmd
         "#};
         temp.create_eclass("e1", eclass).unwrap();
+
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
@@ -148,8 +157,7 @@ mod tests {
 
     #[test]
     fn single() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -157,6 +165,11 @@ mod tests {
             [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
         "#};
         temp.create_eclass("e1", eclass).unwrap();
+
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let build = get_build_mut();
@@ -169,8 +182,7 @@ mod tests {
 
     #[test]
     fn multiple() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -186,6 +198,11 @@ mod tests {
         "#};
         temp.create_eclass("e2", eclass).unwrap();
 
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
+
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
@@ -197,8 +214,7 @@ mod tests {
 
     #[test]
     fn nested_single() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -213,6 +229,11 @@ mod tests {
         "#};
         temp.create_eclass("e2", eclass).unwrap();
 
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
+
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
@@ -224,8 +245,7 @@ mod tests {
 
     #[test]
     fn nested_multiple() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -246,6 +266,11 @@ mod tests {
         "#};
         temp.create_eclass("e3", eclass).unwrap();
 
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
+
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let build = get_build_mut();
         BuildData::from_raw_pkg(&raw_pkg);
@@ -257,8 +282,7 @@ mod tests {
 
     #[test]
     fn nested_errors() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -270,6 +294,11 @@ mod tests {
             inherit e1
         "#};
         temp.create_eclass("e2", eclass).unwrap();
+
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -287,8 +316,7 @@ mod tests {
 
     #[test]
     fn pkg_env() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -296,6 +324,11 @@ mod tests {
             [[ ${ECLASS} == e1 ]] || die "\$ECLASS isn't correct"
         "#};
         temp.create_eclass("e1", eclass).unwrap();
+
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -311,8 +344,7 @@ mod tests {
 
     #[test]
     fn cyclic() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -339,6 +371,11 @@ mod tests {
             VAR+="r"
         "#};
         temp.create_eclass("r", eclass).unwrap();
+
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
 
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         let build = get_build_mut();
@@ -370,7 +407,7 @@ mod tests {
 
     #[test]
     fn overlay() {
-        let repo = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("secondary").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["b", "c"]).unwrap();

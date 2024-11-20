@@ -1,6 +1,8 @@
 use std::convert::Infallible;
 use std::io;
 
+use serde::{Deserialize, Serialize};
+
 use crate::pkg::Package;
 use crate::repo::RepoFormat;
 
@@ -8,10 +10,10 @@ mod peg;
 
 pub(crate) use self::peg::peg_error;
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, Deserialize, Serialize, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
-    PegParse(peg::Error),
+    PegParse(String),
     #[error("config error: {0}")]
     Config(String),
     #[error("config error: {0}")]

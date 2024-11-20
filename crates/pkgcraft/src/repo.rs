@@ -5,6 +5,7 @@ use std::sync::Arc;
 use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
 use indexmap::{IndexMap, IndexSet};
+use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
@@ -23,7 +24,20 @@ pub mod set;
 /// Supported repo formats
 #[repr(C)]
 #[derive(
-    EnumIter, EnumString, Display, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+    EnumIter,
+    EnumString,
+    Display,
+    Deserialize,
+    Serialize,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum RepoFormat {

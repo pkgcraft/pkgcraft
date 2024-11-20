@@ -24,16 +24,16 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repo = target_ebuild_repo(config, &self.repo)?;
+        let (_pool, repo) = target_ebuild_repo(config, &self.repo)?;
         let format = self.format.unwrap_or(repo.metadata().cache().format());
 
         let cache = if let Some(path) = self.path.as_ref() {
             format.from_path(path)
         } else {
-            format.from_repo(repo)
+            format.from_repo(&repo)
         };
 
-        cache.clean(repo)?;
+        cache.clean(&repo)?;
 
         Ok(ExitCode::SUCCESS)
     }

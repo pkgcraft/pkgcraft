@@ -34,7 +34,7 @@ fn nonexistent_repo() {
 
 #[test]
 fn empty_repo() {
-    let repo = TEST_DATA.ebuild_repo("empty").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()
@@ -47,7 +47,7 @@ fn empty_repo() {
 
 #[test]
 fn progress() {
-    let repo = TEST_DATA.ebuild_repo("empty").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
     for opt in ["-n", "--no-progress"] {
         cmd("pk repo metadata regen")
             .arg(opt)
@@ -148,9 +148,9 @@ fn jobs() {
 #[test]
 fn multiple() {
     let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
-    temp.create_pkg("cat/a-1", &[]).unwrap();
-    temp.create_pkg("cat/b-1", &[]).unwrap();
-    temp.create_pkg("other/pkg-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/a-1", &[]).unwrap();
+    temp.create_raw_pkg("cat/b-1", &[]).unwrap();
+    temp.create_raw_pkg("other/pkg-1", &[]).unwrap();
     let repo = temp.repo();
     cmd("pk repo metadata regen")
         .arg(repo.path())
@@ -219,7 +219,7 @@ fn pkg_with_invalid_dep() {
 
 #[test]
 fn data_content() {
-    let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
     // determine metadata file content
     let metadata_content = |cache_path: &str| {

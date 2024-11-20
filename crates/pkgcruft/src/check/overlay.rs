@@ -59,11 +59,11 @@ mod tests {
     #[test]
     fn check() {
         // secondary unfixed
-        let repo = TEST_DATA.repo("qa-secondary").unwrap();
+        let (pool, repo) = TEST_DATA.repo("qa-secondary").unwrap();
         let dir = repo.path().join(CHECK);
-        let scanner = Scanner::new().checks([CHECK]);
+        let scanner = Scanner::new(&pool).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
     }
 }

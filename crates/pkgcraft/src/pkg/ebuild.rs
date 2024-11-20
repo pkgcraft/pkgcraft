@@ -349,7 +349,7 @@ mod tests {
 
     #[test]
     fn display_and_debug() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         let pkg = repo.iter().next().unwrap();
         let s = pkg.to_string();
         assert!(format!("{pkg:?}").contains(&s));
@@ -359,6 +359,7 @@ mod tests {
     fn eapi() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // unknown
         let r = temp.create_raw_pkg("cat/pkg-1", &["EAPI=unknown"]);
@@ -405,6 +406,7 @@ mod tests {
     fn pkg_methods() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // temp repo ebuild creation defaults to the latest EAPI
         let raw_pkg = temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
@@ -418,6 +420,7 @@ mod tests {
     fn package_trait() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         temp.create_raw_pkg("cat/pkg-1", &[]).unwrap();
         temp.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
 
@@ -440,7 +443,7 @@ mod tests {
 
     #[test]
     fn intersects_dep() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         let pkg = repo.get_pkg("slot/subslot-8").unwrap();
 
         for (s, expected) in [
@@ -462,12 +465,12 @@ mod tests {
     #[test]
     fn slot_and_subslot() {
         // without slot
-        let repo = TEST_DATA.ebuild_repo("bad").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("bad").unwrap();
         let r = repo.get_pkg("slot/none-8");
         assert_err_re!(r, "missing required value: SLOT$");
 
         // without subslot
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         let pkg = repo.get_pkg("slot/slot-8").unwrap();
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "1");
@@ -480,7 +483,7 @@ mod tests {
 
     #[test]
     fn dependencies() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -523,7 +526,7 @@ mod tests {
 
     #[test]
     fn deprecated() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         let pkg = repo.get_pkg("deprecated/deprecated-0").unwrap();
         assert!(pkg.deprecated());
         let pkg = repo.get_pkg("deprecated/deprecated-1").unwrap();
@@ -532,7 +535,7 @@ mod tests {
 
     #[test]
     fn live() {
-        let repo = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
         let pkg = repo.get_pkg("Keywords/KeywordsLive-9999").unwrap();
         assert!(pkg.live());
         let pkg = repo.get_pkg("Keywords/KeywordsLive-0").unwrap();
@@ -541,7 +544,7 @@ mod tests {
 
     #[test]
     fn masked() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         let pkg = repo.get_pkg("masked/masked-0").unwrap();
         assert!(pkg.masked());
         let pkg = repo.get_pkg("masked/masked-1").unwrap();
@@ -550,19 +553,19 @@ mod tests {
 
     #[test]
     fn description() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         let pkg = repo.get_pkg("optional/none-8").unwrap();
         assert_eq!(pkg.description(), "ebuild with no optional metadata fields");
 
         // none
-        let repo = TEST_DATA.ebuild_repo("bad").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("bad").unwrap();
         let r = repo.get_pkg("description/none-8");
         assert_err_re!(r, "missing required value: DESCRIPTION$");
     }
 
     #[test]
     fn homepage() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -600,7 +603,7 @@ mod tests {
 
     #[test]
     fn defined_phases() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -623,7 +626,7 @@ mod tests {
 
     #[test]
     fn keywords() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -644,7 +647,7 @@ mod tests {
 
     #[test]
     fn iuse() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -672,7 +675,7 @@ mod tests {
 
     #[test]
     fn license() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -701,7 +704,7 @@ mod tests {
 
     #[test]
     fn properties() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -730,7 +733,7 @@ mod tests {
 
     #[test]
     fn restrict() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -759,7 +762,7 @@ mod tests {
 
     #[test]
     fn required_use() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -784,7 +787,7 @@ mod tests {
 
     #[test]
     fn inherits() {
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
 
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
@@ -807,7 +810,7 @@ mod tests {
 
     #[test]
     fn pkg_metadata() {
-        let repo = TEST_DATA.ebuild_repo("xml").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -830,6 +833,7 @@ mod tests {
     fn distfiles() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // none
         let pkg = temp.create_pkg("nomanifest/pkg-1", &[]).unwrap();

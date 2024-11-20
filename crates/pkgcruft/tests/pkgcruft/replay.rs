@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 
 use itertools::Itertools;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::cmd;
+use pkgcraft::test::{cmd, TEST_DATA};
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -14,8 +14,9 @@ use tempfile::NamedTempFile;
 /// Temporary file of all serialized reports from the primary QA test repo.
 pub(crate) static QA_PRIMARY_FILE: LazyLock<NamedTempFile> = LazyLock::new(|| {
     let mut file = NamedTempFile::new().unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let output = cmd("pkgcruft scan -R json")
-        .arg(qa_repo("qa-primary"))
+        .arg(repo.path())
         .output()
         .unwrap()
         .stdout;
@@ -106,7 +107,8 @@ fn file_targets() {
 
 #[test]
 fn checks() {
-    let repo = qa_repo("qa-primary").path();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/**/reports.json",
@@ -146,7 +148,8 @@ fn checks() {
 
 #[test]
 fn levels() {
-    let repo = qa_repo("qa-primary").path();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo = repo.path();
     let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
     let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
@@ -182,7 +185,8 @@ fn levels() {
 
 #[test]
 fn reports() {
-    let repo = qa_repo("qa-primary").path();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",
@@ -222,7 +226,8 @@ fn reports() {
 
 #[test]
 fn scopes() {
-    let repo = qa_repo("qa-primary").path();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",
@@ -261,7 +266,8 @@ fn scopes() {
 
 #[test]
 fn sources() {
-    let repo = qa_repo("qa-primary").path();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let repo = repo.path();
     let expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",
         "{repo}/UnstableOnly/UnstableOnly/reports.json",

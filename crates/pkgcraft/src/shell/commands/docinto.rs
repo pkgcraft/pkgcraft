@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn creation() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 

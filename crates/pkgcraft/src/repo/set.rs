@@ -431,6 +431,7 @@ mod tests {
     fn repo_traits() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         let fake_repo = FakeRepo::new("fake", 0);
 
         let cpn = Cpn::try_new("cat/pkg").unwrap();

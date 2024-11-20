@@ -1,14 +1,7 @@
 use assert_cmd::Command;
 use glob::glob;
-use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::test::TEST_DATA;
 
 use crate::report::{Iter, Report};
-
-/// Return the ebuild repo object for a given shared test data repo.
-pub fn qa_repo(name: &str) -> &EbuildRepo {
-    TEST_DATA.ebuild_repo(name).unwrap()
-}
 
 pub trait ToReports {
     fn to_reports(&mut self) -> Result<Vec<Report>, String>;

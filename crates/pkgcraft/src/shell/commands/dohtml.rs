@@ -177,7 +177,7 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(dohtml, &[0]);
 
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         let _file_tree = FileTree::new();
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn verbose_output() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn creation() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -268,7 +268,7 @@ mod tests {
 
     #[test]
     fn options() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 

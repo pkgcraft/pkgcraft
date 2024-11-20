@@ -38,7 +38,7 @@ fn nonexistent_path_target() {
 
 #[test]
 fn empty_repo() {
-    let repo = TEST_DATA.ebuild_repo("empty").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
     cmd("pk pkg pretend")
         .arg(repo.path())
         .assert()
@@ -49,7 +49,7 @@ fn empty_repo() {
 
 #[test]
 fn pkg_target_from_stdin() {
-    let repo = TEST_DATA.ebuild_repo("phases").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("phases").unwrap();
     cmd("pk pkg pretend -")
         .write_stdin(format!("pkg-pretend/success-with-output::{}", repo.path()))
         .assert()
@@ -103,7 +103,7 @@ fn path_targets() {
 
 #[test]
 fn output() {
-    let repo = TEST_DATA.ebuild_repo("phases").unwrap();
+    let (_pool, repo) = TEST_DATA.ebuild_repo("phases").unwrap();
 
     // package lacking pkg_pretend() phase
     cmd("pk pkg pretend")

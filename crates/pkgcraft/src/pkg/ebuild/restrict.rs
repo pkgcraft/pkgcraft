@@ -272,6 +272,7 @@ mod tests {
     fn ebuild() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // single
         let data = indoc::indoc! {r#"
@@ -311,6 +312,7 @@ mod tests {
     fn description() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         temp.create_raw_pkg("cat/pkg-1", &["DESCRIPTION=desc1"])
             .unwrap();
@@ -341,6 +343,7 @@ mod tests {
     fn slot() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         temp.create_raw_pkg("cat/pkg-0", &["SLOT=0"]).unwrap();
         let pkg = temp.create_pkg("cat/pkg-1", &["SLOT=1/2"]).unwrap();
@@ -368,6 +371,7 @@ mod tests {
     fn subslot() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // no explicit subslot
         let pkg = temp.create_pkg("cat/pkg-0", &["SLOT=0"]).unwrap();
@@ -400,6 +404,7 @@ mod tests {
     fn long_description() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         let pkg = temp.create_pkg("cat/pkg-a-1", &[]).unwrap();
 
@@ -453,6 +458,7 @@ mod tests {
     fn maintainers() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // none
         temp.create_raw_pkg("noxml/pkg-1", &[]).unwrap();

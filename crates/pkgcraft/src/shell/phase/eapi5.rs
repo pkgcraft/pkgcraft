@@ -78,6 +78,7 @@ mod tests {
     fn src_install() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // default src_install only handles DOCS and not HTML_DOCS
         for eapi in eapi::range("..6").unwrap() {

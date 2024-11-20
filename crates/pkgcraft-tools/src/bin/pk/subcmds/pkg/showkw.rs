@@ -28,13 +28,12 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let pkgs = TargetRestrictions::new(config)
+        let (_pool, pkgs) = TargetRestrictions::new(config)
             .repo(self.repo)?
-            .pkgs_ebuild(self.targets.iter().flatten());
+            .pkgs_ebuild(self.targets.iter().flatten())?;
 
         let mut stdout = io::stdout().lock();
         for pkg in pkgs {
-            let pkg = pkg?;
             writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
         }
 

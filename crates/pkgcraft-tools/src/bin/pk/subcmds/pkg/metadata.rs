@@ -47,12 +47,11 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine target restrictions
-        let targets = TargetRestrictions::new(config)
+        let (_pool, targets) = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .targets(self.targets.iter().flatten());
+            .targets(self.targets.iter().flatten())?;
 
-        for target in targets {
-            let (repo_set, restrict) = target?;
+        for (repo_set, restrict) in targets {
             for repo in repo_set.ebuild() {
                 let format = self.format.unwrap_or(repo.metadata().cache().format());
 

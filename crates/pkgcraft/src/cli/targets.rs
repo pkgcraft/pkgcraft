@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use camino::Utf8Path;
+use itertools::Itertools;
 
 use crate::config::Config;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
@@ -10,6 +11,7 @@ use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
+use crate::shell::BuildPool;
 use crate::utils::current_dir;
 use crate::Error;
 
@@ -131,76 +133,60 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target restrictions.
-    pub fn targets<I>(
-        mut self,
-        values: I,
-    ) -> impl Iterator<Item = crate::Result<(RepoSet, Restrict)>> + 'a
+    pub fn targets<I>(mut self, values: I) -> crate::Result<(BuildPool, Vec<(RepoSet, Restrict)>)>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
-        <I as IntoIterator>::IntoIter: 'a,
     {
-        values
+        let targets: Vec<_> = values
             .into_iter()
-            .map(move |s| self.target_restriction(s.as_ref()))
+            .map(|s| self.target_restriction(s.as_ref()))
+            .try_collect()?;
+        Ok((self.config.pool(), targets))
     }
 
     /// Determine target packages.
-    pub fn pkgs<I>(mut self, values: I) -> impl Iterator<Item = crate::Result<Pkg>> + 'a
+    pub fn pkgs<I>(self, values: I) -> crate::Result<(BuildPool, impl Iterator<Item = Pkg>)>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
-        <I as IntoIterator>::IntoIter: 'a,
     {
-        values
+        let (pool, targets) = self.targets(values)?;
+        let iter = targets
             .into_iter()
-            .map(move |s| self.target_restriction(s.as_ref()))
-            .flat_map(move |result| {
-                let iter: Box<dyn Iterator<Item = crate::Result<Pkg>>> = match result {
-                    Ok((set, restrict)) => Box::new(set.iter_restrict(restrict).map(Ok)),
-                    Err(e) => Box::new([Err(e)].into_iter()),
-                };
-                iter
-            })
+            .flat_map(|(set, restrict)| set.iter_restrict(restrict));
+        Ok((pool, iter))
     }
 
     /// Determine target ebuild packages.
-    pub fn pkgs_ebuild<I>(self, values: I) -> impl Iterator<Item = crate::Result<EbuildPkg>> + 'a
+    pub fn pkgs_ebuild<I>(
+        self,
+        values: I,
+    ) -> crate::Result<(BuildPool, impl Iterator<Item = EbuildPkg>)>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
-        <I as IntoIterator>::IntoIter: 'a,
     {
-        self.pkgs(values).map(|r| match r {
-            Ok(Pkg::Ebuild(pkg)) => Ok(pkg),
-            Ok(pkg) => Err(Error::InvalidValue(format!("non-ebuild pkg: {pkg}"))),
-            Err(e) => Err(e),
-        })
+        let (pool, iter) = self.pkgs(values)?;
+        let iter = iter.filter_map(|pkg| pkg.into_ebuild().ok());
+        Ok((pool, iter))
     }
 
     /// Determine target raw ebuild packages.
     pub fn pkgs_ebuild_raw<I>(
-        mut self,
+        self,
         values: I,
-    ) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> + 'a
+    ) -> crate::Result<(BuildPool, impl Iterator<Item = EbuildRawPkg>)>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
-        <I as IntoIterator>::IntoIter: 'a,
     {
-        values
-            .into_iter()
-            .map(move |s| self.target_restriction(s.as_ref()))
-            .flat_map(move |result| {
-                let iter: Box<dyn Iterator<Item = crate::Result<EbuildRawPkg>>> = match result {
-                    Ok((set, restrict)) => Box::new(
-                        set.into_iter()
-                            .filter_map(|r| r.into_ebuild().ok())
-                            .flat_map(move |r| r.iter_raw_restrict(&restrict).map(Ok)),
-                    ),
-                    Err(e) => Box::new([Err(e)].into_iter()),
-                };
-                iter
-            })
+        let (pool, targets) = self.targets(values)?;
+        let iter = targets.into_iter().flat_map(|(set, restrict)| {
+            set.into_iter()
+                .filter_map(|r| r.into_ebuild().ok())
+                .flat_map(move |r| r.iter_raw_restrict(&restrict))
+        });
+        Ok((pool, iter))
     }
 }

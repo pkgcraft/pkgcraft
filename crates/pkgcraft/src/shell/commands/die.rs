@@ -106,6 +106,7 @@ mod tests {
         // verify failure during build
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
                 EAPI={eapi}

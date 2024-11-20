@@ -585,6 +585,7 @@ macro_rules! cmd_scope_tests {
             let name = cmd.split(' ').next().unwrap();
             let mut config = Config::default();
             let mut temp = config.temp_repo("test", 0, None).unwrap();
+            let _pool = config.pool();
             let all_scopes: HashSet<_> = Scopes::All.into_iter().collect();
 
             for eapi in &*EAPIS_OFFICIAL {

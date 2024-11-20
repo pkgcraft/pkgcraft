@@ -92,11 +92,10 @@ macro_rules! micros {
 /// Run package sourcing benchmarks for a given duration per package.
 fn benchmark<I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>>,
+    I: Iterator<Item = EbuildRawPkg>,
 {
     let mut failed = false;
-    let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
-        let pkg = pkg?;
+    let func = |pkg: EbuildRawPkg| -> scallop::Result<(String, Vec<Duration>)> {
         let mut data = vec![];
         let mut elapsed = Duration::new(0, 0);
         while elapsed < duration {
@@ -169,11 +168,10 @@ where
 /// Run package sourcing a single time per package.
 fn source<I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>>,
+    I: Iterator<Item = EbuildRawPkg>,
 {
     let mut failed = false;
-    let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
-        let pkg = pkg?;
+    let func = |pkg: EbuildRawPkg| -> scallop::Result<(String, Duration)> {
         let start = Instant::now();
         // TODO: move error mapping into pkgcraft for pkg sourcing
         pkg.source().map_err(|e| Error::InvalidPkg {
@@ -225,9 +223,9 @@ impl Command {
         let mut status = ExitCode::SUCCESS;
 
         // find matching packages
-        let pkgs = TargetRestrictions::new(config)
+        let (_pool, pkgs) = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .pkgs_ebuild_raw(self.targets.iter().flatten());
+            .pkgs_ebuild_raw(self.targets.iter().flatten())?;
 
         let target_failed = if let Some(duration) = self.bench {
             benchmark(duration.into(), jobs, pkgs, self.sort)

@@ -339,6 +339,10 @@ impl Config {
         self.add_repo(&repo, false)?;
         Ok(temp)
     }
+
+    pub fn pool(&self) -> shell::BuildPool {
+        shell::update_build_pool(self)
+    }
 }
 
 #[cfg(test)]

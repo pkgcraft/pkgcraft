@@ -44,6 +44,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::pkg::{Build, Source};
+    use crate::repo::ebuild::temp::EbuildTempRepo;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
@@ -59,8 +60,7 @@ mod tests {
 
     #[test]
     fn single() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -73,6 +73,11 @@ mod tests {
         "#};
         temp.create_eclass("e1", eclass).unwrap();
 
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
+
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
@@ -80,6 +85,7 @@ mod tests {
             SLOT=0
         "#};
         let pkg = temp.create_pkg_from_str("cat/pkg-1", data).unwrap();
+
         // verify the function runs
         assert!(optional("VAR").is_none());
         BuildData::from_pkg(&pkg);
@@ -89,8 +95,7 @@ mod tests {
 
     #[test]
     fn nested() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -109,6 +114,11 @@ mod tests {
         "#};
         temp.create_eclass("e2", eclass).unwrap();
 
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
+
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1
@@ -125,8 +135,7 @@ mod tests {
 
     #[test]
     fn overridden() {
-        let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -148,6 +157,11 @@ mod tests {
         "#};
         temp.create_eclass("e2", eclass).unwrap();
 
+        let mut config = Config::default();
+        let repo = temp.repo().clone().into();
+        config.add_repo(&repo, false).unwrap();
+        let _pool = config.pool();
+
         let data = indoc::indoc! {r#"
             EAPI=8
             inherit e1 e2
@@ -166,6 +180,7 @@ mod tests {
     fn invalid_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -192,6 +207,7 @@ mod tests {
     fn undefined_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // create eclass
         let eclass = indoc::indoc! {r#"

@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         assert_invalid_args(ver_cut, &[0, 3]);
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn invalid_range() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 

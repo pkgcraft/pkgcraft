@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn no_files() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn default_files_empty() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn default_files() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn default_files_globs() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn docs_array() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn docs_string() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn html_docs_array() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -276,7 +276,7 @@ mod tests {
 
     #[test]
     fn html_docs_string() {
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 

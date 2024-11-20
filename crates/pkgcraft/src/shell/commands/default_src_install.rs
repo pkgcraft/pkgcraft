@@ -37,6 +37,7 @@ mod tests {
     fn valid_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing default_src_install command"
@@ -73,6 +74,7 @@ mod tests {
     fn invalid_phase() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing default_src_install command"

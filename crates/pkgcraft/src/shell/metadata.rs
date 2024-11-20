@@ -64,7 +64,7 @@ mod tests {
     #[test]
     fn try_from_raw_pkg() {
         // valid
-        let repo = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         for pkg in repo.iter_raw() {
             BuildData::from_raw_pkg(&pkg);
             let r = Metadata::try_from(&pkg);
@@ -72,7 +72,7 @@ mod tests {
         }
 
         // invalid
-        let repo = TEST_DATA.ebuild_repo("bad").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("bad").unwrap();
         for pkg in repo.iter_raw() {
             BuildData::from_raw_pkg(&pkg);
             let r = Metadata::try_from(&pkg);

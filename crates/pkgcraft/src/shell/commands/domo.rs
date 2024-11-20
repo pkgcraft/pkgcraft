@@ -71,7 +71,7 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(domo, &[0]);
 
-        let repo = TEST_DATA.ebuild_repo("commands").unwrap();
+        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 
@@ -86,6 +86,7 @@ mod tests {
     fn creation() {
         let mut config = Config::default();
         let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let _pool = config.pool();
 
         // verify DESTTREE is used depending on EAPI
         for eapi in &*EAPIS_OFFICIAL {

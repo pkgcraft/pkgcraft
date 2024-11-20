@@ -20,11 +20,11 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repo = target_ebuild_repo(config, &self.repo)?;
+        let (_pool, repo) = target_ebuild_repo(config, &self.repo)?;
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();
 
-        for pkg in repo {
+        for pkg in &repo {
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies(&[]).into_iter_flatten() {
                 cache
