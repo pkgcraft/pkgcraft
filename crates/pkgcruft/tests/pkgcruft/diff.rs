@@ -5,7 +5,7 @@ use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
 
-use crate::replay::QA_PRIMARY_FILE;
+use crate::replay::qa_primary_file;
 
 #[test]
 fn missing_args() {
@@ -28,10 +28,12 @@ fn missing_args() {
 
 #[test]
 fn nonexistent_files() {
+    let file = qa_primary_file();
+
     // first
     cmd("pkgcruft diff")
         .arg("path/to/nonexistent/file1.json")
-        .arg(QA_PRIMARY_FILE.path())
+        .arg(file.path())
         .assert()
         .stdout("")
         .stderr(contains("failed loading file"))
@@ -40,7 +42,7 @@ fn nonexistent_files() {
 
     // second
     cmd("pkgcruft diff")
-        .arg(QA_PRIMARY_FILE.path())
+        .arg(file.path())
         .arg("path/to/nonexistent/file1.json")
         .assert()
         .stdout("")
@@ -60,8 +62,9 @@ fn nonexistent_files() {
 
 #[test]
 fn empty() {
+    let file = qa_primary_file();
     let output = cmd("pkgcruft diff")
-        .args([QA_PRIMARY_FILE.path(), QA_PRIMARY_FILE.path()])
+        .args([file.path(), file.path()])
         .output()
         .unwrap()
         .stdout;

@@ -1,6 +1,5 @@
 use std::fs;
 use std::io::Write;
-use std::sync::LazyLock;
 
 use itertools::Itertools;
 use pkgcraft::repo::Repository;
@@ -12,17 +11,14 @@ use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
-pub(crate) static QA_PRIMARY_FILE: LazyLock<NamedTempFile> = LazyLock::new(|| {
+pub(crate) fn qa_primary_file() -> NamedTempFile {
+    let repo = TEST_DATA.path().join("repos/valid/qa-primary");
+    let reports = glob_reports!("{repo}/**/reports.json");
+    let data = reports.iter().map(|x| x.to_json()).join("\n");
     let mut file = NamedTempFile::new().unwrap();
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
-    let output = cmd("pkgcruft scan -R json")
-        .arg(repo.path())
-        .output()
-        .unwrap()
-        .stdout;
-    file.write_all(&output).unwrap();
+    file.write_all(data.as_bytes()).unwrap();
     file
-});
+}
 
 #[test]
 fn missing_target() {
@@ -56,9 +52,11 @@ fn invalid_dir_target() {
 
 #[test]
 fn stdin() {
+    let file = qa_primary_file();
+
     // valid
     cmd("pkgcruft replay -")
-        .write_stdin(fs::read_to_string(QA_PRIMARY_FILE.path()).unwrap())
+        .write_stdin(fs::read_to_string(file.path()).unwrap())
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -88,9 +86,11 @@ fn file_targets() {
         .failure()
         .code(2);
 
+    let file = qa_primary_file();
+
     // valid
     cmd("pkgcruft replay")
-        .arg(QA_PRIMARY_FILE.path())
+        .arg(file.path())
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -98,7 +98,7 @@ fn file_targets() {
 
     // multiple
     cmd("pkgcruft replay")
-        .args([QA_PRIMARY_FILE.path(), QA_PRIMARY_FILE.path()])
+        .args([file.path(), file.path()])
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -107,6 +107,7 @@ fn file_targets() {
 
 #[test]
 fn checks() {
+    let file = qa_primary_file();
     let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
@@ -121,7 +122,7 @@ fn checks() {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "invalid"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("--checks"))
@@ -148,6 +149,7 @@ fn checks() {
 
 #[test]
 fn levels() {
+    let file = qa_primary_file();
     let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
@@ -158,7 +160,7 @@ fn levels() {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "invalid"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("--levels"))
@@ -185,6 +187,7 @@ fn levels() {
 
 #[test]
 fn reports() {
+    let file = qa_primary_file();
     let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
@@ -199,7 +202,7 @@ fn reports() {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "invalid"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("--reports"))
@@ -226,6 +229,7 @@ fn reports() {
 
 #[test]
 fn scopes() {
+    let file = qa_primary_file();
     let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
@@ -239,7 +243,7 @@ fn scopes() {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "invalid"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("--scopes"))
@@ -266,6 +270,7 @@ fn scopes() {
 
 #[test]
 fn sources() {
+    let file = qa_primary_file();
     let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let expected = glob_reports!(
@@ -278,7 +283,7 @@ fn sources() {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "invalid"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("--sources"))
@@ -299,6 +304,7 @@ fn sources() {
 
 #[test]
 fn pkgs() {
+    let file = qa_primary_file();
     let reports = indoc::indoc! {r#"
         {"kind":"KeywordsDropped","scope":{"Version":["sys-fs/lvm2-2.03.22-r2",null]},"message":"alpha, hppa, ia64, m68k, ppc"}
         {"kind":"KeywordsDropped","scope":{"Version":["x11-wm/mutter-45.1",null]},"message":"ppc64"}
@@ -310,7 +316,7 @@ fn pkgs() {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "%invalid"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("invalid dep restriction: %invalid"))
@@ -364,11 +370,12 @@ fn sort() {
 
 #[test]
 fn reporter() {
+    let file = qa_primary_file();
     for opt in ["-R", "--reporter"] {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "invalid"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("--reporter"))
@@ -378,7 +385,7 @@ fn reporter() {
         for reporter in ["simple", "fancy", "json"] {
             cmd("pkgcruft replay")
                 .args([opt, reporter])
-                .arg(QA_PRIMARY_FILE.path())
+                .arg(file.path())
                 .assert()
                 .stdout(predicate::str::is_empty().not())
                 .stderr("")
@@ -388,7 +395,7 @@ fn reporter() {
         // missing format string
         cmd("pkgcruft replay")
             .args([opt, "format"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("--format"))
@@ -399,7 +406,7 @@ fn reporter() {
         cmd("pkgcruft replay")
             .args([opt, "format"])
             .args(["--format", "{format}"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout("")
             .stderr(contains("invalid output format"))
@@ -410,7 +417,7 @@ fn reporter() {
         cmd("pkgcruft replay")
             .args([opt, "format"])
             .args(["--format", "{package}"])
-            .arg(QA_PRIMARY_FILE.path())
+            .arg(file.path())
             .assert()
             .stdout(predicate::str::is_empty().not())
             .stderr("")
