@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::dep::Cpv;
-use crate::error::PackageError;
+use crate::error::{Error, PackageError};
 use crate::pkg::ebuild::metadata::Metadata as PkgMetadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::ebuild::cache::Cache;
@@ -18,11 +18,20 @@ enum Cmd {
     Metadata(String, Cpv, bool),
 }
 
+/// Get an ebuild repo from a config matching a given ID.
+fn get_ebuild_repo(config: &Config, repo_id: String) -> crate::Result<&EbuildRepo> {
+    config
+        .repos
+        .get(&repo_id)
+        .and_then(|r| r.as_ebuild())
+        .ok_or_else(|| Error::InvalidValue(format!("unknown ebuild repo: {repo_id}")))
+}
+
 impl Cmd {
     fn run(self, config: &Config) -> crate::Result<()> {
         match self {
             Self::Metadata(repo_id, cpv, verify) => {
-                let repo = config.repos.get(&repo_id).unwrap().as_ebuild().unwrap();
+                let repo = get_ebuild_repo(config, repo_id)?;
                 let pkg = EbuildRawPkg::try_new(cpv, repo.clone())?;
                 let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
                 if !verify {
