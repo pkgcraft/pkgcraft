@@ -308,6 +308,13 @@ mod tests {
         let reports = scanner.run(repo, &dep);
         assert_unordered_eq!(reports, []);
 
+        // repo with bad metadata
+        let (_pool, repo) = TEST_DATA.repo("bad").unwrap();
+        let repo_path = repo.path();
+        let expected = glob_reports!("{repo_path}/**/reports.json");
+        let reports = scanner.run(repo, repo);
+        assert_unordered_eq!(reports, expected);
+
         // empty repo
         let (_pool, repo) = TEST_DATA.repo("empty").unwrap();
         let reports = scanner.run(repo, repo);
