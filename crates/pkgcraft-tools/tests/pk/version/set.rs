@@ -1,4 +1,4 @@
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 
 #[test]
 fn stdin() {
@@ -33,7 +33,8 @@ fn args() {
     // invalid args
     cmd("pk version sort").arg("a/b").assert().failure();
 
-    for d in &TEST_DATA.version_toml.hashing {
+    let data = test_data();
+    for d in &data.version_toml.hashing {
         let versions = &d.versions;
         let output = cmd("pk version set").args(versions).output().unwrap();
         let set: Vec<_> = std::str::from_utf8(&output.stdout)

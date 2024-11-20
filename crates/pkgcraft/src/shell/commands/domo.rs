@@ -60,7 +60,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, domo, into};
     use super::*;
@@ -71,7 +71,8 @@ mod tests {
     fn invalid_args() {
         assert_invalid_args(domo, &[0]);
 
-        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
 

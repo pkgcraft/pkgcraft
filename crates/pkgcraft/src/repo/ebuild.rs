@@ -985,14 +985,15 @@ mod tests {
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkg::Package;
     use crate::repo::Contains;
-    use crate::test::{assert_err_re, assert_ordered_eq, TEST_DATA};
+    use crate::test::{assert_err_re, assert_ordered_eq, test_data};
 
     use super::*;
 
     #[test]
     fn masters() {
+        let data = test_data();
         let mut config = Config::default();
-        let repos = TEST_DATA.path().join("repos");
+        let repos = data.path().join("repos");
 
         // none
         let repo = config
@@ -1017,7 +1018,8 @@ mod tests {
 
     #[test]
     fn invalid() {
-        let repos = TEST_DATA.path().join("repos");
+        let data = test_data();
+        let repos = data.path().join("repos");
 
         // invalid profiles/eapi file
         let path = repos.join("invalid/invalid-eapi");
@@ -1038,8 +1040,10 @@ mod tests {
 
     #[test]
     fn id_and_name() {
+        let data = test_data();
+
         // repo id matches name
-        let (_pool, repo) = TEST_DATA.ebuild_repo("primary").unwrap();
+        let (_pool, repo) = data.ebuild_repo("primary").unwrap();
         assert_eq!(repo.id(), "primary");
         assert_eq!(repo.name(), "primary");
 
@@ -1051,8 +1055,9 @@ mod tests {
 
     #[test]
     fn eapi() {
+        let data = test_data();
         let mut config = Config::default();
-        let repos = TEST_DATA.path().join("repos");
+        let repos = data.path().join("repos");
 
         // nonexistent profiles/eapi file uses EAPI 0 which isn't supported
         let r = config.add_repo_path("test", repos.join("invalid/unsupported-eapi"), 0, false);
@@ -1063,7 +1068,7 @@ mod tests {
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: unknown$");
 
         // supported EAPI
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
         assert!(EAPIS_OFFICIAL.contains(repo.eapi()));
     }
 
@@ -1139,7 +1144,8 @@ mod tests {
 
     #[test]
     fn contains() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
 
         // path
         assert!(repo.contains(""));
@@ -1311,7 +1317,8 @@ mod tests {
 
     #[test]
     fn iter_restrict() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
 
         // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
@@ -1330,7 +1337,8 @@ mod tests {
 
     #[test]
     fn get_pkg() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
 
         // existing
         for cpv in ["slot/slot-8", "slot/subslot-8"] {
@@ -1351,9 +1359,10 @@ mod tests {
 
     #[test]
     fn eclasses() {
-        let (_pool, repo1) = TEST_DATA.ebuild_repo("primary").unwrap();
+        let data = test_data();
+        let (_pool, repo1) = data.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
-        let (_pool, repo2) = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let (_pool, repo2) = data.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
         // verify the overridden eclass is from the secondary repo
         let overridden_eclass = repo2.eclasses().get("c").unwrap();
@@ -1362,23 +1371,26 @@ mod tests {
 
     #[test]
     fn arches() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("primary").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo.arches(), ["x86"]);
-        let (_pool, repo) = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let (_pool, repo) = data.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo.arches(), ["amd64", "x86"]);
     }
 
     #[test]
     fn licenses() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("primary").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("primary").unwrap();
         assert_ordered_eq!(repo.licenses(), ["a"]);
-        let (_pool, repo) = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let (_pool, repo) = data.ebuild_repo("secondary").unwrap();
         assert_ordered_eq!(repo.licenses(), ["a", "b"]);
     }
 
     #[test]
     fn categories_xml() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
         assert_eq!(repo.categories_xml().get("good").unwrap(), "good");
         // categories with invalid XML data don't have entries
         assert!(repo.categories_xml().get("bad").is_none());

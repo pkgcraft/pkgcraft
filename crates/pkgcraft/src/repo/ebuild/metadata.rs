@@ -759,7 +759,7 @@ mod tests {
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::assert_logs_re;
-    use crate::test::{assert_err_re, assert_ordered_eq, TEST_DATA};
+    use crate::test::{assert_err_re, assert_ordered_eq, test_data};
 
     use super::*;
 
@@ -922,7 +922,8 @@ mod tests {
 
     #[test]
     fn eclasses() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("secondary").unwrap();
         // uninherited eclasses
         assert_ordered_eq!(repo.metadata().eclasses().iter().map(|e| e.name()), ["b", "c"]);
         // inherited eclasses

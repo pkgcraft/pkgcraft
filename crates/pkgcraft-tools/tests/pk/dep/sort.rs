@@ -1,4 +1,4 @@
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 
 #[test]
 fn stdin() {
@@ -30,7 +30,8 @@ fn args() {
     // invalid args
     cmd("pk dep sort").arg("a/b/c").assert().failure();
 
-    for d in &TEST_DATA.dep_toml.sorting {
+    let data = test_data();
+    for d in &data.dep_toml.sorting {
         let mut reversed: Vec<_> = d.sorted.clone();
         reversed.reverse();
         let output = cmd("pk dep sort").args(&reversed).output().unwrap();

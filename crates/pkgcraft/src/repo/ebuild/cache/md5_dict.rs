@@ -388,13 +388,14 @@ impl Cache for Md5Dict {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::*;
 
     #[test]
     fn load_and_convert() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
         let cache = CacheFormat::Md5Dict.from_repo(repo);
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();

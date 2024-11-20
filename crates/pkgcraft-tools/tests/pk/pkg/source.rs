@@ -2,7 +2,7 @@ use std::env;
 
 use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
 
@@ -29,7 +29,8 @@ fn nonexistent_path_target() {
 
 #[test]
 fn empty_repo() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
     cmd("pk pkg source")
         .arg(repo.path())
         .assert()
@@ -40,7 +41,8 @@ fn empty_repo() {
 
 #[test]
 fn pkg_target_from_stdin() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
     cmd("pk pkg source -")
         .write_stdin(format!("slot/slot::{}", repo.path()))
         .assert()

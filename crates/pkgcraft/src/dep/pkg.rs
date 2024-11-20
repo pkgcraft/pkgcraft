@@ -627,15 +627,17 @@ impl Intersects<Dep> for Cow<'_, Dep> {
 #[cfg(test)]
 mod tests {
     use crate::eapi::{self, EAPIS};
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
     use crate::utils::hash;
 
     use super::*;
 
     #[test]
     fn new_and_parse() {
+        let data = test_data();
+
         // invalid
-        for s in &TEST_DATA.dep_toml.invalid {
+        for s in &data.dep_toml.invalid {
             for eapi in &*EAPIS {
                 let result = Dep::try_new(s);
                 assert!(result.is_err(), "{s:?} is valid for EAPI={eapi}");
@@ -645,7 +647,7 @@ mod tests {
         }
 
         // valid
-        for e in &TEST_DATA.dep_toml.valid {
+        for e in &data.dep_toml.valid {
             let s = e.dep.as_str();
             let passing_eapis: OrderedSet<_> = eapi::range(&e.eapis).unwrap().collect();
             for eapi in &passing_eapis {
@@ -785,7 +787,8 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        for (expr, (s1, op, s2)) in TEST_DATA.dep_toml.compares() {
+        let data = test_data();
+        for (expr, (s1, op, s2)) in data.dep_toml.compares() {
             let d1 = Dep::try_new(s1).unwrap();
             let d1_cow = d1.without([]).unwrap();
             let d2 = Dep::try_new(s2).unwrap();
@@ -830,9 +833,11 @@ mod tests {
 
     #[test]
     fn intersects() {
+        let data = test_data();
+
         // inject version intersects data from version.toml into Dep objects
         let dep = Dep::try_new("a/b").unwrap();
-        for d in &TEST_DATA.version_toml.intersects {
+        for d in &data.version_toml.intersects {
             // test intersections between all pairs of distinct values
             let permutations = d
                 .vals
@@ -858,7 +863,7 @@ mod tests {
             }
         }
 
-        for d in &TEST_DATA.dep_toml.intersects {
+        for d in &data.dep_toml.intersects {
             // test intersections between all pairs of distinct values
             let permutations = d
                 .vals
@@ -1054,7 +1059,8 @@ mod tests {
 
     #[test]
     fn sorting() {
-        for d in &TEST_DATA.dep_toml.sorting {
+        let data = test_data();
+        for d in &data.dep_toml.sorting {
             let mut reversed: Vec<Dep> =
                 d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
             reversed.sort();
@@ -1069,7 +1075,8 @@ mod tests {
 
     #[test]
     fn hashing() {
-        for d in &TEST_DATA.version_toml.hashing {
+        let data = test_data();
+        for d in &data.version_toml.hashing {
             let set: OrderedSet<Dep> = d
                 .versions
                 .iter()

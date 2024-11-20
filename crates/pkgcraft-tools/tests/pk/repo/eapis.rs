@@ -1,5 +1,5 @@
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 
 #[test]
@@ -24,7 +24,8 @@ fn nonexistent_repo() {
 
 #[test]
 fn empty_repo() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
     cmd("pk repo eapis")
         .arg(repo.path())
         .assert()
@@ -35,7 +36,8 @@ fn empty_repo() {
 
 #[test]
 fn single_repo() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
     cmd("pk repo eapis")
         .arg(repo.path())
         .assert()
@@ -46,8 +48,9 @@ fn single_repo() {
 
 #[test]
 fn multiple_repos() {
-    let (_pool, repo1) = TEST_DATA.ebuild_repo("metadata").unwrap();
-    let (_pool, repo2) = TEST_DATA.ebuild_repo("gentoo").unwrap();
+    let data = test_data();
+    let (_pool, repo1) = data.ebuild_repo("metadata").unwrap();
+    let (_pool, repo2) = data.ebuild_repo("gentoo").unwrap();
     cmd("pk repo eapis")
         .args([repo1.path(), repo2.path()])
         .assert()
@@ -58,7 +61,8 @@ fn multiple_repos() {
 
 #[test]
 fn option_eapi() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
 
     // invalid EAPI
     cmd("pk repo eapis --eapi nonexistent")

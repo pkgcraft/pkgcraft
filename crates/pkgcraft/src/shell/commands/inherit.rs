@@ -90,7 +90,7 @@ mod tests {
     use crate::repo::ebuild::temp::EbuildTempRepo;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
-    use crate::test::{assert_ordered_eq, TEST_DATA};
+    use crate::test::{assert_ordered_eq, test_data};
 
     use super::super::{assert_invalid_args, cmd_scope_tests, inherit};
     use super::*;
@@ -398,7 +398,8 @@ mod tests {
 
     #[test]
     fn overlay() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("secondary").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("secondary").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         inherit(&["b", "c"]).unwrap();

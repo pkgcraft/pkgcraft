@@ -43,7 +43,7 @@ impl EbuildRawPkgCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_unordered_eq, test_data_patched, TEST_DATA};
+    use pkgcraft::test::{assert_unordered_eq, test_data, test_data_patched};
 
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
@@ -53,7 +53,8 @@ mod tests {
     #[test]
     fn check() {
         // primary unfixed
-        let (pool, repo) = TEST_DATA.repo("qa-primary").unwrap();
+        let data = test_data();
+        let (pool, repo) = data.repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new(&pool).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
@@ -61,7 +62,7 @@ mod tests {
         assert_unordered_eq!(reports, expected);
 
         // secondary with no banned or deprecated EAPIs set
-        let (_pool, repo) = TEST_DATA.repo("qa-secondary").unwrap();
+        let (_pool, repo) = data.repo("qa-secondary").unwrap();
         assert!(repo.path().join(CHECK).exists());
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);

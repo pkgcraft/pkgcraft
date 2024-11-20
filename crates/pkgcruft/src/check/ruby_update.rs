@@ -117,7 +117,7 @@ impl EbuildPkgCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_unordered_eq, test_data_patched, TEST_DATA};
+    use pkgcraft::test::{assert_unordered_eq, test_data, test_data_patched};
 
     use crate::scanner::Scanner;
     use crate::source::PkgFilter;
@@ -128,7 +128,8 @@ mod tests {
     #[test]
     fn check() {
         // gentoo unfixed
-        let (pool, repo) = TEST_DATA.repo("gentoo").unwrap();
+        let data = test_data();
+        let (pool, repo) = data.repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
         // ignore stub/* ebuilds
         let filter: PkgFilter = "category != 'stub'".parse().unwrap();

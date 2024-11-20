@@ -46,7 +46,7 @@ mod tests {
     use crate::config::Config;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, ver_test};
     use super::*;
@@ -55,7 +55,8 @@ mod tests {
 
     #[test]
     fn invalid_args() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
         assert_invalid_args(ver_test, &[0, 1, 4]);
@@ -63,7 +64,8 @@ mod tests {
 
     #[test]
     fn overflow() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
@@ -77,7 +79,8 @@ mod tests {
 
     #[test]
     fn invalid_versions() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
@@ -89,7 +92,8 @@ mod tests {
 
     #[test]
     fn invalid_op() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
 
@@ -120,7 +124,8 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        for (expr, (v1, op, v2)) in TEST_DATA.version_toml.compares() {
+        let data = test_data();
+        for (expr, (v1, op, v2)) in data.version_toml.compares() {
             let raw_pkg = temp.create_raw_pkg(format!("cat/pkg-{v1}"), &[]).unwrap();
             BuildData::from_raw_pkg(&raw_pkg);
 

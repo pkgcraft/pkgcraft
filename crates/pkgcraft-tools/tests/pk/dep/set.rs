@@ -1,4 +1,4 @@
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 
 #[test]
 fn stdin() {
@@ -34,7 +34,8 @@ fn args() {
     // invalid args
     cmd("pk dep set").arg("a/b/c").assert().failure();
 
-    for d in &TEST_DATA.version_toml.hashing {
+    let data = test_data();
+    for d in &data.version_toml.hashing {
         let deps: Vec<_> = d.versions.iter().map(|s| format!("=cat/pkg-{s}")).collect();
         let output = cmd("pk dep set").args(&deps).output().unwrap();
         let set: Vec<_> = std::str::from_utf8(&output.stdout)

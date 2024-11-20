@@ -1,10 +1,11 @@
 use itertools::Itertools;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 
 #[test]
 fn valid() {
-    let deps = TEST_DATA.dep_toml.valid.iter().map(|e| &e.dep).join("\n");
+    let data = test_data();
+    let deps = data.dep_toml.valid.iter().map(|e| &e.dep).join("\n");
     cmd("pk dep parse -")
         .write_stdin(deps)
         .assert()
@@ -15,7 +16,8 @@ fn valid() {
 
 #[test]
 fn invalid() {
-    let deps = TEST_DATA.dep_toml.invalid.iter().join("\n");
+    let data = test_data();
+    let deps = data.dep_toml.invalid.iter().join("\n");
     cmd("pk dep parse -")
         .write_stdin(deps)
         .assert()

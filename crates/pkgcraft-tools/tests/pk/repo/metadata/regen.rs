@@ -3,7 +3,7 @@ use std::{env, fs};
 use indexmap::IndexMap;
 use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::{ebuild::temp::EbuildTempRepo, Repository};
-use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
+use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
 use tempfile::tempdir;
@@ -34,7 +34,8 @@ fn nonexistent_repo() {
 
 #[test]
 fn empty_repo() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
     cmd("pk repo metadata regen")
         .arg(repo.path())
         .assert()
@@ -47,7 +48,8 @@ fn empty_repo() {
 
 #[test]
 fn progress() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
     for opt in ["-n", "--no-progress"] {
         cmd("pk repo metadata regen")
             .arg(opt)
@@ -219,7 +221,8 @@ fn pkg_with_invalid_dep() {
 
 #[test]
 fn data_content() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
 
     // determine metadata file content
     let metadata_content = |cache_path: &str| {

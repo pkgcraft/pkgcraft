@@ -3,7 +3,7 @@ use std::io::Write;
 
 use itertools::Itertools;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -12,7 +12,8 @@ use tempfile::NamedTempFile;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
 pub(crate) fn qa_primary_file() -> NamedTempFile {
-    let repo = TEST_DATA.path().join("repos/valid/qa-primary");
+    let data = test_data();
+    let repo = data.path().join("repos/valid/qa-primary");
     let reports = glob_reports!("{repo}/**/reports.json");
     let data = reports.iter().map(|x| x.to_json()).join("\n");
     let mut file = NamedTempFile::new().unwrap();
@@ -108,7 +109,8 @@ fn file_targets() {
 #[test]
 fn checks() {
     let file = qa_primary_file();
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
@@ -150,7 +152,8 @@ fn checks() {
 #[test]
 fn levels() {
     let file = qa_primary_file();
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
     let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
@@ -188,7 +191,8 @@ fn levels() {
 #[test]
 fn reports() {
     let file = qa_primary_file();
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
@@ -230,7 +234,8 @@ fn reports() {
 #[test]
 fn scopes() {
     let file = qa_primary_file();
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
@@ -271,7 +276,8 @@ fn scopes() {
 #[test]
 fn sources() {
     let file = qa_primary_file();
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",

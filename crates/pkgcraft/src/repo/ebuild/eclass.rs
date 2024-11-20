@@ -110,13 +110,14 @@ impl SourceBash for Eclass {
 #[cfg(test)]
 mod tests {
     use crate::repo::Repository;
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::*;
 
     #[test]
     fn try_new() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
         let cache = repo.metadata().cache();
 
         // nonexistent path

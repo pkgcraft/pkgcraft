@@ -91,13 +91,14 @@ impl Source for EbuildPkg {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::*;
 
     #[test]
     fn pretend() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("phases").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("phases").unwrap();
 
         // no pkg_pretend phase exists
         let pkg = repo.get_pkg("pkg-pretend/none-1").unwrap();

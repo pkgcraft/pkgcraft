@@ -36,7 +36,7 @@ impl EbuildPkgSetCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_unordered_eq, test_data_patched, TEST_DATA};
+    use pkgcraft::test::{assert_unordered_eq, test_data, test_data_patched};
 
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
@@ -46,7 +46,8 @@ mod tests {
     #[test]
     fn check() {
         // gentoo unfixed
-        let (pool, repo) = TEST_DATA.repo("gentoo").unwrap();
+        let data = test_data();
+        let (pool, repo) = data.repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new(&pool).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
@@ -54,7 +55,7 @@ mod tests {
         assert_unordered_eq!(reports, expected);
 
         // empty repo
-        let (_pool, repo) = TEST_DATA.repo("empty").unwrap();
+        let (_pool, repo) = data.repo("empty").unwrap();
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
 

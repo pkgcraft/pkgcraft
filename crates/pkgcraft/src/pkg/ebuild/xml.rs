@@ -366,7 +366,7 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::*;
 
@@ -420,7 +420,8 @@ mod tests {
 
     #[test]
     fn maintainers() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -449,7 +450,8 @@ mod tests {
 
     #[test]
     fn upstream() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -478,7 +480,8 @@ mod tests {
 
     #[test]
     fn slots() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -491,7 +494,8 @@ mod tests {
 
     #[test]
     fn subslots() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -504,7 +508,8 @@ mod tests {
 
     #[test]
     fn stabilize_allarches() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
 
         // nonexistent
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -517,7 +522,8 @@ mod tests {
 
     #[test]
     fn local_use() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();
@@ -541,7 +547,8 @@ mod tests {
 
     #[test]
     fn long_description() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("xml").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("xml").unwrap();
 
         // none
         let pkg = repo.get_pkg("pkg/none-8").unwrap();

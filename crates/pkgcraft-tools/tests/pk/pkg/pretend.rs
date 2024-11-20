@@ -2,7 +2,7 @@ use std::env;
 
 use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 use predicates::str::contains;
 
 use crate::predicates::lines_contain;
@@ -38,7 +38,8 @@ fn nonexistent_path_target() {
 
 #[test]
 fn empty_repo() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("empty").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("empty").unwrap();
     cmd("pk pkg pretend")
         .arg(repo.path())
         .assert()
@@ -49,7 +50,8 @@ fn empty_repo() {
 
 #[test]
 fn pkg_target_from_stdin() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("phases").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("phases").unwrap();
     cmd("pk pkg pretend -")
         .write_stdin(format!("pkg-pretend/success-with-output::{}", repo.path()))
         .assert()
@@ -103,7 +105,8 @@ fn path_targets() {
 
 #[test]
 fn output() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("phases").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("phases").unwrap();
 
     // package lacking pkg_pretend() phase
     cmd("pk pkg pretend")

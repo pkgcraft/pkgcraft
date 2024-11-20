@@ -1,10 +1,11 @@
 use criterion::Criterion;
 
-use pkgcraft::test::TEST_DATA;
+use pkgcraft::test::test_data;
 use pkgcruft::scanner::Scanner;
 
 pub fn bench(c: &mut Criterion) {
-    let (pool, repo) = TEST_DATA.repo("qa-primary").unwrap();
+    let data = test_data();
+    let (pool, repo) = data.repo("qa-primary").unwrap();
 
     c.bench_function("scan", |b| {
         let scanner = Scanner::new(&pool);

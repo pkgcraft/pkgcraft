@@ -151,13 +151,14 @@ impl Intersects<Dep> for EbuildRawPkg {
 mod tests {
     use crate::config::Config;
     use crate::eapi::EAPI8;
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::*;
 
     #[test]
     fn display_and_debug() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
         let pkg = repo.iter_raw().next().unwrap().unwrap();
         let s = pkg.to_string();
         assert!(format!("{pkg:?}").contains(&s));
@@ -165,14 +166,16 @@ mod tests {
 
     #[test]
     fn relpath() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.relpath(), "optional/none/none-8.ebuild");
     }
 
     #[test]
     fn path() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.path(), repo.path().join("optional/none/none-8.ebuild"));
     }
@@ -194,7 +197,8 @@ mod tests {
 
     #[test]
     fn traits() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("metadata").unwrap();
         let raw_pkg = repo.get_pkg_raw("optional/none-8").unwrap();
         assert_eq!(raw_pkg.eapi(), &*EAPI8);
         assert_eq!(raw_pkg.cpv().to_string(), "optional/none-8");
@@ -203,7 +207,8 @@ mod tests {
 
     #[test]
     fn intersects_dep() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
 
         for (s, expected) in [

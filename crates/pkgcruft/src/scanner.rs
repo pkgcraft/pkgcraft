@@ -238,7 +238,7 @@ impl Iterator for Iter {
 mod tests {
     use pkgcraft::dep::Dep;
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_unordered_eq, TEST_DATA};
+    use pkgcraft::test::{assert_unordered_eq, test_data};
 
     use crate::check::CheckKind;
     use crate::test::glob_reports;
@@ -247,7 +247,8 @@ mod tests {
 
     #[test]
     fn run() {
-        let (pool, repo) = TEST_DATA.repo("qa-primary").unwrap();
+        let data = test_data();
+        let (pool, repo) = data.repo("qa-primary").unwrap();
         let repo_path = repo.path();
 
         // repo target
@@ -309,21 +310,22 @@ mod tests {
         assert_unordered_eq!(reports, []);
 
         // repo with bad metadata
-        let (_pool, repo) = TEST_DATA.repo("bad").unwrap();
+        let (_pool, repo) = data.repo("bad").unwrap();
         let repo_path = repo.path();
         let expected = glob_reports!("{repo_path}/**/reports.json");
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
 
         // empty repo
-        let (_pool, repo) = TEST_DATA.repo("empty").unwrap();
+        let (_pool, repo) = data.repo("empty").unwrap();
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
     }
 
     #[test]
     fn failed() {
-        let (pool, repo) = TEST_DATA.repo("qa-primary").unwrap();
+        let data = test_data();
+        let (pool, repo) = data.repo("qa-primary").unwrap();
 
         // no reports flagged for failures
         let scanner = Scanner::new(&pool);

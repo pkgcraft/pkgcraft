@@ -354,7 +354,7 @@ mod tests {
 
     use crate::macros::assert_logs_re;
     use crate::repo::Repository;
-    use crate::test::{assert_err_re, assert_ordered_eq, TEST_DATA};
+    use crate::test::{assert_err_re, assert_ordered_eq, test_data};
 
     use super::*;
 
@@ -409,7 +409,8 @@ mod tests {
         let conf_path = tmpdir.path().to_str().unwrap();
         let path = tmpdir.path().join("repos.conf");
         let path = path.to_str().unwrap();
-        let repos_dir = TEST_DATA.path().join("repos");
+        let data = test_data();
+        let repos_dir = data.path().join("repos");
 
         // nonexistent
         let r = config.load_portage_conf(Some("unknown/path"));

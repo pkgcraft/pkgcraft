@@ -38,7 +38,7 @@ mod tests {
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, usev};
     use super::*;
@@ -57,7 +57,8 @@ mod tests {
 
     #[test]
     fn empty_iuse_effective() {
-        let (_pool, repo) = TEST_DATA.ebuild_repo("commands").unwrap();
+        let data = test_data();
+        let (_pool, repo) = data.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         assert_err_re!(usev(&["use"]), "^USE flag not in IUSE: use$");

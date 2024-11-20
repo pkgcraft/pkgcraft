@@ -1,11 +1,12 @@
 use itertools::Itertools;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 
 use crate::predicates::lines_contain;
 
 #[test]
 fn stdin() {
-    let exprs = TEST_DATA.version_toml.compares().map(|(s, _)| s).join("\n");
+    let data = test_data();
+    let exprs = data.version_toml.compares().map(|(s, _)| s).join("\n");
     cmd("pk version compare -")
         .write_stdin(exprs)
         .assert()

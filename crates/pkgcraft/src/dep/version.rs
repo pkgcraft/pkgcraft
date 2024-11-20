@@ -634,21 +634,23 @@ mod tests {
 
     use itertools::Itertools;
 
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
     use crate::utils::hash;
 
     use super::*;
 
     #[test]
     fn new_and_parse() {
+        let data = test_data();
+
         // invalid
-        for s in &TEST_DATA.version_toml.invalid {
+        for s in &data.version_toml.invalid {
             let result = Version::try_new(s);
             assert!(result.is_err(), "{s:?} didn't fail");
         }
 
         // valid
-        for s in &TEST_DATA.version_toml.valid {
+        for s in &data.version_toml.valid {
             let result = Version::try_new(s);
             assert!(result.is_ok(), "{s:?} failed");
             let ver = result.unwrap();
@@ -710,7 +712,8 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        for (expr, (s1, op, s2)) in TEST_DATA.version_toml.compares() {
+        let data = test_data();
+        for (expr, (s1, op, s2)) in data.version_toml.compares() {
             let v1 = Version::try_new(s1).unwrap();
             let v2 = Version::try_new(s2).unwrap();
             if op == "!=" {
@@ -732,7 +735,8 @@ mod tests {
 
     #[test]
     fn intersects() {
-        for d in &TEST_DATA.version_toml.intersects {
+        let data = test_data();
+        for d in &data.version_toml.intersects {
             // test intersections between all pairs of distinct values
             let permutations = d
                 .vals
@@ -760,7 +764,8 @@ mod tests {
 
     #[test]
     fn sorting() {
-        for d in &TEST_DATA.version_toml.sorting {
+        let data = test_data();
+        for d in &data.version_toml.sorting {
             let mut reversed: Vec<Version> =
                 d.sorted.iter().map(|s| s.parse().unwrap()).rev().collect();
             reversed.sort();
@@ -775,7 +780,8 @@ mod tests {
 
     #[test]
     fn hashing() {
-        for d in &TEST_DATA.version_toml.hashing {
+        let data = test_data();
+        for d in &data.version_toml.hashing {
             let set: HashSet<Version> = d.versions.iter().map(|s| s.parse().unwrap()).collect();
             if d.equal {
                 assert_eq!(set.len(), 1, "failed hashing versions: {set:?}");

@@ -1,7 +1,7 @@
 use std::env;
 
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{assert_unordered_eq, cmd, TEST_DATA};
+use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -10,7 +10,8 @@ use tempfile::{tempdir, NamedTempFile};
 
 #[test]
 fn stdin_targets() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
 
     for arg in ["KeywordsDropped", "KeywordsDropped/KeywordsDropped"] {
@@ -26,7 +27,8 @@ fn stdin_targets() {
 
 #[test]
 fn dep_restrict_targets() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
 
     // invalid
@@ -79,7 +81,8 @@ fn dep_restrict_targets() {
 
 #[test]
 fn current_dir_targets() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
 
     // empty dir
@@ -114,7 +117,8 @@ fn current_dir_targets() {
 
 #[test]
 fn path_targets() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
 
     // nonexistent
@@ -137,7 +141,7 @@ fn path_targets() {
         .code(2);
 
     // unsupported EAPI
-    let path = TEST_DATA.path().join("repos/invalid/unsupported-eapi");
+    let path = data.path().join("repos/invalid/unsupported-eapi");
     cmd("pkgcruft scan")
         .arg(&path)
         .assert()
@@ -211,7 +215,8 @@ fn path_targets() {
 
 #[test]
 fn color() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
 
     // forcibly disable color
@@ -251,7 +256,8 @@ fn color() {
 
 #[test]
 fn jobs() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let expected = glob_reports!("{repo}/**/reports.json");
 
@@ -268,7 +274,8 @@ fn jobs() {
 
 #[test]
 fn repo() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
 
     env::set_current_dir(repo).unwrap();
@@ -329,7 +336,8 @@ fn repo() {
 
 #[test]
 fn exit() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
 
     // none
@@ -380,9 +388,10 @@ fn exit() {
 
 #[test]
 fn filters() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("gentoo").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("gentoo").unwrap();
     let gentoo_repo_path = repo.path();
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let primary_repo_path = repo.path();
     let expected = glob_reports!("{gentoo_repo_path}/Header/HeaderInvalid/reports.json");
 
@@ -562,7 +571,8 @@ fn filters() {
 
 #[test]
 fn reporter() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     env::set_current_dir(repo).unwrap();
 
@@ -617,7 +627,8 @@ fn reporter() {
 
 #[test]
 fn checks() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/**/reports.json");
     let multiple_expected = glob_reports!(
@@ -657,7 +668,8 @@ fn checks() {
 
 #[test]
 fn levels() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
     let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
@@ -693,7 +705,8 @@ fn levels() {
 
 #[test]
 fn reports() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
@@ -733,7 +746,8 @@ fn reports() {
 
 #[test]
 fn scopes() {
-    let (_pool, repo) = TEST_DATA.ebuild_repo("qa-primary").unwrap();
+    let data = test_data();
+    let (_pool, repo) = data.ebuild_repo("qa-primary").unwrap();
     let repo = repo.path();
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(

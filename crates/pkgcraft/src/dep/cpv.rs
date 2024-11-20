@@ -249,7 +249,7 @@ mod tests {
     use std::cmp::Ordering;
     use std::collections::HashMap;
 
-    use crate::test::TEST_DATA;
+    use crate::test::test_data;
     use crate::utils::hash;
 
     use super::*;
@@ -275,7 +275,8 @@ mod tests {
                 .into_iter()
                 .collect();
 
-        for (expr, (s1, op, s2)) in TEST_DATA.version_toml.compares() {
+        let data = test_data();
+        for (expr, (s1, op, s2)) in data.version_toml.compares() {
             let cpv_str1 = format!("a/b-{s1}");
             let cpv_str2 = format!("a/b-{s2}");
             let cpv1 = Cpv::try_new(&cpv_str1).unwrap();

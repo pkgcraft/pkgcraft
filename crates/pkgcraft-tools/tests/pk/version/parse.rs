@@ -1,19 +1,12 @@
 use itertools::Itertools;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 
 #[test]
 fn valid() {
-    let intersects = TEST_DATA
-        .version_toml
-        .intersects
-        .iter()
-        .flat_map(|e| &e.vals);
-    let sorting = TEST_DATA
-        .version_toml
-        .sorting
-        .iter()
-        .flat_map(|e| &e.sorted);
+    let data = test_data();
+    let intersects = data.version_toml.intersects.iter().flat_map(|e| &e.vals);
+    let sorting = data.version_toml.sorting.iter().flat_map(|e| &e.sorted);
 
     cmd("pk version parse -")
         .write_stdin(intersects.chain(sorting).join("\n"))

@@ -1,4 +1,3 @@
-use std::sync::LazyLock;
 use std::{env, fs, process};
 
 use assert_cmd::Command;
@@ -37,7 +36,7 @@ fn initialize() {
         env::var("NEXTEST").expect("tests must be run via cargo-nextest");
     }
     // initialize bash
-    LazyLock::force(&crate::shell::BASH);
+    std::sync::LazyLock::force(&crate::shell::BASH);
 }
 
 #[serde_as]
@@ -173,7 +172,7 @@ impl TestData {
     }
 }
 
-pub static TEST_DATA: LazyLock<TestData> = LazyLock::new(|| {
+pub fn test_data() -> TestData {
     let path = build_path!(env!("CARGO_MANIFEST_DIR"), "testdata");
 
     // load valid repos from test data, ignoring purposefully broken ones
@@ -195,7 +194,7 @@ pub static TEST_DATA: LazyLock<TestData> = LazyLock::new(|| {
         dep_toml: DepToml::load(&path.join("toml/dep.toml")).unwrap(),
         version_toml: VersionToml::load(&path.join("toml/version.toml")).unwrap(),
     }
-});
+}
 
 #[derive(Debug)]
 pub struct TestDataPatched {
@@ -242,7 +241,8 @@ pub fn test_data_patched() -> TestDataPatched {
     let mut repos = vec![];
 
     // generate temporary repos for with patches applied
-    for (name, repo) in &TEST_DATA.config.repos {
+    let data = test_data();
+    for (name, repo) in &data.config.repos {
         let patches_exist = WalkDir::new(repo.path())
             .into_iter()
             .filter_map(|e| e.ok())

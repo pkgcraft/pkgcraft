@@ -1,5 +1,5 @@
 use pkgcraft::dep::Version;
-use pkgcraft::test::{cmd, TEST_DATA};
+use pkgcraft::test::{cmd, test_data};
 
 #[test]
 fn stdin() {
@@ -34,7 +34,8 @@ fn args() {
     // invalid args
     cmd("pk cpv sort").arg("a/b").assert().failure();
 
-    for d in &TEST_DATA.version_toml.sorting {
+    let data = test_data();
+    for d in &data.version_toml.sorting {
         // use all versions without operators
         let versions: Vec<_> = d
             .sorted
