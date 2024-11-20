@@ -235,7 +235,7 @@ fn is_patch(entry: &DirEntry) -> bool {
     path.is_file() && path.extension().map(|s| s == "patch").unwrap_or_default()
 }
 
-pub static TEST_DATA_PATCHED: LazyLock<TestDataPatched> = LazyLock::new(|| {
+pub fn test_data_patched() -> TestDataPatched {
     let tmpdir = TempDir::new().unwrap();
     let tmppath = Utf8Path::from_path(tmpdir.path()).unwrap();
     let mut config = Config::new("pkgcraft", "");
@@ -304,7 +304,7 @@ pub static TEST_DATA_PATCHED: LazyLock<TestDataPatched> = LazyLock::new(|| {
     }
 
     TestDataPatched { tmpdir, config }
-});
+}
 
 /// Verify two, ordered iterables are equal.
 #[macro_export]

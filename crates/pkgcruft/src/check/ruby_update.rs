@@ -117,7 +117,7 @@ impl EbuildPkgCheck for Check {
 #[cfg(test)]
 mod tests {
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_unordered_eq, TEST_DATA, TEST_DATA_PATCHED};
+    use pkgcraft::test::{assert_unordered_eq, test_data_patched, TEST_DATA};
 
     use crate::scanner::Scanner;
     use crate::source::PkgFilter;
@@ -140,7 +140,8 @@ mod tests {
         assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
-        let (pool, repo) = TEST_DATA_PATCHED.repo("gentoo").unwrap();
+        let data = test_data_patched();
+        let (pool, repo) = data.repo("gentoo").unwrap();
         let scanner = Scanner::new(&pool).checks([CHECK]).filters([filter]);
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
