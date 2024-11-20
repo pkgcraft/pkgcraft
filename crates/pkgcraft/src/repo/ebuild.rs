@@ -128,16 +128,16 @@ impl EbuildRepo {
         self.0
             .masters
             .set(masters)
-            .map_err(|_| Error::InvalidValue("already initialized".to_string()))
-    }
+            .map_err(|_| Error::InvalidValue("already initialized".to_string()))?;
 
-    /// Collapse required lazy fields for metadata regeneration that leverages process-based
-    /// parallelism. If this is not called beforehand, each spawned process will reinitialize
-    /// all lazy fields they use often slowing down runtime considerably.
-    fn collapse_cache_regen(&self) {
+        // Collapse lazy fields used in metadata regeneration that leverages process-based
+        // parallelism. Without collapsing, each spawned process reinitializes all lazy
+        // fields slowing down runtime considerably.
         self.eclasses();
         self.arches();
         self.licenses();
+
+        Ok(())
     }
 
     /// Return the repo config.

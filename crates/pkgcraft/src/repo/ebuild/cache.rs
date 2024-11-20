@@ -223,9 +223,6 @@ impl MetadataCacheRegen<'_> {
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
     pub fn run(self, repo: &EbuildRepo) -> crate::Result<()> {
-        // collapse lazy repo fields used during metadata generation
-        repo.collapse_cache_regen();
-
         // initialize pool first to minimize forked process memory pages
         let func = |cpv: Cpv| -> scallop::Result<()> {
             Ok(repo.update_pkg_metadata(cpv, true, self.verify)?)
