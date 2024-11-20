@@ -76,11 +76,10 @@ impl TryFrom<EbuildRawPkg> for EbuildPkg {
     type Error = Error;
 
     fn try_from(pkg: EbuildRawPkg) -> crate::Result<Self> {
-        let data = pkg.metadata()?;
         Ok(Self(Arc::new(InternalEbuildPkg {
             cpv: pkg.cpv().clone(),
             repo: pkg.repo(),
-            data,
+            data: pkg.metadata()?,
             iuse_effective: OnceLock::new(),
             metadata: OnceLock::new(),
             manifest: OnceLock::new(),
@@ -350,7 +349,7 @@ mod tests {
     #[test]
     fn display_and_debug() {
         let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
-        let pkg = repo.iter().next().unwrap();
+        let pkg = repo.iter().next().unwrap().unwrap();
         let s = pkg.to_string();
         assert!(format!("{pkg:?}").contains(&s));
     }
@@ -425,8 +424,8 @@ mod tests {
         temp.create_raw_pkg("cat/pkg-2", &["EAPI=8"]).unwrap();
 
         let mut iter = temp.repo().iter();
-        let pkg1 = iter.next().unwrap();
-        let pkg2 = iter.next().unwrap();
+        let pkg1 = iter.next().unwrap().unwrap();
+        let pkg2 = iter.next().unwrap().unwrap();
 
         // temp repo ebuild creation defaults to the latest EAPI
         assert_eq!(pkg1.eapi(), *EAPI_LATEST_OFFICIAL);
@@ -437,8 +436,8 @@ mod tests {
         // repo attribute allows recursion
         assert_eq!(pkg1.repo(), pkg2.repo());
         let mut i = pkg1.repo().iter();
-        assert_eq!(pkg1, i.next().unwrap());
-        assert_eq!(pkg2, i.next().unwrap());
+        assert_eq!(pkg1, i.next().unwrap().unwrap());
+        assert_eq!(pkg2, i.next().unwrap().unwrap());
     }
 
     #[test]

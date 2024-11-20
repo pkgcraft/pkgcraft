@@ -397,6 +397,7 @@ mod tests {
         let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         let cache = CacheFormat::Md5Dict.from_repo(repo);
         for pkg in repo.iter_raw() {
+            let pkg = pkg.unwrap();
             let r = cache.get(&pkg);
             assert!(r.is_ok(), "{pkg}: failed loading cache entry: {}", r.unwrap_err());
             let r = r.unwrap().to_metadata(&pkg);

@@ -363,7 +363,7 @@ mod tests {
             .pkgs(["cat/pkg-0"])
             .unwrap()
             .into();
-        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).try_collect().unwrap();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
@@ -376,7 +376,7 @@ mod tests {
             .pkgs(["cat/pkg-0"])
             .unwrap()
             .into();
-        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).try_collect().unwrap();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
@@ -389,7 +389,7 @@ mod tests {
             .pkgs(["cat/pkg-0"])
             .unwrap()
             .into();
-        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).try_collect().unwrap();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
     }
@@ -398,7 +398,7 @@ mod tests {
     fn package_trait_attributes() {
         let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
         let r: Repo = fake::FakeRepo::new("test", 0).pkgs([&cpv]).unwrap().into();
-        let pkg = r.iter_restrict(&cpv).next().unwrap();
+        let pkg = r.iter_restrict(&cpv).next().unwrap().unwrap();
         assert_eq!(pkg.eapi(), *EAPI_LATEST_OFFICIAL);
         assert_eq!(pkg.p(), "pkg-1");
         assert_eq!(pkg.pf(), "pkg-1-r2");
@@ -412,7 +412,7 @@ mod tests {
     fn intersects_dep() {
         let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
         let r: Repo = fake::FakeRepo::new("test", 0).pkgs([&cpv]).unwrap().into();
-        let pkg = r.iter_restrict(&cpv).next().unwrap();
+        let pkg = r.iter_restrict(&cpv).next().unwrap().unwrap();
 
         for (s, expected) in [
             ("cat/pkg", true),

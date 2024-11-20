@@ -41,6 +41,7 @@ impl EbuildPkgCheck for Check {
             let slots = self
                 .repo
                 .iter_restrict(dep.no_use_deps())
+                .filter_map(Result::ok)
                 .map(|pkg| pkg.slot().to_string())
                 .collect::<IndexSet<_>>();
             if slots.len() > 1 {

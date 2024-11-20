@@ -88,7 +88,12 @@ impl EbuildPkgCheck for Check {
         for pkg in deps
             .iter()
             .filter(|x| use_starts_with(x, &[IUSE_PREFIX]))
-            .filter_map(|x| self.repo.iter_restrict(x.no_use_deps()).last())
+            .filter_map(|x| {
+                self.repo
+                    .iter_restrict(x.no_use_deps())
+                    .filter_map(Result::ok)
+                    .last()
+            })
         {
             let iuse = pkg
                 .iuse()

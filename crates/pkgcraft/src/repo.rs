@@ -319,7 +319,7 @@ pub enum Iter {
 }
 
 impl IntoIterator for &Repo {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
     type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -333,13 +333,13 @@ impl IntoIterator for &Repo {
 }
 
 impl Iterator for Iter {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
-            Self::Configured(iter) => iter.next().map(Pkg::Configured),
-            Self::Fake(iter) => iter.next().map(Pkg::Fake),
+            Self::Ebuild(iter) => iter.next().map(|x| x.map(Pkg::Ebuild)),
+            Self::Configured(iter) => iter.next().map(|x| x.map(Pkg::Configured)),
+            Self::Fake(iter) => iter.next().map(|x| x.map(Pkg::Fake)),
             Self::Empty => None,
         }
     }
@@ -354,13 +354,13 @@ pub enum IterRestrict {
 }
 
 impl Iterator for IterRestrict {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Configured(iter) => iter.next().map(Pkg::Configured),
-            Self::Ebuild(iter) => iter.next().map(Pkg::Ebuild),
-            Self::Fake(iter) => iter.next().map(Pkg::Fake),
+            Self::Configured(iter) => iter.next().map(|x| x.map(Pkg::Configured)),
+            Self::Ebuild(iter) => iter.next().map(|x| x.map(Pkg::Ebuild)),
+            Self::Fake(iter) => iter.next().map(|x| x.map(Pkg::Fake)),
             Self::Empty => None,
         }
     }
@@ -377,8 +377,8 @@ pub trait PkgRepository:
     type Pkg: Package;
     type IterCpv: Iterator<Item = Cpv>;
     type IterCpvRestrict: Iterator<Item = Cpv>;
-    type Iter: Iterator<Item = Self::Pkg>;
-    type IterRestrict: Iterator<Item = Self::Pkg>;
+    type Iter: Iterator<Item = crate::Result<Self::Pkg>>;
+    type IterRestrict: Iterator<Item = crate::Result<Self::Pkg>>;
 
     fn categories(&self) -> IndexSet<String>;
     fn packages(&self, cat: &str) -> IndexSet<String>;

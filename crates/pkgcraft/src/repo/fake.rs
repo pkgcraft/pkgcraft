@@ -241,7 +241,7 @@ impl Repository for FakeRepo {
 }
 
 impl IntoIterator for &FakeRepo {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
     type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -286,10 +286,12 @@ pub struct Iter {
 }
 
 impl Iterator for Iter {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|cpv| Pkg::new(cpv, self.repo.clone()))
+        self.iter
+            .next()
+            .map(|cpv| Ok(Pkg::new(cpv, self.repo.clone())))
     }
 }
 
@@ -300,15 +302,20 @@ pub struct IterRestrict {
 }
 
 impl Iterator for IterRestrict {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.find(|pkg| self.restrict.matches(pkg))
+        self.iter.find_map(|r| match r {
+            Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
     use tracing_test::traced_test;
 
     use crate::dep::Dep;
@@ -380,25 +387,29 @@ mod tests {
     #[test]
     fn extend() {
         let mut repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-2"]).unwrap();
-        assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-2"]);
+        let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["cat/pkg-2"]);
 
         // add valid cpv
         repo.extend(["cat/pkg-0"]).unwrap();
-        assert_ordered_eq!(repo.iter().map(|x| x.cpv().to_string()), ["cat/pkg-0", "cat/pkg-2"]);
+        let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["cat/pkg-0", "cat/pkg-2"]);
 
         // add multiple cpvs, invalid cpvs logged and ignored
         repo.extend(["cat/pkg-3", "cat/pkg", "cat/pkg-1", "a/b-0"])
             .unwrap();
+        let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
         assert_ordered_eq!(
-            repo.iter().map(|x| x.cpv().to_string()),
+            pkgs.iter().map(|x| x.cpv().to_string()),
             ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]
         );
         assert_logs_re!("invalid cpv: cat/pkg");
 
         // re-add existing cpvs
         repo.extend(["cat/pkg-3", "cat/pkg-1", "a/b-0"]).unwrap();
+        let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
         assert_ordered_eq!(
-            repo.iter().map(|x| x.cpv().to_string()),
+            pkgs.iter().map(|x| x.cpv().to_string()),
             ["a/b-0", "cat/pkg-0", "cat/pkg-1", "cat/pkg-2", "cat/pkg-3"]
         );
     }
@@ -428,7 +439,7 @@ mod tests {
         let repo = FakeRepo::new("fake", 0)
             .pkgs(["cat/pkg-0", "acat/bpkg-1"])
             .unwrap();
-        let cpvs: Vec<_> = repo.iter().map(|pkg| pkg.cpv().to_string()).collect();
-        assert_eq!(cpvs, ["acat/bpkg-1", "cat/pkg-0"]);
+        let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["acat/bpkg-1", "cat/pkg-0"]);
     }
 }

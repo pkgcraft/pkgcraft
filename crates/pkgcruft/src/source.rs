@@ -160,7 +160,7 @@ impl PkgFilters {
         val: R,
     ) -> Box<dyn Iterator<Item = ebuild::EbuildPkg> + '_> {
         let mut iter: Box<dyn Iterator<Item = ebuild::EbuildPkg>> =
-            Box::new(repo.iter_restrict(val));
+            Box::new(repo.iter_restrict(val).filter_map(Result::ok));
 
         for f in &self.0 {
             iter = f.filter(iter);
@@ -248,12 +248,12 @@ impl IterRestrict for EbuildRawPkg {
         val: R,
     ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
         if self.filters.is_empty() {
-            Box::new(self.repo.iter_raw_restrict(val))
+            Box::new(self.repo.iter_raw_restrict(val).filter_map(Result::ok))
         } else {
             Box::new(
                 self.filters
                     .iter_restrict(self.repo, val)
-                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg).filter_map(Result::ok)),
             )
         }
     }

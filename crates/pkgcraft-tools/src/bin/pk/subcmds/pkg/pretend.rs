@@ -26,8 +26,8 @@ pub(crate) struct Command {
 // TODO: support binpkg repos
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let func = |pkg: EbuildRawPkg| -> scallop::Result<Option<String>> {
-            let pkg = EbuildPkg::try_from(pkg)?;
+        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Option<String>> {
+            let pkg = EbuildPkg::try_from(pkg?)?;
             pkg.pretend()
         };
 

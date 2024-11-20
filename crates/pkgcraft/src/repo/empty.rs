@@ -78,8 +78,8 @@ impl PkgRepository for Repo {
     type Pkg = Pkg;
     type IterCpv = iter::Empty<Cpv>;
     type IterCpvRestrict = iter::Empty<Cpv>;
-    type Iter = iter::Empty<Self::Pkg>;
-    type IterRestrict = iter::Empty<Self::Pkg>;
+    type Iter = iter::Empty<crate::Result<Self::Pkg>>;
+    type IterRestrict = iter::Empty<crate::Result<Self::Pkg>>;
 
     fn categories(&self) -> IndexSet<String> {
         Default::default()
@@ -106,11 +106,11 @@ impl PkgRepository for Repo {
     }
 
     fn iter(&self) -> Self::Iter {
-        iter::empty::<Self::Pkg>()
+        iter::empty::<crate::Result<Self::Pkg>>()
     }
 
     fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::IterRestrict {
-        iter::empty::<Self::Pkg>()
+        iter::empty::<crate::Result<Self::Pkg>>()
     }
 }
 

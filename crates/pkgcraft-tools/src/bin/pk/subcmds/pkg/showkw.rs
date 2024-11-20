@@ -34,6 +34,7 @@ impl Command {
 
         let mut stdout = io::stdout().lock();
         for pkg in pkgs {
+            let pkg = pkg?;
             writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
         }
 

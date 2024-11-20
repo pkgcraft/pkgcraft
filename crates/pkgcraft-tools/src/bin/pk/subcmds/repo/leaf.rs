@@ -25,6 +25,7 @@ impl Command {
         let mut cache = HashMap::<_, HashSet<_>>::new();
 
         for pkg in &repo {
+            let pkg = pkg?;
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies(&[]).into_iter_flatten() {
                 cache

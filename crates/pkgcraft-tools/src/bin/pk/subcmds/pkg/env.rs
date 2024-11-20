@@ -71,8 +71,9 @@ impl Command {
             var.to_vec().map(|v| (var.to_string(), v.join(" ")))
         };
 
-        let func = |pkg: EbuildRawPkg| -> scallop::Result<(String, Vec<(String, String)>)> {
+        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<(String, String)>)> {
             // TODO: move error mapping into pkgcraft for pkg sourcing
+            let pkg = pkg?;
             pkg.source().map_err(|e| Error::InvalidPkg {
                 id: pkg.to_string(),
                 err: e.to_string(),

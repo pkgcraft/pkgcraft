@@ -10,7 +10,7 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::hash;
 
 use crate::macros::*;
-use crate::types::{RepoSetIter, SetOp};
+use crate::types::{RepoSetIter, RepoSetIterRestrict, SetOp};
 use crate::utils::{boxed, str_to_raw};
 
 /// Create a repo set.
@@ -143,19 +143,11 @@ pub unsafe extern "C" fn pkgcraft_repo_set_free(r: *mut RepoSet) {
 /// Return a package iterator for a repo set.
 ///
 /// # Safety
-/// The repo argument must be a non-null Repo pointer and the restrict argument can be a
-/// Restrict pointer or NULL to iterate over all packages.
+/// The set argument must be a non-null RepoSet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_set_iter(
-    s: *mut RepoSet,
-    restrict: *mut Restrict,
-) -> *mut RepoSetIter {
+pub unsafe extern "C" fn pkgcraft_repo_set_iter(s: *mut RepoSet) -> *mut RepoSetIter {
     let s = try_ref_from_ptr!(s);
-    let iter = match unsafe { restrict.as_ref() } {
-        Some(r) => s.iter_restrict(r.clone()),
-        None => s.iter(),
-    };
-    Box::into_raw(Box::new(iter))
+    Box::into_raw(Box::new(s.iter()))
 }
 
 /// Return the next package from a repo set package iterator.
@@ -167,7 +159,10 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_next(i: *mut RepoSetIter) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
-    iter.next().map(boxed).unwrap_or(ptr::null_mut())
+    // TODO: determine how to differentiate return types for pkg errors and iterator end.
+    iter.find_map(|r| r.ok())
+        .map(boxed)
+        .unwrap_or(ptr::null_mut())
 }
 
 /// Free a repo set iterator.
@@ -176,6 +171,49 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter_next(i: *mut RepoSetIter) -> *mu
 /// The argument must be a non-null RepoSetIter pointer or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_free(i: *mut RepoSetIter) {
+    if !i.is_null() {
+        unsafe { drop(Box::from_raw(i)) };
+    }
+}
+
+/// Return a restriction iterator for a repo set.
+///
+/// # Safety
+/// The set argument must be a non-null RepoSet pointer and the restrict argument must be a non-null
+/// Restrict pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict(
+    s: *mut RepoSet,
+    restrict: *mut Restrict,
+) -> *mut RepoSetIterRestrict {
+    let s = try_ref_from_ptr!(s);
+    let restrict = try_ref_from_ptr!(restrict);
+    Box::into_raw(Box::new(s.iter_restrict(restrict.clone())))
+}
+
+/// Return the next package from a repo set restriction iterator.
+///
+/// Returns NULL when the iterator is empty.
+///
+/// # Safety
+/// The argument must be a non-null RepoSetIterRestrict pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict_next(
+    i: *mut RepoSetIterRestrict,
+) -> *mut Pkg {
+    let iter = try_mut_from_ptr!(i);
+    // TODO: determine how to differentiate return types for pkg errors and iterator end.
+    iter.find_map(|r| r.ok())
+        .map(boxed)
+        .unwrap_or(ptr::null_mut())
+}
+
+/// Free a repo set restriction iterator.
+///
+/// # Safety
+/// The argument must be a non-null RepoSetIterRestrict pointer or NULL.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict_free(i: *mut RepoSetIterRestrict) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
     }

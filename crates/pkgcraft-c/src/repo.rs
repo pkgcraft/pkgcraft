@@ -268,7 +268,10 @@ pub unsafe extern "C" fn pkgcraft_repo_iter(r: *mut Repo) -> *mut RepoIter {
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_iter_next(i: *mut RepoIter) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
-    iter.next().map(boxed).unwrap_or(ptr::null_mut())
+    // TODO: determine how to differentiate return types for pkg errors and iterator end.
+    iter.find_map(|r| r.ok())
+        .map(boxed)
+        .unwrap_or(ptr::null_mut())
 }
 
 /// Free a repo iterator.
@@ -282,7 +285,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_free(i: *mut RepoIter) {
     }
 }
 
-/// Return a restriction package iterator for a repo.
+/// Return a restriction iterator for a repo.
 ///
 /// # Safety
 /// The repo argument must be a non-null Repo pointer and the restrict argument must be a non-null
@@ -297,7 +300,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_restrict(
     Box::into_raw(Box::new(repo.iter_restrict(restrict.clone())))
 }
 
-/// Return the next package from a restriction package iterator.
+/// Return the next package from a repo restriction iterator.
 ///
 /// Returns NULL when the iterator is empty.
 ///
@@ -306,7 +309,10 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_restrict(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_iter_restrict_next(i: *mut RepoIterRestrict) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
-    iter.next().map(boxed).unwrap_or(ptr::null_mut())
+    // TODO: determine how to differentiate return types for pkg errors and iterator end.
+    iter.find_map(|r| r.ok())
+        .map(boxed)
+        .unwrap_or(ptr::null_mut())
 }
 
 /// Free a repo restriction iterator.

@@ -66,6 +66,7 @@ mod tests {
         // valid
         let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
         for pkg in repo.iter_raw() {
+            let pkg = pkg.unwrap();
             BuildData::from_raw_pkg(&pkg);
             let r = Metadata::try_from(&pkg);
             assert!(r.is_ok(), "{pkg}: failed metadata serialization: {}", r.unwrap_err());
@@ -73,7 +74,8 @@ mod tests {
 
         // invalid
         let (_pool, repo) = TEST_DATA.ebuild_repo("bad").unwrap();
-        for pkg in repo.iter_raw() {
+        // ignore pkgs with invalid EAPIs
+        for pkg in repo.iter_raw().filter_map(Result::ok) {
             BuildData::from_raw_pkg(&pkg);
             let r = Metadata::try_from(&pkg);
             assert!(r.is_err(), "{pkg}: didn't fail");

@@ -28,6 +28,7 @@ impl Command {
             let mut eapis = HashMap::<_, Vec<_>>::new();
             // TODO: use parallel iterator
             for pkg in repo.iter_raw() {
+                let pkg = pkg?;
                 eapis.entry(pkg.eapi()).or_default().push(pkg.cpv().clone());
             }
 

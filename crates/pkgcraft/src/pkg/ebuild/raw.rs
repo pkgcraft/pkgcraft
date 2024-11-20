@@ -91,8 +91,10 @@ impl EbuildRawPkg {
 
     /// Load metadata from the cache if valid, otherwise source it from the ebuild.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
-        let cache = self.0.repo.metadata().cache();
-        cache
+        self.0
+            .repo
+            .metadata()
+            .cache()
             .get(self)
             .and_then(|c| c.to_metadata(self))
             .or_else(|_| {
@@ -156,7 +158,7 @@ mod tests {
     #[test]
     fn display_and_debug() {
         let (_pool, repo) = TEST_DATA.ebuild_repo("metadata").unwrap();
-        let pkg = repo.iter_raw().next().unwrap();
+        let pkg = repo.iter_raw().next().unwrap().unwrap();
         let s = pkg.to_string();
         assert!(format!("{pkg:?}").contains(&s));
     }

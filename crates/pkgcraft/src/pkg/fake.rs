@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn display_and_debug() {
         let repo = FakeRepo::new("test", 0).pkgs(["cat/pkg-1"]).unwrap();
-        let pkg = repo.iter().next().unwrap();
+        let pkg = repo.iter().next().unwrap().unwrap();
         let s = pkg.to_string();
         assert!(format!("{pkg:?}").contains(&s));
     }
@@ -127,21 +127,21 @@ mod tests {
         // unmatching pkgs sorted by dep attributes
         let r1 = FakeRepo::new("b", 0).pkgs(["cat/pkg-1"]).unwrap();
         let r2 = FakeRepo::new("a", 0).pkgs(["cat/pkg-0"]).unwrap();
-        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).try_collect().unwrap();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
         // matching pkgs sorted by repo priority
         let r1 = FakeRepo::new("a", -1).pkgs(["cat/pkg-0"]).unwrap();
         let r2 = FakeRepo::new("b", 0).pkgs(["cat/pkg-0"]).unwrap();
-        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).try_collect().unwrap();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
 
         // matching pkgs sorted by repo id since repos have matching priorities
         let r1 = FakeRepo::new("b", 0).pkgs(["cat/pkg-0"]).unwrap();
         let r2 = FakeRepo::new("a", 0).pkgs(["cat/pkg-0"]).unwrap();
-        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).collect();
+        let pkgs: Vec<_> = r1.iter().chain(r2.iter()).try_collect().unwrap();
         let sorted_pkgs: Vec<_> = pkgs.iter().sorted().collect();
         assert_ordered_eq!(pkgs.iter().rev(), sorted_pkgs);
     }
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn intersects_dep() {
         let repo = FakeRepo::new("test", 0).pkgs(["cat/pkg-1"]).unwrap();
-        let pkg = repo.iter().next().unwrap();
+        let pkg = repo.iter().next().unwrap().unwrap();
 
         for (s, expected) in [
             ("cat/pkg", true),
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn restrict() {
         let repo = FakeRepo::new("test", 0).pkgs(["cat/pkg-1"]).unwrap();
-        let pkg = repo.iter().next().unwrap();
+        let pkg = repo.iter().next().unwrap().unwrap();
 
         // eapi
         let r = pkg::Restrict::eapi("0");

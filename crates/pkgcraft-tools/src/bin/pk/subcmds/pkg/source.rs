@@ -92,10 +92,11 @@ macro_rules! micros {
 /// Run package sourcing benchmarks for a given duration per package.
 fn benchmark<I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = EbuildRawPkg>,
+    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>>,
 {
     let mut failed = false;
-    let func = |pkg: EbuildRawPkg| -> scallop::Result<(String, Vec<Duration>)> {
+    let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
+        let pkg = pkg?;
         let mut data = vec![];
         let mut elapsed = Duration::new(0, 0);
         while elapsed < duration {
@@ -168,12 +169,13 @@ where
 /// Run package sourcing a single time per package.
 fn source<I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = EbuildRawPkg>,
+    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>>,
 {
     let mut failed = false;
-    let func = |pkg: EbuildRawPkg| -> scallop::Result<(String, Duration)> {
+    let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
         let start = Instant::now();
         // TODO: move error mapping into pkgcraft for pkg sourcing
+        let pkg = pkg?;
         pkg.source().map_err(|e| Error::InvalidPkg {
             id: pkg.to_string(),
             err: e.to_string(),

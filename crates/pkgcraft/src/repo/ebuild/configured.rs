@@ -152,7 +152,7 @@ impl Repository for ConfiguredRepo {
 }
 
 impl IntoIterator for &ConfiguredRepo {
-    type Item = EbuildConfiguredPkg;
+    type Item = crate::Result<EbuildConfiguredPkg>;
     type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -169,12 +169,14 @@ pub struct Iter {
 }
 
 impl Iterator for Iter {
-    type Item = EbuildConfiguredPkg;
+    type Item = crate::Result<EbuildConfiguredPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|pkg| EbuildConfiguredPkg::new(self.repo.clone(), self.repo.settings.clone(), pkg))
+        self.iter.next().map(|x| {
+            x.map(|pkg| {
+                EbuildConfiguredPkg::new(self.repo.clone(), self.repo.settings.clone(), pkg)
+            })
+        })
     }
 }
 
@@ -184,15 +186,21 @@ pub struct IterRestrict {
 }
 
 impl Iterator for IterRestrict {
-    type Item = EbuildConfiguredPkg;
+    type Item = crate::Result<EbuildConfiguredPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.find(|pkg| self.restrict.matches(pkg))
+        self.iter.find_map(|r| match r {
+            Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use crate::config::Config;
     use crate::dep::Cpv;
     use crate::pkg::Package;
@@ -208,8 +216,8 @@ mod tests {
         temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
         temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
         let repo = temp.repo().configure(&config);
-        let iter = repo.iter().map(|p| p.cpv().to_string());
-        assert_ordered_eq!(iter, ["cat1/pkg-1", "cat2/pkg-1"]);
+        let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat1/pkg-1", "cat2/pkg-1"]);
     }
 
     #[test]
@@ -223,17 +231,17 @@ mod tests {
 
         // single match via CPV
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
-        let iter = repo.iter_restrict(&cpv).map(|p| p.cpv().to_string());
-        assert_ordered_eq!(iter, [cpv.to_string()]);
+        let pkgs: Vec<_> = repo.iter_restrict(&cpv).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), [cpv.to_string()]);
 
         // single match via package
-        let pkg = repo.iter().next().unwrap();
-        let iter = repo.iter_restrict(&pkg).map(|p| p.cpv().to_string());
-        assert_ordered_eq!(iter, [pkg.cpv().to_string()]);
+        let pkg = repo.iter().next().unwrap().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(&pkg).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), [pkg.cpv().to_string()]);
 
         // multiple matches
         let restrict = DepRestrict::package("pkg");
-        let iter = repo.iter_restrict(restrict).map(|p| p.cpv().to_string());
-        assert_ordered_eq!(iter, ["cat/pkg-1", "cat/pkg-2"]);
+        let pkgs: Vec<_> = repo.iter_restrict(restrict).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1", "cat/pkg-2"]);
     }
 }

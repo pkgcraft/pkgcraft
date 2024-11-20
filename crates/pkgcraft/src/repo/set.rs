@@ -89,7 +89,7 @@ impl PkgRepository for RepoSet {
     type IterCpv = IterCpv;
     type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
-    type IterRestrict = Iter;
+    type IterRestrict = IterRestrict;
 
     fn categories(&self) -> IndexSet<String> {
         let mut cats: IndexSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
@@ -160,7 +160,7 @@ impl PkgRepository for RepoSet {
             _ => Restrict::and(repo_restricts),
         };
 
-        Iter(Box::new(
+        IterRestrict(Box::new(
             self.repos
                 .clone()
                 .into_iter()
@@ -224,10 +224,10 @@ impl IntoIterator for RepoSet {
 // replace boxed type with a generic type.
 //
 // See https://github.com/rust-lang/rust/issues/63063
-pub struct Iter(Box<dyn Iterator<Item = Pkg>>);
+pub struct Iter(Box<dyn Iterator<Item = crate::Result<Pkg>>>);
 
 impl IntoIterator for &RepoSet {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
     type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -236,7 +236,21 @@ impl IntoIterator for &RepoSet {
 }
 
 impl Iterator for Iter {
-    type Item = Pkg;
+    type Item = crate::Result<Pkg>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+// TODO: Use type alias impl trait support for IntoIterator implementation when stable in order to
+// replace boxed type with a generic type.
+//
+// See https://github.com/rust-lang/rust/issues/63063
+pub struct IterRestrict(Box<dyn Iterator<Item = crate::Result<Pkg>>>);
+
+impl Iterator for IterRestrict {
+    type Item = crate::Result<Pkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
@@ -495,10 +509,10 @@ mod tests {
         assert_ordered_eq!(s.iter_cpv(), [cpv.clone()]);
         assert_eq!(s.iter().count(), 2);
         assert_eq!(s.iter_restrict(&cpv).count(), 2);
-        let pkg = s.iter_restrict(&cpv).next().unwrap();
+        let pkg = s.iter_restrict(&cpv).next().unwrap().unwrap();
         // pkg restriction only matches the repo's pkg it came from
         assert_eq!(s.iter_restrict(&pkg).count(), 1);
-        assert_eq!(s.iter_restrict(&pkg).next().unwrap().repo().id(), "fake");
+        assert_eq!(s.iter_restrict(&pkg).next().unwrap().unwrap().repo().id(), "fake");
     }
 
     #[test]

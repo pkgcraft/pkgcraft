@@ -146,7 +146,10 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target packages.
-    pub fn pkgs<I>(self, values: I) -> crate::Result<(BuildPool, impl Iterator<Item = Pkg>)>
+    pub fn pkgs<I>(
+        self,
+        values: I,
+    ) -> crate::Result<(BuildPool, impl Iterator<Item = crate::Result<Pkg>>)>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
@@ -162,13 +165,17 @@ impl<'a> TargetRestrictions<'a> {
     pub fn pkgs_ebuild<I>(
         self,
         values: I,
-    ) -> crate::Result<(BuildPool, impl Iterator<Item = EbuildPkg>)>
+    ) -> crate::Result<(BuildPool, impl Iterator<Item = crate::Result<EbuildPkg>>)>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
     {
         let (pool, iter) = self.pkgs(values)?;
-        let iter = iter.filter_map(|pkg| pkg.into_ebuild().ok());
+        let iter = iter.filter_map(|r| match r {
+            Ok(Pkg::Ebuild(pkg)) => Some(Ok(pkg)),
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        });
         Ok((pool, iter))
     }
 
@@ -176,7 +183,7 @@ impl<'a> TargetRestrictions<'a> {
     pub fn pkgs_ebuild_raw<I>(
         self,
         values: I,
-    ) -> crate::Result<(BuildPool, impl Iterator<Item = EbuildRawPkg>)>
+    ) -> crate::Result<(BuildPool, impl Iterator<Item = crate::Result<EbuildRawPkg>>)>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,

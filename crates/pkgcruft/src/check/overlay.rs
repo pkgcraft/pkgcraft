@@ -1,6 +1,7 @@
 use indexmap::IndexSet;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
+use pkgcraft::repo::PkgRepository;
 
 use crate::report::ReportKind::EclassUnused;
 use crate::scanner::ReportFilter;
@@ -22,7 +23,7 @@ pub(super) static CHECK: super::Check = super::Check {
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     let mut eclasses = repo.eclasses().clone();
     for repo in repo.masters() {
-        for pkg in repo {
+        for pkg in repo.iter().filter_map(Result::ok) {
             for eclass in pkg.inherited() {
                 eclasses.swap_remove(eclass);
             }

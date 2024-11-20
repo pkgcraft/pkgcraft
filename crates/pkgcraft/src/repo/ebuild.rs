@@ -608,7 +608,7 @@ impl Contains<&Dep> for EbuildRepo {
 }
 
 impl IntoIterator for &EbuildRepo {
-    type Item = EbuildPkg;
+    type Item = crate::Result<EbuildPkg>;
     type IntoIter = Iter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -626,10 +626,12 @@ impl Iter {
 }
 
 impl Iterator for Iter {
-    type Item = EbuildPkg;
+    type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.find_map(|raw_pkg| raw_pkg.try_into().ok())
+        self.0
+            .next()
+            .map(|r| r.and_then(|raw_pkg| raw_pkg.try_into()))
     }
 }
 
@@ -649,11 +651,12 @@ impl IterRaw {
 }
 
 impl Iterator for IterRaw {
-    type Item = EbuildRawPkg;
+    type Item = crate::Result<EbuildRawPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
-            .find_map(|cpv| EbuildRawPkg::try_new(cpv, self.repo.clone()).ok())
+            .next()
+            .map(|cpv| EbuildRawPkg::try_new(cpv, self.repo.clone()))
     }
 }
 
@@ -873,13 +876,17 @@ pub struct IterRestrict {
 }
 
 impl Iterator for IterRestrict {
-    type Item = EbuildPkg;
+    type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.restrict == Restrict::False {
             None
         } else {
-            self.iter.find(|pkg| self.restrict.matches(pkg))
+            self.iter.find_map(|r| match r {
+                Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+                Ok(_) => None,
+                Err(e) => Some(Err(e)),
+            })
         }
     }
 }
@@ -954,13 +961,17 @@ impl IterRawRestrict {
 }
 
 impl Iterator for IterRawRestrict {
-    type Item = EbuildRawPkg;
+    type Item = crate::Result<EbuildRawPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.restrict == Restrict::False {
             None
         } else {
-            self.iter.find(|pkg| self.restrict.matches(pkg))
+            self.iter.find_map(|r| match r {
+                Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+                Ok(_) => None,
+                Err(e) => Some(Err(e)),
+            })
         }
     }
 }
@@ -1294,11 +1305,8 @@ mod tests {
         let _pool = config.pool();
         temp.create_raw_pkg("cat2/pkg-1", &[]).unwrap();
         temp.create_raw_pkg("cat1/pkg-1", &[]).unwrap();
-        let mut iter = temp.repo().iter();
-        for cpv in ["cat1/pkg-1", "cat2/pkg-1"] {
-            assert_eq!(iter.next().map(|p| format!("{}", p.cpv())), Some(cpv.to_string()));
-        }
-        assert!(iter.next().is_none());
+        let pkgs: Vec<_> = temp.repo().iter().try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["cat1/pkg-1", "cat2/pkg-1"]);
     }
 
     #[test]
@@ -1307,17 +1315,13 @@ mod tests {
 
         // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
-        assert_ordered_eq!(
-            repo.iter_restrict(&cpv).map(|p| p.cpv().to_string()),
-            [cpv.to_string()]
-        );
+        let pkgs: Vec<_> = repo.iter_restrict(&cpv).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), [cpv.to_string()]);
 
         // single match via package
-        let pkg = repo.iter().next().unwrap();
-        assert_ordered_eq!(
-            repo.iter_restrict(&pkg).map(|p| p.cpv().to_string()),
-            [pkg.cpv().to_string()],
-        );
+        let pkg = repo.iter().next().unwrap().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(&pkg).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), [pkg.cpv().to_string()],);
 
         // multiple matches via package name
         let restrict = DepRestrict::package("inherit");
