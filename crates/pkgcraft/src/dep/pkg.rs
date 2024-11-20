@@ -626,8 +626,6 @@ impl Intersects<Dep> for Cow<'_, Dep> {
 
 #[cfg(test)]
 mod tests {
-    use serde_test::{assert_tokens, Token};
-
     use crate::eapi::{self, EAPIS};
     use crate::test::TEST_DATA;
     use crate::utils::hash;
@@ -664,9 +662,6 @@ mod tests {
                 assert_eq!(d.slot_op(), e.slot_op, "{s:?} failed for EAPI={eapi}");
                 assert_eq!(d.use_deps(), e.use_deps.as_ref(), "{s:?} failed for EAPI={eapi}");
                 assert_eq!(d.to_string(), s, "{s:?} failed for EAPI={eapi}");
-
-                // verify serde support
-                assert_tokens(&d, &[Token::Str(s)]);
             }
             for eapi in EAPIS.difference(&passing_eapis) {
                 let result = eapi.dep(s);

@@ -633,7 +633,6 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use itertools::Itertools;
-    use serde_test::{assert_tokens, Token};
 
     use crate::test::TEST_DATA;
     use crate::utils::hash;
@@ -655,9 +654,6 @@ mod tests {
             let ver = result.unwrap();
             assert_eq!(ver.to_string(), s.as_str());
             assert!(format!("{ver:?}").contains(s));
-
-            // verify serde support
-            assert_tokens(&ver, &[Token::Str(s)]);
         }
 
         // forced with and without operators

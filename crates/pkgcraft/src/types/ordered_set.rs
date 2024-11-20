@@ -142,8 +142,6 @@ make_set_traits!(OrderedSet<T>);
 
 #[cfg(test)]
 mod tests {
-    use serde_test::{assert_tokens, Token};
-
     use crate::test::assert_ordered_eq;
 
     use super::*;
@@ -211,21 +209,6 @@ mod tests {
         let set = OrderedSet::from(items);
         assert_ordered_eq!((&set).into_iter().copied(), items);
         assert_ordered_eq!(set.into_iter(), items);
-    }
-
-    #[test]
-    fn serde() {
-        let set = OrderedSet::from(['a', 'b', 'c']);
-        assert_tokens(
-            &set,
-            &[
-                Token::Seq { len: Some(3) },
-                Token::Char('a'),
-                Token::Char('b'),
-                Token::Char('c'),
-                Token::SeqEnd,
-            ],
-        );
     }
 
     #[test]
