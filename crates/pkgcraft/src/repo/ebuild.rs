@@ -154,9 +154,9 @@ impl EbuildRepo {
         self.0
             .pool
             .get()
-            .unwrap_or_else(|| panic!("{self}: pool missing"))
+            .unwrap_or_else(|| panic!("ebuild repo pool missing: {self}"))
             .upgrade()
-            .unwrap_or_else(|| panic!("{self}: pool dropped"))
+            .unwrap_or_else(|| panic!("ebuild repo pool dropped: {self}"))
     }
 
     pub fn metadata(&self) -> &Metadata {
@@ -173,7 +173,7 @@ impl EbuildRepo {
         self.0
             .masters
             .get()
-            .unwrap_or_else(|| panic!("{self}: masters missing"))
+            .unwrap_or_else(|| panic!("ebuild repo masters missing: {self}"))
     }
 
     /// Return the complete repo inheritance sequence.
