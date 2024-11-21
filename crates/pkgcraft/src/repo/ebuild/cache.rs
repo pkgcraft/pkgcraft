@@ -245,6 +245,8 @@ impl MetadataCacheRegen<'_> {
                 self.progress.set_message("generating metadata:");
             }
 
+            // run cache verification in a thread pool that runs blocking metadata tasks
+            // in build pool processes as necessary
             let pool = repo.pool();
             errors = cpvs
                 .into_par_iter()
