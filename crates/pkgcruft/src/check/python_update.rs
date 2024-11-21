@@ -202,7 +202,7 @@ mod tests {
         let dir = repo.path().join(CHECK);
         // ignore stub/* ebuilds
         let filter: PkgFilter = "category != 'stub'".parse().unwrap();
-        let scanner = Scanner::new().checks([CHECK]).filters([filter.clone()]);
+        let scanner = Scanner::new().checks([CHECK]).filters([filter]);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, expected);
@@ -210,7 +210,6 @@ mod tests {
         // gentoo fixed
         let data = test_data_patched();
         let repo = data.repo("gentoo").unwrap();
-        let scanner = Scanner::new().checks([CHECK]).filters([filter.clone()]);
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
     }

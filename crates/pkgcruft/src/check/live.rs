@@ -62,7 +62,6 @@ mod tests {
         // gentoo fixed
         let data = test_data_patched();
         let repo = data.repo("gentoo").unwrap();
-        let scanner = Scanner::new().checks([CHECK]);
         let reports = scanner.run(repo, repo);
         assert_unordered_eq!(reports, []);
     }
