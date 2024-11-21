@@ -1,15 +1,5 @@
 QA library and tools based on pkgcraft.
 
-# WARNING
-
-Pkgcraft currently lacks proper handling for generating ebuild metadata in
-threads so pkgcruft will often crash when run on repos lacking metadata (see
-issue #178).
-
-As a workaround, the command `pk pkg metadata` can be called from any ebuild
-repo directory to generate related package metadata and on successful
-completion `pkgcruft scan` can be called.
-
 # Requirements
 
 A recent version of rust and compatible clang compiler.
