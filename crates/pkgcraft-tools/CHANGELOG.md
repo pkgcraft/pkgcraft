@@ -1,3 +1,15 @@
+# 0.0.17 (2024-11-21)
+
+## Added
+- `pk repo metadata regen`: --use-local option generates profiles/use.local.desc
+
+## Changed
+- Bumped MSRV to 1.80.
+
+## Fixed
+- Generate ebuild metadata in separate processes during package iteration to
+  fix crash issues.
+
 # 0.0.16 (2024-07-29)
 
 ## Fixed
