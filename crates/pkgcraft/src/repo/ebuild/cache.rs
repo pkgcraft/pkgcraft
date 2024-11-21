@@ -245,11 +245,12 @@ impl MetadataCacheRegen<'_> {
                 self.progress.set_message("generating metadata:");
             }
 
+            let pool = repo.pool();
             errors = cpvs
                 .into_par_iter()
                 .map(|cpv| {
                     self.progress.inc(1);
-                    repo.pool().metadata(repo, &cpv, self.force, self.verify)
+                    pool.metadata(repo, &cpv, self.force, self.verify)
                 })
                 .filter(|result| {
                     // log errors

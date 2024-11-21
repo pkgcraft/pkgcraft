@@ -154,7 +154,7 @@ impl EbuildRepo {
         self.0
             .pool
             .get()
-            .unwrap_or_else(|| panic!("{self}: pool missing, finalize() uncalled"))
+            .unwrap_or_else(|| panic!("{self}: pool missing"))
             .upgrade()
             .unwrap_or_else(|| panic!("{self}: pool dropped"))
     }
@@ -173,7 +173,7 @@ impl EbuildRepo {
         self.0
             .masters
             .get()
-            .unwrap_or_else(|| panic!("{self}: masters missing, finalize() uncalled"))
+            .unwrap_or_else(|| panic!("{self}: masters missing"))
     }
 
     /// Return the complete repo inheritance sequence.
