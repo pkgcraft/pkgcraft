@@ -1,6 +1,6 @@
 use pkgcraft::config::Config;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
+use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 
 #[test]
@@ -72,10 +72,12 @@ fn multiple() {
         .unwrap();
     temp.create_ebuild("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-
-    let output = cmd("pk repo leaf").arg(temp.path()).output().unwrap();
-    let output = std::str::from_utf8(&output.stdout).unwrap().lines();
-    assert_unordered_eq!(output, ["cat/leaf-1", "cat/leaf-2"]);
+    cmd("pk repo leaf")
+        .arg(temp.path())
+        .assert()
+        .stdout("cat/leaf-1\ncat/leaf-2\n")
+        .stderr("")
+        .success();
 }
 
 #[test]

@@ -26,7 +26,7 @@ impl Command {
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();
 
-        let mut iter = repo.iter_unordered().log_errors();
+        let mut iter = repo.iter_ordered().log_errors();
         for pkg in &mut iter {
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies([]).into_iter_flatten() {
