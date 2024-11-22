@@ -1,6 +1,6 @@
 use pkgcraft::config::Config;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
 use predicates::prelude::*;
 
 #[test]
@@ -74,11 +74,8 @@ fn multiple() {
         .unwrap();
 
     let output = cmd("pk repo leaf").arg(temp.path()).output().unwrap();
-    let sorted: Vec<_> = std::str::from_utf8(&output.stdout)
-        .unwrap()
-        .split_whitespace()
-        .collect();
-    assert_eq!(&sorted, &["cat/leaf-1", "cat/leaf-2"]);
+    let output = std::str::from_utf8(&output.stdout).unwrap().lines();
+    assert_unordered_eq!(output, ["cat/leaf-1", "cat/leaf-2"]);
 }
 
 #[test]
