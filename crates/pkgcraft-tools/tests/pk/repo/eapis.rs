@@ -1,16 +1,8 @@
+use std::env;
+
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
-
-#[test]
-fn missing_repo_arg() {
-    cmd("pk repo eapis")
-        .assert()
-        .stdout("")
-        .stderr(predicate::str::is_empty().not())
-        .failure()
-        .code(2);
-}
 
 #[test]
 fn nonexistent_repo() {
@@ -43,6 +35,18 @@ fn empty_repo() {
         .arg(repo.path())
         .assert()
         .stdout("")
+        .stderr("")
+        .success();
+}
+
+#[test]
+fn default_current_directory() {
+    let data = test_data();
+    let repo = data.ebuild_repo("metadata").unwrap();
+    env::set_current_dir(repo.path()).unwrap();
+    cmd("pk repo eapis")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
 }
