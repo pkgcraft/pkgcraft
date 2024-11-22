@@ -3,7 +3,7 @@ use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
-use itertools::Either;
+use indexmap::IndexSet;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DependencySet, Uri};
@@ -139,13 +139,16 @@ impl EbuildPkg {
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&Dep> {
-        // default to all dependency types defined by the package EAPI if no keys are passed
-        let keys = if keys.is_empty() {
-            Either::Left(self.eapi().dep_keys())
-        } else {
-            Either::Right(keys)
-        };
+    pub fn dependencies<I>(&self, keys: I) -> DependencySet<&Dep>
+    where
+        I: IntoIterator<Item = Key>,
+    {
+        // collapse duplicate keys
+        let mut keys: IndexSet<_> = keys.into_iter().collect();
+        if keys.is_empty() {
+            // default to all package dependencies
+            keys = self.eapi().dep_keys().clone();
+        }
 
         keys.into_iter()
             .filter_map(|k| match k {
@@ -512,40 +515,37 @@ mod tests {
         // none
         let pkg = repo.get_pkg("optional/none-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
-            assert!(pkg.dependencies(&[*key]).is_empty());
+            assert!(pkg.dependencies([*key]).is_empty());
         }
-        assert!(pkg.dependencies(&[]).is_empty());
-        assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
+        assert!(pkg.dependencies([]).is_empty());
+        assert!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).is_empty());
 
         // empty
         let pkg = repo.get_pkg("optional/empty-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
-            assert!(pkg.dependencies(&[*key]).is_empty());
+            assert!(pkg.dependencies([*key]).is_empty());
         }
-        assert!(pkg.dependencies(&[]).is_empty());
-        assert!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).is_empty());
+        assert!(pkg.dependencies([]).is_empty());
+        assert!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).is_empty());
 
         // single-line
         let pkg = repo.get_pkg("dependencies/single-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
-            assert_eq!(pkg.dependencies(&[*key]).to_string(), "a/pkg b/pkg");
+            assert_eq!(pkg.dependencies([*key]).to_string(), "a/pkg b/pkg");
         }
-        assert_eq!(pkg.dependencies(&[]).to_string(), "a/pkg b/pkg");
-        assert_eq!(pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg b/pkg");
+        assert_eq!(pkg.dependencies([]).to_string(), "a/pkg b/pkg");
+        assert_eq!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg b/pkg");
 
         // multi-line
         let pkg = repo.get_pkg("dependencies/multi-8").unwrap();
         for key in EAPI_LATEST_OFFICIAL.dep_keys() {
-            assert_eq!(pkg.dependencies(&[*key]).to_string(), "a/pkg u? ( b/pkg )");
+            assert_eq!(pkg.dependencies([*key]).to_string(), "a/pkg u? ( b/pkg )");
         }
-        assert_eq!(pkg.dependencies(&[]).to_string(), "a/pkg u? ( b/pkg )");
-        assert_eq!(
-            pkg.dependencies(&[Key::DEPEND, Key::RDEPEND]).to_string(),
-            "a/pkg u? ( b/pkg )"
-        );
+        assert_eq!(pkg.dependencies([]).to_string(), "a/pkg u? ( b/pkg )");
+        assert_eq!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg u? ( b/pkg )");
 
         // non-dependency keys are ignored
-        assert!(pkg.dependencies(&[Key::LICENSE]).is_empty());
+        assert!(pkg.dependencies([Key::LICENSE]).is_empty());
     }
 
     #[test]

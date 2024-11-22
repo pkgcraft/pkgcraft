@@ -53,7 +53,7 @@ impl EbuildPkgCheck for Check {
         };
 
         let deps = pkg
-            .dependencies(&[])
+            .dependencies([])
             .into_iter_flatten()
             .filter(|x| x.blocker().is_none())
             .collect::<IndexSet<_>>();

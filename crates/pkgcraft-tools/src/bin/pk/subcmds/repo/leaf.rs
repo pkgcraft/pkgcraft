@@ -29,7 +29,7 @@ impl Command {
         for pkg in &repo {
             let pkg = pkg?;
             cpvs.push(pkg.cpv().clone());
-            for dep in pkg.dependencies(&[]).into_iter_flatten() {
+            for dep in pkg.dependencies([]).into_iter_flatten() {
                 cache
                     .entry(dep.cpn().clone())
                     .or_default()

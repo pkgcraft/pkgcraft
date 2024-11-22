@@ -221,7 +221,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_dependencies(
             dep_keys.push(key);
         }
 
-        let deps = pkg.dependencies(&dep_keys).into_owned();
+        let deps = pkg.dependencies(dep_keys).into_owned();
         Box::into_raw(Box::new(DependencySet::new_dep(deps)))
     }
 }

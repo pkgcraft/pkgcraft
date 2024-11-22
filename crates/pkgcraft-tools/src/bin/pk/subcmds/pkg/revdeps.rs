@@ -44,7 +44,7 @@ impl Command {
         for repo in repos.ebuild() {
             for pkg in repo {
                 let pkg = pkg?;
-                for dep in pkg.dependencies(&[]).into_iter_flatten() {
+                for dep in pkg.dependencies([]).into_iter_flatten() {
                     if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
                         writeln!(stdout, "{pkg}: {dep}")?;
                     }

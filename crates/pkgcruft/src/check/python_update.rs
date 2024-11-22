@@ -98,11 +98,13 @@ impl Check {
             .unwrap_or_else(|| panic!("missing eclass targets: {eclass}"))
     }
 
-    fn keys(&self, eclass: &Eclass) -> &[Key] {
+    fn keys(&self, eclass: &Eclass) -> impl Iterator<Item = Key> + '_ {
         self.keys
             .get_or_init(|| Eclass::iter().map(|e| (e, e.keys())).collect())
             .get(eclass)
             .unwrap_or_else(|| panic!("missing eclass keys: {eclass}"))
+            .iter()
+            .copied()
     }
 
     fn prefixes(&self, eclass: &Eclass) -> &[&'static str] {

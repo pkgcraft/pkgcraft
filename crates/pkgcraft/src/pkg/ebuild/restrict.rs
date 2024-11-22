@@ -116,7 +116,7 @@ impl Restriction<&EbuildPkg> for Restrict {
                 (None, None) => true,
                 _ => false,
             },
-            Self::Dependencies(r) => match (r, pkg.dependencies(&[])) {
+            Self::Dependencies(r) => match (r, pkg.dependencies([])) {
                 (Some(r), val) => r.matches(val),
                 (None, val) if val.is_empty() => true,
                 _ => false,

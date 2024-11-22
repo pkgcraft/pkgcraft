@@ -42,7 +42,10 @@ impl EbuildConfiguredPkg {
     }
 
     /// Return a package's evaluated dependencies for a given iterable of descriptors.
-    pub fn dependencies(&self, keys: &[Key]) -> DependencySet<&Dep> {
+    pub fn dependencies<I>(&self, keys: I) -> DependencySet<&Dep>
+    where
+        I: IntoIterator<Item = Key>,
+    {
         self.raw
             .dependencies(keys)
             .evaluate(self.settings.options())

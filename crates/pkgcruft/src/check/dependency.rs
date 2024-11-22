@@ -36,7 +36,7 @@ super::register!(Check);
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys().iter().copied() {
-            let deps = pkg.dependencies(&[key]);
+            let deps = pkg.dependencies([key]);
             for dep in deps.iter_flatten().unique() {
                 // verify conditional use deps map to IUSE flags
                 for flag in dep
