@@ -31,6 +31,7 @@ impl Command {
             .try_collect()?;
         config.finalize()?;
 
+        let mut stdout = io::stdout().lock();
         for repo in &repos {
             let mut eapis = HashMap::<_, Vec<_>>::new();
             // TODO: use parallel iterator
@@ -39,7 +40,6 @@ impl Command {
                 eapis.entry(pkg.eapi()).or_default().push(pkg.cpv().clone());
             }
 
-            let mut stdout = io::stdout().lock();
             if let Some(eapi) = self.eapi {
                 if let Some(cpvs) = eapis.get_mut(eapi) {
                     cpvs.sort();
