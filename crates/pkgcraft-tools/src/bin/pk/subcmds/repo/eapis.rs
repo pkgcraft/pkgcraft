@@ -7,6 +7,7 @@ use itertools::Itertools;
 use pkgcraft::config::Config;
 use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::Package;
+use pkgcraft::traits::LogErrors;
 
 use crate::args::target_ebuild_repo;
 
@@ -31,14 +32,17 @@ impl Command {
             .try_collect()?;
         config.finalize()?;
 
+        let mut failed = false;
         let mut stdout = io::stdout().lock();
         for repo in &repos {
             let mut eapis = HashMap::<_, Vec<_>>::new();
+
             // TODO: use parallel iterator
-            for pkg in repo.iter_raw() {
-                let pkg = pkg?;
+            let mut iter = repo.iter_raw().log_errors();
+            for pkg in &mut iter {
                 eapis.entry(pkg.eapi()).or_default().push(pkg.cpv().clone());
             }
+            failed |= iter.failed();
 
             if let Some(eapi) = self.eapi {
                 if let Some(cpvs) = eapis.get_mut(eapi) {
@@ -57,6 +61,6 @@ impl Command {
             }
         }
 
-        Ok(ExitCode::SUCCESS)
+        Ok(ExitCode::from(failed as u8))
     }
 }
