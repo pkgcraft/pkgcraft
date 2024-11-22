@@ -7,6 +7,7 @@ use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
+use pkgcraft::traits::LogErrors;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
@@ -37,15 +38,13 @@ impl Command {
             .try_collect()?;
         config.finalize()?;
 
-        // convert restrictions to pkgs
-        let pkgs = pkgs_ebuild(targets);
-
         let mut stdout = io::stdout().lock();
-        for pkg in pkgs {
-            let pkg = pkg?;
+        // convert restrictions to pkgs
+        let mut iter = pkgs_ebuild(targets).log_errors();
+        for pkg in &mut iter {
             writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
         }
 
-        Ok(ExitCode::SUCCESS)
+        Ok(ExitCode::from(iter.failed() as u8))
     }
 }
