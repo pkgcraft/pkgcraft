@@ -14,7 +14,7 @@ use crate::args::target_ebuild_repo;
 pub(crate) struct Command {
     // positionals
     /// Target repository
-    #[arg(required = true)]
+    #[arg(default_value = ".")]
     repo: String,
 }
 
