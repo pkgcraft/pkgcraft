@@ -101,6 +101,22 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     iter: I,
+    errors: u64,
+}
+
+impl<I, T> LogErrorsIter<I, T>
+where
+    I: Iterator<Item = crate::Result<T>>,
+{
+    /// Return true if any errors occurred during iteration, false otherwise.
+    pub fn failed(&self) -> bool {
+        self.errors > 0
+    }
+
+    /// Return the number of errors that occurred during iteration.
+    pub fn errors(&self) -> u64 {
+        self.errors
+    }
 }
 
 impl<I, T> Iterator for LogErrorsIter<I, T>
@@ -114,6 +130,7 @@ where
             Ok(pkg) => Some(pkg),
             Err(e) => {
                 error!("{e}");
+                self.errors += 1;
                 self.next()
             }
         })
@@ -125,7 +142,7 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     fn log_errors(self) -> LogErrorsIter<I, T> {
-        LogErrorsIter { iter: self }
+        LogErrorsIter { iter: self, errors: 0 }
     }
 }
 
