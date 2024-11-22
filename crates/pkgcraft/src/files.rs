@@ -134,26 +134,31 @@ pub(crate) fn has_ext_utf8(entry: &Utf8DirEntry, ext: &str) -> bool {
 }
 
 /// Create a file atomically by writing to a temporary path and then renaming it.
-pub(crate) fn atomic_write_file<C: AsRef<[u8]>>(
-    path: &Utf8Path,
-    file_name: &str,
+pub(crate) fn atomic_write_file<C: AsRef<[u8]>, P: AsRef<Utf8Path>>(
+    path: P,
     data: C,
 ) -> crate::Result<()> {
+    let path = path.as_ref();
+
     // create parent dir
-    fs::create_dir_all(path).map_err(|e| Error::IO(format!("failed creating dir: {path}: {e}")))?;
+    let dir = path
+        .parent()
+        .ok_or_else(|| Error::IO(format!("invalid file path: {path}")))?;
+    fs::create_dir_all(dir).map_err(|e| Error::IO(format!("failed creating dir: {dir}: {e}")))?;
 
     // TODO: support custom temporary file path formats
     let pid = std::process::id();
-    let tmp_path = path.join(format!(".{file_name}.{pid}"));
-    let new_path = path.join(file_name);
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| Error::IO(format!("invalid file path: {path}")))?;
+    let temp = dir.join(format!(".{file_name}.{pid}"));
 
-    // write file to temp path
-    fs::write(&tmp_path, data)
-        .map_err(|e| Error::IO(format!("failed writing data: {tmp_path}: {e}")))?;
+    // write to the temporary file
+    fs::write(&temp, data).map_err(|e| Error::IO(format!("failed writing data: {temp}: {e}")))?;
 
     // move file to final path
-    fs::rename(&tmp_path, &new_path)
-        .map_err(|e| Error::IO(format!("failed renaming file: {tmp_path} -> {new_path}: {e}")))?;
+    fs::rename(&temp, path)
+        .map_err(|e| Error::IO(format!("failed renaming file: {temp} -> {path}: {e}")))?;
 
     Ok(())
 }

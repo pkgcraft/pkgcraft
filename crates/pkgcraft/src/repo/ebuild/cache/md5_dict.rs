@@ -336,14 +336,11 @@ impl Cache for Md5Dict {
     }
 
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()> {
-        // determine cache entry directory
-        let path = self.path.join(pkg.cpv().category());
-
         // convert metadata to the cache entry format
         let entry = Self::Entry::from(meta);
-
         // atomically create cache file
-        atomic_write_file(&path, &pkg.cpv().pf(), entry.to_bytes())
+        let path = self.path.join(pkg.cpv().category()).join(pkg.cpv().pf());
+        atomic_write_file(path, entry.to_bytes())
     }
 
     fn remove(&self, _repo: &EbuildRepo) -> crate::Result<()> {

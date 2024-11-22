@@ -748,8 +748,7 @@ impl Metadata {
             .iter()
             .map(|(cpn, name, desc)| format!("{cpn}:{name} - {desc}\n"))
             .join("");
-        let path = self.path.join("profiles");
-        atomic_write_file(&path, "use.local.desc", data)
+        atomic_write_file(self.path.join("profiles/use.local.desc"), data)
     }
 }
 

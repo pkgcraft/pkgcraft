@@ -88,7 +88,7 @@ impl EbuildRawPkg {
         &self.0.chksum
     }
 
-    /// Load metadata from the cache if valid, otherwise source it from the ebuild.
+    /// Load metadata from the cache if valid, otherwise try to generate it and update the cache.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
         self.0
             .repo

@@ -79,7 +79,7 @@ impl EbuildTempRepo {
         if categories.insert(category.to_string()) {
             categories.sort();
             let data = categories.iter().map(|value| format!("{value}\n")).join("");
-            atomic_write_file(&self.path.join("profiles"), "categories", data)?;
+            atomic_write_file(self.path.join("profiles/categories"), data)?;
         }
         Ok(())
     }
