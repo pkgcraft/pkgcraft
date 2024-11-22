@@ -126,14 +126,18 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().and_then(|result| match result {
-            Ok(pkg) => Some(pkg),
-            Err(e) => {
-                error!("{e}");
-                self.errors += 1;
-                self.next()
+        for result in &mut self.iter {
+            match result {
+                Ok(object) => return Some(object),
+                Err(e) => {
+                    error!("{e}");
+                    self.errors += 1;
+                    continue;
+                }
             }
-        })
+        }
+
+        None
     }
 }
 
