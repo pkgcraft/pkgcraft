@@ -50,6 +50,6 @@ impl Command {
             writeln!(stdout, "{cpv}")?;
         }
 
-        Ok(ExitCode::from(iter.failed() as u8))
+        Ok(ExitCode::from(iter))
     }
 }

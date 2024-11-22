@@ -45,6 +45,6 @@ impl Command {
             writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
         }
 
-        Ok(ExitCode::from(iter.failed() as u8))
+        Ok(ExitCode::from(iter))
     }
 }
