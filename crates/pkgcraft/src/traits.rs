@@ -3,6 +3,7 @@ use std::hash::Hash;
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{Equivalent, IndexSet};
 use scallop::{source, ExecStatus};
+use tracing::error;
 
 /// Return true if a container type contains a given object, otherwise false.
 pub trait Contains<T> {
@@ -83,6 +84,48 @@ impl<T: AsRef<str>> FilterLines for T {
             .enumerate()
             .map(|(i, s)| (i + 1, s))
             .filter(|(_, s)| !s.is_empty() && !s.starts_with('#'))
+    }
+}
+
+/// Filter an iterable of results while logging errors.
+pub trait LogErrors<I, T>
+where
+    I: Iterator<Item = crate::Result<T>>,
+{
+    fn log_errors(self) -> LogErrorsIter<I, T>;
+}
+
+/// Iterable that filters an iterator of results while logging errors.
+pub struct LogErrorsIter<I, T>
+where
+    I: Iterator<Item = crate::Result<T>>,
+{
+    iter: I,
+}
+
+impl<I, T> Iterator for LogErrorsIter<I, T>
+where
+    I: Iterator<Item = crate::Result<T>>,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().and_then(|result| match result {
+            Ok(pkg) => Some(pkg),
+            Err(e) => {
+                error!("{e}");
+                self.next()
+            }
+        })
+    }
+}
+
+impl<I, T> LogErrors<I, T> for I
+where
+    I: Iterator<Item = crate::Result<T>>,
+{
+    fn log_errors(self) -> LogErrorsIter<I, T> {
+        LogErrorsIter { iter: self }
     }
 }
 
