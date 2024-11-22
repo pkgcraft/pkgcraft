@@ -26,7 +26,8 @@ impl Command {
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();
 
-        for pkg in repo.iter_unordered().log_errors() {
+        let mut iter = repo.iter_unordered().log_errors();
+        for pkg in &mut iter {
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies([]).into_iter_flatten() {
                 cache
@@ -49,6 +50,6 @@ impl Command {
             writeln!(stdout, "{cpv}")?;
         }
 
-        Ok(ExitCode::SUCCESS)
+        Ok(ExitCode::from(iter.failed() as u8))
     }
 }
