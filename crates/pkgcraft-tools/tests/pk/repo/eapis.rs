@@ -23,6 +23,19 @@ fn nonexistent_repo() {
 }
 
 #[test]
+fn invalid_pkgs() {
+    let data = test_data();
+    let repo = data.ebuild_repo("bad").unwrap();
+    cmd("pk repo eapis")
+        .arg(repo.path())
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr(predicate::str::is_empty().not())
+        .failure()
+        .code(1);
+}
+
+#[test]
 fn empty_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("empty").unwrap();

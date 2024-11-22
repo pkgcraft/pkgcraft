@@ -37,6 +37,19 @@ fn multiple_repos_not_supported() {
 }
 
 #[test]
+fn invalid_pkgs() {
+    let data = test_data();
+    let repo = data.ebuild_repo("bad").unwrap();
+    cmd("pk repo leaf")
+        .arg(repo.path())
+        .assert()
+        .stdout("")
+        .stderr(predicate::str::is_empty().not())
+        .failure()
+        .code(1);
+}
+
+#[test]
 fn empty_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("empty").unwrap();
