@@ -7,7 +7,7 @@ use pkgcraft::cli::MaybeStdinVec;
 use pkgcraft::config::Config;
 use pkgcraft::dep::{CpvOrDep, Flatten};
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::Intersects;
+use pkgcraft::traits::{Intersects, LogErrors};
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
@@ -37,21 +37,24 @@ impl Command {
             .flatten()
             .map(|s| CpvOrDep::try_new(s))
             .try_collect()?;
+        config.finalize()?;
 
         // TODO: use a revdeps cache for queries (#120)
-        // TODO: parallelize while generating metadata on the fly (#121)
+        // TODO: use parallel iterators (#121)
+        let mut failed = false;
         let mut stdout = io::stdout().lock();
         for repo in repos.ebuild() {
-            for pkg in repo {
-                let pkg = pkg?;
+            let mut iter = repo.iter_ordered().log_errors();
+            for pkg in &mut iter {
                 for dep in pkg.dependencies([]).into_iter_flatten() {
                     if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {
                         writeln!(stdout, "{pkg}: {dep}")?;
                     }
                 }
             }
+            failed |= iter.failed();
         }
 
-        Ok(ExitCode::SUCCESS)
+        Ok(ExitCode::from(failed as u8))
     }
 }
