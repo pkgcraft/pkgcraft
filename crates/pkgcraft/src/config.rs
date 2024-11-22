@@ -292,9 +292,10 @@ impl Config {
             });
 
         // finalize external repo when added
-        if external && result.is_ok() {
-            if let Err(e) = repo.finalize(self) {
-                return Err(Error::Config(format!("{repo}: {e}")));
+        if external {
+            if let Ok(repo) = &result {
+                repo.finalize(self)
+                    .map_err(|e| Error::Config(format!("{repo}: {e}")))?;
             }
         }
 
@@ -351,10 +352,9 @@ impl Config {
     /// Finalize the config repos and start the build pool.
     pub fn finalize(&self) -> crate::Result<()> {
         // finalize repos
-        for (name, repo) in &self.repos {
-            if let Err(e) = repo.finalize(self) {
-                return Err(Error::Config(format!("{name}: {e}")));
-            }
+        for (_, repo) in &self.repos {
+            repo.finalize(self)
+                .map_err(|e| Error::Config(format!("{repo}: {e}")))?;
         }
 
         // initialize bash
