@@ -266,7 +266,8 @@ impl Eapi {
     {
         let path = path.as_ref();
 
-        let matches = |path: &Utf8Path, ext: &str| -> bool {
+        // determine if an archive path has a matching file extension
+        let matches = |ext: &str| -> bool {
             if self.has(Feature::UnpackCaseInsensitive) {
                 let ext = format!(".{}", ext.to_lowercase());
                 path.as_str().to_lowercase().ends_with(&ext)
@@ -276,14 +277,11 @@ impl Eapi {
             }
         };
 
-        for ext in &self.archives {
-            if matches(path, ext) {
-                let archive = Archive::from_path(path)?;
-                return Ok((ext, archive));
-            }
-        }
-
-        Err(Error::InvalidValue(format!("unknown archive format: {path}")))
+        self.archives
+            .iter()
+            .find(|ext| matches(ext))
+            .ok_or_else(|| Error::InvalidValue(format!("unknown archive format: {path}")))
+            .and_then(|ext| Archive::from_path(path).map(|x| (ext.as_str(), x)))
     }
 
     /// Metadata variables for dependencies.
