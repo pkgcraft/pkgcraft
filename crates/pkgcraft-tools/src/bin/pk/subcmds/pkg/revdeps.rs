@@ -34,7 +34,6 @@ impl Command {
             .flatten()
             .map(|s| CpvOrDep::try_new(s))
             .try_collect()?;
-        config.finalize()?;
 
         // TODO: use a revdeps cache for queries (#120)
         // TODO: use parallel iterators (#121)
