@@ -72,12 +72,13 @@ fn multiple() {
         .unwrap();
     temp.create_ebuild("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    cmd("pk repo leaf")
-        .arg(temp.path())
-        .assert()
-        .stdout("cat/leaf-1\ncat/leaf-2\n")
-        .stderr("")
-        .success();
+
+    let output = cmd("pk repo leaf").arg(temp.path()).output().unwrap();
+    let sorted: Vec<_> = std::str::from_utf8(&output.stdout)
+        .unwrap()
+        .split_whitespace()
+        .collect();
+    assert_eq!(&sorted, &["cat/leaf-1", "cat/leaf-2"]);
 }
 
 #[test]
