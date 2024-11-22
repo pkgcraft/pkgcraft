@@ -1,6 +1,7 @@
 use std::sync::OnceLock;
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use nix::sys::{prctl, signal::Signal};
 use nix::unistd::{fork, ForkResult};
 use scallop::pool::{suppress_output, SharedSemaphore};
 use serde::{Deserialize, Serialize};
@@ -91,6 +92,9 @@ impl BuildPool {
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => (),
             Ok(ForkResult::Child) => {
+                // signal child to exit on parent death
+                prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
+
                 scallop::shell::fork_init();
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
