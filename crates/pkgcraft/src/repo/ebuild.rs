@@ -796,15 +796,17 @@ impl Iterator for IterOrdered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.cache
-            .remove(&self.id)
-            .inspect(|_| self.id += 1)
-            .or_else(|| {
-                self.rx.recv().ok().and_then(|(id, result)| {
-                    self.cache.insert(id, result);
-                    self.next()
-                })
-            })
+        loop {
+            if let Some(result) = self.cache.remove(&self.id) {
+                self.id += 1;
+                return Some(result);
+            } else if let Ok((id, result)) = self.rx.recv() {
+                self.cache.insert(id, result);
+                continue;
+            } else {
+                return None;
+            }
+        }
     }
 }
 
