@@ -1,8 +1,9 @@
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, OnceLock, Weak};
-use std::{fmt, fs, iter, mem};
+use std::{fmt, fs, iter, mem, thread};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use rayon::prelude::*;
@@ -361,6 +362,13 @@ impl EbuildRepo {
         IterCpnRestrict::new(self, value.into())
     }
 
+    /// Return an unordered iterator of ebuild packages for the repo.
+    ///
+    /// This constructs packages in parallel and returns them as completed.
+    pub fn iter_unordered(&self) -> IterUnordered {
+        IterUnordered::new(self, None)
+    }
+
     /// Return an iterator of raw packages for the repo.
     pub fn iter_raw(&self) -> IterRaw {
         IterRaw::new(self, None)
@@ -636,7 +644,8 @@ impl IntoIterator for &EbuildRepo {
     }
 }
 
-/// Iterable of valid ebuild packages.
+// TODO: added ordered iteration support with parallel metadata generation.
+/// Ordered iterable of results from constructing ebuild packages.
 pub struct Iter(IterRaw);
 
 impl Iter {
@@ -652,6 +661,68 @@ impl Iterator for Iter {
         self.0
             .next()
             .map(|r| r.and_then(|raw_pkg| raw_pkg.try_into()))
+    }
+}
+
+/// Unordered iterable of results from constructing ebuild packages.
+///
+/// This constructs packages in parallel and returns them as completed.
+pub struct IterUnordered {
+    _producer: thread::JoinHandle<()>,
+    _workers: Vec<thread::JoinHandle<()>>,
+    rx: Receiver<crate::Result<EbuildPkg>>,
+}
+
+impl IterUnordered {
+    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
+        let (raw_tx, raw_rx) = bounded(num_cpus::get());
+        let (iter_tx, iter_rx) = bounded(num_cpus::get());
+        let iter = IterRaw::new(repo, restrict);
+
+        Self {
+            _producer: Self::producer(iter, raw_tx, iter_tx.clone()),
+            _workers: (0..num_cpus::get())
+                .map(|_| Self::worker(raw_rx.clone(), iter_tx.clone()))
+                .collect(),
+            rx: iter_rx,
+        }
+    }
+
+    /// Generate raw ebuild packages, sending valid results to be processed into ebuild
+    /// packages and errors directly to be output.
+    fn producer(
+        iter: IterRaw,
+        pkg_tx: Sender<EbuildRawPkg>,
+        iter_tx: Sender<crate::Result<EbuildPkg>>,
+    ) -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            for result in iter {
+                match result {
+                    Ok(pkg) => pkg_tx.send(pkg).ok(),
+                    Err(e) => iter_tx.send(Err(e)).ok(),
+                };
+            }
+        })
+    }
+
+    /// Convert raw ebuild packages into ebuild packages, sending the results for output.
+    fn worker(
+        rx: Receiver<EbuildRawPkg>,
+        tx: Sender<crate::Result<EbuildPkg>>,
+    ) -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            for raw_pkg in rx {
+                tx.send(raw_pkg.try_into()).ok();
+            }
+        })
+    }
+}
+
+impl Iterator for IterUnordered {
+    type Item = crate::Result<EbuildPkg>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.rx.recv().ok()
     }
 }
 
