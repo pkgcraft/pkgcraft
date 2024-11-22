@@ -17,6 +17,7 @@ mod subcmds;
 struct Command {
     #[command(flatten)]
     verbosity: Verbosity,
+
     /// Use a custom config
     #[arg(short, long, value_name = "PATH", global = true)]
     config: Option<String>,
@@ -48,8 +49,6 @@ fn main() -> anyhow::Result<ExitCode> {
     let mut config = Config::new("pkgcraft", "");
     if let Some(path) = args.config {
         config.load_path(&path)?;
-    } else {
-        config.load()?;
     }
 
     args.subcmd.run(&mut config).or_else(|err| {
