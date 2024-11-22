@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::process::ExitCode;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{Equivalent, IndexSet};
@@ -102,6 +103,15 @@ where
 {
     iter: I,
     errors: u64,
+}
+
+impl<I, T> From<LogErrorsIter<I, T>> for ExitCode
+where
+    I: Iterator<Item = crate::Result<T>>,
+{
+    fn from(iter: LogErrorsIter<I, T>) -> Self {
+        ExitCode::from(iter.failed() as u8)
+    }
 }
 
 impl<I, T> LogErrorsIter<I, T>
