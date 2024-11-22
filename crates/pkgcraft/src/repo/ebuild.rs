@@ -681,7 +681,7 @@ impl Iterator for IterRaw {
 }
 
 /// Iterable of [`Cpn`] objects.
-pub struct IterCpn(Box<dyn Iterator<Item = Cpn>>);
+pub struct IterCpn(Box<dyn Iterator<Item = Cpn> + Send>);
 
 impl IterCpn {
     fn new(repo: EbuildRepo, restrict: Option<&Restrict>) -> Self {
@@ -799,7 +799,7 @@ impl Iterator for IterCpn {
 }
 
 /// Iterable of [`Cpv`] objects.
-pub struct IterCpv(Box<dyn Iterator<Item = Cpv>>);
+pub struct IterCpv(Box<dyn Iterator<Item = Cpv> + Send>);
 
 impl IterCpv {
     fn new(repo: EbuildRepo, restrict: Option<&Restrict>) -> Self {
