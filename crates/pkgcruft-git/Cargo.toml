@@ -1,0 +1,64 @@
+[package]
+name = "pkgcruft-git"
+version = "0.0.1"
+description = "Client and server for scanning git commits using pkgcruft"
+homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
+repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
+readme = "README.md"
+license = "MIT"
+autobins = false
+autotests = false
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = "1.0.98"
+async-stream = "0.3.6"
+camino = "1.1.9"
+clap = { version = "4.5.38", features = ["derive", "string"] }
+clap-verbosity-flag = "3.0.2"
+config = { version = "0.15.11", default-features = false, features = ["toml"] }
+futures = "0.3.31"
+hyper-util = "0.1.11"
+pkgcraft = { path = "../pkgcraft", version = "0.0.27" }
+pkgcruft = { path = "../pkgcruft", version = "0.0.14" }
+prost = "0.13.5"
+regex = "1.11.1"
+serde = { version = "1.0.219", features = ["derive"] }
+thiserror = "2.0.12"
+tokio = { version = "1.45", features = ["full"] }
+tokio-stream = { version = "0.1.17", features = ["net"] }
+tonic = { version = "0.13.1", features = ["tls-ring", "gzip"] }
+tracing = "0.1.41"
+tracing-log = "0.2.0"
+tracing-subscriber = "0.3.19"
+url = "2.5.4"
+
+# client specific deps
+tower = "0.5.2"
+
+[build-dependencies]
+tonic-build = "0.13.1"
+
+[dev-dependencies]
+assert_cmd = "2.0.17"
+pkgcraft = { path = "../pkgcraft", version = "0.0.27", features = ["test"] }
+regex = "1.11.1"
+tempfile = "3.20.0"
+
+[lib]
+name = "pkgcruft_git"
+
+[[bin]]
+name = "pkgcruft-gitd"
+
+[[bin]]
+name = "pkgcruft-git"
+
+[[test]]
+name = "integration"
+path = "tests/lib.rs"

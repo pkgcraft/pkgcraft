@@ -2276,6 +2276,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkgcruft-git"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "assert_cmd",
+ "async-stream",
+ "camino",
+ "clap",
+ "clap-verbosity-flag",
+ "config",
+ "futures",
+ "hyper-util",
+ "pkgcraft",
+ "pkgcruft",
+ "prost",
+ "regex",
+ "serde",
+ "tempfile",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tonic-build",
+ "tower",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
 name = "plotters"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

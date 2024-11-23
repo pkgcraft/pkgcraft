@@ -1,0 +1,15 @@
+syntax = "proto3";
+package pkgcruft;
+
+service Pkgcruft {
+    rpc Version (StringRequest) returns (StringResponse);
+    rpc Scan (StringRequest) returns (stream StringResponse);
+}
+
+message StringRequest {
+    string data = 1;
+}
+
+message StringResponse {
+    string data = 1;
+}
