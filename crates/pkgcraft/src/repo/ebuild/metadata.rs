@@ -416,7 +416,10 @@ impl Metadata {
         self.eclasses
             .get_or_init(|| match self.path.join("eclass").read_dir_utf8() {
                 Ok(entries) => {
+                    // TODO: add support for native file reading parallelism
+                    let entries: Vec<_> = entries.collect();
                     let mut vals: IndexSet<_> = entries
+                        .into_par_iter()
                         .filter_map(|e| e.ok())
                         .filter(is_eclass)
                         .filter_map(|entry| match Eclass::try_new(entry.path(), self.cache()) {
@@ -427,7 +430,7 @@ impl Metadata {
                             }
                         })
                         .collect();
-                    vals.sort();
+                    vals.par_sort();
                     vals
                 }
                 Err(e) => {
