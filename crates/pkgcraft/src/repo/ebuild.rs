@@ -355,7 +355,7 @@ impl EbuildRepo {
     }
 
     pub fn iter_cpn(&self) -> IterCpn {
-        IterCpn::new(self.clone(), None)
+        IterCpn::new(self, None)
     }
 
     /// Return a filtered iterator of unversioned Deps for the repo.
@@ -517,7 +517,7 @@ impl PkgRepository for EbuildRepo {
     }
 
     fn iter_cpv(&self) -> IterCpv {
-        IterCpv::new(self.clone(), None)
+        IterCpv::new(self, None)
     }
 
     fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
@@ -815,7 +815,7 @@ pub struct IterRaw {
 impl IterRaw {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         Self {
-            iter: IterCpv::new(repo.clone(), restrict),
+            iter: IterCpv::new(repo, restrict),
             repo: repo.clone(),
         }
     }
@@ -835,11 +835,12 @@ impl Iterator for IterRaw {
 pub struct IterCpn(Box<dyn Iterator<Item = Cpn> + Send>);
 
 impl IterCpn {
-    fn new(repo: EbuildRepo, restrict: Option<&Restrict>) -> Self {
+    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package};
         use StrRestrict::Equal;
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
+        let repo = repo.clone();
 
         // extract matching restrictions for optimized iteration
         if let Some(restrict) = restrict {
@@ -953,12 +954,13 @@ impl Iterator for IterCpn {
 pub struct IterCpv(Box<dyn Iterator<Item = Cpv> + Send>);
 
 impl IterCpv {
-    fn new(repo: EbuildRepo, restrict: Option<&Restrict>) -> Self {
+    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package, Version};
         use StrRestrict::Equal;
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
         let mut ver_restricts = vec![];
+        let repo = repo.clone();
 
         // extract matching restrictions for optimized iteration
         if let Some(restrict) = restrict {
@@ -1081,7 +1083,7 @@ pub struct IterCpnRestrict {
 impl IterCpnRestrict {
     fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
         Self {
-            iter: IterCpn::new(repo.clone(), Some(&restrict)),
+            iter: IterCpn::new(repo, Some(&restrict)),
             restrict,
         }
     }
@@ -1108,7 +1110,7 @@ pub struct IterCpvRestrict {
 impl IterCpvRestrict {
     fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
         Self {
-            iter: IterCpv::new(repo.clone(), Some(&restrict)),
+            iter: IterCpv::new(repo, Some(&restrict)),
             restrict,
         }
     }
