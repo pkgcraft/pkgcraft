@@ -15,12 +15,6 @@ use crate::repo::ebuild::cache::Cache;
 use crate::repo::ebuild::EbuildRepo;
 use crate::repo::Repository;
 
-#[derive(Debug, Serialize, Deserialize)]
-enum Cmd {
-    /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
-    Metadata(String, Cpv, bool),
-}
-
 /// Get an ebuild repo from a config matching a given ID.
 fn get_ebuild_repo(config: &Config, repo_id: String) -> crate::Result<&EbuildRepo> {
     config
@@ -30,33 +24,63 @@ fn get_ebuild_repo(config: &Config, repo_id: String) -> crate::Result<&EbuildRep
         .ok_or_else(|| Error::InvalidValue(format!("unknown ebuild repo: {repo_id}")))
 }
 
-impl Cmd {
+/// Update an ebuild repo's package metadata cache for a given [`Cpv`].
+#[derive(Debug, Serialize, Deserialize)]
+struct Metadata {
+    repo_id: String,
+    cpv: Cpv,
+    verify: bool,
+}
+
+impl Metadata {
+    fn new(repo: &EbuildRepo, cpv: &Cpv, verify: bool) -> Self {
+        Self {
+            repo_id: repo.id().to_string(),
+            cpv: cpv.clone(),
+            verify,
+        }
+    }
+
     fn run(self, config: &Config) -> crate::Result<()> {
+        let repo = get_ebuild_repo(config, self.repo_id)?;
+        let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
+        let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
+        if !self.verify {
+            repo.metadata().cache().update(&pkg, &meta)?;
+        }
+        Ok(())
+    }
+}
+
+/// Build pool task.
+#[derive(Debug, Serialize, Deserialize)]
+enum Task {
+    Metadata(Metadata, IpcSender<crate::Result<()>>),
+}
+
+impl Task {
+    fn run(self, config: &Config) {
         match self {
-            Self::Metadata(repo_id, cpv, verify) => {
-                let repo = get_ebuild_repo(config, repo_id)?;
-                let pkg = EbuildRawPkg::try_new(cpv, repo)?;
-                let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
-                if !verify {
-                    repo.metadata().cache().update(&pkg, &meta)?;
-                }
-                Ok(())
+            Self::Metadata(task, tx) => {
+                let result = task.run(config);
+                tx.send(result).unwrap();
             }
         }
     }
 }
 
+/// Build pool command.
 #[derive(Debug, Serialize, Deserialize)]
-enum Msg {
-    Cmd(Cmd, IpcSender<crate::Result<()>>),
+enum Command {
+    Task(Task),
     Stop,
 }
 
 #[derive(Debug)]
 pub struct BuildPool {
     jobs: usize,
-    tx: IpcSender<Msg>,
-    rx: IpcReceiver<Msg>,
+    tx: IpcSender<Command>,
+    rx: IpcReceiver<Command>,
     running: OnceLock<bool>,
 }
 
@@ -102,15 +126,14 @@ impl BuildPool {
                 // suppress stdout and stderr in forked processes
                 suppress_output().unwrap();
 
-                while let Ok(Msg::Cmd(cmd, result_tx)) = self.rx.recv() {
+                while let Ok(Command::Task(task)) = self.rx.recv() {
                     // wait on bounded semaphore for pool space
                     sem.acquire().unwrap();
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
                             scallop::shell::fork_init();
-                            let result = cmd.run(config);
-                            result_tx.send(result).unwrap();
+                            task.run(config);
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }
@@ -140,10 +163,11 @@ impl BuildPool {
                 return Ok(());
             }
         }
-        let cmd = Cmd::Metadata(repo.id().to_string(), cpv.clone(), verify);
+        let meta = Metadata::new(repo, cpv, verify);
         let (tx, rx) = ipc::channel().expect("failed creating IPC task channel");
+        let task = Task::Metadata(meta, tx);
         self.tx
-            .send(Msg::Cmd(cmd, tx))
+            .send(Command::Task(task))
             .expect("failed queuing task");
         rx.recv().expect("failed receiving task status")
     }
@@ -151,6 +175,6 @@ impl BuildPool {
 
 impl Drop for BuildPool {
     fn drop(&mut self) {
-        self.tx.send(Msg::Stop).ok();
+        self.tx.send(Command::Stop).ok();
     }
 }
