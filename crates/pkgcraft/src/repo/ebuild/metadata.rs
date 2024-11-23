@@ -420,7 +420,7 @@ impl Metadata {
                     let entries: Vec<_> = entries.collect();
                     let mut vals: IndexSet<_> = entries
                         .into_par_iter()
-                        .filter_map(|e| e.ok())
+                        .filter_map(Result::ok)
                         .filter(is_eclass)
                         .filter_map(|entry| match Eclass::try_new(entry.path(), self.cache()) {
                             Ok(eclass) => Some(eclass),
@@ -448,7 +448,7 @@ impl Metadata {
             .get_or_init(|| match self.path.join("licenses").read_dir_utf8() {
                 Ok(entries) => {
                     let mut vals: IndexSet<_> = entries
-                        .filter_map(|e| e.ok())
+                        .filter_map(Result::ok)
                         .filter_map(|e| match parse::license_name(e.file_name()) {
                             Ok(s) => Some(s.to_string()),
                             Err(e) => {
@@ -623,7 +623,7 @@ impl Metadata {
             sorted_dir_list(self.path.join("profiles/updates"))
                 .into_iter()
                 .filter_entry(|e| is_file(e) && !is_hidden(e))
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
                 .filter_map(|e| fs::read_to_string(e.path()).ok().map(|s| (e, s)))
                 .flat_map(|(e, s)| {
                     let file = e.file_name().to_str().unwrap_or_default();
@@ -665,7 +665,7 @@ impl Metadata {
             sorted_dir_list(self.path.join("profiles/desc"))
                 .into_iter()
                 .filter_entry(|e| is_file(e) && !is_hidden(e))
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
                 .filter_map(|e| fs::read_to_string(e.path()).ok().map(|s| (e, s)))
                 .map(|(e, s)| {
                     let file = e.file_name().to_str().unwrap_or_default();
