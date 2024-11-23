@@ -100,27 +100,27 @@ impl PkgRepository for Repo {
     }
 
     fn iter_cpn(&self) -> Self::IterCpn {
-        iter::empty::<Cpn>()
+        iter::empty()
     }
 
     fn iter_cpn_restrict<R: Into<Restrict>>(&self, _value: R) -> Self::IterCpnRestrict {
-        iter::empty::<Cpn>()
+        iter::empty()
     }
 
     fn iter_cpv(&self) -> Self::IterCpv {
-        iter::empty::<Cpv>()
+        iter::empty()
     }
 
     fn iter_cpv_restrict<R: Into<Restrict>>(&self, _value: R) -> Self::IterCpvRestrict {
-        iter::empty::<Cpv>()
+        iter::empty()
     }
 
     fn iter(&self) -> Self::Iter {
-        iter::empty::<crate::Result<Self::Pkg>>()
+        iter::empty()
     }
 
     fn iter_restrict<R: Into<Restrict>>(&self, _val: R) -> Self::IterRestrict {
-        iter::empty::<crate::Result<Self::Pkg>>()
+        iter::empty()
     }
 }
 
