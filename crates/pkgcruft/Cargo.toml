@@ -45,7 +45,6 @@ itertools = "0.13.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.18" }
 regex = "1.11.1"
-scallop = { path = "../scallop", version = "0.0.18" }
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.133"
 strfmt = "0.2.4"

@@ -4,8 +4,8 @@ use std::process::ExitCode;
 use clap::builder::BoolValueParser;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
+use pkgcraft::cli::reset_sigpipe;
 use pkgcraft::config::Config;
-use scallop::utils::reset_sigpipe;
 use tracing_log::AsTrace;
 
 mod options;

@@ -2065,7 +2065,6 @@ dependencies = [
  "predicates",
  "pretty_assertions",
  "regex",
- "scallop",
  "serde",
  "serde_json",
  "strfmt",
