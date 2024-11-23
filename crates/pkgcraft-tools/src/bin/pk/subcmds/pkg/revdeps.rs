@@ -32,7 +32,7 @@ impl Command {
             .targets
             .iter()
             .flatten()
-            .map(|s| CpvOrDep::try_new(s))
+            .map(CpvOrDep::try_new)
             .try_collect()?;
 
         // TODO: use a revdeps cache for queries (#120)

@@ -22,8 +22,8 @@ pub enum CpvOrDep {
 
 impl CpvOrDep {
     /// Create a [`CpvOrDep`] from a given string.
-    pub fn try_new(s: &str) -> crate::Result<Self> {
-        parse::cpv_or_dep(s)
+    pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
+        parse::cpv_or_dep(s.as_ref())
     }
 }
 
