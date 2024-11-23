@@ -529,11 +529,7 @@ impl PkgRepository for EbuildRepo {
     }
 
     fn iter_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterRestrict {
-        let restrict = value.into();
-        IterRestrict {
-            iter: Iter::new(self, Some(&restrict)),
-            restrict,
-        }
+        IterRestrict::new(self, value)
     }
 }
 
@@ -1048,6 +1044,16 @@ impl Iterator for IterCpv {
 pub struct IterRestrict {
     iter: Iter,
     restrict: Restrict,
+}
+
+impl IterRestrict {
+    fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
+        let restrict = value.into();
+        Self {
+            iter: Iter::new(repo, Some(&restrict)),
+            restrict,
+        }
+    }
 }
 
 impl Iterator for IterRestrict {
