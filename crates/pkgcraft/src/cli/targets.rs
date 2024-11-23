@@ -161,10 +161,10 @@ pub fn pkgs_ebuild<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildPkg
 where
     I: IntoIterator<Item = (RepoSet, Restrict)>,
 {
-    pkgs(values).filter_map(|r| match r {
-        Ok(Pkg::Ebuild(pkg)) => Some(Ok(pkg)),
-        Ok(_) => None,
-        Err(e) => Some(Err(e)),
+    values.into_iter().flat_map(|(set, restrict)| {
+        set.into_iter()
+            .filter_map(|r| r.into_ebuild().ok())
+            .flat_map(move |r| r.iter_restrict(&restrict))
     })
 }
 
