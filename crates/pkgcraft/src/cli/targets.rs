@@ -164,7 +164,7 @@ where
     values.into_iter().flat_map(|(set, restrict)| {
         set.into_iter()
             .filter_map(|r| r.into_ebuild().ok())
-            .flat_map(move |r| r.iter_restrict(&restrict))
+            .flat_map(move |r| r.iter_restrict_ordered(&restrict))
     })
 }
 
