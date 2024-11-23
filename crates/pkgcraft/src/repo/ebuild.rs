@@ -402,7 +402,7 @@ impl EbuildRepo {
         Error: From<<T as TryInto<Cpv>>::Error>,
     {
         let cpv = value.try_into()?;
-        EbuildRawPkg::try_new(cpv, self.clone())
+        EbuildRawPkg::try_new(cpv, self)
     }
 
     /// Scan the deprecated package list returning the first match for a given dependency.
@@ -827,7 +827,7 @@ impl Iterator for IterRaw {
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|cpv| EbuildRawPkg::try_new(cpv, self.repo.clone()))
+            .map(|cpv| EbuildRawPkg::try_new(cpv, &self.repo))
     }
 }
 

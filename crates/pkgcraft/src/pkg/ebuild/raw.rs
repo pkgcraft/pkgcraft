@@ -35,7 +35,7 @@ impl fmt::Debug for EbuildRawPkg {
 }
 
 impl EbuildRawPkg {
-    pub(crate) fn try_new(cpv: Cpv, repo: EbuildRepo) -> crate::Result<Self> {
+    pub(crate) fn try_new(cpv: Cpv, repo: &EbuildRepo) -> crate::Result<Self> {
         let relpath = cpv.relpath();
         let data =
             fs::read_to_string(repo.path().join(&relpath)).map_err(|e| Error::InvalidPkg {
@@ -49,6 +49,7 @@ impl EbuildRawPkg {
         })?;
 
         let chksum = repo.metadata().cache().chksum(&data);
+        let repo = repo.clone();
         Ok(Self(Arc::new(InternalEbuildRawPkg { cpv, repo, eapi, data, chksum })))
     }
 

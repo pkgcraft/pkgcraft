@@ -35,7 +35,7 @@ impl Cmd {
         match self {
             Self::Metadata(repo_id, cpv, verify) => {
                 let repo = get_ebuild_repo(config, repo_id)?;
-                let pkg = EbuildRawPkg::try_new(cpv, repo.clone())?;
+                let pkg = EbuildRawPkg::try_new(cpv, repo)?;
                 let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
                 if !verify {
                     repo.metadata().cache().update(&pkg, &meta)?;
@@ -135,7 +135,7 @@ impl BuildPool {
         verify: bool,
     ) -> crate::Result<()> {
         if !force {
-            let pkg = EbuildRawPkg::try_new(cpv.clone(), repo.clone())?;
+            let pkg = EbuildRawPkg::try_new(cpv.clone(), repo)?;
             if repo.metadata().cache().get(&pkg).is_ok() {
                 return Ok(());
             }
