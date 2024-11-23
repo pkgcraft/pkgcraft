@@ -256,6 +256,46 @@ impl Repo {
     }
 }
 
+pub enum IterCpn {
+    Configured(ebuild::IterCpn),
+    Ebuild(ebuild::IterCpn),
+    Fake(fake::IterCpn),
+    Empty,
+}
+
+impl Iterator for IterCpn {
+    type Item = Cpn;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Configured(iter) => iter.next(),
+            Self::Ebuild(iter) => iter.next(),
+            Self::Fake(iter) => iter.next(),
+            Self::Empty => None,
+        }
+    }
+}
+
+pub enum IterCpnRestrict {
+    Configured(ebuild::IterCpnRestrict),
+    Ebuild(ebuild::IterCpnRestrict),
+    Fake(fake::IterCpnRestrict),
+    Empty,
+}
+
+impl Iterator for IterCpnRestrict {
+    type Item = Cpn;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Configured(iter) => iter.next(),
+            Self::Ebuild(iter) => iter.next(),
+            Self::Fake(iter) => iter.next(),
+            Self::Empty => None,
+        }
+    }
+}
+
 pub enum IterCpv {
     Configured(ebuild::IterCpv),
     Ebuild(ebuild::IterCpv),
@@ -361,6 +401,8 @@ pub trait PkgRepository:
     + for<'a> Contains<&'a Dep>
 {
     type Pkg: Package;
+    type IterCpn: Iterator<Item = Cpn>;
+    type IterCpnRestrict: Iterator<Item = Cpn>;
     type IterCpv: Iterator<Item = Cpv>;
     type IterCpvRestrict: Iterator<Item = Cpv>;
     type Iter: Iterator<Item = crate::Result<Self::Pkg>>;
@@ -378,6 +420,12 @@ pub trait PkgRepository:
         }
         count
     }
+
+    /// Return an iterator of Cpns for the repo.
+    fn iter_cpn(&self) -> Self::IterCpn;
+
+    /// Return a filtered iterator of Cpns for the repo.
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpnRestrict;
 
     /// Return an iterator of Cpvs for the repo.
     fn iter_cpv(&self) -> Self::IterCpv;
@@ -418,6 +466,8 @@ where
     T: PkgRepository,
 {
     type Pkg = T::Pkg;
+    type IterCpn = T::IterCpn;
+    type IterCpnRestrict = T::IterCpnRestrict;
     type IterCpv = T::IterCpv;
     type IterCpvRestrict = T::IterCpvRestrict;
     type Iter = T::Iter;
@@ -434,6 +484,12 @@ where
     }
     fn len(&self) -> usize {
         (*self).len()
+    }
+    fn iter_cpn(&self) -> Self::IterCpn {
+        (*self).iter_cpn()
+    }
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpnRestrict {
+        (*self).iter_cpn_restrict(value)
     }
     fn iter_cpv(&self) -> Self::IterCpv {
         (*self).iter_cpv()
@@ -483,6 +539,8 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg = Pkg;
+    type IterCpn = IterCpn;
+    type IterCpnRestrict = IterCpnRestrict;
     type IterCpv = IterCpv;
     type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
@@ -521,6 +579,24 @@ impl PkgRepository for Repo {
             Self::Ebuild(repo) => repo.len(),
             Self::Fake(repo) => repo.len(),
             Self::Unsynced(repo) => repo.len(),
+        }
+    }
+
+    fn iter_cpn(&self) -> Self::IterCpn {
+        match self {
+            Self::Configured(repo) => IterCpn::Ebuild(repo.iter_cpn()),
+            Self::Ebuild(repo) => IterCpn::Ebuild(repo.iter_cpn()),
+            Self::Fake(repo) => IterCpn::Fake(repo.iter_cpn()),
+            Self::Unsynced(_) => IterCpn::Empty,
+        }
+    }
+
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpnRestrict {
+        match self {
+            Self::Configured(repo) => IterCpnRestrict::Ebuild(repo.iter_cpn_restrict(value)),
+            Self::Ebuild(repo) => IterCpnRestrict::Ebuild(repo.iter_cpn_restrict(value)),
+            Self::Fake(repo) => IterCpnRestrict::Fake(repo.iter_cpn_restrict(value)),
+            Self::Unsynced(_) => IterCpnRestrict::Empty,
         }
     }
 

@@ -354,15 +354,6 @@ impl EbuildRepo {
         }
     }
 
-    pub fn iter_cpn(&self) -> IterCpn {
-        IterCpn::new(self, None)
-    }
-
-    /// Return a filtered iterator of unversioned Deps for the repo.
-    pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> IterCpnRestrict {
-        IterCpnRestrict::new(self, value)
-    }
-
     /// Return an ordered iterator of ebuild packages for the repo.
     ///
     /// This constructs packages in parallel and returns them in repo order.
@@ -449,6 +440,8 @@ impl fmt::Display for EbuildRepo {
 
 impl PkgRepository for EbuildRepo {
     type Pkg = EbuildPkg;
+    type IterCpn = IterCpn;
+    type IterCpnRestrict = IterCpnRestrict;
     type IterCpv = IterCpv;
     type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
@@ -522,6 +515,14 @@ impl PkgRepository for EbuildRepo {
             .collect();
         versions.sort();
         versions
+    }
+
+    fn iter_cpn(&self) -> IterCpn {
+        IterCpn::new(self, None)
+    }
+
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> IterCpnRestrict {
+        IterCpnRestrict::new(self, value)
     }
 
     fn iter_cpv(&self) -> IterCpv {

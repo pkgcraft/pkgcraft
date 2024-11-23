@@ -86,6 +86,8 @@ impl From<&Repo> for RepoSet {
 
 impl PkgRepository for RepoSet {
     type Pkg = Pkg;
+    type IterCpn = IterCpn;
+    type IterCpnRestrict = IterCpnRestrict;
     type IterCpv = IterCpv;
     type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
@@ -115,6 +117,19 @@ impl PkgRepository for RepoSet {
 
     fn len(&self) -> usize {
         self.iter().count()
+    }
+
+    fn iter_cpn(&self) -> Self::IterCpn {
+        let mut cpns: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpn()).collect();
+        cpns.sort();
+        IterCpn(cpns.into_iter())
+    }
+
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpnRestrict {
+        IterCpnRestrict {
+            iter: self.iter_cpn(),
+            restrict: value.into(),
+        }
     }
 
     fn iter_cpv(&self) -> Self::IterCpv {
@@ -185,6 +200,29 @@ impl Contains<&Cpv> for RepoSet {
 impl Contains<&Dep> for RepoSet {
     fn contains(&self, value: &Dep) -> bool {
         self.repos.iter().any(|r| r.contains(value))
+    }
+}
+
+pub struct IterCpn(indexmap::set::IntoIter<Cpn>);
+
+impl Iterator for IterCpn {
+    type Item = Cpn;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+pub struct IterCpnRestrict {
+    iter: IterCpn,
+    restrict: Restrict,
+}
+
+impl Iterator for IterCpnRestrict {
+    type Item = Cpn;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|cpn| self.restrict.matches(cpn))
     }
 }
 

@@ -144,6 +144,8 @@ impl fmt::Display for FakeRepo {
 
 impl PkgRepository for FakeRepo {
     type Pkg = Pkg;
+    type IterCpn = IterCpn;
+    type IterCpnRestrict = IterCpnRestrict;
     type IterCpv = IterCpv;
     type IterCpvRestrict = IterCpvRestrict;
     type Iter = Iter;
@@ -173,6 +175,26 @@ impl PkgRepository for FakeRepo {
 
     fn len(&self) -> usize {
         self.0.cpvs.len()
+    }
+
+    fn iter_cpn(&self) -> Self::IterCpn {
+        IterCpn {
+            iter: self
+                .0
+                .cpvs
+                .iter()
+                .map(|x| x.cpn())
+                .cloned()
+                .collect::<Vec<_>>()
+                .into_iter(),
+        }
+    }
+
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpnRestrict {
+        IterCpnRestrict {
+            iter: self.iter_cpn(),
+            restrict: value.into(),
+        }
     }
 
     fn iter_cpv(&self) -> Self::IterCpv {
@@ -249,6 +271,33 @@ impl IntoIterator for &FakeRepo {
             iter: self.0.cpvs.clone().into_iter(),
             repo: self.clone(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct IterCpn {
+    iter: std::vec::IntoIter<Cpn>,
+}
+
+impl Iterator for IterCpn {
+    type Item = Cpn;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+#[derive(Debug)]
+pub struct IterCpnRestrict {
+    iter: IterCpn,
+    restrict: Restrict,
+}
+
+impl Iterator for IterCpnRestrict {
+    type Item = Cpn;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find(|cpn| self.restrict.matches(cpn))
     }
 }
 

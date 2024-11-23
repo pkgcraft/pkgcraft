@@ -76,6 +76,8 @@ impl fmt::Display for Repo {
 
 impl PkgRepository for Repo {
     type Pkg = Pkg;
+    type IterCpn = iter::Empty<Cpn>;
+    type IterCpnRestrict = iter::Empty<Cpn>;
     type IterCpv = iter::Empty<Cpv>;
     type IterCpvRestrict = iter::Empty<Cpv>;
     type Iter = iter::Empty<crate::Result<Self::Pkg>>;
@@ -95,6 +97,14 @@ impl PkgRepository for Repo {
 
     fn len(&self) -> usize {
         0
+    }
+
+    fn iter_cpn(&self) -> Self::IterCpn {
+        iter::empty::<Cpn>()
+    }
+
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, _value: R) -> Self::IterCpnRestrict {
+        iter::empty::<Cpn>()
     }
 
     fn iter_cpv(&self) -> Self::IterCpv {
