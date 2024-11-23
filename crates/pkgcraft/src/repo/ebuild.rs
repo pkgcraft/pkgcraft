@@ -377,6 +377,14 @@ impl EbuildRepo {
         IterUnordered::new(self, None)
     }
 
+    /// Return an ordered iterator of ebuild packages for the repo matching a given
+    /// restriction.
+    ///
+    /// This constructs packages in parallel and returns them in repo order.
+    pub fn iter_restrict_ordered<R: Into<Restrict>>(&self, value: R) -> IterRestrictOrdered {
+        IterRestrictOrdered::new(self, value)
+    }
+
     /// Return an iterator of raw packages for the repo.
     pub fn iter_raw(&self) -> IterRaw {
         IterRaw::new(self, None)
@@ -1059,6 +1067,41 @@ impl IterRestrict {
 }
 
 impl Iterator for IterRestrict {
+    type Item = crate::Result<EbuildPkg>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.restrict == Restrict::False {
+            None
+        } else {
+            self.iter.find_map(|r| match r {
+                Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+                Ok(_) => None,
+                Err(e) => Some(Err(e)),
+            })
+        }
+    }
+}
+
+/// Ordered iterable of results from constructing ebuild packages matching a given
+/// restriction.
+///
+/// This constructs packages in parallel and returns them in repo order.
+pub struct IterRestrictOrdered {
+    iter: IterOrdered,
+    restrict: Restrict,
+}
+
+impl IterRestrictOrdered {
+    fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
+        let restrict = value.into();
+        Self {
+            iter: IterOrdered::new(repo, Some(&restrict)),
+            restrict,
+        }
+    }
+}
+
+impl Iterator for IterRestrictOrdered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
