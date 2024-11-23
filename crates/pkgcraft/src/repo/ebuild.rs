@@ -360,7 +360,7 @@ impl EbuildRepo {
 
     /// Return a filtered iterator of unversioned Deps for the repo.
     pub fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> IterCpnRestrict {
-        IterCpnRestrict::new(self, value.into())
+        IterCpnRestrict::new(self, value)
     }
 
     /// Return an ordered iterator of ebuild packages for the repo.
@@ -384,7 +384,7 @@ impl EbuildRepo {
 
     /// Return a filtered iterator of raw packages for the repo.
     pub fn iter_raw_restrict<R: Into<Restrict>>(&self, value: R) -> IterRawRestrict {
-        IterRawRestrict::new(self, value.into())
+        IterRawRestrict::new(self, value)
     }
 
     /// Retrieve a package from the repo given its [`Cpv`].
@@ -521,7 +521,7 @@ impl PkgRepository for EbuildRepo {
     }
 
     fn iter_cpv_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpvRestrict {
-        IterCpvRestrict::new(self, value.into())
+        IterCpvRestrict::new(self, value)
     }
 
     fn iter(&self) -> Self::Iter {
@@ -1081,7 +1081,8 @@ pub struct IterCpnRestrict {
 }
 
 impl IterCpnRestrict {
-    fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
+    fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
+        let restrict = value.into();
         Self {
             iter: IterCpn::new(repo, Some(&restrict)),
             restrict,
@@ -1108,7 +1109,8 @@ pub struct IterCpvRestrict {
 }
 
 impl IterCpvRestrict {
-    fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
+    fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
+        let restrict = value.into();
         Self {
             iter: IterCpv::new(repo, Some(&restrict)),
             restrict,
@@ -1135,7 +1137,8 @@ pub struct IterRawRestrict {
 }
 
 impl IterRawRestrict {
-    fn new(repo: &EbuildRepo, restrict: Restrict) -> Self {
+    fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
+        let restrict = value.into();
         Self {
             iter: IterRaw::new(repo, Some(&restrict)),
             restrict,
