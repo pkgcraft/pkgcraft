@@ -307,18 +307,6 @@ impl Config {
         }
     }
 
-    /// Return the repo for a given name or path, potentially adding it to the config.
-    pub fn add_target_repo<S: AsRef<str>>(&mut self, target: S) -> crate::Result<Repo> {
-        let target = target.as_ref();
-        if let Some(repo) = self.repos.get(target) {
-            Ok(repo.clone())
-        } else if Utf8Path::new(target).exists() {
-            Ok(self.add_nested_repo_path(target, 0)?)
-        } else {
-            Err(Error::InvalidValue(format!("unknown repo: {target}")))
-        }
-    }
-
     /// Remove configured repos.
     pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
         // TODO: verify repos to be removed aren't required by remaining repos
