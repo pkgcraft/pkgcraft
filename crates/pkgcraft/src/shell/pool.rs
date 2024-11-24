@@ -13,6 +13,7 @@ use crate::pkg::ebuild::metadata::Metadata as PkgMetadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::ebuild::cache::Cache;
 use crate::repo::ebuild::EbuildRepo;
+use crate::repo::Repository;
 
 /// Get an ebuild repo from a config matching a given ID.
 fn get_ebuild_repo(config: &Config, repo: String) -> crate::Result<&EbuildRepo> {
@@ -34,7 +35,7 @@ struct Metadata {
 impl Metadata {
     fn new(repo: &EbuildRepo, cpv: &Cpv, verify: bool) -> Self {
         Self {
-            repo: repo.to_string(),
+            repo: repo.id().to_string(),
             cpv: cpv.clone(),
             verify,
         }
