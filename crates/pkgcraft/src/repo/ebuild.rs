@@ -1717,8 +1717,14 @@ mod tests {
         }
         config.finalize().unwrap();
 
+        // valid pkgs
         let pkgs: Vec<_> = repo.iter_ordered().try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|x| x.cpv()), &cpvs);
+
+        // invalid pkg
+        temp.create_ebuild("cat/pkg-100", &["EAPI=0"]).unwrap();
+        let r: crate::Result<Vec<_>> = repo.iter_ordered().try_collect();
+        assert_err_re!(r, "^invalid pkg: cat/pkg-100::test: unsupported EAPI: 0$");
     }
 
     #[test]
@@ -1738,8 +1744,14 @@ mod tests {
         }
         config.finalize().unwrap();
 
+        // valid pkgs
         let pkgs: Vec<_> = repo.iter_unordered().try_collect().unwrap();
         assert_unordered_eq!(pkgs.iter().map(|x| x.cpv()), &cpvs);
+
+        // invalid pkg
+        temp.create_ebuild("cat/pkg-100", &["EAPI=0"]).unwrap();
+        let r: crate::Result<Vec<_>> = repo.iter_unordered().try_collect();
+        assert_err_re!(r, "^invalid pkg: cat/pkg-100::test: unsupported EAPI: 0$");
     }
 
     #[test]
