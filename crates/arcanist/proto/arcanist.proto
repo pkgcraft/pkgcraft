@@ -8,7 +8,6 @@ service Arcanist {
     rpc AddRepo (AddRepoRequest) returns (StringResponse);
     rpc RemoveRepos (ListRequest) returns (ListResponse);
     rpc ListRepos (StringRequest) returns (ListResponse);
-    rpc CreateRepo (StringRequest) returns (StringResponse);
     rpc SyncRepos (ListRequest) returns (ListResponse);
 
     // package actions

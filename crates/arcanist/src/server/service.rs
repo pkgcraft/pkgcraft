@@ -67,22 +67,6 @@ impl Arcanist for ArcanistService {
         Ok(Response::new(reply))
     }
 
-    async fn create_repo(
-        &self,
-        request: Request<StringRequest>,
-    ) -> Result<Response<StringResponse>, Status> {
-        let req = request.into_inner();
-        let config = &mut self.config.write().await;
-        match config.create_repo(&req.data, 0) {
-            Err(Error::Config(e)) => Err(Status::failed_precondition(e)),
-            Err(e) => Err(Status::internal(format!("{e}"))),
-            Ok(_) => {
-                let reply = StringResponse { data: req.data };
-                Ok(Response::new(reply))
-            }
-        }
-    }
-
     async fn sync_repos(
         &self,
         request: Request<ListRequest>,

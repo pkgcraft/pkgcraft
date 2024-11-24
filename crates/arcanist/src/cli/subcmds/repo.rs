@@ -7,7 +7,6 @@ use crate::Client;
 mod add;
 mod del;
 mod list;
-mod new;
 mod sync;
 
 #[rustfmt::skip]
@@ -20,7 +19,6 @@ pub fn cmd() -> Command {
         .subcommand(add::cmd())
         .subcommand(del::cmd())
         .subcommand(list::cmd())
-        .subcommand(new::cmd())
         .subcommand(sync::cmd())
 }
 
@@ -30,7 +28,6 @@ pub async fn run(args: &ArgMatches, client: &mut Client, _settings: &Settings) -
         "add" => add::run(m, client).await,
         "del" => del::run(m, client).await,
         "list" => list::run(client).await,
-        "new" => new::run(m, client).await,
         "sync" => sync::run(m, client).await,
         _ => unreachable!("unknown subcommand"),
     }
