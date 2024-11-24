@@ -1296,6 +1296,61 @@ mod tests {
     }
 
     #[test]
+    fn restrict_from_path() {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        fs::File::create(temp.path().join("cat/pkg/pkga-1.ebuild")).unwrap();
+        fs::create_dir_all(temp.path().join("cat/pkg/files")).unwrap();
+        config.finalize().unwrap();
+
+        // non-repo path
+        assert!(repo.restrict_from_path("/non-repo/path").is_none());
+
+        // repo root
+        assert_eq!(repo.restrict_from_path(repo.path()).unwrap(), Restrict::True);
+
+        // non-package path
+        assert_eq!(repo.restrict_from_path("profiles").unwrap(), Restrict::False);
+
+        // nonexistent path
+        assert!(repo.restrict_from_path("cat/pkg/pkg-0.ebuild").is_none());
+
+        // category dir
+        assert_eq!(
+            repo.restrict_from_path("cat").unwrap(),
+            Restrict::and([DepRestrict::category("cat")])
+        );
+
+        // package dir
+        assert_eq!(
+            repo.restrict_from_path("cat/pkg").unwrap(),
+            Restrict::and([DepRestrict::category("cat"), DepRestrict::package("pkg")])
+        );
+
+        // ebuild file
+        assert_eq!(
+            repo.restrict_from_path("cat/pkg/pkg-1.ebuild").unwrap(),
+            Restrict::and([
+                DepRestrict::category("cat"),
+                DepRestrict::package("pkg"),
+                DepRestrict::version("1").unwrap()
+            ])
+        );
+
+        // ebuild file with invalid package name
+        assert_eq!(repo.restrict_from_path("cat/pkg/pkga-1.ebuild").unwrap(), Restrict::False);
+
+        // non-ebuild package path
+        assert_eq!(repo.restrict_from_path("cat/pkg/files").unwrap(), Restrict::False);
+    }
+
+    #[test]
     fn eapi() {
         let data = test_data();
         let mut config = Config::default();
