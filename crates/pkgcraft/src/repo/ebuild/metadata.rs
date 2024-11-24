@@ -417,8 +417,8 @@ impl Metadata {
             .get_or_init(|| match self.path.join("eclass").read_dir_utf8() {
                 Ok(entries) => {
                     // TODO: add support for native file reading parallelism
-                    let entries: Vec<_> = entries.collect();
                     let mut vals: IndexSet<_> = entries
+                        .collect::<Vec<_>>()
                         .into_par_iter()
                         .filter_map(Result::ok)
                         .filter(is_eclass)
