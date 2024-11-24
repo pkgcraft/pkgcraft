@@ -449,7 +449,6 @@ impl PkgRepository for EbuildRepo {
     type IterRestrict = IterRestrict;
 
     fn categories(&self) -> IndexSet<String> {
-        // use profiles/categories from repos, falling back to raw fs dirs
         let mut categories: IndexSet<_> = self
             .trees()
             .flat_map(|r| r.metadata().categories())
