@@ -1306,11 +1306,17 @@ mod tests {
             .unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         fs::File::create(temp.path().join("cat/pkg/pkga-1.ebuild")).unwrap();
+        fs::File::create(temp.path().join("cat/pkg/pkg.ebuild")).unwrap();
         fs::create_dir_all(temp.path().join("cat/pkg/files")).unwrap();
         config.finalize().unwrap();
 
         // non-repo path
-        assert!(repo.restrict_from_path("/non-repo/path").is_none());
+        assert!(repo.restrict_from_path("/").is_none());
+
+        // nonexistent path
+        assert!(repo
+            .restrict_from_path(repo.path().join("/nonexistent/path"))
+            .is_none());
 
         // repo root
         assert_eq!(repo.restrict_from_path(repo.path()).unwrap(), Restrict::True);
@@ -1318,7 +1324,7 @@ mod tests {
         // non-package path
         assert_eq!(repo.restrict_from_path("profiles").unwrap(), Restrict::False);
 
-        // nonexistent path
+        // nonexistent repo path
         assert!(repo.restrict_from_path("cat/pkg/pkg-0.ebuild").is_none());
 
         // category dir
@@ -1343,8 +1349,11 @@ mod tests {
             ])
         );
 
-        // ebuild file with invalid package name
+        // ebuild with invalid file name
         assert_eq!(repo.restrict_from_path("cat/pkg/pkga-1.ebuild").unwrap(), Restrict::False);
+
+        // ebuild with invalid file name
+        assert_eq!(repo.restrict_from_path("cat/pkg/pkg.ebuild").unwrap(), Restrict::False);
 
         // non-ebuild package path
         assert_eq!(repo.restrict_from_path("cat/pkg/files").unwrap(), Restrict::False);
