@@ -1692,6 +1692,27 @@ mod tests {
     }
 
     #[test]
+    fn iter_ordered() {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        let cpvs: Vec<_> = (0..100)
+            .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
+            .collect();
+        for cpv in &cpvs {
+            temp.create_ebuild(cpv, &[]).unwrap();
+        }
+        config.finalize().unwrap();
+
+        let pkgs: Vec<_> = repo.iter_ordered().try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv()), &cpvs);
+    }
+
+    #[test]
     fn get_pkg() {
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
