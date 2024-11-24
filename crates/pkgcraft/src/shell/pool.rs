@@ -13,21 +13,20 @@ use crate::pkg::ebuild::metadata::Metadata as PkgMetadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::ebuild::cache::Cache;
 use crate::repo::ebuild::EbuildRepo;
-use crate::repo::Repository;
 
 /// Get an ebuild repo from a config matching a given ID.
-fn get_ebuild_repo(config: &Config, repo_id: String) -> crate::Result<&EbuildRepo> {
+fn get_ebuild_repo(config: &Config, repo: String) -> crate::Result<&EbuildRepo> {
     config
         .repos
-        .get(&repo_id)
+        .get(&repo)
         .and_then(|r| r.as_ebuild())
-        .ok_or_else(|| Error::InvalidValue(format!("unknown ebuild repo: {repo_id}")))
+        .ok_or_else(|| Error::InvalidValue(format!("unknown ebuild repo: {repo}")))
 }
 
 /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
 #[derive(Debug, Serialize, Deserialize)]
 struct Metadata {
-    repo_id: String,
+    repo: String,
     cpv: Cpv,
     verify: bool,
 }
@@ -35,14 +34,14 @@ struct Metadata {
 impl Metadata {
     fn new(repo: &EbuildRepo, cpv: &Cpv, verify: bool) -> Self {
         Self {
-            repo_id: repo.id().to_string(),
+            repo: repo.to_string(),
             cpv: cpv.clone(),
             verify,
         }
     }
 
     fn run(self, config: &Config) -> crate::Result<()> {
-        let repo = get_ebuild_repo(config, self.repo_id)?;
+        let repo = get_ebuild_repo(config, self.repo)?;
         let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
         let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
         if !self.verify {
