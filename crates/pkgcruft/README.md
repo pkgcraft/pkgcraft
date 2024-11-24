@@ -6,16 +6,17 @@ A recent version of rust and compatible clang compiler.
 
 # Install
 
-Static binaries are available for releases on supported platforms or `cargo
-install` can be used.
-
-Install from crates.io:
+Build and install from crates.io:
 
     cargo install pkgcruft
 
-Install from git:
+Build and install from git:
 
     cargo install pkgcruft --git https://github.com/pkgcraft/pkgcraft.git
+
+Install with cargo-binstall:
+
+    cargo binstall pkgcruft
 
 # Benchmarking
 
