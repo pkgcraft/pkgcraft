@@ -1630,6 +1630,10 @@ mod tests {
         // multiple matches via package name
         let restrict = DepRestrict::package("inherit");
         assert!(repo.iter_restrict(restrict).count() > 2);
+
+        // all pkgs via repo ref
+        let pkgs: Vec<_> = repo.iter_restrict(repo).try_collect().unwrap();
+        assert_eq!(pkgs.len(), repo.len());
     }
 
     #[test]
