@@ -1214,7 +1214,7 @@ mod tests {
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkg::Package;
     use crate::repo::Contains;
-    use crate::test::{assert_err_re, assert_ordered_eq, test_data};
+    use crate::test::*;
 
     use super::*;
 
@@ -1710,6 +1710,27 @@ mod tests {
 
         let pkgs: Vec<_> = repo.iter_ordered().try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|x| x.cpv()), &cpvs);
+    }
+
+    #[test]
+    fn iter_unordered() {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        let cpvs: Vec<_> = (0..100)
+            .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
+            .collect();
+        for cpv in &cpvs {
+            temp.create_ebuild(cpv, &[]).unwrap();
+        }
+        config.finalize().unwrap();
+
+        let pkgs: Vec<_> = repo.iter_unordered().try_collect().unwrap();
+        assert_unordered_eq!(pkgs.iter().map(|x| x.cpv()), &cpvs);
     }
 
     #[test]
