@@ -2,7 +2,7 @@ use std::ffi::{c_char, c_int};
 use std::slice;
 
 use pkgcraft::eapi::Eapi;
-use pkgcraft::repo::ebuild::temp::EbuildTempRepo;
+use pkgcraft::repo::ebuild::EbuildTempRepo;
 
 use crate::eapi::eapi_or_default;
 use crate::macros::*;

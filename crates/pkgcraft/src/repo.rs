@@ -827,7 +827,7 @@ use make_contains_path;
 mod tests {
     use std::collections::HashSet;
 
-    use crate::repo::ebuild::temp::EbuildTempRepo;
+    use crate::repo::ebuild::EbuildTempRepo;
 
     use super::*;
 

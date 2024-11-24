@@ -31,8 +31,9 @@ pub(crate) mod configured;
 mod eclass;
 pub use eclass::Eclass;
 mod metadata;
-pub mod temp;
 pub use metadata::Metadata;
+mod temp;
+pub use temp::EbuildTempRepo;
 
 #[derive(Debug, Default)]
 struct InternalEbuildRepo {
