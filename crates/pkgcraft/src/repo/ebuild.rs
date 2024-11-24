@@ -33,7 +33,7 @@ pub use eclass::Eclass;
 mod metadata;
 pub use metadata::Metadata;
 mod temp;
-pub use temp::EbuildTempRepo;
+pub use temp::{EbuildRepoBuilder, EbuildTempRepo};
 
 #[derive(Debug, Default)]
 struct InternalEbuildRepo {

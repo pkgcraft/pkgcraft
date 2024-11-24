@@ -13,6 +13,62 @@ use crate::repo::ebuild::Metadata;
 use crate::repo::{Repo, RepoFormat};
 use crate::Error;
 
+/// Temporary ebuild repo builder.
+#[derive(Debug)]
+pub struct EbuildRepoBuilder {
+    id: String,
+    path: Option<Utf8PathBuf>,
+    priority: i32,
+    eapi: Option<&'static Eapi>,
+}
+
+impl Default for EbuildRepoBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EbuildRepoBuilder {
+    /// Create the builder.
+    pub fn new() -> Self {
+        Self {
+            id: "test".to_string(),
+            path: None,
+            priority: 0,
+            eapi: None,
+        }
+    }
+
+    /// Set the repo id.
+    pub fn id(mut self, value: &str) -> Self {
+        self.id = value.to_string();
+        self
+    }
+
+    /// Set the repo path.
+    pub fn path<P: AsRef<Utf8Path>>(mut self, value: P) -> Self {
+        self.path = Some(value.as_ref().to_path_buf());
+        self
+    }
+
+    /// Set the repo priority.
+    pub fn priority(mut self, value: i32) -> Self {
+        self.priority = value;
+        self
+    }
+
+    /// Set the repo EAPI.
+    pub fn eapi(mut self, value: &'static Eapi) -> Self {
+        self.eapi = Some(value);
+        self
+    }
+
+    /// Build the temporary ebuild repo.
+    pub fn build(self) -> crate::Result<EbuildTempRepo> {
+        EbuildTempRepo::new(&self.id, self.path.as_deref(), self.priority, self.eapi)
+    }
+}
+
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub struct EbuildTempRepo {
