@@ -27,7 +27,7 @@ use crate::xml::parse_xml_with_dtd;
 use super::{make_repo_traits, Contains, PkgRepository, RepoFormat, Repository};
 
 pub mod cache;
-pub mod configured;
+pub(crate) mod configured;
 mod eclass;
 pub use eclass::Eclass;
 mod metadata;
