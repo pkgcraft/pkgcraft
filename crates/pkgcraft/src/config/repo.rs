@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use tracing::error;
 
-use crate::repo::ebuild::EbuildTempRepo;
 use crate::repo::set::RepoSet;
 use crate::repo::{Repo, RepoFormat, Repository};
 use crate::sync::Syncer;
@@ -155,14 +154,6 @@ impl Config {
         })?;
 
         Ok(repo)
-    }
-
-    pub(super) fn create(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
-        let path = self.repo_dir.join(name);
-        // create temporary repo and persist it to disk
-        let temp_repo = EbuildTempRepo::new(name, Some(&self.repo_dir), priority, None)?;
-        temp_repo.persist(Some(&path))?;
-        Repo::from_path(name, &path, priority)
     }
 
     pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {

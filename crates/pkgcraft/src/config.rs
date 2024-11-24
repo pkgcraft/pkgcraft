@@ -321,12 +321,6 @@ impl Config {
         }
     }
 
-    /// Create a new repo.
-    pub fn create_repo(&mut self, name: &str, priority: i32) -> crate::Result<Repo> {
-        let r = self.repos.create(name, priority)?;
-        self.add_repo(&r, false)
-    }
-
     /// Remove configured repos.
     pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
         // TODO: verify repos to be removed aren't required by remaining repos
