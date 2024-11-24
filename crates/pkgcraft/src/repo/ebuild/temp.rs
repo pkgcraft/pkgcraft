@@ -141,13 +141,13 @@ impl EbuildTempRepo {
     }
 
     /// Create an ebuild using the given fields.
-    pub fn create_ebuild<S: AsRef<str>>(
-        &mut self,
-        cpv: S,
-        data: &[&str],
-    ) -> crate::Result<Utf8PathBuf> {
+    pub fn create_ebuild<T>(&mut self, value: T, data: &[&str]) -> crate::Result<Utf8PathBuf>
+    where
+        T: TryInto<Cpv>,
+        Error: From<<T as TryInto<Cpv>>::Error>,
+    {
         use Key::*;
-        let cpv = Cpv::try_new(cpv.as_ref())?;
+        let cpv = value.try_into()?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
@@ -183,12 +183,12 @@ impl EbuildTempRepo {
     }
 
     /// Create an ebuild file in the repo from raw data.
-    pub fn create_ebuild_from_str<S: AsRef<str>>(
-        &mut self,
-        cpv: S,
-        data: &str,
-    ) -> crate::Result<Utf8PathBuf> {
-        let cpv = Cpv::try_new(cpv)?;
+    pub fn create_ebuild_from_str<T>(&mut self, value: T, data: &str) -> crate::Result<Utf8PathBuf>
+    where
+        T: TryInto<Cpv>,
+        Error: From<<T as TryInto<Cpv>>::Error>,
+    {
+        let cpv = value.try_into()?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating {cpv} dir: {e}")))?;
