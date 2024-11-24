@@ -1,6 +1,6 @@
 use std::env;
 
-use pkgcraft::config::Config;
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
@@ -53,8 +53,7 @@ fn pkg_target_from_stdin() {
 
 #[test]
 fn invalid_pkgs() {
-    let mut config = Config::default();
-    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with global die"
@@ -101,15 +100,15 @@ fn invalid_pkgs() {
 
 #[test]
 fn path_targets() {
-    let mut config = Config::default();
-    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat1/a-1", &[]).unwrap();
     temp.create_ebuild("cat1/b-1", &[]).unwrap();
     temp.create_ebuild("cat2/c-1", &[]).unwrap();
+    let path = temp.path();
 
     // repo path
     cmd("pk pkg source")
-        .arg(temp.path())
+        .arg(path)
         .assert()
         .stdout(lines_contain(["cat1/a-1", "cat1/b-1", "cat2/c-1"]))
         .stderr("")
@@ -117,7 +116,7 @@ fn path_targets() {
 
     // category path
     cmd("pk pkg source")
-        .arg(temp.path().join("cat1"))
+        .arg(path.join("cat1"))
         .assert()
         .stdout(lines_contain(["cat1/a-1", "cat1/b-1"]))
         .stderr("")
@@ -125,14 +124,14 @@ fn path_targets() {
 
     // package path
     cmd("pk pkg source")
-        .arg(temp.path().join("cat2/c"))
+        .arg(path.join("cat2/c"))
         .assert()
         .stdout(lines_contain(["cat2/c-1"]))
         .stderr("")
         .success();
 
     // default current working dir
-    env::set_current_dir(temp.path().join("cat2/c")).unwrap();
+    env::set_current_dir(path.join("cat2/c")).unwrap();
     cmd("pk pkg source")
         .assert()
         .stdout(lines_contain(["cat2/c-1"]))
@@ -145,8 +144,7 @@ fn path_targets() {
 fn bound_and_sort() {
     use std::os::fd::AsRawFd;
 
-    let mut config = Config::default();
-    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat/fast-1", &[]).unwrap();
     let f = std::fs::File::open(temp.path().join("profiles/repo_name")).unwrap();
     let fd = f.as_raw_fd();
@@ -162,6 +160,7 @@ fn bound_and_sort() {
         :
     "#};
     temp.create_ebuild_from_str("cat/slow-1", &data).unwrap();
+    let path = temp.path();
 
     for opt in ["-b", "--bound"] {
         for (val, pkg) in [
@@ -173,7 +172,7 @@ fn bound_and_sort() {
         ] {
             cmd("pk pkg source")
                 .args([opt, val])
-                .arg(temp.path())
+                .arg(path)
                 .assert()
                 .stdout(lines_contain([pkg]))
                 .stderr("")
@@ -185,7 +184,7 @@ fn bound_and_sort() {
     for opts in [vec![], vec!["--bench", "500ms"]] {
         cmd("pk pkg source --sort")
             .args(opts)
-            .arg(temp.path())
+            .arg(path)
             .assert()
             .stdout(predicate::function(|s: &str| {
                 let lines: Vec<_> = s

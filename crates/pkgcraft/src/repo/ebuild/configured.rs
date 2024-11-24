@@ -214,6 +214,7 @@ mod tests {
     use crate::config::Config;
     use crate::dep::Cpv;
     use crate::pkg::Package;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::PkgRepository;
     use crate::restrict::dep::Restrict as DepRestrict;
     use crate::test::assert_ordered_eq;
@@ -221,7 +222,7 @@ mod tests {
     #[test]
     fn iter() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -239,7 +240,7 @@ mod tests {
     #[test]
     fn iter_restrict() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

@@ -2,13 +2,14 @@ use std::fs;
 
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 
 #[test]
 fn run() {
     let mut config = Config::default();
-    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("a/b-1", &[]).unwrap();
     temp.create_ebuild("cat/a-1", &[]).unwrap();
     temp.create_ebuild("cat/b-1", &[]).unwrap();

@@ -59,6 +59,7 @@ mod tests {
     use scallop::source;
 
     use crate::config::Config;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::test_data;
@@ -96,7 +97,7 @@ mod tests {
     #[test]
     fn output() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -154,13 +155,14 @@ mod tests {
     #[test]
     fn subshell() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test1", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
             .into_ebuild()
             .unwrap();
         config.finalize().unwrap();
+
         temp.create_ebuild("cat/pkg-1.2.3", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1.2.3").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);

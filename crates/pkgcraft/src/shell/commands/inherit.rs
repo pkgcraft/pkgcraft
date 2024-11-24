@@ -87,6 +87,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::pkg::Source;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::{assert_ordered_eq, test_data};
@@ -104,7 +105,7 @@ mod tests {
     #[test]
     fn nonexistent() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         let eclass = indoc::indoc! {r#"
             # stub eclass
@@ -140,7 +141,7 @@ mod tests {
     #[test]
     fn source_failure() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -166,7 +167,7 @@ mod tests {
     #[test]
     fn single() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -195,7 +196,7 @@ mod tests {
     #[test]
     fn multiple() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -231,7 +232,7 @@ mod tests {
     #[test]
     fn nested_single() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -266,7 +267,7 @@ mod tests {
     #[test]
     fn nested_multiple() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -307,7 +308,7 @@ mod tests {
     #[test]
     fn nested_errors() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -345,7 +346,7 @@ mod tests {
     #[test]
     fn pkg_env() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -377,7 +378,7 @@ mod tests {
     #[test]
     fn cyclic() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"

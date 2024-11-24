@@ -427,6 +427,7 @@ impl SubAssign<&Repo> for RepoSet {
 mod tests {
     use crate::config::Config;
     use crate::pkg::RepoPackage;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::fake::FakeRepo;
     use crate::repo::{Contains, Repository};
     use crate::test::{assert_ordered_eq, test_data};
@@ -515,7 +516,7 @@ mod tests {
         assert!(!s.contains(&dep));
 
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let e_repo = config.add_repo(&temp, false).unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         config.finalize().unwrap();

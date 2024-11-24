@@ -28,6 +28,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::phase::PhaseKind;
     use crate::shell::{BuildData, Scope};
 
@@ -44,7 +45,7 @@ mod tests {
     #[test]
     fn set_path() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

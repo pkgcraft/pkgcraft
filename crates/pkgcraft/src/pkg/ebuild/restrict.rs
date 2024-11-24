@@ -265,6 +265,7 @@ mod tests {
     use itertools::Itertools;
 
     use crate::config::Config;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::PkgRepository;
     use crate::test::assert_ordered_eq;
 
@@ -273,7 +274,7 @@ mod tests {
     #[test]
     fn ebuild() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -315,7 +316,7 @@ mod tests {
     #[test]
     fn description() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -347,7 +348,7 @@ mod tests {
     #[test]
     fn slot() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -377,7 +378,7 @@ mod tests {
     #[test]
     fn subslot() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -413,7 +414,7 @@ mod tests {
     #[test]
     fn long_description() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -475,7 +476,7 @@ mod tests {
     #[test]
     fn maintainers() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

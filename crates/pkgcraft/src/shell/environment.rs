@@ -192,6 +192,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkg::{Build, Source};
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
 
     use super::*;
@@ -201,7 +202,7 @@ mod tests {
         use crate::shell::scope::Scope::*;
 
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -300,7 +301,7 @@ mod tests {
     #[test]
     fn state() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -347,7 +348,7 @@ mod tests {
     #[test]
     fn vars_ebuild_phase() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -389,7 +390,7 @@ mod tests {
     #[test]
     fn vars_pkg() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

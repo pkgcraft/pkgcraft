@@ -57,6 +57,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
@@ -86,7 +87,7 @@ mod tests {
     #[test]
     fn creation() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

@@ -39,6 +39,7 @@ make_builtin!("nonfatal", nonfatal_builtin);
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, nonfatal};
@@ -54,7 +55,7 @@ mod tests {
     #[test]
     fn success() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test1", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

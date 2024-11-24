@@ -2,12 +2,13 @@ use criterion::Criterion;
 
 use pkgcraft::config::Config;
 use pkgcraft::dep::Cpv;
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::test::test_data;
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {
     let mut config = Config::new("pkgcraft", "");
-    let mut temp = config.temp_repo("test", 0, None).unwrap();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
     for i in 0..100 {
         temp.create_ebuild(format!("cat/pkg-{i}"), &[]).unwrap();
     }

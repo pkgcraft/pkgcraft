@@ -5,9 +5,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
-use crate::eapi::Eapi;
 use crate::macros::build_path;
-use crate::repo::ebuild::EbuildTempRepo;
 use crate::repo::{Repo, RepoFormat};
 use crate::utils::find_existing_path;
 use crate::{shell, Error};
@@ -328,16 +326,6 @@ impl Config {
         Ok(())
     }
 
-    /// Create a new temporary ebuild repo.
-    pub fn temp_repo(
-        &mut self,
-        name: &str,
-        priority: i32,
-        eapi: Option<&Eapi>,
-    ) -> crate::Result<EbuildTempRepo> {
-        EbuildTempRepo::new(name, None, priority, eapi)
-    }
-
     /// Return the build pool for the config.
     pub fn pool(&self) -> &Arc<shell::BuildPool> {
         &self.pool
@@ -371,6 +359,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::macros::assert_logs_re;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::Repository;
     use crate::test::{assert_err_re, assert_ordered_eq, test_data};
 
@@ -463,7 +452,7 @@ mod tests {
         assert!(config.repos.is_empty());
 
         // single repo
-        let t1 = EbuildTempRepo::new("test", None, 0, None).unwrap();
+        let t1 = EbuildRepoBuilder::new().build().unwrap();
         let data = indoc::formatdoc! {r#"
             [a]
             location = {}
@@ -496,7 +485,7 @@ mod tests {
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
-        let t2 = EbuildTempRepo::new("r2", None, 0, None).unwrap();
+        let t2 = EbuildRepoBuilder::new().id("r2").build().unwrap();
         let data = indoc::formatdoc! {r#"
             [b]
             location = {}
@@ -532,7 +521,7 @@ mod tests {
 
         // multiple config files in a specified directory
         let mut config = Config::new("pkgcraft", "");
-        let t3 = EbuildTempRepo::new("r3", None, 0, None).unwrap();
+        let t3 = EbuildRepoBuilder::new().id("r3").build().unwrap();
         let tmpdir = tempdir().unwrap();
         let conf_dir = tmpdir.path();
         let conf_path = conf_dir.to_str().unwrap();

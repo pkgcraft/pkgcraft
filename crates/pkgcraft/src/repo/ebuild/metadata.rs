@@ -761,6 +761,7 @@ mod tests {
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::macros::assert_logs_re;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::{assert_err_re, assert_ordered_eq, test_data};
 
     use super::*;
@@ -768,22 +769,19 @@ mod tests {
     #[test]
     fn config() {
         // empty config
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
         fs::write(repo.path().join("metadata/layout.conf"), "").unwrap();
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         assert!(metadata.config.is_empty());
 
         // empty repo name
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
         fs::write(repo.path().join("profiles/repo_name"), "").unwrap();
         let r = Metadata::try_new("test", repo.path());
         assert_err_re!(r, "^invalid repo: test: profiles/repo_name: repo name unset$");
 
         // invalid config
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
         fs::write(repo.path().join("metadata/layout.conf"), "data").unwrap();
         let r = Metadata::try_new("test", repo.path());
         assert_err_re!(r, "^invalid repo: test: metadata/layout.conf: failed parsing INI: ");
@@ -791,8 +789,7 @@ mod tests {
 
     #[test]
     fn config_settings() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
 
         // empty
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
@@ -818,8 +815,7 @@ mod tests {
 
     #[test]
     fn arches() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent file
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
@@ -844,8 +840,7 @@ mod tests {
     #[traced_test]
     #[test]
     fn arches_desc() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent file
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
@@ -893,8 +888,7 @@ mod tests {
     #[traced_test]
     #[test]
     fn categories() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent file
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
@@ -934,8 +928,7 @@ mod tests {
 
     #[test]
     fn licenses() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent dir
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
@@ -956,8 +949,7 @@ mod tests {
     #[traced_test]
     #[test]
     fn license_groups() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent dir
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
@@ -1024,8 +1016,7 @@ mod tests {
 
     #[test]
     fn mirrors() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let repo = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent file
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
@@ -1059,15 +1050,14 @@ mod tests {
     #[traced_test]
     #[test]
     fn pkg_deprecated() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent file
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         assert!(metadata.pkg_deprecated().is_empty());
 
         // empty file
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), "").unwrap();
         assert!(metadata.pkg_deprecated().is_empty());
 
@@ -1082,7 +1072,7 @@ mod tests {
             # invalid
             cat/pkg-1
         "#};
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
         assert_ordered_eq!(
             metadata.pkg_deprecated().clone(),
@@ -1091,15 +1081,16 @@ mod tests {
         assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
         // newer repo EAPI allows using newer dep format features
-        let repo = config
-            .temp_repo("test2", 0, Some(&EAPI_LATEST_OFFICIAL))
+        let temp = EbuildRepoBuilder::new()
+            .eapi(&EAPI_LATEST_OFFICIAL)
+            .build()
             .unwrap();
         // multiple with invalid dep for repo EAPI
         let data = indoc::indoc! {r#"
             cat/slotted:0
             cat/subslot:0/1
         "#};
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.deprecated"), data).unwrap();
         assert_ordered_eq!(
             metadata.pkg_deprecated().clone(),
@@ -1110,15 +1101,14 @@ mod tests {
     #[traced_test]
     #[test]
     fn pkg_mask() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test1", 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent file
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         assert!(metadata.pkg_mask().is_empty());
 
         // empty file
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), "").unwrap();
         assert!(metadata.pkg_mask().is_empty());
 
@@ -1133,7 +1123,7 @@ mod tests {
             # invalid
             cat/pkg-1
         "#};
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
         assert_ordered_eq!(
             metadata.pkg_mask().clone(),
@@ -1142,15 +1132,16 @@ mod tests {
         assert_logs_re!(".+, line 8: .* invalid dep: cat/pkg-1$");
 
         // newer repo EAPI allows using newer dep format features
-        let repo = config
-            .temp_repo("test2", 0, Some(&EAPI_LATEST_OFFICIAL))
+        let temp = EbuildRepoBuilder::new()
+            .eapi(&EAPI_LATEST_OFFICIAL)
+            .build()
             .unwrap();
         // multiple with invalid dep for repo EAPI
         let data = indoc::indoc! {r#"
             cat/slotted:0
             cat/subslot:0/1
         "#};
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/package.mask"), data).unwrap();
         assert_ordered_eq!(
             metadata.pkg_mask().clone(),
@@ -1161,15 +1152,14 @@ mod tests {
     #[traced_test]
     #[test]
     fn updates() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         assert!(metadata.updates().is_empty());
 
         // empty
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::create_dir_all(metadata.path.join("profiles/updates")).unwrap();
         fs::write(metadata.path.join("profiles/updates/1Q-9999"), "").unwrap();
         assert!(metadata.updates().is_empty());
@@ -1188,7 +1178,7 @@ mod tests {
             # invalid slot
             slotmove >cat/pkg1-5 @ 1
         "#};
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/updates/1Q-9999"), data).unwrap();
         let updates = metadata.updates();
         assert_eq!(updates.len(), 2);
@@ -1199,15 +1189,14 @@ mod tests {
     #[traced_test]
     #[test]
     fn use_global() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         assert!(metadata.use_global().is_empty());
 
         // empty
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), "").unwrap();
         assert!(metadata.use_global().is_empty());
 
@@ -1222,7 +1211,7 @@ mod tests {
             # invalid USE flag
             @c - c flag description
         "#};
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.desc"), data).unwrap();
         assert_eq!(metadata.use_global().get("a").unwrap(), "a flag description");
         assert_logs_re!(".+ line 5: invalid format: b: b flag description$");
@@ -1232,15 +1221,14 @@ mod tests {
     #[traced_test]
     #[test]
     fn use_local() {
-        let mut config = crate::config::Config::default();
-        let repo = config.temp_repo("test", 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().build().unwrap();
 
         // nonexistent
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         assert!(metadata.use_local().is_empty());
 
         // empty
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.local.desc"), "").unwrap();
         assert!(metadata.use_local().is_empty());
 
@@ -1255,7 +1243,7 @@ mod tests {
             # invalid USE flag
             cat/pkg:@c - c flag description
         "#};
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
+        let metadata = Metadata::try_new("test", temp.path()).unwrap();
         fs::write(metadata.path.join("profiles/use.local.desc"), data).unwrap();
         assert_eq!(
             metadata

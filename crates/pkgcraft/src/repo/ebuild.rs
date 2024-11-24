@@ -1323,7 +1323,7 @@ mod tests {
         assert!(repo.is_empty());
 
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1344,7 +1344,7 @@ mod tests {
         assert!(repo.categories().is_empty());
 
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1361,7 +1361,7 @@ mod tests {
     #[test]
     fn packages() {
         let mut config = Config::default();
-        let temp = config.temp_repo("test", 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1380,7 +1380,7 @@ mod tests {
     #[test]
     fn versions() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1450,7 +1450,7 @@ mod tests {
     #[test]
     fn iter_cpn() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1471,7 +1471,7 @@ mod tests {
     #[test]
     fn iter_cpn_restrict() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1522,7 +1522,7 @@ mod tests {
     #[test]
     fn iter_cpv() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1542,7 +1542,7 @@ mod tests {
     #[test]
     fn iter_cpv_restrict() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -1599,7 +1599,7 @@ mod tests {
     #[test]
     fn iter() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

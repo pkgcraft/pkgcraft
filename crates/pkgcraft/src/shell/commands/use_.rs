@@ -36,6 +36,7 @@ make_builtin!("use", use_builtin);
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
     use crate::test::test_data;
@@ -62,7 +63,7 @@ mod tests {
     #[test]
     fn enabled_and_disabled() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

@@ -20,6 +20,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::pkg::Build;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::{test::FileTree, BuildData};
     use crate::test::assert_err_re;
 
@@ -36,7 +37,7 @@ mod tests {
     #[test]
     fn valid_phase() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -80,7 +81,7 @@ mod tests {
     #[test]
     fn invalid_phase() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

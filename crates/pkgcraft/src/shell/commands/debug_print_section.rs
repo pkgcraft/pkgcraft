@@ -26,6 +26,7 @@ mod tests {
     use crate::config::Config;
     use crate::macros::assert_logs_re;
     use crate::pkg::Source;
+    use crate::repo::ebuild::EbuildRepoBuilder;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, debug_print_section};
     use super::*;
@@ -41,7 +42,7 @@ mod tests {
     #[test]
     fn eclass() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         let eclass = indoc::indoc! {r#"
             # stub eclass
@@ -75,7 +76,7 @@ mod tests {
     #[test]
     fn global() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         let eclass = indoc::indoc! {r#"
             # stub eclass

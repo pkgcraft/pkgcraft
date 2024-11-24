@@ -433,6 +433,7 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::{EAPIS, EAPIS_OFFICIAL};
     use crate::pkg::{Build, Source};
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::assert_err_re;
 
     use super::*;
@@ -440,7 +441,7 @@ mod tests {
     #[test]
     fn global_scope_external_command() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -469,7 +470,7 @@ mod tests {
     #[test]
     fn global_scope_absolute_path_command() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -498,7 +499,7 @@ mod tests {
     #[test]
     fn failglob() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -527,7 +528,7 @@ mod tests {
     #[test]
     fn cmd_overrides() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()
@@ -554,7 +555,7 @@ mod tests {
     #[test]
     fn direct_phase_calls() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

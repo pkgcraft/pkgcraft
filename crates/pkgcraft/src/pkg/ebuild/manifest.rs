@@ -227,6 +227,7 @@ impl<'a> Iterator for Iter<'a> {
 mod tests {
     use tempfile::tempdir;
 
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::assert_err_re;
 
     use super::*;
@@ -234,7 +235,7 @@ mod tests {
     #[test]
     fn distfile_verification() {
         let mut config = crate::config::Config::default();
-        let temp = config.temp_repo("test", 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

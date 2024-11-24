@@ -44,6 +44,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::pkg::{Build, Source};
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
@@ -60,7 +61,7 @@ mod tests {
     #[test]
     fn single() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -99,7 +100,7 @@ mod tests {
     #[test]
     fn nested() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -143,7 +144,7 @@ mod tests {
     #[test]
     fn overridden() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclasses
         let eclass = indoc::indoc! {r#"
@@ -190,7 +191,7 @@ mod tests {
     #[test]
     fn invalid_phase() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"
@@ -224,7 +225,7 @@ mod tests {
     #[test]
     fn undefined_phase() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
 
         // create eclass
         let eclass = indoc::indoc! {r#"

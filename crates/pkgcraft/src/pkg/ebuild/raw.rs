@@ -151,6 +151,7 @@ impl Intersects<Dep> for EbuildRawPkg {
 mod tests {
     use crate::config::Config;
     use crate::eapi::EAPI8;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::test_data;
 
     use super::*;
@@ -183,7 +184,7 @@ mod tests {
     #[test]
     fn data() {
         let mut config = Config::default();
-        let mut temp = config.temp_repo("test", 0, None).unwrap();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config
             .add_repo(&temp, false)
             .unwrap()

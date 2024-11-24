@@ -578,13 +578,14 @@ macro_rules! cmd_scope_tests {
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::pkg::Source;
+            use crate::repo::ebuild::EbuildRepoBuilder;
             use crate::shell::scope::{Scope::*, Scopes};
             use crate::test::assert_err_re;
 
             let cmd = $cmd;
             let name = cmd.split(' ').next().unwrap();
             let mut config = Config::default();
-            let mut temp = config.temp_repo("test", 0, None).unwrap();
+            let mut temp = EbuildRepoBuilder::new().build().unwrap();
             // create eclass
             let eclass = indoc::formatdoc! {r#"
                 # stub eclass
