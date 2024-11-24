@@ -2,10 +2,11 @@ use std::ffi::c_char;
 
 use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
-use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::repo::ebuild::{cache::Cache, EbuildRepo};
 use pkgcraft::repo::Repo;
 
 use crate::macros::*;
+use crate::panic::ffi_catch_panic;
 use crate::utils::str_to_raw;
 
 /// Convert a given pointer into an ebuild repo reference.
@@ -106,4 +107,32 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_licenses(
 ) -> *mut *mut c_char {
     let repo = try_repo_from_ptr!(r);
     iter_to_array!(repo.licenses().iter(), len, str_to_raw)
+}
+
+/// Regenerate an ebuild repo's package metadata cache.
+///
+/// Returns false on error, otherwise true.
+///
+/// # Safety
+/// The argument must be a non-null Repo pointer.
+#[no_mangle]
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
+    r: *mut Repo,
+    jobs: usize,
+    force: bool,
+    path: *mut c_char,
+) -> bool {
+    ffi_catch_panic! {
+        let repo = try_repo_from_ptr!(r);
+        let format = repo.metadata().cache().format();
+
+        let cache = if let Some(path) = try_opt_str_from_ptr!(path) {
+            format.from_path(path)
+        } else {
+            format.from_repo(repo)
+        };
+
+        unwrap_or_panic!(cache.regen().jobs(jobs).force(force).run(repo));
+        true
+    }
 }
