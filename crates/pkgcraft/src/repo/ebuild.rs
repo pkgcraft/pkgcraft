@@ -130,12 +130,12 @@ impl EbuildRepo {
         self.0
             .masters
             .set(masters)
-            .map_err(|_| Error::InvalidValue("already initialized".to_string()))?;
+            .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         self.0
             .pool
             .set(Arc::downgrade(config.pool()))
-            .map_err(|_| Error::InvalidValue("already initialized".to_string()))?;
+            .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         // Collapse lazy fields used in metadata regeneration that leverages process-based
         // parallelism. Without collapsing, each spawned process reinitializes all lazy
