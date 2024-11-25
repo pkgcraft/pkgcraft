@@ -15,11 +15,11 @@ pub(super) static CHECK: super::Check = super::Check {
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
     reports: &[EclassUnused],
-    // drop optional when eclass deprecation flags are used instead
-    context: &[CheckContext::Optional, CheckContext::Overlay],
+    context: &[CheckContext::Overlay],
     priority: 0,
 };
 
+// TODO: use eclass deprecation flags instead
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     let mut eclasses = repo.eclasses().clone();
     for repo in repo.masters() {
