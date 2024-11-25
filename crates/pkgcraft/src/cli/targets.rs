@@ -53,12 +53,13 @@ impl<'a> TargetRestrictions<'a> {
         Ok(self)
     }
 
-    fn repo_from_path(&mut self, path: &Utf8Path) -> crate::Result<Repo> {
+    fn repo_from_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
+        let path = path.as_ref();
         self.config
             .add_format_repo_path(path, path, 0, true, self.repo_format)
     }
 
-    fn repo_from_nested_path(&mut self, path: &Utf8Path) -> crate::Result<Repo> {
+    fn repo_from_nested_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
         self.config
             .add_format_repo_nested_path(path, 0, self.repo_format)
     }
@@ -111,7 +112,7 @@ impl<'a> TargetRestrictions<'a> {
         let repo_target = path_target
             .as_ref()
             .ok()
-            .map(|path| self.repo_from_nested_path(path));
+            .map(|_| self.repo_from_nested_path(target));
 
         // avoid treating `cat/pkg/` as path restriction
         let target = target.trim_end_matches('/');

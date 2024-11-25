@@ -86,7 +86,7 @@ fn current_dir_targets() {
     cmd("pkgcruft scan")
         .assert()
         .stdout("")
-        .stderr(contains(format!("invalid ebuild repo: {path}")))
+        .stderr(contains("invalid ebuild repo: ."))
         .failure()
         .code(2);
 
