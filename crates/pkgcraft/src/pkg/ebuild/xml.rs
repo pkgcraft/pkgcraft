@@ -366,6 +366,8 @@ impl Metadata {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::test::test_data;
 
     use super::*;
@@ -433,19 +435,35 @@ mod tests {
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        let m = pkg.metadata().maintainers();
-        assert_eq!(m.len(), 1);
-        assert_eq!(m[0].email(), "a.person@email.com");
-        assert_eq!(m[0].name(), Some("A Person"));
+        let [m] = pkg
+            .metadata()
+            .maintainers()
+            .iter()
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        assert_eq!(m.email(), "a.person@email.com");
+        assert_eq!(m.name(), Some("A Person"));
+        assert!(m.description.is_none());
+        assert_eq!(m.maint_type, MaintainerType::Person);
+        assert_eq!(m.proxied(), Proxied::No);
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        let m = pkg.metadata().maintainers();
-        assert_eq!(m.len(), 2);
-        assert_eq!(m[0].email(), "a.person@email.com");
-        assert_eq!(m[0].name(), Some("A Person"));
-        assert_eq!(m[1].email(), "b.person@email.com");
-        assert_eq!(m[1].name(), Some("B Person"));
+        let [m1, m2] = pkg
+            .metadata()
+            .maintainers()
+            .iter()
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        assert_eq!(m1.email(), "a.person@email.com");
+        assert_eq!(m1.name(), Some("A Person"));
+        assert_eq!(m2.email(), "b.person@email.com");
+        assert_eq!(m2.name(), Some("B Person"));
+        assert!(m1 != m2);
+        assert!(m1 < m2);
+        assert_eq!(HashSet::from([m1, m2]).len(), 2);
     }
 
     #[test]
@@ -463,19 +481,33 @@ mod tests {
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        let m = pkg.metadata().upstream().unwrap().remote_ids();
-        assert_eq!(m.len(), 1);
-        assert_eq!(m[0].site(), "github");
-        assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
+        let [u] = pkg
+            .metadata()
+            .upstream()
+            .unwrap()
+            .remote_ids()
+            .iter()
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        assert_eq!(u.site(), "github");
+        assert_eq!(u.name(), "pkgcraft/pkgcraft");
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        let m = pkg.metadata().upstream().unwrap().remote_ids();
-        assert_eq!(m.len(), 2);
-        assert_eq!(m[0].site(), "github");
-        assert_eq!(m[0].name(), "pkgcraft/pkgcraft");
-        assert_eq!(m[1].site(), "pypi");
-        assert_eq!(m[1].name(), "pkgcraft");
+        let [u1, u2] = pkg
+            .metadata()
+            .upstream()
+            .unwrap()
+            .remote_ids()
+            .iter()
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        assert_eq!(u1.site(), "github");
+        assert_eq!(u1.name(), "pkgcraft/pkgcraft");
+        assert_eq!(u2.site(), "pypi");
+        assert_eq!(u2.name(), "pkgcraft");
     }
 
     #[test]
