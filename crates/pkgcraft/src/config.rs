@@ -292,19 +292,15 @@ impl Config {
         // finalize external repo when added
         if external {
             if let Ok(repo) = &result {
-                repo.finalize(self)
-                    .map_err(|e| Error::Config(format!("{repo}: {e}")))?;
+                if repo.finalize(self).is_err() && !self.loaded {
+                    // try re-adding repo after loading the system repos
+                    self.load()?;
+                    return self.add_repo(repo, external);
+                }
             }
         }
 
-        // try re-adding external repo after loading config files
-        // TODO: only perform this for nonexistent master errors
-        if external && result.is_err() && !self.loaded {
-            self.load()?;
-            self.add_repo(repo, external)
-        } else {
-            result
-        }
+        result
     }
 
     /// Remove configured repos.
