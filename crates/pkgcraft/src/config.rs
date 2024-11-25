@@ -297,10 +297,10 @@ impl Config {
                     if !self.loaded {
                         // try loading repos from parent dir
                         if let Some(parent) = repo.path().parent() {
-                            if repos.iter().all(|x| parent.join(x).is_dir()) {
-                                for name in &repos {
-                                    let path = parent.join(name);
-                                    self.add_repo_path(name, &path, 0, false).ok();
+                            for name in &repos {
+                                let path = parent.join(name);
+                                if self.add_repo_path(name, &path, 0, false).is_err() {
+                                    break;
                                 }
                             }
                         }
