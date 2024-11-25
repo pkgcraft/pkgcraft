@@ -444,8 +444,8 @@ mod tests {
             .unwrap();
         assert_eq!(m.email(), "a.person@email.com");
         assert_eq!(m.name(), Some("A Person"));
-        assert!(m.description.is_none());
-        assert_eq!(m.maint_type, MaintainerType::Person);
+        assert!(m.description().is_none());
+        assert_eq!(m.maint_type(), MaintainerType::Person);
         assert_eq!(m.proxied(), Proxied::No);
 
         // multiple
@@ -481,33 +481,36 @@ mod tests {
 
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
-        let [u] = pkg
-            .metadata()
-            .upstream()
-            .unwrap()
+        let u = pkg.metadata().upstream().unwrap();
+        assert_eq!(u.bugs_to().unwrap(), "https://github.com/pkgcraft/pkgcraft/issues");
+        assert!(u.changelog().is_none());
+        assert_eq!(u.doc().unwrap(), "https://github.com/pkgcraft/pkgcraft");
+        let [m] = u.maintainers().to_vec().try_into().unwrap();
+        assert_eq!(m.name(), "upstream");
+        assert!(m.email().is_none());
+        assert_eq!(m.status(), MaintainerStatus::Active);
+        let [r] = u
             .remote_ids()
             .iter()
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
-        assert_eq!(u.site(), "github");
-        assert_eq!(u.name(), "pkgcraft/pkgcraft");
+        assert_eq!(r.site(), "github");
+        assert_eq!(r.name(), "pkgcraft/pkgcraft");
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
-        let [u1, u2] = pkg
-            .metadata()
-            .upstream()
-            .unwrap()
+        let u = pkg.metadata().upstream().unwrap();
+        let [r1, r2] = u
             .remote_ids()
             .iter()
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
-        assert_eq!(u1.site(), "github");
-        assert_eq!(u1.name(), "pkgcraft/pkgcraft");
-        assert_eq!(u2.site(), "pypi");
-        assert_eq!(u2.name(), "pkgcraft");
+        assert_eq!(r1.site(), "github");
+        assert_eq!(r1.name(), "pkgcraft/pkgcraft");
+        assert_eq!(r2.site(), "pypi");
+        assert_eq!(r2.name(), "pkgcraft");
     }
 
     #[test]
