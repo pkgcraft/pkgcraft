@@ -65,7 +65,7 @@ impl EbuildRepoBuilder {
 
     /// Build the temporary ebuild repo.
     pub fn build(self) -> crate::Result<EbuildTempRepo> {
-        EbuildTempRepo::new(&self.id, self.path.as_deref(), self.priority, self.eapi)
+        EbuildTempRepo::new(self.id, self.path.as_deref(), self.priority, self.eapi)
     }
 }
 
@@ -80,8 +80,8 @@ pub struct EbuildTempRepo {
 
 impl EbuildTempRepo {
     /// Create a temporary repo at a given path or inside `env::temp_dir()`.
-    pub fn new(
-        id: &str,
+    fn new(
+        id: String,
         path: Option<&Utf8Path>,
         priority: i32,
         eapi: Option<&Eapi>,
@@ -92,36 +92,29 @@ impl EbuildTempRepo {
         };
         let tempdir = TempDir::new_in(path)
             .map_err(|e| Error::RepoInit(format!("failed creating repo {id:?}: {e}")))?;
-        let temp_path = tempdir.path();
+        let path = Utf8PathBuf::from_path_buf(tempdir.path().to_path_buf())
+            .map_err(|p| Error::RepoInit(format!("non-unicode temp path: {p:?}")))?;
 
         for dir in ["metadata", "profiles"] {
-            fs::create_dir(temp_path.join(dir))
-                .map_err(|e| Error::RepoInit(format!("failed creating repo {id:?}: {e}")))?;
+            fs::create_dir(path.join(dir))
+                .map_err(|e| Error::RepoInit(format!("failed creating repo: {id}: {e}")))?;
         }
 
         let config = indoc::indoc! {"
             manifest-hashes = BLAKE2B SHA512
             manifest-required-hashes = BLAKE2B
         "};
-        fs::write(temp_path.join("metadata/layout.conf"), config)
+        fs::write(path.join("metadata/layout.conf"), config)
             .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
 
-        fs::write(temp_path.join("profiles/repo_name"), format!("{id}\n"))
+        fs::write(path.join("profiles/repo_name"), format!("{id}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
 
         let eapi = eapi.unwrap_or(&EAPI_LATEST_OFFICIAL);
-        fs::write(temp_path.join("profiles/eapi"), format!("{eapi}\n"))
+        fs::write(path.join("profiles/eapi"), format!("{eapi}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
 
-        let path = Utf8PathBuf::from_path_buf(temp_path.to_path_buf())
-            .map_err(|p| Error::RepoInit(format!("non-unicode repo path: {p:?}")))?;
-
-        Ok(Self {
-            tempdir,
-            path,
-            id: id.to_string(),
-            priority,
-        })
+        Ok(Self { tempdir, path, id, priority })
     }
 
     pub fn path(&self) -> &Utf8Path {

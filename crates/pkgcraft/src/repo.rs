@@ -827,13 +827,13 @@ use make_contains_path;
 mod tests {
     use std::collections::HashSet;
 
-    use crate::repo::ebuild::EbuildTempRepo;
+    use crate::repo::ebuild::EbuildRepoBuilder;
 
     use super::*;
 
     #[test]
     fn traits() {
-        let temp = EbuildTempRepo::new("test", None, 0, None).unwrap();
+        let temp = EbuildRepoBuilder::new().id("test").build().unwrap();
         let e_repo = Repo::from(&temp);
         let f_repo: Repo = fake::FakeRepo::new("fake", 0).into();
         assert!(e_repo != f_repo);
