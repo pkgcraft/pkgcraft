@@ -76,7 +76,8 @@ fn dep_restrict_targets() {
 
 #[test]
 fn current_dir_targets() {
-    let repo = test_data_path().join("repos/valid/qa-primary");
+    let primary_repo = test_data_path().join("repos/valid/qa-primary");
+    let secondary_repo = test_data_path().join("repos/valid/qa-secondary");
 
     // empty dir
     let tmpdir = tempdir().unwrap();
@@ -90,20 +91,35 @@ fn current_dir_targets() {
         .code(2);
 
     // repo dir
-    env::set_current_dir(&repo).unwrap();
-    let expected = glob_reports!("{repo}/**/reports.json");
+    env::set_current_dir(&primary_repo).unwrap();
+    let expected = glob_reports!("{primary_repo}/**/reports.json");
+    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    assert_unordered_eq!(&expected, &reports);
+
+    env::set_current_dir(&secondary_repo).unwrap();
+    let expected = glob_reports!("{secondary_repo}/**/reports.json");
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 
     // category dir
-    env::set_current_dir(repo.join("Dependency")).unwrap();
-    let expected = glob_reports!("{repo}/Dependency/**/reports.json");
+    env::set_current_dir(primary_repo.join("Dependency")).unwrap();
+    let expected = glob_reports!("{primary_repo}/Dependency/**/reports.json");
+    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    assert_unordered_eq!(&expected, &reports);
+
+    env::set_current_dir(secondary_repo.join("Overlay")).unwrap();
+    let expected = glob_reports!("{secondary_repo}/Overlay/**/reports.json");
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 
     // package dir
-    env::set_current_dir(repo.join("Dependency/DependencyDeprecated")).unwrap();
-    let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
+    env::set_current_dir(primary_repo.join("Dependency/DependencyDeprecated")).unwrap();
+    let expected = glob_reports!("{primary_repo}/Dependency/DependencyDeprecated/reports.json");
+    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    assert_unordered_eq!(&expected, &reports);
+
+    env::set_current_dir(secondary_repo.join("Overlay/EclassUnused")).unwrap();
+    let expected = glob_reports!("{secondary_repo}/Overlay/EclassUnused/reports.json");
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 }
