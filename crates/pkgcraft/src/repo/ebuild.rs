@@ -114,17 +114,16 @@ impl EbuildRepo {
             return Ok(());
         }
 
-        let (masters, nonexistent): (Vec<_>, Vec<_>) =
+        let (masters, repos): (Vec<_>, Vec<_>) =
             self.metadata().config.masters.iter().partition_map(|id| {
                 match config.repos.get(id).and_then(|r| r.as_ebuild()) {
                     Some(r) => Either::Left(r.clone()),
-                    None => Either::Right(id.as_str()),
+                    None => Either::Right(id.to_string()),
                 }
             });
 
-        if !nonexistent.is_empty() {
-            let repos = nonexistent.join(", ");
-            return Err(Error::InvalidValue(format!("nonexistent masters: {repos}")));
+        if !repos.is_empty() {
+            return Err(Error::NonexistentRepoMasters { repos });
         }
 
         self.0

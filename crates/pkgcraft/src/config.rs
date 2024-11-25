@@ -6,7 +6,7 @@ use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
 use crate::macros::build_path;
-use crate::repo::{Repo, RepoFormat};
+use crate::repo::{Repo, RepoFormat, Repository};
 use crate::utils::find_existing_path;
 use crate::{shell, Error};
 pub(crate) use repo::RepoConfig;
@@ -292,10 +292,26 @@ impl Config {
         // finalize external repo when added
         if external {
             if let Ok(repo) = &result {
-                if repo.finalize(self).is_err() && !self.loaded {
-                    // try re-adding repo after loading the system repos
-                    self.load()?;
-                    return self.add_repo(repo, external);
+                if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
+                    // try re-adding repo after loading repos
+                    if !self.loaded {
+                        // try loading repos from parent dir
+                        if let Some(parent) = repo.path().parent() {
+                            if repos.iter().all(|x| parent.join(x).is_dir()) {
+                                for name in &repos {
+                                    let path = parent.join(name);
+                                    self.add_repo_path(name, &path, 0, false).ok();
+                                }
+                            }
+                        }
+
+                        // load system repos if still missing
+                        if !repos.iter().all(|x| self.repos.get(x).is_some()) {
+                            self.load()?;
+                        }
+
+                        return self.add_repo(repo, external);
+                    }
                 }
             }
         }
