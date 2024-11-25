@@ -228,7 +228,7 @@ impl Config {
     }
 
     /// Extend the config with multiple repos.
-    pub(super) fn extend<'a, I: IntoIterator<Item = &'a Repo>>(
+    pub(crate) fn extend<'a, I: IntoIterator<Item = &'a Repo>>(
         &mut self,
         repos: I,
         settings: &Arc<super::Settings>,

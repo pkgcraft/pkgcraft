@@ -177,6 +177,7 @@ pub fn test_data() -> TestData {
 
     // load valid repos from test data, ignoring purposefully broken ones
     let mut config = Config::new("pkgcraft", "");
+    let mut repos = vec![];
     for entry in WalkDir::new(path.join("repos/valid"))
         .min_depth(1)
         .max_depth(1)
@@ -185,10 +186,15 @@ pub fn test_data() -> TestData {
         let entry = entry.unwrap();
         let name = entry.file_name().to_str().unwrap();
         let path = entry.path().to_str().unwrap();
-        config.add_repo_path(name, path, 0, false).unwrap();
+        repos.push(Repo::from_path(name, path, 0).unwrap());
     }
 
+    let _ = config
+        .repos
+        .extend(&repos, &config.settings, false)
+        .unwrap();
     config.finalize().unwrap();
+
     TestData {
         path: path.clone(),
         config,
@@ -247,13 +253,13 @@ pub fn test_data_patched() -> TestDataPatched {
             .any(|x| is_patch(&x));
 
         if patches_exist {
-            let old_repo = repo.path();
-            let new_repo = tmppath.join(name);
+            let old_path = repo.path();
+            let new_path = tmppath.join(name);
 
-            for entry in WalkDir::new(old_repo) {
+            for entry in WalkDir::new(old_path) {
                 let entry = entry.unwrap();
                 let src = Utf8Path::from_path(entry.path()).unwrap();
-                let dest = new_repo.join(src.strip_prefix(old_repo).unwrap());
+                let dest = new_path.join(src.strip_prefix(old_path).unwrap());
 
                 // create directories and copy files
                 if src.is_dir() {
@@ -264,7 +270,7 @@ pub fn test_data_patched() -> TestDataPatched {
             }
 
             // apply and remove patches
-            for entry in WalkDir::new(&new_repo) {
+            for entry in WalkDir::new(&new_path) {
                 let entry = entry.unwrap();
                 let path = entry.path();
                 if is_patch(&entry) {
@@ -296,12 +302,16 @@ pub fn test_data_patched() -> TestDataPatched {
                 }
             }
 
-            let repo = config.add_repo_path(name, new_repo, 0, false).unwrap();
-            repos.push(repo);
+            repos.push(Repo::from_path(name, new_path, 0).unwrap());
         }
     }
 
+    let _ = config
+        .repos
+        .extend(&repos, &config.settings, false)
+        .unwrap();
     config.finalize().unwrap();
+
     TestDataPatched { tmpdir, config }
 }
 
