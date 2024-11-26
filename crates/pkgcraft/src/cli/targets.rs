@@ -35,7 +35,7 @@ impl<'a> TargetRestrictions<'a> {
         self
     }
 
-    pub fn repo(mut self, value: Option<String>) -> crate::Result<Self> {
+    pub fn repo(mut self, value: Option<&str>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
             let path = Utf8Path::new(s);
             let repo = if let Some(repo) = self.config.repos.get(s) {

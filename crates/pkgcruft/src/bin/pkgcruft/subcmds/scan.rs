@@ -70,7 +70,7 @@ impl Command {
 
         // determine target restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
-            .repo(self.repo)?
+            .repo(self.repo.as_deref())?
             .targets(self.targets.iter().flatten())
             .try_collect()?;
         config.finalize()?;

@@ -33,7 +33,7 @@ impl Command {
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .repo(self.repo)?
+            .repo(self.repo.as_deref())?
             .targets(self.targets.iter().flatten())
             .try_collect()?;
         config.finalize()?;
