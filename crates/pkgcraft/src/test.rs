@@ -189,10 +189,7 @@ pub fn test_data() -> TestData {
         repos.push(Repo::from_path(name, path, 0).unwrap());
     }
 
-    config
-        .repos
-        .extend(&repos, &config.settings, false)
-        .unwrap();
+    config.repos.extend(repos, &config.settings, false).unwrap();
     config.finalize().unwrap();
 
     TestData {
@@ -306,10 +303,7 @@ pub fn test_data_patched() -> TestDataPatched {
         }
     }
 
-    config
-        .repos
-        .extend(&repos, &config.settings, false)
-        .unwrap();
+    config.repos.extend(repos, &config.settings, false).unwrap();
     config.finalize().unwrap();
 
     TestDataPatched { tmpdir, config }

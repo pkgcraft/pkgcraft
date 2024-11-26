@@ -118,7 +118,7 @@ impl Config {
         };
 
         // add repos to the config
-        config.extend(&repos, settings, false)?;
+        config.extend(repos, settings, false)?;
         Ok(config)
     }
 
@@ -228,7 +228,7 @@ impl Config {
     }
 
     /// Extend the config with multiple repos.
-    pub(crate) fn extend<'a, I: IntoIterator<Item = &'a Repo>>(
+    pub(crate) fn extend<I: IntoIterator<Item = Repo>>(
         &mut self,
         repos: I,
         settings: &Arc<super::Settings>,
@@ -248,11 +248,11 @@ impl Config {
             };
 
             if let Some(existing) = self.repos.get(name) {
-                if existing != repo {
+                if existing != &repo {
                     existing_repos.push(repo);
                 }
             } else {
-                new_repos.insert(name.to_string(), repo.clone());
+                new_repos.insert(name.to_string(), repo);
             }
         }
 

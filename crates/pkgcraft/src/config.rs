@@ -201,7 +201,7 @@ impl Config {
 
         let repos = portage::load_repos_conf(repos_conf)?;
         if !repos.is_empty() {
-            self.repos.extend(&repos, &self.settings, false)?;
+            self.repos.extend(repos, &self.settings, false)?;
         }
 
         self.loaded = true;
@@ -279,7 +279,8 @@ impl Config {
     /// Add a repo to the config.
     pub fn add_repo<T: Into<Repo>>(&mut self, value: T, external: bool) -> crate::Result<Repo> {
         let repo: Repo = value.into();
-        self.repos.extend([&repo], &self.settings, external)?;
+        self.repos
+            .extend([repo.clone()], &self.settings, external)?;
 
         // finalize external repo when added
         if external {
