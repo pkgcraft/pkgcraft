@@ -571,13 +571,13 @@ mod tests {
         // single
         let pkg = repo.get_pkg("pkg/single-8").unwrap();
         assert_eq!(pkg.metadata().local_use().len(), 1);
-        assert_eq!(pkg.metadata().local_use().get("flag").unwrap(), "flag desc");
+        assert_eq!(pkg.metadata().local_use().get("flag").unwrap(), "flag desc cat/pkg");
 
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
         assert_eq!(pkg.metadata().local_use().len(), 2);
         assert_eq!(pkg.metadata().local_use().get("flag1").unwrap(), "flag1 desc");
-        assert_eq!(pkg.metadata().local_use().get("flag2").unwrap(), "flag2 desc");
+        assert_eq!(pkg.metadata().local_use().get("flag2").unwrap(), "flag2 desc cat/pkg");
     }
 
     #[test]
