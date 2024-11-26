@@ -14,7 +14,7 @@ pub(crate) struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
 }
@@ -34,14 +34,13 @@ enum Subcommand {
 }
 
 impl Subcommand {
-    fn run(self) -> anyhow::Result<ExitCode> {
-        use Subcommand::*;
+    fn run(&self) -> anyhow::Result<ExitCode> {
         match self {
-            Compare(cmd) => cmd.run(),
-            Intersect(cmd) => cmd.run(),
-            Parse(cmd) => cmd.run(),
-            Set(cmd) => cmd.run(),
-            Sort(cmd) => cmd.run(),
+            Self::Compare(cmd) => cmd.run(),
+            Self::Intersect(cmd) => cmd.run(),
+            Self::Parse(cmd) => cmd.run(),
+            Self::Set(cmd) => cmd.run(),
+            Self::Sort(cmd) => cmd.run(),
         }
     }
 }

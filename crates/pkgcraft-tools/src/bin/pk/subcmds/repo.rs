@@ -13,8 +13,8 @@ pub(crate) struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        self.command.run(config)
+    pub(super) fn run(&self, mut config: Config) -> anyhow::Result<ExitCode> {
+        self.command.run(&mut config)
     }
 }
 
@@ -29,12 +29,11 @@ enum Subcommand {
 }
 
 impl Subcommand {
-    fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        use Subcommand::*;
+    fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         match self {
-            Eapis(cmd) => cmd.run(config),
-            Leaf(cmd) => cmd.run(config),
-            Metadata(cmd) => cmd.run(config),
+            Self::Eapis(cmd) => cmd.run(config),
+            Self::Leaf(cmd) => cmd.run(config),
+            Self::Metadata(cmd) => cmd.run(config),
         }
     }
 }

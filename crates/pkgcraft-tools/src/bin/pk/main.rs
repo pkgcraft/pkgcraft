@@ -27,6 +27,19 @@ struct Command {
     subcmd: subcmds::Subcommand,
 }
 
+impl Command {
+    /// Load a custom config or the system config.
+    fn load_config(&self) -> anyhow::Result<Config> {
+        let mut config = Config::new("pkgcraft", "");
+        if let Some(path) = self.config.as_deref() {
+            config.load_path(path)?;
+        } else {
+            config.load()?;
+        }
+        Ok(config)
+    }
+}
+
 fn main() -> anyhow::Result<ExitCode> {
     // reset SIGPIPE behavior since rust ignores it by default
     reset_sigpipe();
@@ -46,12 +59,7 @@ fn main() -> anyhow::Result<ExitCode> {
         .with_writer(stderr)
         .init();
 
-    let mut config = Config::new("pkgcraft", "");
-    if let Some(path) = args.config {
-        config.load_path(&path)?;
-    }
-
-    args.subcmd.run(&mut config).or_else(|err| {
+    args.subcmd.run(&args).or_else(|err| {
         eprintln!("pk: error: {err}");
         Ok(ExitCode::from(2))
     })

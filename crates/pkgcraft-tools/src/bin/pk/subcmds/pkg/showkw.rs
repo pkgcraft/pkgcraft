@@ -29,7 +29,7 @@ pub(crate) struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
