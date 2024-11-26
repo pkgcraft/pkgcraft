@@ -118,7 +118,7 @@ impl Config {
         };
 
         // add repos to the config
-        let _ = config.extend(&repos, settings, false)?;
+        config.extend(&repos, settings, false)?;
         Ok(config)
     }
 
@@ -233,12 +233,11 @@ impl Config {
         repos: I,
         settings: &Arc<super::Settings>,
         external: bool,
-    ) -> crate::Result<impl Iterator<Item = Repo>> {
+    ) -> crate::Result<()> {
         let mut existing_repos = vec![];
-        let mut overriding_repos = vec![];
         let mut new_repos = IndexMap::new();
 
-        // split repos into existing, overriding, and new variants
+        // determine if any new repos override existing ones
         for repo in repos {
             // use path names for external repos
             let path = repo.path().as_str();
@@ -249,10 +248,8 @@ impl Config {
             };
 
             if let Some(existing) = self.repos.get(name) {
-                if existing == repo {
-                    existing_repos.push(existing.clone());
-                } else {
-                    overriding_repos.push(repo);
+                if existing != repo {
+                    existing_repos.push(repo);
                 }
             } else {
                 new_repos.insert(name.to_string(), repo.clone());
@@ -260,14 +257,11 @@ impl Config {
         }
 
         // error out on overriding repos
-        if !overriding_repos.is_empty() {
-            overriding_repos.sort();
-            let repos = overriding_repos.iter().map(|r| r.id()).join(", ");
+        if !existing_repos.is_empty() {
+            existing_repos.sort();
+            let repos = existing_repos.iter().map(|r| r.id()).join(", ");
             return Err(Error::Config(format!("can't override existing repos: {repos}")));
         }
-
-        // add new repos to config
-        self.repos.extend(new_repos.clone());
 
         for (_name, repo) in &new_repos {
             // create configured ebuild repos
@@ -277,12 +271,14 @@ impl Config {
             }
         }
 
+        // add new repos to config
+        self.repos.extend(new_repos);
+
         // sort raw and configured repos
         self.repos.sort_by(|_, r1, _, r2| r1.cmp(r2));
         self.configured.sort();
 
-        // combine and return existing and new repos
-        Ok(existing_repos.into_iter().chain(new_repos.into_values()))
+        Ok(())
     }
 
     pub fn iter(&self) -> ReposIter<'_> {

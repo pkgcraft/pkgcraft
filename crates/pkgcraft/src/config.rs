@@ -201,8 +201,7 @@ impl Config {
 
         let repos = portage::load_repos_conf(repos_conf)?;
         if !repos.is_empty() {
-            // add repos to config
-            let _ = self.repos.extend(&repos, &self.settings, false)?;
+            self.repos.extend(&repos, &self.settings, false)?;
         }
 
         self.loaded = true;
@@ -280,43 +279,34 @@ impl Config {
     /// Add a repo to the config.
     pub fn add_repo<T: Into<Repo>>(&mut self, value: T, external: bool) -> crate::Result<Repo> {
         let repo: Repo = value.into();
-        let result = self
-            .repos
-            .extend([&repo], &self.settings, external)
-            .map(|mut repos| {
-                repos
-                    .next()
-                    .unwrap_or_else(|| panic!("failed adding repo: {repo}"))
-            });
+        self.repos.extend([&repo], &self.settings, external)?;
 
         // finalize external repo when added
         if external {
-            if let Ok(repo) = &result {
-                if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
-                    // try re-adding repo after loading repos
-                    if !self.loaded {
-                        // try loading repos from parent dir
-                        if let Some(parent) = repo.path().parent() {
-                            for name in &repos {
-                                let path = parent.join(name);
-                                if self.add_repo_path(name, &path, 0, false).is_err() {
-                                    break;
-                                }
+            if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
+                // try re-adding repo after loading repos
+                if !self.loaded {
+                    // try loading repos from parent dir
+                    if let Some(parent) = repo.path().parent() {
+                        for name in &repos {
+                            let path = parent.join(name);
+                            if self.add_repo_path(name, &path, 0, false).is_err() {
+                                break;
                             }
                         }
-
-                        // load system repos if still missing
-                        if !repos.iter().all(|x| self.repos.get(x).is_some()) {
-                            self.load()?;
-                        }
-
-                        return self.add_repo(repo, external);
                     }
+
+                    // load system repos if still missing
+                    if !repos.iter().all(|x| self.repos.get(x).is_some()) {
+                        self.load()?;
+                    }
+
+                    return self.add_repo(repo, external);
                 }
             }
         }
 
-        result
+        Ok(repo)
     }
 
     /// Remove configured repos.
