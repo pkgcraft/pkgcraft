@@ -13,7 +13,7 @@ use scallop::{functions, Error, ExecStatus};
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
-use crate::pkg::ebuild::{metadata::Key, EbuildPackage, EbuildPkg, EbuildRawPkg};
+use crate::pkg::ebuild::{metadata::Key, EbuildConfiguredPkg, EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::{Repo, Repository};
@@ -178,9 +178,9 @@ impl BuildData {
     }
 
     /// Get the current ebuild package being built if it exists.
-    fn ebuild_pkg(&self) -> Box<dyn EbuildPackage + '_> {
+    fn ebuild_pkg(&self) -> EbuildPackage {
         match &self.state {
-            BuildState::Build(pkg) => Box::new(pkg),
+            BuildState::Build(pkg) => EbuildPackage::Pkg(pkg),
             _ => panic!("ebuild pkg invalid for scope: {}", self.scope),
         }
     }
@@ -425,6 +425,35 @@ pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
     // restrict builtin loading and toggling
     scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
 });
+
+/// Build wrapper for ebuild package variants.
+enum EbuildPackage<'a> {
+    Pkg(&'a EbuildPkg),
+    Configured(&'a EbuildConfiguredPkg),
+}
+
+impl EbuildPackage<'_> {
+    fn cpv(&self) -> &Cpv {
+        match self {
+            Self::Pkg(pkg) => pkg.cpv(),
+            Self::Configured(pkg) => pkg.cpv(),
+        }
+    }
+
+    fn iuse_effective(&self) -> &OrderedSet<String> {
+        match self {
+            Self::Pkg(pkg) => pkg.iuse_effective(),
+            Self::Configured(pkg) => pkg.iuse_effective(),
+        }
+    }
+
+    fn slot(&self) -> &str {
+        match self {
+            Self::Pkg(pkg) => pkg.slot(),
+            Self::Configured(pkg) => pkg.slot(),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

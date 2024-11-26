@@ -1,7 +1,7 @@
 use std::ffi::{c_char, CString};
 use std::{mem, ptr, slice};
 
-use pkgcraft::pkg::ebuild::{xml, EbuildPackage};
+use pkgcraft::pkg::ebuild::xml;
 use pkgcraft::pkg::Pkg;
 use pkgcraft::traits::IntoOwned;
 

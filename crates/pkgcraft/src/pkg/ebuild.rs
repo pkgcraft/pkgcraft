@@ -32,25 +32,6 @@ mod restrict;
 pub use restrict::{MaintainerRestrict, Restrict};
 pub mod xml;
 
-pub trait EbuildPackage: Package {
-    /// Return a package's set of effective USE choices.
-    fn iuse_effective(&self) -> &OrderedSet<String>;
-    /// Return a package's slot.
-    fn slot(&self) -> &str;
-}
-
-impl<T> EbuildPackage for &T
-where
-    T: EbuildPackage,
-{
-    fn iuse_effective(&self) -> &OrderedSet<String> {
-        (*self).iuse_effective()
-    }
-    fn slot(&self) -> &str {
-        (*self).slot()
-    }
-}
-
 #[derive(Debug)]
 struct InternalEbuildPkg {
     cpv: Cpv,
@@ -131,6 +112,11 @@ impl EbuildPkg {
     /// Return a package's description.
     pub fn description(&self) -> &str {
         &self.0.data.description
+    }
+
+    /// Return a package's slot.
+    pub fn slot(&self) -> &str {
+        self.0.data.slot.slot()
     }
 
     /// Return a package's subslot.
@@ -235,6 +221,18 @@ impl EbuildPkg {
         &self.0.data.iuse
     }
 
+    /// Return a package's set of effective USE choices.
+    pub fn iuse_effective(&self) -> &OrderedSet<String> {
+        self.0.iuse_effective.get_or_init(|| {
+            self.0
+                .data
+                .iuse
+                .iter()
+                .map(|x| x.flag().to_string())
+                .collect()
+        })
+    }
+
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &OrderedSet<Eclass> {
         &self.0.data.inherit
@@ -292,23 +290,6 @@ impl RepoPackage for EbuildPkg {
 
     fn repo(&self) -> Self::Repo {
         self.0.repo.clone()
-    }
-}
-
-impl EbuildPackage for EbuildPkg {
-    fn iuse_effective(&self) -> &OrderedSet<String> {
-        self.0.iuse_effective.get_or_init(|| {
-            self.0
-                .data
-                .iuse
-                .iter()
-                .map(|x| x.flag().to_string())
-                .collect()
-        })
-    }
-
-    fn slot(&self) -> &str {
-        self.0.data.slot.slot()
     }
 }
 

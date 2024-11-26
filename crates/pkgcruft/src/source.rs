@@ -6,7 +6,7 @@ use indexmap::IndexSet;
 use itertools::{Either, Itertools};
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus;
-use pkgcraft::pkg::ebuild::{self, EbuildPackage};
+use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict, Restriction};
@@ -66,8 +66,8 @@ impl PkgFilter {
     /// Apply filter across an iterator of packages.
     fn filter<'a>(
         &'a self,
-        iter: Box<dyn Iterator<Item = ebuild::EbuildPkg> + 'a>,
-    ) -> Box<dyn Iterator<Item = ebuild::EbuildPkg> + 'a> {
+        iter: Box<dyn Iterator<Item = EbuildPkg> + 'a>,
+    ) -> Box<dyn Iterator<Item = EbuildPkg> + 'a> {
         match self {
             Self::Latest(inverted) => {
                 let items: Vec<_> = iter.collect();
@@ -158,8 +158,8 @@ impl PkgFilters {
         &self,
         repo: &'static EbuildRepo,
         val: R,
-    ) -> Box<dyn Iterator<Item = ebuild::EbuildPkg> + '_> {
-        let mut iter: Box<dyn Iterator<Item = ebuild::EbuildPkg>> =
+    ) -> Box<dyn Iterator<Item = EbuildPkg> + '_> {
+        let mut iter: Box<dyn Iterator<Item = EbuildPkg>> =
             Box::new(repo.iter_restrict(val).filter_map(Result::ok));
 
         for f in &self.0 {
@@ -201,12 +201,12 @@ pub(crate) trait IterRestrict {
         -> Box<dyn Iterator<Item = Self::Item> + '_>;
 }
 
-pub(crate) struct EbuildPkg {
+pub(crate) struct EbuildPkgSource {
     repo: &'static EbuildRepo,
     filters: PkgFilters,
 }
 
-impl EbuildPkg {
+impl EbuildPkgSource {
     pub(crate) fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             repo,
@@ -215,8 +215,8 @@ impl EbuildPkg {
     }
 }
 
-impl IterRestrict for EbuildPkg {
-    type Item = ebuild::EbuildPkg;
+impl IterRestrict for EbuildPkgSource {
+    type Item = EbuildPkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
@@ -226,12 +226,12 @@ impl IterRestrict for EbuildPkg {
     }
 }
 
-pub(crate) struct EbuildRawPkg {
+pub(crate) struct EbuildRawPkgSource {
     repo: &'static EbuildRepo,
     filters: PkgFilters,
 }
 
-impl EbuildRawPkg {
+impl EbuildRawPkgSource {
     pub(crate) fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             repo,
@@ -240,8 +240,8 @@ impl EbuildRawPkg {
     }
 }
 
-impl IterRestrict for EbuildRawPkg {
-    type Item = ebuild::EbuildRawPkg;
+impl IterRestrict for EbuildRawPkgSource {
+    type Item = EbuildRawPkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,

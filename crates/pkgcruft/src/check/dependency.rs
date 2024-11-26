@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use pkgcraft::dep::{Dependency, Operator, SlotOperator, UseDepKind};
-use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPackage, EbuildPkg};
+use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Intersects;

@@ -1,6 +1,6 @@
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::{EbuildPackage, EbuildPkg};
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 
 use crate::report::ReportKind::DependencySlotMissing;

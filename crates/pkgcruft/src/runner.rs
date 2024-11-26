@@ -10,7 +10,7 @@ use crate::bash;
 use crate::check::*;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{self, IterRestrict, PkgFilter, SourceKind, Target};
+use crate::source::*;
 
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
@@ -107,7 +107,7 @@ impl CheckRunner {
 struct EbuildPkgCheckRunner {
     pkg_checks: Vec<EbuildPkgRunner>,
     pkg_set_checks: Vec<EbuildPkgSetRunner>,
-    source: source::EbuildPkg,
+    source: EbuildPkgSource,
     repo: &'static EbuildRepo,
 }
 
@@ -116,7 +116,7 @@ impl EbuildPkgCheckRunner {
         Self {
             pkg_checks: Default::default(),
             pkg_set_checks: Default::default(),
-            source: source::EbuildPkg::new(repo, filters),
+            source: EbuildPkgSource::new(repo, filters),
             repo,
         }
     }
@@ -161,7 +161,7 @@ impl EbuildPkgCheckRunner {
 /// Check runner for raw ebuild package checks.
 struct EbuildRawPkgCheckRunner {
     checks: Vec<EbuildRawPkgRunner>,
-    source: source::EbuildRawPkg,
+    source: EbuildRawPkgSource,
     repo: &'static EbuildRepo,
 }
 
@@ -169,7 +169,7 @@ impl EbuildRawPkgCheckRunner {
     fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             checks: Default::default(),
-            source: source::EbuildRawPkg::new(repo, filters),
+            source: EbuildRawPkgSource::new(repo, filters),
             repo,
         }
     }

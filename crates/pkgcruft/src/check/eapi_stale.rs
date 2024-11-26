@@ -1,5 +1,5 @@
 use pkgcraft::dep::Cpn;
-use pkgcraft::pkg::ebuild::{EbuildPackage, EbuildPkg};
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::types::OrderedMap;
 

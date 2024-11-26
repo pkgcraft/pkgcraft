@@ -13,7 +13,7 @@ use crate::traits::Intersects;
 use crate::types::OrderedSet;
 
 use super::metadata::Key;
-use super::{EbuildPackage, EbuildPkg};
+use super::EbuildPkg;
 
 #[derive(Clone)]
 pub struct EbuildConfiguredPkg {
@@ -104,6 +104,15 @@ impl EbuildConfiguredPkg {
     pub fn src_uri(&self) -> DependencySet<&Uri> {
         self.raw.0.data.src_uri.evaluate(self.settings.options())
     }
+
+    // TODO: combine this with profile and config settings
+    pub fn iuse_effective(&self) -> &OrderedSet<String> {
+        self.raw.iuse_effective()
+    }
+
+    pub fn slot(&self) -> &str {
+        self.raw.slot()
+    }
 }
 
 impl Package for EbuildConfiguredPkg {
@@ -121,17 +130,6 @@ impl RepoPackage for EbuildConfiguredPkg {
 
     fn repo(&self) -> Self::Repo {
         self.repo.clone()
-    }
-}
-
-impl EbuildPackage for EbuildConfiguredPkg {
-    // TODO: combine this with profile and config settings
-    fn iuse_effective(&self) -> &OrderedSet<String> {
-        self.raw.iuse_effective()
-    }
-
-    fn slot(&self) -> &str {
-        self.raw.slot()
     }
 }
 
