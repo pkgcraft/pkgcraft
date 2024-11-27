@@ -105,8 +105,8 @@ impl CheckRunner {
 
 /// Check runner for ebuild package checks.
 struct EbuildPkgCheckRunner {
-    pkg_checks: Vec<EbuildPkgRunner>,
-    pkg_set_checks: Vec<EbuildPkgSetRunner>,
+    pkg_checks: IndexMap<Check, EbuildPkgRunner>,
+    pkg_set_checks: IndexMap<Check, EbuildPkgSetRunner>,
     source: EbuildPkgSource,
     repo: &'static EbuildRepo,
 }
@@ -124,8 +124,13 @@ impl EbuildPkgCheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.pkg_checks.push(check.to_runner(self.repo)),
-            Scope::Package => self.pkg_set_checks.push(check.to_runner(self.repo)),
+            Scope::Version => {
+                self.pkg_checks.insert(check, check.to_runner(self.repo));
+            }
+            Scope::Package => {
+                self.pkg_set_checks
+                    .insert(check, check.to_runner(self.repo));
+            }
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -135,9 +140,9 @@ impl EbuildPkgCheckRunner {
         let mut pkgs = vec![];
 
         for pkg in self.source.iter_restrict(target) {
-            for check in &self.pkg_checks {
+            for (check, runner) in &self.pkg_checks {
                 let now = Instant::now();
-                check.run(&pkg, filter);
+                runner.run(&pkg, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
 
@@ -148,9 +153,9 @@ impl EbuildPkgCheckRunner {
 
         if let Target::Cpn(cpn) = target {
             if !pkgs.is_empty() {
-                for check in &self.pkg_set_checks {
+                for (check, runner) in &self.pkg_set_checks {
                     let now = Instant::now();
-                    check.run(cpn, &pkgs, filter);
+                    runner.run(cpn, &pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
                 }
             }
@@ -160,7 +165,7 @@ impl EbuildPkgCheckRunner {
 
 /// Check runner for raw ebuild package checks.
 struct EbuildRawPkgCheckRunner {
-    checks: Vec<EbuildRawPkgRunner>,
+    checks: IndexMap<Check, EbuildRawPkgRunner>,
     source: EbuildRawPkgSource,
     repo: &'static EbuildRepo,
 }
@@ -177,7 +182,9 @@ impl EbuildRawPkgCheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.checks.push(check.to_runner(self.repo)),
+            Scope::Version => {
+                self.checks.insert(check, check.to_runner(self.repo));
+            }
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -186,9 +193,9 @@ impl EbuildRawPkgCheckRunner {
     fn run(&self, target: &Target, filter: &mut ReportFilter) {
         for pkg in self.source.iter_restrict(target) {
             let tree = bash::lazy_parse(pkg.data().as_bytes());
-            for check in &self.checks {
+            for (check, runner) in &self.checks {
                 let now = Instant::now();
-                check.run(&pkg, &tree, filter);
+                runner.run(&pkg, &tree, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
         }
@@ -197,7 +204,7 @@ impl EbuildRawPkgCheckRunner {
 
 /// Check runner for Cpn objects.
 struct CpnCheckRunner {
-    checks: Vec<CpnRunner>,
+    checks: IndexMap<Check, CpnRunner>,
     repo: &'static EbuildRepo,
 }
 
@@ -212,7 +219,9 @@ impl CpnCheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Package => self.checks.push(check.to_runner(self.repo)),
+            Scope::Package => {
+                self.checks.insert(check, check.to_runner(self.repo));
+            }
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -220,9 +229,9 @@ impl CpnCheckRunner {
     /// Run the check runner for a given restriction.
     fn run(&self, target: &Target, filter: &mut ReportFilter) {
         if let Target::Cpn(cpn) = target {
-            for check in &self.checks {
+            for (check, runner) in &self.checks {
                 let now = Instant::now();
-                check.run(cpn, filter);
+                runner.run(cpn, filter);
                 debug!("{check}: {cpn}: {:?}", now.elapsed());
             }
         }
@@ -231,7 +240,7 @@ impl CpnCheckRunner {
 
 /// Check runner for Cpv objects.
 struct CpvCheckRunner {
-    checks: Vec<CpvRunner>,
+    checks: IndexMap<Check, CpvRunner>,
     repo: &'static EbuildRepo,
 }
 
@@ -246,7 +255,9 @@ impl CpvCheckRunner {
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match &check.scope {
-            Scope::Version => self.checks.push(check.to_runner(self.repo)),
+            Scope::Version => {
+                self.checks.insert(check, check.to_runner(self.repo));
+            }
             _ => unreachable!("unsupported check: {check}"),
         }
     }
@@ -259,9 +270,9 @@ impl CpvCheckRunner {
         };
 
         for cpv in cpvs {
-            for check in &self.checks {
+            for (check, runner) in &self.checks {
                 let now = Instant::now();
-                check.run(&cpv, filter);
+                runner.run(&cpv, filter);
                 debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
         }
