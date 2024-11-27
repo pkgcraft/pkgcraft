@@ -324,7 +324,7 @@ impl Iterator for IterVersion {
 mod tests {
     use pkgcraft::dep::Dep;
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_unordered_eq, test_data};
+    use pkgcraft::test::{assert_ordered_eq, assert_unordered_eq, test_data};
 
     use crate::check::CheckKind;
     use crate::test::glob_reports;
@@ -352,19 +352,21 @@ mod tests {
 
         // package target
         let scanner = Scanner::new();
-        let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
-        let restrict = repo.restrict_from_path("Keywords/KeywordsLive").unwrap();
+        let expected = glob_reports!("{repo_path}/Dependency/DependencyInvalid/reports.json");
+        let restrict = repo
+            .restrict_from_path("Dependency/DependencyInvalid")
+            .unwrap();
         let reports = scanner.run(repo, restrict);
-        assert_unordered_eq!(reports, expected);
+        assert_ordered_eq!(reports, expected);
 
         // version target
         let scanner = Scanner::new();
-        let expected = glob_reports!("{repo_path}/Keywords/KeywordsLive/**/reports.json");
+        let expected = glob_reports!("{repo_path}/Whitespace/WhitespaceInvalid/reports.json");
         let restrict = repo
-            .restrict_from_path("Keywords/KeywordsLive/KeywordsLive-9999.ebuild")
+            .restrict_from_path("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild")
             .unwrap();
         let reports = scanner.run(repo, restrict);
-        assert_unordered_eq!(reports, expected);
+        assert_ordered_eq!(reports, expected);
 
         // specific checks
         let scanner = Scanner::new().checks([CheckKind::Dependency]);
