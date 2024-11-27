@@ -185,6 +185,9 @@ impl EbuildPkgCheckRunner {
             }
         }
 
+        // TODO: Consider skipping package set checks if an error is returned during
+        // iteration, for example if any package throws a MetadataError the package level
+        // checks will be missing that package and thus may be incorrect.
         if !pkgs.is_empty() {
             for (check, runner) in &self.pkg_set_checks {
                 let now = Instant::now();
