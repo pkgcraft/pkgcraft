@@ -170,7 +170,6 @@ impl Scanner {
                             })
                             .collect(),
                         reports: Default::default(),
-                        finished: false,
                     })
                 }
             }
@@ -304,21 +303,21 @@ struct IterVersion {
     reports_rx: Receiver<Report>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
-    reports: Vec<Report>,
-    finished: bool,
+    reports: Option<Vec<Report>>,
 }
 
 impl Iterator for IterVersion {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.finished {
-            self.reports.extend(&self.reports_rx);
-            self.reports.sort_by(|r1, r2| r2.cmp(r1));
-            self.finished = true;
+        if let Some(reports) = self.reports.as_mut() {
+            reports.pop()
+        } else {
+            let mut reports: Vec<_> = self.reports_rx.iter().collect();
+            reports.sort_by(|r1, r2| r2.cmp(r1));
+            self.reports = Some(reports);
+            self.next()
         }
-
-        self.reports.pop()
     }
 }
 
