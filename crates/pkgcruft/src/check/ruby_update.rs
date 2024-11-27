@@ -44,8 +44,6 @@ impl Check {
     }
 }
 
-super::register!(Check);
-
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if pkg.category() == "virtual" || !pkg.inherited().contains("ruby-ng") {

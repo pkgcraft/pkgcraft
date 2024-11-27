@@ -23,8 +23,6 @@ pub(super) fn create() -> impl EbuildPkgSetCheck {
 
 struct Check;
 
-super::register!(Check);
-
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         if pkgs.iter().all(|pkg| pkg.live()) {

@@ -42,8 +42,6 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
 
 struct Check;
 
-super::register!(Check);
-
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter) {
         let mut variables = vec![];

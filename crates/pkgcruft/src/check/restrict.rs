@@ -33,8 +33,6 @@ struct Check {
     allowed: HashSet<String>,
 }
 
-super::register!(Check);
-
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if !self.allowed.is_empty() {

@@ -38,8 +38,6 @@ struct Check {
     unlicensed_categories: IndexSet<String>,
 }
 
-super::register!(Check);
-
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();

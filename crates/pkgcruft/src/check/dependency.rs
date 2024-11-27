@@ -31,8 +31,6 @@ struct Check {
     repo: &'static EbuildRepo,
 }
 
-super::register!(Check);
-
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for key in pkg.eapi().dep_keys().iter().copied() {

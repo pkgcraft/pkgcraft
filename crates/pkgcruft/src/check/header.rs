@@ -33,8 +33,6 @@ pub(super) fn create() -> impl EbuildRawPkgCheck {
 
 struct Check;
 
-super::register!(Check);
-
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, _tree: &Tree, filter: &mut ReportFilter) {
         let mut lines = pkg.data().lines();

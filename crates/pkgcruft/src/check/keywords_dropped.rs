@@ -30,8 +30,6 @@ struct Check {
     repo: &'static EbuildRepo,
 }
 
-super::register!(Check);
-
 impl EbuildPkgSetCheck for Check {
     fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let mut seen = HashSet::new();

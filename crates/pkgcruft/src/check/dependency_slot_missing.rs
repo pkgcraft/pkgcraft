@@ -27,8 +27,6 @@ struct Check {
     repo: &'static EbuildRepo,
 }
 
-super::register!(Check);
-
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for dep in pkg

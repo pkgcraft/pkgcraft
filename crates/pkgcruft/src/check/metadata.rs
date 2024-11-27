@@ -30,8 +30,6 @@ struct Check {
     pool: Arc<BuildPool>,
 }
 
-super::register!(Check);
-
 impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
         match self.pool.metadata(self.repo, cpv, false, false) {
