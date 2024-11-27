@@ -5,6 +5,7 @@ use std::{iter, mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
+use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository, Repo};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
@@ -139,7 +140,7 @@ impl Scanner {
                     };
 
                     Box::new(IterPkg {
-                        reports_rx,
+                        rx: reports_rx,
                         _producer: pkg_producer(repo, restrict, restrict_tx),
                         _workers: (0..self.jobs)
                             .map(|_| {
@@ -162,7 +163,7 @@ impl Scanner {
                     };
 
                     Box::new(IterVersion {
-                        reports_rx,
+                        rx: reports_rx,
                         _producer: version_producer(repo, runner.clone(), restrict, restrict_tx),
                         _workers: (0..self.jobs)
                             .map(|_| {
@@ -243,7 +244,7 @@ fn pkg_worker(
 }
 
 struct IterPkg {
-    reports_rx: Receiver<Vec<Report>>,
+    rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
     reports: VecDeque<Report>,
@@ -254,7 +255,7 @@ impl Iterator for IterPkg {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.reports.pop_front().or_else(|| {
-            self.reports_rx.recv().ok().and_then(|reports| {
+            self.rx.recv().ok().and_then(|reports| {
                 debug_assert!(!reports.is_empty());
                 self.reports.extend(reports);
                 self.next()
@@ -300,7 +301,7 @@ fn version_worker(
 }
 
 struct IterVersion {
-    reports_rx: Receiver<Report>,
+    rx: Receiver<Report>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
     reports: Option<Vec<Report>>,
@@ -313,9 +314,7 @@ impl Iterator for IterVersion {
         if let Some(reports) = self.reports.as_mut() {
             reports.pop()
         } else {
-            let mut reports: Vec<_> = self.reports_rx.iter().collect();
-            reports.sort_by(|r1, r2| r2.cmp(r1));
-            self.reports = Some(reports);
+            self.reports = Some(self.rx.iter().sorted_by(|a, b| b.cmp(a)).collect());
             self.next()
         }
     }
