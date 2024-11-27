@@ -1,10 +1,11 @@
 use std::time::Instant;
 
 use indexmap::{IndexMap, IndexSet};
-use itertools::{Either, Itertools};
+use itertools::Itertools;
+use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use tracing::debug;
+use tracing::{debug, trace};
 
 use crate::bash;
 use crate::check::*;
@@ -52,17 +53,42 @@ impl SyncCheckRunner {
         Self { runners }
     }
 
+    /// Return the iterator of registered checks for a given [`Scope`].
+    pub(super) fn checks(&self, scope: Scope) -> impl Iterator<Item = Check> + '_ {
+        self.runners
+            .values()
+            .flat_map(|r| r.iter())
+            .filter(move |c| c.scope == scope)
+    }
+
     /// Run all check runners in order of priority.
-    pub(super) fn run(&self, target: &Target, filter: &mut ReportFilter) {
-        for runner in self.runners.values() {
-            runner.run(target, filter);
+    pub(super) fn run(&self, target: Target, filter: &mut ReportFilter) {
+        for (source, runner) in &self.runners {
+            match (runner, &target) {
+                (CheckRunner::EbuildPkg(r), Target::Cpn(cpn)) => r.run_cpn(cpn, filter),
+                (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_cpn(cpn, filter),
+                (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_cpn(cpn, filter),
+                (CheckRunner::Cpv(r), Target::Cpn(cpn)) => r.run_cpn(cpn, filter),
+                _ => trace!("skipping incompatible target {target} for source: {source:?}"),
+            }
+        }
+    }
+
+    /// Run a specific check.
+    pub(super) fn run_check(&self, check: Check, target: Target, filter: &mut ReportFilter) {
+        if let Some(runner) = self.runners.get(&check.source) {
+            match (runner, &target) {
+                (CheckRunner::EbuildPkg(r), Target::Cpv(cpv)) => r.run_cpv(&check, cpv, filter),
+                (CheckRunner::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(&check, cpn, filter),
+                (CheckRunner::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_cpv(&check, cpv, filter),
+                (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_cpv(&check, cpv, filter),
+                _ => panic!("incompatible target {target} for check: {check}"),
+            }
         }
     }
 }
 
 /// Generic check runners.
-// TODO: remove the lint ignore once more variants are added
-#[allow(clippy::enum_variant_names)]
 enum CheckRunner {
     EbuildPkg(EbuildPkgCheckRunner),
     EbuildRawPkg(EbuildRawPkgCheckRunner),
@@ -82,6 +108,16 @@ impl CheckRunner {
         }
     }
 
+    /// Return the iterator of registered checks.
+    fn iter(&self) -> Box<dyn Iterator<Item = Check> + '_> {
+        match self {
+            Self::EbuildPkg(r) => Box::new(r.iter()),
+            Self::EbuildRawPkg(r) => Box::new(r.iter()),
+            Self::Cpn(r) => Box::new(r.iter()),
+            Self::Cpv(r) => Box::new(r.iter()),
+        }
+    }
+
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
         match self {
@@ -89,16 +125,6 @@ impl CheckRunner {
             Self::EbuildRawPkg(r) => r.add_check(check),
             Self::Cpn(r) => r.add_check(check),
             Self::Cpv(r) => r.add_check(check),
-        }
-    }
-
-    /// Run the check runner for a given restriction.
-    fn run(&self, target: &Target, filter: &mut ReportFilter) {
-        match self {
-            Self::EbuildPkg(r) => r.run(target, filter),
-            Self::EbuildRawPkg(r) => r.run(target, filter),
-            Self::Cpn(r) => r.run(target, filter),
-            Self::Cpv(r) => r.run(target, filter),
         }
     }
 }
@@ -135,11 +161,19 @@ impl EbuildPkgCheckRunner {
         }
     }
 
-    /// Run the check runner for a given restriction.
-    fn run(&self, target: &Target, filter: &mut ReportFilter) {
+    /// Return the iterator of registered checks.
+    fn iter(&self) -> impl Iterator<Item = Check> + '_ {
+        self.pkg_checks
+            .keys()
+            .chain(self.pkg_set_checks.keys())
+            .cloned()
+    }
+
+    /// Run the check runner for a given Cpn.
+    fn run_cpn(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         let mut pkgs = vec![];
 
-        for pkg in self.source.iter_restrict(target) {
+        for pkg in self.source.iter_restrict(cpn) {
             for (check, runner) in &self.pkg_checks {
                 let now = Instant::now();
                 runner.run(&pkg, filter);
@@ -151,13 +185,32 @@ impl EbuildPkgCheckRunner {
             }
         }
 
-        if let Target::Cpn(cpn) = target {
-            if !pkgs.is_empty() {
-                for (check, runner) in &self.pkg_set_checks {
-                    let now = Instant::now();
-                    runner.run(cpn, &pkgs, filter);
-                    debug!("{check}: {cpn}: {:?}", now.elapsed());
-                }
+        if !pkgs.is_empty() {
+            for (check, runner) in &self.pkg_set_checks {
+                let now = Instant::now();
+                runner.run(cpn, &pkgs, filter);
+                debug!("{check}: {cpn}: {:?}", now.elapsed());
+            }
+        }
+    }
+
+    /// Run a specific check for a given package set.
+    fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
+        if let Some(runner) = self.pkg_set_checks.get(check) {
+            let pkgs: Vec<_> = self.source.iter_restrict(cpn).collect();
+            let now = Instant::now();
+            runner.run(cpn, &pkgs, filter);
+            debug!("{check}: {cpn}: {:?}", now.elapsed());
+        }
+    }
+
+    /// Run a specific check for a given Cpv.
+    fn run_cpv(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+        if let Some(runner) = self.pkg_checks.get(check) {
+            for pkg in self.source.iter_restrict(cpv) {
+                let now = Instant::now();
+                runner.run(&pkg, filter);
+                debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
         }
     }
@@ -189,14 +242,31 @@ impl EbuildRawPkgCheckRunner {
         }
     }
 
-    /// Run the check runner for a given restriction.
-    fn run(&self, target: &Target, filter: &mut ReportFilter) {
-        for pkg in self.source.iter_restrict(target) {
+    /// Return the iterator of registered checks.
+    fn iter(&self) -> impl Iterator<Item = Check> + '_ {
+        self.checks.keys().cloned()
+    }
+
+    /// Run the check runner for a given Cpn.
+    fn run_cpn(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        for pkg in self.source.iter_restrict(cpn) {
             let tree = bash::lazy_parse(pkg.data().as_bytes());
             for (check, runner) in &self.checks {
                 let now = Instant::now();
                 runner.run(&pkg, &tree, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
+            }
+        }
+    }
+
+    /// Run a specific check for a given Cpv.
+    fn run_cpv(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+        if let Some(runner) = self.checks.get(check) {
+            for pkg in self.source.iter_restrict(cpv) {
+                let tree = bash::lazy_parse(pkg.data().as_bytes());
+                let now = Instant::now();
+                runner.run(&pkg, &tree, filter);
+                debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
         }
     }
@@ -226,14 +296,17 @@ impl CpnCheckRunner {
         }
     }
 
-    /// Run the check runner for a given restriction.
-    fn run(&self, target: &Target, filter: &mut ReportFilter) {
-        if let Target::Cpn(cpn) = target {
-            for (check, runner) in &self.checks {
-                let now = Instant::now();
-                runner.run(cpn, filter);
-                debug!("{check}: {cpn}: {:?}", now.elapsed());
-            }
+    /// Return the iterator of registered checks.
+    fn iter(&self) -> impl Iterator<Item = Check> + '_ {
+        self.checks.keys().cloned()
+    }
+
+    /// Run the check runner for a given Cpn.
+    fn run_cpn(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        for (check, runner) in &self.checks {
+            let now = Instant::now();
+            runner.run(cpn, filter);
+            debug!("{check}: {cpn}: {:?}", now.elapsed());
         }
     }
 }
@@ -262,19 +335,28 @@ impl CpvCheckRunner {
         }
     }
 
-    /// Run the check runner for a given restriction.
-    fn run(&self, target: &Target, filter: &mut ReportFilter) {
-        let cpvs = match target {
-            Target::Cpn(cpn) => Either::Left(self.repo.iter_cpv_restrict(cpn)),
-            Target::Cpv(cpv) => Either::Right([cpv.clone()].into_iter()),
-        };
+    /// Return the iterator of registered checks.
+    fn iter(&self) -> impl Iterator<Item = Check> + '_ {
+        self.checks.keys().cloned()
+    }
 
-        for cpv in cpvs {
+    /// Run the check runner for a given Cpn.
+    fn run_cpn(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        for cpv in self.repo.iter_cpv_restrict(cpn) {
             for (check, runner) in &self.checks {
                 let now = Instant::now();
                 runner.run(&cpv, filter);
                 debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
+        }
+    }
+
+    /// Run a specific check for a given Cpv.
+    fn run_cpv(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+        if let Some(runner) = self.checks.get(check) {
+            let now = Instant::now();
+            runner.run(cpv, filter);
+            debug!("{check}: {cpv}: {:?}", now.elapsed());
         }
     }
 }

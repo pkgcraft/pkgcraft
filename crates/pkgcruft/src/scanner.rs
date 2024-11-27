@@ -122,54 +122,61 @@ impl Scanner {
         let scan_scope = Scope::from(&restrict);
         info!("scan scope: {scan_scope}");
 
-        let (restrict_tx, restrict_rx) = bounded(self.jobs);
-        let (reports_tx, reports_rx) = bounded(self.jobs);
-        let filter = ReportFilter {
-            reports: Default::default(),
-            filter: self.reports.clone(),
-            exit: self.exit.clone(),
-            failed: self.failed.clone(),
-            tx: reports_tx,
-        };
-
         match repo {
             Repo::Ebuild(repo) => {
-                // run checks
                 let runner = Arc::new(SyncCheckRunner::new(repo, &self.filters, &self.checks));
-                Box::new(Iter {
-                    reports_rx,
-                    _producer: producer(repo, restrict, restrict_tx),
-                    _workers: (0..self.jobs)
-                        .map(|_| worker(runner.clone(), filter.clone(), restrict_rx.clone()))
-                        .collect(),
-                    reports: Default::default(),
-                })
+                if scan_scope >= Scope::Category {
+                    // parallel by package
+                    let (restrict_tx, restrict_rx) = bounded(self.jobs);
+                    let (reports_tx, reports_rx) = bounded(self.jobs);
+                    let filter = ReportFilter {
+                        reports: Default::default(),
+                        filter: self.reports.clone(),
+                        exit: self.exit.clone(),
+                        failed: self.failed.clone(),
+                        pkg_tx: Some(reports_tx),
+                        version_tx: None,
+                    };
+
+                    Box::new(IterPkg {
+                        reports_rx,
+                        _producer: pkg_producer(repo, restrict, restrict_tx),
+                        _workers: (0..self.jobs)
+                            .map(|_| {
+                                pkg_worker(runner.clone(), filter.clone(), restrict_rx.clone())
+                            })
+                            .collect(),
+                        reports: Default::default(),
+                    })
+                } else {
+                    // parallel by check
+                    let (restrict_tx, restrict_rx) = bounded(self.jobs);
+                    let (reports_tx, reports_rx) = bounded(self.jobs);
+                    let filter = ReportFilter {
+                        reports: Default::default(),
+                        filter: self.reports.clone(),
+                        exit: self.exit.clone(),
+                        failed: self.failed.clone(),
+                        pkg_tx: None,
+                        version_tx: Some(reports_tx),
+                    };
+
+                    Box::new(IterVersion {
+                        reports_rx,
+                        _producer: version_producer(repo, runner.clone(), restrict, restrict_tx),
+                        _workers: (0..self.jobs)
+                            .map(|_| {
+                                version_worker(runner.clone(), filter.clone(), restrict_rx.clone())
+                            })
+                            .collect(),
+                        reports: Default::default(),
+                        finished: false,
+                    })
+                }
             }
             _ => todo!("add support for other repo types"),
         }
     }
-}
-
-/// Create a producer thread that sends targets over a channel to workers.
-fn producer(
-    repo: &'static EbuildRepo,
-    restrict: Restrict,
-    tx: Sender<Target>,
-) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
-        let mut unversioned = false;
-
-        for cpn in repo.iter_cpn_restrict(&restrict) {
-            unversioned = true;
-            tx.send(Target::Cpn(cpn)).ok();
-        }
-
-        if !unversioned {
-            for cpv in repo.iter_cpv_restrict(&restrict) {
-                tx.send(Target::Cpv(cpv)).ok();
-            }
-        }
-    })
 }
 
 #[derive(Clone)]
@@ -178,7 +185,8 @@ pub(crate) struct ReportFilter {
     filter: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
     failed: Arc<AtomicBool>,
-    tx: Sender<Vec<Report>>,
+    pkg_tx: Option<Sender<Vec<Report>>>,
+    version_tx: Option<Sender<Report>>,
 }
 
 impl ReportFilter {
@@ -189,41 +197,60 @@ impl ReportFilter {
                 self.failed.store(true, Ordering::Relaxed);
             }
 
-            self.reports.push(report);
+            if let Some(tx) = &self.version_tx {
+                tx.send(report).ok();
+            } else {
+                self.reports.push(report);
+            }
         }
     }
 
     /// Sort existing reports and send them to the iterator.
     fn process(&mut self) {
         if !self.reports.is_empty() {
-            self.reports.sort();
-            self.tx.send(mem::take(&mut self.reports)).ok();
+            if let Some(tx) = &self.pkg_tx {
+                self.reports.sort();
+                tx.send(mem::take(&mut self.reports)).ok();
+            }
         }
     }
 }
 
-/// Create worker thread that receives restrictions and send reports over the channel.
-fn worker(
+/// Create a producer thread that sends package targets over a channel to workers.
+fn pkg_producer(
+    repo: &'static EbuildRepo,
+    restrict: Restrict,
+    tx: Sender<Target>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        for cpn in repo.iter_cpn_restrict(&restrict) {
+            tx.send(Target::Cpn(cpn)).ok();
+        }
+    })
+}
+
+/// Create worker thread that parallelizes check running at a package level.
+fn pkg_worker(
     runner: Arc<SyncCheckRunner>,
     mut filter: ReportFilter,
     rx: Receiver<Target>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for target in rx {
-            runner.run(&target, &mut filter);
+            runner.run(target, &mut filter);
             filter.process();
         }
     })
 }
 
-struct Iter {
+struct IterPkg {
     reports_rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
     reports: VecDeque<Report>,
 }
 
-impl Iterator for Iter {
+impl Iterator for IterPkg {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -234,6 +261,64 @@ impl Iterator for Iter {
                 self.next()
             })
         })
+    }
+}
+
+/// Create a producer thread that sends checks with targets over a channel to workers.
+fn version_producer(
+    repo: &'static EbuildRepo,
+    runner: Arc<SyncCheckRunner>,
+    restrict: Restrict,
+    tx: Sender<(Check, Target)>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        for cpv in repo.iter_cpv_restrict(&restrict) {
+            for check in runner.checks(Scope::Version) {
+                tx.send((check, Target::Cpv(cpv.clone()))).ok();
+            }
+        }
+
+        // TODO: re-use object sets generated by versioned checks
+        for cpn in repo.iter_cpn_restrict(&restrict) {
+            for check in runner.checks(Scope::Package) {
+                tx.send((check, Target::Cpn(cpn.clone()))).ok();
+            }
+        }
+    })
+}
+
+/// Create worker thread that parallelizes check running at a version level.
+fn version_worker(
+    runner: Arc<SyncCheckRunner>,
+    mut filter: ReportFilter,
+    rx: Receiver<(Check, Target)>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        for (check, target) in rx {
+            runner.run_check(check, target, &mut filter);
+        }
+    })
+}
+
+struct IterVersion {
+    reports_rx: Receiver<Report>,
+    _producer: thread::JoinHandle<()>,
+    _workers: Vec<thread::JoinHandle<()>>,
+    reports: Vec<Report>,
+    finished: bool,
+}
+
+impl Iterator for IterVersion {
+    type Item = Report;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.finished {
+            self.reports.extend(&self.reports_rx);
+            self.reports.sort_by(|r1, r2| r2.cmp(r1));
+            self.finished = true;
+        }
+
+        self.reports.pop()
     }
 }
 
