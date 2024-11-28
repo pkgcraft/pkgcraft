@@ -3,12 +3,11 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
 use pkgcraft::dep::{Cpv, Flatten};
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::{Intersects, LogErrors};
-
-use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {

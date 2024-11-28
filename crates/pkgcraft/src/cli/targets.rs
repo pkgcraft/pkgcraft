@@ -5,6 +5,7 @@ use camino::Utf8Path;
 use crate::config::Config;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::Pkg;
+use crate::repo::ebuild::EbuildRepo;
 use crate::repo::set::RepoSet;
 use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -12,6 +13,25 @@ use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
 use crate::utils::current_dir;
 use crate::Error;
+
+/// Convert a target ebuild repo arg into an ebuild repo reference.
+pub fn target_ebuild_repo(config: &mut Config, target: &str) -> crate::Result<EbuildRepo> {
+    let id = if config.repos.get(target).is_some() {
+        target.to_string()
+    } else if let Ok(abspath) = Utf8Path::new(target).canonicalize_utf8() {
+        config.add_repo_path(&abspath, &abspath, 0, true)?;
+        abspath.to_string()
+    } else {
+        return Err(Error::InvalidValue(format!("unknown repo: {target}")));
+    };
+
+    config
+        .repos
+        .get(&id)
+        .and_then(|r| r.as_ebuild())
+        .cloned()
+        .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {target}")))
+}
 
 pub struct TargetRestrictions<'a> {
     config: &'a mut Config,

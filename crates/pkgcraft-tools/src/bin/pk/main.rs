@@ -7,7 +7,6 @@ use pkgcraft::cli::reset_sigpipe;
 use pkgcraft::config::Config;
 use tracing_log::AsTrace;
 
-mod args;
 mod format;
 mod subcmds;
 

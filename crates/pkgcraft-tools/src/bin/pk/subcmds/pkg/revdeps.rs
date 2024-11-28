@@ -3,12 +3,10 @@ use std::process::ExitCode;
 
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::cli::MaybeStdinVec;
+use pkgcraft::cli::{target_ebuild_repo, MaybeStdinVec};
 use pkgcraft::config::Config;
 use pkgcraft::dep::{CpvOrDep, Flatten};
 use pkgcraft::traits::{Intersects, LogErrors};
-
-use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {

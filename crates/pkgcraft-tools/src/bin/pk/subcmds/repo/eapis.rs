@@ -4,12 +4,11 @@ use std::process::ExitCode;
 
 use clap::Args;
 use itertools::Itertools;
+use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
 use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::LogErrors;
-
-use crate::args::target_ebuild_repo;
 
 #[derive(Debug, Args)]
 pub(crate) struct Command {
