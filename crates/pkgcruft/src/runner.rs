@@ -5,7 +5,7 @@ use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use tracing::{debug, trace};
+use tracing::{debug, trace, warn};
 
 use crate::bash;
 use crate::check::*;
@@ -31,7 +31,7 @@ impl SyncCheckRunner {
             .iter()
             .filter(|c| {
                 if !filters.is_empty() && c.scope != Scope::Version {
-                    debug!("{c}: disabled due to package filtering");
+                    warn!("{c}: disabled due to package filtering");
                     false
                 } else {
                     true
