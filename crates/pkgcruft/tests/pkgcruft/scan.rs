@@ -405,7 +405,7 @@ fn filters() {
     for opt in ["-f", "--filters"] {
         // invalid
         cmd("pkgcruft scan -R json")
-            .args([opt, "invalid"])
+            .args([opt, "@invalid"])
             .args(["-r", "HeaderInvalid"])
             .arg(&gentoo_repo_path)
             .assert()
@@ -428,7 +428,7 @@ fn filters() {
         // valid and invalid
         cmd("pkgcruft scan -R json")
             .args([opt, "latest"])
-            .args([opt, "invalid"])
+            .args([opt, "@invalid"])
             .args(["-r", "HeaderInvalid"])
             .arg(&gentoo_repo_path)
             .assert()

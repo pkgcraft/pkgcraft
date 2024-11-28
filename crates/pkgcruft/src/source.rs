@@ -127,6 +127,11 @@ impl FromStr for PkgFilter {
                 .map(|r| Self::Restrict(inverted, r))
                 .map_err(|e| Error::InvalidValue(format!("{e}"))),
             s => {
+                // support dep restrictions
+                if let Ok(r) = restrict::parse::dep(s) {
+                    return Ok(Self::Restrict(inverted, r));
+                }
+
                 let possible = Self::iter()
                     .filter(|r| !matches!(r, Self::Restrict(_, _)))
                     .map(|r| r.as_ref().color(Color::Green))
@@ -135,7 +140,12 @@ impl FromStr for PkgFilter {
                     invalid filter: {s}
                       [possible values: {possible}]
 
-                    Custom restrictions are also supported. For example, to target all packages
+                    Dep restrictions are supported, for example the following will scan
+                    all packages in the sys-devel category:
+
+                    pkgcruft scan -f 'sys-devel/*'
+
+                    Custom restrictions are supported, for example to target all packages
                     maintained by the python project use the following command:
 
                     pkgcruft scan -f "maintainers any email == 'python@gentoo.org'""#};
