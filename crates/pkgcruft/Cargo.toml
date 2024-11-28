@@ -36,7 +36,7 @@ harness = false
 anyhow = "1.0.93"
 camino = "1.1.9"
 clap = { version = "4.5.21", features = ["derive", "string"] }
-clap-verbosity-flag = "3.0.0"
+clap-verbosity-flag = "3.0.1"
 colored = "2.1.0"
 crossbeam-channel = "0.5.13"
 indexmap = { version = "2.6.0", features = ["serde"] }
@@ -50,7 +50,7 @@ serde_json = "1.0.133"
 strfmt = "0.2.4"
 strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "2.0.3"
-tracing = "0.1.40"
+tracing = "0.1.41"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.18"
 tree-sitter = "0.24.4"
