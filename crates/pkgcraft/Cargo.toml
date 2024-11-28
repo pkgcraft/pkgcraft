@@ -59,7 +59,7 @@ regex = "1.11.1"
 reqwest = { version = "0.12.9", default-features = false, features = ["rustls-tls", "stream"], optional = true }
 roxmltree = "0.20.0"
 rust-ini = "0.21.1"
-scallop = { path = "../scallop", version = "0.0.19" }
+scallop = { path = "../scallop", version = "0.0.18" }
 serde = { version = "1.0.215", features = ["derive"] }
 serde_with = { version = "3.11.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
