@@ -97,17 +97,18 @@ mod tests {
     fn check() {
         // gentoo unfixed
         let data = test_data();
-        let repo = data.repo("gentoo").unwrap();
+        let repo = data.ebuild_repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
-        let scanner = Scanner::new().checks([CHECK]);
+        let scanner = Scanner::new(repo).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
         let data = test_data_patched();
-        let repo = data.repo("gentoo").unwrap();
-        let reports = scanner.run(repo, repo).unwrap();
+        let repo = data.ebuild_repo("gentoo").unwrap();
+        let scanner = Scanner::new(repo).checks([CHECK]);
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }

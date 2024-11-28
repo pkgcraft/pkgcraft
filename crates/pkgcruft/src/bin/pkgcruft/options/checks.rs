@@ -5,6 +5,7 @@ use clap::Args;
 use colored::{Color, Colorize};
 use indexmap::IndexSet;
 use itertools::Itertools;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcruft::check::{Check, CheckKind};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
@@ -101,37 +102,39 @@ pub(crate) struct Checks {
 
 impl Checks {
     pub(crate) fn collapse(
-        mut self,
-        scan: bool,
+        &self,
+        target_repo: Option<&EbuildRepo>,
     ) -> pkgcruft::Result<(IndexSet<Check>, IndexSet<ReportKind>)> {
+        let mut defaults = true;
+        let mut checks: IndexSet<_> = Check::iter_default(target_repo).collect();
+        let default_reports: IndexSet<_> = checks.iter().flat_map(|x| x.reports).collect();
+
         // determine enabled check set
-        let mut checks: IndexSet<_> = Check::iter_default().collect();
         if !self.checks.is_empty() {
             // sort checks by variant
-            self.checks.sort();
+            let selected_checks: Vec<_> = self.checks.iter().copied().sorted().collect();
 
             // don't use default checks if neutral options exist
-            if let Some(TriStateCheck::Set(_)) = self.checks.first() {
+            if let Some(TriStateCheck::Set(_)) = selected_checks.first() {
                 checks = Default::default();
             }
 
-            for x in &self.checks {
+            for x in selected_checks {
                 match x {
-                    TriStateCheck::Set(val) => checks.insert(*val),
-                    TriStateCheck::Add(val) => checks.insert(*val),
-                    TriStateCheck::Remove(val) => checks.swap_remove(val),
+                    TriStateCheck::Set(val) => checks.insert(val),
+                    TriStateCheck::Add(val) => checks.insert(val),
+                    TriStateCheck::Remove(val) => checks.swap_remove(&val),
                 };
             }
         }
 
         // determine enabled report set
-        let mut default_reports = true;
         let mut reports: IndexSet<_> = if !self.reports.is_empty() {
-            default_reports = false;
-            self.reports.into_iter().collect()
+            defaults = false;
+            self.reports.iter().copied().collect()
         } else if !self.checks.is_empty() {
             // enable reports related to enabled checks
-            default_reports = false;
+            defaults = false;
             checks.iter().flat_map(|x| x.reports).copied().collect()
         } else {
             Default::default()
@@ -139,20 +142,26 @@ impl Checks {
 
         // enable reports related to levels
         if !self.levels.is_empty() {
-            let levels: IndexSet<_> = self.levels.into_iter().collect();
-            reports.extend(ReportKind::iter().filter(|r| levels.contains(&r.level())));
-            default_reports = false;
+            let levels: IndexSet<_> = self.levels.iter().collect();
+            reports.extend(
+                default_reports
+                    .iter()
+                    .filter(|r| levels.contains(&r.level()))
+                    .copied(),
+            );
+            defaults = false;
         }
 
         // enable reports related to check scope
         if !self.scopes.is_empty() {
-            let scopes: IndexSet<_> = self.scopes.into_iter().collect();
+            let scopes: IndexSet<_> = self.scopes.iter().collect();
             reports.extend(
                 Check::iter()
                     .filter(|c| scopes.contains(&c.scope))
-                    .flat_map(|c| c.reports),
+                    .flat_map(|c| c.reports)
+                    .filter(|r| default_reports.contains(r)),
             );
-            default_reports = false;
+            defaults = false;
         }
 
         // enable reports related to sources
@@ -160,15 +169,16 @@ impl Checks {
             reports.extend(
                 self.sources
                     .iter()
-                    .flat_map(|s| Check::iter_source(s).flat_map(|x| x.reports)),
+                    .flat_map(|s| Check::iter_source(s).flat_map(|x| x.reports))
+                    .filter(|r| default_reports.contains(r)),
             );
-            default_reports = false;
+            defaults = false;
         }
 
         // default to all reports skipping those from optional checks when scanning
-        if default_reports {
-            if scan {
-                reports.extend(Check::iter_default().flat_map(|x| x.reports));
+        if defaults {
+            if target_repo.is_some() {
+                reports.extend(Check::iter_default(target_repo).flat_map(|x| x.reports));
             } else {
                 reports.extend(ReportKind::iter());
             }
@@ -182,6 +192,8 @@ impl Checks {
         if checks.is_empty() {
             Err(Error::InvalidValue("no checks selected".to_string()))
         } else {
+            checks.sort();
+            reports.sort();
             Ok((checks, reports))
         }
     }
@@ -190,7 +202,7 @@ impl Checks {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use pkgcraft::test::{assert_err_re, assert_ordered_eq};
+    use pkgcraft::test::{assert_err_re, assert_ordered_eq, test_data};
 
     use super::*;
 
@@ -205,54 +217,58 @@ mod tests {
         // verify checks and reports options don't affect each other when both are specified
         let cmd = Command::try_parse_from(["cmd", "-c", "Dependency", "-r", "DependencyInvalid"])
             .unwrap();
-        let (checks, reports) = cmd.checks.collapse(false).unwrap();
+        let (checks, reports) = cmd.checks.collapse(None).unwrap();
         assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
         assert_ordered_eq!(reports.iter().map(|x| x.as_ref()), ["DependencyInvalid"]);
 
         // reports are populated by checks when unspecified
         let cmd = Command::try_parse_from(["cmd", "-c", "Dependency"]).unwrap();
-        let (checks, reports) = cmd.checks.collapse(false).unwrap();
+        let (checks, reports) = cmd.checks.collapse(None).unwrap();
         assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
         assert!(!reports.is_empty());
 
         // only enable checks related to specified reports
         let cmd = Command::try_parse_from(["cmd", "-r", "DependencyDeprecated"]).unwrap();
-        let (checks, reports) = cmd.checks.collapse(false).unwrap();
+        let (checks, reports) = cmd.checks.collapse(None).unwrap();
         assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
         assert!(!reports.is_empty());
 
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+
         // verify UnstableOnly is an optional check
         assert!(Check::iter().any(|x| x.as_ref() == "UnstableOnly"));
-        assert!(!Check::iter_default().any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(!Check::iter_default(None).any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(!Check::iter_default(Some(repo)).any(|x| x.as_ref() == "UnstableOnly"));
 
         // default checks
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let (checks, _) = cmd.checks.collapse(true).unwrap();
+        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
         assert!(checks.iter().any(|x| x.as_ref() == "Dependency"));
         // optional checks aren't run by default when scanning
         assert!(!checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
 
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly"]).unwrap();
-        let (checks, _) = cmd.checks.collapse(true).unwrap();
+        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
         assert!(checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
         assert!(checks.len() > 1);
 
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency"]).unwrap();
-        let (checks, _) = cmd.checks.collapse(true).unwrap();
+        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
         assert!(!checks.iter().any(|x| x.as_ref() == "Dependency"));
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency,+Dependency"]).unwrap();
-        let (checks, _) = cmd.checks.collapse(true).unwrap();
+        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
         assert!(!checks.iter().any(|x| x.as_ref() == "Dependency"));
         assert!(checks.len() > 1);
 
         // error when args cancel out
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency,Dependency"]).unwrap();
-        assert!(cmd.checks.collapse(true).is_err());
+        assert!(cmd.checks.collapse(Some(repo)).is_err());
 
         // invalid check names in args
         for arg in ["-c=unknown", "-c=-unknown", "-c=+unknown"] {

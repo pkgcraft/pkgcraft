@@ -73,18 +73,19 @@ mod tests {
     fn check() {
         // primary unfixed
         let data = test_data();
-        let repo = data.repo("qa-primary").unwrap();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK);
         let report_dir = repo.path().join("virtual/LicenseUnneeded");
-        let scanner = Scanner::new().checks([CHECK]);
+        let scanner = Scanner::new(repo).checks([CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json", "{report_dir}/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // primary fixed
         let data = test_data_patched();
-        let repo = data.repo("qa-primary").unwrap();
-        let reports = scanner.run(repo, repo).unwrap();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let scanner = Scanner::new(repo).checks([CHECK]);
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }

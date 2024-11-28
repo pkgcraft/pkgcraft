@@ -191,8 +191,13 @@ impl Check {
     }
 
     /// Return an iterator of all checks enabled by default.
-    pub fn iter_default() -> impl Iterator<Item = Check> {
-        Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional))
+    pub fn iter_default(target_repo: Option<&EbuildRepo>) -> Box<dyn Iterator<Item = Check> + '_> {
+        let selected = IndexSet::new();
+        if let Some(repo) = target_repo {
+            Box::new(Check::iter().filter(move |x| x.enabled(repo, &selected)))
+        } else {
+            Box::new(Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional)))
+        }
     }
 
     /// Return an iterator of checks that generate a given report.

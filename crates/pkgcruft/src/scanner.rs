@@ -6,7 +6,7 @@ use std::{iter, mem, thread};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository, Repo};
+use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
@@ -26,24 +26,22 @@ pub struct Scanner {
     exit: Arc<IndexSet<ReportKind>>,
     filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
-}
-
-impl Default for Scanner {
-    fn default() -> Self {
-        Self::new()
-    }
+    repo: &'static EbuildRepo,
 }
 
 impl Scanner {
     /// Create a new scanner.
-    pub fn new() -> Self {
+    pub fn new(repo: &EbuildRepo) -> Self {
+        // TODO: drop forced static lifetime once repo handling is improved
+        let repo: &'static EbuildRepo = unsafe { mem::transmute(repo) };
         Self {
             jobs: bounded_jobs(0),
-            checks: Check::iter_default().collect(),
+            checks: Check::iter_default(Some(repo)).collect(),
             reports: Arc::new(ReportKind::iter().collect()),
             exit: Arc::new(Default::default()),
             filters: Default::default(),
             failed: Arc::new(Default::default()),
+            repo,
         }
     }
 
@@ -96,29 +94,10 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<T>(
-        &self,
-        repo: &Repo,
-        restrict: T,
-    ) -> crate::Result<Box<dyn Iterator<Item = Report>>>
+    pub fn run<T>(&self, restrict: T) -> crate::Result<Box<dyn Iterator<Item = Report>>>
     where
         T: Into<Restrict>,
     {
-        // TODO: Drop this hack once lifetime handling is improved for thread usage.
-        // Currently, it's not possible to use std::thread::scope() as the related Scope
-        // objects can't be stored without self-referential issues. Also, this is much
-        // easier than passing Arc-wrapped repo objects down to checks which then can have
-        // more self-referencing issues if they pre-process repo data without cloning it.
-        //
-        // In addition, note that Box::leak() shouldn't be used internally as that leaks a
-        // pointer per call (or require hacks anyway to drop the leaked reference) causing
-        // issues with long running services.
-        //
-        // An alternative would be to externally leak the references outside potential
-        // loops with a passed in static reference; however, that makes the API worse and
-        // this workaround shouldn't cause any issues to make that pain worth it.
-        let repo: &'static Repo = unsafe { mem::transmute(repo) };
-
         // return early for static, non-matching restriction
         let restrict = restrict.into();
         if restrict == Restrict::False {
@@ -128,64 +107,53 @@ impl Scanner {
         let scope = Scope::from(&restrict);
         info!("scan scope: {scope}");
 
-        match repo {
-            Repo::Ebuild(repo) => {
-                let runner = Arc::new(SyncCheckRunner::new(repo, &self.filters, &self.checks));
-                if scope >= Scope::Category {
-                    // parallel by package
-                    let (restrict_tx, restrict_rx) = bounded(self.jobs);
-                    let (reports_tx, reports_rx) = bounded(self.jobs);
-                    let filter = ReportFilter {
-                        reports: Default::default(),
-                        filter: self.reports.clone(),
-                        exit: self.exit.clone(),
-                        failed: self.failed.clone(),
-                        pkg_tx: Some(reports_tx),
-                        version_tx: None,
-                    };
+        let runner = Arc::new(SyncCheckRunner::new(self.repo, &self.filters, &self.checks));
+        if scope >= Scope::Category {
+            // parallel by package
+            let (restrict_tx, restrict_rx) = bounded(self.jobs);
+            let (reports_tx, reports_rx) = bounded(self.jobs);
+            let filter = ReportFilter {
+                reports: Default::default(),
+                filter: self.reports.clone(),
+                exit: self.exit.clone(),
+                failed: self.failed.clone(),
+                pkg_tx: Some(reports_tx),
+                version_tx: None,
+            };
 
-                    Ok(Box::new(IterPkg {
-                        rx: reports_rx,
-                        _producer: pkg_producer(repo, restrict, restrict_tx),
-                        _workers: (0..self.jobs)
-                            .map(|_| {
-                                pkg_worker(runner.clone(), filter.clone(), restrict_rx.clone())
-                            })
-                            .collect(),
-                        reports: Default::default(),
-                    }))
-                } else {
-                    // parallel by check
-                    if !self.filters.is_empty() {
-                        return Err(Error::InvalidValue(format!(
-                            "filters unsupported in {scope} scope"
-                        )));
-                    }
-
-                    let (restrict_tx, restrict_rx) = bounded(self.jobs);
-                    let (reports_tx, reports_rx) = bounded(self.jobs);
-                    let filter = ReportFilter {
-                        reports: Default::default(),
-                        filter: self.reports.clone(),
-                        exit: self.exit.clone(),
-                        failed: self.failed.clone(),
-                        pkg_tx: None,
-                        version_tx: Some(reports_tx),
-                    };
-
-                    Ok(Box::new(IterVersion {
-                        rx: reports_rx,
-                        _producer: version_producer(repo, runner.clone(), restrict, restrict_tx),
-                        _workers: (0..self.jobs)
-                            .map(|_| {
-                                version_worker(runner.clone(), filter.clone(), restrict_rx.clone())
-                            })
-                            .collect(),
-                        reports: Default::default(),
-                    }))
-                }
+            Ok(Box::new(IterPkg {
+                rx: reports_rx,
+                _producer: pkg_producer(self.repo, restrict, restrict_tx),
+                _workers: (0..self.jobs)
+                    .map(|_| pkg_worker(runner.clone(), filter.clone(), restrict_rx.clone()))
+                    .collect(),
+                reports: Default::default(),
+            }))
+        } else {
+            // parallel by check
+            if !self.filters.is_empty() {
+                return Err(Error::InvalidValue(format!("filters unsupported in {scope} scope")));
             }
-            _ => todo!("add support for other repo types"),
+
+            let (restrict_tx, restrict_rx) = bounded(self.jobs);
+            let (reports_tx, reports_rx) = bounded(self.jobs);
+            let filter = ReportFilter {
+                reports: Default::default(),
+                filter: self.reports.clone(),
+                exit: self.exit.clone(),
+                failed: self.failed.clone(),
+                pkg_tx: None,
+                version_tx: Some(reports_tx),
+            };
+
+            Ok(Box::new(IterVersion {
+                rx: reports_rx,
+                _producer: version_producer(self.repo, runner.clone(), restrict, restrict_tx),
+                _workers: (0..self.jobs)
+                    .map(|_| version_worker(runner.clone(), filter.clone(), restrict_rx.clone()))
+                    .collect(),
+                reports: Default::default(),
+            }))
         }
     }
 }
@@ -345,95 +313,94 @@ mod tests {
     #[test]
     fn run() {
         let data = test_data();
-        let repo = data.repo("qa-primary").unwrap();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
         let repo_path = repo.path();
 
         // repo target
-        let scanner = Scanner::new();
+        let scanner = Scanner::new(repo);
         let expected = glob_reports!("{repo_path}/**/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // category target
-        let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/Keywords/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords").unwrap();
-        let reports = scanner.run(repo, restrict).unwrap();
+        let reports = scanner.run(restrict).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // package target
-        let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/Dependency/DependencyInvalid/reports.json");
         let restrict = repo
             .restrict_from_path("Dependency/DependencyInvalid")
             .unwrap();
-        let reports = scanner.run(repo, restrict).unwrap();
+        let reports = scanner.run(restrict).unwrap();
         assert_ordered_eq!(reports, expected);
 
         // version target
-        let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/Whitespace/WhitespaceInvalid/reports.json");
         let restrict = repo
             .restrict_from_path("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild")
             .unwrap();
-        let reports = scanner.run(repo, restrict).unwrap();
+        let reports = scanner.run(restrict).unwrap();
         assert_ordered_eq!(reports, expected);
 
         // specific checks
-        let scanner = Scanner::new().checks([CheckKind::Dependency]);
+        let scanner = Scanner::new(repo).checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // specific reports
-        let scanner = Scanner::new().reports([ReportKind::DependencyDeprecated]);
+        let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
         let expected = glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // no checks
         let checks: [Check; 0] = [];
-        let scanner = Scanner::new().checks(checks);
-        let reports = scanner.run(repo, repo).unwrap();
+        let scanner = Scanner::new(repo).checks(checks);
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
 
         // no reports
-        let scanner = Scanner::new().reports([]);
-        let reports = scanner.run(repo, repo).unwrap();
+        let scanner = Scanner::new(repo).reports([]);
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
 
         // non-matching restriction
-        let scanner = Scanner::new();
+        let scanner = Scanner::new(repo);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports = scanner.run(repo, &dep).unwrap();
+        let reports = scanner.run(&dep).unwrap();
         assert_unordered_eq!(reports, []);
 
         // repo with bad metadata
-        let repo = data.repo("bad").unwrap();
+        let repo = data.ebuild_repo("bad").unwrap();
         let repo_path = repo.path();
+        let scanner = Scanner::new(repo);
         let expected = glob_reports!("{repo_path}/**/reports.json");
-        let reports = scanner.run(repo, repo).unwrap();
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // empty repo
-        let repo = data.repo("empty").unwrap();
-        let reports = scanner.run(repo, repo).unwrap();
+        let repo = data.ebuild_repo("empty").unwrap();
+        let scanner = Scanner::new(repo);
+        let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 
     #[test]
     fn failed() {
         let data = test_data();
-        let repo = data.repo("qa-primary").unwrap();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
 
         // no reports flagged for failures
-        let scanner = Scanner::new();
-        scanner.run(repo, repo).unwrap().count();
+        let scanner = Scanner::new(repo);
+        scanner.run(repo).unwrap().count();
         assert!(!scanner.failed());
 
         // fail on specified report variant
-        let scanner = Scanner::new().exit([ReportKind::DependencyDeprecated]);
-        scanner.run(repo, repo).unwrap().count();
+        let scanner = scanner.exit([ReportKind::DependencyDeprecated]);
+        scanner.run(repo).unwrap().count();
         assert!(scanner.failed());
     }
 }

@@ -146,7 +146,7 @@ impl Config {
     /// Load user or system config files, if none are found revert to loading portage files. Config
     /// file loading is skipped if the environment variable PKGCRAFT_NO_CONFIG is defined.
     pub fn load(&mut self) -> crate::Result<()> {
-        if env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
+        if !self.loaded && env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
             self.settings = Arc::new(Settings::default());
             self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
 
@@ -165,10 +165,12 @@ impl Config {
 
     /// Load config files from a given path.
     pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
-        if self.path.config.exists() {
-            self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
-        } else {
-            self.load_portage_conf(Some(path))?;
+        if !self.loaded {
+            if self.path.config.exists() {
+                self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
+            } else {
+                self.load_portage_conf(Some(path))?;
+            }
         }
 
         self.loaded = true;
@@ -204,7 +206,6 @@ impl Config {
             self.repos.extend(repos, &self.settings, false)?;
         }
 
-        self.loaded = true;
         Ok(())
     }
 
@@ -285,25 +286,23 @@ impl Config {
         // finalize external repo when added
         if external {
             if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
-                // try re-adding repo after loading repos
-                if !self.loaded {
-                    // try loading repos from parent dir
-                    if let Some(parent) = repo.path().parent() {
-                        for name in &repos {
-                            let path = parent.join(name);
-                            if self.add_repo_path(name, &path, 0, false).is_err() {
-                                break;
-                            }
+                // try loading repos from parent dir
+                if let Some(parent) = repo.path().parent() {
+                    for name in &repos {
+                        let path = parent.join(name);
+                        if self.add_repo_path(name, &path, 0, false).is_err() {
+                            break;
                         }
                     }
-
-                    // load system repos if still missing
-                    if !repos.iter().all(|x| self.repos.get(x).is_some()) {
-                        self.load()?;
-                    }
-
-                    return self.add_repo(repo, external);
                 }
+
+                // load system repos if still missing
+                if !repos.iter().all(|x| self.repos.get(x).is_some()) {
+                    self.load()?;
+                }
+
+                // try re-adding repo after loading repos
+                return self.add_repo(repo, external);
             }
         }
 

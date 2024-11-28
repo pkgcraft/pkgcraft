@@ -97,7 +97,7 @@ impl Replay {
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         // determine enabled checks and reports
-        let (_checks, reports) = self.checks.collapse(false)?;
+        let (_checks, reports) = self.checks.collapse(None)?;
 
         let replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
 

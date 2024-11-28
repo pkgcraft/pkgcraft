@@ -61,10 +61,7 @@ pub(crate) struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // determine enabled checks and reports
-        let (checks, reports) = self.checks.collapse(true)?;
-
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine reporter
         let mut reporter = self.reporter.collapse();
 
@@ -75,25 +72,36 @@ impl Command {
             .try_collect()?;
         config.finalize()?;
 
-        // create report scanner
-        let scanner = Scanner::new()
-            .jobs(self.jobs.unwrap_or_default())
-            .checks(checks)
-            .reports(reports)
-            .filters(self.filters)
-            .exit(self.exit);
-
         // run scanner for all targets
+        let mut failed = false;
         let mut stdout = io::stdout().lock();
         for (repo_set, restrict) in targets {
             for repo in repo_set {
-                for report in scanner.run(&repo, &restrict)? {
+                let repo = repo
+                    .as_ebuild()
+                    .ok_or_else(|| anyhow::anyhow!("non-ebuild repo: {repo}"))?;
+
+                // determine enabled checks and reports
+                let (checks, reports) = self.checks.collapse(Some(repo))?;
+
+                // create report scanner
+                let scanner = Scanner::new(repo)
+                    .jobs(self.jobs.unwrap_or_default())
+                    .checks(checks)
+                    .reports(reports)
+                    .filters(self.filters.iter().cloned())
+                    .exit(self.exit.iter().copied());
+
+                // output reports
+                for report in scanner.run(&restrict)? {
                     reporter.report(&report, &mut stdout)?;
                 }
+
+                // track failure status
+                failed |= scanner.failed();
             }
         }
 
-        let failed: u8 = scanner.failed().into();
-        Ok(failed.into())
+        Ok(ExitCode::from(failed as u8))
     }
 }

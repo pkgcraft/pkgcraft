@@ -22,11 +22,11 @@ pub(crate) struct ReporterOptions {
 }
 
 impl ReporterOptions {
-    pub(crate) fn collapse(self) -> Reporter {
-        let mut reporter = self.reporter.unwrap_or_default();
+    pub(crate) fn collapse(&self) -> Reporter {
+        let mut reporter = self.reporter.clone().unwrap_or_default();
 
         if let Reporter::Format(r) = &mut reporter {
-            r.format = self.format.unwrap_or_default();
+            r.format = self.format.clone().unwrap_or_default();
         }
 
         reporter
