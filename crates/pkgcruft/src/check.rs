@@ -216,7 +216,7 @@ impl Check {
     /// Determine if a check is enabled for a scanning run due to scan context.
     pub(crate) fn enabled(&self, repo: &EbuildRepo, selected: &IndexSet<Self>) -> bool {
         self.context.iter().all(|x| match x {
-            CheckContext::Gentoo => repo.name() == "gentoo",
+            CheckContext::Gentoo => repo.name() == "gentoo" || selected.contains(self),
             CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
             CheckContext::Optional => selected.contains(self),
             CheckContext::Overlay => !repo.masters().is_empty(),
