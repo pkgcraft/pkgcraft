@@ -406,6 +406,11 @@ mod tests {
         scanner.run(repo).unwrap().count();
         assert!(!scanner.failed());
 
+        // missing report variant
+        let scanner = scanner.exit([ReportKind::HeaderInvalid]);
+        scanner.run(repo).unwrap().count();
+        assert!(!scanner.failed());
+
         // fail on specified report variant
         let scanner = scanner.exit([ReportKind::DependencyDeprecated]);
         scanner.run(repo).unwrap().count();
