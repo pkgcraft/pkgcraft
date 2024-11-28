@@ -56,19 +56,19 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new().checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // secondary with no banned or deprecated EAPIs set
         let repo = data.repo("qa-secondary").unwrap();
         assert!(repo.path().join(CHECK).exists());
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
 
         // primary fixed
         let data = test_data_patched();
         let repo = data.repo("qa-primary").unwrap();
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }

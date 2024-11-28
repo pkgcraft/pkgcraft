@@ -437,6 +437,26 @@ fn filters() {
             .failure()
             .code(2);
 
+        // invalid in package scope
+        cmd("pkgcruft scan -R json")
+            .args([opt, "live"])
+            .arg(primary_repo_path.join("Whitespace/WhitespaceInvalid"))
+            .assert()
+            .stdout("")
+            .stderr(contains("filters unsupported in package scope"))
+            .failure()
+            .code(2);
+
+        // invalid in version scope
+        cmd("pkgcruft scan -R json")
+            .args([opt, "live"])
+            .arg(primary_repo_path.join("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild"))
+            .assert()
+            .stdout("")
+            .stderr(contains("filters unsupported in version scope"))
+            .failure()
+            .code(2);
+
         // latest
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "latest"])
@@ -496,8 +516,9 @@ fn filters() {
         // live inverted
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!live"])
+            .args([opt, "Keywords/KeywordsLive"])
             .args(["-r", "KeywordsLive"])
-            .arg(primary_repo_path.join("Keywords/KeywordsLive"))
+            .arg(&primary_repo_path)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &[]);

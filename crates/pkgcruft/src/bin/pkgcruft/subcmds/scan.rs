@@ -87,7 +87,7 @@ impl Command {
         let mut stdout = io::stdout().lock();
         for (repo_set, restrict) in targets {
             for repo in repo_set {
-                for report in scanner.run(&repo, &restrict) {
+                for report in scanner.run(&repo, &restrict)? {
                     reporter.report(&report, &mut stdout)?;
                 }
             }

@@ -13,6 +13,7 @@ use strum::IntoEnumIterator;
 use tracing::info;
 
 use crate::check::Check;
+use crate::error::Error;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 use crate::scope::Scope;
@@ -95,7 +96,11 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<T>(&self, repo: &Repo, restrict: T) -> Box<dyn Iterator<Item = Report>>
+    pub fn run<T>(
+        &self,
+        repo: &Repo,
+        restrict: T,
+    ) -> crate::Result<Box<dyn Iterator<Item = Report>>>
     where
         T: Into<Restrict>,
     {
@@ -117,16 +122,16 @@ impl Scanner {
         // return early for static, non-matching restriction
         let restrict = restrict.into();
         if restrict == Restrict::False {
-            return Box::new(iter::empty());
+            return Ok(Box::new(iter::empty()));
         }
 
-        let scan_scope = Scope::from(&restrict);
-        info!("scan scope: {scan_scope}");
+        let scope = Scope::from(&restrict);
+        info!("scan scope: {scope}");
 
         match repo {
             Repo::Ebuild(repo) => {
                 let runner = Arc::new(SyncCheckRunner::new(repo, &self.filters, &self.checks));
-                if scan_scope >= Scope::Category {
+                if scope >= Scope::Category {
                     // parallel by package
                     let (restrict_tx, restrict_rx) = bounded(self.jobs);
                     let (reports_tx, reports_rx) = bounded(self.jobs);
@@ -139,7 +144,7 @@ impl Scanner {
                         version_tx: None,
                     };
 
-                    Box::new(IterPkg {
+                    Ok(Box::new(IterPkg {
                         rx: reports_rx,
                         _producer: pkg_producer(repo, restrict, restrict_tx),
                         _workers: (0..self.jobs)
@@ -148,9 +153,15 @@ impl Scanner {
                             })
                             .collect(),
                         reports: Default::default(),
-                    })
+                    }))
                 } else {
                     // parallel by check
+                    if !self.filters.is_empty() {
+                        return Err(Error::InvalidValue(format!(
+                            "filters unsupported in {scope} scope"
+                        )));
+                    }
+
                     let (restrict_tx, restrict_rx) = bounded(self.jobs);
                     let (reports_tx, reports_rx) = bounded(self.jobs);
                     let filter = ReportFilter {
@@ -162,7 +173,7 @@ impl Scanner {
                         version_tx: Some(reports_tx),
                     };
 
-                    Box::new(IterVersion {
+                    Ok(Box::new(IterVersion {
                         rx: reports_rx,
                         _producer: version_producer(repo, runner.clone(), restrict, restrict_tx),
                         _workers: (0..self.jobs)
@@ -171,7 +182,7 @@ impl Scanner {
                             })
                             .collect(),
                         reports: Default::default(),
-                    })
+                    }))
                 }
             }
             _ => todo!("add support for other repo types"),
@@ -340,14 +351,14 @@ mod tests {
         // repo target
         let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/**/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // category target
         let scanner = Scanner::new();
         let expected = glob_reports!("{repo_path}/Keywords/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords").unwrap();
-        let reports = scanner.run(repo, restrict);
+        let reports = scanner.run(repo, restrict).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // package target
@@ -356,7 +367,7 @@ mod tests {
         let restrict = repo
             .restrict_from_path("Dependency/DependencyInvalid")
             .unwrap();
-        let reports = scanner.run(repo, restrict);
+        let reports = scanner.run(repo, restrict).unwrap();
         assert_ordered_eq!(reports, expected);
 
         // version target
@@ -365,48 +376,48 @@ mod tests {
         let restrict = repo
             .restrict_from_path("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild")
             .unwrap();
-        let reports = scanner.run(repo, restrict);
+        let reports = scanner.run(repo, restrict).unwrap();
         assert_ordered_eq!(reports, expected);
 
         // specific checks
         let scanner = Scanner::new().checks([CheckKind::Dependency]);
         let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // specific reports
         let scanner = Scanner::new().reports([ReportKind::DependencyDeprecated]);
         let expected = glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // no checks
         let checks: [Check; 0] = [];
         let scanner = Scanner::new().checks(checks);
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
 
         // no reports
         let scanner = Scanner::new().reports([]);
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
 
         // non-matching restriction
         let scanner = Scanner::new();
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports = scanner.run(repo, &dep);
+        let reports = scanner.run(repo, &dep).unwrap();
         assert_unordered_eq!(reports, []);
 
         // repo with bad metadata
         let repo = data.repo("bad").unwrap();
         let repo_path = repo.path();
         let expected = glob_reports!("{repo_path}/**/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // empty repo
         let repo = data.repo("empty").unwrap();
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 
@@ -417,12 +428,12 @@ mod tests {
 
         // no reports flagged for failures
         let scanner = Scanner::new();
-        scanner.run(repo, repo).count();
+        scanner.run(repo, repo).unwrap().count();
         assert!(!scanner.failed());
 
         // fail on specified report variant
         let scanner = Scanner::new().exit([ReportKind::DependencyDeprecated]);
-        scanner.run(repo, repo).count();
+        scanner.run(repo, repo).unwrap().count();
         assert!(scanner.failed());
     }
 }

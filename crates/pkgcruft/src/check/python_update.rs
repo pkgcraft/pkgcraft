@@ -204,13 +204,13 @@ mod tests {
         let filter: PkgFilter = "category != 'stub'".parse().unwrap();
         let scanner = Scanner::new().checks([CHECK]).filters([filter]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
         let data = test_data_patched();
         let repo = data.repo("gentoo").unwrap();
-        let reports = scanner.run(repo, repo);
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }
