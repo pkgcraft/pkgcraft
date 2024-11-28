@@ -1,3 +1,13 @@
+# 0.0.18 (2024-11-28)
+
+## Changed
+- Parallelize package creation for relevant commands. This allows metadata
+  generation to be run in parallel for serialized package iterators leading to
+  large speed-ups when targeting repos with old or missing metadata caches.
+
+- Most tools that iterate over a repo now log invalid package errors and will
+  return an error code on exit if any package errors occur.
+
 # 0.0.17 (2024-11-21)
 
 ## Added
