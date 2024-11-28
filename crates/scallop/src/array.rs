@@ -12,7 +12,7 @@ pub struct Array<'a> {
     phantom: PhantomData<&'a mut bash::Array>,
 }
 
-impl<'a> Array<'a> {
+impl Array<'_> {
     /// Create a new Array using the given variable name.
     pub fn new<S: AsRef<str>>(name: S) -> Self {
         let cstr = CString::new(name.as_ref()).unwrap();
@@ -193,7 +193,7 @@ pub struct ArrayIntoIter<'a> {
     iter: ArrayIter<'a>,
 }
 
-impl<'a> Iterator for ArrayIntoIter<'a> {
+impl Iterator for ArrayIntoIter<'_> {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {

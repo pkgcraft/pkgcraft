@@ -54,7 +54,7 @@ impl EnumVariable<'_> for Key {
     }
 }
 
-impl<'a> FormatString<'a> for Command {
+impl FormatString<'_> for Command {
     type Object = Cpv;
     type FormatKey = Key;
 }

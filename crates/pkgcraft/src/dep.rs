@@ -877,7 +877,7 @@ impl<'a, T: Ordered> Iterator for Iter<'a, T> {
     }
 }
 
-impl<'a, T: Ordered> DoubleEndedIterator for Iter<'a, T> {
+impl<T: Ordered> DoubleEndedIterator for Iter<'_, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.0.pop_back()
     }
@@ -1047,7 +1047,7 @@ impl<'a, T: Ordered> Iterator for IterFlatten<'a, T> {
     }
 }
 
-impl<'a, T: Ordered> DoubleEndedIterator for IterFlatten<'a, T> {
+impl<T: Ordered> DoubleEndedIterator for IterFlatten<'_, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         use Dependency::*;
         while let Some(dep) = self.0.pop_back() {

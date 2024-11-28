@@ -18,7 +18,7 @@ pub(crate) struct Tree<'a> {
     tree: OnceLock<tree_sitter::Tree>,
 }
 
-impl<'a> Tree<'a> {
+impl Tree<'_> {
     pub(crate) fn iter_global_nodes(&self) -> impl Iterator<Item = Node> {
         IterNodes::new(self.data, self.tree().walk(), &["function_definition"])
     }
@@ -70,7 +70,7 @@ pub(crate) struct Node<'a> {
     data: &'a [u8],
 }
 
-impl<'a> Node<'a> {
+impl Node<'_> {
     /// Get the string value of a given node.
     pub(crate) fn as_str(&self) -> &str {
         self.node.utf8_text(self.data).unwrap()

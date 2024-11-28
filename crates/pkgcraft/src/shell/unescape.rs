@@ -16,7 +16,7 @@ pub(crate) struct UnescapeString<'a> {
     mutated: bool,
 }
 
-impl<'a> UnescapeString<'a> {
+impl UnescapeString<'_> {
     pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
         let unescape = UnescapeString {
             s: s.chars(),

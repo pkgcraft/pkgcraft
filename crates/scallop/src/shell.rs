@@ -182,7 +182,8 @@ where
 /// Version string related to the bundled bash release.
 pub static BASH_VERSION: LazyLock<String> = LazyLock::new(|| unsafe {
     let version = CStr::from_ptr(bash::DIST_VERSION).to_str().unwrap();
-    format!("{version}.{}", bash::PATCH_LEVEL)
+    let patch = bash::PATCH_LEVEL;
+    format!("{version}.{patch}")
 });
 
 /// Returns the line number of the currently executing command.

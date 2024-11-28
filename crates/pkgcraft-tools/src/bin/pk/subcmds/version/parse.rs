@@ -26,7 +26,7 @@ pub(crate) enum Key {
     REV,
 }
 
-impl<'a> EnumVariable<'a> for Key {
+impl EnumVariable<'_> for Key {
     type Object = Version;
 
     fn value(&self, obj: &Self::Object) -> String {
@@ -43,7 +43,7 @@ impl<'a> EnumVariable<'a> for Key {
     }
 }
 
-impl<'a> FormatString<'a> for Command {
+impl FormatString<'_> for Command {
     type Object = Version;
     type FormatKey = Key;
 }
