@@ -38,9 +38,9 @@ impl Scanner {
             jobs: bounded_jobs(0),
             checks: Check::iter_default(Some(repo)).collect(),
             reports: Arc::new(ReportKind::iter().collect()),
-            exit: Arc::new(Default::default()),
+            exit: Default::default(),
             filters: Default::default(),
-            failed: Arc::new(Default::default()),
+            failed: Default::default(),
             repo,
         }
     }

@@ -147,7 +147,7 @@ impl Config {
     /// file loading is skipped if the environment variable PKGCRAFT_NO_CONFIG is defined.
     pub fn load(&mut self) -> crate::Result<()> {
         if !self.loaded && env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
-            self.settings = Arc::new(Settings::default());
+            self.settings = Default::default();
             self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
 
             if self.repos.is_empty() {
