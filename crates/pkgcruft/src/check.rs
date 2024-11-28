@@ -213,7 +213,7 @@ impl Check {
             .copied()
     }
 
-    /// Determine if a check is enabled for a scanning run.
+    /// Determine if a check is enabled for a scanning run due to scan context.
     pub(crate) fn enabled(&self, repo: &EbuildRepo, selected: &IndexSet<Self>) -> bool {
         self.context.iter().all(|x| match x {
             CheckContext::Gentoo => repo.name() == "gentoo",
@@ -221,6 +221,12 @@ impl Check {
             CheckContext::Optional => selected.contains(self),
             CheckContext::Overlay => !repo.masters().is_empty(),
         })
+    }
+
+    /// Determine if a check is disabled for a scanning run due to package filtering.
+    pub(crate) fn filtered(&self) -> bool {
+        self.scope != Scope::Version
+            || (self.source != SourceKind::EbuildPkg && self.source != SourceKind::EbuildRawPkg)
     }
 }
 
