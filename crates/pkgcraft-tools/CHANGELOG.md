@@ -1,3 +1,9 @@
+# 0.0.19 (2024-11-28)
+
+## Fixed
+- Fix global threadpool usage issues causing metadata generation to be roughly
+  3x slower on machines with high core counts.
+
 # 0.0.18 (2024-11-28)
 
 ## Changed
