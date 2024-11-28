@@ -418,8 +418,6 @@ impl Metadata {
                 Ok(entries) => {
                     // TODO: add support for native file reading parallelism
                     let mut vals: IndexSet<_> = entries
-                        .collect::<Vec<_>>()
-                        .into_par_iter()
                         .filter_map(Result::ok)
                         .filter(is_eclass)
                         .filter_map(|entry| match Eclass::try_new(entry.path(), self.cache()) {
@@ -430,7 +428,7 @@ impl Metadata {
                             }
                         })
                         .collect();
-                    vals.par_sort();
+                    vals.sort();
                     vals
                 }
                 Err(e) => {
