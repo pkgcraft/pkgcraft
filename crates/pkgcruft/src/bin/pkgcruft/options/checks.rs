@@ -218,52 +218,52 @@ mod tests {
         let cmd = Command::try_parse_from(["cmd", "-c", "Dependency", "-r", "DependencyInvalid"])
             .unwrap();
         let (checks, reports) = cmd.checks.collapse(None).unwrap();
-        assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
-        assert_ordered_eq!(reports.iter().map(|x| x.as_ref()), ["DependencyInvalid"]);
+        assert_ordered_eq!(checks, [CheckKind::Dependency.into()]);
+        assert_ordered_eq!(reports, [ReportKind::DependencyInvalid]);
 
         // reports are populated by checks when unspecified
         let cmd = Command::try_parse_from(["cmd", "-c", "Dependency"]).unwrap();
         let (checks, reports) = cmd.checks.collapse(None).unwrap();
-        assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
+        assert_ordered_eq!(checks, [CheckKind::Dependency.into()]);
         assert!(!reports.is_empty());
 
         // only enable checks related to specified reports
         let cmd = Command::try_parse_from(["cmd", "-r", "DependencyDeprecated"]).unwrap();
         let (checks, reports) = cmd.checks.collapse(None).unwrap();
-        assert_ordered_eq!(checks.iter().map(|x| x.as_ref()), ["Dependency"]);
+        assert_ordered_eq!(checks, [CheckKind::Dependency.into()]);
         assert!(!reports.is_empty());
 
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
 
         // verify UnstableOnly is an optional check
-        assert!(Check::iter().any(|x| x.as_ref() == "UnstableOnly"));
-        assert!(!Check::iter_default(None).any(|x| x.as_ref() == "UnstableOnly"));
-        assert!(!Check::iter_default(Some(repo)).any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(Check::iter().any(|x| x == CheckKind::UnstableOnly.into()));
+        assert!(!Check::iter_default(None).any(|x| x == CheckKind::UnstableOnly.into()));
+        assert!(!Check::iter_default(Some(repo)).any(|x| x == CheckKind::UnstableOnly.into()));
 
         // default checks
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
-        assert!(checks.iter().any(|x| x.as_ref() == "Dependency"));
+        assert!(checks.contains(&CheckKind::Dependency));
         // optional checks aren't run by default when scanning
-        assert!(!checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(!checks.contains(&CheckKind::UnstableOnly));
 
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly"]).unwrap();
         let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
-        assert!(checks.iter().any(|x| x.as_ref() == "UnstableOnly"));
+        assert!(checks.contains(&CheckKind::UnstableOnly));
         assert!(checks.len() > 1);
 
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency"]).unwrap();
         let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
-        assert!(!checks.iter().any(|x| x.as_ref() == "Dependency"));
+        assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
         let cmd = Command::try_parse_from(["cmd", "-c=-Dependency,+Dependency"]).unwrap();
         let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
-        assert!(!checks.iter().any(|x| x.as_ref() == "Dependency"));
+        assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // error when args cancel out
