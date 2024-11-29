@@ -491,4 +491,51 @@ mod tests {
         let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["acat/bpkg-1", "cat/pkg-0"]);
     }
+
+    #[test]
+    fn iter_cpn() {
+        let cpvs: Vec<_> = (0..100)
+            .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
+            .collect();
+        let repo = FakeRepo::new("fake", 0).pkgs(&cpvs).unwrap();
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
+        assert_ordered_eq!(repo.iter_cpn(), [cpn]);
+    }
+
+    #[test]
+    fn iter_cpn_restrict() {
+        let cpvs: Vec<_> = (0..100)
+            .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
+            .collect();
+        let repo = FakeRepo::new("fake", 0).pkgs(&cpvs).unwrap();
+        let cpn = Cpn::try_new("a/b").unwrap();
+        assert!(repo.iter_cpn_restrict(&cpn).next().is_none());
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        assert!(repo.iter_cpn_restrict(&cpv).next().is_none());
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [cpn]);
+    }
+
+    #[test]
+    fn iter_cpv() {
+        let cpvs: Vec<_> = (0..100)
+            .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
+            .collect();
+        let repo = FakeRepo::new("fake", 0).pkgs(&cpvs).unwrap();
+        assert_ordered_eq!(repo.iter_cpv(), cpvs);
+    }
+
+    #[test]
+    fn iter_cpv_restrict() {
+        let cpvs: Vec<_> = (0..100)
+            .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
+            .collect();
+        let repo = FakeRepo::new("fake", 0).pkgs(&cpvs).unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), [cpv]);
+        let cpn = Cpn::try_new("a/b").unwrap();
+        assert!(repo.iter_cpv_restrict(&cpn).next().is_none());
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
+        assert_ordered_eq!(repo.iter_cpv_restrict(&cpn), cpvs);
+    }
 }
