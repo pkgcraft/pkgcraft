@@ -26,6 +26,7 @@ impl SyncCheckRunner {
     ) -> Self {
         let mut runners = IndexMap::new();
 
+        // TODO: error out instead of skipping checks silently
         // filter checks
         let enabled = checks
             .iter()
@@ -37,8 +38,14 @@ impl SyncCheckRunner {
                     true
                 }
             })
-            // TODO: replace checks parameter with selected checks once #194 is implemented
-            .filter(|c| c.enabled(repo, checks))
+            .filter(|c| {
+                if !c.enabled(repo, checks) {
+                    warn!("{c}: disabled due to scan context");
+                    false
+                } else {
+                    true
+                }
+            })
             .copied()
             // sort checks by priority so they run in the correct order
             .sorted();
