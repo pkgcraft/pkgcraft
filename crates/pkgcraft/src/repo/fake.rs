@@ -357,7 +357,7 @@ impl Iterator for IterRestrict {
         self.iter.find_map(|r| match r {
             Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
             Ok(_) => None,
-            Err(e) => Some(Err(e)),
+            Err(e) => unreachable!("invalid fake pkg: {e}"),
         })
     }
 }
