@@ -234,9 +234,16 @@ mod tests {
         assert!(!reports.is_empty());
 
         let data = test_data();
-        let repo = data.ebuild_repo("qa-primary").unwrap();
+
+        // default checks for gentoo repo
+        let repo = data.ebuild_repo("gentoo").unwrap();
+        let cmd = Command::try_parse_from(["cmd"]).unwrap();
+        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
+        // repo specific checks enabled when scanning the matching repo
+        assert!(checks.contains(&CheckKind::Header));
 
         // verify UnstableOnly is an optional check
+        let repo = data.ebuild_repo("qa-primary").unwrap();
         assert!(Check::iter().any(|x| x == CheckKind::UnstableOnly.into()));
         assert!(!Check::iter_default(None).any(|x| x == CheckKind::UnstableOnly.into()));
         assert!(!Check::iter_default(Some(repo)).any(|x| x == CheckKind::UnstableOnly.into()));
@@ -247,11 +254,14 @@ mod tests {
         assert!(checks.contains(&CheckKind::Dependency));
         // optional checks aren't run by default when scanning
         assert!(!checks.contains(&CheckKind::UnstableOnly));
+        // repo specific checks aren't run by default when scanning non-matching repo
+        assert!(!checks.contains(&CheckKind::Header));
 
         // enable optional checks in addition to default checks
-        let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly"]).unwrap();
+        let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly,+Header"]).unwrap();
         let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
         assert!(checks.contains(&CheckKind::UnstableOnly));
+        assert!(checks.contains(&CheckKind::Header));
         assert!(checks.len() > 1);
 
         // disable checks
