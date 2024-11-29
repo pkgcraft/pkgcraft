@@ -1,45 +1,66 @@
+use std::hash::Hash;
 use std::str::FromStr;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
-use colored::{Color, Colorize};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcruft::check::{Check, CheckKind};
+use pkgcruft::check::Check;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
 use pkgcruft::source::SourceKind;
 use pkgcruft::Error;
 use strum::{IntoEnumIterator, VariantNames};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-enum TriStateCheck {
-    Set(Check),
-    Add(Check),
-    Remove(Check),
+/// Tri-state value support for command-line arguments.
+///
+/// This supports arguments of the form: `set`, `+add`, and `-remove` that relate to their
+/// matching variants.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+enum TriState<T> {
+    Set(T),
+    Add(T),
+    Remove(T),
 }
 
-impl FromStr for TriStateCheck {
-    type Err = Error;
+impl<T: Ord + Copy + Hash> TriState<T> {
+    /// Modify the given, enabled set given an iterator of TriState values.
+    fn enabled<'a, I>(enabled: &mut IndexSet<T>, selected: I)
+    where
+        I: IntoIterator<Item = &'a TriState<T>>,
+        T: 'a,
+    {
+        // sort by variant
+        let selected: Vec<_> = selected.into_iter().copied().sorted().collect();
 
-    fn from_str(s: &str) -> pkgcruft::Result<Self> {
-        let err = |err: Error| -> Error {
-            let possible = CheckKind::iter()
-                .map(|x| x.as_ref().color(Color::Green))
-                .join(", ");
-            let message = indoc::formatdoc! {"
-                {err}
-                    [possible values: {possible}]"};
-            Error::InvalidValue(message)
-        };
+        // don't use default if neutral options exist
+        if let Some(TriState::Set(_)) = selected.first() {
+            std::mem::take(enabled);
+        }
 
+        for x in selected {
+            match x {
+                TriState::Set(val) => enabled.insert(val),
+                TriState::Add(val) => enabled.insert(val),
+                TriState::Remove(val) => enabled.swap_remove(&val),
+            };
+        }
+
+        enabled.sort();
+    }
+}
+
+impl<T: FromStr> FromStr for TriState<T> {
+    type Err = <T as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(val) = s.strip_prefix('+') {
-            val.parse().map(Self::Add).map_err(err)
+            val.parse().map(Self::Add)
         } else if let Some(val) = s.strip_prefix('-') {
-            val.parse().map(Self::Remove).map_err(err)
+            val.parse().map(Self::Remove)
         } else {
-            s.parse().map(Self::Set).map_err(err)
+            s.parse().map(Self::Set)
         }
     }
 }
@@ -49,7 +70,7 @@ impl FromStr for TriStateCheck {
 pub(crate) struct Checks {
     /// Restrict by check
     #[arg(short, long, value_name = "CHECK[,...]", value_delimiter = ',')]
-    checks: Vec<TriStateCheck>,
+    checks: Vec<TriState<Check>>,
 
     /// Restrict by level
     #[arg(
@@ -111,21 +132,7 @@ impl Checks {
 
         // determine enabled check set
         if !self.checks.is_empty() {
-            // sort checks by variant
-            let selected_checks: Vec<_> = self.checks.iter().copied().sorted().collect();
-
-            // don't use default checks if neutral options exist
-            if let Some(TriStateCheck::Set(_)) = selected_checks.first() {
-                checks = Default::default();
-            }
-
-            for x in selected_checks {
-                match x {
-                    TriStateCheck::Set(val) => checks.insert(val),
-                    TriStateCheck::Add(val) => checks.insert(val),
-                    TriStateCheck::Remove(val) => checks.swap_remove(&val),
-                };
-            }
+            TriState::enabled(&mut checks, &self.checks);
         }
 
         // determine enabled report set
@@ -203,6 +210,8 @@ impl Checks {
 mod tests {
     use clap::Parser;
     use pkgcraft::test::{assert_err_re, assert_ordered_eq, test_data};
+
+    use pkgcruft::check::CheckKind;
 
     use super::*;
 
