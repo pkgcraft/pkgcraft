@@ -73,16 +73,8 @@ pub(crate) struct Checks {
     checks: Vec<TriState<Check>>,
 
     /// Restrict by level
-    #[arg(
-        short,
-        long,
-        value_name = "LEVEL[,...]",
-        value_delimiter = ',',
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(ReportLevel::VARIANTS)
-            .map(|s| s.parse::<ReportLevel>().unwrap()),
-    )]
-    levels: Vec<ReportLevel>,
+    #[arg(short, long, value_name = "LEVEL[,...]", value_delimiter = ',')]
+    levels: Vec<TriState<ReportLevel>>,
 
     /// Restrict by report
     #[arg(
@@ -149,7 +141,8 @@ impl Checks {
 
         // enable reports related to levels
         if !self.levels.is_empty() {
-            let levels: IndexSet<_> = self.levels.iter().collect();
+            let mut levels: IndexSet<_> = ReportLevel::iter().collect();
+            TriState::enabled(&mut levels, &self.levels);
             reports.extend(
                 default_reports
                     .iter()
