@@ -237,34 +237,31 @@ impl MetadataCacheRegen<'_> {
             self.cache.clean(&cpvs)?;
         }
 
-        let mut errors = 0;
-        if !cpvs.is_empty() {
-            if self.verify {
-                self.progress.set_message("verifying metadata:");
-            } else {
-                self.progress.set_message("generating metadata:");
-            }
-
-            // run cache verification in a thread pool that runs blocking metadata tasks
-            // in build pool processes as necessary
-            let pool = repo.pool();
-            errors = cpvs
-                .into_par_iter()
-                .map(|cpv| {
-                    self.progress.inc(1);
-                    pool.metadata(repo, &cpv, self.force, self.verify)
-                })
-                .filter(|result| {
-                    // log errors
-                    if let Err(e) = result {
-                        error!("{e}");
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .count();
+        if self.verify {
+            self.progress.set_message("verifying metadata:");
+        } else {
+            self.progress.set_message("generating metadata:");
         }
+
+        // run cache verification in a thread pool that runs blocking metadata tasks
+        // in build pool processes as necessary
+        let pool = repo.pool();
+        let errors = cpvs
+            .into_par_iter()
+            .map(|cpv| {
+                self.progress.inc(1);
+                pool.metadata(repo, &cpv, self.force, self.verify)
+            })
+            .filter(|result| {
+                // log errors
+                if let Err(e) = result {
+                    error!("{e}");
+                    true
+                } else {
+                    false
+                }
+            })
+            .count();
 
         if errors > 0 {
             Err(Error::InvalidValue("metadata failures occurred, see log for details".to_string()))
