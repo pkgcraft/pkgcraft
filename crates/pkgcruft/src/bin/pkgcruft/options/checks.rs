@@ -257,6 +257,27 @@ mod tests {
         // repo specific checks aren't run by default when scanning non-matching repo
         assert!(!checks.contains(&CheckKind::Header));
 
+        // non-default reports aren't enabled when their matching level is targeted
+        let report = ReportKind::HeaderInvalid;
+        let cmd = Command::try_parse_from(["cmd", "-l", report.level().as_ref()]).unwrap();
+        let (_, reports) = cmd.checks.collapse(Some(repo)).unwrap();
+        assert!(!reports.contains(&report));
+        assert!(!reports.is_empty());
+
+        // non-default checks aren't enabled when their matching scope is targeted
+        let check: Check = CheckKind::Header.into();
+        let cmd = Command::try_parse_from(["cmd", "-s", check.scope.as_ref()]).unwrap();
+        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
+        assert!(!checks.contains(&CheckKind::Header));
+        assert!(!checks.is_empty());
+
+        // non-default checks aren't enabled when their matching source is targeted
+        let check: Check = CheckKind::Header.into();
+        let cmd = Command::try_parse_from(["cmd", "-S", check.source.as_ref()]).unwrap();
+        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
+        assert!(!checks.contains(&CheckKind::Header));
+        assert!(!checks.is_empty());
+
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly,+Header"]).unwrap();
         let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
