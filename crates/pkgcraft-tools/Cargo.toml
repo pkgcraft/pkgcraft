@@ -1,6 +1,6 @@
 [package]
 name = "pkgcraft-tools"
-version = "0.0.19"
+version = "0.0.20"
 description = "CLI tools based on pkgcraft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools"
@@ -35,8 +35,8 @@ indexmap = { version = "2.6.0", features = ["serde"] }
 indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.19" }
-scallop = { path = "../scallop", version = "0.0.18" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.20" }
+scallop = { path = "../scallop", version = "0.0.19" }
 strum = { version = "0.26.3", features = ["derive"] }
 tracing = "0.1.41"
 tracing-log = "0.2.0"
