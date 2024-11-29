@@ -246,6 +246,7 @@ impl MetadataCacheRegen<'_> {
         // run cache verification in a thread pool that runs blocking metadata tasks
         // in build pool processes as necessary
         let pool = repo.pool();
+        let thread_span = tracing::debug_span!("thread").or_current();
         let errors = cpvs
             .into_par_iter()
             .map(|cpv| {
@@ -255,6 +256,9 @@ impl MetadataCacheRegen<'_> {
             .filter(|result| {
                 // log errors
                 if let Err(e) = result {
+                    // hack to force log capturing to work in threads
+                    // https://github.com/dbrgn/tracing-test/issues/23
+                    let _entered = thread_span.clone().entered();
                     error!("{e}");
                     true
                 } else {
@@ -276,6 +280,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::config::Config;
+    use crate::macros::assert_logs_re;
     use crate::repo::ebuild::EbuildRepoBuilder;
 
     #[traced_test]
@@ -306,14 +311,11 @@ mod tests {
         let r = repo.metadata().cache().regen().run(&repo);
         assert!(r.is_err());
 
-        // TODO: Skip for now since log capturing doesn't in threads without hacks.
-        // https://github.com/dbrgn/tracing-test/issues/23
-        //
         // verify all pkgs caused logged errors
-        /*for pv in 0..50 {
+        for pv in 0..50 {
             assert_logs_re!(format!(
                 "invalid pkg: cat/pkg-{pv}::test: line 4: best_version: error: disabled in global scope$"
             ));
-        }*/
+        }
     }
 }
