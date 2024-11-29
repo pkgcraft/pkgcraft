@@ -185,7 +185,7 @@ impl PkgRepository for FakeRepo {
                 .iter()
                 .map(|x| x.cpn())
                 .cloned()
-                .collect::<Vec<_>>()
+                .collect::<IndexSet<_>>()
                 .into_iter(),
         }
     }
@@ -276,7 +276,7 @@ impl IntoIterator for &FakeRepo {
 
 #[derive(Debug)]
 pub struct IterCpn {
-    iter: std::vec::IntoIter<Cpn>,
+    iter: indexmap::set::IntoIter<Cpn>,
 }
 
 impl Iterator for IterCpn {
