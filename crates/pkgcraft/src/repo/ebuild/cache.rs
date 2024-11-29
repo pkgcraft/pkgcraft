@@ -243,10 +243,14 @@ impl MetadataCacheRegen<'_> {
             self.progress.set_message("generating metadata:");
         }
 
+        // hack to force log capturing for tests to work in threads
+        // https://github.com/dbrgn/tracing-test/issues/23
+        #[cfg(test)]
+        let thread_span = tracing::debug_span!("thread").or_current();
+
         // run cache verification in a thread pool that runs blocking metadata tasks
         // in build pool processes as necessary
         let pool = repo.pool();
-        let thread_span = tracing::debug_span!("thread").or_current();
         let errors = cpvs
             .into_par_iter()
             .map(|cpv| {
@@ -256,9 +260,11 @@ impl MetadataCacheRegen<'_> {
             .filter(|result| {
                 // log errors
                 if let Err(e) = result {
-                    // hack to force log capturing to work in threads
+                    // hack to force log capturing for tests to work in threads
                     // https://github.com/dbrgn/tracing-test/issues/23
+                    #[cfg(test)]
                     let _entered = thread_span.clone().entered();
+
                     error!("{e}");
                     true
                 } else {
