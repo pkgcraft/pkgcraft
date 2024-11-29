@@ -107,7 +107,7 @@ jobs:
       uses: taiki-e/install-action@protoc
 
     - name: Install cargo-llvm-cov
-      if: ${{ matrix.rust-version == 'stable' }}
+      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
       uses: taiki-e/install-action@cargo-llvm-cov
 
     - name: Install cargo-nextest
@@ -115,20 +115,16 @@ jobs:
 
     - name: Build and run tests
       run: |
-        # set up environment for coverage support
+        # collect coverage data for the latest rust release on linux
         if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          source <(cargo llvm-cov show-env --export-prefix)
-        fi
-
-        cargo nextest run --all-features --workspace --tests
-
-        # generate coverage report
-        if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
+          cargo llvm-cov --no-report nextest --all-features --workspace --tests
           cargo llvm-cov report --lcov --output-path lcov.info
+        else
+          cargo nextest run --all-features --workspace --tests
         fi
 
     - name: Upload build artifacts
-      if: ${{ matrix.rust-version == 'stable' }}
+      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
       uses: actions/upload-artifact@v4
       with:
         name: coverage
