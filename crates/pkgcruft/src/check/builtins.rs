@@ -20,6 +20,7 @@ pub(crate) static CHECK: super::Check = super::Check {
 
 type TestFn = fn(&str, &EbuildRawPkg) -> Option<String>;
 
+// TODO: scan for multiple -exec uses and -execdir?
 fn find(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
     cmd.split_whitespace()
         .skip_while(|x| *x != "-exec")
