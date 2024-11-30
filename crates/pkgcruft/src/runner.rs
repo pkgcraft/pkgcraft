@@ -260,7 +260,7 @@ impl EbuildRawPkgCheckRunner {
     /// Run the check runner for a given Cpn.
     fn run_cpn(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         for pkg in self.source.iter_restrict(cpn) {
-            let tree = bash::lazy_parse(pkg.data().as_bytes());
+            let tree = bash::Tree::new(pkg.data().as_bytes());
             for (check, runner) in &self.checks {
                 let now = Instant::now();
                 runner.run(&pkg, &tree, filter);
@@ -273,7 +273,7 @@ impl EbuildRawPkgCheckRunner {
     fn run_cpv(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
         if let Some(runner) = self.checks.get(check) {
             for pkg in self.source.iter_restrict(cpv) {
-                let tree = bash::lazy_parse(pkg.data().as_bytes());
+                let tree = bash::Tree::new(pkg.data().as_bytes());
                 let now = Instant::now();
                 runner.run(&pkg, &tree, filter);
                 debug!("{check}: {cpv}: {:?}", now.elapsed());
