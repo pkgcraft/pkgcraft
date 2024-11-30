@@ -22,7 +22,14 @@ impl<'a> Tree<'a> {
 
     /// Return an iterator over all global nodes, skipping function scope.
     pub(crate) fn iter_global(&self) -> impl Iterator<Item = Node> {
-        IterNodes::new(self.data, self.tree().walk()).skip(["function_definition"])
+        self.into_iter().skip(["function_definition"])
+    }
+
+    /// Return an iterator over all function nodes, skipping global scope.
+    pub(crate) fn iter_func(&self) -> impl Iterator<Item = Node> {
+        self.into_iter()
+            .filter(|x| x.kind() == "function_definition")
+            .flatten()
     }
 
     /// Return the parse tree.
