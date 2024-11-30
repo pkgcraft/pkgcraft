@@ -62,6 +62,15 @@ impl Deref for Tree<'_> {
     }
 }
 
+impl<'a> IntoIterator for &'a Tree<'a> {
+    type Item = Node<'a>;
+    type IntoIter = IterNodes<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IterNodes::new(self.data, self.tree().walk())
+    }
+}
+
 /// Wrapper for bash parse tree node.
 pub(crate) struct Node<'a> {
     inner: tree_sitter::Node<'a>,
@@ -95,6 +104,15 @@ impl<'a> Deref for Node<'a> {
     }
 }
 
+impl<'a> IntoIterator for Node<'a> {
+    type Item = Node<'a>;
+    type IntoIter = IterNodes<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IterNodes::new(self.data, self.walk())
+    }
+}
+
 impl From<&Node<'_>> for Location {
     fn from(value: &Node<'_>) -> Self {
         Self {
@@ -105,7 +123,7 @@ impl From<&Node<'_>> for Location {
 }
 
 /// Iterable for a bash parse tree using a given tree walking cursor.
-struct IterNodes<'a> {
+pub(crate) struct IterNodes<'a> {
     data: &'a [u8],
     cursor: tree_sitter::TreeCursor<'a>,
     skip: HashSet<String>,
