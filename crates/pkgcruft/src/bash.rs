@@ -25,8 +25,6 @@ impl<'a> Tree<'a> {
 
     fn tree(&self) -> &tree_sitter::Tree {
         self.tree.get_or_init(|| {
-            // TODO: Re-use parser instead of recreating it per pkg, this is currently difficult
-            // because parser.parse() requires a mutable Parser reference.
             let mut parser = tree_sitter::Parser::new();
             parser
                 .set_language(&LANGUAGE)
