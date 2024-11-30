@@ -233,7 +233,7 @@ impl MetadataCacheRegen<'_> {
         self.progress.set_length(cpvs.len().try_into().unwrap());
 
         // remove outdated cache entries
-        if self.clean && self.cache.path().exists() {
+        if self.clean {
             self.cache.clean(&cpvs)?;
         }
 
