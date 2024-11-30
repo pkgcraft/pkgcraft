@@ -20,6 +20,7 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 
+mod builtins;
 mod dependency;
 mod dependency_slot_missing;
 mod duplicates;
@@ -59,6 +60,7 @@ mod whitespace;
     Clone,
 )]
 pub enum CheckKind {
+    Builtins,
     Dependency,
     DependencySlotMissing,
     Duplicates,
@@ -86,6 +88,7 @@ impl From<CheckKind> for Check {
     fn from(value: CheckKind) -> Self {
         use CheckKind::*;
         match value {
+            Builtins => builtins::CHECK,
             Dependency => dependency::CHECK,
             DependencySlotMissing => dependency_slot_missing::CHECK,
             Duplicates => duplicates::CHECK,
@@ -274,6 +277,7 @@ impl ToRunner<EbuildPkgSetRunner> for Check {
 impl ToRunner<EbuildRawPkgRunner> for Check {
     fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildRawPkgRunner {
         match &self.kind {
+            CheckKind::Builtins => Box::new(builtins::create()),
             CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
             CheckKind::Header => Box::new(header::create()),
             CheckKind::VariableOrder => Box::new(variable_order::create()),

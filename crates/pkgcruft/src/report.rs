@@ -72,6 +72,9 @@ impl From<ReportLevel> for Color {
     Clone,
 )]
 pub enum ReportKind {
+    /// Ebuild uses a bash builtin as an external command.
+    BuiltinCommand,
+
     /// Package dependency flagged as deprecated by the repo.
     DependencyDeprecated,
 
@@ -213,6 +216,7 @@ impl ReportKind {
     pub fn level(&self) -> ReportLevel {
         use ReportLevel::*;
         match self {
+            Self::BuiltinCommand => Error,
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Critical,
             Self::DependencyRevisionMissing => Warning,
