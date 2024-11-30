@@ -19,7 +19,8 @@ impl<'a> Tree<'a> {
         Self { data, tree: Default::default() }
     }
 
-    pub(crate) fn iter_global_nodes(&self) -> impl Iterator<Item = Node> {
+    /// Return an iterator over all global nodes, skipping function scope.
+    pub(crate) fn iter_global(&self) -> impl Iterator<Item = Node> {
         IterNodes::new(self.data, self.tree().walk()).skip(["function_definition"])
     }
 

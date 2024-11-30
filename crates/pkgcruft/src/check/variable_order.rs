@@ -46,7 +46,7 @@ impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter) {
         let mut variables = vec![];
         for node in tree
-            .iter_global_nodes()
+            .iter_global()
             .filter(|node| node.kind() == "variable_assignment")
         {
             // ignore ebuilds with conditionally defined target variables
