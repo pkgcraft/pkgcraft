@@ -46,10 +46,10 @@ impl Tree<'_> {
                 if node.start_position().row > row {
                     break;
                 }
-                prev_node = node.node;
+                prev_node = node.inner;
             }
             Node {
-                node: prev_node,
+                inner: prev_node,
                 data: self.data,
             }
         })
@@ -66,26 +66,26 @@ impl Deref for Tree<'_> {
 
 /// Wrapper for bash parse tree node.
 pub(crate) struct Node<'a> {
-    node: tree_sitter::Node<'a>,
+    inner: tree_sitter::Node<'a>,
     data: &'a [u8],
 }
 
 impl Node<'_> {
     /// Get the string value of a given node.
     pub(crate) fn as_str(&self) -> &str {
-        self.node.utf8_text(self.data).unwrap()
+        self.inner.utf8_text(self.data).unwrap()
     }
 
     /// Get the name of a given node if it exists.
     pub(crate) fn name(&self) -> Option<&str> {
-        self.node
+        self.inner
             .child_by_field_name("name")
             .map(|x| x.utf8_text(self.data).unwrap())
     }
 
     /// Return the node's line number.
     pub(crate) fn line(&self) -> usize {
-        self.node.start_position().row + 1
+        self.inner.start_position().row + 1
     }
 }
 
@@ -93,15 +93,15 @@ impl<'a> Deref for Node<'a> {
     type Target = tree_sitter::Node<'a>;
 
     fn deref(&self) -> &Self::Target {
-        &self.node
+        &self.inner
     }
 }
 
 impl From<&Node<'_>> for Location {
     fn from(value: &Node<'_>) -> Self {
         Self {
-            line: value.node.start_position().row + 1,
-            column: value.node.start_position().column + 1,
+            line: value.inner.start_position().row + 1,
+            column: value.inner.start_position().column + 1,
         }
     }
 }
@@ -137,7 +137,7 @@ impl<'a> Iterator for IterNodes<'a> {
                 || self.cursor.goto_next_sibling()
             {
                 return Some(Node {
-                    node: self.cursor.node(),
+                    inner: self.cursor.node(),
                     data: self.data,
                 });
             } else if self.cursor.goto_parent() {
