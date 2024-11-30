@@ -106,6 +106,19 @@ impl Node<'_> {
     pub(crate) fn line(&self) -> usize {
         self.inner.start_position().row + 1
     }
+
+    /// Return the parent node if one exists.
+    pub(crate) fn parent(&self) -> Option<Self> {
+        self.inner
+            .parent()
+            .map(|inner| Self { inner, data: self.data })
+    }
+}
+
+impl PartialEq<tree_sitter::Node<'_>> for Node<'_> {
+    fn eq(&self, other: &tree_sitter::Node) -> bool {
+        &self.inner == other
+    }
 }
 
 impl<'a> Deref for Node<'a> {
