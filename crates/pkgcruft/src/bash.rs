@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt;
 use std::ops::Deref;
 use std::sync::{LazyLock, OnceLock};
 
@@ -112,6 +113,12 @@ impl<'a> Deref for Node<'a> {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl fmt::Display for Node<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
