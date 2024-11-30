@@ -20,7 +20,7 @@ impl<'a> Tree<'a> {
     }
 
     pub(crate) fn iter_global_nodes(&self) -> impl Iterator<Item = Node> {
-        IterNodes::new(self.data, self.tree().walk(), &["function_definition"])
+        IterNodes::new(self.data, self.tree().walk()).skip(["function_definition"])
     }
 
     fn tree(&self) -> &tree_sitter::Tree {
@@ -39,7 +39,7 @@ impl<'a> Tree<'a> {
         let point = tree_sitter::Point::new(row, column);
         cursor.goto_first_child_for_point(point).map(|_| {
             let mut prev_node = cursor.node();
-            let iter = IterNodes::new(self.data, cursor, &[]);
+            let iter = IterNodes::new(self.data, cursor);
             for node in iter {
                 if node.start_position().row > row {
                     break;
@@ -113,13 +113,22 @@ struct IterNodes<'a> {
 }
 
 impl<'a> IterNodes<'a> {
-    fn new(data: &'a [u8], cursor: tree_sitter::TreeCursor<'a>, skip: &[&str]) -> Self {
+    fn new(data: &'a [u8], cursor: tree_sitter::TreeCursor<'a>) -> Self {
         Self {
             data,
             cursor,
-            skip: skip.iter().map(|s| s.to_string()).collect(),
+            skip: Default::default(),
             seen: Default::default(),
         }
+    }
+
+    fn skip<I>(mut self, kinds: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: std::fmt::Display,
+    {
+        self.skip = kinds.into_iter().map(|s| s.to_string()).collect();
+        self
     }
 }
 
