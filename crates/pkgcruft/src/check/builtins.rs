@@ -1,6 +1,5 @@
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
-use pkgcraft::shell::commands::Command;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::bash::Tree;
 use crate::report::ReportKind::BuiltinCommand;
@@ -19,20 +18,20 @@ pub(crate) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-type TestFn = fn(&str, &HashSet<Command>) -> Option<String>;
+type TestFn = fn(&str, &EbuildRawPkg) -> Option<String>;
 
-fn find(cmd: &str, builtins: &HashSet<Command>) -> Option<String> {
+fn find(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
     cmd.split_whitespace()
         .skip_while(|x| *x != "-exec")
         .nth(1)
-        .and_then(|x| builtins.get(x))
+        .and_then(|x| pkg.eapi().commands().get(x))
         .map(|x| x.to_string())
 }
 
-fn xargs(cmd: &str, builtins: &HashSet<Command>) -> Option<String> {
+fn xargs(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
     cmd.split_whitespace()
         .nth(1)
-        .and_then(|x| builtins.get(x))
+        .and_then(|x| pkg.eapi().commands().get(x))
         .map(|x| x.to_string())
 }
 
@@ -55,9 +54,8 @@ impl EbuildRawPkgCheck for Check {
         for node in tree.iter_func().filter(|x| x.kind() == "command_name") {
             let cmd_name = node.as_str();
             if let Some(func) = self.commands.get(cmd_name) {
-                let builtins = pkg.eapi().commands();
                 let cmd = node.parent().unwrap();
-                if let Some(builtin) = func(cmd.as_str(), builtins) {
+                if let Some(builtin) = func(cmd.as_str(), pkg) {
                     BuiltinCommand
                         .version(pkg)
                         .message(format!("{cmd_name} uses {builtin}"))
