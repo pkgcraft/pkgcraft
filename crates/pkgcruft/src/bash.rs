@@ -7,14 +7,15 @@ use crate::report::Location;
 static LANGUAGE: LazyLock<tree_sitter::Language> =
     LazyLock::new(|| tree_sitter_bash::LANGUAGE.into());
 
-/// Wrapper for bash parse tree.
+/// Wrapper for a lazily parsed bash tree.
+#[derive(Debug, Clone)]
 pub(crate) struct Tree<'a> {
     data: &'a [u8],
     tree: OnceLock<tree_sitter::Tree>,
 }
 
 impl<'a> Tree<'a> {
-    /// Lazily parse the given data into a bash parse tree.
+    /// Create a new bash parse tree from the given data.
     pub(crate) fn new(data: &'a [u8]) -> Self {
         Self { data, tree: Default::default() }
     }
@@ -24,6 +25,7 @@ impl<'a> Tree<'a> {
         IterNodes::new(self.data, self.tree().walk()).skip(["function_definition"])
     }
 
+    /// Return the parse tree.
     fn tree(&self) -> &tree_sitter::Tree {
         self.tree.get_or_init(|| {
             let mut parser = tree_sitter::Parser::new();
@@ -73,6 +75,7 @@ impl<'a> IntoIterator for &'a Tree<'a> {
 }
 
 /// Wrapper for bash parse tree node.
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct Node<'a> {
     inner: tree_sitter::Node<'a>,
     data: &'a [u8],
