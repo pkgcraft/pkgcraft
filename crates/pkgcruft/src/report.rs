@@ -105,6 +105,9 @@ pub enum ReportKind {
     /// Package has stable keywords with an unstable EAPI.
     EapiUnstable,
 
+    /// Ebuild file has a mismatched package name or invalid version.
+    EbuildNameInvalid,
+
     /// Eclass that is unused in the parent repository.
     EclassUnused,
 
@@ -226,6 +229,7 @@ impl ReportKind {
             Self::EapiFormat => Style,
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
+            Self::EbuildNameInvalid => Error,
             Self::EclassUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::KeywordsDropped => Warning,

@@ -26,6 +26,7 @@ mod dependency_slot_missing;
 mod duplicates;
 mod eapi_stale;
 mod eapi_status;
+mod ebuild_name;
 mod header;
 mod keywords;
 mod keywords_dropped;
@@ -66,6 +67,7 @@ pub enum CheckKind {
     Duplicates,
     EapiStale,
     EapiStatus,
+    EbuildName,
     Header,
     Keywords,
     KeywordsDropped,
@@ -94,6 +96,7 @@ impl From<CheckKind> for Check {
             Duplicates => duplicates::CHECK,
             EapiStale => eapi_stale::CHECK,
             EapiStatus => eapi_status::CHECK,
+            EbuildName => ebuild_name::CHECK,
             Header => header::CHECK,
             Keywords => keywords::CHECK,
             KeywordsDropped => keywords_dropped::CHECK,
@@ -290,6 +293,7 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
 impl ToRunner<CpnRunner> for Check {
     fn to_runner(&self, repo: &'static EbuildRepo) -> CpnRunner {
         match &self.kind {
+            CheckKind::EbuildName => Box::new(ebuild_name::create(repo)),
             CheckKind::Duplicates => Box::new(duplicates::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
         }
