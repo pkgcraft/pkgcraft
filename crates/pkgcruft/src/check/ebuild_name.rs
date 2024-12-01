@@ -1,4 +1,6 @@
-use pkgcraft::dep::Cpn;
+use std::collections::HashSet;
+
+use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::EbuildNameInvalid;
@@ -27,12 +29,23 @@ struct Check {
 
 impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        let mut cpvs = HashSet::<Cpv>::new();
         for result in self.repo.cpvs_from_package(cpn.category(), cpn.package()) {
-            if let Err(e) = result {
-                EbuildNameInvalid
+            match result {
+                Err(e) => EbuildNameInvalid
                     .package(cpn)
                     .message(format!("{e}"))
-                    .report(filter);
+                    .report(filter),
+                Ok(cpv) => {
+                    if let Some(existing) = cpvs.get(&cpv) {
+                        EbuildNameInvalid
+                            .version(cpv)
+                            .message(format!("version overlaps: {}", existing.version()))
+                            .report(filter);
+                    } else {
+                        cpvs.insert(cpv);
+                    }
+                }
             }
         }
     }
