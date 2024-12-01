@@ -32,10 +32,7 @@ impl CpnCheck for Check {
         let mut cpvs = HashSet::<Cpv>::new();
         for result in self.repo.cpvs_from_package(cpn.category(), cpn.package()) {
             match result {
-                Err(e) => EbuildNameInvalid
-                    .package(cpn)
-                    .message(format!("{e}"))
-                    .report(filter),
+                Err(e) => EbuildNameInvalid.package(cpn).message(e).report(filter),
                 Ok(cpv) => {
                     if let Some(existing) = cpvs.get(&cpv) {
                         EbuildNameInvalid
