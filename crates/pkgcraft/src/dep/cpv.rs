@@ -199,15 +199,16 @@ impl FromStr for Cpv {
 /// Try converting a (category, package, version) string tuple into a Cpv.
 impl<T1, T2, T3> TryFrom<(T1, T2, T3)> for Cpv
 where
-    T1: fmt::Display,
-    T2: fmt::Display,
-    T3: fmt::Display,
+    T1: AsRef<str>,
+    T2: AsRef<str>,
+    T3: AsRef<str>,
 {
     type Error = Error;
 
-    fn try_from(vals: (T1, T2, T3)) -> Result<Self, Self::Error> {
-        let (cat, pn, ver) = vals;
-        Cpv::try_new(format!("{cat}/{pn}-{ver}"))
+    fn try_from((category, package, version): (T1, T2, T3)) -> Result<Self, Self::Error> {
+        let cpn = Cpn::try_from((category, package))?;
+        let version = Version::try_new(version)?;
+        Ok(Self { cpn, version })
     }
 }
 
