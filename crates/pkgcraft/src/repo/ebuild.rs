@@ -345,7 +345,10 @@ impl EbuildRepo {
         }
     }
 
-    /// Return the sorted set of Cpvs from a given package.
+    /// Return the sorted iterator of Cpv results for a package.
+    ///
+    /// These are constructed from the raw *.ebuild file names in the package directory,
+    /// returning errors when invalid.
     pub fn cpvs_from_package(
         &self,
         category: &str,
