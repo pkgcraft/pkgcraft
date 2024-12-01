@@ -22,6 +22,21 @@ impl FromStr for Cpn {
     }
 }
 
+/// Try converting a (category, package) string tuple into a Cpn.
+impl<T1, T2> TryFrom<(T1, T2)> for Cpn
+where
+    T1: AsRef<str>,
+    T2: AsRef<str>,
+{
+    type Error = Error;
+
+    fn try_from((category, package): (T1, T2)) -> Result<Self, Self::Error> {
+        let category = parse::category(category.as_ref()).map(|s| s.to_string())?;
+        let package = parse::package(package.as_ref()).map(|s| s.to_string())?;
+        Ok(Self { category, package })
+    }
+}
+
 impl fmt::Debug for Cpn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Cpn {{ {self} }}")
