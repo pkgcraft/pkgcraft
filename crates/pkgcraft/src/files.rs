@@ -133,6 +133,11 @@ pub(crate) fn has_ext_utf8(entry: &Utf8DirEntry, ext: &str) -> bool {
         .unwrap_or_default()
 }
 
+/// Determine if a [`Utf8DirEntry`] is a valid ebuild file.
+pub(crate) fn is_ebuild(entry: &Utf8DirEntry) -> bool {
+    is_file_utf8(entry) && !is_hidden_utf8(entry) && has_ext_utf8(entry, "ebuild")
+}
+
 /// Create a file atomically by writing to a temporary path and then renaming it.
 pub(crate) fn atomic_write_file<C: AsRef<[u8]>, P: AsRef<Utf8Path>>(
     path: P,

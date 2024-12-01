@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, OnceLock, Weak};
@@ -14,7 +15,7 @@ use crate::config::{Config, RepoConfig, Settings};
 use crate::dep::{self, Cpn, Cpv, Dep, Operator, Version};
 use crate::eapi::Eapi;
 use crate::error::Error;
-use crate::files::{has_ext_utf8, is_dir_utf8, is_file_utf8, is_hidden_utf8, sorted_dir_list_utf8};
+use crate::files::*;
 use crate::macros::build_path;
 use crate::pkg::ebuild::{keyword::Arch, EbuildPkg, EbuildRawPkg};
 use crate::restrict::dep::Restrict as DepRestrict;
@@ -248,28 +249,32 @@ impl EbuildRepo {
         })
     }
 
-    /// Convert an ebuild file path into a Cpv.
+    /// Try to convert an ebuild file path into a Cpv.
     fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv> {
-        let err =
-            |s: &str| -> Error { Error::InvalidValue(format!("invalid ebuild path: {path}: {s}")) };
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
+        let path_err = |s: &str| -> Error {
+            Error::InvalidValue(format!("invalid ebuild path: {relpath}: {s}"))
+        };
         let (cat, pkg, file) = relpath
             .components()
             .map(|s| s.as_str())
             .collect_tuple()
-            .ok_or_else(|| err("mismatched path components"))?;
+            .ok_or_else(|| path_err("mismatched path components"))?;
+        let cpn = Cpn::try_from((cat, pkg))?;
         let p = file
             .strip_suffix(".ebuild")
-            .ok_or_else(|| err("missing ebuild ext"))?;
-        Cpv::try_new(format!("{cat}/{p}"))
-            .map_err(|_| err("invalid Cpv"))
-            .and_then(|a| {
-                if a.package() == pkg {
-                    Ok(a)
-                } else {
-                    Err(err("mismatched package dir"))
-                }
-            })
+            .ok_or_else(|| path_err("missing ebuild ext"))?;
+        let pn_prefix = format!("{}-", cpn.package());
+        let Some(version) = p.strip_prefix(&pn_prefix) else {
+            if p.contains('-') {
+                return Err(Error::InvalidValue(format!("{file}: mismatched package name")));
+            } else {
+                return Err(Error::InvalidValue(format!("{file}: missing version")));
+            }
+        };
+        let version = Version::try_new(version)
+            .map_err(|_| Error::InvalidValue(format!("{file}: invalid version: {version}")))?;
+        Ok(Cpv { cpn, version })
     }
 
     /// Return the set of inherited architectures sorted by name.
@@ -331,6 +336,7 @@ impl EbuildRepo {
             let mut cpvs: IndexSet<_> = entries
                 .filter_map(|e| e.ok())
                 .flat_map(|e| self.cpvs_from_package(category, e.file_name()))
+                .filter_map(|x| x.ok())
                 .collect();
             cpvs.sort();
             cpvs
@@ -340,17 +346,27 @@ impl EbuildRepo {
     }
 
     /// Return the sorted set of Cpvs from a given package.
-    fn cpvs_from_package(&self, category: &str, package: &str) -> IndexSet<Cpv> {
+    pub fn cpvs_from_package(
+        &self,
+        category: &str,
+        package: &str,
+    ) -> impl Iterator<Item = crate::Result<Cpv>> {
         let path = build_path!(self.path(), category, package);
         if let Ok(entries) = path.read_dir_utf8() {
-            let mut cpvs: IndexSet<_> = entries
+            let mut cpvs: Vec<_> = entries
                 .filter_map(|e| e.ok())
-                .filter_map(|e| self.cpv_from_path(e.path()).ok())
+                .filter(is_ebuild)
+                .map(|e| self.cpv_from_path(e.path()))
                 .collect();
-            cpvs.sort();
-            cpvs
+            cpvs.sort_by(|a, b| match (a, b) {
+                (Ok(a), Ok(b)) => a.cmp(b),
+                (Err(_), Ok(_)) => Ordering::Less,
+                (Ok(_), Err(_)) => Ordering::Greater,
+                (Err(_), Err(_)) => Ordering::Equal,
+            });
+            Either::Left(cpvs.into_iter())
         } else {
-            Default::default()
+            Either::Right(std::iter::empty())
         }
     }
 
@@ -496,7 +512,7 @@ impl PkgRepository for EbuildRepo {
 
         let mut versions: IndexSet<_> = entries
             .into_iter()
-            .filter(|e| is_file_utf8(e) && !is_hidden_utf8(e) && has_ext_utf8(e, "ebuild"))
+            .filter(is_ebuild)
             .filter_map(|entry| {
                 let path = entry.path();
                 let pn = path.parent().unwrap().file_name().unwrap();
@@ -1011,7 +1027,7 @@ impl IterCpv {
                 let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(
                     repo.cpvs_from_package(cat, pn)
-                        .into_iter()
+                        .filter_map(|x| x.ok())
                         .filter(move |cpv| ver_restrict.matches(cpv)),
                 )
             }
@@ -1020,7 +1036,7 @@ impl IterCpv {
                 let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
                     repo.cpvs_from_package(&cat, &pn)
-                        .into_iter()
+                        .filter_map(|x| x.ok())
                         .filter(|cpv| ver_restrict.matches(cpv))
                         .collect::<Vec<_>>()
                 }))
