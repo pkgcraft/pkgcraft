@@ -94,8 +94,8 @@ impl FancyReporter {
             }
         }
 
-        if !report.message().is_empty() {
-            write!(output, ": {}", report.message())?;
+        if let Some(value) = report.message() {
+            write!(output, ": {value}")?;
         }
 
         writeln!(output)?;

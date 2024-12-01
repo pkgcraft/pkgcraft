@@ -268,7 +268,7 @@ impl ReportBuilder {
     where
         S: fmt::Display,
     {
-        self.0.message = value.to_string();
+        self.0.message = Some(value.to_string());
         self
     }
 
@@ -399,7 +399,7 @@ impl fmt::Display for ReportScope {
 pub struct Report {
     kind: ReportKind,
     scope: ReportScope,
-    message: String,
+    message: Option<String>,
 }
 
 impl Report {
@@ -414,8 +414,8 @@ impl Report {
     }
 
     /// The report message.
-    pub fn message(&self) -> &str {
-        &self.message
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
     }
 
     /// The severity of the report.
@@ -453,8 +453,8 @@ impl PartialOrd for Report {
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.scope, self.kind)?;
-        if !self.message.is_empty() {
-            write!(f, ": {}", self.message)?;
+        if let Some(value) = self.message() {
+            write!(f, ": {value}")?;
         }
         Ok(())
     }
