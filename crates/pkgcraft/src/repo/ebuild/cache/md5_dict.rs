@@ -349,6 +349,16 @@ impl Cache for Md5Dict {
             .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))
     }
 
+    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
+        let path = self.path.join(cpv.category()).join(cpv.pf());
+        match fs::remove_file(path) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => {
+                Err(Error::IO(format!("failed removing cache entry: {cpv}: {e}")))
+            }
+            _ => Ok(()),
+        }
+    }
+
     fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
         // TODO: replace with parallelized cache iterator
         let entries: Vec<_> = WalkDir::new(self.path())

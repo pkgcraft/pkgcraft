@@ -38,6 +38,8 @@ pub trait Cache {
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()>;
     /// Forcibly remove the entire cache.
     fn remove(&self, repo: &EbuildRepo) -> crate::Result<()>;
+    /// Remove the cache entry for a Cpv.
+    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()>;
     /// Remove outdated entries from the cache.
     fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()>;
 }
@@ -134,6 +136,12 @@ impl Cache for MetadataCache {
 
         match self {
             Self::Md5Dict(cache) => cache.remove(repo),
+        }
+    }
+
+    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
+        match self {
+            Self::Md5Dict(cache) => cache.remove_entry(cpv),
         }
     }
 
