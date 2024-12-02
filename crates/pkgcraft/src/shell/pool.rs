@@ -117,6 +117,7 @@ impl BuildPool {
             Ok(ForkResult::Parent { .. }) => (),
             Ok(ForkResult::Child) => {
                 // signal child to exit on parent death
+                #[cfg(target_os = "linux")]
                 prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
 
                 scallop::shell::fork_init();
