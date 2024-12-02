@@ -31,7 +31,7 @@ camino = "1.1.9"
 clap = { version = "4.5.21", features = ["derive"] }
 clap-verbosity-flag = "3.0.1"
 humantime = "2.1.0"
-indexmap = { version = "2.6.0", features = ["serde"] }
+indexmap = { version = "2.7.0", features = ["serde"] }
 indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
@@ -40,7 +40,7 @@ scallop = { path = "../scallop", version = "0.0.19" }
 strum = { version = "0.26.3", features = ["derive"] }
 tracing = "0.1.41"
 tracing-log = "0.2.0"
-tracing-subscriber = "0.3.18"
+tracing-subscriber = "0.3.19"
 
 [dev-dependencies]
 predicates = "3.1.2"

@@ -30,7 +30,7 @@ url = "2.5.4"
 
 # pakt specific deps
 tracing = "0.1.41"
-tracing-subscriber = "0.3.18"
+tracing-subscriber = "0.3.19"
 tower = "0.5.1"
 
 [build-dependencies]
