@@ -46,7 +46,7 @@ pub(crate) struct Command {
 
     // positionals
     /// Target packages or paths
-    #[arg(value_name = "TARGET", default_value = ".")]
+    #[arg(value_name = "TARGET", default_value = ".", help_heading = "Arguments")]
     targets: Vec<MaybeStdinVec<String>>,
 }
 
