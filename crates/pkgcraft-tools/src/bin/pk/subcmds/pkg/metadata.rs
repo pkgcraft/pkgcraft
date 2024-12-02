@@ -24,6 +24,10 @@ pub(crate) struct Command {
     #[arg(short = 'V', long)]
     verify: bool,
 
+    /// Remove cache entries
+    #[arg(short, long)]
+    remove: bool,
+
     /// Custom cache path
     #[arg(short, long)]
     path: Option<String>,
@@ -65,21 +69,27 @@ impl Command {
                     format.from_repo(repo)
                 };
 
-                let mut regen = cache
-                    .regen()
-                    .jobs(self.jobs.unwrap_or_default())
-                    .force(self.force)
-                    .progress(stdout().is_terminal() && !self.no_progress && !self.output)
-                    .output(self.output)
-                    .verify(self.verify);
+                if self.remove {
+                    for cpv in repo.iter_cpv_restrict(&restrict) {
+                        cache.remove_entry(&cpv)?;
+                    }
+                } else {
+                    let mut regen = cache
+                        .regen()
+                        .jobs(self.jobs.unwrap_or_default())
+                        .force(self.force)
+                        .progress(stdout().is_terminal() && !self.no_progress && !self.output)
+                        .output(self.output)
+                        .verify(self.verify);
 
-                // TODO: use parallel Cpv restriction iterator
-                // skip repo level targets that needlessly slow down regen
-                if restrict != Restrict::True {
-                    regen = regen.targets(repo.iter_cpv_restrict(&restrict));
+                    // TODO: use parallel Cpv restriction iterator
+                    // skip repo level targets that needlessly slow down regen
+                    if restrict != Restrict::True {
+                        regen = regen.targets(repo.iter_cpv_restrict(&restrict));
+                    }
+
+                    regen.run(repo)?;
                 }
-
-                regen.run(repo)?;
             }
         }
 
