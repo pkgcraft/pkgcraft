@@ -28,8 +28,7 @@ for the entire workspace.
 
 For bugs or other requests please create an [issue].
 
-For general support or questions use [discussions] or the #pkgcraft IRC
-channel on libera.
+For general support or questions use [discussions].
 
 [faq]: <https://pkgcraft.github.io/about/>
 [website]: <https://pkgcraft.github.io/>
