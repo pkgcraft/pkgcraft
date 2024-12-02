@@ -9,6 +9,7 @@ use pkgcraft::dep::{CpvOrDep, Flatten};
 use pkgcraft::traits::{Intersects, LogErrors};
 
 #[derive(Debug, Args)]
+#[clap(next_help_heading = "Revdeps options")]
 pub(crate) struct Command {
     /// Target repository
     #[arg(short, long, value_name = "REPO", default_value = ".")]
@@ -16,7 +17,7 @@ pub(crate) struct Command {
 
     // positionals
     /// Target dependencies
-    #[arg(value_name = "TARGET")]
+    #[arg(value_name = "TARGET", help_heading = "Arguments")]
     targets: Vec<MaybeStdinVec<String>>,
 }
 
