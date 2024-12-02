@@ -26,14 +26,14 @@ In addition, crates with the `test` feature require it to be enabled when
 running tests so use `cargo nextest run --all-features --tests` to run tests
 for the entire workspace.
 
-For bugs or other requests please create an [issue].
+For bugs or other requests use [issues].
 
 For general support or questions use [discussions].
 
 [faq]: <https://pkgcraft.github.io/about/>
 [website]: <https://pkgcraft.github.io/>
 [cargo-nextest]: <https://nexte.st/>
-[issue]: <https://github.com/pkgcraft/pkgcraft/issues>
+[issues]: <https://github.com/pkgcraft/pkgcraft/issues>
 [discussions]: <https://github.com/pkgcraft/pkgcraft/discussions>
 
 [scallop]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop>
