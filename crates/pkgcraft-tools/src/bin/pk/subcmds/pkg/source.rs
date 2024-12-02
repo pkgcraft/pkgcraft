@@ -59,6 +59,7 @@ impl FromStr for Bound {
 }
 
 #[derive(Debug, Args)]
+#[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
     /// Parallel jobs to run (default: # of physical CPUs)
     #[arg(short, long)]
@@ -78,7 +79,7 @@ pub(crate) struct Command {
 
     // positionals
     /// Target packages or paths
-    #[arg(value_name = "TARGET", default_value = ".")]
+    #[arg(value_name = "TARGET", default_value = ".", help_heading = "Arguments")]
     targets: Vec<MaybeStdinVec<String>>,
 }
 
