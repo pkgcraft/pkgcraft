@@ -17,6 +17,7 @@ use scallop::variables::{self, ShellVariable};
 use strum::IntoEnumIterator;
 
 #[derive(Debug, Args)]
+#[clap(next_help_heading = "Env options")]
 pub(crate) struct Command {
     /// Parallel jobs to run
     #[arg(short, long)]
@@ -28,7 +29,7 @@ pub(crate) struct Command {
 
     // positionals
     /// Target packages or paths
-    #[arg(value_name = "TARGET", default_value = ".")]
+    #[arg(value_name = "TARGET", default_value = ".", help_heading = "Arguments")]
     targets: Vec<MaybeStdinVec<String>>,
 }
 
