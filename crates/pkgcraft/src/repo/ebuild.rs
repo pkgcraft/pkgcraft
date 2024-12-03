@@ -264,8 +264,10 @@ impl EbuildRepo {
         let p = file
             .strip_suffix(".ebuild")
             .ok_or_else(|| path_err("missing ebuild ext"))?;
-        let pn_prefix = format!("{}-", cpn.package());
-        let Some(version) = p.strip_prefix(&pn_prefix) else {
+        let version = p
+            .strip_prefix(cpn.package())
+            .and_then(|s| s.strip_prefix('-'));
+        let Some(version) = version else {
             if p.contains('-') {
                 return Err(Error::InvalidValue(format!("{file}: mismatched package name")));
             } else {
@@ -518,8 +520,8 @@ impl PkgRepository for EbuildRepo {
             .filter(is_ebuild)
             .filter_map(|entry| {
                 let p = entry.path().file_stem().expect("invalid ebuild file");
-                let pn_prefix = format!("{pkg}-");
-                if let Some(version) = p.strip_prefix(&pn_prefix) {
+                let version = p.strip_prefix(pkg).and_then(|s| s.strip_prefix('-'));
+                if let Some(version) = version {
                     match Version::try_new(version) {
                         Ok(v) => return Some(v),
                         Err(e) => warn!("{}: {e}: {path}", self.id()),
