@@ -1,9 +1,10 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
+use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::report::ReportKind::EbuildNameInvalid;
+use crate::report::ReportKind::{EbuildNameInvalid, EbuildVersionsEqual};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -14,7 +15,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::EbuildName,
     scope: Scope::Package,
     source: SourceKind::Cpn,
-    reports: &[EbuildNameInvalid],
+    reports: &[EbuildNameInvalid, EbuildVersionsEqual],
     context: &[],
     priority: 0,
 };
@@ -29,20 +30,25 @@ struct Check {
 
 impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
-        let mut cpvs = HashSet::<Cpv>::new();
+        let mut cpvs = HashMap::<Cpv, Vec<_>>::new();
+
         for result in self.repo.cpvs_from_package(cpn.category(), cpn.package()) {
             match result {
                 Err(e) => EbuildNameInvalid.package(cpn).message(e).report(filter),
                 Ok(cpv) => {
-                    if let Some(existing) = cpvs.get(&cpv) {
-                        EbuildNameInvalid
-                            .version(cpv)
-                            .message(format!("version overlaps: {}", existing.version()))
-                            .report(filter);
-                    } else {
-                        cpvs.insert(cpv);
-                    }
+                    let version = cpv.version().to_string();
+                    cpvs.entry(cpv).or_default().push(version);
                 }
+            }
+        }
+
+        for (_, versions) in cpvs {
+            if versions.len() > 1 {
+                let versions = versions.iter().sorted().join(", ");
+                EbuildVersionsEqual
+                    .package(cpn)
+                    .message(format!("versions overlap: {versions}"))
+                    .report(filter);
             }
         }
     }

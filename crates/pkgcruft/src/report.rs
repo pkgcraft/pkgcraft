@@ -108,6 +108,9 @@ pub enum ReportKind {
     /// Ebuild file has a mismatched package name or invalid version.
     EbuildNameInvalid,
 
+    /// Multiple ebuild versions for a package are equivalent, e.g. 0 and 0-r0.
+    EbuildVersionsEqual,
+
     /// Eclass that is unused in the parent repository.
     EclassUnused,
 
@@ -253,6 +256,7 @@ impl ReportKind {
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
             Self::EbuildNameInvalid => Error,
+            Self::EbuildVersionsEqual => Error,
             Self::EclassUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::KeywordsDropped => Warning,
