@@ -37,6 +37,12 @@ where
     }
 }
 
+impl From<&Cpn> for Cpn {
+    fn from(value: &Cpn) -> Self {
+        value.clone()
+    }
+}
+
 impl fmt::Debug for Cpn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Cpn {{ {self} }}")
