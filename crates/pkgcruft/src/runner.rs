@@ -20,6 +20,7 @@ pub(super) struct SyncCheckRunner {
 
 impl SyncCheckRunner {
     pub(super) fn new(
+        scope: Scope,
         repo: &'static EbuildRepo,
         filters: &IndexSet<PkgFilter>,
         checks: &IndexSet<Check>,
@@ -32,7 +33,7 @@ impl SyncCheckRunner {
             .iter()
             .filter(|c| {
                 if !filters.is_empty() && c.filtered() {
-                    warn!("{c}: disabled due to package filtering");
+                    warn!("check disabled due to package filtering: {c}");
                     false
                 } else {
                     true
@@ -40,7 +41,15 @@ impl SyncCheckRunner {
             })
             .filter(|c| {
                 if !c.enabled(repo, checks) {
-                    warn!("{c}: disabled due to scan context");
+                    warn!("check disabled due to scan context: {c}");
+                    false
+                } else {
+                    true
+                }
+            })
+            .filter(|c| {
+                if c.scope > scope {
+                    warn!("check disabled due to scan scope: {c}");
                     false
                 } else {
                     true
