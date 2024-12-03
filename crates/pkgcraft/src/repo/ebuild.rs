@@ -517,16 +517,17 @@ impl PkgRepository for EbuildRepo {
             .into_iter()
             .filter(is_ebuild)
             .filter_map(|entry| {
-                let path = entry.path();
-                let pn = path.parent().unwrap().file_name().unwrap();
-                let pf = path.file_stem().unwrap();
-                if pn == &pf[..pn.len()] {
-                    match Version::try_new(&pf[pn.len() + 1..]) {
+                let p = entry.path().file_stem().expect("invalid ebuild file");
+                let pn_prefix = format!("{pkg}-");
+                if let Some(version) = p.strip_prefix(&pn_prefix) {
+                    match Version::try_new(version) {
                         Ok(v) => return Some(v),
                         Err(e) => warn!("{}: {e}: {path}", self.id()),
                     }
+                } else if p.contains('-') {
+                    warn!("{}: mismatched package name: {path}", self.id());
                 } else {
-                    warn!("{}: unmatched ebuild: {path}", self.id());
+                    warn!("{}: missing version: {path}", self.id());
                 }
                 None
             })
