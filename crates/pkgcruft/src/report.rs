@@ -75,9 +75,6 @@ pub enum ReportKind {
     /// Ebuild uses a bash builtin as an external command.
     BuiltinCommand,
 
-    /// Empty category directory in a repository.
-    CategoryEmpty,
-
     /// Package dependency flagged as deprecated by the repo.
     DependencyDeprecated,
 
@@ -153,6 +150,12 @@ pub enum ReportKind {
     /// Ebuild can support newer python version(s).
     PythonUpdate,
 
+    /// Empty category directory in a repository.
+    RepoCategoryEmpty,
+
+    /// Empty package directory in a repository.
+    RepoPackageEmpty,
+
     /// Ebuild has invalid RESTRICT.
     RestrictInvalid,
 
@@ -201,10 +204,18 @@ impl ReportKind {
     }
 
     /// Create a package scope report.
-    pub(crate) fn package(self, cpn: &Cpn) -> ReportBuilder {
+    pub(crate) fn package<T>(self, value: T) -> ReportBuilder
+    where
+        T: TryInto<Cpn>,
+        <T as TryInto<Cpn>>::Error: fmt::Display,
+    {
+        let cpn = value
+            .try_into()
+            .unwrap_or_else(|e| unreachable!("can't convert value to Cpn: {e}"));
+
         ReportBuilder(Report {
             kind: self,
-            scope: ReportScope::Package(cpn.clone()),
+            scope: ReportScope::Package(cpn),
             message: Default::default(),
         })
     }
@@ -232,7 +243,6 @@ impl ReportKind {
         use ReportLevel::*;
         match self {
             Self::BuiltinCommand => Error,
-            Self::CategoryEmpty => Warning,
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Critical,
             Self::DependencyRevisionMissing => Warning,
@@ -257,6 +267,8 @@ impl ReportKind {
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
             Self::PythonUpdate => Info,
+            Self::RepoCategoryEmpty => Warning,
+            Self::RepoPackageEmpty => Warning,
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
             Self::RubyUpdate => Info,
