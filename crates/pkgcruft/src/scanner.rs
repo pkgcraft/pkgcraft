@@ -213,6 +213,8 @@ fn pkg_producer(
             }
         }
 
+        // TODO: consider scheduling repo checks before package checks so global scans are quicker
+        //
         // run repo checks in parallel
         for check in runner.checks(&[Scope::Repo]) {
             tx.send((Some(check), Target::Repo(repo))).ok();
