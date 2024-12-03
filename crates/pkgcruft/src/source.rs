@@ -37,6 +37,7 @@ pub enum SourceKind {
     EbuildRawPkg,
     Cpn,
     Cpv,
+    Repo,
 }
 
 /// Package filtering variants.
@@ -182,15 +183,17 @@ impl PkgFilters {
 
 #[derive(Debug)]
 pub(crate) enum Target {
-    Cpn(Cpn),
     Cpv(Cpv),
+    Cpn(Cpn),
+    Repo(&'static EbuildRepo),
 }
 
 impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Cpn(cpn) => cpn.fmt(f),
             Self::Cpv(cpv) => cpv.fmt(f),
+            Self::Cpn(cpn) => cpn.fmt(f),
+            Self::Repo(repo) => repo.fmt(f),
         }
     }
 }
@@ -198,8 +201,9 @@ impl fmt::Display for Target {
 impl From<&Target> for Restrict {
     fn from(value: &Target) -> Restrict {
         match value {
-            Target::Cpn(cpn) => cpn.into(),
             Target::Cpv(cpv) => cpv.into(),
+            Target::Cpn(cpn) => cpn.into(),
+            Target::Repo(repo) => (*repo).into(),
         }
     }
 }

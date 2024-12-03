@@ -36,6 +36,7 @@ mod metadata;
 mod overlay;
 mod properties;
 mod python_update;
+mod repo_layout;
 mod restrict;
 mod restrict_test_missing;
 mod ruby_update;
@@ -77,6 +78,7 @@ pub enum CheckKind {
     Overlay,
     Properties,
     PythonUpdate,
+    RepoLayout,
     Restrict,
     RestrictTestMissing,
     RubyUpdate,
@@ -106,6 +108,7 @@ impl From<CheckKind> for Check {
             Metadata => metadata::CHECK,
             Properties => properties::CHECK,
             PythonUpdate => python_update::CHECK,
+            RepoLayout => repo_layout::CHECK,
             Restrict => restrict::CHECK,
             RestrictTestMissing => restrict_test_missing::CHECK,
             RubyUpdate => ruby_update::CHECK,
@@ -132,6 +135,12 @@ enum CheckContext {
     /// Check only runs in overlay repos.
     Overlay,
 }
+
+/// Run a check against a repo.
+pub(crate) trait RepoCheck {
+    fn run(&self, repo: &EbuildRepo, filter: &mut ReportFilter);
+}
+pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 
 /// Run a check against a Cpv.
 pub(crate) trait CpvCheck {
@@ -304,6 +313,15 @@ impl ToRunner<CpvRunner> for Check {
     fn to_runner(&self, repo: &'static EbuildRepo) -> CpvRunner {
         match &self.kind {
             CheckKind::Metadata => Box::new(metadata::create(repo)),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
+}
+
+impl ToRunner<RepoRunner> for Check {
+    fn to_runner(&self, _repo: &'static EbuildRepo) -> RepoRunner {
+        match &self.kind {
+            CheckKind::RepoLayout => Box::new(repo_layout::create()),
             _ => unreachable!("unsupported check: {self}"),
         }
     }

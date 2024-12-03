@@ -61,11 +61,11 @@ impl SyncCheckRunner {
     }
 
     /// Return the iterator of registered checks for a [`Scope`].
-    pub(super) fn checks(&self, scope: Scope) -> impl Iterator<Item = Check> + '_ {
+    pub(super) fn checks<'a>(&'a self, scopes: &'a [Scope]) -> impl Iterator<Item = Check> + 'a {
         self.runners
             .values()
             .flat_map(|r| r.iter())
-            .filter(move |c| c.scope == scope)
+            .filter(|c| scopes.contains(&c.scope))
     }
 
     /// Run all check runners in order of priority.
@@ -92,6 +92,7 @@ impl SyncCheckRunner {
                 }
                 (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_check(&check, cpn, filter),
                 (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
+                (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_check(&check, repo, filter),
                 _ => panic!("incompatible target {target} for check: {check}"),
             }
         }
@@ -104,6 +105,7 @@ enum CheckRunner {
     EbuildRawPkg(EbuildRawPkgCheckRunner),
     Cpn(CpnCheckRunner),
     Cpv(CpvCheckRunner),
+    Repo(RepoCheckRunner),
 }
 
 impl CheckRunner {
@@ -115,6 +117,7 @@ impl CheckRunner {
             }
             SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(repo)),
             SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(repo)),
+            SourceKind::Repo => Self::Repo(RepoCheckRunner::new(repo)),
         }
     }
 
@@ -125,6 +128,7 @@ impl CheckRunner {
             Self::EbuildRawPkg(r) => Box::new(r.iter()),
             Self::Cpn(r) => Box::new(r.iter()),
             Self::Cpv(r) => Box::new(r.iter()),
+            Self::Repo(r) => Box::new(r.iter()),
         }
     }
 
@@ -135,6 +139,7 @@ impl CheckRunner {
             Self::EbuildRawPkg(r) => r.add_check(check),
             Self::Cpn(r) => r.add_check(check),
             Self::Cpv(r) => r.add_check(check),
+            Self::Repo(r) => r.add_check(check),
         }
     }
 }
@@ -379,6 +384,45 @@ impl CpvCheckRunner {
             let now = Instant::now();
             runner.run(cpv, filter);
             debug!("{check}: {cpv}: {:?}", now.elapsed());
+        }
+    }
+}
+
+/// Check runner for Repo objects.
+struct RepoCheckRunner {
+    checks: IndexMap<Check, RepoRunner>,
+    repo: &'static EbuildRepo,
+}
+
+impl RepoCheckRunner {
+    fn new(repo: &'static EbuildRepo) -> Self {
+        Self {
+            checks: Default::default(),
+            repo,
+        }
+    }
+
+    /// Add a check to the check runner.
+    fn add_check(&mut self, check: Check) {
+        match &check.scope {
+            Scope::Repo => {
+                self.checks.insert(check, check.to_runner(self.repo));
+            }
+            _ => unreachable!("unsupported check: {check}"),
+        }
+    }
+
+    /// Return the iterator of registered checks.
+    fn iter(&self) -> impl Iterator<Item = Check> + '_ {
+        self.checks.keys().cloned()
+    }
+
+    /// Run a check for a repo.
+    fn run_check(&self, check: &Check, repo: &EbuildRepo, filter: &mut ReportFilter) {
+        if let Some(runner) = self.checks.get(check) {
+            let now = Instant::now();
+            runner.run(repo, filter);
+            debug!("{check}: {repo}: {:?}", now.elapsed());
         }
     }
 }

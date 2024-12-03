@@ -75,6 +75,9 @@ pub enum ReportKind {
     /// Ebuild uses a bash builtin as an external command.
     BuiltinCommand,
 
+    /// Empty category directory in a repository.
+    CategoryEmpty,
+
     /// Package dependency flagged as deprecated by the repo.
     DependencyDeprecated,
 
@@ -206,6 +209,15 @@ impl ReportKind {
         })
     }
 
+    /// Create a category scope report.
+    pub(crate) fn category<S: fmt::Display>(self, value: S) -> ReportBuilder {
+        ReportBuilder(Report {
+            kind: self,
+            scope: ReportScope::Category(value.to_string()),
+            message: Default::default(),
+        })
+    }
+
     /// Create a repo scope report.
     pub(crate) fn repo<R: Repository>(self, repo: R) -> ReportBuilder {
         ReportBuilder(Report {
@@ -220,6 +232,7 @@ impl ReportKind {
         use ReportLevel::*;
         match self {
             Self::BuiltinCommand => Error,
+            Self::CategoryEmpty => Warning,
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Critical,
             Self::DependencyRevisionMissing => Warning,
