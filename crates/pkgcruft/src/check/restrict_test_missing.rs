@@ -23,7 +23,8 @@ pub(super) fn create() -> impl EbuildPkgCheck {
         restricts: ["test", "!test? ( test )"]
             .iter()
             .map(|s| {
-                Dependency::restrict(s).unwrap_or_else(|e| panic!("invalid RESTRICT: {s}: {e}"))
+                Dependency::restrict(s)
+                    .unwrap_or_else(|e| unreachable!("invalid RESTRICT: {s}: {e}"))
             })
             .collect(),
         iuse: Iuse::try_new("test").unwrap(),

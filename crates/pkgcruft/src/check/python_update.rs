@@ -95,14 +95,14 @@ impl Check {
         self.targets
             .get_or_init(|| Eclass::iter().map(|e| (e, e.targets(self.repo))).collect())
             .get(eclass)
-            .unwrap_or_else(|| panic!("missing eclass targets: {eclass}"))
+            .unwrap_or_else(|| unreachable!("missing eclass targets: {eclass}"))
     }
 
     fn keys(&self, eclass: &Eclass) -> impl Iterator<Item = Key> + '_ {
         self.keys
             .get_or_init(|| Eclass::iter().map(|e| (e, e.keys())).collect())
             .get(eclass)
-            .unwrap_or_else(|| panic!("missing eclass keys: {eclass}"))
+            .unwrap_or_else(|| unreachable!("missing eclass keys: {eclass}"))
             .iter()
             .copied()
     }
@@ -111,7 +111,7 @@ impl Check {
         self.prefixes
             .get_or_init(|| Eclass::iter().map(|e| (e, e.prefixes())).collect())
             .get(eclass)
-            .unwrap_or_else(|| panic!("missing eclass prefixes: {eclass}"))
+            .unwrap_or_else(|| unreachable!("missing eclass prefixes: {eclass}"))
     }
 }
 
