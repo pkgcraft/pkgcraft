@@ -268,13 +268,12 @@ fn jobs() {
     let expected = glob_reports!("{repo}/**/reports.json");
 
     for opt in ["-j", "--jobs"] {
-        // serialized scans run in order
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "1"])
             .arg(&repo)
             .to_reports()
             .unwrap();
-        assert_eq!(&expected, &reports);
+        assert_unordered_eq!(&expected, &reports);
     }
 }
 
@@ -633,7 +632,7 @@ fn reporter() {
             .failure();
 
         // valid format string
-        cmd("pkgcruft scan")
+        cmd("pkgcruft scan -s version,package")
             .args([opt, "format"])
             .args(["--format", "{package}"])
             .assert()

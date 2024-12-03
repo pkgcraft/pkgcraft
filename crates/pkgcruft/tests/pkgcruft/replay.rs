@@ -420,7 +420,7 @@ fn reporter() {
             .code(2);
 
         // valid format string
-        cmd("pkgcruft replay")
+        cmd("pkgcruft replay -s version,package")
             .args([opt, "format"])
             .args(["--format", "{package}"])
             .arg(file.path())
