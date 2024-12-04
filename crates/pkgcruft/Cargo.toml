@@ -18,9 +18,16 @@ workspace = true
 default = []
 # test support
 test = ["dep:assert_cmd", "dep:glob", "pkgcraft/test"]
+# shell completion support
+shell = ["dep:clap_complete"]
 
 [lib]
 name = "pkgcruft"
+
+[[bin]]
+name = "shell"
+path = "src/bin/pkgcruft/shell.rs"
+required-features = ["shell"]
 
 [[bin]]
 name = "pkgcruft"
@@ -36,6 +43,7 @@ harness = false
 anyhow = "1.0.93"
 camino = "1.1.9"
 clap = { version = "4.5.21", features = ["derive", "string"] }
+clap_complete = { version = "4.5.38", optional = true }
 clap-verbosity-flag = "3.0.1"
 colored = "2.1.0"
 crossbeam-channel = "0.5.13"
