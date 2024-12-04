@@ -202,6 +202,11 @@ fn pkg_producer(
     tx: Sender<(Option<Check>, Target)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
+        // run repo checks in parallel
+        for check in runner.checks(&[Scope::Repo]) {
+            tx.send((Some(check), Target::Repo(repo))).ok();
+        }
+
         // parallelize per package if relevant checks are selected
         if runner
             .checks(&[Scope::Version, Scope::Package])
@@ -211,13 +216,6 @@ fn pkg_producer(
             for cpn in repo.iter_cpn_restrict(&restrict) {
                 tx.send((None, Target::Cpn(cpn))).ok();
             }
-        }
-
-        // TODO: consider scheduling repo checks before package checks so global scans are quicker
-        //
-        // run repo checks in parallel
-        for check in runner.checks(&[Scope::Repo]) {
-            tx.send((Some(check), Target::Repo(repo))).ok();
         }
     })
 }
