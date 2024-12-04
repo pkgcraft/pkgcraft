@@ -69,12 +69,12 @@ impl SyncCheckRunner {
         Self { runners }
     }
 
-    /// Return the iterator of registered checks for a [`Scope`].
-    pub(super) fn checks<'a>(&'a self, scopes: &'a [Scope]) -> impl Iterator<Item = Check> + 'a {
-        self.runners
-            .values()
-            .flat_map(|r| r.iter())
-            .filter(|c| scopes.contains(&c.scope))
+    /// Return an iterator of filtered checks.
+    pub(super) fn checks<'a, F>(&'a self, filter: F) -> impl Iterator<Item = Check> + 'a
+    where
+        F: Fn(&Check) -> bool + 'a,
+    {
+        self.runners.values().flat_map(|r| r.iter()).filter(filter)
     }
 
     /// Run all check runners in order of priority.

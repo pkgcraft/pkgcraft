@@ -25,6 +25,13 @@ pub enum Scope {
     Repo,
 }
 
+impl Scope {
+    /// Scope relates to a versioned or unversioned package.
+    pub(crate) fn is_pkg(&self) -> bool {
+        *self <= Self::Package
+    }
+}
+
 impl From<&Restrict> for Scope {
     fn from(value: &Restrict) -> Self {
         use DepRestrict::{Category, Package, Version};
