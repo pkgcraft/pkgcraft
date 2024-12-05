@@ -514,8 +514,7 @@ impl Eapi {
         // sort phases by name
         self.phases.sort();
         // sort archives by extension length, longest to shortest.
-        self.archives
-            .sort_by(|s1, s2| (s1.len().cmp(&s2.len()).reverse()));
+        self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
     }
 }
