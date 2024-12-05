@@ -1,5 +1,7 @@
 use std::process::ExitCode;
 
+use crate::command::Command;
+
 mod cpv;
 mod dep;
 mod pkg;
@@ -21,7 +23,7 @@ pub(crate) enum Subcommand {
 }
 
 impl Subcommand {
-    pub(super) fn run(&self, args: &super::Command) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, args: &Command) -> anyhow::Result<ExitCode> {
         match self {
             Self::Cpv(cmd) => cmd.run(),
             Self::Dep(cmd) => cmd.run(),

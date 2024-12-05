@@ -18,17 +18,25 @@ workspace = true
 name = "pk"
 bench = false
 
+[[bin]]
+name = "shell"
+path = "src/bin/pk/shell.rs"
+required-features = ["shell"]
+
 [features]
 # flaky tests that aren't run by default
 flaky = []
 # test support
 test = ["pkgcraft/test"]
+# shell completion support
+shell = ["dep:clap_complete"]
 
 [dependencies]
 aho-corasick = "1.1.3"
 anyhow = "1.0.93"
 camino = "1.1.9"
 clap = { version = "4.5.21", features = ["derive"] }
+clap_complete = { version = "4.5.38", optional = true }
 clap-verbosity-flag = "3.0.1"
 humantime = "2.1.0"
 indexmap = { version = "2.7.0", features = ["serde"] }

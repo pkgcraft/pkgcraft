@@ -2036,6 +2036,7 @@ dependencies = [
  "camino",
  "clap",
  "clap-verbosity-flag",
+ "clap_complete",
  "humantime",
  "indexmap 2.7.0",
  "indoc",
