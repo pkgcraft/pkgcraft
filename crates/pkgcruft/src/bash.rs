@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::ops::Deref;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 
 use crate::report::Location;
 
@@ -12,13 +12,18 @@ static LANGUAGE: LazyLock<tree_sitter::Language> =
 #[derive(Debug, Clone)]
 pub(crate) struct Tree<'a> {
     data: &'a [u8],
-    tree: OnceLock<tree_sitter::Tree>,
+    tree: tree_sitter::Tree,
 }
 
 impl<'a> Tree<'a> {
     /// Create a new bash parse tree from the given data.
     pub(crate) fn new(data: &'a [u8]) -> Self {
-        Self { data, tree: Default::default() }
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&LANGUAGE)
+            .expect("failed loading bash grammar");
+        let tree = parser.parse(data, None).expect("failed parsing bash");
+        Self { data, tree }
     }
 
     /// Return an iterator over all global nodes, skipping function scope.
@@ -33,20 +38,9 @@ impl<'a> Tree<'a> {
             .flatten()
     }
 
-    /// Return the parse tree.
-    fn tree(&self) -> &tree_sitter::Tree {
-        self.tree.get_or_init(|| {
-            let mut parser = tree_sitter::Parser::new();
-            parser
-                .set_language(&LANGUAGE)
-                .expect("failed loading bash grammar");
-            parser.parse(self.data, None).expect("failed parsing bash")
-        })
-    }
-
     /// Return the last node for a given position if one exists.
     pub(crate) fn last_node_for_position(&self, row: usize, column: usize) -> Option<Node> {
-        let mut cursor = self.tree().walk();
+        let mut cursor = self.tree.walk();
         let point = tree_sitter::Point::new(row, column);
         cursor.goto_first_child_for_point(point).map(|_| {
             let mut prev_node = cursor.node();
@@ -69,7 +63,7 @@ impl Deref for Tree<'_> {
     type Target = tree_sitter::Tree;
 
     fn deref(&self) -> &Self::Target {
-        self.tree()
+        &self.tree
     }
 }
 
@@ -78,7 +72,7 @@ impl<'a> IntoIterator for &'a Tree<'a> {
     type IntoIter = IterNodes<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IterNodes::new(self.data, self.tree().walk())
+        IterNodes::new(self.data, self.tree.walk())
     }
 }
 
