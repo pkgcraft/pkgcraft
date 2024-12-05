@@ -1,11 +1,10 @@
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
+use pkgcraft::pkg::Package;
 use std::collections::HashMap;
 
-use crate::bash::Tree;
 use crate::report::ReportKind::BuiltinCommand;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::SourceKind;
+use crate::source::{EbuildParsedPkg, SourceKind};
 
 use super::{CheckKind, EbuildRawPkgCheck};
 
@@ -18,10 +17,10 @@ pub(crate) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-type TestFn = fn(&str, &EbuildRawPkg) -> Option<String>;
+type TestFn = fn(&str, &EbuildParsedPkg) -> Option<String>;
 
 // TODO: scan for multiple -exec uses and -execdir?
-fn find(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
+fn find(cmd: &str, pkg: &EbuildParsedPkg) -> Option<String> {
     cmd.split_whitespace()
         .skip_while(|x| *x != "-exec")
         .nth(1)
@@ -29,7 +28,7 @@ fn find(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
         .map(|x| x.to_string())
 }
 
-fn xargs(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
+fn xargs(cmd: &str, pkg: &EbuildParsedPkg) -> Option<String> {
     cmd.split_whitespace()
         .nth(1)
         .and_then(|x| pkg.eapi().commands().get(x))
@@ -50,9 +49,13 @@ struct Check {
 }
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter) {
         // TODO: use parse tree query
-        for node in tree.iter_func().filter(|x| x.kind() == "command_name") {
+        for node in pkg
+            .tree()
+            .iter_func()
+            .filter(|x| x.kind() == "command_name")
+        {
             let cmd_name = node.as_str();
             if let Some(func) = self.commands.get(cmd_name) {
                 let cmd = node.parent().unwrap();

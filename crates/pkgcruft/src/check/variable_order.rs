@@ -1,12 +1,10 @@
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use strum::{Display, EnumString};
 
-use crate::bash::Tree;
 use crate::report::ReportKind::VariableOrder;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::SourceKind;
+use crate::source::{EbuildParsedPkg, SourceKind};
 
 use super::{CheckKind, EbuildRawPkgCheck};
 
@@ -43,16 +41,17 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
 struct Check;
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter) {
         let mut variables = vec![];
-        for node in tree
+        for node in pkg
+            .tree()
             .iter_global()
             .filter(|node| node.kind() == "variable_assignment")
         {
             // ignore ebuilds with conditionally defined target variables
             if node
                 .parent()
-                .map(|x| x != tree.root_node())
+                .map(|x| x != pkg.tree().root_node())
                 .unwrap_or_default()
             {
                 return;

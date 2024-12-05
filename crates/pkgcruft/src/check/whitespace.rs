@@ -1,12 +1,9 @@
 use std::collections::HashSet;
 
-use pkgcraft::pkg::ebuild::EbuildRawPkg;
-
-use crate::bash::Tree;
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::SourceKind;
+use crate::source::{EbuildParsedPkg, SourceKind};
 
 use super::{CheckKind, EbuildRawPkgCheck};
 
@@ -33,7 +30,7 @@ struct Check {
 }
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter) {
         let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();
@@ -67,7 +64,7 @@ impl EbuildRawPkgCheck for Check {
             // Flag leading single spaces, skipping certain parse tree node variants such
             // as heredocs and raw strings.
             if line.starts_with(' ') {
-                if let Some(node) = tree.last_node_for_position(lineno - 1, 0) {
+                if let Some(node) = pkg.tree().last_node_for_position(lineno - 1, 0) {
                     if !self.allowed_leading_whitespace.contains(node.kind()) {
                         WhitespaceUnneeded
                             .version(pkg)

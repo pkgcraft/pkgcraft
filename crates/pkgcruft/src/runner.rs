@@ -7,7 +7,6 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use tracing::{debug, trace, warn};
 
-use crate::bash;
 use crate::check::*;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -277,10 +276,9 @@ impl EbuildRawPkgCheckRunner {
     /// Run all checks for a Cpn.
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         for pkg in self.source.iter_restrict(cpn) {
-            let tree = bash::Tree::new(pkg.data().as_bytes());
             for (check, runner) in &self.checks {
                 let now = Instant::now();
-                runner.run(&pkg, &tree, filter);
+                runner.run(&pkg, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
         }
@@ -290,9 +288,8 @@ impl EbuildRawPkgCheckRunner {
     fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
         if let Some(runner) = self.checks.get(check) {
             for pkg in self.source.iter_restrict(cpv) {
-                let tree = bash::Tree::new(pkg.data().as_bytes());
                 let now = Instant::now();
-                runner.run(&pkg, &tree, filter);
+                runner.run(&pkg, filter);
                 debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
         }

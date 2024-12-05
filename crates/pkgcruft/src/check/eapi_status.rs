@@ -1,12 +1,10 @@
-use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::bash::Tree;
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::SourceKind;
+use crate::source::{EbuildParsedPkg, SourceKind};
 
 use super::{CheckKind, EbuildRawPkgCheck};
 
@@ -28,7 +26,7 @@ struct Check {
 }
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, _tree: &Tree, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter) {
         let eapi = pkg.eapi().as_str();
         if self.repo.metadata().config.eapis_deprecated.contains(eapi) {
             EapiDeprecated.version(pkg).message(eapi).report(filter);

@@ -8,16 +8,15 @@ use std::sync::LazyLock;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
-use crate::bash::Tree;
 use crate::report::ReportKind;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::SourceKind;
+use crate::source::{EbuildParsedPkg, SourceKind};
 use crate::Error;
 
 mod builtins;
@@ -166,9 +165,9 @@ pub(crate) trait EbuildPkgSetCheck {
 }
 pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 
-/// Run a check against a given raw ebuild package version and lazily parsed bash tree.
+/// Run a check against a given raw ebuild package version.
 pub(crate) trait EbuildRawPkgCheck {
-    fn run(&self, pkg: &EbuildRawPkg, tree: &Tree, filter: &mut ReportFilter);
+    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter);
 }
 pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 
