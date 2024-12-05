@@ -1074,17 +1074,19 @@ impl Iterator for IterCpv {
 
 /// Iterable of valid ebuild packages matching a given restriction.
 pub struct IterRestrict {
-    iter: Iter,
+    iter: Either<iter::Empty<<Iter as Iterator>::Item>, Iter>,
     restrict: Restrict,
 }
 
 impl IterRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        Self {
-            iter: Iter::new(repo, Some(&restrict)),
-            restrict,
-        }
+        let iter = if restrict == Restrict::False {
+            Either::Left(iter::empty())
+        } else {
+            Either::Right(Iter::new(repo, Some(&restrict)))
+        };
+        Self { iter, restrict }
     }
 }
 
@@ -1092,15 +1094,11 @@ impl Iterator for IterRestrict {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.restrict == Restrict::False {
-            None
-        } else {
-            self.iter.find_map(|r| match r {
-                Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
-                Ok(_) => None,
-                Err(e) => Some(Err(e)),
-            })
-        }
+        self.iter.find_map(|r| match r {
+            Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
     }
 }
 
@@ -1109,17 +1107,19 @@ impl Iterator for IterRestrict {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterRestrictOrdered {
-    iter: IterOrdered,
+    iter: Either<iter::Empty<<IterOrdered as Iterator>::Item>, IterOrdered>,
     restrict: Restrict,
 }
 
 impl IterRestrictOrdered {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        Self {
-            iter: IterOrdered::new(repo, Some(&restrict)),
-            restrict,
-        }
+        let iter = if restrict == Restrict::False {
+            Either::Left(iter::empty())
+        } else {
+            Either::Right(IterOrdered::new(repo, Some(&restrict)))
+        };
+        Self { iter, restrict }
     }
 }
 
@@ -1127,31 +1127,29 @@ impl Iterator for IterRestrictOrdered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.restrict == Restrict::False {
-            None
-        } else {
-            self.iter.find_map(|r| match r {
-                Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
-                Ok(_) => None,
-                Err(e) => Some(Err(e)),
-            })
-        }
+        self.iter.find_map(|r| match r {
+            Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
     }
 }
 
 /// Iterable of [`Cpn`] objects matching a given restriction.
 pub struct IterCpnRestrict {
-    iter: IterCpn,
+    iter: Either<iter::Empty<<IterCpn as Iterator>::Item>, IterCpn>,
     restrict: Restrict,
 }
 
 impl IterCpnRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        Self {
-            iter: IterCpn::new(repo, Some(&restrict)),
-            restrict,
-        }
+        let iter = if restrict == Restrict::False {
+            Either::Left(iter::empty())
+        } else {
+            Either::Right(IterCpn::new(repo, Some(&restrict)))
+        };
+        Self { iter, restrict }
     }
 }
 
@@ -1159,27 +1157,25 @@ impl Iterator for IterCpnRestrict {
     type Item = Cpn;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.restrict == Restrict::False {
-            None
-        } else {
-            self.iter.find(|cpn| self.restrict.matches(cpn))
-        }
+        self.iter.find(|cpn| self.restrict.matches(cpn))
     }
 }
 
 /// Iterable of [`Cpv`] objects matching a given restriction.
 pub struct IterCpvRestrict {
-    iter: IterCpv,
+    iter: Either<iter::Empty<<IterCpv as Iterator>::Item>, IterCpv>,
     restrict: Restrict,
 }
 
 impl IterCpvRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        Self {
-            iter: IterCpv::new(repo, Some(&restrict)),
-            restrict,
-        }
+        let iter = if restrict == Restrict::False {
+            Either::Left(iter::empty())
+        } else {
+            Either::Right(IterCpv::new(repo, Some(&restrict)))
+        };
+        Self { iter, restrict }
     }
 }
 
@@ -1187,27 +1183,25 @@ impl Iterator for IterCpvRestrict {
     type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.restrict == Restrict::False {
-            None
-        } else {
-            self.iter.find(|cpv| self.restrict.matches(cpv))
-        }
+        self.iter.find(|cpv| self.restrict.matches(cpv))
     }
 }
 
 /// Iterable of valid, raw ebuild packages matching a given restriction.
 pub struct IterRawRestrict {
-    iter: IterRaw,
+    iter: Either<iter::Empty<<IterRaw as Iterator>::Item>, IterRaw>,
     restrict: Restrict,
 }
 
 impl IterRawRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        Self {
-            iter: IterRaw::new(repo, Some(&restrict)),
-            restrict,
-        }
+        let iter = if restrict == Restrict::False {
+            Either::Left(iter::empty())
+        } else {
+            Either::Right(IterRaw::new(repo, Some(&restrict)))
+        };
+        Self { iter, restrict }
     }
 }
 
@@ -1215,15 +1209,11 @@ impl Iterator for IterRawRestrict {
     type Item = crate::Result<EbuildRawPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.restrict == Restrict::False {
-            None
-        } else {
-            self.iter.find_map(|r| match r {
-                Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
-                Ok(_) => None,
-                Err(e) => Some(Err(e)),
-            })
-        }
+        self.iter.find_map(|r| match r {
+            Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
     }
 }
 
