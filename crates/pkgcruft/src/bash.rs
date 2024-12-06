@@ -83,7 +83,7 @@ pub(crate) struct Node<'a> {
     data: &'a [u8],
 }
 
-impl Node<'_> {
+impl<'a> Node<'a> {
     /// Get the string value of a given node.
     pub(crate) fn as_str(&self) -> &str {
         self.inner.utf8_text(self.data).unwrap()
@@ -106,6 +106,20 @@ impl Node<'_> {
         self.inner
             .parent()
             .map(|inner| Self { inner, data: self.data })
+    }
+
+    /// Iterate over this node's children.
+    pub(crate) fn children(
+        &self,
+        cursor: &mut tree_sitter::TreeCursor<'a>,
+    ) -> impl Iterator<Item = Self> {
+        // TODO: figure out how to untangle the cursor lifetime to return the iterator directly
+        let nodes: Vec<_> = self
+            .inner
+            .children(cursor)
+            .map(|inner| Self { inner, data: self.data })
+            .collect();
+        nodes.into_iter()
     }
 }
 
