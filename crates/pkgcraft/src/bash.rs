@@ -125,15 +125,13 @@ impl<'a> Node<'a> {
         false
     }
 
-    /// Iterate over this node's children.
-    pub fn children(&self, cursor: &mut tree_sitter::TreeCursor<'a>) -> impl Iterator<Item = Self> {
+    /// Return this node's children.
+    pub fn children(&self, cursor: &mut tree_sitter::TreeCursor<'a>) -> Vec<Self> {
         // TODO: figure out how to untangle the cursor lifetime to return the iterator directly
-        let nodes: Vec<_> = self
-            .inner
+        self.inner
             .children(cursor)
             .map(|inner| Self { inner, data: self.data })
-            .collect();
-        nodes.into_iter()
+            .collect()
     }
 }
 
