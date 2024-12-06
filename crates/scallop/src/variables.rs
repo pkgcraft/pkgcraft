@@ -321,6 +321,23 @@ pub fn expand<S: AsRef<str>>(val: S) -> Option<String> {
     }
 }
 
+/// Perform file globbing on a string.
+pub fn glob_files<S: AsRef<str>>(val: S) -> Vec<String> {
+    let mut files = vec![];
+    let val = CString::new(val.as_ref()).unwrap();
+    unsafe {
+        let paths = bash::shell_glob_filename(val.as_ptr() as *mut _, 0);
+        if !paths.is_null() {
+            let mut i = 0;
+            while let Some(s) = (*paths.offset(i)).as_ref() {
+                files.push(CStr::from_ptr(s).to_string_lossy().into());
+                i += 1;
+            }
+        }
+    }
+    files
+}
+
 /// Get the string value of a given variable name splitting it into Vec<String> based on IFS.
 pub fn string_vec<S: AsRef<str>>(name: S) -> Option<Vec<String>> {
     let name = name.as_ref();

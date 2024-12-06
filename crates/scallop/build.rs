@@ -186,6 +186,9 @@ fn main() {
         .allowlist_var("ifs_value")
         .allowlist_var("ASS_.*")
 
+        .header("bash/pathexp.h")
+        .allowlist_function("shell_glob_filename")
+
         .header("bash/array.h")
         .allowlist_type("ARRAY")
         .allowlist_function("array_insert")
