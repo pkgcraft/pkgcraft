@@ -197,6 +197,8 @@ impl EbuildRawPkgSetCheck for Check {
             }
         }
 
+        // TODO: pull cached FILESDIR usage matches from inherited eclasses if files remain
+
         if !files.is_empty() {
             files.sort();
             let files = files
