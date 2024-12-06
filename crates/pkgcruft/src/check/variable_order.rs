@@ -4,7 +4,7 @@ use strum::{Display, EnumString};
 use crate::report::ReportKind::VariableOrder;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildParsedPkg, SourceKind};
+use crate::source::{EbuildRawPkg, SourceKind};
 
 use super::{CheckKind, EbuildRawPkgCheck};
 
@@ -41,7 +41,7 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
 struct Check;
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let mut variables = vec![];
         for node in pkg
             .tree()

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildParsedPkg, SourceKind};
+use crate::source::{EbuildRawPkg, SourceKind};
 
 use super::{CheckKind, EbuildRawPkgCheck};
 
@@ -30,7 +30,7 @@ struct Check {
 }
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();

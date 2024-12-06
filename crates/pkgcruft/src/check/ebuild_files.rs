@@ -15,7 +15,7 @@ use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildParsedPkg, SourceKind};
+use crate::source::{EbuildRawPkg, SourceKind};
 use crate::Error;
 
 use super::{CheckKind, EbuildRawPkgSetCheck};
@@ -39,7 +39,7 @@ struct Check {
 
 /// Expand a variable into its actual value.
 fn expand_var(
-    pkg: &EbuildParsedPkg,
+    pkg: &EbuildRawPkg,
     node: &crate::bash::Node,
     filesdir: &Utf8Path,
 ) -> crate::Result<String> {
@@ -83,7 +83,7 @@ fn expand_var(
 
 /// Resolve all variables in a parse tree node, returning the string value.
 fn expand_node<'a>(
-    pkg: &EbuildParsedPkg,
+    pkg: &EbuildRawPkg,
     node: &crate::bash::Node<'a>,
     cursor: &mut tree_sitter::TreeCursor<'a>,
     filesdir: &Utf8Path,
@@ -113,7 +113,7 @@ fn expand_node<'a>(
 }
 
 impl EbuildRawPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildParsedPkg], filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], filter: &mut ReportFilter) {
         let filesdir = build_path!(self.repo.path(), cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
         let mut files: IndexSet<_> = WalkDir::new(&filesdir)

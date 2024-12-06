@@ -5,7 +5,7 @@ use regex::Regex;
 use crate::report::ReportKind::HeaderInvalid;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildParsedPkg, SourceKind};
+use crate::source::{EbuildRawPkg, SourceKind};
 
 use super::{CheckContext, CheckKind, EbuildRawPkgCheck};
 
@@ -32,7 +32,7 @@ pub(super) fn create() -> impl EbuildRawPkgCheck {
 struct Check;
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let mut lines = pkg.data().lines();
 
         let mut line = lines.next().unwrap_or_default();

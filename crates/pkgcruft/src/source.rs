@@ -7,8 +7,7 @@ use colored::{Color, Colorize};
 use indexmap::IndexSet;
 use itertools::{Either, Itertools};
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::pkg::ebuild::keyword::KeywordStatus;
-use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
+use pkgcraft::pkg::ebuild::{self, keyword::KeywordStatus};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
@@ -71,8 +70,8 @@ impl PkgFilter {
     /// Apply filter across an iterator of packages.
     fn filter<'a>(
         &'a self,
-        iter: Box<dyn Iterator<Item = EbuildPkg> + 'a>,
-    ) -> Box<dyn Iterator<Item = EbuildPkg> + 'a> {
+        iter: Box<dyn Iterator<Item = ebuild::EbuildPkg> + 'a>,
+    ) -> Box<dyn Iterator<Item = ebuild::EbuildPkg> + 'a> {
         match self {
             Self::Latest(inverted) => {
                 let items: Vec<_> = iter.collect();
@@ -173,8 +172,8 @@ impl PkgFilters {
         &self,
         repo: &'static EbuildRepo,
         val: R,
-    ) -> Box<dyn Iterator<Item = EbuildPkg> + '_> {
-        let mut iter: Box<dyn Iterator<Item = EbuildPkg>> =
+    ) -> Box<dyn Iterator<Item = ebuild::EbuildPkg> + '_> {
+        let mut iter: Box<dyn Iterator<Item = ebuild::EbuildPkg>> =
             Box::new(repo.iter_restrict(val).filter_map(Result::ok));
 
         for f in &self.0 {
@@ -234,7 +233,7 @@ impl EbuildPkgSource {
 }
 
 impl IterRestrict for EbuildPkgSource {
-    type Item = EbuildPkg;
+    type Item = ebuild::EbuildPkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
@@ -259,7 +258,7 @@ impl EbuildRawPkgSource {
 }
 
 impl IterRestrict for EbuildRawPkgSource {
-    type Item = EbuildParsedPkg;
+    type Item = EbuildRawPkg;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
@@ -270,14 +269,14 @@ impl IterRestrict for EbuildRawPkgSource {
                 self.repo
                     .iter_raw_restrict(val)
                     .filter_map(Result::ok)
-                    .map(EbuildParsedPkg::new),
+                    .map(EbuildRawPkg::new),
             )
         } else {
             Box::new(self.filters.iter_restrict(self.repo, val).flat_map(|pkg| {
                 self.repo
                     .iter_raw_restrict(&pkg)
                     .filter_map(Result::ok)
-                    .map(EbuildParsedPkg::new)
+                    .map(EbuildRawPkg::new)
             }))
         }
     }
@@ -285,13 +284,13 @@ impl IterRestrict for EbuildRawPkgSource {
 
 // TODO: move parsing support into pkgcraft?
 /// Wrapper for raw ebuild package with lazily parsed bash tree.
-pub(crate) struct EbuildParsedPkg {
-    pkg: EbuildRawPkg,
+pub(crate) struct EbuildRawPkg {
+    pkg: ebuild::EbuildRawPkg,
     tree: OnceLock<bash::Tree<'static>>,
 }
 
-impl EbuildParsedPkg {
-    fn new(pkg: EbuildRawPkg) -> Self {
+impl EbuildRawPkg {
+    fn new(pkg: ebuild::EbuildRawPkg) -> Self {
         Self { pkg, tree: Default::default() }
     }
 
@@ -304,22 +303,22 @@ impl EbuildParsedPkg {
     }
 }
 
-impl Deref for EbuildParsedPkg {
-    type Target = EbuildRawPkg;
+impl Deref for EbuildRawPkg {
+    type Target = ebuild::EbuildRawPkg;
 
     fn deref(&self) -> &Self::Target {
         &self.pkg
     }
 }
 
-impl fmt::Display for EbuildParsedPkg {
+impl fmt::Display for EbuildRawPkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.pkg.fmt(f)
     }
 }
 
-impl From<&EbuildParsedPkg> for Cpv {
-    fn from(value: &EbuildParsedPkg) -> Self {
+impl From<&EbuildRawPkg> for Cpv {
+    fn from(value: &EbuildRawPkg) -> Self {
         value.cpv().clone()
     }
 }

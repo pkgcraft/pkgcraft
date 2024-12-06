@@ -16,7 +16,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNa
 use crate::report::ReportKind;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildParsedPkg, SourceKind};
+use crate::source::{EbuildRawPkg, SourceKind};
 use crate::Error;
 
 mod builtins;
@@ -170,13 +170,13 @@ pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 
 /// Run a check against a given raw ebuild package version.
 pub(crate) trait EbuildRawPkgCheck {
-    fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter);
+    fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter);
 }
 pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 
 /// Run a check against a raw ebuild package set.
 pub(crate) trait EbuildRawPkgSetCheck {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildParsedPkg], filter: &mut ReportFilter);
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], filter: &mut ReportFilter);
 }
 pub(crate) type EbuildRawPkgSetRunner = Box<dyn EbuildRawPkgSetCheck + Send + Sync>;
 
