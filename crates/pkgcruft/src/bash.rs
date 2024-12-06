@@ -44,7 +44,7 @@ impl<'a> Tree<'a> {
         let point = tree_sitter::Point::new(row, column);
         cursor.goto_first_child_for_point(point).map(|_| {
             let mut prev_node = cursor.node();
-            let iter = IterNodes::new(self.data, cursor);
+            let iter = IterRecursive::new(self.data, cursor);
             for node in iter {
                 if node.start_position().row > row {
                     break;
@@ -69,10 +69,10 @@ impl Deref for Tree<'_> {
 
 impl<'a> IntoIterator for &'a Tree<'a> {
     type Item = Node<'a>;
-    type IntoIter = IterNodes<'a>;
+    type IntoIter = IterRecursive<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IterNodes::new(self.data, self.tree.walk())
+        IterRecursive::new(self.data, self.tree.walk())
     }
 }
 
@@ -131,10 +131,10 @@ impl fmt::Display for Node<'_> {
 
 impl<'a> IntoIterator for Node<'a> {
     type Item = Node<'a>;
-    type IntoIter = IterNodes<'a>;
+    type IntoIter = IterRecursive<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IterNodes::new(self.data, self.walk())
+        IterRecursive::new(self.data, self.walk())
     }
 }
 
@@ -148,14 +148,14 @@ impl From<&Node<'_>> for Location {
 }
 
 /// Iterable for a bash parse tree using a given tree walking cursor.
-pub(crate) struct IterNodes<'a> {
+pub(crate) struct IterRecursive<'a> {
     data: &'a [u8],
     cursor: tree_sitter::TreeCursor<'a>,
     skip: HashSet<String>,
     seen: HashSet<usize>,
 }
 
-impl<'a> IterNodes<'a> {
+impl<'a> IterRecursive<'a> {
     fn new(data: &'a [u8], cursor: tree_sitter::TreeCursor<'a>) -> Self {
         Self {
             data,
@@ -175,7 +175,7 @@ impl<'a> IterNodes<'a> {
     }
 }
 
-impl<'a> Iterator for IterNodes<'a> {
+impl<'a> Iterator for IterRecursive<'a> {
     type Item = Node<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
