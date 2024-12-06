@@ -36,7 +36,8 @@ pub mod xml;
 struct InternalEbuildPkg {
     cpv: Cpv,
     repo: EbuildRepo,
-    data: Metadata,
+    meta: Metadata,
+    data: OnceLock<String>,
     iuse_effective: OnceLock<OrderedSet<String>>,
     metadata: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
@@ -60,7 +61,8 @@ impl TryFrom<EbuildRawPkg> for EbuildPkg {
         Ok(Self(Arc::new(InternalEbuildPkg {
             cpv: pkg.cpv().clone(),
             repo: pkg.repo(),
-            data: pkg.metadata()?,
+            meta: pkg.metadata()?,
+            data: OnceLock::new(),
             iuse_effective: OnceLock::new(),
             metadata: OnceLock::new(),
             manifest: OnceLock::new(),
@@ -80,8 +82,10 @@ impl EbuildPkg {
     }
 
     /// Return a package's ebuild file content.
-    pub fn ebuild(&self) -> crate::Result<String> {
-        fs::read_to_string(self.path()).map_err(|e| Error::IO(e.to_string()))
+    pub fn data(&self) -> &str {
+        self.0
+            .data
+            .get_or_init(|| fs::read_to_string(self.path()).unwrap_or_default())
     }
 
     /// Return true if a package is globally deprecated in its repo, false otherwise.
@@ -111,17 +115,17 @@ impl EbuildPkg {
 
     /// Return a package's description.
     pub fn description(&self) -> &str {
-        &self.0.data.description
+        &self.0.meta.description
     }
 
     /// Return a package's slot.
     pub fn slot(&self) -> &str {
-        self.0.data.slot.slot()
+        self.0.meta.slot.slot()
     }
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.0.data.slot.subslot().unwrap_or_else(|| self.slot())
+        self.0.meta.slot.subslot().unwrap_or_else(|| self.slot())
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
@@ -153,79 +157,79 @@ impl EbuildPkg {
 
     /// Return a package's BDEPEND.
     pub fn bdepend(&self) -> &DependencySet<Dep> {
-        &self.0.data.bdepend
+        &self.0.meta.bdepend
     }
 
     /// Return a package's DEPEND.
     pub fn depend(&self) -> &DependencySet<Dep> {
-        &self.0.data.depend
+        &self.0.meta.depend
     }
 
     /// Return a package's IDEPEND.
     pub fn idepend(&self) -> &DependencySet<Dep> {
-        &self.0.data.idepend
+        &self.0.meta.idepend
     }
 
     /// Return a package's PDEPEND.
     pub fn pdepend(&self) -> &DependencySet<Dep> {
-        &self.0.data.pdepend
+        &self.0.meta.pdepend
     }
 
     /// Return a package's RDEPEND.
     pub fn rdepend(&self) -> &DependencySet<Dep> {
-        &self.0.data.rdepend
+        &self.0.meta.rdepend
     }
 
     /// Return a package's LICENSE.
     pub fn license(&self) -> &DependencySet<String> {
-        &self.0.data.license
+        &self.0.meta.license
     }
 
     /// Return a package's PROPERTIES.
     pub fn properties(&self) -> &DependencySet<String> {
-        &self.0.data.properties
+        &self.0.meta.properties
     }
 
     /// Return a package's REQUIRED_USE.
     pub fn required_use(&self) -> &DependencySet<String> {
-        &self.0.data.required_use
+        &self.0.meta.required_use
     }
 
     /// Return a package's RESTRICT.
     pub fn restrict(&self) -> &DependencySet<String> {
-        &self.0.data.restrict
+        &self.0.meta.restrict
     }
 
     /// Return a package's SRC_URI.
     pub fn src_uri(&self) -> &DependencySet<Uri> {
-        &self.0.data.src_uri
+        &self.0.meta.src_uri
     }
 
     /// Return a package's homepage.
     pub fn homepage(&self) -> &OrderedSet<String> {
-        &self.0.data.homepage
+        &self.0.meta.homepage
     }
 
     /// Return a package's defined phases
     pub fn defined_phases(&self) -> &OrderedSet<Phase> {
-        &self.0.data.defined_phases
+        &self.0.meta.defined_phases
     }
 
     /// Return a package's keywords.
     pub fn keywords(&self) -> &OrderedSet<keyword::Keyword> {
-        &self.0.data.keywords
+        &self.0.meta.keywords
     }
 
     /// Return a package's IUSE.
     pub fn iuse(&self) -> &OrderedSet<iuse::Iuse> {
-        &self.0.data.iuse
+        &self.0.meta.iuse
     }
 
     /// Return a package's set of effective USE choices.
     pub fn iuse_effective(&self) -> &OrderedSet<String> {
         self.0.iuse_effective.get_or_init(|| {
             self.0
-                .data
+                .meta
                 .iuse
                 .iter()
                 .map(|x| x.flag().to_string())
@@ -235,12 +239,12 @@ impl EbuildPkg {
 
     /// Return the ordered set of directly inherited eclasses for a package.
     pub fn inherit(&self) -> &OrderedSet<Eclass> {
-        &self.0.data.inherit
+        &self.0.meta.inherit
     }
 
     /// Return the ordered set of inherited eclasses for a package.
     pub fn inherited(&self) -> &OrderedSet<Eclass> {
-        &self.0.data.inherited
+        &self.0.meta.inherited
     }
 
     /// Return a package's shared metadata.
@@ -277,7 +281,7 @@ impl EbuildPkg {
 
 impl Package for EbuildPkg {
     fn eapi(&self) -> &'static Eapi {
-        self.0.data.eapi
+        self.0.meta.eapi
     }
 
     fn cpv(&self) -> &Cpv {
@@ -414,7 +418,7 @@ mod tests {
         let relpath = raw_pkg.relpath();
         let pkg: EbuildPkg = raw_pkg.try_into().unwrap();
         assert_eq!(pkg.relpath(), relpath);
-        assert!(!pkg.ebuild().unwrap().is_empty());
+        assert!(!pkg.data().is_empty());
     }
 
     #[test]

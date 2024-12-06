@@ -104,14 +104,11 @@ impl Restriction<&EbuildPkg> for pkg::Restrict {
 impl Restriction<&EbuildPkg> for Restrict {
     fn matches(&self, pkg: &EbuildPkg) -> bool {
         match self {
-            Self::Ebuild(r) => match pkg.ebuild() {
-                Ok(s) => r.matches(&s),
-                Err(_) => false,
-            },
+            Self::Ebuild(r) => r.matches(pkg.data()),
             Self::Description(r) => r.matches(pkg.description()),
             Self::Slot(r) => r.matches(pkg.slot()),
             Self::Subslot(r) => r.matches(pkg.subslot()),
-            Self::RawSubslot(r) => match (r, pkg.0.data.slot.subslot()) {
+            Self::RawSubslot(r) => match (r, pkg.0.meta.slot.subslot()) {
                 (Some(r), Some(s)) => r.matches(s),
                 (None, None) => true,
                 _ => false,

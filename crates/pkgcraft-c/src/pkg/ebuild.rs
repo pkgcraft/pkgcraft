@@ -129,11 +129,10 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_path(p: *mut Pkg) -> *mut c_char {
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_pkg_ebuild_ebuild(p: *mut Pkg) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_pkg_ebuild_data(p: *mut Pkg) -> *mut c_char {
     ffi_catch_panic! {
         let pkg = try_pkg_from_ptr!(p);
-        let s = unwrap_or_panic!(pkg.ebuild());
-        try_ptr_from_str!(s)
+        try_ptr_from_str!(pkg.data())
     }
 }
 

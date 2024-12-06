@@ -53,56 +53,56 @@ impl EbuildConfiguredPkg {
 
     /// Return a configured package's evaluated BDEPEND.
     pub fn bdepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.data.bdepend.evaluate(self.settings.options())
+        self.raw.0.meta.bdepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated DEPEND.
     pub fn depend(&self) -> DependencySet<&Dep> {
-        self.raw.0.data.depend.evaluate(self.settings.options())
+        self.raw.0.meta.depend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated IDEPEND.
     pub fn idepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.data.idepend.evaluate(self.settings.options())
+        self.raw.0.meta.idepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated PDEPEND.
     pub fn pdepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.data.pdepend.evaluate(self.settings.options())
+        self.raw.0.meta.pdepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated RDEPEND.
     pub fn rdepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.data.rdepend.evaluate(self.settings.options())
+        self.raw.0.meta.rdepend.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated LICENSE.
     pub fn license(&self) -> DependencySet<&String> {
-        self.raw.0.data.license.evaluate(self.settings.options())
+        self.raw.0.meta.license.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated PROPERTIES.
     pub fn properties(&self) -> DependencySet<&String> {
-        self.raw.0.data.properties.evaluate(self.settings.options())
+        self.raw.0.meta.properties.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated RESTRICT.
     pub fn required_use(&self) -> DependencySet<&String> {
         self.raw
             .0
-            .data
+            .meta
             .required_use
             .evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated RESTRICT.
     pub fn restrict(&self) -> DependencySet<&String> {
-        self.raw.0.data.restrict.evaluate(self.settings.options())
+        self.raw.0.meta.restrict.evaluate(self.settings.options())
     }
 
     /// Return a configured package's evaluated SRC_URI.
     pub fn src_uri(&self) -> DependencySet<&Uri> {
-        self.raw.0.data.src_uri.evaluate(self.settings.options())
+        self.raw.0.meta.src_uri.evaluate(self.settings.options())
     }
 
     // TODO: combine this with profile and config settings
