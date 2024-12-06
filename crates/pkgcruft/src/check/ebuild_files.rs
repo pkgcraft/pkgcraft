@@ -115,7 +115,6 @@ fn expand_node<'a>(
 impl EbuildRawPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildParsedPkg], filter: &mut ReportFilter) {
         let filesdir = build_path!(self.repo.path(), cpn.category(), cpn.package(), "files");
-        let prefix = format!("{}/{cpn}/files/", self.repo.path());
         // TODO: flag non-utf8 file names?
         let mut files: IndexSet<_> = WalkDir::new(&filesdir)
             .min_depth(1)
@@ -155,8 +154,8 @@ impl EbuildRawPkgSetCheck for Check {
                         };
 
                         // handle strings with embedded $FILESDIR usage
-                        if !path.starts_with(&prefix) {
-                            if let Some(idx) = path.find(&prefix) {
+                        if !path.starts_with(filesdir.as_str()) {
+                            if let Some(idx) = path.find(filesdir.as_str()) {
                                 path = path.split_at(idx).1.to_string();
                             } else {
                                 warn!("{CHECK}: {pkg}: unhandled file path: {path}");
@@ -172,12 +171,14 @@ impl EbuildRawPkgSetCheck for Check {
                                 && !Path::new(path).exists()
                                 && !node.in_conditional()
                             {
-                                if let Some(file) = path.strip_prefix(&prefix) {
-                                    FileUnknown
-                                        .version(pkg)
-                                        .message(file)
-                                        .location(&node)
-                                        .report(filter);
+                                if let Some(file) = path.strip_prefix(filesdir.as_str()) {
+                                    if file.starts_with('/') {
+                                        FileUnknown
+                                            .version(pkg)
+                                            .message(file.trim_start_matches('/'))
+                                            .location(&node)
+                                            .report(filter);
+                                    }
                                 }
                             }
                         };
@@ -200,7 +201,8 @@ impl EbuildRawPkgSetCheck for Check {
             files.sort();
             let files = files
                 .iter()
-                .filter_map(|x| x.strip_prefix(&prefix))
+                .filter_map(|x| x.strip_prefix(filesdir.as_str()))
+                .map(|x| x.trim_start_matches('/'))
                 .join(", ");
             FilesUnused.package(cpn).message(files).report(filter);
         }
