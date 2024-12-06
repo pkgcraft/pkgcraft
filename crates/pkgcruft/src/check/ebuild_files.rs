@@ -1,14 +1,17 @@
+use std::collections::HashSet;
+use std::fs;
 use std::path::Path;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::bash::Node;
+use pkgcraft::bash::{Node, Tree};
 use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
-use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
 use pkgcraft::repo::Repository;
+use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
 
@@ -31,11 +34,27 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
-    Check { repo }
+    let eclasses = repo
+        .eclasses()
+        .into_par_iter()
+        .filter_map(|e| {
+            if let Ok(data) = fs::read(e.path()) {
+                if Tree::new(&data)
+                    .into_iter()
+                    .any(|x| x.kind() == "variable_name" && x.as_str() == "FILESDIR")
+                {
+                    return Some(e.clone());
+                }
+            }
+            None
+        })
+        .collect();
+    Check { repo, eclasses }
 }
 
 struct Check {
     repo: &'static EbuildRepo,
+    eclasses: HashSet<Eclass>,
 }
 
 /// Expand a variable into its actual value.
@@ -148,8 +167,10 @@ impl EbuildPkgSetCheck for Check {
             .map(|e| e.path().to_str().unwrap().to_string())
             .collect();
         let mut used_files = IndexSet::new();
+        let mut eclasses = IndexSet::new();
 
         for pkg in pkgs {
+            eclasses.extend(pkg.inherited());
             let mut cursor = pkg.tree().walk();
             for node in pkg.tree() {
                 if node.kind() == "variable_name" && node.as_str() == "FILESDIR" {
@@ -224,7 +245,15 @@ impl EbuildPkgSetCheck for Check {
             }
         }
 
-        // TODO: pull cached FILESDIR usage matches from inherited eclasses if files remain
+        // ignore unused files if inherited eclasses use FILESDIR
+        for eclass in eclasses {
+            if self.eclasses.contains(eclass) {
+                warn!(
+                    "{CHECK}: {cpn}: skipping unused files due to eclass FILESDIR usage: {eclass}"
+                );
+                return;
+            }
+        }
 
         if !files.is_empty() {
             files.sort();

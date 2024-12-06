@@ -47,11 +47,12 @@ clap_complete = { version = "4.5.38", optional = true }
 clap-verbosity-flag = "3.0.1"
 colored = "2.1.0"
 crossbeam-channel = "0.5.13"
-indexmap = { version = "2.7.0", features = ["serde"] }
+indexmap = { version = "2.7.0", features = ["rayon", "serde"] }
 indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.20" }
+rayon = "1.10.0"
 regex = "1.11.1"
 scallop = { path = "../scallop", version = "0.0.19" }
 serde = { version = "1.0.215", features = ["derive"] }
