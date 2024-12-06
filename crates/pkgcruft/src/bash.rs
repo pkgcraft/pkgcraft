@@ -177,6 +177,15 @@ impl<'a> IntoIterator for Node<'a> {
     }
 }
 
+impl<'a> IntoIterator for &Node<'a> {
+    type Item = Node<'a>;
+    type IntoIter = IterRecursive<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (*self).into_iter()
+    }
+}
+
 impl From<&Node<'_>> for Location {
     fn from(value: &Node<'_>) -> Self {
         Self {
