@@ -168,8 +168,14 @@ pub enum ReportKind {
     /// Ebuild can support newer ruby version(s).
     RubyUpdate,
 
+    /// Usage of an nonexistent file in $FILESDIR.
+    UnknownFile,
+
     /// Package only has unstable keywords.
     UnstableOnly,
+
+    /// Package has unused files in $FILESDIR.
+    UnusedFiles,
 
     /// Local USE flag missing description.
     UseLocalDescMissing,
@@ -276,7 +282,9 @@ impl ReportKind {
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
             Self::RubyUpdate => Info,
+            Self::UnknownFile => Error,
             Self::UnstableOnly => Info,
+            Self::UnusedFiles => Warning,
             Self::UseLocalDescMissing => Error,
             Self::UseLocalGlobal => Warning,
             Self::UseLocalUnused => Warning,

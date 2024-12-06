@@ -98,6 +98,9 @@ impl SyncCheckRunner {
                 (CheckRunner::EbuildRawPkg(r), Target::Cpv(cpv)) => {
                     r.run_check(&check, cpv, filter)
                 }
+                (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => {
+                    r.run_pkg_set(&check, cpn, filter)
+                }
                 (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_check(&check, cpn, filter),
                 (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
                 (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_check(&check, repo, filter),
@@ -244,7 +247,8 @@ impl EbuildPkgCheckRunner {
 
 /// Check runner for raw ebuild package checks.
 struct EbuildRawPkgCheckRunner {
-    checks: IndexMap<Check, EbuildRawPkgRunner>,
+    pkg_checks: IndexMap<Check, EbuildRawPkgRunner>,
+    pkg_set_checks: IndexMap<Check, EbuildRawPkgSetRunner>,
     source: EbuildRawPkgSource,
     repo: &'static EbuildRepo,
 }
@@ -252,7 +256,8 @@ struct EbuildRawPkgCheckRunner {
 impl EbuildRawPkgCheckRunner {
     fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
-            checks: Default::default(),
+            pkg_checks: Default::default(),
+            pkg_set_checks: Default::default(),
             source: EbuildRawPkgSource::new(repo, filters),
             repo,
         }
@@ -262,7 +267,11 @@ impl EbuildRawPkgCheckRunner {
     fn add_check(&mut self, check: Check) {
         match &check.scope {
             Scope::Version => {
-                self.checks.insert(check, check.to_runner(self.repo));
+                self.pkg_checks.insert(check, check.to_runner(self.repo));
+            }
+            Scope::Package => {
+                self.pkg_set_checks
+                    .insert(check, check.to_runner(self.repo));
             }
             _ => unreachable!("unsupported check: {check}"),
         }
@@ -270,23 +279,53 @@ impl EbuildRawPkgCheckRunner {
 
     /// Return the iterator of registered checks.
     fn iter(&self) -> impl Iterator<Item = Check> + '_ {
-        self.checks.keys().cloned()
+        self.pkg_checks
+            .keys()
+            .chain(self.pkg_set_checks.keys())
+            .cloned()
     }
 
     /// Run all checks for a Cpn.
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        let mut pkgs = vec![];
+
         for pkg in self.source.iter_restrict(cpn) {
-            for (check, runner) in &self.checks {
+            for (check, runner) in &self.pkg_checks {
                 let now = Instant::now();
                 runner.run(&pkg, filter);
                 debug!("{check}: {pkg}: {:?}", now.elapsed());
             }
+
+            if !self.pkg_set_checks.is_empty() {
+                pkgs.push(pkg);
+            }
+        }
+
+        // TODO: Consider skipping package set checks if an error is returned during
+        // iteration, for example if any package throws a MetadataError the package level
+        // checks will be missing that package and thus may be incorrect.
+        if !pkgs.is_empty() {
+            for (check, runner) in &self.pkg_set_checks {
+                let now = Instant::now();
+                runner.run(cpn, &pkgs, filter);
+                debug!("{check}: {cpn}: {:?}", now.elapsed());
+            }
+        }
+    }
+
+    /// Run a check for a Cpn.
+    fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
+        if let Some(runner) = self.pkg_set_checks.get(check) {
+            let pkgs: Vec<_> = self.source.iter_restrict(cpn).collect();
+            let now = Instant::now();
+            runner.run(cpn, &pkgs, filter);
+            debug!("{check}: {cpn}: {:?}", now.elapsed());
         }
     }
 
     /// Run a check for a Cpv.
     fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
-        if let Some(runner) = self.checks.get(check) {
+        if let Some(runner) = self.pkg_checks.get(check) {
             for pkg in self.source.iter_restrict(cpv) {
                 let now = Instant::now();
                 runner.run(&pkg, filter);

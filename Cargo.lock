@@ -2076,6 +2076,7 @@ dependencies = [
  "predicates",
  "pretty_assertions",
  "regex",
+ "scallop",
  "serde",
  "serde_json",
  "strfmt",
@@ -2087,6 +2088,7 @@ dependencies = [
  "tracing-subscriber",
  "tree-sitter",
  "tree-sitter-bash",
+ "walkdir",
 ]
 
 [[package]]

@@ -25,6 +25,7 @@ mod dependency_slot_missing;
 mod duplicates;
 mod eapi_stale;
 mod eapi_status;
+mod ebuild_files;
 mod ebuild_name;
 mod header;
 mod keywords;
@@ -67,6 +68,7 @@ pub enum CheckKind {
     Duplicates,
     EapiStale,
     EapiStatus,
+    EbuildFiles,
     EbuildName,
     Header,
     Keywords,
@@ -97,6 +99,7 @@ impl From<CheckKind> for Check {
             Duplicates => duplicates::CHECK,
             EapiStale => eapi_stale::CHECK,
             EapiStatus => eapi_status::CHECK,
+            EbuildFiles => ebuild_files::CHECK,
             EbuildName => ebuild_name::CHECK,
             Header => header::CHECK,
             Keywords => keywords::CHECK,
@@ -170,6 +173,12 @@ pub(crate) trait EbuildRawPkgCheck {
     fn run(&self, pkg: &EbuildParsedPkg, filter: &mut ReportFilter);
 }
 pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
+
+/// Run a check against a raw ebuild package set.
+pub(crate) trait EbuildRawPkgSetCheck {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildParsedPkg], filter: &mut ReportFilter);
+}
+pub(crate) type EbuildRawPkgSetRunner = Box<dyn EbuildRawPkgSetCheck + Send + Sync>;
 
 /// Registered check.
 #[derive(Copy, Clone)]
@@ -293,6 +302,15 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
             CheckKind::Header => Box::new(header::create()),
             CheckKind::VariableOrder => Box::new(variable_order::create()),
             CheckKind::Whitespace => Box::new(whitespace::create()),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
+}
+
+impl ToRunner<EbuildRawPkgSetRunner> for Check {
+    fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildRawPkgSetRunner {
+        match &self.kind {
+            CheckKind::EbuildFiles => Box::new(ebuild_files::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
