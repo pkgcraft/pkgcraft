@@ -75,6 +75,7 @@ fn expand_var<'a>(
         "PR" => Ok(cpv.pr().to_string()),
         "PV" => Ok(cpv.pv().to_string()),
         "PVR" => Ok(cpv.pvr().to_string()),
+        "SLOT" => Ok(pkg.slot().to_string()),
         // search and expand unknown variables
         name => {
             // TODO: consider caching globally defined variables during metadata gen for lookups
