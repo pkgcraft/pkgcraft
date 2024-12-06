@@ -98,7 +98,7 @@ impl EbuildRawPkg {
         &self.0.chksum
     }
 
-    /// Return the bash parse tree for the package.
+    /// Return the bash parse tree for the ebuild.
     pub fn tree(&self) -> &bash::Tree<'static> {
         self.0.tree.get_or_init(|| {
             // HACK: figure out better method for self-referential lifetimes

@@ -14,7 +14,7 @@ use crate::repo::Repository;
 use crate::shell::phase::Phase;
 use crate::traits::{Contains, Intersects, ToRef};
 use crate::types::OrderedSet;
-use crate::Error;
+use crate::{bash, Error};
 
 use super::{make_pkg_traits, Package, RepoPackage};
 
@@ -38,6 +38,7 @@ struct InternalEbuildPkg {
     repo: EbuildRepo,
     meta: Metadata,
     data: OnceLock<String>,
+    tree: OnceLock<bash::Tree<'static>>,
     iuse_effective: OnceLock<OrderedSet<String>>,
     metadata: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
@@ -63,6 +64,7 @@ impl TryFrom<EbuildRawPkg> for EbuildPkg {
             repo: pkg.repo(),
             meta: pkg.metadata()?,
             data: OnceLock::new(),
+            tree: OnceLock::new(),
             iuse_effective: OnceLock::new(),
             metadata: OnceLock::new(),
             manifest: OnceLock::new(),
@@ -86,6 +88,15 @@ impl EbuildPkg {
         self.0
             .data
             .get_or_init(|| fs::read_to_string(self.path()).unwrap_or_default())
+    }
+
+    /// Return the bash parse tree for the ebuild.
+    pub fn tree(&self) -> &bash::Tree<'static> {
+        self.0.tree.get_or_init(|| {
+            // HACK: figure out better method for self-referential lifetimes
+            let data: &'static [u8] = unsafe { std::mem::transmute(self.data().as_bytes()) };
+            bash::Tree::new(data)
+        })
     }
 
     /// Return true if a package is globally deprecated in its repo, false otherwise.
