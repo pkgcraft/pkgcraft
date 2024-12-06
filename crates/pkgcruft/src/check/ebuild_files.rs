@@ -11,7 +11,7 @@ use pkgcraft::repo::Repository;
 use tracing::warn;
 use walkdir::WalkDir;
 
-use crate::report::ReportKind::{UnknownFile, UnusedFiles};
+use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::{EbuildParsedPkg, SourceKind};
@@ -23,7 +23,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::EbuildFiles,
     scope: Scope::Package,
     source: SourceKind::EbuildRawPkg,
-    reports: &[UnknownFile, UnusedFiles],
+    reports: &[FileUnknown, FilesUnused],
     context: &[],
     priority: 0,
 };
@@ -156,7 +156,7 @@ impl EbuildRawPkgSetCheck for Check {
                                 && !node.is_conditional()
                             {
                                 if let Some(file) = path.strip_prefix(&prefix) {
-                                    UnknownFile
+                                    FileUnknown
                                         .version(pkg)
                                         .message(file)
                                         .location(&node)
@@ -185,7 +185,7 @@ impl EbuildRawPkgSetCheck for Check {
                 .iter()
                 .filter_map(|x| x.strip_prefix(&prefix))
                 .join(", ");
-            UnusedFiles.package(cpn).message(files).report(filter);
+            FilesUnused.package(cpn).message(files).report(filter);
         }
     }
 }

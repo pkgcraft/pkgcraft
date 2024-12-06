@@ -114,6 +114,12 @@ pub enum ReportKind {
     /// Eclass that is unused in the parent repository.
     EclassUnused,
 
+    /// Usage of a nonexistent file in $FILESDIR.
+    FileUnknown,
+
+    /// Package has unused files in $FILESDIR.
+    FilesUnused,
+
     /// File has an invalid copyright and/or license header.
     HeaderInvalid,
 
@@ -168,14 +174,8 @@ pub enum ReportKind {
     /// Ebuild can support newer ruby version(s).
     RubyUpdate,
 
-    /// Usage of an nonexistent file in $FILESDIR.
-    UnknownFile,
-
     /// Package only has unstable keywords.
     UnstableOnly,
-
-    /// Package has unused files in $FILESDIR.
-    UnusedFiles,
 
     /// Local USE flag missing description.
     UseLocalDescMissing,
@@ -264,6 +264,8 @@ impl ReportKind {
             Self::EbuildNameInvalid => Error,
             Self::EbuildVersionsEqual => Error,
             Self::EclassUnused => Warning,
+            Self::FileUnknown => Error,
+            Self::FilesUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::KeywordsDropped => Warning,
             Self::KeywordsLive => Warning,
@@ -282,9 +284,7 @@ impl ReportKind {
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
             Self::RubyUpdate => Info,
-            Self::UnknownFile => Error,
             Self::UnstableOnly => Info,
-            Self::UnusedFiles => Warning,
             Self::UseLocalDescMissing => Error,
             Self::UseLocalGlobal => Warning,
             Self::UseLocalUnused => Warning,
