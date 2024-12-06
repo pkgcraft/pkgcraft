@@ -43,7 +43,7 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
                     .into_iter()
                     .any(|x| x.kind() == "variable_name" && x.as_str() == "FILESDIR")
                 {
-                    return Some(e.clone());
+                    return Some(e);
                 }
             }
             None
@@ -54,7 +54,7 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
 
 struct Check {
     repo: &'static EbuildRepo,
-    eclasses: HashSet<Eclass>,
+    eclasses: HashSet<&'static Eclass>,
 }
 
 /// Expand a variable into its actual value.
@@ -167,10 +167,8 @@ impl EbuildPkgSetCheck for Check {
             .map(|e| e.path().to_string_lossy().to_string())
             .collect();
         let mut used_files = IndexSet::new();
-        let mut eclasses = IndexSet::new();
 
         for pkg in pkgs {
-            eclasses.extend(pkg.inherited());
             let mut cursor = pkg.tree().walk();
             for node in pkg.tree() {
                 if node.kind() == "variable_name" && node.as_str() == "FILESDIR" {
@@ -245,17 +243,16 @@ impl EbuildPkgSetCheck for Check {
             }
         }
 
-        // ignore unused files if inherited eclasses use FILESDIR
-        for eclass in eclasses {
-            if self.eclasses.contains(eclass) {
+        if !files.is_empty() {
+            // ignore unused files if inherited eclasses use FILESDIR
+            let inherited: HashSet<_> = pkgs.iter().flat_map(|x| x.inherited()).collect();
+            if let Some(eclass) = self.eclasses.intersection(&inherited).next() {
                 warn!(
                     "{CHECK}: {cpn}: skipping unused files due to eclass FILESDIR usage: {eclass}"
                 );
                 return;
             }
-        }
 
-        if !files.is_empty() {
             files.sort();
             let files = files
                 .iter()
