@@ -5,6 +5,13 @@ use std::sync::LazyLock;
 
 use crate::report::Location;
 
+static CONDITIONALS: LazyLock<HashSet<String>> = LazyLock::new(|| {
+    ["test_command", "if_statement", "list"]
+        .into_iter()
+        .map(Into::into)
+        .collect()
+});
+
 static LANGUAGE: LazyLock<tree_sitter::Language> =
     LazyLock::new(|| tree_sitter_bash::LANGUAGE.into());
 
@@ -106,6 +113,18 @@ impl<'a> Node<'a> {
         self.inner
             .parent()
             .map(|inner| Self { inner, data: self.data })
+    }
+
+    /// Return true if the node is location inside a conditional statement, otherwise false.
+    pub(crate) fn is_conditional(&self) -> bool {
+        let mut node = *self;
+        while let Some(x) = node.parent() {
+            if CONDITIONALS.contains(x.kind()) {
+                return true;
+            }
+            node = x;
+        }
+        false
     }
 
     /// Iterate over this node's children.
