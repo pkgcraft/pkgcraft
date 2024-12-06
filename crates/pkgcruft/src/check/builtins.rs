@@ -1,10 +1,10 @@
-use pkgcraft::pkg::Package;
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
 use std::collections::HashMap;
 
 use crate::report::ReportKind::BuiltinCommand;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildRawPkg, SourceKind};
+use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};
 

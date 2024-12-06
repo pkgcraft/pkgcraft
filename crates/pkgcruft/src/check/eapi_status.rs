@@ -1,10 +1,10 @@
-use pkgcraft::pkg::Package;
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildRawPkg, SourceKind};
+use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};
 

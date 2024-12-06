@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
@@ -16,7 +16,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNa
 use crate::report::ReportKind;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildRawPkg, SourceKind};
+use crate::source::SourceKind;
 use crate::Error;
 
 mod builtins;

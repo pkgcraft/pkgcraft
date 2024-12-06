@@ -3,9 +3,10 @@ use std::path::Path;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use pkgcraft::bash::Node;
 use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
-use pkgcraft::pkg::Package;
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repository;
 use tracing::warn;
@@ -15,7 +16,7 @@ use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildRawPkg, SourceKind};
+use crate::source::SourceKind;
 use crate::Error;
 
 use super::{CheckKind, EbuildRawPkgSetCheck};
@@ -38,11 +39,7 @@ struct Check {
 }
 
 /// Expand a variable into its actual value.
-fn expand_var(
-    pkg: &EbuildRawPkg,
-    node: &crate::bash::Node,
-    filesdir: &Utf8Path,
-) -> crate::Result<String> {
+fn expand_var(pkg: &EbuildRawPkg, node: &Node, filesdir: &Utf8Path) -> crate::Result<String> {
     let mut var_node = None;
     let mut nodes = vec![];
     for x in node {
@@ -84,7 +81,7 @@ fn expand_var(
 /// Resolve all variables in a parse tree node, returning the string value.
 fn expand_node<'a>(
     pkg: &EbuildRawPkg,
-    node: &crate::bash::Node<'a>,
+    node: &Node<'a>,
     cursor: &mut tree_sitter::TreeCursor<'a>,
     filesdir: &Utf8Path,
 ) -> crate::Result<String> {

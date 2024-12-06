@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
@@ -10,7 +10,7 @@ use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{ebuild::EbuildRepo, Repository};
 use crate::traits::{FilterLines, Intersects};
-use crate::Error;
+use crate::{bash, Error};
 
 use super::metadata::Metadata;
 
@@ -21,6 +21,7 @@ struct InternalEbuildRawPkg {
     pub(super) eapi: &'static Eapi,
     data: String,
     chksum: String,
+    tree: OnceLock<bash::Tree<'static>>,
 }
 
 #[derive(Clone)]
@@ -50,7 +51,15 @@ impl EbuildRawPkg {
 
         let chksum = repo.metadata().cache().chksum(&data);
         let repo = repo.clone();
-        Ok(Self(Arc::new(InternalEbuildRawPkg { cpv, repo, eapi, data, chksum })))
+        let tree = Default::default();
+        Ok(Self(Arc::new(InternalEbuildRawPkg {
+            cpv,
+            repo,
+            eapi,
+            data,
+            chksum,
+            tree,
+        })))
     }
 
     /// Get the parsed EAPI from the given ebuild data content.
@@ -87,6 +96,15 @@ impl EbuildRawPkg {
     /// Return the checksum of the package's ebuild file content.
     pub fn chksum(&self) -> &str {
         &self.0.chksum
+    }
+
+    /// Return the bash parse tree for the package.
+    pub fn tree(&self) -> &bash::Tree<'static> {
+        self.0.tree.get_or_init(|| {
+            // HACK: figure out better method for self-referential lifetimes
+            let data: &'static [u8] = unsafe { std::mem::transmute(self.0.data.as_bytes()) };
+            bash::Tree::new(data)
+        })
     }
 
     /// Load metadata from the cache if valid, otherwise try to generate it and update the cache.

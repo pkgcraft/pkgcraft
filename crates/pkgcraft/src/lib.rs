@@ -1,4 +1,5 @@
 pub(crate) mod archive;
+pub mod bash;
 pub mod cli;
 pub(crate) mod command;
 pub mod config;

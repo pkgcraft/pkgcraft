@@ -6,6 +6,7 @@ use std::io::{BufRead, BufReader};
 use camino::Utf8Path;
 use colored::Color;
 use indexmap::IndexSet;
+use pkgcraft::bash::Node;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::Repository;
 use pkgcraft::restrict::{Restrict, Restriction};
@@ -361,6 +362,15 @@ impl From<usize> for Location {
 impl From<(usize, usize)> for Location {
     fn from(value: (usize, usize)) -> Self {
         Self { line: value.0, column: value.1 }
+    }
+}
+
+impl From<&Node<'_>> for Location {
+    fn from(value: &Node<'_>) -> Self {
+        Self {
+            line: value.start_position().row + 1,
+            column: value.start_position().column + 1,
+        }
     }
 }
 

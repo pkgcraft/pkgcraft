@@ -1,9 +1,11 @@
 use std::collections::HashSet;
 
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
+
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildRawPkg, SourceKind};
+use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};
 

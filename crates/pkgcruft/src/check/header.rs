@@ -1,11 +1,12 @@
 use std::sync::LazyLock;
 
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use regex::Regex;
 
 use crate::report::ReportKind::HeaderInvalid;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
-use crate::source::{EbuildRawPkg, SourceKind};
+use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, EbuildRawPkgCheck};
 

@@ -3,8 +3,6 @@ use std::fmt;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use crate::report::Location;
-
 static CONDITIONALS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     ["test_command", "if_statement", "list"]
         .into_iter()
@@ -17,14 +15,14 @@ static LANGUAGE: LazyLock<tree_sitter::Language> =
 
 /// Wrapper for a lazily parsed bash tree.
 #[derive(Debug, Clone)]
-pub(crate) struct Tree<'a> {
+pub struct Tree<'a> {
     data: &'a [u8],
     tree: tree_sitter::Tree,
 }
 
 impl<'a> Tree<'a> {
     /// Create a new bash parse tree from the given data.
-    pub(crate) fn new(data: &'a [u8]) -> Self {
+    pub fn new(data: &'a [u8]) -> Self {
         let mut parser = tree_sitter::Parser::new();
         parser
             .set_language(&LANGUAGE)
@@ -34,19 +32,19 @@ impl<'a> Tree<'a> {
     }
 
     /// Return an iterator over all global nodes, skipping function scope.
-    pub(crate) fn iter_global(&self) -> impl Iterator<Item = Node> {
+    pub fn iter_global(&self) -> impl Iterator<Item = Node> {
         self.into_iter().skip(["function_definition"])
     }
 
     /// Return an iterator over all function nodes, skipping global scope.
-    pub(crate) fn iter_func(&self) -> impl Iterator<Item = Node> {
+    pub fn iter_func(&self) -> impl Iterator<Item = Node> {
         self.into_iter()
             .filter(|x| x.kind() == "function_definition")
             .flatten()
     }
 
     /// Return the last node for a given position if one exists.
-    pub(crate) fn last_node_for_position(&self, row: usize, column: usize) -> Option<Node> {
+    pub fn last_node_for_position(&self, row: usize, column: usize) -> Option<Node> {
         let mut cursor = self.tree.walk();
         let point = tree_sitter::Point::new(row, column);
         cursor.goto_first_child_for_point(point).map(|_| {
@@ -85,38 +83,38 @@ impl<'a> IntoIterator for &'a Tree<'a> {
 
 /// Wrapper for bash parse tree node.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Node<'a> {
+pub struct Node<'a> {
     inner: tree_sitter::Node<'a>,
     data: &'a [u8],
 }
 
 impl<'a> Node<'a> {
     /// Get the string value of a given node.
-    pub(crate) fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         self.inner.utf8_text(self.data).unwrap()
     }
 
     /// Get the name of a given node if it exists.
-    pub(crate) fn name(&self) -> Option<&str> {
+    pub fn name(&self) -> Option<&str> {
         self.inner
             .child_by_field_name("name")
             .map(|x| x.utf8_text(self.data).unwrap())
     }
 
     /// Return the node's line number.
-    pub(crate) fn line(&self) -> usize {
+    pub fn line(&self) -> usize {
         self.inner.start_position().row + 1
     }
 
     /// Return the parent node if one exists.
-    pub(crate) fn parent(&self) -> Option<Self> {
+    pub fn parent(&self) -> Option<Self> {
         self.inner
             .parent()
             .map(|inner| Self { inner, data: self.data })
     }
 
     /// Return true if the node is location inside a conditional statement, otherwise false.
-    pub(crate) fn in_conditional(&self) -> bool {
+    pub fn in_conditional(&self) -> bool {
         let mut node = *self;
         while let Some(x) = node.parent() {
             if CONDITIONALS.contains(x.kind()) {
@@ -128,10 +126,7 @@ impl<'a> Node<'a> {
     }
 
     /// Iterate over this node's children.
-    pub(crate) fn children(
-        &self,
-        cursor: &mut tree_sitter::TreeCursor<'a>,
-    ) -> impl Iterator<Item = Self> {
+    pub fn children(&self, cursor: &mut tree_sitter::TreeCursor<'a>) -> impl Iterator<Item = Self> {
         // TODO: figure out how to untangle the cursor lifetime to return the iterator directly
         let nodes: Vec<_> = self
             .inner
@@ -186,17 +181,8 @@ impl<'a> IntoIterator for &Node<'a> {
     }
 }
 
-impl From<&Node<'_>> for Location {
-    fn from(value: &Node<'_>) -> Self {
-        Self {
-            line: value.inner.start_position().row + 1,
-            column: value.inner.start_position().column + 1,
-        }
-    }
-}
-
 /// Iterable for a bash parse tree using a given tree walking cursor.
-pub(crate) struct IterRecursive<'a> {
+pub struct IterRecursive<'a> {
     data: &'a [u8],
     cursor: tree_sitter::TreeCursor<'a>,
     skip: HashSet<String>,

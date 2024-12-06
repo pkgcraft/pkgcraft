@@ -67,6 +67,8 @@ strum = { version = "0.26.3", features = ["derive"] }
 tar = { version = "0.4.43", optional = true }
 tempfile = "3.14.0"
 thiserror = "2.0.3"
+tree-sitter = "0.24.4"
+tree-sitter-bash = "0.23.3"
 tokio = { version = "1.41.1", features = ["full"], optional = true }
 toml = "0.8.19"
 tracing = "0.1.41"

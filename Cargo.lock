@@ -2015,6 +2015,8 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-test",
+ "tree-sitter",
+ "tree-sitter-bash",
  "walkdir",
 ]
 
@@ -2087,7 +2089,6 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "tree-sitter",
- "tree-sitter-bash",
  "walkdir",
 ]
 
