@@ -284,6 +284,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
 impl ToRunner<EbuildPkgSetRunner> for Check {
     fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildPkgSetRunner {
         match &self.kind {
+            CheckKind::EbuildFiles => Box::new(ebuild_files::create(repo)),
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
             CheckKind::Live => Box::new(live::create()),
@@ -308,11 +309,8 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
 }
 
 impl ToRunner<EbuildRawPkgSetRunner> for Check {
-    fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildRawPkgSetRunner {
-        match &self.kind {
-            CheckKind::EbuildFiles => Box::new(ebuild_files::create(repo)),
-            _ => unreachable!("unsupported check: {self}"),
-        }
+    fn to_runner(&self, _repo: &'static EbuildRepo) -> EbuildRawPkgSetRunner {
+        unreachable!("unsupported check: {self}")
     }
 }
 

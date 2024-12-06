@@ -6,7 +6,7 @@ use itertools::Itertools;
 use pkgcraft::bash::Node;
 use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
+use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repository;
 use tracing::warn;
@@ -19,18 +19,18 @@ use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 
-use super::{CheckKind, EbuildRawPkgSetCheck};
+use super::{CheckKind, EbuildPkgSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::EbuildFiles,
     scope: Scope::Package,
-    source: SourceKind::EbuildRawPkg,
+    source: SourceKind::EbuildPkg,
     reports: &[FileUnknown, FilesUnused],
     context: &[],
     priority: 0,
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildRawPkgSetCheck {
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
     Check { repo }
 }
 
@@ -39,7 +39,7 @@ struct Check {
 }
 
 /// Expand a variable into its actual value.
-fn expand_var(pkg: &EbuildRawPkg, node: &Node, filesdir: &Utf8Path) -> crate::Result<String> {
+fn expand_var(pkg: &EbuildPkg, node: &Node, filesdir: &Utf8Path) -> crate::Result<String> {
     let mut var_node = None;
     let mut nodes = vec![];
     for x in node {
@@ -80,7 +80,7 @@ fn expand_var(pkg: &EbuildRawPkg, node: &Node, filesdir: &Utf8Path) -> crate::Re
 
 /// Resolve all variables in a parse tree node, returning the string value.
 fn expand_node<'a>(
-    pkg: &EbuildRawPkg,
+    pkg: &EbuildPkg,
     node: &Node<'a>,
     cursor: &mut tree_sitter::TreeCursor<'a>,
     filesdir: &Utf8Path,
@@ -109,8 +109,8 @@ fn expand_node<'a>(
     Ok(path)
 }
 
-impl EbuildRawPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], filter: &mut ReportFilter) {
+impl EbuildPkgSetCheck for Check {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let filesdir = build_path!(self.repo.path(), cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
         let mut files: IndexSet<_> = WalkDir::new(&filesdir)
