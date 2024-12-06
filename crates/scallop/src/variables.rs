@@ -321,6 +321,22 @@ pub fn expand<S: AsRef<str>>(val: S) -> Option<String> {
     }
 }
 
+/// Expand an iterable of strings applying various substitutions.
+pub fn expand_iter<I, S>(vals: I) -> Vec<String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let words: Words = vals.into_iter().collect();
+    let ptr: *mut bash::WordList = (&words).into();
+    unsafe {
+        bash::expand_words_no_vars(ptr)
+            .into_words()
+            .try_into()
+            .unwrap()
+    }
+}
+
 /// Perform file globbing on a string.
 pub fn glob_files<S: AsRef<str>>(val: S) -> Vec<String> {
     let mut files = vec![];
