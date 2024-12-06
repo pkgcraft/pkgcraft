@@ -42,18 +42,26 @@ fn expand_var(
     node: &crate::bash::Node,
     filesdir: &Utf8Path,
 ) -> crate::Result<String> {
+    let mut var_node = None;
+    let mut nodes = vec![];
+    for x in node {
+        if x.kind() == "variable_name" {
+            var_node = Some(x);
+        }
+        nodes.push(x);
+    }
+
     // TODO: handle string substitution
-    if node.kind() == "expansion" && node.as_str().contains("/") {
+    if nodes.len() > 3 {
         return Err(Error::InvalidValue(format!("unhandled string expansion: {node}")));
     }
 
-    let node = node
-        .into_iter()
-        .find(|x| x.kind() == "variable_name")
-        .ok_or_else(|| Error::InvalidValue(format!("invalid variable node: {node}")))?;
+    let Some(var) = var_node else {
+        return Err(Error::InvalidValue(format!("invalid variable node: {node}")));
+    };
 
     let cpv = pkg.cpv();
-    match node.as_str() {
+    match var.as_str() {
         "FILESDIR" => Ok(filesdir.to_string()),
         "CATEGORY" => Ok(cpv.category().to_string()),
         "PN" => Ok(cpv.package().to_string()),
