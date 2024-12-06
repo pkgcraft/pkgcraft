@@ -180,6 +180,9 @@ impl EbuildPkgSetCheck for Check {
                             }
                         };
 
+                        // consider skipping all reports when any conditionals are found to avoid
+                        // false positives
+
                         // expand dir path to all files
                         if Path::new(&path).is_dir() {
                             path = format!("{}/*", path.trim_end_matches('/'));
