@@ -97,7 +97,7 @@ fn expand_node<'a>(
                 Err(e) => return Err(e),
             },
             "word" | "string_content" => path.push_str(x.as_str()),
-            "\"" => (),
+            "\"" => continue,
             kind => {
                 let location = Location::from(&x);
                 return Err(Error::InvalidValue(format!(
