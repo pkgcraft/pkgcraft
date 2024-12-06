@@ -156,7 +156,7 @@ macro_rules! make_pkg_traits {
             }
         }
 
-        impl Intersects<$x> for $crate::dep::Dep {
+        impl $crate::traits::Intersects<$x> for $crate::dep::Dep {
             fn intersects(&self, other: &$x) -> bool {
                 other.intersects(self)
             }
