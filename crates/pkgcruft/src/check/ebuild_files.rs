@@ -164,7 +164,7 @@ impl EbuildPkgSetCheck for Check {
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.path().is_file())
-            .map(|e| e.path().to_str().unwrap().to_string())
+            .map(|e| e.path().to_string_lossy().to_string())
             .collect();
         let mut used_files = IndexSet::new();
         let mut eclasses = IndexSet::new();
