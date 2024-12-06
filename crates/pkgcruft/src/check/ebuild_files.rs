@@ -77,7 +77,7 @@ fn expand_node<'a>(
     let mut path = String::new();
     for x in node.children(cursor) {
         match x.kind() {
-            "expansion" => match expand_var(pkg, &x, filesdir) {
+            "expansion" | "simple_expansion" => match expand_var(pkg, &x, filesdir) {
                 Ok(value) => path.push_str(&value),
                 Err(e) => return Err(e),
             },
