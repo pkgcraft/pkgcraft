@@ -116,7 +116,7 @@ impl<'a> Node<'a> {
     }
 
     /// Return true if the node is location inside a conditional statement, otherwise false.
-    pub(crate) fn is_conditional(&self) -> bool {
+    pub(crate) fn in_conditional(&self) -> bool {
         let mut node = *self;
         while let Some(x) = node.parent() {
             if CONDITIONALS.contains(x.kind()) {

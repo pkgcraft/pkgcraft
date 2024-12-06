@@ -161,7 +161,7 @@ impl EbuildRawPkgSetCheck for Check {
                                 used_files.insert(value);
                             } else if !used_files.contains(path)
                                 && !Path::new(path).exists()
-                                && !node.is_conditional()
+                                && !node.in_conditional()
                             {
                                 if let Some(file) = path.strip_prefix(&prefix) {
                                     FileUnknown
