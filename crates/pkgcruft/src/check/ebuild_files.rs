@@ -39,7 +39,12 @@ struct Check {
 }
 
 /// Expand a variable into its actual value.
-fn expand_var(pkg: &EbuildPkg, node: &Node, filesdir: &Utf8Path) -> crate::Result<String> {
+fn expand_var<'a>(
+    pkg: &'a EbuildPkg,
+    node: Node<'a>,
+    cursor: &mut tree_sitter::TreeCursor<'a>,
+    filesdir: &Utf8Path,
+) -> crate::Result<String> {
     let mut var_node = None;
     let mut nodes = vec![];
     for x in node {
@@ -50,7 +55,7 @@ fn expand_var(pkg: &EbuildPkg, node: &Node, filesdir: &Utf8Path) -> crate::Resul
     }
 
     let err = |msg: &str| {
-        let location = Location::from(node);
+        let location = Location::from(&node);
         Err(Error::InvalidValue(format!("{location}: {msg}: {node}")))
     };
 
@@ -73,30 +78,50 @@ fn expand_var(pkg: &EbuildPkg, node: &Node, filesdir: &Utf8Path) -> crate::Resul
         "PR" => Ok(cpv.pr().to_string()),
         "PV" => Ok(cpv.pv().to_string()),
         "PVR" => Ok(cpv.pvr().to_string()),
-        // TODO: source ebuild and extract environment variables
-        _ => err("unhandled variable"),
+        // search and expand unknown variables
+        name => {
+            // TODO: consider caching globally defined variables during metadata gen for lookups
+            // TODO: determine if the variable is globally defined before looking for it?
+            if let Some(node) = pkg
+                .tree()
+                .iter_global()
+                .filter(|node| node.kind() == "variable_assignment")
+                .filter(|node| node.name().map(|x| x == name).unwrap_or_default())
+                .next()
+                .and_then(|x| x.into_iter().nth(2))
+            {
+                expand_node(pkg, node, cursor, filesdir)
+            } else {
+                err("unhandled variable")
+            }
+        }
     }
 }
 
 /// Resolve all variables in a parse tree node, returning the string value.
 fn expand_node<'a>(
-    pkg: &EbuildPkg,
-    node: &Node<'a>,
+    pkg: &'a EbuildPkg,
+    node: Node<'a>,
     cursor: &mut tree_sitter::TreeCursor<'a>,
     filesdir: &Utf8Path,
 ) -> crate::Result<String> {
     let mut path = String::new();
-    for x in node.children(cursor) {
+    let mut nodes = node.children(cursor);
+    // handle static node variants like number or word
+    if nodes.is_empty() {
+        nodes.push(node);
+    }
+    for x in nodes {
         match x.kind() {
-            "expansion" | "simple_expansion" => match expand_var(pkg, &x, filesdir) {
+            "expansion" | "simple_expansion" => match expand_var(pkg, x, cursor, filesdir) {
                 Ok(value) => path.push_str(&value),
                 Err(e) => return Err(e),
             },
-            "string" => match expand_node(pkg, &x, cursor, filesdir) {
+            "string" => match expand_node(pkg, x, cursor, filesdir) {
                 Ok(value) => path.push_str(&value),
                 Err(e) => return Err(e),
             },
-            "word" | "string_content" => path.push_str(x.as_str()),
+            "word" | "string_content" | "number" => path.push_str(x.as_str()),
             "\"" => continue,
             kind => {
                 let location = Location::from(&x);
@@ -142,7 +167,7 @@ impl EbuildPkgSetCheck for Check {
                     }
                     if let Some(node) = target {
                         // expand references
-                        let mut path = match expand_node(pkg, &node, &mut cursor, &filesdir) {
+                        let mut path = match expand_node(pkg, node, &mut cursor, &filesdir) {
                             Ok(path) => path,
                             Err(e) => {
                                 warn!("{CHECK}: {pkg}: {e}");
