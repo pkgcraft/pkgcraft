@@ -54,10 +54,7 @@ fn expand_var<'a>(
         nodes.push(x);
     }
 
-    let err = |msg: &str| {
-        let location = Location::from(&node);
-        Err(Error::InvalidValue(format!("{location}: {msg}: {node}")))
-    };
+    let err = |msg: &str| Err(Error::InvalidValue(format!("expanding {node}: {msg}")));
 
     // TODO: handle string substitution
     if nodes.len() > 3 {
@@ -82,17 +79,22 @@ fn expand_var<'a>(
         name => {
             // TODO: consider caching globally defined variables during metadata gen for lookups
             // TODO: determine if the variable is globally defined before looking for it?
-            if let Some(node) = pkg
+            let Some(node) = pkg
                 .tree()
                 .iter_global()
                 .filter(|node| node.kind() == "variable_assignment")
-                .filter(|node| node.name().map(|x| x == name).unwrap_or_default())
-                .next()
-                .and_then(|x| x.into_iter().nth(2))
-            {
-                expand_node(pkg, node, cursor, filesdir)
+                .find(|node| node.name().map(|x| x == name).unwrap_or_default())
+            else {
+                return err("unhandled local variable");
+            };
+
+            if let Some(val) = node.into_iter().nth(2) {
+                match expand_node(pkg, val, cursor, filesdir) {
+                    Ok(val) => Ok(val),
+                    Err(e) => err(&format!("{node}: unhandled global variable: {e}")),
+                }
             } else {
-                err("unhandled variable")
+                err(&format!("{node}: invalid assignment"))
             }
         }
     }
@@ -111,6 +113,7 @@ fn expand_node<'a>(
     if nodes.is_empty() {
         nodes.push(node);
     }
+
     for x in nodes {
         match x.kind() {
             "expansion" | "simple_expansion" => match expand_var(pkg, x, cursor, filesdir) {
@@ -124,10 +127,7 @@ fn expand_node<'a>(
             "word" | "string_content" | "number" => path.push_str(x.as_str()),
             "\"" => continue,
             kind => {
-                let location = Location::from(&x);
-                return Err(Error::InvalidValue(format!(
-                    "{location}: unhandled node variant: {kind}: {x}"
-                )));
+                return Err(Error::InvalidValue(format!("unhandled node variant: {kind}: {x}")))
             }
         }
     }
@@ -170,7 +170,8 @@ impl EbuildPkgSetCheck for Check {
                         let mut path = match expand_node(pkg, node, &mut cursor, &filesdir) {
                             Ok(path) => path,
                             Err(e) => {
-                                warn!("{CHECK}: {pkg}: {e}");
+                                let location = Location::from(&node);
+                                warn!("{CHECK}: {pkg}, {location}: {node}: {e}");
                                 return;
                             }
                         };
