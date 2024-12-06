@@ -11,6 +11,7 @@ use pkgcraft::repo::Repository;
 use tracing::warn;
 use walkdir::WalkDir;
 
+use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -51,13 +52,18 @@ fn expand_var(
         nodes.push(x);
     }
 
+    let err = |msg: &str| {
+        let location: Location = node.into();
+        Err(Error::InvalidValue(format!("{location}: {msg}: {node}")))
+    };
+
     // TODO: handle string substitution
     if nodes.len() > 3 {
-        return Err(Error::InvalidValue(format!("unhandled string expansion: {node}")));
+        return err("unhandled string expansion");
     }
 
     let Some(var) = var_node else {
-        return Err(Error::InvalidValue(format!("invalid variable node: {node}")));
+        return err("invalid variable node");
     };
 
     let cpv = pkg.cpv();
@@ -71,7 +77,7 @@ fn expand_var(
         "PV" => Ok(cpv.pv().to_string()),
         "PVR" => Ok(cpv.pvr().to_string()),
         // TODO: source ebuild and extract environment variables
-        name => Err(Error::InvalidValue(format!("expanding {node}: unhandled variable: {name}"))),
+        _ => err("unhandled variable"),
     }
 }
 
