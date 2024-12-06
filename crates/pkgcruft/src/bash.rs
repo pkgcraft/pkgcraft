@@ -143,6 +143,12 @@ impl fmt::Display for Node<'_> {
     }
 }
 
+impl AsRef<str> for Node<'_> {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 impl<'a> IntoIterator for Node<'a> {
     type Item = Node<'a>;
     type IntoIter = IterRecursive<'a>;
