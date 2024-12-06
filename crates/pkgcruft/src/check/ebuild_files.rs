@@ -53,7 +53,7 @@ fn expand_var(
     }
 
     let err = |msg: &str| {
-        let location: Location = node.into();
+        let location = Location::from(node);
         Err(Error::InvalidValue(format!("{location}: {msg}: {node}")))
     };
 
@@ -102,7 +102,10 @@ fn expand_node<'a>(
             "word" | "string_content" => path.push_str(x.as_str()),
             "\"" => (),
             kind => {
-                return Err(Error::InvalidValue(format!("unhandled node variant: {kind}: {x}")))
+                let location = Location::from(&x);
+                return Err(Error::InvalidValue(format!(
+                    "{location}: unhandled node variant: {kind}: {x}"
+                )));
             }
         }
     }
