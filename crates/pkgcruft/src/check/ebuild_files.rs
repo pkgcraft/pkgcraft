@@ -3,7 +3,6 @@ use std::fs;
 use std::path::Path;
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::bash::{Node, Tree};
 use pkgcraft::dep::Cpn;
@@ -158,15 +157,14 @@ impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let filesdir = build_path!(self.repo.path(), cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
-        let mut files: IndexSet<_> = WalkDir::new(&filesdir)
+        let mut files: HashSet<_> = WalkDir::new(&filesdir)
             .min_depth(1)
-            .sort_by_file_name()
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.path().is_file())
             .map(|e| e.path().to_string_lossy().to_string())
             .collect();
-        let mut used_files = IndexSet::new();
+        let mut used_files = HashSet::new();
 
         for pkg in pkgs {
             let mut cursor = pkg.tree().walk();
@@ -208,7 +206,7 @@ impl EbuildPkgSetCheck for Check {
 
                         // flag nonexistent files
                         let mut is_unknown = |path: &str| {
-                            if let Some(value) = files.swap_take(path) {
+                            if let Some(value) = files.take(path) {
                                 used_files.insert(value);
                             } else if !used_files.contains(path)
                                 && !Path::new(path).exists()
@@ -253,11 +251,11 @@ impl EbuildPkgSetCheck for Check {
                 return;
             }
 
-            files.sort();
             let files = files
                 .iter()
                 .filter_map(|x| x.strip_prefix(filesdir.as_str()))
                 .map(|x| x.trim_start_matches('/'))
+                .sorted()
                 .join(", ");
             FilesUnused.package(cpn).message(files).report(filter);
         }
