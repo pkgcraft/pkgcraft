@@ -102,7 +102,7 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     iter: I,
-    errors: u64,
+    failed: bool,
 }
 
 impl<I, T> From<LogErrorsIter<I, T>> for ExitCode
@@ -110,7 +110,7 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     fn from(iter: LogErrorsIter<I, T>) -> Self {
-        ExitCode::from(iter.failed() as u8)
+        ExitCode::from(iter.failed as u8)
     }
 }
 
@@ -120,12 +120,7 @@ where
 {
     /// Return true if any errors occurred during iteration, false otherwise.
     pub fn failed(&self) -> bool {
-        self.errors > 0
-    }
-
-    /// Return the number of errors that occurred during iteration.
-    pub fn errors(&self) -> u64 {
-        self.errors
+        self.failed
     }
 }
 
@@ -141,7 +136,7 @@ where
                 Ok(object) => return Some(object),
                 Err(e) => {
                     error!("{e}");
-                    self.errors += 1;
+                    self.failed = true;
                     continue;
                 }
             }
@@ -156,7 +151,7 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     fn log_errors(self) -> LogErrorsIter<I, T> {
-        LogErrorsIter { iter: self, errors: 0 }
+        LogErrorsIter { iter: self, failed: false }
     }
 }
 
