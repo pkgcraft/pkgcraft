@@ -402,9 +402,24 @@ impl EbuildRepo {
         IterRaw::new(self, None)
     }
 
+    /// Return an ordered iterator of raw packages for the repo.
+    ///
+    /// This constructs packages in parallel and returns them in repo order.
+    pub fn iter_raw_ordered(&self) -> IterRawOrdered {
+        IterRawOrdered::new(self, None)
+    }
+
     /// Return a filtered iterator of raw packages for the repo.
     pub fn iter_raw_restrict<R: Into<Restrict>>(&self, value: R) -> IterRawRestrict {
         IterRawRestrict::new(self, value)
+    }
+
+    /// Return an ordered iterator of raw packages for the repo matching a given
+    /// restriction.
+    ///
+    /// This constructs packages in parallel and returns them in repo order.
+    pub fn iter_raw_restrict_ordered<R: Into<Restrict>>(&self, value: R) -> IterRawRestrictOrdered {
+        IterRawRestrictOrdered::new(self, value)
     }
 
     /// Retrieve a package from the repo given its [`Cpv`].
@@ -861,6 +876,76 @@ impl Iterator for IterRaw {
     }
 }
 
+/// Ordered iterable of results from constructing raw packages.
+///
+/// This constructs packages in parallel and returns them in repo order.
+pub struct IterRawOrdered {
+    _producer: thread::JoinHandle<()>,
+    _workers: Vec<thread::JoinHandle<()>>,
+    rx: Receiver<(usize, crate::Result<EbuildRawPkg>)>,
+    id: usize,
+    cache: HashMap<usize, crate::Result<EbuildRawPkg>>,
+}
+
+impl IterRawOrdered {
+    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
+        let (cpv_tx, cpv_rx) = bounded(num_cpus::get());
+        let (iter_tx, iter_rx) = bounded(num_cpus::get());
+        let iter = IterCpv::new(repo, restrict);
+
+        Self {
+            _producer: Self::producer(iter, cpv_tx),
+            _workers: (0..num_cpus::get())
+                .map(|_| Self::worker(repo.clone(), cpv_rx.clone(), iter_tx.clone()))
+                .collect(),
+            rx: iter_rx,
+            id: 0,
+            cache: Default::default(),
+        }
+    }
+
+    /// Generate Cpv objects sending them to workers to generate matching raw packages.
+    fn producer(iter: IterCpv, tx: Sender<(usize, Cpv)>) -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            for (id, cpv) in iter.enumerate() {
+                tx.send((id, cpv)).ok();
+            }
+        })
+    }
+
+    /// Convert Cpv targets into raw packages, sending the results for output.
+    fn worker(
+        repo: EbuildRepo,
+        rx: Receiver<(usize, Cpv)>,
+        tx: Sender<(usize, crate::Result<EbuildRawPkg>)>,
+    ) -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            for (id, cpv) in rx {
+                let result = EbuildRawPkg::try_new(cpv, &repo);
+                tx.send((id, result)).ok();
+            }
+        })
+    }
+}
+
+impl Iterator for IterRawOrdered {
+    type Item = crate::Result<EbuildRawPkg>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(result) = self.cache.remove(&self.id) {
+                self.id += 1;
+                return Some(result);
+            } else if let Ok((id, result)) = self.rx.recv() {
+                self.cache.insert(id, result);
+                continue;
+            } else {
+                return None;
+            }
+        }
+    }
+}
+
 /// Iterable of [`Cpn`] objects.
 pub struct IterCpn(Box<dyn Iterator<Item = Cpn> + Send>);
 
@@ -1206,6 +1291,39 @@ impl IterRawRestrict {
 }
 
 impl Iterator for IterRawRestrict {
+    type Item = crate::Result<EbuildRawPkg>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.find_map(|r| match r {
+            Ok(pkg) if self.restrict.matches(&pkg) => Some(Ok(pkg)),
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
+    }
+}
+
+/// Ordered iterable of results from constructing raw packages matching a given
+/// restriction.
+///
+/// This constructs packages in parallel and returns them in repo order.
+pub struct IterRawRestrictOrdered {
+    iter: Either<iter::Empty<<IterRawOrdered as Iterator>::Item>, IterRawOrdered>,
+    restrict: Restrict,
+}
+
+impl IterRawRestrictOrdered {
+    fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
+        let restrict = value.into();
+        let iter = if restrict == Restrict::False {
+            Either::Left(iter::empty())
+        } else {
+            Either::Right(IterRawOrdered::new(repo, Some(&restrict)))
+        };
+        Self { iter, restrict }
+    }
+}
+
+impl Iterator for IterRawRestrictOrdered {
     type Item = crate::Result<EbuildRawPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
