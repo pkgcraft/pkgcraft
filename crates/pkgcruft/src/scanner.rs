@@ -269,9 +269,9 @@ fn version_producer(
     tx: Sender<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        for (i, cpv) in repo.iter_cpv_restrict(&restrict).enumerate() {
+        for cpv in repo.iter_cpv_restrict(&restrict) {
             for check in runner.checks(|c| c.scope == Scope::Version) {
-                tx.send((check, Target::Cpv(i, cpv.clone()))).ok();
+                tx.send((check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 

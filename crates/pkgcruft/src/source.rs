@@ -2,10 +2,11 @@ use std::fmt;
 use std::str::FromStr;
 
 use colored::{Color, Colorize};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus, EbuildPkg, EbuildRawPkg};
+use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict, Restriction};
@@ -182,7 +183,7 @@ impl PkgFilters {
 
 #[derive(Debug)]
 pub(crate) enum Target {
-    Cpv(usize, Cpv),
+    Cpv(Cpv),
     Cpn(Cpn),
     Repo(&'static EbuildRepo),
 }
@@ -190,7 +191,7 @@ pub(crate) enum Target {
 impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Cpv(_, cpv) => cpv.fmt(f),
+            Self::Cpv(cpv) => cpv.fmt(f),
             Self::Cpn(cpn) => cpn.fmt(f),
             Self::Repo(repo) => repo.fmt(f),
         }
@@ -200,7 +201,7 @@ impl fmt::Display for Target {
 impl From<&Target> for Restrict {
     fn from(value: &Target) -> Restrict {
         match value {
-            Target::Cpv(_, cpv) => cpv.into(),
+            Target::Cpv(cpv) => cpv.into(),
             Target::Cpn(cpn) => cpn.into(),
             Target::Repo(repo) => (*repo).into(),
         }
@@ -229,13 +230,21 @@ impl EbuildPkgSource {
 }
 
 impl IterRestrict for EbuildPkgSource {
-    type Item = EbuildPkg;
+    type Item = pkgcraft::Result<EbuildPkg>;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
         val: R,
     ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
-        self.filters.iter_restrict(self.repo, val)
+        if self.filters.is_empty() {
+            Box::new(self.repo.iter_restrict(val))
+        } else {
+            Box::new(
+                self.filters
+                    .iter_restrict(self.repo, val)
+                    .flat_map(|pkg| self.repo.iter_restrict(&pkg)),
+            )
+        }
     }
 }
 
@@ -254,20 +263,68 @@ impl EbuildRawPkgSource {
 }
 
 impl IterRestrict for EbuildRawPkgSource {
-    type Item = EbuildRawPkg;
+    type Item = pkgcraft::Result<EbuildRawPkg>;
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
         val: R,
     ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
         if self.filters.is_empty() {
-            Box::new(self.repo.iter_raw_restrict(val).filter_map(Result::ok))
+            Box::new(self.repo.iter_raw_restrict(val))
         } else {
             Box::new(
                 self.filters
                     .iter_restrict(self.repo, val)
-                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg).filter_map(Result::ok)),
+                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             )
+        }
+    }
+}
+
+/// Cache used to avoid recreating package objects for package and version scope scans.
+#[derive(Debug)]
+pub(crate) struct PkgCache<T> {
+    pkgs: IndexMap<Cpv, T>,
+    failed: bool,
+}
+
+impl<T: Package + Clone> PkgCache<T> {
+    /// Create a new package cache from a source and restriction.
+    pub(crate) fn new<S>(source: &S, restrict: &Restrict) -> Self
+    where
+        S: IterRestrict<Item = pkgcraft::Result<T>>,
+    {
+        let mut cache = Self::default();
+        for pkg in source.iter_restrict(restrict) {
+            if let Ok(pkg) = pkg {
+                cache.pkgs.insert(pkg.cpv().clone(), pkg);
+            } else {
+                cache.failed = true;
+            }
+        }
+        cache
+    }
+
+    /// Get all packages from the cache if none were invalid on creation.
+    pub(crate) fn get_pkgs(&self) -> Option<Vec<T>> {
+        if self.failed {
+            None
+        } else {
+            Some(self.pkgs.values().cloned().collect())
+        }
+    }
+
+    /// Get a matching package from the cache if it exists.
+    pub(crate) fn get_pkg(&self, cpv: &Cpv) -> Option<&T> {
+        self.pkgs.get(cpv)
+    }
+}
+
+impl<T> Default for PkgCache<T> {
+    fn default() -> Self {
+        Self {
+            pkgs: Default::default(),
+            failed: false,
         }
     }
 }
