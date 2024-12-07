@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::LazyLock;
 
@@ -146,6 +147,20 @@ impl<'a> Deref for Node<'a> {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl PartialEq for Node<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.eq(&other.inner)
+    }
+}
+
+impl Eq for Node<'_> {}
+
+impl Hash for Node<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state)
     }
 }
 
