@@ -107,7 +107,13 @@ impl Scanner {
         let scope = Scope::from(&restrict);
         info!("scan scope: {scope}");
 
-        let runner = Arc::new(SyncCheckRunner::new(scope, self.repo, &self.filters, &self.checks));
+        let runner = Arc::new(SyncCheckRunner::new(
+            scope,
+            self.repo,
+            &restrict,
+            &self.filters,
+            &self.checks,
+        ));
         if scope >= Scope::Category {
             // parallel by package
             let (restrict_tx, restrict_rx) = bounded(self.jobs);
@@ -263,9 +269,9 @@ fn version_producer(
     tx: Sender<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        for cpv in repo.iter_cpv_restrict(&restrict) {
+        for (i, cpv) in repo.iter_cpv_restrict(&restrict).enumerate() {
             for check in runner.checks(|c| c.scope == Scope::Version) {
-                tx.send((check, Target::Cpv(cpv.clone()))).ok();
+                tx.send((check, Target::Cpv(i, cpv.clone()))).ok();
             }
         }
 

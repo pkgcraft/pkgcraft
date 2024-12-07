@@ -3,8 +3,10 @@ use std::time::Instant;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
+use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
+use pkgcraft::restrict::Restrict;
 use tracing::{debug, trace, warn};
 
 use crate::check::*;
@@ -21,6 +23,7 @@ impl SyncCheckRunner {
     pub(super) fn new(
         scope: Scope,
         repo: &'static EbuildRepo,
+        restrict: &Restrict,
         filters: &IndexSet<PkgFilter>,
         checks: &IndexSet<Check>,
     ) -> Self {
@@ -61,7 +64,9 @@ impl SyncCheckRunner {
         for check in enabled {
             runners
                 .entry(check.source)
-                .or_insert_with(|| CheckRunner::new(check.source, repo, filters.clone()))
+                .or_insert_with(|| {
+                    CheckRunner::new(scope, restrict, check.source, repo, filters.clone())
+                })
                 .add_check(check);
         }
 
@@ -93,16 +98,18 @@ impl SyncCheckRunner {
     pub(super) fn run_check(&self, check: Check, target: Target, filter: &mut ReportFilter) {
         if let Some(runner) = self.runners.get(&check.source) {
             match (runner, &target) {
-                (CheckRunner::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
+                (CheckRunner::EbuildPkg(r), Target::Cpv(idx, cpv)) => {
+                    r.run_check(&check, *idx, cpv, filter)
+                }
                 (CheckRunner::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(&check, cpn, filter),
-                (CheckRunner::EbuildRawPkg(r), Target::Cpv(cpv)) => {
-                    r.run_check(&check, cpv, filter)
+                (CheckRunner::EbuildRawPkg(r), Target::Cpv(idx, cpv)) => {
+                    r.run_check(&check, *idx, cpv, filter)
                 }
                 (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => {
                     r.run_pkg_set(&check, cpn, filter)
                 }
                 (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_check(&check, cpn, filter),
-                (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
+                (CheckRunner::Cpv(r), Target::Cpv(_, cpv)) => r.run_check(&check, cpv, filter),
                 (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_check(&check, repo, filter),
                 _ => panic!("incompatible target {target} for check: {check}"),
             }
@@ -120,15 +127,29 @@ enum CheckRunner {
 }
 
 impl CheckRunner {
-    fn new(source: SourceKind, repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
-        match source {
-            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, filters)),
-            SourceKind::EbuildRawPkg => {
-                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, filters))
+    fn new(
+        scope: Scope,
+        restrict: &Restrict,
+        source: SourceKind,
+        repo: &'static EbuildRepo,
+        filters: IndexSet<PkgFilter>,
+    ) -> Self {
+        match (scope, source) {
+            (Scope::Package | Scope::Version, SourceKind::EbuildPkg) => {
+                Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, Some(restrict), filters))
             }
-            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(repo)),
-            SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(repo)),
-            SourceKind::Repo => Self::Repo(RepoCheckRunner::new(repo)),
+            (_, SourceKind::EbuildPkg) => {
+                Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, None, filters))
+            }
+            (Scope::Package | Scope::Version, SourceKind::EbuildRawPkg) => {
+                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, Some(restrict), filters))
+            }
+            (_, SourceKind::EbuildRawPkg) => {
+                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, None, filters))
+            }
+            (_, SourceKind::Cpn) => Self::Cpn(CpnCheckRunner::new(repo)),
+            (_, SourceKind::Cpv) => Self::Cpv(CpvCheckRunner::new(repo)),
+            (_, SourceKind::Repo) => Self::Repo(RepoCheckRunner::new(repo)),
         }
     }
 
@@ -160,15 +181,29 @@ struct EbuildPkgCheckRunner {
     pkg_checks: IndexMap<Check, EbuildPkgRunner>,
     pkg_set_checks: IndexMap<Check, EbuildPkgSetRunner>,
     source: EbuildPkgSource,
+    pkgs: Vec<EbuildPkg>,
     repo: &'static EbuildRepo,
 }
 
 impl EbuildPkgCheckRunner {
-    fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
+    fn new(
+        repo: &'static EbuildRepo,
+        restrict: Option<&Restrict>,
+        filters: IndexSet<PkgFilter>,
+    ) -> Self {
+        let source = EbuildPkgSource::new(repo, filters);
+        // create pkg cache when running in pkg or version scope
+        let pkgs = if let Some(restrict) = restrict {
+            source.iter_restrict(restrict).collect()
+        } else {
+            Default::default()
+        };
+
         Self {
             pkg_checks: Default::default(),
             pkg_set_checks: Default::default(),
-            source: EbuildPkgSource::new(repo, filters),
+            source,
+            pkgs,
             repo,
         }
     }
@@ -226,19 +261,20 @@ impl EbuildPkgCheckRunner {
     /// Run a check for a Cpn.
     fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_set_checks.get(check) {
-            let pkgs: Vec<_> = self.source.iter_restrict(cpn).collect();
-            let now = Instant::now();
-            runner.run(cpn, &pkgs, filter);
-            debug!("{check}: {cpn}: {:?}", now.elapsed());
+            if !self.pkgs.is_empty() {
+                let now = Instant::now();
+                runner.run(cpn, &self.pkgs, filter);
+                debug!("{check}: {cpn}: {:?}", now.elapsed());
+            }
         }
     }
 
     /// Run a check for a Cpv.
-    fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+    fn run_check(&self, check: &Check, idx: usize, cpv: &Cpv, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_checks.get(check) {
-            for pkg in self.source.iter_restrict(cpv) {
+            if let Some(pkg) = self.pkgs.get(idx) {
                 let now = Instant::now();
-                runner.run(&pkg, filter);
+                runner.run(pkg, filter);
                 debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
         }
@@ -250,15 +286,29 @@ struct EbuildRawPkgCheckRunner {
     pkg_checks: IndexMap<Check, EbuildRawPkgRunner>,
     pkg_set_checks: IndexMap<Check, EbuildRawPkgSetRunner>,
     source: EbuildRawPkgSource,
+    pkgs: Vec<EbuildRawPkg>,
     repo: &'static EbuildRepo,
 }
 
 impl EbuildRawPkgCheckRunner {
-    fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
+    fn new(
+        repo: &'static EbuildRepo,
+        restrict: Option<&Restrict>,
+        filters: IndexSet<PkgFilter>,
+    ) -> Self {
+        let source = EbuildRawPkgSource::new(repo, filters);
+        // create pkg cache when running in pkg or version scope
+        let pkgs = if let Some(restrict) = restrict {
+            source.iter_restrict(restrict).collect()
+        } else {
+            Default::default()
+        };
+
         Self {
             pkg_checks: Default::default(),
             pkg_set_checks: Default::default(),
-            source: EbuildRawPkgSource::new(repo, filters),
+            source,
+            pkgs,
             repo,
         }
     }
@@ -316,19 +366,20 @@ impl EbuildRawPkgCheckRunner {
     /// Run a check for a Cpn.
     fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_set_checks.get(check) {
-            let pkgs: Vec<_> = self.source.iter_restrict(cpn).collect();
-            let now = Instant::now();
-            runner.run(cpn, &pkgs, filter);
-            debug!("{check}: {cpn}: {:?}", now.elapsed());
+            if !self.pkgs.is_empty() {
+                let now = Instant::now();
+                runner.run(cpn, &self.pkgs, filter);
+                debug!("{check}: {cpn}: {:?}", now.elapsed());
+            }
         }
     }
 
     /// Run a check for a Cpv.
-    fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+    fn run_check(&self, check: &Check, idx: usize, cpv: &Cpv, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_checks.get(check) {
-            for pkg in self.source.iter_restrict(cpv) {
+            if let Some(pkg) = self.pkgs.get(idx) {
                 let now = Instant::now();
-                runner.run(&pkg, filter);
+                runner.run(pkg, filter);
                 debug!("{check}: {cpv}: {:?}", now.elapsed());
             }
         }
