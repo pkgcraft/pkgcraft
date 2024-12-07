@@ -215,6 +215,15 @@ pub(crate) trait IterRestrict {
         -> Box<dyn Iterator<Item = Self::Item> + '_>;
 }
 
+pub(crate) trait IterRestrictOrdered {
+    type Item;
+
+    fn iter_restrict_ordered<R: Into<Restrict>>(
+        &self,
+        val: R,
+    ) -> Box<dyn Iterator<Item = Self::Item> + '_>;
+}
+
 pub(crate) struct EbuildPkgSource {
     repo: &'static EbuildRepo,
     filters: PkgFilters,
@@ -243,6 +252,25 @@ impl IterRestrict for EbuildPkgSource {
                 self.filters
                     .iter_restrict(self.repo, val)
                     .flat_map(|pkg| self.repo.iter_restrict(&pkg)),
+            )
+        }
+    }
+}
+
+impl IterRestrictOrdered for EbuildPkgSource {
+    type Item = pkgcraft::Result<EbuildPkg>;
+
+    fn iter_restrict_ordered<R: Into<Restrict>>(
+        &self,
+        val: R,
+    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
+        if self.filters.is_empty() {
+            Box::new(self.repo.iter_restrict_ordered(val))
+        } else {
+            Box::new(
+                self.filters
+                    .iter_restrict(self.repo, val)
+                    .flat_map(|pkg| self.repo.iter_restrict_ordered(&pkg)),
             )
         }
     }
@@ -281,6 +309,25 @@ impl IterRestrict for EbuildRawPkgSource {
     }
 }
 
+impl IterRestrictOrdered for EbuildRawPkgSource {
+    type Item = pkgcraft::Result<EbuildRawPkg>;
+
+    fn iter_restrict_ordered<R: Into<Restrict>>(
+        &self,
+        val: R,
+    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
+        if self.filters.is_empty() {
+            Box::new(self.repo.iter_raw_restrict_ordered(val))
+        } else {
+            Box::new(
+                self.filters
+                    .iter_restrict(self.repo, val)
+                    .flat_map(|pkg| self.repo.iter_raw_restrict_ordered(&pkg)),
+            )
+        }
+    }
+}
+
 /// Cache used to avoid recreating package objects for package and version scope scans.
 #[derive(Debug)]
 pub(crate) struct PkgCache<T> {
@@ -292,10 +339,10 @@ impl<T: Package + Clone> PkgCache<T> {
     /// Create a new package cache from a source and restriction.
     pub(crate) fn new<S>(source: &S, restrict: &Restrict) -> Self
     where
-        S: IterRestrict<Item = pkgcraft::Result<T>>,
+        S: IterRestrictOrdered<Item = pkgcraft::Result<T>>,
     {
         let mut cache = Self::default();
-        for pkg in source.iter_restrict(restrict) {
+        for pkg in source.iter_restrict_ordered(restrict) {
             if let Ok(pkg) = pkg {
                 cache.pkgs.insert(pkg.cpv().clone(), pkg);
             } else {
