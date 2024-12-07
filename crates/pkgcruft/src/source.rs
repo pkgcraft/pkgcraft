@@ -179,6 +179,21 @@ impl PkgFilters {
 
         iter
     }
+
+    fn iter_restrict_ordered<R: Into<Restrict>>(
+        &self,
+        repo: &'static EbuildRepo,
+        val: R,
+    ) -> Box<dyn Iterator<Item = EbuildPkg> + '_> {
+        let mut iter: Box<dyn Iterator<Item = EbuildPkg>> =
+            Box::new(repo.iter_restrict_ordered(val).filter_map(Result::ok));
+
+        for f in &self.0 {
+            iter = f.filter(iter);
+        }
+
+        iter
+    }
 }
 
 #[derive(Debug)]
@@ -269,7 +284,7 @@ impl IterRestrictOrdered for EbuildPkgSource {
         } else {
             Box::new(
                 self.filters
-                    .iter_restrict(self.repo, val)
+                    .iter_restrict_ordered(self.repo, val)
                     .flat_map(|pkg| self.repo.iter_restrict_ordered(&pkg)),
             )
         }
@@ -321,7 +336,7 @@ impl IterRestrictOrdered for EbuildRawPkgSource {
         } else {
             Box::new(
                 self.filters
-                    .iter_restrict(self.repo, val)
+                    .iter_restrict_ordered(self.repo, val)
                     .flat_map(|pkg| self.repo.iter_raw_restrict_ordered(&pkg)),
             )
         }
