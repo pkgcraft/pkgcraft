@@ -75,6 +75,7 @@ criterion = "0.5"
 predicates = "3.1.2"
 pretty_assertions = "1.4.1"
 tempfile = "3.14.0"
+tracing-test = "0.2.5"
 
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/{ name }-{ version }/{ name }-{ version }-{ target }{ archive-suffix }"

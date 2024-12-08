@@ -340,7 +340,8 @@ impl Iterator for IterVersion {
 mod tests {
     use pkgcraft::dep::Dep;
     use pkgcraft::repo::Repository;
-    use pkgcraft::test::{assert_ordered_eq, assert_unordered_eq, test_data};
+    use pkgcraft::test::*;
+    use tracing_test::traced_test;
 
     use crate::check::CheckKind;
     use crate::test::glob_reports;
@@ -431,6 +432,22 @@ mod tests {
         let expected = glob_reports!("{repo_path}/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
+    }
+
+    #[traced_test]
+    #[test]
+    fn skip_check() {
+        let data = test_data();
+        let repo = data.ebuild_repo("bad").unwrap();
+        let repo_path = repo.path();
+        let restrict = repo
+            .restrict_from_path("eapi/invalid/invalid-9999.ebuild")
+            .unwrap();
+        let scanner = Scanner::new(repo);
+        let reports = scanner.run(restrict).unwrap();
+        let expected = glob_reports!("{repo_path}/eapi/invalid/reports.json");
+        assert_ordered_eq!(reports, expected);
+        assert_logs_re!(format!(".+: skipping due to invalid pkg: eapi/invalid-9999$"));
     }
 
     #[test]

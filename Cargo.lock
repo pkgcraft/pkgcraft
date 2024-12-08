@@ -2089,6 +2089,7 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
+ "tracing-test",
  "tree-sitter",
  "walkdir",
 ]
