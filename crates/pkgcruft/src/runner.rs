@@ -241,7 +241,9 @@ impl EbuildPkgCheckRunner {
                     debug!("{check}: {pkg}: {:?}", now.elapsed());
                 }
 
-                pkgs.push(pkg);
+                if !self.pkg_set_checks.is_empty() {
+                    pkgs.push(pkg);
+                }
             } else {
                 failed = true;
             }
@@ -356,7 +358,9 @@ impl EbuildRawPkgCheckRunner {
                     debug!("{check}: {pkg}: {:?}", now.elapsed());
                 }
 
-                pkgs.push(pkg);
+                if !self.pkg_set_checks.is_empty() {
+                    pkgs.push(pkg);
+                }
             } else {
                 failed = true;
             }
