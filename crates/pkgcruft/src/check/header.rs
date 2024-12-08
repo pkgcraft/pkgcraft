@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use regex::Regex;
 
@@ -19,25 +17,28 @@ pub(super) static CHECK: super::Check = super::Check {
     priority: 0,
 };
 
-static COPYRIGHT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^# Copyright ((?P<begin>\d{4})-)?(?P<end>\d{4}) (?P<holder>.+)$").unwrap()
-});
-
 static GENTOO_LICENSE_HEADER: &str =
     "# Distributed under the terms of the GNU General Public License v2";
 
 pub(super) fn create() -> impl EbuildRawPkgCheck {
-    Check
+    Check {
+        copyright_re: Regex::new(
+            r"^# Copyright ((?P<begin>\d{4})-)?(?P<end>\d{4}) (?P<holder>.+)$",
+        )
+        .unwrap(),
+    }
 }
 
-struct Check;
+struct Check {
+    copyright_re: Regex,
+}
 
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let mut lines = pkg.data().lines();
 
         let mut line = lines.next().unwrap_or_default();
-        if let Some(m) = COPYRIGHT_REGEX.captures(line.trim()) {
+        if let Some(m) = self.copyright_re.captures(line.trim()) {
             // Copyright policy is active since 2018-10-21 via GLEP 76, so it applies to all
             // ebuilds committed in 2019 and later.
             let end: u64 = m.name("end").unwrap().as_str().parse().unwrap();
