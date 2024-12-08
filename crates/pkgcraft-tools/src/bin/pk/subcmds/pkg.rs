@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use pkgcraft::config::Config;
 
 mod env;
+mod fetch;
 mod metadata;
 mod pretend;
 mod revdeps;
@@ -25,6 +26,8 @@ impl Command {
 enum Subcommand {
     /// Output ebuild environment
     Env(Box<env::Command>),
+    /// Fetch distfiles
+    Fetch(Box<fetch::Command>),
     /// Manipulate package metadata
     Metadata(Box<metadata::Command>),
     /// Run the pkg_pretend phase
@@ -41,6 +44,7 @@ impl Subcommand {
     fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         match self {
             Self::Env(cmd) => cmd.run(config),
+            Self::Fetch(cmd) => cmd.run(config),
             Self::Metadata(cmd) => cmd.run(config),
             Self::Pretend(cmd) => cmd.run(config),
             Self::Revdeps(cmd) => cmd.run(config),
