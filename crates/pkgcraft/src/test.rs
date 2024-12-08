@@ -232,7 +232,11 @@ impl TestDataPatched {
 
 fn is_patch(entry: &DirEntry) -> bool {
     let path = entry.path();
-    path.is_file() && path.extension().map(|s| s == "patch").unwrap_or_default()
+    path.is_file()
+        && path
+            .file_name()
+            .map(|s| s == "fix.patch")
+            .unwrap_or_default()
 }
 
 pub fn test_data_patched() -> TestDataPatched {
