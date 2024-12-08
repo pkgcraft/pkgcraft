@@ -30,30 +30,28 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let mut status = ExitCode::SUCCESS;
+        let mut failed = false;
 
         for s in self.values.iter().flatten() {
             let (lhs, op, rhs) = s
                 .split_whitespace()
                 .collect_tuple()
                 .ok_or_else(|| anyhow!("invalid comparison format: {s}"))?;
+
             let lhs = Cpv::try_new(lhs)?;
             let rhs = Cpv::try_new(rhs)?;
-            let result = match op {
-                "<" => lhs < rhs,
-                "<=" => lhs <= rhs,
-                "==" => lhs == rhs,
-                "!=" => lhs != rhs,
-                ">=" => lhs >= rhs,
-                ">" => lhs > rhs,
+
+            failed |= match op {
+                "<" => lhs >= rhs,
+                "<=" => lhs > rhs,
+                "==" => lhs != rhs,
+                "!=" => lhs == rhs,
+                ">=" => lhs < rhs,
+                ">" => lhs <= rhs,
                 _ => bail!("invalid operator: {op}"),
             };
-
-            if !result {
-                status = ExitCode::FAILURE;
-            }
         }
 
-        Ok(status)
+        Ok(ExitCode::from(failed as u8))
     }
 }

@@ -35,7 +35,7 @@ impl Command {
 
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
-        let mut status = ExitCode::SUCCESS;
+        let mut failed = false;
 
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
@@ -52,7 +52,7 @@ impl Command {
         for result in PoolIter::new(jobs, pkgs, func, true)? {
             match result {
                 Err(e) => {
-                    status = ExitCode::FAILURE;
+                    failed = true;
                     writeln!(stderr, "{e}")?;
                 }
                 Ok(Some(s)) => writeln!(stdout, "{s}")?,
@@ -60,6 +60,6 @@ impl Command {
             }
         }
 
-        Ok(status)
+        Ok(ExitCode::from(failed as u8))
     }
 }

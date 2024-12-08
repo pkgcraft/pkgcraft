@@ -50,7 +50,7 @@ impl FormatString<'_> for Command {
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let mut status = ExitCode::SUCCESS;
+        let mut failed = false;
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
 
         for s in self
@@ -65,10 +65,10 @@ impl Command {
                 }
             } else {
                 writeln!(stderr, "INVALID VERSION: {s}")?;
-                status = ExitCode::FAILURE;
+                failed = true;
             }
         }
 
-        Ok(status)
+        Ok(ExitCode::from(failed as u8))
     }
 }

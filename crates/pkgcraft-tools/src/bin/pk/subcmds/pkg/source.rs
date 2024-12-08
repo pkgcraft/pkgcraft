@@ -223,9 +223,6 @@ impl Command {
         // default to running a job on each physical CPU in order to limit contention
         let jobs = bounded_jobs(self.jobs.unwrap_or(num_cpus::get_physical()));
 
-        // loop over targets, tracking overall failure status
-        let mut status = ExitCode::SUCCESS;
-
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
@@ -236,16 +233,12 @@ impl Command {
         // convert restrictions to pkgs
         let pkgs = pkgs_ebuild_raw(targets);
 
-        let target_failed = if let Some(duration) = self.bench {
+        let failed = if let Some(duration) = self.bench {
             benchmark(duration.into(), jobs, pkgs, self.sort)
         } else {
             source(jobs, pkgs, &self.bound, self.sort)
         }?;
 
-        if target_failed {
-            status = ExitCode::FAILURE;
-        }
-
-        Ok(status)
+        Ok(ExitCode::from(failed as u8))
     }
 }

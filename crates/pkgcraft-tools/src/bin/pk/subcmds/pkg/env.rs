@@ -92,7 +92,7 @@ impl Command {
 
         // loop over targets, tracking overall failure status
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
-        let mut status = ExitCode::SUCCESS;
+        let mut failed = false;
 
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
@@ -111,7 +111,7 @@ impl Command {
         while let Some(result) = iter.next() {
             match result {
                 Err(e) => {
-                    status = ExitCode::FAILURE;
+                    failed = true;
                     writeln!(stderr, "{e}")?;
                 }
                 Ok((_, env)) if env.is_empty() => continue,
@@ -139,6 +139,6 @@ impl Command {
             }
         }
 
-        Ok(status)
+        Ok(ExitCode::from(failed as u8))
     }
 }
