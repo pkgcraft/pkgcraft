@@ -283,7 +283,7 @@ pub fn test_data_patched() -> TestDataPatched {
                         .current_dir(path.parent().unwrap())
                         .status()
                         .unwrap();
-                    assert!(status.success());
+                    assert!(status.success(), "failed applying: {path:?}");
                     fs::remove_file(path).unwrap();
 
                     // TODO: Switch to using a patch option rejecting mismatches if upstream ever
