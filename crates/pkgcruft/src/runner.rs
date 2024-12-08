@@ -233,8 +233,8 @@ impl EbuildPkgCheckRunner {
         let mut failed = false;
         let mut pkgs = vec![];
 
-        for pkg in self.source.iter_restrict(cpn) {
-            if let Ok(pkg) = pkg {
+        for result in self.source.iter_restrict(cpn) {
+            if let Ok(pkg) = result {
                 for (check, runner) in &self.pkg_checks {
                     let now = Instant::now();
                     runner.run(&pkg, filter);
@@ -247,18 +247,16 @@ impl EbuildPkgCheckRunner {
             }
         }
 
-        // skip package set checks if any package errors exist
-        if failed {
-            warn!("skipping set checks due to invalid pkgs: {cpn}");
-            return;
-        }
-
         // TODO: replace with debug_assert!() once iter_cpn_restrict() ignores empty pkgs
         if !pkgs.is_empty() {
             for (check, runner) in &self.pkg_set_checks {
-                let now = Instant::now();
-                runner.run(cpn, &pkgs, filter);
-                debug!("{check}: {cpn}: {:?}", now.elapsed());
+                if !failed {
+                    let now = Instant::now();
+                    runner.run(cpn, &pkgs, filter);
+                    debug!("{check}: {cpn}: {:?}", now.elapsed());
+                } else {
+                    warn!("{check}: skipping due to invalid pkgs: {cpn}");
+                }
             }
         }
     }
@@ -350,8 +348,8 @@ impl EbuildRawPkgCheckRunner {
         let mut failed = false;
         let mut pkgs = vec![];
 
-        for pkg in self.source.iter_restrict(cpn) {
-            if let Ok(pkg) = pkg {
+        for result in self.source.iter_restrict(cpn) {
+            if let Ok(pkg) = result {
                 for (check, runner) in &self.pkg_checks {
                     let now = Instant::now();
                     runner.run(&pkg, filter);
@@ -364,18 +362,16 @@ impl EbuildRawPkgCheckRunner {
             }
         }
 
-        // skip package set checks if any package errors exist
-        if failed {
-            warn!("skipping set checks due to invalid pkgs: {cpn}");
-            return;
-        }
-
         // TODO: replace with debug_assert!() once iter_cpn_restrict() ignores empty pkgs
         if !pkgs.is_empty() {
             for (check, runner) in &self.pkg_set_checks {
-                let now = Instant::now();
-                runner.run(cpn, &pkgs, filter);
-                debug!("{check}: {cpn}: {:?}", now.elapsed());
+                if !failed {
+                    let now = Instant::now();
+                    runner.run(cpn, &pkgs, filter);
+                    debug!("{check}: {cpn}: {:?}", now.elapsed());
+                } else {
+                    warn!("{check}: skipping due to invalid pkgs: {cpn}");
+                }
             }
         }
     }
