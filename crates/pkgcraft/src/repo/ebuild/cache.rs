@@ -273,7 +273,9 @@ impl MetadataCacheRegen<'_> {
                     #[cfg(test)]
                     let _entered = thread_span.clone().entered();
 
-                    self.progress.suspend(|| { error!("{e}"); });
+                    self.progress.suspend(|| {
+                        error!("{e}");
+                    });
                     true
                 } else {
                     false
