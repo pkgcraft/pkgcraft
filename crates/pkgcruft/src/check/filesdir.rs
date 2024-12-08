@@ -24,7 +24,7 @@ use crate::Error;
 use super::{CheckKind, EbuildPkgSetCheck};
 
 pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::EbuildFiles,
+    kind: CheckKind::Filesdir,
     scope: Scope::Package,
     source: SourceKind::EbuildPkg,
     reports: &[FileUnknown, FilesUnused],

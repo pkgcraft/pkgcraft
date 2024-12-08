@@ -25,8 +25,8 @@ mod dependency_slot_missing;
 mod duplicates;
 mod eapi_stale;
 mod eapi_status;
-mod ebuild_files;
 mod ebuild_name;
+mod filesdir;
 mod header;
 mod keywords;
 mod keywords_dropped;
@@ -68,8 +68,8 @@ pub enum CheckKind {
     Duplicates,
     EapiStale,
     EapiStatus,
-    EbuildFiles,
     EbuildName,
+    Filesdir,
     Header,
     Keywords,
     KeywordsDropped,
@@ -99,7 +99,7 @@ impl From<CheckKind> for Check {
             Duplicates => duplicates::CHECK,
             EapiStale => eapi_stale::CHECK,
             EapiStatus => eapi_status::CHECK,
-            EbuildFiles => ebuild_files::CHECK,
+            Filesdir => filesdir::CHECK,
             EbuildName => ebuild_name::CHECK,
             Header => header::CHECK,
             Keywords => keywords::CHECK,
@@ -284,7 +284,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
 impl ToRunner<EbuildPkgSetRunner> for Check {
     fn to_runner(&self, repo: &'static EbuildRepo) -> EbuildPkgSetRunner {
         match &self.kind {
-            CheckKind::EbuildFiles => Box::new(ebuild_files::create(repo)),
+            CheckKind::Filesdir => Box::new(filesdir::create(repo)),
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
             CheckKind::Live => Box::new(live::create()),
