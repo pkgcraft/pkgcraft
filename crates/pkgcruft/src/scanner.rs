@@ -228,7 +228,17 @@ fn pkg_worker(
     mut filter: ReportFilter,
     rx: Receiver<(Option<Check>, Target)>,
 ) -> thread::JoinHandle<()> {
+    // hack to force log capturing for tests to work in threads
+    // https://github.com/dbrgn/tracing-test/issues/23
+    #[cfg(test)]
+    let thread_span = tracing::debug_span!("thread").or_current();
+
     thread::spawn(move || {
+        // hack to force log capturing for tests to work in threads
+        // https://github.com/dbrgn/tracing-test/issues/23
+        #[cfg(test)]
+        let _entered = thread_span.clone().entered();
+
         for (check, target) in rx {
             if let Some(check) = check {
                 runner.run_check(check, target, &mut filter);
@@ -289,7 +299,17 @@ fn version_worker(
     mut filter: ReportFilter,
     rx: Receiver<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
+    // hack to force log capturing for tests to work in threads
+    // https://github.com/dbrgn/tracing-test/issues/23
+    #[cfg(test)]
+    let thread_span = tracing::debug_span!("thread").or_current();
+
     thread::spawn(move || {
+        // hack to force log capturing for tests to work in threads
+        // https://github.com/dbrgn/tracing-test/issues/23
+        #[cfg(test)]
+        let _entered = thread_span.clone().entered();
+
         for (check, target) in rx {
             runner.run_check(check, target, &mut filter);
         }
