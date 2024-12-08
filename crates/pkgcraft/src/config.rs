@@ -348,10 +348,9 @@ mod tests {
     use tempfile::tempdir;
     use tracing_test::traced_test;
 
-    use crate::macros::assert_logs_re;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::Repository;
-    use crate::test::{assert_err_re, assert_ordered_eq, test_data};
+    use crate::test::*;
 
     use super::*;
 

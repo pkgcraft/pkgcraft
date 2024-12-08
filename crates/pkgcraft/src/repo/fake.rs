@@ -368,10 +368,9 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::dep::Dep;
-    use crate::macros::assert_logs_re;
     use crate::pkg::Package;
     use crate::repo::Contains;
-    use crate::test::assert_ordered_eq;
+    use crate::test::*;
 
     use super::*;
 

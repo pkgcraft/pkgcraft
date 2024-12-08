@@ -21,9 +21,9 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::config::Config;
-    use crate::macros::assert_logs_re;
     use crate::pkg::Source;
     use crate::repo::ebuild::EbuildRepoBuilder;
+    use crate::test::assert_logs_re;
 
     use super::super::cmd_scope_tests;
     use super::*;

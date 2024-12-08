@@ -362,3 +362,19 @@ macro_rules! assert_err_re {
     };
 }
 pub use assert_err_re;
+
+/// Assert tracing logs match a regular expression.
+#[macro_export]
+macro_rules! assert_logs_re {
+    ($x:expr) => {
+        let re = ::regex::Regex::new($x.as_ref()).unwrap();
+        logs_assert(|lines: &[&str]| {
+            if lines.iter().any(|l| re.is_match(l)) {
+                Ok(())
+            } else {
+                Err(format!("unmatched log regex: {re}"))
+            }
+        });
+    };
+}
+pub use assert_logs_re;

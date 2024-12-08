@@ -9,22 +9,6 @@ macro_rules! build_path {
 }
 pub use build_path;
 
-#[cfg(test)]
-macro_rules! assert_logs_re {
-    ($x:expr) => {
-        let re = ::regex::Regex::new($x.as_ref()).unwrap();
-        logs_assert(|lines: &[&str]| {
-            if lines.iter().any(|l| re.is_match(l)) {
-                Ok(())
-            } else {
-                Err(format!("unmatched log regex: {re}"))
-            }
-        });
-    };
-}
-#[cfg(test)]
-pub(crate) use assert_logs_re;
-
 // Return Ordering if the arguments or expression are not equal.
 #[macro_export]
 macro_rules! cmp_not_equal {
