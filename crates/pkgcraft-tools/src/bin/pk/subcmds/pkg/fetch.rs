@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 use std::time::Duration;
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::builder::ArgPredicate;
 use clap::Args;
 use futures::{stream, StreamExt};
@@ -92,7 +92,7 @@ fn progress_bar(hidden: bool) -> ProgressBar {
 async fn download_file(
     client: &reqwest::Client,
     uri: Uri,
-    path: Utf8PathBuf,
+    dir: &Utf8Path,
     pb: &ProgressBar,
 ) -> anyhow::Result<()> {
     let res = client
@@ -112,6 +112,7 @@ async fn download_file(
     }
 
     // download chunks while tracking progress
+    let path = dir.join(uri.filename());
     let mut file = File::create(path)?;
     let mut downloaded: u64 = 0;
     let mut stream = res.bytes_stream();
@@ -194,10 +195,9 @@ impl Command {
                 .map(|uri| {
                     let client = &client;
                     let mb = &mb;
-                    let path = self.dir.join(uri.filename());
                     async move {
                         let pb = mb.add(progress_bar(hidden));
-                        let result = download_file(client, uri, path, &pb).await;
+                        let result = download_file(client, uri, &self.dir, &pb).await;
                         mb.remove(&pb);
                         result
                     }
