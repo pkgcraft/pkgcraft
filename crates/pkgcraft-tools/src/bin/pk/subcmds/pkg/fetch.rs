@@ -95,16 +95,15 @@ async fn download_file(
     path: Utf8PathBuf,
     pb: &ProgressBar,
 ) -> anyhow::Result<()> {
-    let url = uri.uri();
     let res = client
-        .get(url)
+        .get(uri.as_ref())
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .map_err(|e| anyhow::anyhow!("failed to get: {url}: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("failed to get: {uri}: {e}"))?;
 
     // initialize progress header
-    pb.set_message(format!("Downloading {url} -> {path}"));
+    pb.set_message(format!("Downloading {uri}"));
 
     // enable completion progress if content size is available
     let total_size = res.content_length();
