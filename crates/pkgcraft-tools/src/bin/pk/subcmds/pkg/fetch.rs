@@ -53,6 +53,16 @@ pub(crate) fn tokio() -> &'static tokio::runtime::Runtime {
     RT.get_or_init(|| tokio::runtime::Runtime::new().unwrap())
 }
 
+// TODO: support custom templates or colors?
+/// Create a progress bar for a file download.
+fn progress_bar() -> ProgressBar {
+    let pb = ProgressBar::no_length();
+    pb.set_style(ProgressStyle::default_bar()
+        .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})").unwrap()
+        .progress_chars("#>-"));
+    pb
+}
+
 /// Download the file related to a URI.
 fn download_file(
     client: &reqwest::Client,
@@ -71,9 +81,6 @@ fn download_file(
 
         // set up progress indicator
         pb.set_message(format!("Downloading {}", url));
-        pb.set_style(ProgressStyle::default_bar()
-            .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})").unwrap()
-            .progress_chars("#>-"));
 
         // enable completion progress if content size is available
         let total_size = res.content_length();
@@ -129,7 +136,7 @@ impl Command {
                 s.spawn(move || {
                     // TODO: skip non-http(s) URIs
                     for (uri, path) in uri_rx {
-                        let pb = mb.add(ProgressBar::no_length());
+                        let pb = mb.add(progress_bar());
                         // TODO: add better error handling output
                         if let Err(e) = download_file(&client, &uri, &path, &pb) {
                             mb.suspend(|| {
