@@ -138,23 +138,23 @@ impl Command {
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
         let fetch_failed = AtomicBool::new(false);
+        let mb = MultiProgress::new();
 
         thread::scope(|s| {
             let (uri_tx, uri_rx) = bounded(concurrent);
-            let mb = MultiProgress::new();
             let failed = &fetch_failed;
 
             // create worker threads
             for _ in 0..concurrent {
-                let client = client.clone();
+                let client = &client;
+                let mb = &mb;
                 let uri_rx: Receiver<(Uri, Utf8PathBuf)> = uri_rx.clone();
-                let mb = mb.clone();
                 s.spawn(move || {
                     // TODO: skip non-http(s) URIs
                     for (uri, path) in uri_rx {
                         let pb = mb.add(progress_bar());
                         // TODO: add better error handling output
-                        if let Err(e) = download_file(&client, &uri, &path, &pb) {
+                        if let Err(e) = download_file(client, &uri, &path, &pb) {
                             mb.suspend(|| {
                                 error!("{e}");
                                 failed.store(true, Ordering::Relaxed);
