@@ -95,26 +95,26 @@ async fn download(
     uri: Uri,
     dir: &Utf8Path,
     pb: &ProgressBar,
-    size: Option<u64>,
+    mut size: Option<u64>,
 ) -> anyhow::Result<()> {
     let path = dir.join(uri.filename());
 
-    // determine the target file size
-    let total_size = if size.is_some() {
-        size
-    } else if path.exists() {
+    // determine the target file size for new files without manifest entries
+    if size.is_none() && path.exists() {
         let response = client.get(uri.as_ref()).send().await;
-        response.ok().and_then(|r| r.content_length())
-    } else {
-        None
-    };
+        size = response.ok().and_then(|r| r.content_length());
+    }
 
     // try to request missing data if file exists
     let mut request = client.get(uri.as_ref());
     let (mut position, mut file) = if let Ok(meta) = fs::metadata(&path) {
         let current_size = meta.len();
-        if current_size - total_size.unwrap_or_default() == 0 {
+        if current_size - size.unwrap_or_default() == 0 {
             return Ok(());
+        } else if let Some(value) = size {
+            if current_size > value {
+                return Err(anyhow::anyhow!("file larger than expected: {path}"));
+            }
         }
         request = request.header("Range", format!("bytes={current_size}-"));
         let file = fs::OpenOptions::new().append(true).open(&path)?;
@@ -132,8 +132,8 @@ async fn download(
     // initialize progress bar
     pb.set_message(format!("Downloading {uri}"));
     // enable completion progress if content size is available
-    if let Some(size) = total_size.or(response.content_length()) {
-        pb.set_length(size);
+    if let Some(value) = size.or(response.content_length()) {
+        pb.set_length(value);
     }
     pb.set_position(position);
 
