@@ -36,6 +36,10 @@ pub(crate) struct Command {
     #[arg(short, long, default_value = ".")]
     dir: Utf8PathBuf,
 
+    /// Ignore invalid service certificates
+    #[arg(short, long)]
+    insecure: bool,
+
     /// Connection timeout in seconds
     #[arg(short, long, default_value = "15")]
     timeout: f64,
@@ -116,6 +120,7 @@ impl Command {
         fs::create_dir_all(&self.dir)?;
 
         let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(self.insecure)
             .read_timeout(Duration::from_secs_f64(self.timeout))
             .connect_timeout(Duration::from_secs_f64(self.timeout))
             .build()
