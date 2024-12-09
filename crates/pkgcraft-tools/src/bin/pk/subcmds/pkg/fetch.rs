@@ -9,7 +9,7 @@ use std::time::Duration;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::builder::ArgPredicate;
 use clap::Args;
-use crossbeam_channel::{bounded, Receiver};
+use crossbeam_channel::bounded;
 use futures::StreamExt;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use itertools::Itertools;
@@ -155,17 +155,17 @@ impl Command {
         }
 
         thread::scope(|s| {
-            let (uri_tx, uri_rx) = bounded(concurrent);
+            let (tx, rx) = bounded::<Uri>(concurrent);
             let failed = &fetch_failed;
 
             // create worker threads
             for _ in 0..concurrent {
                 let client = &client;
                 let mb = &mb;
-                let uri_rx: Receiver<Uri> = uri_rx.clone();
+                let rx = rx.clone();
                 s.spawn(move || {
                     // TODO: skip non-http(s) URIs
-                    for uri in uri_rx {
+                    for uri in rx {
                         let path = self.dir.join(uri.filename());
                         if !path.exists() {
                             let pb = mb.add(progress_bar(hidden));
@@ -187,7 +187,7 @@ impl Command {
             for pkg in &mut iter {
                 // TODO: try pulling the file size from the pkg manifest if it exists
                 for uri in pkg.src_uri().iter_flatten() {
-                    uri_tx.send(uri.clone()).ok();
+                    tx.send(uri.clone()).ok();
                 }
             }
         });
