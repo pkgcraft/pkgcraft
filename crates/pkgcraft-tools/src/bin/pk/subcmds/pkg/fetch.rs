@@ -65,6 +65,7 @@ fn download_file(
             .get(url)
             .send()
             .await
+            .and_then(|r| r.error_for_status())
             .map_err(|e| anyhow::anyhow!("failed to get: {url}: {e}"))?;
 
         // set up progress indicator
