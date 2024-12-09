@@ -169,6 +169,7 @@ impl Command {
             let mut iter = &mut iter;
             s.spawn(move || {
                 for pkg in &mut iter {
+                    // TODO: try pulling the file size from the pkg manifest if it exists
                     for uri in pkg.src_uri().iter_flatten() {
                         let path = self.dir.join(uri.filename());
                         if !path.exists() {
