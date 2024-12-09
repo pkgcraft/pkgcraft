@@ -38,7 +38,6 @@ camino = "1.1.9"
 clap = { version = "4.5.23", features = ["derive"] }
 clap_complete = { version = "4.5.38", optional = true }
 clap-verbosity-flag = "3.0.1"
-crossbeam-channel = "0.5.13"
 futures = "0.3.31"
 humantime = "2.1.0"
 indexmap = { version = "2.7.0", features = ["serde"] }

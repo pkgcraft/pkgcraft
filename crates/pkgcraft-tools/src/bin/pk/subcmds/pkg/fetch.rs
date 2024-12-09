@@ -3,14 +3,12 @@ use std::io::{stdout, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
-use std::thread;
 use std::time::Duration;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use clap::builder::ArgPredicate;
 use clap::Args;
-use crossbeam_channel::bounded;
-use futures::StreamExt;
+use futures::{stream, StreamExt};
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use itertools::Itertools;
@@ -91,45 +89,47 @@ fn progress_bar(hidden: bool) -> ProgressBar {
 }
 
 /// Download the file related to a URI.
-fn download_file(
+async fn download_file(
     client: &reqwest::Client,
-    uri: &Uri,
-    path: &Utf8Path,
-    pb: &ProgressBar,
+    uri: Uri,
+    path: Utf8PathBuf,
+    mb: &MultiProgress,
+    hidden: bool,
 ) -> anyhow::Result<()> {
-    tokio().block_on(async {
-        let url = uri.uri();
-        let res = client
-            .get(url)
-            .send()
-            .await
-            .and_then(|r| r.error_for_status())
-            .map_err(|e| anyhow::anyhow!("failed to get: {url}: {e}"))?;
+    let pb = mb.add(progress_bar(hidden));
 
-        // initialize progress header
-        pb.set_message(format!("Downloading {url} -> {path}"));
+    let url = uri.uri();
+    let res = client
+        .get(url)
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .map_err(|e| anyhow::anyhow!("failed to get: {url}: {e}"))?;
 
-        // enable completion progress if content size is available
-        let total_size = res.content_length();
-        if let Some(size) = &total_size {
-            pb.set_length(*size);
-        }
+    // initialize progress header
+    pb.set_message(format!("Downloading {url} -> {path}"));
 
-        // download chunks while tracking progress
-        let mut file = File::create(path)?;
-        let mut downloaded: u64 = 0;
-        let mut stream = res.bytes_stream();
+    // enable completion progress if content size is available
+    let total_size = res.content_length();
+    if let Some(size) = &total_size {
+        pb.set_length(*size);
+    }
 
-        while let Some(item) = stream.next().await {
-            let chunk = item.map_err(|e| anyhow::anyhow!("error while downloading file: {e}"))?;
-            file.write_all(&chunk)?;
-            downloaded += chunk.len() as u64;
-            // TODO: handle progress differently for unsized downloads?
-            pb.set_position(downloaded);
-        }
+    // download chunks while tracking progress
+    let mut file = File::create(path)?;
+    let mut downloaded: u64 = 0;
+    let mut stream = res.bytes_stream();
 
-        Ok(())
-    })
+    while let Some(item) = stream.next().await {
+        let chunk = item.map_err(|e| anyhow::anyhow!("error while downloading file: {e}"))?;
+        file.write_all(&chunk)?;
+        downloaded += chunk.len() as u64;
+        // TODO: handle progress differently for unsized downloads?
+        pb.set_position(downloaded);
+    }
+
+    mb.remove(&pb);
+    Ok(())
 }
 
 impl Command {
@@ -178,7 +178,7 @@ impl Command {
 
         // TODO: track overall download size if all target URIs have manifest data
         // show a global progress bar when downloading more files than concurrency limit
-        let global_pb = if uris.len() > self.concurrent {
+        let global_pb = if uris.len() > concurrent {
             Some(ProgressBar::new(uris.len() as u64))
         } else {
             None
@@ -194,42 +194,29 @@ impl Command {
         }
 
         let fetch_failed = AtomicBool::new(false);
-        thread::scope(|s| {
-            let (tx, rx) = bounded::<Uri>(concurrent);
-            let failed = &fetch_failed;
+        tokio().block_on(async {
+            let results = stream::iter(uris)
+                .map(|uri| {
+                    let client = &client;
+                    let mb = &mb;
+                    let path = self.dir.join(uri.filename());
+                    async move { download_file(client, uri, path, mb, hidden).await }
+                })
+                .buffer_unordered(concurrent);
 
-            // create worker threads
-            for _ in 0..concurrent {
-                let client = &client;
-                let mb = &mb;
-                let global_pb = global_pb.as_ref();
-                let rx = rx.clone();
-                s.spawn(move || {
-                    // TODO: skip non-http(s) URIs
-                    for uri in rx {
-                        let path = self.dir.join(uri.filename());
-                        if !path.exists() {
-                            let pb = mb.add(progress_bar(hidden));
-                            // TODO: add better error handling output
-                            if let Err(e) = download_file(client, &uri, &path, &pb) {
-                                mb.suspend(|| {
-                                    error!("{e}");
-                                    failed.store(true, Ordering::Relaxed);
-                                });
-                            };
-                            mb.remove(&pb);
-                        }
-                        if let Some(pb) = global_pb {
-                            pb.inc(1);
-                        }
+            results
+                .for_each(|result| async {
+                    if let Err(e) = result {
+                        mb.suspend(|| {
+                            error!("{e}");
+                            fetch_failed.store(true, Ordering::Relaxed);
+                        });
                     }
-                });
-            }
-
-            // send URIs to workers
-            for uri in uris {
-                tx.send(uri).ok();
-            }
+                    if let Some(pb) = global_pb.as_ref() {
+                        pb.inc(1);
+                    }
+                })
+                .await;
         });
 
         let status = iter.failed() | fetch_failed.load(Ordering::Relaxed);
