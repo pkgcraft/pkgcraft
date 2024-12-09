@@ -20,7 +20,7 @@ use pkgcraft::dep::Uri;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
-use tracing::error;
+use tracing::{error, info};
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
@@ -48,6 +48,10 @@ pub(crate) struct Command {
     /// Disable progress output
     #[arg(short, long)]
     no_progress: bool,
+
+    /// Support fetch-restricted targets
+    #[arg(long)]
+    restrict: bool,
 
     // positionals
     /// Target packages or paths
@@ -150,7 +154,11 @@ impl Command {
         // TODO: try pulling the file size from the pkg manifest if it exists
         let mut uris = IndexSet::new();
         for pkg in &mut iter {
-            uris.extend(pkg.src_uri().iter_flatten().cloned());
+            if self.restrict || pkg.restrict().iter_flatten().all(|x| x != "fetch") {
+                uris.extend(pkg.src_uri().iter_flatten().cloned());
+            } else {
+                info!("skipping fetch restricted package: {pkg}");
+            }
         }
 
         // TODO: track overall download size if all target URIs have manifest data
