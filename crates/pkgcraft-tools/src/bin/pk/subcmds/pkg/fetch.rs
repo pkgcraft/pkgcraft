@@ -93,11 +93,8 @@ async fn download_file(
     client: &reqwest::Client,
     uri: Uri,
     path: Utf8PathBuf,
-    mb: &MultiProgress,
-    hidden: bool,
+    pb: &ProgressBar,
 ) -> anyhow::Result<()> {
-    let pb = mb.add(progress_bar(hidden));
-
     let url = uri.uri();
     let res = client
         .get(url)
@@ -128,7 +125,6 @@ async fn download_file(
         pb.set_position(downloaded);
     }
 
-    mb.remove(&pb);
     Ok(())
 }
 
@@ -200,7 +196,12 @@ impl Command {
                     let client = &client;
                     let mb = &mb;
                     let path = self.dir.join(uri.filename());
-                    async move { download_file(client, uri, path, mb, hidden).await }
+                    async move {
+                        let pb = mb.add(progress_bar(hidden));
+                        let result = download_file(client, uri, path, &pb).await;
+                        mb.remove(&pb);
+                        result
+                    }
                 })
                 .buffer_unordered(concurrent);
 
