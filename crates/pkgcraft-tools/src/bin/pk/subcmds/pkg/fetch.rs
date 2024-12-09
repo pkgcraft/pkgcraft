@@ -88,8 +88,9 @@ fn progress_bar(hidden: bool) -> ProgressBar {
     pb
 }
 
+// TODO: move to async closure once they are stabilized
 /// Download the file related to a URI.
-async fn download_file(
+async fn download(
     client: &reqwest::Client,
     uri: Uri,
     dir: &Utf8Path,
@@ -197,7 +198,7 @@ impl Command {
                     let mb = &mb;
                     async move {
                         let pb = mb.add(progress_bar(hidden));
-                        let result = download_file(client, uri, &self.dir, &pb).await;
+                        let result = download(client, uri, &self.dir, &pb).await;
                         mb.remove(&pb);
                         result
                     }
