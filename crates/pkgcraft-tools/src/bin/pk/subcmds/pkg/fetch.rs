@@ -95,37 +95,59 @@ async fn download(
     uri: Uri,
     dir: &Utf8Path,
     pb: &ProgressBar,
+    size: Option<u64>,
 ) -> anyhow::Result<()> {
-    let res = client
-        .get(uri.as_ref())
+    let path = dir.join(uri.filename());
+
+    // determine the target file size
+    let total_size = if size.is_some() {
+        size
+    } else if path.exists() {
+        let response = client.get(uri.as_ref()).send().await;
+        response.ok().and_then(|r| r.content_length())
+    } else {
+        None
+    };
+
+    // try to request missing data if file exists
+    let mut request = client.get(uri.as_ref());
+    let (mut position, mut file) = if let Ok(meta) = fs::metadata(&path) {
+        let current_size = meta.len();
+        if current_size - total_size.unwrap_or_default() == 0 {
+            return Ok(());
+        }
+        request = request.header("Range", format!("bytes={current_size}-"));
+        let file = fs::OpenOptions::new().append(true).open(&path)?;
+        (current_size, file)
+    } else {
+        (0, File::create(&path)?)
+    };
+
+    let response = request
         .send()
         .await
         .and_then(|r| r.error_for_status())
         .map_err(|e| anyhow::anyhow!("failed to get: {uri}: {e}"))?;
 
-    // initialize progress header
+    // initialize progress bar
     pb.set_message(format!("Downloading {uri}"));
-
     // enable completion progress if content size is available
-    let total_size = res.content_length();
-    if let Some(size) = &total_size {
-        pb.set_length(*size);
+    if let Some(size) = total_size.or(response.content_length()) {
+        pb.set_length(size);
     }
+    pb.set_position(position);
 
     // download chunks while tracking progress
-    let path = dir.join(uri.filename());
-    let mut file = File::create(path)?;
-    let mut downloaded: u64 = 0;
-    let mut stream = res.bytes_stream();
-
+    let mut stream = response.bytes_stream();
     while let Some(item) = stream.next().await {
         let chunk = item.map_err(|e| anyhow::anyhow!("error while downloading file: {e}"))?;
         file.write_all(&chunk)?;
-        downloaded += chunk.len() as u64;
+        position += chunk.len() as u64;
         // TODO: handle progress differently for unsized downloads?
-        pb.set_position(downloaded);
+        pb.set_position(position);
     }
 
+    pb.finish_and_clear();
     Ok(())
 }
 
@@ -199,7 +221,7 @@ impl Command {
                     let mb = &mb;
                     async move {
                         let pb = mb.add(progress_bar(hidden));
-                        let result = download(client, uri, &self.dir, &pb).await;
+                        let result = download(client, uri, &self.dir, &pb, None).await;
                         mb.remove(&pb);
                         result
                     }
