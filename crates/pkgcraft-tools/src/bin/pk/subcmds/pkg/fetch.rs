@@ -177,19 +177,20 @@ impl Command {
         }
 
         // TODO: track overall download size if all target URIs have manifest data
-        // show a main progress bar when downloading more files than concurrency limit
-        let main_pb = if uris.len() <= self.concurrent {
-            ProgressBar::hidden()
+        // show a global progress bar when downloading more files than concurrency limit
+        let global_pb = if uris.len() > self.concurrent {
+            Some(ProgressBar::new(uris.len() as u64))
         } else {
-            ProgressBar::new(uris.len() as u64)
+            None
         };
 
         // initialize progress handling
         let mb = MultiProgress::new();
-        mb.add(main_pb.clone());
         let hidden = !stdout().is_terminal() || self.no_progress;
         if hidden {
             mb.set_draw_target(ProgressDrawTarget::hidden());
+        } else if let Some(pb) = global_pb.as_ref() {
+            mb.add(pb.clone());
         }
 
         let fetch_failed = AtomicBool::new(false);
@@ -201,7 +202,7 @@ impl Command {
             for _ in 0..concurrent {
                 let client = &client;
                 let mb = &mb;
-                let main_pb = &main_pb;
+                let global_pb = global_pb.as_ref();
                 let rx = rx.clone();
                 s.spawn(move || {
                     // TODO: skip non-http(s) URIs
@@ -218,7 +219,9 @@ impl Command {
                             };
                             mb.remove(&pb);
                         }
-                        main_pb.inc(1);
+                        if let Some(pb) = global_pb {
+                            pb.inc(1);
+                        }
                     }
                 });
             }
