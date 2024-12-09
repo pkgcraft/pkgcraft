@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{stdout, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
@@ -11,7 +11,7 @@ use clap::builder::ArgPredicate;
 use clap::Args;
 use crossbeam_channel::{bounded, Receiver};
 use futures::StreamExt;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
@@ -44,6 +44,10 @@ pub(crate) struct Command {
     #[arg(short, long, default_value = "15")]
     timeout: f64,
 
+    /// Disable progress output
+    #[arg(short, long)]
+    no_progress: bool,
+
     // positionals
     /// Target packages or paths
     #[arg(
@@ -64,8 +68,12 @@ pub(crate) fn tokio() -> &'static tokio::runtime::Runtime {
 
 // TODO: support custom templates or colors?
 /// Create a progress bar for a file download.
-fn progress_bar() -> ProgressBar {
-    let pb = ProgressBar::no_length();
+fn progress_bar(hidden: bool) -> ProgressBar {
+    let pb = if hidden {
+        ProgressBar::hidden()
+    } else {
+        ProgressBar::no_length()
+    };
     pb.set_style(ProgressStyle::default_bar()
         .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})").unwrap()
         .progress_chars("#>-"));
@@ -138,7 +146,13 @@ impl Command {
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
         let fetch_failed = AtomicBool::new(false);
+
+        // initialize progress handling
         let mb = MultiProgress::new();
+        let hidden = !stdout().is_terminal() || self.no_progress;
+        if hidden {
+            mb.set_draw_target(ProgressDrawTarget::hidden());
+        }
 
         thread::scope(|s| {
             let (uri_tx, uri_rx) = bounded(concurrent);
@@ -152,7 +166,7 @@ impl Command {
                 s.spawn(move || {
                     // TODO: skip non-http(s) URIs
                     for (uri, path) in uri_rx {
-                        let pb = mb.add(progress_bar());
+                        let pb = mb.add(progress_bar(hidden));
                         // TODO: add better error handling output
                         if let Err(e) = download_file(client, &uri, &path, &pb) {
                             mb.suspend(|| {
