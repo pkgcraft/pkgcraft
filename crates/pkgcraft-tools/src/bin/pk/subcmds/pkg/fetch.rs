@@ -18,6 +18,7 @@ use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::dep::Uri;
 use pkgcraft::repo::RepoFormat;
+use pkgcraft::restrict::{str::Restrict as StrRestrict, Restrict, Restriction};
 use pkgcraft::traits::{Contains, LogErrors};
 use pkgcraft::utils::bounded_jobs;
 use tracing::{error, warn};
@@ -37,6 +38,10 @@ pub(crate) struct Command {
     #[arg(short, long, default_value = ".")]
     dir: Utf8PathBuf,
 
+    /// Filter URLs via regex
+    #[arg(short, long, value_name = "REGEX")]
+    filter: Option<String>,
+
     /// Ignore invalid service certificates
     #[arg(short, long)]
     insecure: bool,
@@ -49,7 +54,7 @@ pub(crate) struct Command {
     #[arg(short, long)]
     no_progress: bool,
 
-    /// Support fetch-restricted targets
+    /// Process fetch-restricted packages
     #[arg(long)]
     restrict: bool,
 
@@ -130,6 +135,11 @@ fn download_file(
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         let concurrent = bounded_jobs(self.concurrent);
+        let restrict = if let Some(value) = self.filter.as_deref() {
+            StrRestrict::regex(value)?.into()
+        } else {
+            Restrict::True
+        };
         fs::create_dir_all(&self.dir)?;
 
         let client = reqwest::Client::builder()
@@ -155,7 +165,12 @@ impl Command {
         let mut uris = IndexSet::new();
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
-                uris.extend(pkg.src_uri().iter_flatten().cloned());
+                uris.extend(
+                    pkg.src_uri()
+                        .iter_flatten()
+                        .filter(|u| restrict.matches(u.as_ref()))
+                        .cloned(),
+                );
             } else {
                 warn!("skipping fetch restricted package: {pkg}");
             }
