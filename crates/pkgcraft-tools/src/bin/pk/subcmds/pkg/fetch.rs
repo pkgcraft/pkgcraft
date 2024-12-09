@@ -1,6 +1,7 @@
 use std::fs::{self, File};
 use std::io::Write;
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 use std::thread;
 
@@ -112,11 +113,13 @@ impl Command {
 
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
+        let fetch_failed = AtomicBool::new(false);
 
         thread::scope(|s| {
             let client = reqwest::Client::new();
             let (uri_tx, uri_rx) = bounded(concurrent);
             let mb = MultiProgress::new();
+            let failed = &fetch_failed;
 
             // create worker threads
             for _ in 0..concurrent {
@@ -131,6 +134,7 @@ impl Command {
                         if let Err(e) = download_file(&client, &uri, &path, &pb) {
                             mb.suspend(|| {
                                 error!("{e}");
+                                failed.store(true, Ordering::Relaxed);
                             });
                         };
                         mb.remove(&pb);
@@ -152,6 +156,7 @@ impl Command {
             });
         });
 
-        Ok(ExitCode::from(iter))
+        let status = iter.failed() | fetch_failed.load(Ordering::Relaxed);
+        Ok(ExitCode::from(status as u8))
     }
 }
