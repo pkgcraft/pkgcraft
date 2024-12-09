@@ -47,7 +47,7 @@ indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.20" }
-reqwest = { version = "0.12.9", default-features = false, features = ["rustls-tls", "stream"] }
+reqwest = { version = "0.12.9", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 scallop = { path = "../scallop", version = "0.0.19" }
 strum = { version = "0.26.3", features = ["derive"] }
 tokio = { version = "1.41.1", features = ["full"] }

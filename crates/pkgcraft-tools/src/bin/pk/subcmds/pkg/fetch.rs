@@ -121,6 +121,7 @@ impl Command {
 
         let client = reqwest::Client::builder()
             .danger_accept_invalid_certs(self.insecure)
+            .hickory_dns(true)
             .read_timeout(Duration::from_secs_f64(self.timeout))
             .connect_timeout(Duration::from_secs_f64(self.timeout))
             .build()
