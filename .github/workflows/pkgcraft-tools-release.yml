@@ -22,7 +22,7 @@ jobs:
       id: rust
 
     - name: Generate files
-      run: cargo run --features shell --bin shell -p pkgcraft-tools
+      run: cargo run --features shell --bin pk-shell-comp -p pkgcraft-tools
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

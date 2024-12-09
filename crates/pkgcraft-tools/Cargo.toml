@@ -19,7 +19,7 @@ name = "pk"
 bench = false
 
 [[bin]]
-name = "shell"
+name = "pk-shell-comp"
 path = "src/bin/pk/shell.rs"
 required-features = ["shell"]
 
