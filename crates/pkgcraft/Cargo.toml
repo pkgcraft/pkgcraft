@@ -32,7 +32,7 @@ blake3 = { version = "1.5.5", features = ["traits-preview"] }
 cached = "0.54.0"
 camino = { version = "1.1.9", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.5.21", features = ["derive"] }
+clap = { version = "4.5.23", features = ["derive"] }
 crossbeam-channel = "0.5.13"
 dashmap = "6.1.0"
 digest = "0.10.7"
@@ -66,10 +66,10 @@ sha2 = "0.10.8"
 strum = { version = "0.26.3", features = ["derive"] }
 tar = { version = "0.4.43", optional = true }
 tempfile = "3.14.0"
-thiserror = "2.0.3"
+thiserror = "2.0.6"
 tree-sitter = "0.24.4"
 tree-sitter-bash = "0.23.3"
-tokio = { version = "1.41.1", features = ["full"], optional = true }
+tokio = { version = "1.42.0", features = ["full"], optional = true }
 toml = "0.8.19"
 tracing = "0.1.41"
 walkdir = "2.5.0"
