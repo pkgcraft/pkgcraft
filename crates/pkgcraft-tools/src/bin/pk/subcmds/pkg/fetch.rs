@@ -162,19 +162,22 @@ impl Command {
             for _ in 0..concurrent {
                 let client = &client;
                 let mb = &mb;
-                let uri_rx: Receiver<(Uri, Utf8PathBuf)> = uri_rx.clone();
+                let uri_rx: Receiver<Uri> = uri_rx.clone();
                 s.spawn(move || {
                     // TODO: skip non-http(s) URIs
-                    for (uri, path) in uri_rx {
-                        let pb = mb.add(progress_bar(hidden));
-                        // TODO: add better error handling output
-                        if let Err(e) = download_file(client, &uri, &path, &pb) {
-                            mb.suspend(|| {
-                                error!("{e}");
-                                failed.store(true, Ordering::Relaxed);
-                            });
-                        };
-                        mb.remove(&pb);
+                    for uri in uri_rx {
+                        let path = self.dir.join(uri.filename());
+                        if !path.exists() {
+                            let pb = mb.add(progress_bar(hidden));
+                            // TODO: add better error handling output
+                            if let Err(e) = download_file(client, &uri, &path, &pb) {
+                                mb.suspend(|| {
+                                    error!("{e}");
+                                    failed.store(true, Ordering::Relaxed);
+                                });
+                            };
+                            mb.remove(&pb);
+                        }
                     }
                 });
             }
@@ -184,10 +187,7 @@ impl Command {
             for pkg in &mut iter {
                 // TODO: try pulling the file size from the pkg manifest if it exists
                 for uri in pkg.src_uri().iter_flatten() {
-                    let path = self.dir.join(uri.filename());
-                    if !path.exists() {
-                        uri_tx.send((uri.clone(), path)).ok();
-                    }
+                    uri_tx.send(uri.clone()).ok();
                 }
             }
         });
