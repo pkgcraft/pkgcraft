@@ -181,17 +181,15 @@ impl Command {
 
             // send URIs to workers
             let mut iter = &mut iter;
-            s.spawn(move || {
-                for pkg in &mut iter {
-                    // TODO: try pulling the file size from the pkg manifest if it exists
-                    for uri in pkg.src_uri().iter_flatten() {
-                        let path = self.dir.join(uri.filename());
-                        if !path.exists() {
-                            uri_tx.send((uri.clone(), path)).ok();
-                        }
+            for pkg in &mut iter {
+                // TODO: try pulling the file size from the pkg manifest if it exists
+                for uri in pkg.src_uri().iter_flatten() {
+                    let path = self.dir.join(uri.filename());
+                    if !path.exists() {
+                        uri_tx.send((uri.clone(), path)).ok();
                     }
                 }
-            });
+            }
         });
 
         let status = iter.failed() | fetch_failed.load(Ordering::Relaxed);
