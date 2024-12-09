@@ -20,7 +20,7 @@ use pkgcraft::dep::Uri;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
-use tracing::{error, info};
+use tracing::{error, warn};
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
@@ -157,7 +157,7 @@ impl Command {
             if self.restrict || pkg.restrict().iter_flatten().all(|x| x != "fetch") {
                 uris.extend(pkg.src_uri().iter_flatten().cloned());
             } else {
-                info!("skipping fetch restricted package: {pkg}");
+                warn!("skipping fetch restricted package: {pkg}");
             }
         }
 
