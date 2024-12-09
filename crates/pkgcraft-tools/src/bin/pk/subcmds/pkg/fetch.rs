@@ -88,8 +88,8 @@ fn download_file(
             .and_then(|r| r.error_for_status())
             .map_err(|e| anyhow::anyhow!("failed to get: {url}: {e}"))?;
 
-        // set up progress indicator
-        pb.set_message(format!("Downloading {}", url));
+        // initialize progress header
+        pb.set_message(format!("Downloading {url} -> {path}"));
 
         // enable completion progress if content size is available
         let total_size = res.content_length();
