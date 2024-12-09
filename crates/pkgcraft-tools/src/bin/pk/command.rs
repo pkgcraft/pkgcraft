@@ -17,7 +17,7 @@ pub(crate) struct Command {
     verbosity: Verbosity,
 
     /// Use a custom config
-    #[arg(short, long, value_name = "PATH", global = true)]
+    #[arg(long, value_name = "PATH", global = true)]
     config: Option<String>,
 
     // positional
