@@ -4,6 +4,7 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 use std::thread;
+use std::time::Duration;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::builder::ArgPredicate;
@@ -34,6 +35,10 @@ pub(crate) struct Command {
     /// Destination directory
     #[arg(short, long, default_value = ".")]
     dir: Utf8PathBuf,
+
+    /// Connection timeout in seconds
+    #[arg(short, long, default_value = "15")]
+    timeout: f64,
 
     // positionals
     /// Target packages or paths
@@ -110,6 +115,12 @@ impl Command {
         let concurrent = bounded_jobs(self.concurrent);
         fs::create_dir_all(&self.dir)?;
 
+        let client = reqwest::Client::builder()
+            .read_timeout(Duration::from_secs_f64(self.timeout))
+            .connect_timeout(Duration::from_secs_f64(self.timeout))
+            .build()
+            .map_err(|e| anyhow::anyhow!("failed creating client: {e}"))?;
+
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
@@ -123,7 +134,6 @@ impl Command {
         let fetch_failed = AtomicBool::new(false);
 
         thread::scope(|s| {
-            let client = reqwest::Client::new();
             let (uri_tx, uri_rx) = bounded(concurrent);
             let mb = MultiProgress::new();
             let failed = &fetch_failed;
