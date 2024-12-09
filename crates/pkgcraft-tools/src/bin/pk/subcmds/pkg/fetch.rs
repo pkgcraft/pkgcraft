@@ -18,7 +18,7 @@ use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::dep::Uri;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::LogErrors;
+use pkgcraft::traits::{Contains, LogErrors};
 use pkgcraft::utils::bounded_jobs;
 use tracing::{error, warn};
 
@@ -154,7 +154,7 @@ impl Command {
         // TODO: try pulling the file size from the pkg manifest if it exists
         let mut uris = IndexSet::new();
         for pkg in &mut iter {
-            if self.restrict || pkg.restrict().iter_flatten().all(|x| x != "fetch") {
+            if self.restrict || !pkg.restrict().contains("fetch") {
                 uris.extend(pkg.src_uri().iter_flatten().cloned());
             } else {
                 warn!("skipping fetch restricted package: {pkg}");
