@@ -11,6 +11,7 @@ use clap::builder::ArgPredicate;
 use clap::Args;
 use crossbeam_channel::bounded;
 use futures::StreamExt;
+use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
@@ -145,15 +146,30 @@ impl Command {
 
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
-        let fetch_failed = AtomicBool::new(false);
+
+        // TODO: try pulling the file size from the pkg manifest if it exists
+        let mut uris = IndexSet::new();
+        for pkg in &mut iter {
+            uris.extend(pkg.src_uri().iter_flatten().cloned());
+        }
+
+        // TODO: track overall download size if all target URIs have manifest data
+        // show a main progress bar when downloading more files than concurrency limit
+        let main_pb = if uris.len() <= self.concurrent {
+            ProgressBar::hidden()
+        } else {
+            ProgressBar::new(uris.len() as u64)
+        };
 
         // initialize progress handling
         let mb = MultiProgress::new();
+        mb.add(main_pb.clone());
         let hidden = !stdout().is_terminal() || self.no_progress;
         if hidden {
             mb.set_draw_target(ProgressDrawTarget::hidden());
         }
 
+        let fetch_failed = AtomicBool::new(false);
         thread::scope(|s| {
             let (tx, rx) = bounded::<Uri>(concurrent);
             let failed = &fetch_failed;
@@ -162,6 +178,7 @@ impl Command {
             for _ in 0..concurrent {
                 let client = &client;
                 let mb = &mb;
+                let main_pb = &main_pb;
                 let rx = rx.clone();
                 s.spawn(move || {
                     // TODO: skip non-http(s) URIs
@@ -178,17 +195,14 @@ impl Command {
                             };
                             mb.remove(&pb);
                         }
+                        main_pb.inc(1);
                     }
                 });
             }
 
             // send URIs to workers
-            let mut iter = &mut iter;
-            for pkg in &mut iter {
-                // TODO: try pulling the file size from the pkg manifest if it exists
-                for uri in pkg.src_uri().iter_flatten() {
-                    tx.send(uri.clone()).ok();
-                }
+            for uri in uris {
+                tx.send(uri).ok();
             }
         });
 
