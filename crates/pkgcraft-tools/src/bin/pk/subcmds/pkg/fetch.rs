@@ -139,14 +139,6 @@ impl Command {
         };
         fs::create_dir_all(&self.dir)?;
 
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(self.insecure)
-            .hickory_dns(true)
-            .read_timeout(Duration::from_secs_f64(self.timeout))
-            .connect_timeout(Duration::from_secs_f64(self.timeout))
-            .build()
-            .map_err(|e| anyhow::anyhow!("failed creating client: {e}"))?;
-
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
@@ -173,6 +165,14 @@ impl Command {
             }
         }
 
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(self.insecure)
+            .hickory_dns(true)
+            .read_timeout(Duration::from_secs_f64(self.timeout))
+            .connect_timeout(Duration::from_secs_f64(self.timeout))
+            .build()
+            .map_err(|e| anyhow::anyhow!("failed creating client: {e}"))?;
+
         // TODO: track overall download size if all target URIs have manifest data
         // show a global progress bar when downloading more files than concurrency limit
         let global_pb = if uris.len() > concurrent {
@@ -192,6 +192,7 @@ impl Command {
 
         let fetch_failed = AtomicBool::new(false);
         tokio().block_on(async {
+            // convert URIs into download results stream
             let results = stream::iter(uris)
                 .map(|uri| {
                     let client = &client;
@@ -205,6 +206,7 @@ impl Command {
                 })
                 .buffer_unordered(concurrent);
 
+            // process results stream while logging errors
             results
                 .for_each(|result| async {
                     if let Err(e) = result {
