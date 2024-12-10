@@ -9,7 +9,6 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
-use pkgcraft::repo::Repository;
 use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
