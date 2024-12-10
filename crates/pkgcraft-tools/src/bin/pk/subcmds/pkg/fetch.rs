@@ -19,6 +19,7 @@ use pkgcraft::repo::RepoFormat;
 use pkgcraft::restrict::{str::Restrict as StrRestrict, Restrict, Restriction};
 use pkgcraft::traits::{Contains, LogErrors};
 use pkgcraft::utils::bounded_jobs;
+use reqwest::StatusCode;
 use tracing::{error, warn};
 
 #[derive(Debug, Args)]
@@ -99,15 +100,16 @@ async fn download(
 ) -> anyhow::Result<()> {
     let path = dir.join(uri.filename());
 
-    // determine the target file size for new files without manifest entries
-    if size.is_none() && path.exists() {
-        let response = client.get(uri.as_ref()).send().await;
-        size = response.ok().and_then(|r| r.content_length());
-    }
-
-    // try to request missing data if file exists
+    // determine the file position to start at supporting resumed downloads
     let mut request = client.get(uri.as_ref());
-    let (mut position, mut file) = if let Ok(meta) = fs::metadata(&path) {
+    let mut position = if let Ok(meta) = fs::metadata(&path) {
+        // determine the target size for existing files without manifest entries
+        if size.is_none() {
+            let response = client.get(uri.as_ref()).send().await;
+            size = response.ok().and_then(|r| r.content_length());
+        }
+
+        // check if completed or invalid
         let current_size = meta.len();
         if current_size - size.unwrap_or_default() == 0 {
             return Ok(());
@@ -116,11 +118,12 @@ async fn download(
                 return Err(anyhow::anyhow!("file larger than expected: {path}"));
             }
         }
+
+        // request remaining data assuming sequential downloads
         request = request.header("Range", format!("bytes={current_size}-"));
-        let file = fs::OpenOptions::new().append(true).open(&path)?;
-        (current_size, file)
+        current_size
     } else {
-        (0, File::create(&path)?)
+        0
     };
 
     let response = request
@@ -128,6 +131,12 @@ async fn download(
         .await
         .and_then(|r| r.error_for_status())
         .map_err(|e| anyhow::anyhow!("failed to get: {uri}: {e}"))?;
+
+    // create file or open it for appending
+    let mut file = match response.status() {
+        StatusCode::PARTIAL_CONTENT => fs::OpenOptions::new().append(true).open(&path),
+        _ => File::create(&path),
+    }?;
 
     // initialize progress bar
     pb.set_message(format!("Downloading {uri}"));
