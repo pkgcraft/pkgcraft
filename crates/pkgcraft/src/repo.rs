@@ -755,9 +755,15 @@ macro_rules! make_repo_traits {
             }
         }
 
-        impl AsRef<Utf8Path> for $x {
-            fn as_ref(&self) -> &Utf8Path {
+        impl AsRef<camino::Utf8Path> for $x {
+            fn as_ref(&self) -> &camino::Utf8Path {
                 self.path()
+            }
+        }
+
+        impl AsRef<std::path::Path> for $x {
+            fn as_ref(&self) -> &std::path::Path {
+                self.path().as_ref()
             }
         }
 
