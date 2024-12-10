@@ -520,7 +520,7 @@ fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
             let args: Result<Vec<_>, _> = args.into_iter().collect();
             match args {
                 Ok(args) => cmd(&args),
-                Err(e) => Err(Error::Base(format!("non-unicode args: {e}"))),
+                Err(e) => Err(Error::Base(format!("invalid args: {e}"))),
             }
         }
         Some(_) => Err(Error::Base(format!("disabled in {scope} scope"))),
@@ -575,6 +575,8 @@ macro_rules! cmd_scope_tests {
         fn cmd_scope() {
             use std::collections::HashSet;
 
+            use itertools::Itertools;
+
             use crate::config::Config;
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::pkg::Source;
@@ -583,10 +585,17 @@ macro_rules! cmd_scope_tests {
             use crate::test::assert_err_re;
 
             let cmd = $cmd;
-            let name = cmd.split(' ').next().unwrap();
+            let mut args = cmd.split(' ').peekable();
+            let name = args.next().unwrap();
+            let has_args = args.peek().is_some();
+            let invalid_cmd = [name]
+                .into_iter()
+                .chain(args.map(|_| r#"$'\x02\xc5\xd8'"#))
+                .join(" ");
+            let non_utf8_args_err = format!("{name}: error: invalid args: invalid utf-8 .*");
             let mut config = Config::default();
             let mut temp = EbuildRepoBuilder::new().build().unwrap();
-            // create eclass
+            // create eclasses
             let eclass = indoc::formatdoc! {r#"
                 # stub eclass
                 VAR=1
@@ -594,6 +603,11 @@ macro_rules! cmd_scope_tests {
                 VAR=2
             "#};
             temp.create_eclass("e1", &eclass).unwrap();
+            let eclass = indoc::formatdoc! {r#"
+                # stub eclass
+                {invalid_cmd}
+            "#};
+            temp.create_eclass("invalid", &eclass).unwrap();
             let repo = config
                 .add_repo(&temp, false)
                 .unwrap()
@@ -604,6 +618,60 @@ macro_rules! cmd_scope_tests {
 
             for eapi in &*EAPIS_OFFICIAL {
                 if let Some(cmd) = eapi.commands().get(name) {
+                    // test non-utf8 args for commands that accept arguments
+                    if has_args {
+                        for scope in &cmd.scopes {
+                            let info = format!("EAPI={eapi}, scope: {scope}");
+                            match scope {
+                                Eclass(_) => {
+                                    let data = indoc::formatdoc! {r#"
+                                        EAPI={eapi}
+                                        inherit invalid
+                                        DESCRIPTION="testing eclass scope invalid args"
+                                        SLOT=0
+                                    "#};
+                                    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                                    let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
+                                    let r = raw_pkg.source();
+                                    assert_err_re!(r, non_utf8_args_err, &info);
+                                }
+                                Global => {
+                                    let data = indoc::formatdoc! {r#"
+                                        EAPI={eapi}
+                                        DESCRIPTION="testing global scope failures"
+                                        SLOT=0
+                                        VAR=1
+                                        {invalid_cmd}
+                                        VAR=2
+                                    "#};
+                                    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                                    let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
+                                    let r = raw_pkg.source();
+                                    assert_err_re!(r, non_utf8_args_err, &info);
+                                }
+                                Phase(phase) => {
+                                    let data = indoc::formatdoc! {r#"
+                                        EAPI={eapi}
+                                        DESCRIPTION="testing phase scope failures"
+                                        SLOT=0
+                                        VAR=1
+                                        {phase}() {{
+                                            {invalid_cmd}
+                                            VAR=2
+                                        }}
+                                    "#};
+                                    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+                                    let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+                                    pkg.source().unwrap();
+                                    let phase = eapi.phases().get(phase).unwrap();
+                                    let r = phase.run();
+                                    assert_err_re!(r, non_utf8_args_err, &info);
+                                }
+                            }
+                        }
+                    }
+
+                    // test invalid scope usage
                     for scope in all_scopes.difference(&cmd.scopes) {
                         let info = format!("EAPI={eapi}, scope: {scope}");
                         match scope {
