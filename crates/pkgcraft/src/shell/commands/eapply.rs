@@ -264,6 +264,12 @@ mod tests {
             let file = format!("files/{i}.patch");
             fs::write(file, data).unwrap();
         }
+
+        // verify patch searching isn't recursive
+        fs::create_dir_all("files/nested").unwrap();
+        fs::write("files/nested/nested.patch", patch1).unwrap();
+
+        // apply patches from target directory and verify content
         assert_eq!(fs::read_to_string("file.txt").unwrap(), "0\n");
         eapply(&["files"]).unwrap();
         assert_eq!(fs::read_to_string("file.txt").unwrap(), "2\n");
