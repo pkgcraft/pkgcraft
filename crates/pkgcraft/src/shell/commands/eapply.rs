@@ -17,15 +17,6 @@ const LONG_DOC: &str = "Apply patches to a package's source code.";
 struct PatchFile(Utf8PathBuf);
 
 impl PatchFile {
-    fn try_new<P: Into<Utf8PathBuf>>(path: P) -> scallop::Result<Self> {
-        let path = path.into();
-        if path.file_name().is_some() {
-            Ok(Self(path))
-        } else {
-            Err(Error::Base(format!("invalid patch file: {path}")))
-        }
-    }
-
     fn apply(&self, options: &[&str]) -> scallop::Result<()> {
         let path = &self.0;
         let data = File::open(path)
@@ -74,7 +65,7 @@ fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec
         let mut dir_patches: Vec<_> = path
             .read_dir_utf8()?
             .filter_map(|e| match e {
-                Ok(e) if is_patch(&e) => Some(PatchFile::try_new(e.into_path())),
+                Ok(e) if is_patch(&e) => Some(Ok(PatchFile(e.into_path()))),
                 Ok(_) => None,
                 Err(e) => Some(Err(Error::Base(format!("failed reading patches: {path}: {e}")))),
             })
@@ -88,10 +79,8 @@ fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec
         } else {
             Ok((Some(path), dir_patches))
         }
-    } else if path.exists() {
-        Ok((None, vec![PatchFile::try_new(path.to_path_buf())?]))
     } else {
-        Err(Error::Base(format!("nonexistent file: {path}")))
+        Ok((None, vec![PatchFile(path.to_path_buf())]))
     }
 }
 
@@ -186,7 +175,8 @@ mod tests {
         // nonexistent files
         for args in [vec!["file.patch"], vec!["--", "--"]] {
             let r = eapply(&args);
-            assert_err_re!(r, "^nonexistent file: .*$");
+            let path = args.first().unwrap();
+            assert_err_re!(r, format!("^failed reading patch: {path}: No such file or directory"));
         }
 
         // empty dir
