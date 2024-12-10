@@ -1,6 +1,6 @@
 use std::env;
 
-use pkgcraft::test::{assert_unordered_eq, cmd, test_data_path};
+use pkgcraft::test::*;
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -9,7 +9,8 @@ use tempfile::{tempdir, NamedTempFile};
 
 #[test]
 fn stdin_targets() {
-    let repo = test_data_path().join("repos/valid/qa-primary");
+    let data = test_data();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
 
     for arg in ["KeywordsDropped", "KeywordsDropped/KeywordsDropped"] {
         cmd("pkgcruft scan -R simple -")
@@ -24,7 +25,8 @@ fn stdin_targets() {
 
 #[test]
 fn dep_restrict_targets() {
-    let repo = test_data_path().join("repos/valid/qa-primary");
+    let data = test_data();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
 
     // invalid
     for s in ["^pkg", "cat&pkg"] {
