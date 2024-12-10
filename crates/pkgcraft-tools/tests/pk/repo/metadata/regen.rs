@@ -39,7 +39,7 @@ fn empty_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -55,7 +55,7 @@ fn progress() {
     for opt in ["-n", "--no-progress"] {
         cmd("pk repo metadata regen")
             .arg(opt)
-            .arg(repo.path())
+            .arg(repo)
             .assert()
             .stdout("")
             .stderr("")
@@ -87,7 +87,7 @@ fn single() {
 
     // re-run doesn't change cache
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -99,7 +99,7 @@ fn single() {
     // package changes cause cache updates
     temp.create_ebuild("cat/pkg-1", &["EAPI=8"]).unwrap();
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -112,7 +112,7 @@ fn single() {
     for opt in ["-f", "--force"] {
         cmd("pk repo metadata regen")
             .arg(opt)
-            .arg(repo.path())
+            .arg(&repo)
             .assert()
             .stdout("")
             .stderr("")
@@ -167,7 +167,7 @@ fn multiple() {
         .unwrap();
 
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -182,7 +182,7 @@ fn multiple() {
     fs::remove_dir_all(repo.path().join("cat/b")).unwrap();
     fs::remove_dir_all(repo.path().join("other")).unwrap();
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -206,7 +206,7 @@ fn pkg_with_invalid_eapi() {
         .unwrap();
 
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(lines_contain(["invalid pkg: cat/a-1", "metadata failures occurred"]))
@@ -231,7 +231,7 @@ fn pkg_with_invalid_dep() {
         .unwrap();
 
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(lines_contain(["invalid pkg: cat/a-1", "metadata failures occurred"]))
@@ -274,7 +274,7 @@ fn data_content() {
 
         cmd("pk repo metadata regen")
             .args([opt, cache_path])
-            .arg(repo.path())
+            .arg(repo)
             .assert()
             .stdout("")
             .stderr("")

@@ -35,7 +35,7 @@ fn invalid_pkgs() {
     let repo = data.ebuild_repo("bad").unwrap();
 
     cmd("pk repo leaf")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -49,7 +49,7 @@ fn empty_repo() {
     let repo = data.ebuild_repo("empty").unwrap();
 
     cmd("pk repo leaf")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")

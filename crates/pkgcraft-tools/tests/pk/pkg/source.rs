@@ -32,7 +32,7 @@ fn empty_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk pkg source")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")

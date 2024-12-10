@@ -19,7 +19,7 @@ fn invalid_pkgs() {
     let data = test_data();
     let repo = data.ebuild_repo("bad").unwrap();
     cmd("pk repo eapis")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr(predicate::str::is_empty().not())
@@ -32,7 +32,7 @@ fn empty_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk repo eapis")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -56,7 +56,7 @@ fn single_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
     cmd("pk repo eapis")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -83,7 +83,7 @@ fn option_eapi() {
 
     // invalid EAPI
     cmd("pk repo eapis --eapi nonexistent")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())
@@ -92,7 +92,7 @@ fn option_eapi() {
 
     // matching packages for EAPI
     cmd("pk repo eapis --eapi 8")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -100,7 +100,7 @@ fn option_eapi() {
 
     // no matching packages for custom EAPI
     cmd("pk repo eapis --eapi pkgcraft")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")

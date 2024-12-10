@@ -1,4 +1,3 @@
-use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -27,7 +26,7 @@ fn empty_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("empty").unwrap();
     cmd("pk pkg showkw")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -39,7 +38,7 @@ fn invalid_pkgs() {
     let data = test_data();
     let repo = data.ebuild_repo("bad").unwrap();
     cmd("pk pkg showkw")
-        .arg(repo.path())
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr(predicate::str::is_empty().not())

@@ -23,7 +23,7 @@ fn run() {
 
     // generate cache
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -42,7 +42,7 @@ fn run() {
 
     // no outdated entries removes only unrelated files
     cmd("pk repo metadata clean")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -67,7 +67,7 @@ fn run() {
 
     // outdated cache files and directories are removed
     cmd("pk repo metadata clean")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")

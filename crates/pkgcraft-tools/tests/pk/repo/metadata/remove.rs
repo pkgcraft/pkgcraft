@@ -1,7 +1,6 @@
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::repo::Repository;
 use pkgcraft::test::cmd;
 use tempfile::tempdir;
 
@@ -21,7 +20,7 @@ fn run() {
 
     // generate cache
     cmd("pk repo metadata regen")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -32,7 +31,7 @@ fn run() {
 
     // remove cache
     cmd("pk repo metadata remove")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -42,7 +41,7 @@ fn run() {
 
     // missing cache removal is ignored
     cmd("pk repo metadata remove")
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -54,7 +53,7 @@ fn run() {
     // external cache removal isn't supported
     cmd("pk repo metadata remove")
         .args(["-p", cache_path])
-        .arg(repo.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(lines_contain([format!("external cache: {cache_path}")]))
