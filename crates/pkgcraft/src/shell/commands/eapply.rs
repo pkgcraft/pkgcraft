@@ -66,7 +66,7 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
     }
 }
 
-struct FindPatches<'a>(std::slice::Iter<'a, &'a Utf8Path>);
+struct FindPatches<'a>(std::vec::IntoIter<&'a Utf8Path>);
 
 /// Return all the patches for a given path.
 fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<PatchFile>)> {
@@ -99,7 +99,7 @@ impl<'a> Iterator for FindPatches<'a> {
     type Item = scallop::Result<(Option<&'a Utf8Path>, Vec<PatchFile>)>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|p| patches_from_path(p))
+        self.0.next().map(patches_from_path)
     }
 }
 
@@ -111,16 +111,16 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // split args into options and files
     let (mut files, mut options) = (vec![], vec![]);
-    let mut args_iter = args.iter();
-    for arg in args_iter.by_ref() {
+    let mut args = args.iter().copied();
+    for arg in &mut args {
         if arg.starts_with('-') {
             if !files.is_empty() {
                 return Err(Error::Base("options must be specified before file arguments".into()));
-            } else if *arg == "--" {
-                files.extend(args_iter.map(Utf8Path::new));
+            } else if arg == "--" {
+                files.extend(args.map(Utf8Path::new));
                 break;
             } else {
-                options.push(*arg);
+                options.push(arg);
             }
         } else {
             files.push(Utf8Path::new(arg));
@@ -132,7 +132,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let mut stdout = stdout();
-    for patches in FindPatches(files.iter()) {
+    for patches in FindPatches(files.into_iter()) {
         let (dir, patches) = patches?;
         if let Some(path) = &dir {
             writeln!(stdout, "Applying patches from {path}")?;
