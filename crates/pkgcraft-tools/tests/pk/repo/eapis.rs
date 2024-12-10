@@ -43,7 +43,7 @@ fn empty_repo() {
 fn default_current_directory() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
-    env::set_current_dir(repo.path()).unwrap();
+    env::set_current_dir(repo).unwrap();
     cmd("pk repo eapis")
         .assert()
         .stdout(predicate::str::is_empty().not())

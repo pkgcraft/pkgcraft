@@ -1,7 +1,6 @@
 use std::env;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 
@@ -60,7 +59,7 @@ fn empty_repo() {
 fn default_current_directory() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
-    env::set_current_dir(repo.path()).unwrap();
+    env::set_current_dir(repo).unwrap();
 
     cmd("pk repo leaf")
         .assert()

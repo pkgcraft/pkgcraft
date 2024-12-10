@@ -75,7 +75,7 @@ fn single() {
         .unwrap();
 
     // default target is the current working directory
-    env::set_current_dir(repo.path()).unwrap();
+    env::set_current_dir(&repo).unwrap();
     cmd("pk repo metadata regen")
         .assert()
         .stdout("")
