@@ -87,6 +87,10 @@ mod tests {
         let r = dosym(&["source", "target"]);
         assert_err_re!(r, "^missing filename target: .*$");
 
+        // linking to the root directory isn't supported
+        let r = dosym(&["-r", "/source", "/"]);
+        assert_err_re!(r, "^missing filename target: .*$");
+
         // relative source with `dosym -r`
         let r = dosym(&["-r", "source", "target"]);
         assert_err_re!(r, "^absolute path required .*$");
