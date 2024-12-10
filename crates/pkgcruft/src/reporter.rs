@@ -12,10 +12,11 @@ use crate::Error;
 #[derive(AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Reporter {
-    Simple(SimpleReporter),
     Fancy(FancyReporter),
-    Json(JsonReporter),
     Format(FormatReporter),
+    Json(JsonReporter),
+    Null,
+    Simple(SimpleReporter),
 }
 
 impl Default for Reporter {
@@ -28,10 +29,11 @@ impl Reporter {
     /// Run a report through a reporter.
     pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         match self {
-            Self::Simple(r) => r.report(report, output),
             Self::Fancy(r) => r.report(report, output),
-            Self::Json(r) => r.report(report, output),
             Self::Format(r) => r.report(report, output),
+            Self::Json(r) => r.report(report, output),
+            Self::Null => Ok(()),
+            Self::Simple(r) => r.report(report, output),
         }
     }
 }
@@ -232,6 +234,12 @@ mod tests {
 
         let output = report(FancyReporter::default());
         assert_eq!(expected, &output);
+    }
+
+    #[test]
+    fn null() {
+        let output = report(Reporter::Null);
+        assert!(output.is_empty());
     }
 
     #[test]
