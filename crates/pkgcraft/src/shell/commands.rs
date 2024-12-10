@@ -516,8 +516,10 @@ fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
     // run if enabled for the current build state
     let result = match eapi.commands().get(name) {
         Some(cmd) if cmd.is_allowed(scope) => {
+            // convert raw command args into &str
             let args = args.to_words();
             let args: Result<Vec<_>, _> = args.into_iter().collect();
+            // run command if args are valid utf8
             match args {
                 Ok(args) => cmd(&args),
                 Err(e) => Err(Error::Base(format!("invalid args: {e}"))),
