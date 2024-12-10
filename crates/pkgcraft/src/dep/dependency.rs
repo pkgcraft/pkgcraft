@@ -397,6 +397,14 @@ impl<T: Display + Ordered> Display for Dependency<T> {
     }
 }
 
+impl Restriction<&Dependency<Dep>> for BaseRestrict {
+    fn matches(&self, val: &Dependency<Dep>) -> bool {
+        crate::restrict::restrict_match! {self, val,
+            Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::test::assert_ordered_eq;
