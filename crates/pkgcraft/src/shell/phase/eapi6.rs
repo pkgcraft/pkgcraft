@@ -81,7 +81,7 @@ mod tests {
                 let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let r = pkg.build();
-                assert_err_re!(r, "failed reading patch: -p1: No such file or directory");
+                assert_err_re!(r, "invalid patch: -p1: No such file or directory");
             }
 
             // PATCHES empty
