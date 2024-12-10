@@ -282,7 +282,7 @@ mod tests {
         let dir = tempdir().unwrap();
         env::set_current_dir(&dir).unwrap();
         fs::write("file.txt", file_content).unwrap();
-        fs::create_dir("files").unwrap();
+        fs::create_dir_all("files/empty").unwrap();
         for (i, data) in [patch0, patch1].iter().enumerate() {
             let file = format!("files/{i}.patch");
             fs::write(file, data).unwrap();
