@@ -283,8 +283,9 @@ impl MetadataCacheRegen<'_> {
             })
             .count();
 
+        self.progress.finish_and_clear();
         if errors > 0 {
-            Err(Error::InvalidValue("metadata failures occurred, see log for details".to_string()))
+            Err(Error::InvalidValue("metadata failures occurred".to_string()))
         } else {
             Ok(())
         }
