@@ -5,7 +5,7 @@ use std::{mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
-use itertools::{Either, Itertools};
+use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
@@ -94,7 +94,7 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<T>(&self, restrict: T) -> crate::Result<impl Iterator<Item = Report>>
+    pub fn run<T>(&self, restrict: T) -> crate::Result<ReportIter>
     where
         T: Into<Restrict>,
     {
@@ -129,14 +129,14 @@ impl Scanner {
                 version_tx: None,
             };
 
-            Ok(Either::Left(IterPkg {
+            Ok(ReportIter(ReportIterInternal::Pkg(IterPkg {
                 rx: reports_rx,
                 _producer: pkg_producer(self.repo, runner.clone(), restrict, restrict_tx),
                 _workers: (0..self.jobs)
                     .map(|_| pkg_worker(runner.clone(), filter.clone(), restrict_rx.clone()))
                     .collect(),
                 reports: Default::default(),
-            }))
+            })))
         } else {
             // parallel by check
             if !self.filters.is_empty() {
@@ -154,14 +154,14 @@ impl Scanner {
                 version_tx: Some(reports_tx),
             };
 
-            Ok(Either::Right(IterVersion {
+            Ok(ReportIter(ReportIterInternal::Version(IterVersion {
                 rx: reports_rx,
                 _producer: version_producer(self.repo, runner.clone(), restrict, restrict_tx),
                 _workers: (0..self.jobs)
                     .map(|_| version_worker(runner.clone(), filter.clone(), restrict_rx.clone()))
                     .collect(),
                 reports: Default::default(),
-            }))
+            })))
         }
     }
 }
@@ -252,6 +252,8 @@ fn pkg_worker(
     })
 }
 
+/// Iterator that parallelizes by package, running in category and repo scope.
+#[derive(Debug)]
 struct IterPkg {
     rx: Receiver<Vec<Report>>,
     _producer: thread::JoinHandle<()>,
@@ -318,6 +320,8 @@ fn version_worker(
     })
 }
 
+/// Iterator that parallelizes by check, running in version and package scope.
+#[derive(Debug)]
 struct IterVersion {
     rx: Receiver<Report>,
     _producer: thread::JoinHandle<()>,
@@ -335,6 +339,36 @@ impl Iterator for IterVersion {
             self.reports = Some(self.rx.iter().sorted_by(|a, b| b.cmp(a)).collect());
             self.next()
         }
+    }
+}
+
+/// Encapsulating iterator supporting varying scanning target parallelism.
+#[derive(Debug)]
+enum ReportIterInternal {
+    Pkg(IterPkg),
+    Version(IterVersion),
+}
+
+impl Iterator for ReportIterInternal {
+    type Item = Report;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Pkg(iter) => iter.next(),
+            Self::Version(iter) => iter.next(),
+        }
+    }
+}
+
+/// Iterator of reports.
+#[derive(Debug)]
+pub struct ReportIter(ReportIterInternal);
+
+impl Iterator for ReportIter {
+    type Item = Report;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }
 
@@ -410,7 +444,8 @@ mod tests {
         // non-matching restriction
         let scanner = Scanner::new(repo);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        assert!(scanner.run(&dep).is_err());
+        let r = scanner.run(&dep);
+        assert_err_re!(r, "no matches found");
 
         // repo with bad metadata
         let repo = data.ebuild_repo("bad").unwrap();
@@ -423,7 +458,8 @@ mod tests {
         // empty repo
         let repo = data.ebuild_repo("empty").unwrap();
         let scanner = Scanner::new(repo);
-        assert!(scanner.run(repo).is_err());
+        let r = scanner.run(&dep);
+        assert_err_re!(r, "no matches found");
 
         // overlay repo -- dependent repo is auto-loaded
         let repo = data.ebuild_repo("qa-secondary").unwrap();
