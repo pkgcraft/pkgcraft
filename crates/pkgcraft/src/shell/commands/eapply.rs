@@ -1,4 +1,3 @@
-use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
@@ -13,35 +12,23 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-struct PatchFile(Utf8PathBuf);
+/// Try to apply a path as a patch.
+fn apply_patch(path: &Utf8Path, options: &[&str]) -> scallop::Result<()> {
+    let data =
+        File::open(path).map_err(|e| Error::Base(format!("failed reading patch: {path}: {e}")))?;
 
-impl PatchFile {
-    fn apply(&self, options: &[&str]) -> scallop::Result<()> {
-        let path = &self.0;
-        let data = File::open(path)
-            .map_err(|e| Error::Base(format!("failed reading patch: {path}: {e}")))?;
+    let patch = Command::new("patch")
+        .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
+        .args(options)
+        .stdin(data)
+        .output()
+        .map_err(|e| Error::Base(format!("failed running patch: {e}")))?;
 
-        let patch = Command::new("patch")
-            .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
-            .args(options)
-            .stdin(data)
-            .output()
-            .map_err(|e| Error::Base(format!("failed running patch: {e}")))?;
-
-        if patch.status.success() {
-            Ok(())
-        } else {
-            let error = String::from_utf8_lossy(&patch.stdout);
-            Err(Error::Base(format!("failed applying: {path}\n{error}")))
-        }
-    }
-}
-
-impl fmt::Display for PatchFile {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = self.0.file_name().expect("invalid patch file");
-        write!(f, "{name}")
+    if patch.status.success() {
+        Ok(())
+    } else {
+        let error = String::from_utf8_lossy(&patch.stdout);
+        Err(Error::Base(format!("failed applying: {path}\n{error}")))
     }
 }
 
@@ -60,12 +47,12 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
 struct FindPatches<'a>(std::vec::IntoIter<&'a Utf8Path>);
 
 /// Return all the patches for a given path.
-fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<PatchFile>)> {
+fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<Utf8PathBuf>)> {
     if path.is_dir() {
         let mut dir_patches: Vec<_> = path
             .read_dir_utf8()?
             .filter_map(|e| match e {
-                Ok(e) if is_patch(&e) => Some(Ok(PatchFile(e.into_path()))),
+                Ok(e) if is_patch(&e) => Some(Ok(e.into_path())),
                 Ok(_) => None,
                 Err(e) => Some(Err(Error::Base(format!("failed reading patches: {path}: {e}")))),
             })
@@ -80,12 +67,12 @@ fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec
             Ok((Some(path), dir_patches))
         }
     } else {
-        Ok((None, vec![PatchFile(path.to_path_buf())]))
+        Ok((None, vec![path.to_path_buf()]))
     }
 }
 
 impl<'a> Iterator for FindPatches<'a> {
-    type Item = scallop::Result<(Option<&'a Utf8Path>, Vec<PatchFile>)>;
+    type Item = scallop::Result<(Option<&'a Utf8Path>, Vec<Utf8PathBuf>)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(patches_from_path)
@@ -122,18 +109,18 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let mut stdout = stdout();
     for patches in FindPatches(files.into_iter()) {
-        let (dir, patches) = patches?;
+        let (dir, paths) = patches?;
         if let Some(path) = &dir {
             writeln!(stdout, "Applying patches from {path}")?;
         }
 
-        for patch in patches {
+        for path in paths {
             if dir.is_some() {
-                writeln!(stdout, "  {patch}...")?;
+                writeln!(stdout, "  {path}...")?;
             } else {
-                writeln!(stdout, "Applying {patch}...")?;
+                writeln!(stdout, "Applying {path}...")?;
             }
-            patch.apply(&options)?;
+            apply_patch(&path, &options)?;
         }
     }
 
