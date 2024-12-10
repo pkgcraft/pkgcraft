@@ -70,8 +70,9 @@ fn dep_restrict_targets() {
         .arg("nonexistent/pkg")
         .assert()
         .stdout("")
-        .stderr("")
-        .success();
+        .stderr(contains("no matches found"))
+        .failure()
+        .code(2);
 }
 
 #[test]
@@ -166,11 +167,13 @@ fn path_targets() {
     assert_unordered_eq!(&expected, &reports);
 
     // non-package dir
-    let reports = cmd("pkgcruft scan -R json")
+    cmd("pkgcruft scan -R json")
         .arg(repo.join("licenses"))
-        .to_reports()
-        .unwrap();
-    assert_unordered_eq!(&reports, &[]);
+        .assert()
+        .stdout("")
+        .stderr(contains("no matches found"))
+        .failure()
+        .code(2);
 
     // TODO: test overlay dir
 

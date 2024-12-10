@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::{iter, mem, thread};
+use std::{mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
@@ -104,9 +104,9 @@ impl Scanner {
         info!("scope: {scope}");
         info!("target: {restrict:?}");
 
-        // return early for static, non-matching restriction
-        if restrict == Restrict::False {
-            return Ok(Box::new(iter::empty()));
+        // return early for non-matching restrictions
+        if restrict == Restrict::False || self.repo.iter_cpv_restrict(&restrict).next().is_none() {
+            return Err(Error::InvalidValue("no matches found".to_string()));
         }
 
         let runner = Arc::new(SyncCheckRunner::new(
@@ -410,8 +410,7 @@ mod tests {
         // non-matching restriction
         let scanner = Scanner::new(repo);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports = scanner.run(&dep).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert!(scanner.run(&dep).is_err());
 
         // repo with bad metadata
         let repo = data.ebuild_repo("bad").unwrap();
@@ -424,8 +423,7 @@ mod tests {
         // empty repo
         let repo = data.ebuild_repo("empty").unwrap();
         let scanner = Scanner::new(repo);
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert!(scanner.run(repo).is_err());
 
         // overlay repo -- dependent repo is auto-loaded
         let repo = data.ebuild_repo("qa-secondary").unwrap();

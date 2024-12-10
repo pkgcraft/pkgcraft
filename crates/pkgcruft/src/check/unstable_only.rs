@@ -86,12 +86,6 @@ mod tests {
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
-        // empty repo
-        let repo = data.ebuild_repo("empty").unwrap();
-        let scanner = Scanner::new(repo).checks([CHECK]);
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, []);
-
         // primary fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("qa-primary").unwrap();
