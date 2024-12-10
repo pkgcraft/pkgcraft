@@ -1,7 +1,7 @@
 use std::os::unix::fs::symlink;
 use std::path::PathBuf;
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::DosymRelative;
@@ -21,12 +21,8 @@ fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<Pat
         return Err(Error::Base(format!("absolute path required with '-r': {target}")));
     }
 
-    let mut parent = Utf8PathBuf::from("/");
-    if let Some(p) = name.parent() {
-        parent.push(p)
-    }
-
-    relpath(target, &parent)
+    let parent = name.parent().map(|x| x.as_str()).unwrap_or("/");
+    relpath(target, parent)
         .ok_or_else(|| Error::Base(format!("invalid relative path: {target} -> {name}")))
 }
 
