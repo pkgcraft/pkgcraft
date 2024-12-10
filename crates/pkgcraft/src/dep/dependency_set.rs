@@ -385,7 +385,7 @@ impl<'a, T: Ordered> Flatten for &'a DependencySet<T> {
     type IntoIterFlatten = IterFlatten<'a, T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
-        IterFlatten(self.0.iter().collect())
+        self.0.iter().collect()
     }
 }
 
@@ -394,7 +394,7 @@ impl<'a, T: Ordered> Recursive for &'a DependencySet<T> {
     type IntoIterRecursive = IterRecursive<'a, T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
-        IterRecursive(self.0.iter().collect())
+        self.0.iter().collect()
     }
 }
 
@@ -403,7 +403,7 @@ impl<'a, T: Ordered> Conditionals for &'a DependencySet<T> {
     type IntoIterConditionals = IterConditionals<'a, T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
-        IterConditionals(self.0.iter().collect())
+        self.0.iter().collect()
     }
 }
 
@@ -421,7 +421,7 @@ impl<T: Ordered> Flatten for DependencySet<T> {
     type IntoIterFlatten = IntoIterFlatten<T>;
 
     fn into_iter_flatten(self) -> Self::IntoIterFlatten {
-        IntoIterFlatten(self.0.into_iter().collect())
+        self.0.into_iter().collect()
     }
 }
 
@@ -430,7 +430,7 @@ impl<T: Ordered> Recursive for DependencySet<T> {
     type IntoIterRecursive = IntoIterRecursive<T>;
 
     fn into_iter_recursive(self) -> Self::IntoIterRecursive {
-        IntoIterRecursive(self.0.into_iter().collect())
+        self.0.into_iter().collect()
     }
 }
 
@@ -439,7 +439,7 @@ impl<T: Ordered> Conditionals for DependencySet<T> {
     type IntoIterConditionals = IntoIterConditionals<T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
-        IntoIterConditionals(self.0.into_iter().collect())
+        self.0.into_iter().collect()
     }
 }
 
