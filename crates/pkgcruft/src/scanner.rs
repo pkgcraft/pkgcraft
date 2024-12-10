@@ -98,14 +98,16 @@ impl Scanner {
     where
         T: Into<Restrict>,
     {
-        // return early for static, non-matching restriction
         let restrict = restrict.into();
+        let scope = Scope::from(&restrict);
+        info!("repo: {}", self.repo);
+        info!("scope: {scope}");
+        info!("target: {restrict:?}");
+
+        // return early for static, non-matching restriction
         if restrict == Restrict::False {
             return Ok(Box::new(iter::empty()));
         }
-
-        let scope = Scope::from(&restrict);
-        info!("scan scope: {scope}");
 
         let runner = Arc::new(SyncCheckRunner::new(
             scope,
