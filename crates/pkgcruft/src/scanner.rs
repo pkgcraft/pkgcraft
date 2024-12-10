@@ -5,7 +5,7 @@ use std::{mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::IndexSet;
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::bounded_jobs;
@@ -94,7 +94,7 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<T>(&self, restrict: T) -> crate::Result<Box<dyn Iterator<Item = Report>>>
+    pub fn run<T>(&self, restrict: T) -> crate::Result<impl Iterator<Item = Report>>
     where
         T: Into<Restrict>,
     {
@@ -129,7 +129,7 @@ impl Scanner {
                 version_tx: None,
             };
 
-            Ok(Box::new(IterPkg {
+            Ok(Either::Left(IterPkg {
                 rx: reports_rx,
                 _producer: pkg_producer(self.repo, runner.clone(), restrict, restrict_tx),
                 _workers: (0..self.jobs)
@@ -154,7 +154,7 @@ impl Scanner {
                 version_tx: Some(reports_tx),
             };
 
-            Ok(Box::new(IterVersion {
+            Ok(Either::Right(IterVersion {
                 rx: reports_rx,
                 _producer: version_producer(self.repo, runner.clone(), restrict, restrict_tx),
                 _workers: (0..self.jobs)
