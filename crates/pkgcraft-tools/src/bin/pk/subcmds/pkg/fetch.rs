@@ -189,7 +189,11 @@ impl Command {
                     pkg.src_uri()
                         .iter_flatten()
                         .filter(|u| restrict.matches(u.as_ref()))
-                        .cloned(),
+                        .cloned()
+                        .map(|u| {
+                            let size = pkg.manifest().get(u.filename()).map(|m| m.size());
+                            (u, size)
+                        }),
                 );
             } else {
                 warn!("skipping fetch restricted package: {pkg}");
@@ -225,12 +229,12 @@ impl Command {
         tokio().block_on(async {
             // convert URIs into download results stream
             let results = stream::iter(uris)
-                .map(|uri| {
+                .map(|(uri, size)| {
                     let client = &client;
                     let mb = &mb;
                     async move {
                         let pb = mb.add(progress_bar(hidden));
-                        let result = download(client, uri, &self.dir, &pb, None).await;
+                        let result = download(client, uri, &self.dir, &pb, size).await;
                         mb.remove(&pb);
                         result
                     }
