@@ -4,6 +4,7 @@ use pkgcraft::config::Config;
 
 mod env;
 mod fetch;
+mod manifest;
 mod metadata;
 mod pretend;
 mod revdeps;
@@ -28,6 +29,8 @@ enum Subcommand {
     Env(Box<env::Command>),
     /// Fetch distfiles
     Fetch(Box<fetch::Command>),
+    /// Update manifests
+    Manifest(Box<manifest::Command>),
     /// Manipulate package metadata
     Metadata(Box<metadata::Command>),
     /// Run the pkg_pretend phase
@@ -45,6 +48,7 @@ impl Subcommand {
         match self {
             Self::Env(cmd) => cmd.run(config),
             Self::Fetch(cmd) => cmd.run(config),
+            Self::Manifest(cmd) => cmd.run(config),
             Self::Metadata(cmd) => cmd.run(config),
             Self::Pretend(cmd) => cmd.run(config),
             Self::Revdeps(cmd) => cmd.run(config),
