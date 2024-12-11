@@ -42,7 +42,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // and relative paths.
     let determine_source = |path: &Utf8Path| -> scallop::Result<Utf8PathBuf> {
         let source = if is_single_component(path) {
-            Utf8PathBuf::from(&distdir).join(path)
+            Utf8Path::new(distdir).join(path)
         } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
             Utf8PathBuf::from(path)
         } else {
