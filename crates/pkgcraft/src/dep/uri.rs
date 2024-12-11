@@ -6,40 +6,41 @@ use crate::Error;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Uri {
     uri: String,
-    filename: String,
-    rename: bool,
+    rename: Option<String>,
 }
 
 impl Uri {
+    /// Try to create a new Uri.
     pub(crate) fn try_new(uri: &str, rename: Option<&str>) -> crate::Result<Self> {
-        let uri = uri.trim();
-        let filename = rename.unwrap_or_else(|| match uri.rsplit_once('/') {
-            Some((_, filename)) => filename,
-            None => uri,
-        });
+        let uri = Self {
+            uri: uri.trim().to_string(),
+            rename: rename.map(Into::into),
+        };
 
         // rudimentary URI validity check since full parsing isn't used
-        if filename.is_empty() {
+        if uri.filename().is_empty() {
             return Err(Error::InvalidValue(format!("URI missing filename: {uri}")));
         }
 
-        Ok(Self {
-            uri: uri.to_string(),
-            filename: filename.to_string(),
-            rename: rename.is_some(),
-        })
+        Ok(uri)
     }
 
+    /// Return the file name for the Uri.
     pub fn filename(&self) -> &str {
-        &self.filename
+        self.rename.as_deref().unwrap_or_else(|| {
+            self.uri
+                .rsplit_once('/')
+                .map(|(_, s)| s)
+                .unwrap_or(&self.uri)
+        })
     }
 }
 
 impl fmt::Display for Uri {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.uri)?;
-        if self.rename {
-            write!(f, " -> {}", self.filename)?;
+        if let Some(value) = &self.rename {
+            write!(f, " -> {value}")?;
         }
         Ok(())
     }
