@@ -1,15 +1,21 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::fs;
+use std::fmt;
+use std::fs::{self, File};
 use std::hash::{Hash, Hasher};
+use std::io::Write;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use rayon::prelude::*;
 use strum::{Display, EnumIter, EnumString};
 
+use crate::dep::Uri;
 use crate::macros::build_path;
+use crate::repo::ebuild::EbuildRepo;
 use crate::traits::PkgCacheData;
+use crate::types::OrderedSet;
 use crate::utils::digest;
 use crate::Error;
 
@@ -21,10 +27,33 @@ pub enum HashType {
     Sha512,
 }
 
+impl HashType {
+    fn hash(&self, data: &[u8]) -> String {
+        match self {
+            HashType::Blake2b => digest::<blake2::Blake2b512>(data),
+            HashType::Blake3 => digest::<blake3::Hasher>(data),
+            HashType::Sha512 => digest::<sha2::Sha512>(data),
+        }
+    }
+
+    fn to_checksum(&self, data: &[u8]) -> Checksum {
+        Checksum {
+            kind: *self,
+            value: self.hash(data),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Checksum {
     kind: HashType,
     value: String,
+}
+
+impl fmt::Display for Checksum {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.kind, self.value)
+    }
 }
 
 impl Checksum {
@@ -37,11 +66,7 @@ impl Checksum {
 
     /// Verify the checksum matches the given data.
     fn verify(&self, data: &[u8]) -> crate::Result<()> {
-        let hash = match self.kind {
-            HashType::Blake2b => digest::<blake2::Blake2b512>(data),
-            HashType::Blake3 => digest::<blake3::Hasher>(data),
-            HashType::Sha512 => digest::<sha2::Sha512>(data),
-        };
+        let hash = self.kind.hash(data);
 
         if self.value != hash {
             return Err(Error::InvalidValue(format!(
@@ -82,10 +107,27 @@ impl ManifestFile {
             .map(|(kind, val)| Checksum::try_new(kind, val))
             .try_collect()?;
 
-        Ok(ManifestFile {
+        Ok(Self {
             kind,
             name: name.to_string(),
             size,
+            checksums,
+        })
+    }
+
+    fn from_path(
+        kind: ManifestType,
+        path: &Utf8Path,
+        hashes: &OrderedSet<HashType>,
+    ) -> crate::Result<Self> {
+        let data = fs::read(path).unwrap();
+        let name = path.file_name().unwrap();
+        let checksums = hashes.iter().map(|kind| kind.to_checksum(&data)).collect();
+
+        Ok(Self {
+            kind,
+            name: name.to_string(),
+            size: data.len() as u64,
             checksums,
         })
     }
@@ -153,6 +195,13 @@ impl Borrow<str> for ManifestFile {
     }
 }
 
+impl fmt::Display for ManifestFile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let checksums = self.checksums.iter().join(" ");
+        write!(f, "{} {} {} {}", self.kind, self.name, self.size, checksums)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Default, Clone)]
 pub struct Manifest(IndexSet<ManifestFile>);
 
@@ -208,6 +257,34 @@ impl Manifest {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    pub fn update(
+        &self,
+        uris: &[Uri],
+        pkgdir: &Utf8Path,
+        distdir: &Utf8Path,
+        repo: &EbuildRepo,
+    ) -> crate::Result<()> {
+        // TODO: support thick manifests
+        let hashes = &repo.metadata().config.manifest_hashes;
+        let mut files = self.0.clone();
+        let new: Vec<_> = uris
+            .into_par_iter()
+            .map(|uri| {
+                let path = distdir.join(uri.filename());
+                ManifestFile::from_path(ManifestType::Dist, &path, hashes)
+            })
+            .collect();
+        for result in new {
+            files.insert(result?);
+        }
+        files.par_sort();
+        let mut f = File::create(pkgdir.join("Manifest"))?;
+        for file in files {
+            writeln!(&mut f, "{file}")?;
+        }
+        Ok(())
     }
 
     pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
