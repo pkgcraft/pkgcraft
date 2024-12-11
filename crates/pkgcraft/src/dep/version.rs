@@ -6,8 +6,6 @@ use std::str::FromStr;
 
 use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
-use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::macros::cmp_not_equal;
@@ -188,8 +186,6 @@ impl fmt::Display for Suffix {
     Display,
     EnumString,
     EnumIter,
-    Serialize,
-    Deserialize,
     Debug,
     PartialEq,
     Eq,
@@ -231,7 +227,7 @@ impl Operator {
     }
 }
 
-#[derive(SerializeDisplay, DeserializeFromStr, Clone)]
+#[derive(Clone)]
 pub struct Version {
     pub(crate) op: Option<Operator>,
     pub(crate) numbers: Vec<Number>,
