@@ -80,3 +80,23 @@ impl Cpn {
         &self.package
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse() {
+        // invalid
+        for s in ["", "a", "a/", "/b", "a/+b", "a/b-1"] {
+            assert!(Cpn::try_new(s).is_err(), "{s} is valid");
+        }
+
+        // valid
+        for s in ["_/_", "a/b"] {
+            let cpn = Cpn::try_new(s);
+            assert!(cpn.is_ok(), "{s} isn't valid");
+            assert!(format!("{cpn:?}").contains(s));
+        }
+    }
+}
