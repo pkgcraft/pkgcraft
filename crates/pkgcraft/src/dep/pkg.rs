@@ -88,18 +88,6 @@ impl Slot {
     }
 }
 
-impl PartialEq<str> for Slot {
-    fn eq(&self, other: &str) -> bool {
-        self.name == other
-    }
-}
-
-impl PartialEq<Slot> for &str {
-    fn eq(&self, other: &Slot) -> bool {
-        other == *self
-    }
-}
-
 impl fmt::Display for Slot {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
