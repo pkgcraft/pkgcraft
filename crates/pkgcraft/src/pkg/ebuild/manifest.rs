@@ -36,7 +36,7 @@ impl HashType {
         }
     }
 
-    fn to_checksum(&self, data: &[u8]) -> Checksum {
+    fn checksum(&self, data: &[u8]) -> Checksum {
         Checksum {
             kind: *self,
             value: self.hash(data),
@@ -122,7 +122,7 @@ impl ManifestFile {
     ) -> crate::Result<Self> {
         let data = fs::read(path).unwrap();
         let name = path.file_name().unwrap();
-        let checksums = hashes.iter().map(|kind| kind.to_checksum(&data)).collect();
+        let checksums = hashes.iter().map(|kind| kind.checksum(&data)).collect();
 
         Ok(Self {
             kind,
