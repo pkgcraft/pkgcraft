@@ -153,7 +153,7 @@ impl Borrow<str> for ManifestFile {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Eq, PartialEq, Default, Clone)]
 pub struct Manifest(IndexSet<ManifestFile>);
 
 impl PkgCacheData for Manifest {
