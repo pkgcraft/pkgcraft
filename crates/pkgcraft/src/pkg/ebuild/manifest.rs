@@ -1,10 +1,12 @@
-use std::collections::{hash_map, HashMap, HashSet};
+use std::borrow::Borrow;
+use std::cmp::Ordering;
 use std::fs;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 
 use camino::Utf8Path;
+use indexmap::IndexSet;
 use itertools::Itertools;
-use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
+use strum::{Display, EnumIter, EnumString};
 
 use crate::macros::build_path;
 use crate::traits::PkgCacheData;
@@ -65,7 +67,7 @@ pub enum ManifestType {
 }
 
 /// Package manifest contained in Manifest files as defined by GLEP 44.
-#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone)]
+#[derive(Debug, Clone)]
 pub struct ManifestFile {
     kind: ManifestType,
     name: String,
@@ -122,18 +124,42 @@ impl ManifestFile {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Manifest {
-    files: HashMap<ManifestType, HashSet<ManifestFile>>,
-}
-
-impl Default for Manifest {
-    fn default() -> Self {
-        Self {
-            files: ManifestType::iter().map(|t| (t, HashSet::new())).collect(),
-        }
+impl PartialEq for ManifestFile {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }
+
+impl Eq for ManifestFile {}
+
+impl Hash for ManifestFile {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+impl Ord for ManifestFile {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.kind
+            .cmp(&other.kind)
+            .then_with(|| self.name.cmp(&other.name))
+    }
+}
+
+impl PartialOrd for ManifestFile {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Borrow<str> for ManifestFile {
+    fn borrow(&self) -> &str {
+        &self.name
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Manifest(IndexSet<ManifestFile>);
 
 impl PkgCacheData for Manifest {
     const RELPATH: &'static str = "Manifest";
@@ -164,9 +190,7 @@ impl PkgCacheData for Manifest {
                 .parse()
                 .map_err(|e| Error::InvalidValue(format!("line {}, invalid size: {e}", i + 1)))?;
             manifest
-                .files
-                .entry(kind)
-                .or_default()
+                .0
                 .insert(ManifestFile::try_new(kind, name, size, files)?);
         }
 
@@ -179,14 +203,16 @@ impl PkgCacheData for Manifest {
 }
 
 impl Manifest {
-    pub fn distfiles(&self) -> &HashSet<ManifestFile> {
-        self.files
-            .get(&ManifestType::Dist)
-            .expect("invalid ManifestFile::default()")
+    pub fn get(&self, name: &str) -> Option<&ManifestFile> {
+        self.0.get(name)
+    }
+
+    pub fn distfiles(&self) -> impl Iterator<Item = &ManifestFile> {
+        self.0.iter().filter(|x| x.kind == ManifestType::Dist)
     }
 
     pub fn is_empty(&self) -> bool {
-        self.files.values().all(|s| s.is_empty())
+        self.0.is_empty()
     }
 
     pub fn verify(
@@ -205,21 +231,18 @@ impl<'a> IntoIterator for &'a Manifest {
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter {
-            iter: self.files.values().flatten(),
-        }
+        Iter(self.0.iter())
     }
 }
 
-pub struct Iter<'a> {
-    iter: std::iter::Flatten<hash_map::Values<'a, ManifestType, HashSet<ManifestFile>>>,
-}
+/// An iterator over the entries of a [`Manifest`].
+pub struct Iter<'a>(indexmap::set::Iter<'a, ManifestFile>);
 
 impl<'a> Iterator for Iter<'a> {
     type Item = &'a ManifestFile;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.0.next()
     }
 }
 

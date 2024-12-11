@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
@@ -272,21 +271,11 @@ impl EbuildPkg {
             .get_or_init(|| self.0.repo.metadata().manifest(self.cpn()))
     }
 
-    /// Return a package's distfiles.
-    pub fn distfiles(&self) -> Vec<&ManifestFile> {
-        // pull filenames from flattened SRC_URI
-        let files: HashSet<_> = self
-            .src_uri()
+    /// Return a package's registered distfiles.
+    pub fn distfiles(&self) -> impl Iterator<Item = &ManifestFile> {
+        self.src_uri()
             .iter_flatten()
-            .map(|u| u.filename())
-            .collect();
-
-        // filter distfiles to be package version specific
-        self.manifest()
-            .distfiles()
-            .iter()
-            .filter(|d| files.contains(d.name()))
-            .collect()
+            .filter_map(move |u| self.manifest().get(u.filename()))
     }
 }
 
@@ -878,7 +867,7 @@ mod tests {
         // none
         temp.create_ebuild("nomanifest/pkg-1", &[]).unwrap();
         let pkg = repo.get_pkg("nomanifest/pkg-1").unwrap();
-        assert!(pkg.distfiles().is_empty());
+        assert!(pkg.distfiles().next().is_none());
 
         // single
         let data = indoc::indoc! {r#"
@@ -896,7 +885,7 @@ mod tests {
         temp.create_ebuild_from_str("cat1/pkg-2", data).unwrap();
         let pkg2 = repo.get_pkg("cat1/pkg-2").unwrap();
         for pkg in [pkg1, pkg2] {
-            let dist = pkg.distfiles();
+            let dist: Vec<_> = pkg.distfiles().collect();
             assert_eq!(dist.len(), 1);
             assert_eq!(dist[0].name(), "a.tar.gz");
             assert_eq!(dist[0].size(), 1);
@@ -927,13 +916,13 @@ mod tests {
         "#};
         temp.create_ebuild_from_str("cat2/pkg-2", data).unwrap();
         let pkg2 = repo.get_pkg("cat2/pkg-2").unwrap();
-        let dist = pkg1.distfiles();
+        let dist: Vec<_> = pkg1.distfiles().collect();
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "a.tar.gz");
         assert_eq!(dist[0].size(), 1);
         assert_eq!(dist[0].checksums()[0], Checksum::try_new("BLAKE2B", "a").unwrap());
         assert_eq!(dist[0].checksums()[1], Checksum::try_new("SHA512", "b").unwrap());
-        let dist = pkg2.distfiles();
+        let dist: Vec<_> = pkg2.distfiles().collect();
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "b.tar.gz");
         assert_eq!(dist[0].size(), 2);
