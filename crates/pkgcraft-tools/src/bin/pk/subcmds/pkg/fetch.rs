@@ -15,6 +15,7 @@ use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::dep::Uri;
+use pkgcraft::error::Error;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::restrict::{str::Restrict as StrRestrict, Restrict, Restriction};
 use pkgcraft::traits::{Contains, LogErrors};
@@ -97,7 +98,7 @@ async fn download(
     dir: &Utf8Path,
     pb: &ProgressBar,
     mut size: Option<u64>,
-) -> anyhow::Result<()> {
+) -> pkgcraft::Result<()> {
     let path = dir.join(uri.filename());
 
     // determine the file position to start at supporting resumed downloads
@@ -115,7 +116,7 @@ async fn download(
             return Ok(());
         } else if let Some(value) = size {
             if current_size > value {
-                return Err(anyhow::anyhow!("file larger than expected: {path}"));
+                return Err(Error::InvalidValue(format!("file larger than expected: {path}")));
             }
         }
 
@@ -130,7 +131,7 @@ async fn download(
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .map_err(|e| anyhow::anyhow!("failed to get: {uri}: {e}"))?;
+        .map_err(|e| Error::InvalidValue(format!("failed to get: {uri}: {e}")))?;
 
     // create file or open it for appending
     let mut file = match response.status() {
@@ -149,7 +150,8 @@ async fn download(
     // download chunks while tracking progress
     let mut stream = response.bytes_stream();
     while let Some(item) = stream.next().await {
-        let chunk = item.map_err(|e| anyhow::anyhow!("error while downloading file: {e}"))?;
+        let chunk =
+            item.map_err(|e| Error::InvalidValue(format!("error while downloading file: {e}")))?;
         file.write_all(&chunk)?;
         position += chunk.len() as u64;
         // TODO: handle progress differently for unsized downloads?
@@ -191,8 +193,8 @@ impl Command {
                         .filter(|u| restrict.matches(u.as_ref()))
                         .cloned()
                         .map(|u| {
-                            let size = pkg.manifest().get(u.filename()).map(|m| m.size());
-                            (u, size)
+                            let manifest = pkg.manifest().get(u.filename());
+                            (u, manifest.cloned())
                         }),
                 );
             } else {
@@ -229,27 +231,34 @@ impl Command {
         tokio().block_on(async {
             // convert URIs into download results stream
             let results = stream::iter(uris)
-                .map(|(uri, size)| {
+                .map(|(uri, manifest)| {
                     let client = &client;
                     let mb = &mb;
                     async move {
                         let pb = mb.add(progress_bar(hidden));
+                        let size = manifest.as_ref().map(|m| m.size());
                         let result = download(client, uri, &self.dir, &pb, size).await;
                         mb.remove(&pb);
-                        result
+                        (result, manifest)
                     }
                 })
                 .buffer_unordered(concurrent);
 
             // process results stream while logging errors
             results
-                .for_each(|result| async {
+                .for_each(|(mut result, manifest)| async {
+                    // verify file hashes if manifest entry exists
+                    if let Some(manifest) = manifest {
+                        result = result.and_then(|_| manifest.verify(&self.dir, &self.dir));
+                    }
+
                     if let Err(e) = result {
                         mb.suspend(|| {
                             error!("{e}");
                             fetch_failed.store(true, Ordering::Relaxed);
                         });
                     }
+
                     if let Some(pb) = global_pb.as_ref() {
                         pb.inc(1);
                     }
