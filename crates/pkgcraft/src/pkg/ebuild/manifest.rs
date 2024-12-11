@@ -10,7 +10,6 @@ use strum::{Display, EnumIter, EnumString};
 
 use crate::macros::build_path;
 use crate::traits::PkgCacheData;
-use crate::types::OrderedSet;
 use crate::utils::digest;
 use crate::Error;
 
@@ -103,12 +102,7 @@ impl ManifestFile {
         &self.checksums
     }
 
-    pub fn verify(
-        &self,
-        required_hashes: &OrderedSet<HashType>,
-        pkgdir: &Utf8Path,
-        distdir: &Utf8Path,
-    ) -> crate::Result<()> {
+    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
         let path = match self.kind {
             ManifestType::Aux => build_path!(pkgdir, "files", &self.name),
             ManifestType::Dist => distdir.join(&self.name),
@@ -117,10 +111,7 @@ impl ManifestFile {
         let data =
             fs::read(&path).map_err(|e| Error::IO(format!("failed verifying: {path}: {e}")))?;
 
-        self.checksums
-            .iter()
-            .filter(|c| required_hashes.contains(&c.kind))
-            .try_for_each(|c| c.verify(&data))
+        self.checksums.iter().try_for_each(|c| c.verify(&data))
     }
 }
 
@@ -215,14 +206,8 @@ impl Manifest {
         self.0.is_empty()
     }
 
-    pub fn verify(
-        &self,
-        required_hashes: &OrderedSet<HashType>,
-        pkgdir: &Utf8Path,
-        distdir: &Utf8Path,
-    ) -> crate::Result<()> {
-        self.into_iter()
-            .try_for_each(|f| f.verify(required_hashes, pkgdir, distdir))
+    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
+        self.into_iter().try_for_each(|f| f.verify(pkgdir, distdir))
     }
 }
 
@@ -250,24 +235,12 @@ impl<'a> Iterator for Iter<'a> {
 mod tests {
     use tempfile::tempdir;
 
-    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::assert_err_re;
 
     use super::*;
 
     #[test]
     fn distfile_verification() {
-        let mut config = crate::config::Config::default();
-        let temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
-        config.finalize().unwrap();
-
-        let manifest_hashes = &repo.metadata().config.manifest_hashes;
-        let required_hashes = &repo.metadata().config.manifest_required_hashes;
         let tmpdir = tempdir().unwrap();
         let distdir: &Utf8Path = tmpdir.path().try_into().unwrap();
 
@@ -280,27 +253,20 @@ mod tests {
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        let r = manifest.verify(required_hashes, distdir, distdir);
+        let r = manifest.verify(distdir, distdir);
         assert_err_re!(r, "No such file or directory");
 
-        // failing primary checksum
+        // primary checksum failure
         fs::write(distdir.join("a.tar.gz"), "value").unwrap();
-        let r = manifest.verify(required_hashes, distdir, distdir);
+        let r = manifest.verify(distdir, distdir);
         assert_err_re!(r, "BLAKE2B checksum failed");
 
-        // secondary checksum failure is ignored since it's not in manifest-required-hashes for the repo
+        // secondary checksum failure
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        assert!(manifest.verify(required_hashes, distdir, distdir).is_ok());
-
-        // secondary checksum failure due to including it in the required hashes param
-        let data = indoc::indoc! {r#"
-            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
-        "#};
-        let manifest = Manifest::parse(data).unwrap();
-        let r = manifest.verify(manifest_hashes, distdir, distdir);
+        let r = manifest.verify(distdir, distdir);
         assert_err_re!(r, "SHA512 checksum failed");
 
         // verified
@@ -308,6 +274,6 @@ mod tests {
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        assert!(manifest.verify(required_hashes, distdir, distdir).is_ok());
+        assert!(manifest.verify(distdir, distdir).is_ok());
     }
 }
