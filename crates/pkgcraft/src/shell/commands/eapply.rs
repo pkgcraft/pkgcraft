@@ -34,13 +34,11 @@ fn apply_patch(path: &Utf8Path, options: &[&str]) -> scallop::Result<()> {
 // Predicate used to filter compatible patch files from an iterator.
 fn is_patch(entry: &Utf8DirEntry) -> bool {
     let path = entry.path();
-    if path.is_dir() {
-        false
-    } else {
-        path.extension()
+    path.is_file()
+        && path
+            .extension()
             .map(|s| s == "diff" || s == "patch")
             .unwrap_or(false)
-    }
 }
 
 struct FindPatches<'a>(std::vec::IntoIter<&'a Utf8Path>);
@@ -48,17 +46,13 @@ struct FindPatches<'a>(std::vec::IntoIter<&'a Utf8Path>);
 /// Return all the patches for a given path.
 fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<Utf8PathBuf>)> {
     if path.is_dir() {
-        let mut dir_patches: Vec<_> = path
+        let dir_patches: Vec<_> = path
             .read_dir_utf8()?
-            .filter_map(|e| match e {
-                Ok(e) if is_patch(&e) => Some(Ok(e.into_path())),
-                Ok(_) => None,
-                Err(e) => Some(Err(Error::Base(format!("failed reading patches: {path}: {e}")))),
-            })
-            .try_collect()?;
-
-        // this sorts by utf8 not the POSIX locale specified by PMS
-        dir_patches.sort();
+            .filter_map(|e| e.ok())
+            .filter(is_patch)
+            .map(|e| e.into_path())
+            .sorted()
+            .collect();
 
         if dir_patches.is_empty() {
             Err(Error::Base(format!("no patches in directory: {path}")))
