@@ -11,10 +11,7 @@ const LONG_DOC: &str = "Output the highest matching version of a package depende
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let mut cpvs = query_cmd(args)?;
-    cpvs.sort();
-
-    if let Some(cpv) = cpvs.last() {
+    if let Some(cpv) = query_cmd(args)?.last() {
         write!(stdout(), "{cpv}")?;
         Ok(ExecStatus::Success)
     } else {
