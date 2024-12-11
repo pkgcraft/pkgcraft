@@ -37,15 +37,15 @@ impl Checksum {
 
     /// Verify the checksum matches the given data.
     fn verify(&self, data: &[u8]) -> crate::Result<()> {
-        let new = match self.kind {
+        let hash = match self.kind {
             HashType::Blake2b => digest::<blake2::Blake2b512>(data),
             HashType::Blake3 => digest::<blake3::Hasher>(data),
             HashType::Sha512 => digest::<sha2::Sha512>(data),
         };
 
-        if self.value != new {
+        if self.value != hash {
             return Err(Error::InvalidValue(format!(
-                "{} checksum failed: orig: {}, new: {new}",
+                "{} checksum failed: expected: {}, got: {hash}",
                 self.kind, self.value
             )));
         }
@@ -103,15 +103,19 @@ impl ManifestFile {
     }
 
     pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
+        let name = self.name();
         let path = match self.kind {
-            ManifestType::Aux => build_path!(pkgdir, "files", &self.name),
-            ManifestType::Dist => distdir.join(&self.name),
-            _ => pkgdir.join(&self.name),
+            ManifestType::Aux => build_path!(pkgdir, "files", name),
+            ManifestType::Dist => distdir.join(name),
+            _ => pkgdir.join(name),
         };
         let data =
-            fs::read(&path).map_err(|e| Error::IO(format!("failed verifying: {path}: {e}")))?;
+            fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {path}: {e}")))?;
 
-        self.checksums.iter().try_for_each(|c| c.verify(&data))
+        self.checksums.iter().try_for_each(|c| {
+            c.verify(&data)
+                .map_err(|e| Error::InvalidValue(format!("failed verifying: {name}: {e}")))
+        })
     }
 }
 
