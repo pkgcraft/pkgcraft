@@ -47,30 +47,30 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
 
-    // split args into options and files
-    let (mut files, mut options) = (vec![], vec![]);
+    // split args into options and paths
+    let (mut paths, mut options) = (vec![], vec![]);
     let mut args = args.iter().copied();
     for arg in &mut args {
         if arg.starts_with('-') {
-            if !files.is_empty() {
-                return Err(Error::Base("options must be specified before file arguments".into()));
+            if !paths.is_empty() {
+                return Err(Error::Base("options must be specified before paths".into()));
             } else if arg == "--" {
-                files.extend(args.map(Utf8Path::new));
+                paths.extend(args.map(Utf8Path::new));
                 break;
             } else {
                 options.push(arg);
             }
         } else {
-            files.push(Utf8Path::new(arg));
+            paths.push(Utf8Path::new(arg));
         }
     }
 
-    if files.is_empty() {
+    if paths.is_empty() {
         return Err(Error::Base("no patches specified".to_string()));
     }
 
     let mut stdout = stdout();
-    for path in files {
+    for path in paths {
         if path.is_dir() {
             let paths: Vec<_> = path
                 .read_dir_utf8()?
@@ -121,7 +121,7 @@ mod tests {
         // options after file args
         for args in [&["file.patch", "--"], &["file.patch", "-p1"]] {
             let r = eapply(args);
-            assert_err_re!(r, "^options must be specified before file arguments$");
+            assert_err_re!(r, "^options must be specified before paths$");
         }
 
         // no file args
