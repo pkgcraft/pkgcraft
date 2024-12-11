@@ -263,16 +263,6 @@ impl Command {
 
                 let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
 
-                // verify file hashes that exist when not forcibly remanifesting
-                if !self.force {
-                    if let Err(e) = manifest.verify(&pkgdir, &self.dir) {
-                        mb.suspend(|| {
-                            error!("{e}");
-                            fetch_failed.store(true, Ordering::Relaxed);
-                        });
-                    }
-                }
-
                 // update manifest
                 if let Err(e) = manifest.update(&uris, &pkgdir, &self.dir, &repo) {
                     mb.suspend(|| {
