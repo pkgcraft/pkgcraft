@@ -259,6 +259,7 @@ impl Manifest {
         self.0.is_empty()
     }
 
+    /// Update the [`Manifest`] entries relating to [`Uri`] targets.
     pub fn update(
         &self,
         uris: &[Uri],
@@ -267,6 +268,12 @@ impl Manifest {
         repo: &EbuildRepo,
     ) -> crate::Result<()> {
         // TODO: support thick manifests
+        if !repo.metadata().config.thin_manifests {
+            return Err(Error::InvalidValue(
+                "updating thick manifests isn't supported".to_string(),
+            ));
+        }
+
         let hashes = &repo.metadata().config.manifest_hashes;
         let mut files = self.0.clone();
         let new: Vec<_> = uris
