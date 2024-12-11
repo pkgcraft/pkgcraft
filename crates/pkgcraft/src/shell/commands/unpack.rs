@@ -18,6 +18,10 @@ use super::make_builtin;
 const LONG_DOC: &str = "\
 Unpacks one or more source archives, in order, into the current directory.";
 
+// TODO: Drop LazyLock usage once upstream BitOr is marked const (see
+// https://github.com/bitflags/bitflags/issues/180) requiring const trait impl support in
+// rust (see https://github.com/rust-lang/rust/issues/67792).
+//
 // unpacked file required permissions: a+r,u+w,go-w
 static FILE_MODE: LazyLock<Mode> = LazyLock::new(|| {
     Mode::S_IRUSR | Mode::S_IRGRP | Mode::S_IROTH | Mode::S_IWUSR & !Mode::S_IWGRP & !Mode::S_IWOTH
