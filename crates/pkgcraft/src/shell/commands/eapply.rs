@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::process::Command;
 
-use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
+use camino::{Utf8DirEntry, Utf8Path};
 use itertools::Itertools;
 use scallop::{Error, ExecStatus};
 
@@ -41,37 +41,6 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
             .unwrap_or(false)
 }
 
-struct FindPatches<'a>(std::vec::IntoIter<&'a Utf8Path>);
-
-/// Return all the patches for a given path.
-fn patches_from_path(path: &Utf8Path) -> scallop::Result<(Option<&Utf8Path>, Vec<Utf8PathBuf>)> {
-    if path.is_dir() {
-        let dir_patches: Vec<_> = path
-            .read_dir_utf8()?
-            .filter_map(|e| e.ok())
-            .filter(is_patch)
-            .map(|e| e.into_path())
-            .sorted()
-            .collect();
-
-        if dir_patches.is_empty() {
-            Err(Error::Base(format!("no patches in directory: {path}")))
-        } else {
-            Ok((Some(path), dir_patches))
-        }
-    } else {
-        Ok((None, vec![path.to_path_buf()]))
-    }
-}
-
-impl<'a> Iterator for FindPatches<'a> {
-    type Item = scallop::Result<(Option<&'a Utf8Path>, Vec<Utf8PathBuf>)>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(patches_from_path)
-    }
-}
-
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
@@ -101,19 +70,28 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     let mut stdout = stdout();
-    for patches in FindPatches(files.into_iter()) {
-        let (dir, paths) = patches?;
-        if let Some(path) = &dir {
-            writeln!(stdout, "Applying patches from {path}")?;
-        }
+    for path in files {
+        if path.is_dir() {
+            let patches: Vec<_> = path
+                .read_dir_utf8()?
+                .filter_map(|e| e.ok())
+                .filter(is_patch)
+                .map(|e| e.into_path())
+                .sorted()
+                .collect();
 
-        for path in paths {
-            if dir.is_some() {
-                writeln!(stdout, "  {path}...")?;
-            } else {
-                writeln!(stdout, "Applying {path}...")?;
+            if patches.is_empty() {
+                return Err(Error::Base(format!("no patches in directory: {path}")));
             }
-            apply_patch(&path, &options)?;
+
+            writeln!(stdout, "Applying patches from {path}")?;
+            for patch in patches {
+                writeln!(stdout, "  {path}...")?;
+                apply_patch(&patch, &options)?;
+            }
+        } else {
+            writeln!(stdout, "Applying {path}...")?;
+            apply_patch(path, &options)?;
         }
     }
 
