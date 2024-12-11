@@ -51,24 +51,6 @@ impl PartialEq for Number {
 
 impl Eq for Number {}
 
-impl PartialEq<u64> for Number {
-    fn eq(&self, other: &u64) -> bool {
-        &self.value == other
-    }
-}
-
-impl PartialEq<str> for Number {
-    fn eq(&self, other: &str) -> bool {
-        self.raw == other
-    }
-}
-
-impl PartialEq<&str> for Number {
-    fn eq(&self, other: &&str) -> bool {
-        self.raw == *other
-    }
-}
-
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.value.hash(state);
@@ -119,24 +101,6 @@ impl Revision {
     /// Determine if a Revision starts with another Revision using string representation.
     fn starts_with(&self, other: &Revision) -> bool {
         self.0.starts_with(&other.0)
-    }
-}
-
-impl PartialEq<u64> for Revision {
-    fn eq(&self, other: &u64) -> bool {
-        &self.0 == other
-    }
-}
-
-impl PartialEq<str> for Revision {
-    fn eq(&self, other: &str) -> bool {
-        self.0 == other
-    }
-}
-
-impl PartialEq<&str> for Revision {
-    fn eq(&self, other: &&str) -> bool {
-        self.0 == *other
     }
 }
 
@@ -680,25 +644,11 @@ mod tests {
             assert!(Revision::try_new(s).is_err());
         }
 
-        // empty
-        let rev = Revision::try_new("").unwrap();
-        assert_eq!(rev, 0);
-        assert_eq!(rev, "");
-        assert_eq!(rev, Revision::default());
-        assert_eq!(rev.to_string(), "");
-
-        // simple integer
-        let rev1 = Revision::try_new("1").unwrap();
-        assert_eq!(rev1, 1);
-        assert_eq!(rev1, "1");
-        assert_eq!(rev1.to_string(), "1");
-
-        // zero prefixes are technically allowed
-        let rev2 = Revision::try_new("01").unwrap();
-        assert_eq!(rev2, 1);
-        assert_eq!(rev2, "01");
-        assert_eq!(rev2.to_string(), "01");
-        assert_eq!(rev1, rev2);
+        // valid
+        for s in ["", "1", "01"] {
+            let rev = Revision::try_new(s).unwrap();
+            assert_eq!(rev.to_string(), s);
+        }
     }
 
     #[test]
