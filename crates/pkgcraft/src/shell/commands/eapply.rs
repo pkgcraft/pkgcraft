@@ -72,7 +72,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let mut stdout = stdout();
     for path in files {
         if path.is_dir() {
-            let patches: Vec<_> = path
+            let paths: Vec<_> = path
                 .read_dir_utf8()?
                 .filter_map(|e| e.ok())
                 .filter(is_patch)
@@ -80,14 +80,14 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
                 .sorted()
                 .collect();
 
-            if patches.is_empty() {
+            if paths.is_empty() {
                 return Err(Error::Base(format!("no patches in directory: {path}")));
             }
 
             writeln!(stdout, "Applying patches from {path}")?;
-            for patch in patches {
+            for path in paths {
                 writeln!(stdout, "  {path}...")?;
-                apply_patch(&patch, &options)?;
+                apply_patch(&path, &options)?;
             }
         } else {
             writeln!(stdout, "Applying {path}...")?;
