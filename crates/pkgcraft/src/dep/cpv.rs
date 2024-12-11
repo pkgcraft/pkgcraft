@@ -264,9 +264,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_and_parse() {
+    fn parse() {
         // invalid
-        for s in ["a/b", "a/b-1a-1", "a/b1", "a/b-1aa", "a/b-1.a", "a/b-1-r2-3-r4"] {
+        for s in ["", "a/b", "a/b-1a-1", "a/b1", "a/b-1aa", "a/b-1.a", "a/b-1-r2-3-r4"] {
             assert!(Cpv::try_new(s).is_err(), "{s} is valid");
         }
 
@@ -274,6 +274,7 @@ mod tests {
         for s in ["a/b--1", "a/b-r1-2", "a/b-r0-1-r2", "a/b-3-c-4-r5"] {
             let cpv = Cpv::try_new(s);
             assert!(cpv.is_ok(), "{s} isn't valid");
+            assert!(format!("{cpv:?}").contains(s));
         }
     }
 
