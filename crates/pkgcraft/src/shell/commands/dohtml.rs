@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::io::Write;
-use std::path::{Path, PathBuf};
 
+use camino::Utf8Path;
 use clap::Parser;
 use scallop::{Error, ExecStatus};
 use walkdir::DirEntry;
@@ -94,7 +94,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .excluded_dirs
         .iter()
         .flat_map(|s| s.split(','))
-        .map(PathBuf::from)
+        .map(Utf8Path::new)
         .collect();
     let allowed_files: HashSet<_> = opts
         .allowed_files
@@ -103,9 +103,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .collect();
 
     // determine if a file is allowed
-    let allowed_file = |path: &Path| -> bool {
-        match (path.file_name().map(|s| s.to_str()), path.extension().map(|s| s.to_str())) {
-            (Some(Some(name)), Some(Some(ext))) => {
+    let allowed_file = |path: &Utf8Path| -> bool {
+        match (path.file_name(), path.extension()) {
+            (Some(name), Some(ext)) => {
                 if allowed_files.is_empty() {
                     allowed_file_exts.contains(ext)
                 } else {
@@ -118,11 +118,14 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // determine if a walkdir entry is allowed
     let is_allowed = |entry: &DirEntry| -> bool {
-        let path = entry.path();
-        if path.is_dir() {
-            !excluded_dirs.contains(path)
+        if let Some(path) = Utf8Path::from_path(entry.path()) {
+            if path.is_dir() {
+                !excluded_dirs.contains(path)
+            } else {
+                allowed_file(path)
+            }
         } else {
-            allowed_file(path)
+            true
         }
     };
 
@@ -139,14 +142,17 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let dest = build_path!("/usr/share/doc", build.cpv().pf(), subdir, doc_prefix);
     let install = build.install().dest(dest)?;
 
-    let (dirs, files): (Vec<_>, Vec<_>) =
-        opts.targets.iter().map(Path::new).partition(|p| p.is_dir());
+    let (dirs, files): (Vec<_>, Vec<_>) = opts
+        .targets
+        .iter()
+        .map(Utf8Path::new)
+        .partition(|p| p.is_dir());
 
-    if !dirs.is_empty() {
+    if let Some(path) = dirs.first() {
         if opts.recursive {
             install.recursive(dirs, Some(is_allowed))?;
         } else {
-            return Err(Error::Base(format!("trying to install directory as file: {:?}", dirs[0])));
+            return Err(Error::Base(format!("trying to install directory as file: {path}")));
         }
     }
 
