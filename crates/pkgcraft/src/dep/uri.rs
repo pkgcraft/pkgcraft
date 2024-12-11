@@ -30,10 +30,6 @@ impl Uri {
         })
     }
 
-    pub fn uri(&self) -> &str {
-        &self.uri
-    }
-
     pub fn filename(&self) -> &str {
         &self.filename
     }

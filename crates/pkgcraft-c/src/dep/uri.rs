@@ -9,9 +9,9 @@ use crate::macros::*;
 /// # Safety
 /// The argument must be a Uri pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_uri_uri(u: *mut Uri) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_uri(u: *mut Uri) -> *mut c_char {
     let uri = try_ref_from_ptr!(u);
-    try_ptr_from_str!(uri.uri())
+    try_ptr_from_str!(uri.as_ref())
 }
 
 /// Get the filename for a Uri.
