@@ -27,10 +27,9 @@ enum Subcommand {
 
 impl Subcommand {
     fn run(self) -> anyhow::Result<ExitCode> {
-        use Subcommand::*;
         match self {
-            Checks(cmd) => cmd.run(),
-            Reports(cmd) => cmd.run(),
+            Self::Checks(cmd) => cmd.run(),
+            Self::Reports(cmd) => cmd.run(),
         }
     }
 }

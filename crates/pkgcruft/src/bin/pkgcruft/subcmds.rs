@@ -29,12 +29,11 @@ impl Subcommand {
 
 impl Subcommand {
     pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        use Subcommand::*;
         match self {
-            Diff(cmd) => cmd.run(),
-            Replay(cmd) => cmd.run(),
-            Scan(cmd) => cmd.run(config),
-            Show(cmd) => cmd.run(),
+            Self::Diff(cmd) => cmd.run(),
+            Self::Replay(cmd) => cmd.run(),
+            Self::Scan(cmd) => cmd.run(config),
+            Self::Show(cmd) => cmd.run(),
         }
     }
 }
