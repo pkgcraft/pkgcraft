@@ -28,10 +28,6 @@ use tracing::{error, warn};
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
 pub(crate) struct Command {
-    /// Target repo
-    #[arg(long)]
-    repo: Option<String>,
-
     /// Concurrent downloads
     #[arg(short, long, default_value = "3")]
     concurrent: usize,
@@ -55,6 +51,14 @@ pub(crate) struct Command {
     /// Disable progress output
     #[arg(short, long)]
     no_progress: bool,
+
+    /// Alternative file output
+    #[arg(long)]
+    output: Option<String>,
+
+    /// Target repo
+    #[arg(long)]
+    repo: Option<String>,
 
     /// Process fetch-restricted packages
     #[arg(long)]
@@ -272,16 +276,28 @@ impl Command {
         if let Some(pb) = global_pb.as_ref() {
             pb.finish_and_clear();
         }
+        let mut stdout = stdout().lock();
 
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
             for ((repo, cpn), uris) in pkgs {
-                let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
+                let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
                 let manifest = repo.metadata().manifest(&cpn);
 
-                let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
-                let mut f = File::create(pkgdir.join("Manifest"))?;
-                if let Err(e) = manifest.update(&mut f, paths, &repo) {
+                let result = if let Some(output) = self.output.as_ref() {
+                    if output == "-" {
+                        manifest.update(&mut stdout, paths, &repo)
+                    } else {
+                        let mut f = File::create(output)?;
+                        manifest.update(&mut f, paths, &repo)
+                    }
+                } else {
+                    let path = build_path!(&repo, cpn.category(), cpn.package(), "Manifest");
+                    let mut f = File::create(path)?;
+                    manifest.update(&mut f, paths, &repo)
+                };
+
+                if let Err(e) = result {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
                 }
