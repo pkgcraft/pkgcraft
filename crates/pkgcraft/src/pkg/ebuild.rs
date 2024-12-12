@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
@@ -271,11 +272,32 @@ impl EbuildPkg {
             .get_or_init(|| self.0.repo.metadata().manifest(self.cpn()))
     }
 
+    /// Generate fetchable URIs for a package's SRC_URI targets.
+    pub fn fetchables(&self) -> IterFetchable {
+        IterFetchable {
+            repo: &self.0.repo,
+            uris: self.src_uri().iter_flatten(),
+        }
+    }
+
     /// Return a package's registered distfiles.
     pub fn distfiles(&self) -> impl Iterator<Item = &ManifestFile> {
         self.src_uri()
             .iter_flatten()
             .filter_map(move |u| self.manifest().get(u.filename()))
+    }
+}
+
+pub struct IterFetchable<'a> {
+    repo: &'a EbuildRepo,
+    uris: crate::dep::IterFlatten<'a, Uri>,
+}
+
+impl<'a> Iterator for IterFetchable<'a> {
+    type Item = Cow<'a, Uri>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.uris.find_map(|uri| uri.fetchable(self.repo).ok())
     }
 }
 

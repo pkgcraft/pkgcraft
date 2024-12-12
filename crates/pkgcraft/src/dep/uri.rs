@@ -1,5 +1,7 @@
+use std::borrow::Cow;
 use std::fmt;
 
+use crate::repo::ebuild::EbuildRepo;
 use crate::Error;
 
 /// Uri object.
@@ -25,6 +27,11 @@ impl Uri {
         Ok(uri)
     }
 
+    /// Return the string slice for the [`Uri`].
+    pub fn as_str(&self) -> &str {
+        self.as_ref()
+    }
+
     /// Return the file name for the Uri.
     pub fn filename(&self) -> &str {
         self.rename.as_deref().unwrap_or_else(|| {
@@ -33,6 +40,26 @@ impl Uri {
                 .map(|(_, s)| s)
                 .unwrap_or(&self.uri)
         })
+    }
+
+    /// Generate a fetchable URI, replacing existing mirrors.
+    pub(crate) fn fetchable(&self, repo: &EbuildRepo) -> crate::Result<Cow<Self>> {
+        if let Some((name, suffix)) = self
+            .as_ref()
+            .strip_prefix("mirror://")
+            .and_then(|x| x.split_once('/'))
+        {
+            // TODO: support some type of mirror choice algorithm
+            if let Some(prefix) = repo.mirrors().get(name).and_then(|s| s.first()) {
+                let mut uri = self.clone();
+                uri.uri = format!("{prefix}/{suffix}");
+                Ok(Cow::Owned(uri))
+            } else {
+                Err(Error::InvalidValue(format!("unknown mirror: {name}: {self}")))
+            }
+        } else {
+            Ok(Cow::Borrowed(self))
+        }
     }
 }
 
