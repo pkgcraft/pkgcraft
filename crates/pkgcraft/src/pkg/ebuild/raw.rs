@@ -3,14 +3,15 @@ use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 
+use crate::bash;
 use crate::dep::{Cpv, Dep};
 use crate::eapi::{self, Eapi};
+use crate::error::{Error, PackageError};
 use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{ebuild::EbuildRepo, Repository};
 use crate::traits::{FilterLines, Intersects};
-use crate::{bash, Error};
 
 use super::metadata::Metadata;
 
@@ -109,17 +110,25 @@ impl EbuildRawPkg {
 
     /// Load metadata from the cache if valid, otherwise try to generate it and update the cache.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
-        self.0
-            .repo
-            .metadata()
-            .cache()
-            .get(self)
-            .and_then(|c| c.to_metadata(self))
+        // get and deserialize raw metadata cache entry
+        let get_metadata = || {
+            self.0
+                .repo
+                .metadata()
+                .cache()
+                .get(self)
+                .and_then(|c| c.to_metadata(self))
+        };
+
+        get_metadata()
             .or_else(|_| {
-                let pool = self.0.repo.pool();
-                pool.metadata(&self.0.repo, &self.0.cpv, true, false)?;
-                self.metadata()
+                self.0
+                    .repo
+                    .pool()
+                    .metadata(&self.0.repo, &self.0.cpv, true, false)?;
+                get_metadata()
             })
+            .map_err(|e| self.invalid_pkg_err(e))
     }
 }
 
