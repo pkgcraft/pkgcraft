@@ -94,7 +94,7 @@ fn progress_bar(hidden: bool) -> ProgressBar {
 /// Download the file related to a URI.
 async fn download(
     client: &reqwest::Client,
-    uri: Uri,
+    uri: &Uri,
     dir: &Utf8Path,
     pb: &ProgressBar,
     mut size: Option<u64>,
@@ -230,7 +230,7 @@ impl Command {
         let fetch_failed = AtomicBool::new(false);
         tokio().block_on(async {
             // convert URIs into download results stream
-            let results = stream::iter(uris)
+            let results = stream::iter(&uris)
                 .map(|(uri, manifest)| {
                     let client = &client;
                     let mb = &mb;
@@ -248,7 +248,7 @@ impl Command {
             results
                 .for_each(|(mut result, manifest)| async {
                     // verify file hashes if manifest entry exists
-                    if let Some(manifest) = manifest {
+                    if let Some(manifest) = manifest.as_ref() {
                         result = result.and_then(|_| manifest.verify(&self.dir, &self.dir));
                     }
 
