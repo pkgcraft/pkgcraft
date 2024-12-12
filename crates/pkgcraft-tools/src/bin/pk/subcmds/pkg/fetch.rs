@@ -185,7 +185,6 @@ impl Command {
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
 
-        // TODO: try pulling the file size from the pkg manifest if it exists
         let mut uris = IndexSet::new();
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
@@ -227,7 +226,8 @@ impl Command {
             mb.add(pb.clone());
         }
 
-        let fetch_failed = AtomicBool::new(false);
+        // download files asynchronously tracking failure status
+        let failed = AtomicBool::new(false);
         tokio().block_on(async {
             // convert URIs into download results stream
             let results = stream::iter(&uris)
@@ -254,7 +254,7 @@ impl Command {
 
                     if let Err(e) = result {
                         mb.suspend(|| error!("{e}"));
-                        fetch_failed.store(true, Ordering::Relaxed);
+                        failed.store(true, Ordering::Relaxed);
                     }
 
                     if let Some(pb) = global_pb.as_ref() {
@@ -264,7 +264,7 @@ impl Command {
                 .await;
         });
 
-        let status = iter.failed() | fetch_failed.load(Ordering::Relaxed);
+        let status = iter.failed() | failed.load(Ordering::Relaxed);
         Ok(ExitCode::from(status as u8))
     }
 }

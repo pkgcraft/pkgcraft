@@ -181,17 +181,16 @@ impl Command {
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
 
-        // TODO: try pulling the file size from the pkg manifest if it exists
-        let mut pkgs: IndexMap<_, Vec<_>> = IndexMap::new();
+        let mut pkgs: IndexMap<_, IndexSet<_>> = IndexMap::new();
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
-                let uris: IndexSet<_> = pkg
+                let mut uris = pkg
                     .fetchables()
                     .filter(|x| self.force || pkg.manifest().get(x.filename()).is_none())
                     .map(|x| x.into_owned())
-                    .collect();
-                if !uris.is_empty() {
-                    pkgs.entry((pkg.cpn().clone(), pkg.repo()))
+                    .peekable();
+                if uris.peek().is_some() {
+                    pkgs.entry((pkg.repo(), pkg.cpn().clone()))
                         .or_default()
                         .extend(uris);
                 }
@@ -225,57 +224,61 @@ impl Command {
             mb.add(pb.clone());
         }
 
-        let fetch_failed = AtomicBool::new(false);
+        // download files asynchronously tracking failure status
+        let failed = AtomicBool::new(false);
         tokio().block_on(async {
-            for ((cpn, repo), uris) in pkgs {
-                let manifest = repo.metadata().manifest(&cpn);
+            // assume existing files are completely downloaded
+            let targets = pkgs.iter().flat_map(|((repo, cpn), v)| {
+                v.iter()
+                    .filter(|x| !self.dir.join(x.filename()).exists())
+                    .map(move |uri| (repo, cpn, uri))
+            });
 
-                // assume existing files are completely downloaded
-                let targets = uris
-                    .iter()
-                    .filter(|x| !self.dir.join(x.filename()).exists());
+            // convert targets into download results stream
+            let results = stream::iter(targets)
+                .map(|(repo, cpn, target)| {
+                    let client = &client;
+                    let mb = &mb;
+                    async move {
+                        let pb = mb.add(progress_bar(hidden));
+                        let manifest = repo.metadata().manifest(cpn);
+                        let size = manifest.get(target.filename()).map(|m| m.size());
+                        let result = download(client, target, &self.dir, &pb, size).await;
+                        mb.remove(&pb);
+                        result
+                    }
+                })
+                .buffer_unordered(concurrent);
 
-                // convert targets into download results stream
-                let results = stream::iter(targets)
-                    .map(|target| {
-                        let client = &client;
-                        let mb = &mb;
-                        let manifest = &manifest;
-                        async move {
-                            let pb = mb.add(progress_bar(hidden));
-                            let size = manifest.get(target.filename()).map(|m| m.size());
-                            let result = download(client, target, &self.dir, &pb, size).await;
-                            mb.remove(&pb);
-                            result
-                        }
-                    })
-                    .buffer_unordered(concurrent);
+            // process results stream while logging errors
+            results
+                .for_each(|result| async {
+                    if let Err(e) = result {
+                        mb.suspend(|| error!("{e}"));
+                        failed.store(true, Ordering::Relaxed);
+                    }
 
-                // process results stream while logging errors
-                results
-                    .for_each(|result| async {
-                        if let Err(e) = result {
-                            mb.suspend(|| error!("{e}"));
-                            fetch_failed.store(true, Ordering::Relaxed);
-                        }
-
-                        if let Some(pb) = global_pb.as_ref() {
-                            pb.inc(1);
-                        }
-                    })
-                    .await;
-
-                let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
-
-                // update manifest
-                if let Err(e) = manifest.update(&uris, &pkgdir, &self.dir, &repo) {
-                    mb.suspend(|| error!("{e}"));
-                    fetch_failed.store(true, Ordering::Relaxed);
-                }
-            }
+                    if let Some(pb) = global_pb.as_ref() {
+                        pb.inc(1);
+                    }
+                })
+                .await;
         });
 
-        let status = iter.failed() | fetch_failed.load(Ordering::Relaxed);
+        // update manifests if no download failures occurred
+        if !failed.load(Ordering::Relaxed) {
+            for ((repo, cpn), uris) in pkgs {
+                let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
+                let manifest = repo.metadata().manifest(&cpn);
+
+                if let Err(e) = manifest.update(&uris, &pkgdir, &self.dir, &repo) {
+                    error!("{e}");
+                    failed.store(true, Ordering::Relaxed);
+                }
+            }
+        }
+
+        let status = iter.failed() | failed.load(Ordering::Relaxed);
         Ok(ExitCode::from(status as u8))
     }
 }
