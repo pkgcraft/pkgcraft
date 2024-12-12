@@ -186,8 +186,8 @@ impl Command {
             if self.restrict || !pkg.restrict().contains("fetch") {
                 let mut uris = pkg
                     .fetchables()
-                    .filter(|x| self.force || pkg.manifest().get(x.filename()).is_none())
-                    .map(|x| x.into_owned())
+                    .filter(|uri| self.force || pkg.manifest().get(uri.filename()).is_none())
+                    .map(|uri| uri.into_owned())
                     .peekable();
                 if uris.peek().is_some() {
                     pkgs.entry((pkg.repo(), pkg.cpn().clone()))
@@ -228,22 +228,25 @@ impl Command {
         let failed = AtomicBool::new(false);
         tokio().block_on(async {
             // assume existing files are completely downloaded
-            let targets = pkgs.iter().flat_map(|((repo, cpn), v)| {
-                v.iter()
-                    .filter(|x| !self.dir.join(x.filename()).exists())
-                    .map(move |uri| (repo, cpn, uri))
+            let targets = pkgs.iter().flat_map(|((repo, cpn), uris)| {
+                uris.iter()
+                    .filter(|uri| !self.dir.join(uri.filename()).exists())
+                    .map(move |uri| {
+                        let pkg_manifest = repo.metadata().manifest(cpn);
+                        let manifest = pkg_manifest.get(uri.filename());
+                        (uri, manifest.cloned())
+                    })
             });
 
             // convert targets into download results stream
             let results = stream::iter(targets)
-                .map(|(repo, cpn, target)| {
+                .map(|(uri, manifest)| {
                     let client = &client;
                     let mb = &mb;
                     async move {
                         let pb = mb.add(progress_bar(hidden));
-                        let manifest = repo.metadata().manifest(cpn);
-                        let size = manifest.get(target.filename()).map(|m| m.size());
-                        let result = download(client, target, &self.dir, &pb, size).await;
+                        let size = manifest.as_ref().map(|m| m.size());
+                        let result = download(client, uri, &self.dir, &pb, size).await;
                         mb.remove(&pb);
                         result
                     }

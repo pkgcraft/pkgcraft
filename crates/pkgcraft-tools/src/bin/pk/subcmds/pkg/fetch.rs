@@ -190,10 +190,10 @@ impl Command {
             if self.restrict || !pkg.restrict().contains("fetch") {
                 uris.extend(
                     pkg.fetchables()
-                        .filter(|u| restrict.matches(u.as_str()))
-                        .map(|u| {
-                            let manifest = pkg.manifest().get(u.filename());
-                            (u.into_owned(), manifest.cloned())
+                        .filter(|uri| restrict.matches(uri.as_str()))
+                        .map(|uri| {
+                            let manifest = pkg.manifest().get(uri.filename());
+                            (uri.into_owned(), manifest.cloned())
                         }),
                 );
             } else {
