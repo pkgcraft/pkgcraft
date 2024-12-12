@@ -898,10 +898,9 @@ pub enum Restrict {
 
 impl Restriction<&'static Eapi> for Restrict {
     fn matches(&self, eapi: &'static Eapi) -> bool {
-        use Restrict::*;
         match self {
-            Id(r) => r.matches(&eapi.id),
-            Has(feature) => eapi.has(*feature),
+            Self::Id(r) => r.matches(&eapi.id),
+            Self::Has(feature) => eapi.has(*feature),
         }
     }
 }

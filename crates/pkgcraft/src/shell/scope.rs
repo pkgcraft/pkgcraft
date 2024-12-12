@@ -73,29 +73,36 @@ impl Scopes {
     }
 }
 
-impl IntoIterator for &Scopes {
-    type Item = Scope;
-    type IntoIter = Box<dyn Iterator<Item = Scope>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        use Scopes::*;
-        match self {
-            Eclass => Box::new([Scope::Eclass(None)].into_iter()),
-            Global => Box::new([Scope::Global].into_iter()),
-            Phases => Box::new(PhaseKind::iter().map(Scope::Phase)),
-            Src => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("src_"))),
-            Pkg => Box::new(Phases.iter().filter(|k| k.as_ref().starts_with("pkg_"))),
-            All => Box::new([Global, Eclass, Phases].iter().flatten()),
-            Phase(p) => Box::new([Scope::Phase(*p)].into_iter()),
-        }
-    }
-}
-
 impl IntoIterator for Scopes {
     type Item = Scope;
     type IntoIter = Box<dyn Iterator<Item = Scope>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        (&self).into_iter()
+        match self {
+            Self::Eclass => Box::new([Scope::Eclass(None)].into_iter()),
+            Self::Global => Box::new([Scope::Global].into_iter()),
+            Self::Phases => Box::new(PhaseKind::iter().map(Scope::Phase)),
+            Self::Src => Box::new(
+                Self::Phases
+                    .iter()
+                    .filter(|k| k.as_ref().starts_with("src_")),
+            ),
+            Self::Pkg => Box::new(
+                Self::Phases
+                    .iter()
+                    .filter(|k| k.as_ref().starts_with("pkg_")),
+            ),
+            Self::All => Box::new([Self::Global, Self::Eclass, Self::Phases].iter().flatten()),
+            Self::Phase(p) => Box::new([Scope::Phase(p)].into_iter()),
+        }
+    }
+}
+
+impl IntoIterator for &Scopes {
+    type Item = Scope;
+    type IntoIter = Box<dyn Iterator<Item = Scope>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (*self).into_iter()
     }
 }

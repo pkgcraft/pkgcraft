@@ -46,22 +46,20 @@ impl fmt::Display for CpvOrDep {
 
 impl Intersects for CpvOrDep {
     fn intersects(&self, other: &Self) -> bool {
-        use CpvOrDep::*;
         match (self, other) {
-            (Cpv(obj1), Cpv(obj2)) => obj1.intersects(obj2),
-            (Cpv(obj1), Dep(obj2)) => obj1.intersects(obj2),
-            (Dep(obj1), Cpv(obj2)) => obj1.intersects(obj2),
-            (Dep(obj1), Dep(obj2)) => obj1.intersects(obj2),
+            (Self::Cpv(obj1), Self::Cpv(obj2)) => obj1.intersects(obj2),
+            (Self::Cpv(obj1), Self::Dep(obj2)) => obj1.intersects(obj2),
+            (Self::Dep(obj1), Self::Cpv(obj2)) => obj1.intersects(obj2),
+            (Self::Dep(obj1), Self::Dep(obj2)) => obj1.intersects(obj2),
         }
     }
 }
 
 impl Intersects<Cpv> for CpvOrDep {
     fn intersects(&self, other: &Cpv) -> bool {
-        use CpvOrDep::*;
         match (self, other) {
-            (Cpv(obj1), obj2) => obj1.intersects(obj2),
-            (Dep(obj1), obj2) => obj1.intersects(obj2),
+            (Self::Cpv(obj1), obj2) => obj1.intersects(obj2),
+            (Self::Dep(obj1), obj2) => obj1.intersects(obj2),
         }
     }
 }
@@ -74,10 +72,9 @@ impl Intersects<CpvOrDep> for Cpv {
 
 impl Intersects<Dep> for CpvOrDep {
     fn intersects(&self, other: &Dep) -> bool {
-        use CpvOrDep::*;
         match (self, other) {
-            (Cpv(obj1), obj2) => obj1.intersects(obj2),
-            (Dep(obj1), obj2) => obj1.intersects(obj2),
+            (Self::Cpv(obj1), obj2) => obj1.intersects(obj2),
+            (Self::Dep(obj1), obj2) => obj1.intersects(obj2),
         }
     }
 }
@@ -90,10 +87,9 @@ impl Intersects<CpvOrDep> for Dep {
 
 impl Intersects<Cow<'_, Dep>> for CpvOrDep {
     fn intersects(&self, other: &Cow<'_, Dep>) -> bool {
-        use CpvOrDep::*;
         match (self, other) {
-            (Cpv(obj1), obj2) => obj1.intersects(obj2),
-            (Dep(obj1), obj2) => obj1.intersects(obj2),
+            (Self::Cpv(obj1), obj2) => obj1.intersects(obj2),
+            (Self::Dep(obj1), obj2) => obj1.intersects(obj2),
         }
     }
 }

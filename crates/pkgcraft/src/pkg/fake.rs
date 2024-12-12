@@ -51,19 +51,17 @@ impl RepoPackage for Pkg {
 
 impl Restriction<&Pkg> for BaseRestrict {
     fn matches(&self, pkg: &Pkg) -> bool {
-        use BaseRestrict::*;
         crate::restrict::restrict_match! {self, pkg,
-            Dep(r) => r.matches(pkg),
-            Pkg(r) => r.matches(pkg),
+            Self::Dep(r) => r.matches(pkg),
+            Self::Pkg(r) => r.matches(pkg),
         }
     }
 }
 
 impl Restriction<&Pkg> for DepRestrict {
     fn matches(&self, pkg: &Pkg) -> bool {
-        use DepRestrict::*;
         match self {
-            Repo(Some(r)) => r.matches(pkg.repo().id()),
+            Self::Repo(Some(r)) => r.matches(pkg.repo().id()),
             r => r.matches(pkg.cpv()),
         }
     }
@@ -71,10 +69,9 @@ impl Restriction<&Pkg> for DepRestrict {
 
 impl Restriction<&Pkg> for pkg::Restrict {
     fn matches(&self, pkg: &Pkg) -> bool {
-        use pkg::Restrict::*;
         match self {
-            Eapi(r) => r.matches(pkg.eapi()),
-            Repo(r) => r.matches(pkg.repo().id()),
+            Self::Eapi(r) => r.matches(pkg.eapi()),
+            Self::Repo(r) => r.matches(pkg.repo().id()),
             _ => false,
         }
     }

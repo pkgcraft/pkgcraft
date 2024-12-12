@@ -164,8 +164,7 @@ impl BuildVariable {
 
     /// Variable value does not vary between phases.
     pub(crate) fn is_static(&self) -> bool {
-        use Variable::*;
-        !matches!(self.var, EBUILD_PHASE | EBUILD_PHASE_FUNC)
+        !matches!(self.var, Variable::EBUILD_PHASE | Variable::EBUILD_PHASE_FUNC)
     }
 
     pub(crate) fn bind(&self, value: &str) -> scallop::Result<ExecStatus> {

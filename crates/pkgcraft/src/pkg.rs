@@ -310,11 +310,10 @@ impl From<Restrict> for BaseRestrict {
 
 impl Restriction<&Pkg> for Restrict {
     fn matches(&self, pkg: &Pkg) -> bool {
-        use Restrict::*;
         match self {
-            Eapi(r) => r.matches(pkg.eapi()),
-            Repo(r) => r.matches(pkg.repo().id()),
-            Ebuild(r) => match pkg {
+            Self::Eapi(r) => r.matches(pkg.eapi()),
+            Self::Repo(r) => r.matches(pkg.repo().id()),
+            Self::Ebuild(r) => match pkg {
                 Pkg::Ebuild(p) => r.matches(p),
                 _ => false,
             },
@@ -324,19 +323,17 @@ impl Restriction<&Pkg> for Restrict {
 
 impl Restriction<&Pkg> for BaseRestrict {
     fn matches(&self, pkg: &Pkg) -> bool {
-        use BaseRestrict::*;
         crate::restrict::restrict_match! {self, pkg,
-            Dep(r) => r.matches(pkg),
-            Pkg(r) => r.matches(pkg),
+            Self::Dep(r) => r.matches(pkg),
+            Self::Pkg(r) => r.matches(pkg),
         }
     }
 }
 
 impl Restriction<&Pkg> for DepRestrict {
     fn matches(&self, pkg: &Pkg) -> bool {
-        use DepRestrict::*;
         match self {
-            Repo(Some(r)) => r.matches(pkg.repo().id()),
+            Self::Repo(Some(r)) => r.matches(pkg.repo().id()),
             r => r.matches(pkg.cpv()),
         }
     }

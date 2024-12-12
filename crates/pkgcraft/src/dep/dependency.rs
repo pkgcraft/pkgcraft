@@ -89,41 +89,38 @@ impl<T: Ordered> PartialEq<Dependency<T>> for Dependency<&T> {
 impl<T: Ordered> Dependency<T> {
     /// Return the `Dependency` for a given index if it exists.
     pub fn get_index(&self, index: usize) -> Option<&Dependency<T>> {
-        use Dependency::*;
         match self {
-            Enabled(_) | Disabled(_) => None,
-            AllOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            AnyOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            ExactlyOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            AtMostOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            Conditional(_, vals) => vals.get_index(index).map(AsRef::as_ref),
+            Self::Enabled(_) | Self::Disabled(_) => None,
+            Self::AllOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            Self::AnyOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            Self::ExactlyOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            Self::AtMostOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
+            Self::Conditional(_, vals) => vals.get_index(index).map(AsRef::as_ref),
         }
     }
 
     /// Return true if a Dependency is empty, otherwise false.
     pub fn is_empty(&self) -> bool {
-        use Dependency::*;
         match self {
-            Enabled(_) | Disabled(_) => false,
-            AllOf(vals) => vals.is_empty(),
-            AnyOf(vals) => vals.is_empty(),
-            ExactlyOneOf(vals) => vals.is_empty(),
-            AtMostOneOf(vals) => vals.is_empty(),
-            Conditional(_, vals) => vals.is_empty(),
+            Self::Enabled(_) | Self::Disabled(_) => false,
+            Self::AllOf(vals) => vals.is_empty(),
+            Self::AnyOf(vals) => vals.is_empty(),
+            Self::ExactlyOneOf(vals) => vals.is_empty(),
+            Self::AtMostOneOf(vals) => vals.is_empty(),
+            Self::Conditional(_, vals) => vals.is_empty(),
         }
     }
 
     /// Return the number of `Dependency` objects a `Dependency` contains.
     pub fn len(&self) -> usize {
-        use Dependency::*;
         match self {
-            Enabled(_) => 1,
-            Disabled(_) => 1,
-            AllOf(vals) => vals.len(),
-            AnyOf(vals) => vals.len(),
-            ExactlyOneOf(vals) => vals.len(),
-            AtMostOneOf(vals) => vals.len(),
-            Conditional(_, vals) => vals.len(),
+            Self::Enabled(_) => 1,
+            Self::Disabled(_) => 1,
+            Self::AllOf(vals) => vals.len(),
+            Self::AnyOf(vals) => vals.len(),
+            Self::ExactlyOneOf(vals) => vals.len(),
+            Self::AtMostOneOf(vals) => vals.len(),
+            Self::Conditional(_, vals) => vals.len(),
         }
     }
 
@@ -316,14 +313,13 @@ impl<T: Ordered> IntoIterator for Dependency<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        use Dependency::*;
         match self {
-            Enabled(_) | Disabled(_) => [].into_iter().collect(),
-            AllOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            AnyOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            ExactlyOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            AtMostOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            Conditional(_, vals) => vals.into_iter().map(|x| *x).collect(),
+            Self::Enabled(_) | Self::Disabled(_) => [].into_iter().collect(),
+            Self::AllOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            Self::AnyOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            Self::ExactlyOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            Self::AtMostOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
+            Self::Conditional(_, vals) => vals.into_iter().map(|x| *x).collect(),
         }
     }
 }
@@ -384,15 +380,14 @@ impl<T: Ordered> Conditionals for Dependency<T> {
 
 impl<T: Display + Ordered> Display for Dependency<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use Dependency::*;
         match self {
-            Enabled(val) => write!(f, "{val}"),
-            Disabled(val) => write!(f, "!{val}"),
-            AllOf(vals) => write!(f, "( {} )", p!(vals)),
-            AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
-            ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
-            AtMostOneOf(vals) => write!(f, "?? ( {} )", p!(vals)),
-            Conditional(u, vals) => write!(f, "{u} ( {} )", p!(vals)),
+            Self::Enabled(val) => write!(f, "{val}"),
+            Self::Disabled(val) => write!(f, "!{val}"),
+            Self::AllOf(vals) => write!(f, "( {} )", p!(vals)),
+            Self::AnyOf(vals) => write!(f, "|| ( {} )", p!(vals)),
+            Self::ExactlyOneOf(vals) => write!(f, "^^ ( {} )", p!(vals)),
+            Self::AtMostOneOf(vals) => write!(f, "?? ( {} )", p!(vals)),
+            Self::Conditional(u, vals) => write!(f, "{u} ( {} )", p!(vals)),
         }
     }
 }
