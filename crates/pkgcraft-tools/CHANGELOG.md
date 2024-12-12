@@ -1,3 +1,10 @@
+# 0.0.20 (unreleased)
+
+## Added
+- `pk pkg fetch`: add initial support to download package distfiles in parallel
+- `pk pkg manifest`: add initial support to download and manifest packages in parallel
+- `pk pkg metadata`: add -r/--remove option to remove target entries
+
 # 0.0.19 (2024-11-28)
 
 ## Fixed
