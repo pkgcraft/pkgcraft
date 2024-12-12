@@ -6,7 +6,7 @@ use camino::Utf8PathBuf;
 use crate::bash;
 use crate::dep::{Cpv, Dep};
 use crate::eapi::{self, Eapi};
-use crate::error::{Error, PackageError};
+use crate::error::Error;
 use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
@@ -120,15 +120,13 @@ impl EbuildRawPkg {
                 .and_then(|c| c.to_metadata(self))
         };
 
-        get_metadata()
-            .or_else(|_| {
-                self.0
-                    .repo
-                    .pool()
-                    .metadata(&self.0.repo, &self.0.cpv, true, false)?;
-                get_metadata()
-            })
-            .map_err(|e| self.invalid_pkg_err(e))
+        get_metadata().or_else(|_| {
+            self.0
+                .repo
+                .pool()
+                .metadata(&self.0.repo, &self.0.cpv, true, false)?;
+            get_metadata()
+        })
     }
 }
 
