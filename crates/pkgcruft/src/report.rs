@@ -607,6 +607,7 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 mod tests {
     use itertools::Itertools;
     use pkgcraft::test::assert_ordered_eq;
+    use pretty_assertions::assert_eq;
     use strum::IntoEnumIterator;
 
     use super::*;
@@ -617,7 +618,7 @@ mod tests {
         let kinds: Vec<_> = ReportKind::iter().collect();
         let ordered: Vec<_> = ReportKind::iter().map(|x| x.to_string()).sorted().collect();
         let ordered: Vec<_> = ordered.iter().map(|s| s.parse().unwrap()).collect();
-        assert_eq!(&kinds, &ordered);
+        assert_eq!(&kinds, &ordered, "unordered ReportKind variants");
     }
 
     #[rustfmt::skip]
