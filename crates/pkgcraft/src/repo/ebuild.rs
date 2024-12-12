@@ -994,9 +994,12 @@ impl IterCpn {
             ([Equal(cat)], [Equal(pn)]) => {
                 let cat = mem::take(cat);
                 let pn = mem::take(pn);
-                let cpn = Cpn { category: cat, package: pn };
-                if repo.contains(&cpn) {
-                    Box::new(iter::once(cpn))
+                if let Ok(cpn) = Cpn::try_from((cat, pn)) {
+                    if repo.contains(&cpn) {
+                        Box::new(iter::once(cpn))
+                    } else {
+                        Box::new(iter::empty())
+                    }
                 } else {
                     Box::new(iter::empty())
                 }
