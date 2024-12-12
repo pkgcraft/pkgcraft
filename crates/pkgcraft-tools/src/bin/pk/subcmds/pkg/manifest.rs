@@ -276,7 +276,8 @@ impl Command {
                 let manifest = repo.metadata().manifest(&cpn);
 
                 let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
-                if let Err(e) = manifest.update(paths, &pkgdir, &repo) {
+                let mut f = File::create(pkgdir.join("Manifest"))?;
+                if let Err(e) = manifest.update(&mut f, paths, &repo) {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
                 }

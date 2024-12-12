@@ -1,9 +1,8 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::fmt;
-use std::fs::{self, File};
 use std::hash::{Hash, Hasher};
 use std::io::Write;
+use std::{fmt, fs};
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -263,10 +262,11 @@ impl Manifest {
     }
 
     /// Update the [`Manifest`] entries relating to an iterator of paths.
-    pub fn update<I, P>(&self, paths: I, pkgdir: &Utf8Path, repo: &EbuildRepo) -> crate::Result<()>
+    pub fn update<I, P, W>(&self, output: &mut W, paths: I, repo: &EbuildRepo) -> crate::Result<()>
     where
         I: IntoParallelIterator<Item = P>,
         P: AsRef<Utf8Path>,
+        W: Write,
     {
         // TODO: support thick manifests
         if !repo.metadata().config.thin_manifests {
@@ -285,9 +285,8 @@ impl Manifest {
             files.insert(result?);
         }
         files.par_sort();
-        let mut f = File::create(pkgdir.join("Manifest"))?;
         for file in files {
-            writeln!(&mut f, "{file}")?;
+            writeln!(output, "{file}")?;
         }
         Ok(())
     }
