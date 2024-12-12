@@ -146,6 +146,8 @@ async fn download(
         pb.set_length(value);
     }
     pb.set_position(position);
+    // reset progress bar state so resumed download speed is accurate
+    pb.reset();
 
     // download chunks while tracking progress
     let mut stream = response.bytes_stream();
