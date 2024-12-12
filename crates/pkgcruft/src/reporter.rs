@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::io::Write;
 
 use colored::{Color, Colorize};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use strfmt::strfmt;
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
-use crate::report::{Report, ReportScope};
+use crate::report::{Report, ReportKind, ReportScope};
 use crate::Error;
 
 #[derive(AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, Clone)]
@@ -18,6 +19,7 @@ pub enum Reporter {
     Json(JsonReporter),
     Null,
     Simple(SimpleReporter),
+    Stats(StatsReporter),
 }
 
 impl Default for Reporter {
@@ -36,6 +38,7 @@ impl Reporter {
             Self::Json(r) => r.report(report, output),
             Self::Null => Ok(()),
             Self::Simple(r) => r.report(report, output),
+            Self::Stats(r) => r.report(report, output),
         }
     }
 
@@ -43,6 +46,7 @@ impl Reporter {
     pub fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
         match self {
             Self::Count(r) => r.finish(output),
+            Self::Stats(r) => r.finish(output),
             _ => Ok(()),
         }
     }
@@ -65,6 +69,31 @@ impl CountReporter {
 
     fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
         writeln!(output, "{}", self.0)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct StatsReporter(IndexMap<ReportKind, u64>);
+
+impl From<StatsReporter> for Reporter {
+    fn from(value: StatsReporter) -> Self {
+        Self::Stats(value)
+    }
+}
+
+impl StatsReporter {
+    fn report<W: Write>(&mut self, report: &Report, _output: &mut W) -> crate::Result<()> {
+        *self.0.entry(*report.kind()).or_default() += 1;
+        Ok(())
+    }
+
+    fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
+        self.0.sort_keys();
+        for (kind, count) in &self.0 {
+            write!(output, "{}", kind.as_ref().color(kind.level()))?;
+            writeln!(output, ": {count}")?;
+        }
         Ok(())
     }
 }
