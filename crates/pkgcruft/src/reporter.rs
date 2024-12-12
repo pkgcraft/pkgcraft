@@ -12,6 +12,7 @@ use crate::Error;
 #[derive(AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Reporter {
+    Count(CountReporter),
     Fancy(FancyReporter),
     Format(FormatReporter),
     Json(JsonReporter),
@@ -29,12 +30,42 @@ impl Reporter {
     /// Run a report through a reporter.
     pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         match self {
+            Self::Count(r) => r.report(report, output),
             Self::Fancy(r) => r.report(report, output),
             Self::Format(r) => r.report(report, output),
             Self::Json(r) => r.report(report, output),
             Self::Null => Ok(()),
             Self::Simple(r) => r.report(report, output),
         }
+    }
+
+    /// Perform any relevant reporter finalization.
+    pub fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
+        match self {
+            Self::Count(r) => r.finish(output),
+            _ => Ok(()),
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CountReporter(u64);
+
+impl From<CountReporter> for Reporter {
+    fn from(value: CountReporter) -> Self {
+        Self::Count(value)
+    }
+}
+
+impl CountReporter {
+    fn report<W: Write>(&mut self, _report: &Report, _output: &mut W) -> crate::Result<()> {
+        self.0 += 1;
+        Ok(())
+    }
+
+    fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
+        writeln!(output, "{}", self.0)?;
+        Ok(())
     }
 }
 
@@ -205,8 +236,15 @@ mod tests {
         for report in reports {
             reporter.report(&report, &mut output).unwrap();
         }
+        reporter.finish(&mut output).unwrap();
 
         String::from_utf8(output).unwrap()
+    }
+
+    #[test]
+    fn count() {
+        let output = report(CountReporter::default());
+        assert_eq!("4", output.trim());
     }
 
     #[test]

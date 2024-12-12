@@ -118,6 +118,7 @@ impl Command {
             reporter.report(&report, &mut stdout)?;
         }
 
+        reporter.finish(&mut stdout)?;
         Ok(ExitCode::SUCCESS)
     }
 }

@@ -105,6 +105,7 @@ impl Command {
             }
         }
 
+        reporter.finish(&mut stdout)?;
         Ok(ExitCode::from(failed as u8))
     }
 }
