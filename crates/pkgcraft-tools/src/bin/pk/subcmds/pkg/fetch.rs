@@ -253,10 +253,8 @@ impl Command {
                     }
 
                     if let Err(e) = result {
-                        mb.suspend(|| {
-                            error!("{e}");
-                            fetch_failed.store(true, Ordering::Relaxed);
-                        });
+                        mb.suspend(|| error!("{e}"));
+                        fetch_failed.store(true, Ordering::Relaxed);
                     }
 
                     if let Some(pb) = global_pb.as_ref() {

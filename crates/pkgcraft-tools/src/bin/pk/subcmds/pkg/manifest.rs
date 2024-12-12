@@ -254,10 +254,8 @@ impl Command {
                 results
                     .for_each(|result| async {
                         if let Err(e) = result {
-                            mb.suspend(|| {
-                                error!("{e}");
-                                fetch_failed.store(true, Ordering::Relaxed);
-                            });
+                            mb.suspend(|| error!("{e}"));
+                            fetch_failed.store(true, Ordering::Relaxed);
                         }
                     })
                     .await;
@@ -266,14 +264,8 @@ impl Command {
 
                 // update manifest
                 if let Err(e) = manifest.update(&uris, &pkgdir, &self.dir, &repo) {
-                    mb.suspend(|| {
-                        error!("{e}");
-                        fetch_failed.store(true, Ordering::Relaxed);
-                    });
-                }
-
-                if let Some(pb) = global_pb.as_ref() {
-                    pb.inc(1);
+                    mb.suspend(|| error!("{e}"));
+                    fetch_failed.store(true, Ordering::Relaxed);
                 }
             }
         });
