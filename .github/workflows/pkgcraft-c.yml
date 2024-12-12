@@ -2,7 +2,8 @@ name: pkgcraft-c
 
 on:
   push:
-    branches: ['**']
+    # TODO: temporarily disable until bindings are updated
+    branches: ['**', "!main"]
     paths:
       - "crates/scallop/**"
       - "crates/pkgcraft/**"
