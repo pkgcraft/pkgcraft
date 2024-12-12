@@ -1110,9 +1110,12 @@ impl IterCpv {
             ([Category(Equal(cat))], [Package(Equal(pn))], [Version(Some(ver))])
                 if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
             {
-                let cpv = Cpv::try_from((cat, pn, ver.without_op())).expect("invalid Cpv");
-                if repo.contains(&cpv) {
-                    Box::new(iter::once(cpv))
+                if let Ok(cpv) = Cpv::try_from((cat, pn, ver.without_op())) {
+                    if repo.contains(&cpv) {
+                        Box::new(iter::once(cpv))
+                    } else {
+                        Box::new(iter::empty())
+                    }
                 } else {
                     Box::new(iter::empty())
                 }
