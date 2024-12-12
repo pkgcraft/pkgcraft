@@ -1,6 +1,12 @@
+use std::{env, fs};
+
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
+use tempfile::tempdir;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[test]
 fn invalid_cwd_target() {
@@ -44,4 +50,86 @@ fn invalid_pkgs() {
         .stderr(predicate::str::is_empty().not())
         .failure()
         .code(1);
+}
+
+#[tokio::test]
+async fn nonexistent() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with nonexistent URI"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let path = temp.path();
+
+    cmd("pk pkg fetch")
+        .arg(path)
+        .assert()
+        .stdout("")
+        .stderr(contains(format!("failed to get: {uri}/file")))
+        .failure()
+        .code(1);
+}
+
+#[tokio::test]
+async fn fetch() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file1"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test2"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file1"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file2"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
+    let path = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    // version scope
+    cmd("pk pkg fetch")
+        .arg(path.join("cat/pkg/pkg-1.ebuild"))
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file1").unwrap();
+    assert_eq!(&data, "test1");
+
+    // package scope
+    cmd("pk pkg fetch")
+        .arg(path.join("cat/pkg"))
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file2").unwrap();
+    assert_eq!(&data, "test2");
 }
