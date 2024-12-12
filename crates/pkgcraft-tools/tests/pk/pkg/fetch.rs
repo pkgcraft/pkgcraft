@@ -93,7 +93,6 @@ async fn fetch() {
         .await;
 
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
-
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
@@ -132,4 +131,53 @@ async fn fetch() {
         .success();
     let data = fs::read_to_string("file2").unwrap();
     assert_eq!(&data, "test2");
+}
+
+#[tokio::test]
+async fn custom_mirror() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+    let name = "mocked";
+
+    Mock::given(method("GET"))
+        .and(path("/file1"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test1"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with custom mirror"
+        SRC_URI="mirror://{name}/file1"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let path = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    // unfetchable URIs are currently ignored
+    cmd("pk pkg fetch")
+        .arg(path)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    assert!(fs::read_to_string("file1").is_err());
+
+    // register mocked mirror
+    fs::create_dir_all(path.join("profiles")).unwrap();
+    fs::write(path.join("profiles/thirdpartymirrors"), format!("{name} {uri}")).unwrap();
+
+    // mirror resolves to fetchable URI
+    cmd("pk pkg fetch")
+        .arg(path)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file1").unwrap();
+    assert_eq!(&data, "test1");
 }

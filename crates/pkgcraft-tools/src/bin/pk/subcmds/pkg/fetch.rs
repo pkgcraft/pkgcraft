@@ -189,6 +189,7 @@ impl Command {
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
                 uris.extend(
+                    // TODO: flag or log unfetchable URIs
                     pkg.fetchables()
                         .filter(|uri| restrict.matches(uri.as_str()))
                         .map(|uri| {

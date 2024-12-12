@@ -189,6 +189,7 @@ impl Command {
         let mut pkgs: IndexMap<_, IndexSet<_>> = IndexMap::new();
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
+                // TODO: flag or log unfetchable URIs
                 let mut uris = pkg
                     .fetchables()
                     .filter(|uri| self.force || pkg.manifest().get(uri.filename()).is_none())
