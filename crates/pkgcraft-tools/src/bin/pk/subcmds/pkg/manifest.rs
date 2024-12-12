@@ -21,6 +21,7 @@ use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::{Contains, LogErrors};
 use pkgcraft::utils::bounded_jobs;
+use rayon::prelude::*;
 use reqwest::StatusCode;
 use tracing::{error, warn};
 
@@ -274,7 +275,8 @@ impl Command {
                 let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
                 let manifest = repo.metadata().manifest(&cpn);
 
-                if let Err(e) = manifest.update(&uris, &pkgdir, &self.dir, &repo) {
+                let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
+                if let Err(e) = manifest.update(paths, &pkgdir, &repo) {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
                 }

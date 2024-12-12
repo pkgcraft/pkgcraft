@@ -11,7 +11,6 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use strum::{Display, EnumIter, EnumString};
 
-use crate::dep::Uri;
 use crate::macros::build_path;
 use crate::repo::ebuild::EbuildRepo;
 use crate::traits::PkgCacheData;
@@ -115,11 +114,12 @@ impl ManifestFile {
         })
     }
 
-    fn from_path(
+    fn from_path<P: AsRef<Utf8Path>>(
         kind: ManifestType,
-        path: &Utf8Path,
+        path: P,
         hashes: &OrderedSet<HashType>,
     ) -> crate::Result<Self> {
+        let path = path.as_ref();
         let data = fs::read(path)
             .map_err(|e| Error::InvalidValue(format!("failed reading file: {path}: {e}")))?;
         let name = path
@@ -262,16 +262,11 @@ impl Manifest {
         self.0.is_empty()
     }
 
-    /// Update the [`Manifest`] entries relating to [`Uri`] targets.
-    pub fn update<'a, I>(
-        &self,
-        uris: I,
-        pkgdir: &Utf8Path,
-        distdir: &Utf8Path,
-        repo: &EbuildRepo,
-    ) -> crate::Result<()>
+    /// Update the [`Manifest`] entries relating to an iterator of paths.
+    pub fn update<I, P>(&self, paths: I, pkgdir: &Utf8Path, repo: &EbuildRepo) -> crate::Result<()>
     where
-        I: IntoParallelIterator<Item = &'a Uri>,
+        I: IntoParallelIterator<Item = P>,
+        P: AsRef<Utf8Path>,
     {
         // TODO: support thick manifests
         if !repo.metadata().config.thin_manifests {
@@ -282,12 +277,9 @@ impl Manifest {
 
         let hashes = &repo.metadata().config.manifest_hashes;
         let mut files = self.0.clone();
-        let new: Vec<_> = uris
+        let new: Vec<_> = paths
             .into_par_iter()
-            .map(|uri| {
-                let path = distdir.join(uri.filename());
-                ManifestFile::from_path(ManifestType::Dist, &path, hashes)
-            })
+            .map(|path| ManifestFile::from_path(ManifestType::Dist, path, hashes))
             .collect();
         for result in new {
             files.insert(result?);
