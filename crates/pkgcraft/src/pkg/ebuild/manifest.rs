@@ -120,8 +120,11 @@ impl ManifestFile {
         path: &Utf8Path,
         hashes: &OrderedSet<HashType>,
     ) -> crate::Result<Self> {
-        let data = fs::read(path).unwrap();
-        let name = path.file_name().unwrap();
+        let data = fs::read(path)
+            .map_err(|e| Error::InvalidValue(format!("failed reading file: {path}: {e}")))?;
+        let name = path
+            .file_name()
+            .ok_or_else(|| Error::InvalidValue(format!("invalid file: {path}")))?;
         let checksums = hashes.iter().map(|kind| kind.checksum(&data)).collect();
 
         Ok(Self {
