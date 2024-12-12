@@ -263,13 +263,16 @@ impl Manifest {
     }
 
     /// Update the [`Manifest`] entries relating to [`Uri`] targets.
-    pub fn update(
+    pub fn update<'a, I>(
         &self,
-        uris: &[Uri],
+        uris: I,
         pkgdir: &Utf8Path,
         distdir: &Utf8Path,
         repo: &EbuildRepo,
-    ) -> crate::Result<()> {
+    ) -> crate::Result<()>
+    where
+        I: IntoParallelIterator<Item = &'a Uri>,
+    {
         // TODO: support thick manifests
         if !repo.metadata().config.thin_manifests {
             return Err(Error::InvalidValue(
