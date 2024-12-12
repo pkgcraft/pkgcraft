@@ -178,6 +178,9 @@ pub enum ReportKind {
     /// Package only has unstable keywords.
     UnstableOnly,
 
+    /// Ebuild has an unsupported URI variant.
+    UriUnsupported,
+
     /// Local USE flag missing description.
     UseLocalDescMissing,
 
@@ -285,6 +288,7 @@ impl ReportKind {
             Self::RestrictInvalid => Critical,
             Self::RestrictMissing => Warning,
             Self::RubyUpdate => Info,
+            Self::UriUnsupported => Error,
             Self::UnstableOnly => Info,
             Self::UseLocalDescMissing => Error,
             Self::UseLocalGlobal => Warning,

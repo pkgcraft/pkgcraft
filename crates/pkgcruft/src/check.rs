@@ -40,6 +40,7 @@ mod repo_layout;
 mod restrict;
 mod restrict_test_missing;
 mod ruby_update;
+mod src_uri;
 mod unstable_only;
 mod use_local;
 mod variable_order;
@@ -83,6 +84,7 @@ pub enum CheckKind {
     Restrict,
     RestrictTestMissing,
     RubyUpdate,
+    SrcUri,
     UnstableOnly,
     UseLocal,
     VariableOrder,
@@ -91,33 +93,33 @@ pub enum CheckKind {
 
 impl From<CheckKind> for Check {
     fn from(value: CheckKind) -> Self {
-        use CheckKind::*;
         match value {
-            Builtins => builtins::CHECK,
-            Dependency => dependency::CHECK,
-            DependencySlotMissing => dependency_slot_missing::CHECK,
-            Duplicates => duplicates::CHECK,
-            EapiStale => eapi_stale::CHECK,
-            EapiStatus => eapi_status::CHECK,
-            Filesdir => filesdir::CHECK,
-            EbuildName => ebuild_name::CHECK,
-            Header => header::CHECK,
-            Keywords => keywords::CHECK,
-            KeywordsDropped => keywords_dropped::CHECK,
-            License => license::CHECK,
-            Live => live::CHECK,
-            Overlay => overlay::CHECK,
-            Metadata => metadata::CHECK,
-            Properties => properties::CHECK,
-            PythonUpdate => python_update::CHECK,
-            RepoLayout => repo_layout::CHECK,
-            Restrict => restrict::CHECK,
-            RestrictTestMissing => restrict_test_missing::CHECK,
-            RubyUpdate => ruby_update::CHECK,
-            UnstableOnly => unstable_only::CHECK,
-            UseLocal => use_local::CHECK,
-            VariableOrder => variable_order::CHECK,
-            Whitespace => whitespace::CHECK,
+            CheckKind::Builtins => builtins::CHECK,
+            CheckKind::Dependency => dependency::CHECK,
+            CheckKind::DependencySlotMissing => dependency_slot_missing::CHECK,
+            CheckKind::Duplicates => duplicates::CHECK,
+            CheckKind::EapiStale => eapi_stale::CHECK,
+            CheckKind::EapiStatus => eapi_status::CHECK,
+            CheckKind::Filesdir => filesdir::CHECK,
+            CheckKind::EbuildName => ebuild_name::CHECK,
+            CheckKind::Header => header::CHECK,
+            CheckKind::Keywords => keywords::CHECK,
+            CheckKind::KeywordsDropped => keywords_dropped::CHECK,
+            CheckKind::License => license::CHECK,
+            CheckKind::Live => live::CHECK,
+            CheckKind::Overlay => overlay::CHECK,
+            CheckKind::Metadata => metadata::CHECK,
+            CheckKind::Properties => properties::CHECK,
+            CheckKind::PythonUpdate => python_update::CHECK,
+            CheckKind::RepoLayout => repo_layout::CHECK,
+            CheckKind::Restrict => restrict::CHECK,
+            CheckKind::RestrictTestMissing => restrict_test_missing::CHECK,
+            CheckKind::RubyUpdate => ruby_update::CHECK,
+            CheckKind::SrcUri => src_uri::CHECK,
+            CheckKind::UnstableOnly => unstable_only::CHECK,
+            CheckKind::UseLocal => use_local::CHECK,
+            CheckKind::VariableOrder => variable_order::CHECK,
+            CheckKind::Whitespace => whitespace::CHECK,
         }
     }
 }
@@ -276,6 +278,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::Restrict => Box::new(restrict::create(repo)),
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
+            CheckKind::SrcUri => Box::new(src_uri::create()),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
