@@ -269,7 +269,11 @@ impl Command {
                 .await;
         });
 
-        // update manifests if no download failures occurred
+        if let Some(pb) = global_pb.as_ref() {
+            pb.finish_and_clear();
+        }
+
+        // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
             for ((repo, cpn), uris) in pkgs {
                 let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
