@@ -13,11 +13,11 @@ fn invalid_cwd_target() {
 
 #[test]
 fn nonexistent_path_target() {
-    let path = "path/to/nonexistent/repo";
-    cmd(format!("pk pkg manifest {path}"))
+    let repo = "path/to/nonexistent/repo";
+    cmd(format!("pk pkg manifest {repo}"))
         .assert()
         .stdout("")
-        .stderr(contains(format!("invalid path target: {path}: No such file or directory")))
+        .stderr(contains(format!("invalid path target: {repo}: No such file or directory")))
         .failure();
 }
 

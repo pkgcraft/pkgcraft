@@ -19,11 +19,11 @@ fn invalid_cwd_target() {
 
 #[test]
 fn nonexistent_path_target() {
-    let path = "path/to/nonexistent/repo";
-    cmd(format!("pk pkg fetch {path}"))
+    let repo = "path/to/nonexistent/repo";
+    cmd(format!("pk pkg fetch {repo}"))
         .assert()
         .stdout("")
-        .stderr(contains(format!("invalid path target: {path}: No such file or directory")))
+        .stderr(contains(format!("invalid path target: {repo}: No such file or directory")))
         .failure();
 }
 
@@ -65,10 +65,10 @@ async fn nonexistent() {
         SLOT=0
     "#};
     temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let path = temp.path();
+    let repo = temp.path();
 
     cmd("pk pkg fetch")
-        .arg(path)
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr(contains(format!("failed to get: {uri}/file")))
@@ -107,14 +107,14 @@ async fn fetch() {
         SLOT=0
     "#};
     temp.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
-    let path = temp.path();
+    let repo = temp.path();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     // version scope
     cmd("pk pkg fetch")
-        .arg(path.join("cat/pkg/pkg-1.ebuild"))
+        .arg(repo.join("cat/pkg/pkg-1.ebuild"))
         .assert()
         .stdout("")
         .stderr("")
@@ -124,7 +124,7 @@ async fn fetch() {
 
     // package scope
     cmd("pk pkg fetch")
-        .arg(path.join("cat/pkg"))
+        .arg(repo.join("cat/pkg"))
         .assert()
         .stdout("")
         .stderr("")
@@ -153,14 +153,14 @@ async fn custom_mirror() {
         SLOT=0
     "#};
     temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let path = temp.path();
+    let repo = temp.path();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     // unfetchable URIs are currently ignored
     cmd("pk pkg fetch")
-        .arg(path)
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -168,12 +168,12 @@ async fn custom_mirror() {
     assert!(fs::read_to_string("file1").is_err());
 
     // register mocked mirror
-    fs::create_dir_all(path.join("profiles")).unwrap();
-    fs::write(path.join("profiles/thirdpartymirrors"), format!("{name} {uri}")).unwrap();
+    fs::create_dir_all(repo.join("profiles")).unwrap();
+    fs::write(repo.join("profiles/thirdpartymirrors"), format!("{name} {uri}")).unwrap();
 
     // mirror resolves to fetchable URI
     cmd("pk pkg fetch")
-        .arg(path)
+        .arg(repo)
         .assert()
         .stdout("")
         .stderr("")
