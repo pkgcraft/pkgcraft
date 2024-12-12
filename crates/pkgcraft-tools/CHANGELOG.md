@@ -4,6 +4,7 @@
 - `pk pkg fetch`: add initial support to download package distfiles in parallel
 - `pk pkg manifest`: add initial support to download and manifest packages in parallel
 - `pk pkg metadata`: add -r/--remove option to remove target entries
+- Include generated completion for various shells in release tarballs at shell/*.
 
 ## Changed
 - Bumped MSRV to 1.82.
