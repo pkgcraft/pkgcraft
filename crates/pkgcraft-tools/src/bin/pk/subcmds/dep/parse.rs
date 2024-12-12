@@ -52,28 +52,27 @@ impl EnumVariable<'_> for Key {
     type Object = Dep;
 
     fn value(&self, obj: &Self::Object) -> String {
-        use Key::*;
         match self {
-            BLOCKER => obj.blocker().map(|x| x.to_string()).unwrap_or_default(),
-            CATEGORY => obj.category().to_string(),
-            P => obj.cpv().map(|x| x.p()).unwrap_or_default(),
-            PF => obj.cpv().map(|x| x.pf()).unwrap_or_default(),
-            PN => obj.package().to_string(),
-            PR => obj.cpv().map(|x| x.pr()).unwrap_or_default(),
-            PV => obj.cpv().map(|x| x.pv()).unwrap_or_default(),
-            PVR => obj.cpv().map(|x| x.pvr()).unwrap_or_default(),
-            CPN => obj.cpn().to_string(),
-            CPV => obj.cpv().map(|x| x.to_string()).unwrap_or_default(),
-            OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
-            SLOT => obj.slot().unwrap_or_default().to_string(),
-            SUBSLOT => obj.subslot().unwrap_or_default().to_string(),
-            SLOT_OP => obj.slot_op().map(|x| x.to_string()).unwrap_or_default(),
-            REPO => obj.repo().unwrap_or_default().to_string(),
-            USE => obj
+            Self::BLOCKER => obj.blocker().map(|x| x.to_string()).unwrap_or_default(),
+            Self::CATEGORY => obj.category().to_string(),
+            Self::P => obj.cpv().map(|x| x.p()).unwrap_or_default(),
+            Self::PF => obj.cpv().map(|x| x.pf()).unwrap_or_default(),
+            Self::PN => obj.package().to_string(),
+            Self::PR => obj.cpv().map(|x| x.pr()).unwrap_or_default(),
+            Self::PV => obj.cpv().map(|x| x.pv()).unwrap_or_default(),
+            Self::PVR => obj.cpv().map(|x| x.pvr()).unwrap_or_default(),
+            Self::CPN => obj.cpn().to_string(),
+            Self::CPV => obj.cpv().map(|x| x.to_string()).unwrap_or_default(),
+            Self::OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
+            Self::SLOT => obj.slot().unwrap_or_default().to_string(),
+            Self::SUBSLOT => obj.subslot().unwrap_or_default().to_string(),
+            Self::SLOT_OP => obj.slot_op().map(|x| x.to_string()).unwrap_or_default(),
+            Self::REPO => obj.repo().unwrap_or_default().to_string(),
+            Self::USE => obj
                 .use_deps()
                 .map(|x| x.iter().join(","))
                 .unwrap_or_default(),
-            DEP => obj.to_string(),
+            Self::DEP => obj.to_string(),
         }
     }
 }

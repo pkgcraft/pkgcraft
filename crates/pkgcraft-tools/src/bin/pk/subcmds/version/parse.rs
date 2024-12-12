@@ -30,11 +30,10 @@ impl EnumVariable<'_> for Key {
     type Object = Version;
 
     fn value(&self, obj: &Self::Object) -> String {
-        use Key::*;
         match self {
-            OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
-            VER => obj.without_op(),
-            REV => obj
+            Self::OP => obj.op().map(|x| x.to_string()).unwrap_or_default(),
+            Self::VER => obj.without_op(),
+            Self::REV => obj
                 .revision()
                 .map(|r| r.as_str())
                 .unwrap_or_default()

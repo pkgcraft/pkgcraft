@@ -39,17 +39,16 @@ impl EnumVariable<'_> for Key {
     type Object = Cpv;
 
     fn value(&self, obj: &Self::Object) -> String {
-        use Key::*;
         match self {
-            CATEGORY => obj.category().to_string(),
-            P => obj.p(),
-            PF => obj.pf(),
-            PN => obj.package().to_string(),
-            PR => obj.pr(),
-            PV => obj.pv(),
-            PVR => obj.pvr(),
-            CPN => obj.cpn().to_string(),
-            CPV => obj.to_string(),
+            Self::CATEGORY => obj.category().to_string(),
+            Self::P => obj.p(),
+            Self::PF => obj.pf(),
+            Self::PN => obj.package().to_string(),
+            Self::PR => obj.pr(),
+            Self::PV => obj.pv(),
+            Self::PVR => obj.pvr(),
+            Self::CPN => obj.cpn().to_string(),
+            Self::CPV => obj.to_string(),
         }
     }
 }
