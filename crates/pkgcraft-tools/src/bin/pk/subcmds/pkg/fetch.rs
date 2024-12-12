@@ -188,13 +188,11 @@ impl Command {
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
                 uris.extend(
-                    pkg.src_uri()
-                        .iter_flatten()
-                        .filter(|u| restrict.matches(u.as_ref()))
-                        .cloned()
+                    pkg.fetchables()
+                        .filter(|u| restrict.matches(u.as_str()))
                         .map(|u| {
                             let manifest = pkg.manifest().get(u.filename());
-                            (u, manifest.cloned())
+                            (u.into_owned(), manifest.cloned())
                         }),
                 );
             } else {

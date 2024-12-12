@@ -184,10 +184,9 @@ impl Command {
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
                 let uris: IndexSet<_> = pkg
-                    .src_uri()
-                    .iter_flatten()
-                    .filter(|u| self.force || pkg.manifest().get(u.filename()).is_none())
-                    .cloned()
+                    .fetchables()
+                    .filter(|x| self.force || pkg.manifest().get(x.filename()).is_none())
+                    .map(|x| x.into_owned())
                     .collect();
                 if !uris.is_empty() {
                     pkgs.entry((pkg.cpn().clone(), pkg.repo()))
@@ -229,20 +228,20 @@ impl Command {
                 let manifest = repo.metadata().manifest(&cpn);
 
                 // assume existing files are completely downloaded
-                let uris_to_download = uris
+                let targets = uris
                     .iter()
-                    .filter(|uri| !self.dir.join(uri.filename()).exists());
+                    .filter(|x| !self.dir.join(x.filename()).exists());
 
                 // convert targets into download results stream
-                let results = stream::iter(uris_to_download)
-                    .map(|uri| {
+                let results = stream::iter(targets)
+                    .map(|target| {
                         let client = &client;
                         let mb = &mb;
                         let manifest = &manifest;
                         async move {
                             let pb = mb.add(progress_bar(hidden));
-                            let size = manifest.get(uri.filename()).map(|m| m.size());
-                            let result = download(client, uri, &self.dir, &pb, size).await;
+                            let size = manifest.get(target.filename()).map(|m| m.size());
+                            let result = download(client, target, &self.dir, &pb, size).await;
                             mb.remove(&pb);
                             result
                         }
