@@ -208,9 +208,10 @@ impl Command {
             .build()
             .map_err(|e| anyhow::anyhow!("failed creating client: {e}"))?;
 
-        // show a global progress bar when processing more than one package target
-        let global_pb = if pkgs.len() > 1 {
-            Some(ProgressBar::new(pkgs.len() as u64))
+        // show a global progress bar when downloading more files than concurrency limit
+        let downloads = pkgs.values().flatten().count();
+        let global_pb = if downloads > concurrent {
+            Some(ProgressBar::new(downloads as u64))
         } else {
             None
         };
@@ -256,6 +257,10 @@ impl Command {
                         if let Err(e) = result {
                             mb.suspend(|| error!("{e}"));
                             fetch_failed.store(true, Ordering::Relaxed);
+                        }
+
+                        if let Some(pb) = global_pb.as_ref() {
+                            pb.inc(1);
                         }
                     })
                     .await;
