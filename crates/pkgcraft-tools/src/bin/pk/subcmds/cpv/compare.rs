@@ -30,7 +30,7 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let mut failed = false;
+        let mut success = true;
 
         for s in self.values.iter().flatten() {
             let (lhs, op, rhs) = s
@@ -41,17 +41,17 @@ impl Command {
             let lhs = Cpv::try_new(lhs)?;
             let rhs = Cpv::try_new(rhs)?;
 
-            failed |= match op {
-                "<" => lhs >= rhs,
-                "<=" => lhs > rhs,
-                "==" => lhs != rhs,
-                "!=" => lhs == rhs,
-                ">=" => lhs < rhs,
-                ">" => lhs <= rhs,
-                _ => bail!("invalid operator: {op}"),
+            success &= match op {
+                "<" => lhs < rhs,
+                "<=" => lhs <= rhs,
+                "==" => lhs == rhs,
+                "!=" => lhs != rhs,
+                ">=" => lhs >= rhs,
+                ">" => lhs > rhs,
+                _ => bail!("invalid operator: {s}"),
             };
         }
 
-        Ok(ExitCode::from(failed as u8))
+        Ok(ExitCode::from(!success as u8))
     }
 }

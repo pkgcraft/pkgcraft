@@ -37,10 +37,10 @@ fn args() {
     // invalid operator
     for op in ["~=", "=", "+="] {
         cmd("pk dep compare")
-            .arg(format!("cat/pkg {op} cat/pkg"))
+            .arg(format!("a/b {op} b/c"))
             .assert()
             .stdout("")
-            .stderr(lines_contain([format!("invalid operator: {op}")]))
+            .stderr(lines_contain([format!("invalid operator: a/b {op} b/c")]))
             .failure()
             .code(2);
     }

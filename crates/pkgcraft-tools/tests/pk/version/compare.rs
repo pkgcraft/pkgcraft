@@ -30,7 +30,7 @@ fn args() {
             .arg(format!("1 {op} 2"))
             .assert()
             .stdout("")
-            .stderr(lines_contain([format!("invalid operator: {op}")]))
+            .stderr(lines_contain([format!("invalid operator: 1 {op} 2")]))
             .failure()
             .code(2);
     }

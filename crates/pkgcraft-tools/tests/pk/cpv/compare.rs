@@ -21,20 +21,20 @@ fn stdin() {
 fn args() {
     // invalid expression
     cmd("pk cpv compare")
-        .arg("cat/pkg-1<cat/pkg-1")
+        .arg("cat/pkg-1<cat/pkg-2")
         .assert()
         .stdout("")
-        .stderr(lines_contain(["invalid comparison format: cat/pkg-1<cat/pkg-1"]))
+        .stderr(lines_contain(["invalid comparison format: cat/pkg-1<cat/pkg-2"]))
         .failure()
         .code(2);
 
     // invalid operator
     for op in ["~=", "=", "+="] {
         cmd("pk cpv compare")
-            .arg(format!("cat/pkg-1 {op} cat/pkg-1"))
+            .arg(format!("cat/pkg-1 {op} cat/pkg-2"))
             .assert()
             .stdout("")
-            .stderr(lines_contain([format!("invalid operator: {op}")]))
+            .stderr(lines_contain([format!("invalid operator: cat/pkg-1 {op} cat/pkg-2")]))
             .failure()
             .code(2);
     }
