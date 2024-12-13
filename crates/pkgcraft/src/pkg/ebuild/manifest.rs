@@ -65,7 +65,7 @@ impl Checksum {
     pub(super) fn try_new(kind: &str, value: &str) -> crate::Result<Self> {
         let kind: HashType = kind
             .parse()
-            .map_err(|_| Error::InvalidValue(format!("unknown checksum kind: {kind}")))?;
+            .map_err(|_| Error::InvalidValue(format!("unsupported hash: {kind}")))?;
         let value = kind.value(value)?;
         Ok(Checksum { kind, value })
     }

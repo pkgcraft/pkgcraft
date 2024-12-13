@@ -94,7 +94,7 @@ async fn timeout() {
 }
 
 #[tokio::test]
-async fn current_dir_package_scope() {
+async fn current_dir() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
@@ -213,4 +213,70 @@ async fn stdout() {
         .stdout(expected)
         .stderr("")
         .success();
+}
+
+#[tokio::test]
+async fn invalid_manifest() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let expected = indoc::indoc! {"
+        DIST file 4 BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff
+    "};
+
+    // invalid hash data
+    let path = repo.join("cat/pkg/Manifest");
+    fs::write(&path, "DIST file 4 BLAKE2B invalid\n").unwrap();
+    cmd("pk pkg manifest")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid BLAKE2B hash: invalid"))
+        .success();
+    let data = fs::read_to_string(&path).unwrap();
+    assert_eq!(&data, expected);
+
+    // unsupported hash type
+    let path = repo.join("cat/pkg/Manifest");
+    fs::write(
+        &path,
+        "DIST file 4 SHA256 84a7775fe0a90c0f649eb18b10779b84626ad8c58dea4a8f24cca83690dd47d4\n",
+    )
+    .unwrap();
+    cmd("pk pkg manifest")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("unsupported hash: SHA256"))
+        .success();
+    let data = fs::read_to_string(&path).unwrap();
+    assert_eq!(&data, expected);
+
+    // missing hash data
+    let path = repo.join("cat/pkg/Manifest");
+    fs::write(&path, "DIST file 4 BLAKE2B\n").unwrap();
+    cmd("pk pkg manifest")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid number of manifest tokens"))
+        .success();
+    let data = fs::read_to_string(&path).unwrap();
+    assert_eq!(&data, expected);
 }
