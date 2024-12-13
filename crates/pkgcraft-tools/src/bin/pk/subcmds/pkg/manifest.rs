@@ -317,8 +317,7 @@ impl Command {
                     Ok(value) => value,
                     Err(e) => {
                         error!("{e}");
-                        failed.store(true, Ordering::Relaxed);
-                        continue;
+                        Default::default()
                     }
                 };
 
