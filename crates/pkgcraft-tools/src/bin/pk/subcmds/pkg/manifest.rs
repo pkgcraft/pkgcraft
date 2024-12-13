@@ -215,12 +215,24 @@ impl Command {
 
         let mut pkgs: IndexMap<_, IndexSet<_>> = IndexMap::new();
         for pkg in &mut iter {
+            // determine if a file has an outdated or nonexistent manifest entry
+            let outdated_manifest = |name: &str| -> bool {
+                if let Some(entry) = pkg.manifest().get(name) {
+                    // verify entry hashes match repo settings
+                    entry
+                        .hashes()
+                        .keys()
+                        .ne(&pkg.repo().metadata().config.manifest_hashes)
+                } else {
+                    true
+                }
+            };
+
             if self.restrict || !pkg.restrict().contains("fetch") {
                 // TODO: flag or log unfetchable URIs
                 let mut uris = pkg
                     .fetchables()
-                    // TODO: force remanifest when manifest hashes don't match repo settings?
-                    .filter(|uri| self.force || pkg.manifest().get(uri.filename()).is_none())
+                    .filter(|uri| self.force || outdated_manifest(uri.filename()))
                     .map(|uri| uri.into_owned())
                     .peekable();
                 if uris.peek().is_some() {

@@ -145,7 +145,7 @@ async fn current_dir() {
         DIST file2 5 BLAKE2B e1b1bfe59054380ac6eb014388b2db3a03d054770ededd9ee148c8b29aa272bbd079344bb40a92d0a754cd925f4beb48c9fd66a0e90b0d341b6fe3bbb4893246 SHA512 6d201beeefb589b08ef0672dac82353d0cbd9ad99e1642c83a1601f3d647bcca003257b5e8f31bdc1d73fbec84fb085c79d6e2677b7ff927e823a54e789140d9
     "};
     assert_eq!(&data, expected);
-    let prev_modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    let mut prev_modified = fs::metadata("Manifest").unwrap().modified().unwrap();
 
     // re-run doesn't change file
     cmd("pk pkg manifest")
@@ -153,15 +153,8 @@ async fn current_dir() {
         .stdout("")
         .stderr("")
         .success();
-    let modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    let mut modified = fs::metadata("Manifest").unwrap().modified().unwrap();
     assert_eq!(modified, prev_modified);
-    let prev_modified = modified;
-
-    // altering manifest-hashes setting changes the content
-    let mut config = repo.metadata().config.clone();
-    config.manifest_hashes = [HashType::Blake3].into_iter().collect();
-    config.manifest_required_hashes = [HashType::Blake3].into_iter().collect();
-    config.write().unwrap();
 
     // -f/--force option cause updates
     for opt in ["-f", "--force"] {
@@ -171,15 +164,32 @@ async fn current_dir() {
             .stdout("")
             .stderr("")
             .success();
-        let modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+        modified = fs::metadata("Manifest").unwrap().modified().unwrap();
         assert_ne!(modified, prev_modified);
+        prev_modified = modified;
         let data = fs::read_to_string("Manifest").unwrap();
-        let expected = indoc::indoc! {"
-            DIST file1 5 BLAKE3 3599edef28afa67b9bec983d57416d9a2cc33a166527c3f6ce2aabef96f66c52
-            DIST file2 5 BLAKE3 74704b4c3477ac155c2ca3ebbeb8f10db2badac161e331d006af5820f0acca7a
-        "};
         assert_eq!(&data, expected);
     }
+
+    // altering repo manifest-hashes setting changes the content
+    let mut config = repo.metadata().config.clone();
+    config.manifest_hashes = [HashType::Blake3].into_iter().collect();
+    config.manifest_required_hashes = [HashType::Blake3].into_iter().collect();
+    config.write().unwrap();
+
+    cmd("pk pkg manifest")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    assert_ne!(modified, prev_modified);
+    let data = fs::read_to_string("Manifest").unwrap();
+    let expected = indoc::indoc! {"
+        DIST file1 5 BLAKE3 3599edef28afa67b9bec983d57416d9a2cc33a166527c3f6ce2aabef96f66c52
+        DIST file2 5 BLAKE3 74704b4c3477ac155c2ca3ebbeb8f10db2badac161e331d006af5820f0acca7a
+    "};
+    assert_eq!(&data, expected);
 }
 
 #[tokio::test]
