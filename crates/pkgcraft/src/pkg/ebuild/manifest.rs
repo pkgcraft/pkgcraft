@@ -1,7 +1,6 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use std::io::Write;
 use std::{fmt, fs};
 
 use camino::Utf8Path;
@@ -262,11 +261,10 @@ impl Manifest {
     }
 
     /// Update the [`Manifest`] entries relating to an iterator of paths.
-    pub fn update<I, P, W>(&self, output: &mut W, paths: I, repo: &EbuildRepo) -> crate::Result<()>
+    pub fn update<I, P>(&mut self, paths: I, repo: &EbuildRepo) -> crate::Result<()>
     where
         I: IntoParallelIterator<Item = P>,
         P: AsRef<Utf8Path>,
-        W: Write,
     {
         // TODO: support thick manifests
         if !repo.metadata().config.thin_manifests {
@@ -276,18 +274,14 @@ impl Manifest {
         }
 
         let hashes = &repo.metadata().config.manifest_hashes;
-        let mut files = self.0.clone();
         let new: Vec<_> = paths
             .into_par_iter()
             .map(|path| ManifestFile::from_path(ManifestType::Dist, path, hashes))
             .collect();
         for result in new {
-            files.replace(result?);
+            self.0.replace(result?);
         }
-        files.par_sort();
-        for file in files {
-            writeln!(output, "{file}")?;
-        }
+        self.0.par_sort();
         Ok(())
     }
 

@@ -2,6 +2,7 @@ use std::fs::{self, File};
 use std::io::{stdout, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -278,20 +279,21 @@ impl Command {
         if !failed.load(Ordering::Relaxed) {
             for ((repo, cpn), uris) in pkgs {
                 let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
-                let manifest = repo.metadata().manifest(&cpn);
+                let mut manifest = Arc::unwrap_or_clone(repo.metadata().manifest(&cpn));
 
-                let result = if self.stdout {
-                    manifest.update(&mut stdout, paths, &repo)
-                } else {
-                    let path = build_path!(&repo, cpn.category(), cpn.package(), "Manifest");
-                    let mut f = File::create(path)?;
-                    manifest.update(&mut f, paths, &repo)
-                };
-
-                if let Err(e) = result {
+                // update manifest entries
+                if let Err(e) = manifest.update(paths, &repo) {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
                 }
+
+                // write manifest to stdout or its file
+                if self.stdout {
+                    write!(&mut stdout, "{manifest}")?;
+                } else {
+                    let path = build_path!(&repo, cpn.category(), cpn.package(), "Manifest");
+                    fs::write(path, format!("{manifest}"))?;
+                };
             }
         }
 
