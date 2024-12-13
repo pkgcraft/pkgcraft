@@ -205,6 +205,7 @@ impl Command {
             .hickory_dns(true)
             .read_timeout(Duration::from_secs_f64(self.timeout))
             .connect_timeout(Duration::from_secs_f64(self.timeout))
+            .referer(false)
             .build()
             .map_err(|e| anyhow::anyhow!("failed creating client: {e}"))?;
 
