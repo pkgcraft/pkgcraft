@@ -146,8 +146,10 @@ impl Config {
 
     /// The config file contains no settings or is nonexistent.
     pub fn is_empty(&self) -> bool {
-        let mut config = Self::default();
-        config.path = self.path.clone();
+        let config = Self {
+            path: self.path.clone(),
+            ..Default::default()
+        };
         self == &config
     }
 
