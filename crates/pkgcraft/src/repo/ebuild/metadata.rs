@@ -1,9 +1,10 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
+use std::fs::{self, File};
 use std::hash::{Hash, Hasher};
+use std::io::{self, Write};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::{Arc, OnceLock};
-use std::{fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
@@ -31,6 +32,7 @@ use super::cache::{CacheFormat, MetadataCache};
 use super::Eclass;
 
 /// Wrapper for ini format config files.
+#[derive(Debug)]
 struct Ini(ini::Ini);
 
 impl Default for Ini {
@@ -64,6 +66,9 @@ impl Ini {
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 #[non_exhaustive]
 pub struct Config {
+    /// Path for the serialized config.
+    path: Utf8PathBuf,
+
     /// The ordered set of metadata cache types.
     pub cache_formats: OrderedSet<CacheFormat>,
 
@@ -125,6 +130,7 @@ impl Config {
         let ini = Ini::load(&path)?;
 
         Ok(Self {
+            path,
             cache_formats: parse_iter!(ini, "cache-formats")?,
             eapis_banned: parse_iter!(ini, "eapis-banned")?,
             eapis_deprecated: parse_iter!(ini, "eapis-deprecated")?,
@@ -140,7 +146,52 @@ impl Config {
 
     /// The config file contains no settings or is nonexistent.
     pub fn is_empty(&self) -> bool {
-        self == &Self::default()
+        let mut config = Self::default();
+        config.path = self.path.clone();
+        self == &config
+    }
+
+    /// Write the config back to its related path.
+    pub fn write(&self) -> crate::Result<()> {
+        let mut f = File::create(&self.path).unwrap();
+        if !self.cache_formats.is_empty() {
+            let values = self.cache_formats.iter().join(" ");
+            writeln!(&mut f, "cache-formats: {values}")?;
+        }
+        if !self.eapis_banned.is_empty() {
+            let values = self.eapis_banned.iter().join(" ");
+            writeln!(&mut f, "eapis-banned: {values}")?;
+        }
+        if !self.eapis_deprecated.is_empty() {
+            let values = self.eapis_deprecated.iter().join(" ");
+            writeln!(&mut f, "eapis-deprecated: {values}")?;
+        }
+        if !self.eapis_testing.is_empty() {
+            let values = self.eapis_testing.iter().join(" ");
+            writeln!(&mut f, "eapis-testing: {values}")?;
+        }
+        if !self.manifest_hashes.is_empty() {
+            let values = self.manifest_hashes.iter().join(" ");
+            writeln!(&mut f, "manifest-hashes: {values}")?;
+        }
+        if !self.manifest_required_hashes.is_empty() {
+            let values = self.manifest_required_hashes.iter().join(" ");
+            writeln!(&mut f, "manifest-required-hashes: {values}")?;
+        }
+        if !self.masters.is_empty() {
+            let values = self.masters.iter().join(" ");
+            writeln!(&mut f, "masters: {values}")?;
+        }
+        if !self.properties_allowed.is_empty() {
+            let values = self.properties_allowed.iter().join(" ");
+            writeln!(&mut f, "properties-allowed: {values}")?;
+        }
+        if !self.restrict_allowed.is_empty() {
+            let values = self.restrict_allowed.iter().join(" ");
+            writeln!(&mut f, "restrict-allowed: {values}")?;
+        }
+        writeln!(&mut f, "thin-manifests: {}", self.thin_manifests)?;
+        Ok(())
     }
 }
 
