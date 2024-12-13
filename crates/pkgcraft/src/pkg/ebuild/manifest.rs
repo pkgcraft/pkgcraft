@@ -282,7 +282,7 @@ impl Manifest {
             .map(|path| ManifestFile::from_path(ManifestType::Dist, path, hashes))
             .collect();
         for result in new {
-            files.insert(result?);
+            files.replace(result?);
         }
         files.par_sort();
         for file in files {
