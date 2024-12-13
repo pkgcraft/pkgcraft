@@ -101,15 +101,13 @@ fn progress_bar(hidden: bool) -> ProgressBar {
 async fn download(
     client: &reqwest::Client,
     uri: &Uri,
-    dir: &Utf8Path,
+    path: &Utf8Path,
     pb: &ProgressBar,
     mut size: Option<u64>,
 ) -> pkgcraft::Result<()> {
-    let path = dir.join(uri.filename());
-
     // determine the file position to start at supporting resumed downloads
     let mut request = client.get(uri.as_ref());
-    let mut position = if let Ok(meta) = fs::metadata(&path) {
+    let mut position = if let Ok(meta) = fs::metadata(path) {
         // determine the target size for existing files without manifest entries
         if size.is_none() {
             let response = client.get(uri.as_ref()).send().await;
@@ -141,8 +139,8 @@ async fn download(
 
     // create file or open it for appending
     let mut file = match response.status() {
-        StatusCode::PARTIAL_CONTENT => fs::OpenOptions::new().append(true).open(&path),
-        _ => File::create(&path),
+        StatusCode::PARTIAL_CONTENT => fs::OpenOptions::new().append(true).open(path),
+        _ => File::create(path),
     }?;
 
     // initialize progress bar
@@ -252,7 +250,8 @@ impl Command {
                     async move {
                         let pb = mb.add(progress_bar(hidden));
                         let size = manifest.as_ref().map(|m| m.size());
-                        let result = download(client, uri, &self.dir, &pb, size).await;
+                        let path = self.dir.join(uri.filename());
+                        let result = download(client, uri, &path, &pb, size).await;
                         mb.remove(&pb);
                         result
                     }
