@@ -289,4 +289,16 @@ async fn invalid_manifest() {
         .success();
     let data = fs::read_to_string(&path).unwrap();
     assert_eq!(&data, expected);
+
+    // hash order doesn't match repo
+    let path = repo.join("cat/pkg/Manifest");
+    fs::write(&path, "DIST file 4 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff").unwrap();
+    cmd("pk pkg manifest")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string(&path).unwrap();
+    assert_eq!(&data, expected);
 }
