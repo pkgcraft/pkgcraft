@@ -1,2 +1,3 @@
 ignore:
   - "crates/pkgcraft-c"
+  - "crates/pkgcraft-tools"
