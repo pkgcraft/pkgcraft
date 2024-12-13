@@ -106,6 +106,9 @@ async fn timeout() {
     temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
     let repo = temp.path();
 
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
     // TODO: check for timeout error message
     for opt in ["-t", "--timeout"] {
         cmd("pk pkg fetch")
