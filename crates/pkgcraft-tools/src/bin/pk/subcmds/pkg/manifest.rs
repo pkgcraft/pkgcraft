@@ -24,10 +24,39 @@ use pkgcraft::traits::{Contains, LogErrors};
 use pkgcraft::utils::bounded_jobs;
 use rayon::prelude::*;
 use reqwest::StatusCode;
-use tempfile::tempdir;
+use tempfile::TempDir;
 use tracing::{error, warn};
 
 use super::tokio;
+
+/// Use a specific path or a new temporary directory.
+enum PathOrTempdir {
+    Path(Utf8PathBuf),
+    Tempdir(TempDir),
+}
+
+impl PathOrTempdir {
+    /// Create a new [`PathOrTempdir`] from an optional path.
+    fn new(path: Option<&Utf8Path>) -> anyhow::Result<Self> {
+        if let Some(value) = path {
+            fs::create_dir_all(value).map_err(|e| anyhow!("failed creating directory: {e}"))?;
+            Ok(Self::Path(value.to_path_buf()))
+        } else {
+            let tmpdir =
+                TempDir::new().map_err(|e| anyhow!("failed creating temporary directory: {e}"))?;
+            Ok(Self::Tempdir(tmpdir))
+        }
+    }
+
+    /// Get the [`Utf8Path`] of the chosen location if possible.
+    fn as_path(&self) -> anyhow::Result<&Utf8Path> {
+        match self {
+            Self::Path(path) => Ok(path),
+            Self::Tempdir(tmpdir) => Utf8Path::from_path(tmpdir.path())
+                .ok_or_else(|| anyhow!("invalid temporary directory")),
+        }
+    }
+}
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
@@ -169,21 +198,9 @@ async fn download(
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         let concurrent = bounded_jobs(self.concurrent);
-
         // TODO: pull DISTDIR from config for the default
-        // conditionally use a temporary directory for downloads by default
-        let tmpdir = if self.dir.is_none() {
-            Some(tempdir().map_err(|e| anyhow!("failed creating temporary directory: {e}"))?)
-        } else {
-            None
-        };
-        let dir = match (self.dir.as_deref(), tmpdir.as_ref()) {
-            (Some(path), _) => path,
-            (_, Some(tmpdir)) => Utf8Path::from_path(tmpdir.path())
-                .ok_or_else(|| anyhow!("invalid temporary directory"))?,
-            _ => unreachable!("invalid directory path"),
-        };
-        fs::create_dir_all(dir)?;
+        let dir = PathOrTempdir::new(self.dir.as_deref())?;
+        let dir = dir.as_path()?;
 
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
