@@ -1,6 +1,8 @@
 use std::time::Duration;
 use std::{env, fs};
 
+use pkgcraft::config::Config;
+use pkgcraft::pkg::ebuild::manifest::HashType;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
@@ -92,7 +94,7 @@ async fn timeout() {
 }
 
 #[tokio::test]
-async fn current_dir() {
+async fn current_dir_package_scope() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
@@ -107,6 +109,7 @@ async fn current_dir() {
         .mount(&server)
         .await;
 
+    let mut config = Config::default();
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
@@ -122,12 +125,15 @@ async fn current_dir() {
         SLOT=0
     "#};
     temp.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
-    let repo = temp.path();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
 
-    env::set_current_dir(repo.join("cat/pkg")).unwrap();
+    env::set_current_dir(temp.path().join("cat/pkg")).unwrap();
     assert!(fs::read_to_string("Manifest").is_err());
 
-    // package dir scope
     cmd("pk pkg manifest")
         .assert()
         .stdout("")
@@ -139,7 +145,6 @@ async fn current_dir() {
         DIST file2 5 BLAKE2B e1b1bfe59054380ac6eb014388b2db3a03d054770ededd9ee148c8b29aa272bbd079344bb40a92d0a754cd925f4beb48c9fd66a0e90b0d341b6fe3bbb4893246 SHA512 6d201beeefb589b08ef0672dac82353d0cbd9ad99e1642c83a1601f3d647bcca003257b5e8f31bdc1d73fbec84fb085c79d6e2677b7ff927e823a54e789140d9
     "};
     assert_eq!(&data, expected);
-
     let prev_modified = fs::metadata("Manifest").unwrap().modified().unwrap();
 
     // re-run doesn't change file
@@ -152,6 +157,12 @@ async fn current_dir() {
     assert_eq!(modified, prev_modified);
     let prev_modified = modified;
 
+    // altering manifest-hashes setting changes the content
+    let mut config = repo.metadata().config.clone();
+    config.manifest_hashes = [HashType::Blake3].into_iter().collect();
+    config.manifest_required_hashes = [HashType::Blake3].into_iter().collect();
+    config.write().unwrap();
+
     // -f/--force option cause updates
     for opt in ["-f", "--force"] {
         cmd("pk pkg manifest")
@@ -162,5 +173,11 @@ async fn current_dir() {
             .success();
         let modified = fs::metadata("Manifest").unwrap().modified().unwrap();
         assert_ne!(modified, prev_modified);
+        let data = fs::read_to_string("Manifest").unwrap();
+        let expected = indoc::indoc! {"
+            DIST file1 5 BLAKE3 3599edef28afa67b9bec983d57416d9a2cc33a166527c3f6ce2aabef96f66c52
+            DIST file2 5 BLAKE3 74704b4c3477ac155c2ca3ebbeb8f10db2badac161e331d006af5820f0acca7a
+        "};
+        assert_eq!(&data, expected);
     }
 }
