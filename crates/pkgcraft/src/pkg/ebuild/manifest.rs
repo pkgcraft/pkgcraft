@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use std::{fmt, fs};
+use std::{fmt, fs, io};
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -203,12 +203,28 @@ impl fmt::Display for ManifestFile {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Default, Clone)]
+#[derive(Debug, Default, Eq, PartialEq, Clone)]
 pub struct Manifest(IndexSet<ManifestFile>);
 
 impl PkgCacheData for Manifest {
     const RELPATH: &'static str = "Manifest";
 
+    fn parse(data: &str) -> crate::Result<Self> {
+        Self::parse(data)
+    }
+}
+
+impl Manifest {
+    /// Parse a [`Manifest`] from a file.
+    pub fn from_path(path: &Utf8Path) -> crate::Result<Self> {
+        match fs::read_to_string(path) {
+            Ok(data) => Self::parse(&data),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(e) => Err(Error::IO(format!("failed reading manifest: {path}: {e}"))),
+        }
+    }
+
+    /// Parse a string into a [`Manifest`].
     fn parse(data: &str) -> crate::Result<Self> {
         let mut manifest = Self::default();
 
@@ -245,9 +261,7 @@ impl PkgCacheData for Manifest {
 
         Ok(manifest)
     }
-}
 
-impl Manifest {
     pub fn get(&self, name: &str) -> Option<&ManifestFile> {
         self.0.get(name)
     }
