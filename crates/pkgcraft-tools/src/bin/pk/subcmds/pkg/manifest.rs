@@ -190,6 +190,7 @@ impl Command {
                 // TODO: flag or log unfetchable URIs
                 let mut uris = pkg
                     .fetchables()
+                    // TODO: force remanifest when manifest hashes don't match repo settings?
                     .filter(|uri| self.force || pkg.manifest().get(uri.filename()).is_none())
                     .map(|uri| uri.into_owned())
                     .peekable();
