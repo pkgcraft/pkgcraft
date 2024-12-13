@@ -1,3 +1,4 @@
 ignore:
+  - "crates/arcanist"
   - "crates/pkgcraft-c"
   - "crates/pkgcraft-tools"
