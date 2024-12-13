@@ -33,6 +33,14 @@ impl HashType {
         }
     }
 
+    fn value(&self, data: &str) -> crate::Result<String> {
+        if data.chars().any(|c| !c.is_ascii_hexdigit()) {
+            return Err(Error::InvalidValue(format!("invalid {self} hash: {data}")));
+        }
+        // TODO: verify data length
+        Ok(data.to_string())
+    }
+
     fn checksum(&self, data: &[u8]) -> Checksum {
         Checksum {
             kind: *self,
@@ -55,10 +63,11 @@ impl fmt::Display for Checksum {
 
 impl Checksum {
     pub(super) fn try_new(kind: &str, value: &str) -> crate::Result<Self> {
-        let kind = kind
+        let kind: HashType = kind
             .parse()
             .map_err(|_| Error::InvalidValue(format!("unknown checksum kind: {kind}")))?;
-        Ok(Checksum { kind, value: value.to_string() })
+        let value = kind.value(value)?;
+        Ok(Checksum { kind, value })
     }
 
     /// Verify the checksum matches the given data.
@@ -97,8 +106,8 @@ pub struct ManifestFile {
 }
 
 impl ManifestFile {
-    fn try_new(kind: ManifestType, name: &str, size: u64, chksums: &[&str]) -> crate::Result<Self> {
-        let checksums: Vec<_> = chksums
+    fn try_new(kind: ManifestType, name: &str, size: u64, hashes: &[&str]) -> crate::Result<Self> {
+        let checksums: Vec<_> = hashes
             .iter()
             .tuples()
             .map(|(kind, val)| Checksum::try_new(kind, val))
@@ -218,7 +227,8 @@ impl Manifest {
     /// Parse a [`Manifest`] from a file.
     pub fn from_path(path: &Utf8Path) -> crate::Result<Self> {
         match fs::read_to_string(path) {
-            Ok(data) => Self::parse(&data),
+            Ok(data) => Self::parse(&data)
+                .map_err(|e| Error::InvalidValue(format!("invalid manifest: {path}: {e}"))),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(Error::IO(format!("failed reading manifest: {path}: {e}"))),
         }
@@ -231,10 +241,10 @@ impl Manifest {
         for (i, line) in data.lines().enumerate() {
             let fields: Vec<_> = line.split_whitespace().collect();
 
-            // verify manifest tokens include at least one checksum
-            let (mtype, name, size, files) = match &fields[..] {
-                [mtype, name, size, files @ ..] if !files.is_empty() && files.len() % 2 == 0 => {
-                    (mtype, name, size, files)
+            // verify manifest tokens include at least one hash
+            let (mtype, name, size, hashes) = match &fields[..] {
+                [mtype, name, size, hashes @ ..] if !hashes.is_empty() && hashes.len() % 2 == 0 => {
+                    (mtype, name, size, hashes)
                 }
                 _ => {
                     return Err(Error::InvalidValue(format!(
@@ -252,7 +262,7 @@ impl Manifest {
                 .map_err(|e| Error::InvalidValue(format!("line {}, invalid size: {e}", i + 1)))?;
             manifest
                 .0
-                .insert(ManifestFile::try_new(kind, name, size, files)?);
+                .insert(ManifestFile::try_new(kind, name, size, hashes)?);
         }
 
         if manifest.is_empty() {
