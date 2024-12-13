@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
@@ -193,6 +194,33 @@ impl fmt::Display for ManifestFile {
     }
 }
 
+impl FromStr for ManifestFile {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let fields: Vec<_> = s.split_whitespace().collect();
+
+        // verify manifest tokens include at least one hash
+        let (mtype, name, size, hashes) = match &fields[..] {
+            [mtype, name, size, hashes @ ..] if !hashes.is_empty() && hashes.len() % 2 == 0 => {
+                (mtype, name, size, hashes)
+            }
+            _ => {
+                return Err(Error::InvalidValue("invalid number of manifest tokens".to_string()));
+            }
+        };
+
+        let kind = mtype
+            .parse()
+            .map_err(|_| Error::InvalidValue(format!("invalid manifest type: {mtype}")))?;
+        let size = size
+            .parse()
+            .map_err(|e| Error::InvalidValue(format!("invalid size: {e}")))?;
+
+        Self::try_new(kind, name, size, hashes)
+    }
+}
+
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
 pub struct Manifest(IndexSet<ManifestFile>);
 
@@ -220,30 +248,10 @@ impl Manifest {
         let mut manifest = Self::default();
 
         for (i, line) in data.lines().enumerate() {
-            let fields: Vec<_> = line.split_whitespace().collect();
-
-            // verify manifest tokens include at least one hash
-            let (mtype, name, size, hashes) = match &fields[..] {
-                [mtype, name, size, hashes @ ..] if !hashes.is_empty() && hashes.len() % 2 == 0 => {
-                    (mtype, name, size, hashes)
-                }
-                _ => {
-                    return Err(Error::InvalidValue(format!(
-                        "line {}, invalid number of manifest tokens",
-                        i + 1,
-                    )));
-                }
-            };
-
-            let kind = mtype
+            let entry: ManifestFile = line
                 .parse()
-                .map_err(|_| Error::InvalidValue(format!("invalid manifest type: {mtype}")))?;
-            let size = size
-                .parse()
-                .map_err(|e| Error::InvalidValue(format!("line {}, invalid size: {e}", i + 1)))?;
-            manifest
-                .0
-                .insert(ManifestFile::try_new(kind, name, size, hashes)?);
+                .map_err(|e| Error::InvalidValue(format!("invalid entry, line {}: {e}", i + 1)))?;
+            manifest.0.insert(entry);
         }
 
         if manifest.is_empty() {
