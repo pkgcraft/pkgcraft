@@ -13,7 +13,6 @@ use strum::{Display, EnumIter, EnumString};
 use crate::macros::build_path;
 use crate::repo::ebuild::EbuildRepo;
 use crate::traits::PkgCacheData;
-use crate::types::OrderedSet;
 use crate::utils::digest;
 use crate::Error;
 
@@ -97,11 +96,11 @@ impl ManifestFile {
         })
     }
 
-    fn from_path<P: AsRef<Utf8Path>>(
-        kind: ManifestType,
-        path: P,
-        hashes: &OrderedSet<HashType>,
-    ) -> crate::Result<Self> {
+    fn from_path<'a, I, P>(kind: ManifestType, path: P, hashes: I) -> crate::Result<Self>
+    where
+        P: AsRef<Utf8Path>,
+        I: IntoIterator<Item = &'a HashType>,
+    {
         let path = path.as_ref();
         let data = fs::read(path)
             .map_err(|e| Error::InvalidValue(format!("failed reading file: {path}: {e}")))?;
@@ -109,7 +108,7 @@ impl ManifestFile {
             .file_name()
             .ok_or_else(|| Error::InvalidValue(format!("invalid file: {path}")))?;
         let hashes = hashes
-            .iter()
+            .into_iter()
             .map(|kind| (*kind, kind.hash(&data)))
             .collect();
 
