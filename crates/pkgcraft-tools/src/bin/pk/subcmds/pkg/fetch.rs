@@ -26,10 +26,6 @@ use tracing::{error, warn};
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
 pub(crate) struct Command {
-    /// Target repo
-    #[arg(long)]
-    repo: Option<String>,
-
     /// Concurrent downloads
     #[arg(short, long, default_value = "3")]
     concurrent: usize,
@@ -39,8 +35,12 @@ pub(crate) struct Command {
     dir: Utf8PathBuf,
 
     /// Filter URLs via regex
-    #[arg(short, long, value_name = "REGEX")]
+    #[arg(short = 'F', long, value_name = "REGEX")]
     filter: Option<String>,
+
+    /// Overwrite existing files
+    #[arg(short, long)]
+    force: bool,
 
     /// Ignore invalid service certificates
     #[arg(short, long)]
@@ -53,6 +53,10 @@ pub(crate) struct Command {
     /// Disable progress output
     #[arg(short, long)]
     no_progress: bool,
+
+    /// Target repo
+    #[arg(long)]
+    repo: Option<String>,
 
     /// Process fetch-restricted packages
     #[arg(long)]
@@ -237,6 +241,9 @@ impl Command {
                         let pb = mb.add(progress_bar(hidden));
                         let size = manifest.as_ref().map(|m| m.size());
                         let path = self.dir.join(uri.filename());
+                        if self.force {
+                            fs::remove_file(&path).ok();
+                        }
                         let result = download(client, uri, &path, &pb, size).await;
                         mb.remove(&pb);
                         (result, manifest)
