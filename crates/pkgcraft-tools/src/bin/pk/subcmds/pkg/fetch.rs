@@ -169,6 +169,7 @@ impl Command {
         } else {
             Restrict::True
         };
+        // TODO: pull DISTDIR from config for the default
         fs::create_dir_all(&self.dir)?;
 
         // convert targets to restrictions
