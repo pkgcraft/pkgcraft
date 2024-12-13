@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::{env, fs};
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
@@ -74,6 +75,44 @@ async fn nonexistent() {
         .stderr(contains(format!("failed to get: {uri}/file")))
         .failure()
         .code(1);
+}
+
+#[tokio::test]
+async fn timeout() {
+    let server = MockServer::start().await;
+    let delay = Duration::from_secs(1);
+    let uri = server.uri();
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_bytes(b"test")
+                .set_delay(delay),
+        )
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with slow URI connection"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    // TODO: check for timeout error message
+    for opt in ["-t", "--timeout"] {
+        cmd("pk pkg fetch")
+            .args([opt, "0.1"])
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr(contains(format!("failed to get: {uri}/file")))
+            .failure()
+            .code(1);
+    }
 }
 
 #[tokio::test]
