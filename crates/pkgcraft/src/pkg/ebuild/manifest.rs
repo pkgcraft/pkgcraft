@@ -296,6 +296,15 @@ impl Manifest {
     }
 }
 
+impl fmt::Display for Manifest {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for file in &self.0 {
+            writeln!(f, "{file}")?;
+        }
+        Ok(())
+    }
+}
+
 impl<'a> IntoIterator for &'a Manifest {
     type Item = &'a ManifestFile;
     type IntoIter = Iter<'a>;
