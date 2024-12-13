@@ -2,7 +2,6 @@ use std::fs::{self, File};
 use std::io::{stdout, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::time::Duration;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -17,6 +16,7 @@ use pkgcraft::config::Config;
 use pkgcraft::dep::Uri;
 use pkgcraft::error::Error;
 use pkgcraft::macros::build_path;
+use pkgcraft::pkg::ebuild::Manifest;
 use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::{Contains, LogErrors};
@@ -278,21 +278,30 @@ impl Command {
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
             for ((repo, cpn), uris) in pkgs {
-                let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
-                let mut manifest = Arc::unwrap_or_clone(repo.metadata().manifest(&cpn));
+                // load manifest from file
+                let path = build_path!(&repo, cpn.category(), cpn.package(), "Manifest");
+                let mut manifest = match Manifest::from_path(&path) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        error!("{e}");
+                        failed.store(true, Ordering::Relaxed);
+                        continue;
+                    }
+                };
 
                 // update manifest entries
+                let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
                 if let Err(e) = manifest.update(paths, &repo) {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
+                    continue;
                 }
 
                 // write manifest to stdout or its file
                 if self.stdout {
                     write!(&mut stdout, "{manifest}")?;
                 } else {
-                    let path = build_path!(&repo, cpn.category(), cpn.package(), "Manifest");
-                    fs::write(path, format!("{manifest}"))?;
+                    fs::write(&path, format!("{manifest}"))?;
                 };
             }
         }
