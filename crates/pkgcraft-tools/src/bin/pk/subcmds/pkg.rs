@@ -1,4 +1,5 @@
 use std::process::ExitCode;
+use std::sync::OnceLock;
 
 use pkgcraft::config::Config;
 
@@ -56,4 +57,10 @@ impl Subcommand {
             Self::Source(cmd) => cmd.run(config),
         }
     }
+}
+
+/// Return a static tokio runtime.
+pub(crate) fn tokio() -> &'static tokio::runtime::Runtime {
+    static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+    RT.get_or_init(|| tokio::runtime::Runtime::new().unwrap())
 }

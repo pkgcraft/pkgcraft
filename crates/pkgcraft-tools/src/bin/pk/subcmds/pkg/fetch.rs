@@ -2,7 +2,6 @@ use std::fs::{self, File};
 use std::io::{stdout, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::OnceLock;
 use std::time::Duration;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -22,6 +21,8 @@ use pkgcraft::traits::{Contains, LogErrors};
 use pkgcraft::utils::bounded_jobs;
 use reqwest::StatusCode;
 use tracing::{error, warn};
+
+use super::tokio;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Target options")]
@@ -72,12 +73,6 @@ pub(crate) struct Command {
         help_heading = "Arguments",
     )]
     targets: Vec<MaybeStdinVec<String>>,
-}
-
-/// Return a static tokio runtime.
-pub(crate) fn tokio() -> &'static tokio::runtime::Runtime {
-    static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
-    RT.get_or_init(|| tokio::runtime::Runtime::new().unwrap())
 }
 
 // TODO: support custom templates or colors?
