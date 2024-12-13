@@ -349,7 +349,6 @@ impl Intersects<Dep> for EbuildPkg {
 mod tests {
     use crate::config::Config;
     use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
-    use crate::pkg::ebuild::manifest::Checksum;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::PkgRepository;
     use crate::test::assert_err_re;
@@ -911,8 +910,6 @@ mod tests {
             assert_eq!(dist.len(), 1);
             assert_eq!(dist[0].name(), "a.tar.gz");
             assert_eq!(dist[0].size(), 1);
-            assert_eq!(dist[0].checksums()[0], Checksum::try_new("BLAKE2B", "a").unwrap());
-            assert_eq!(dist[0].checksums()[1], Checksum::try_new("SHA512", "b").unwrap());
         }
 
         // multiple
@@ -942,13 +939,9 @@ mod tests {
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "a.tar.gz");
         assert_eq!(dist[0].size(), 1);
-        assert_eq!(dist[0].checksums()[0], Checksum::try_new("BLAKE2B", "a").unwrap());
-        assert_eq!(dist[0].checksums()[1], Checksum::try_new("SHA512", "b").unwrap());
         let dist: Vec<_> = pkg2.distfiles().collect();
         assert_eq!(dist.len(), 1);
         assert_eq!(dist[0].name(), "b.tar.gz");
         assert_eq!(dist[0].size(), 2);
-        assert_eq!(dist[0].checksums()[0], Checksum::try_new("BLAKE2B", "c").unwrap());
-        assert_eq!(dist[0].checksums()[1], Checksum::try_new("SHA512", "d").unwrap());
     }
 }

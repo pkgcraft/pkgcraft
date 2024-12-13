@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
 use strum::{Display, EnumIter, EnumString};
@@ -25,6 +25,7 @@ pub enum HashType {
 }
 
 impl HashType {
+    /// Generate a hash value from data.
     fn hash(&self, data: &[u8]) -> String {
         match self {
             HashType::Blake2b => digest::<blake2::Blake2b512>(data),
@@ -33,6 +34,7 @@ impl HashType {
         }
     }
 
+    /// Verify a hash value from a string.
     fn value(&self, data: &str) -> crate::Result<String> {
         if data.chars().any(|c| !c.is_ascii_hexdigit()) {
             return Err(Error::InvalidValue(format!("invalid {self} hash: {data}")));
@@ -41,43 +43,13 @@ impl HashType {
         Ok(data.to_string())
     }
 
-    fn checksum(&self, data: &[u8]) -> Checksum {
-        Checksum {
-            kind: *self,
-            value: self.hash(data),
-        }
-    }
-}
+    /// Verify the hash matches the given data.
+    fn verify(&self, data: &[u8], value: &str) -> crate::Result<()> {
+        let hash = self.hash(data);
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
-pub struct Checksum {
-    kind: HashType,
-    value: String,
-}
-
-impl fmt::Display for Checksum {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.kind, self.value)
-    }
-}
-
-impl Checksum {
-    pub(super) fn try_new(kind: &str, value: &str) -> crate::Result<Self> {
-        let kind: HashType = kind
-            .parse()
-            .map_err(|_| Error::InvalidValue(format!("unsupported hash: {kind}")))?;
-        let value = kind.value(value)?;
-        Ok(Checksum { kind, value })
-    }
-
-    /// Verify the checksum matches the given data.
-    fn verify(&self, data: &[u8]) -> crate::Result<()> {
-        let hash = self.kind.hash(data);
-
-        if self.value != hash {
+        if value != hash {
             return Err(Error::InvalidValue(format!(
-                "{} checksum failed: expected: {}, got: {hash}",
-                self.kind, self.value
+                "{self} hash failed: expected: {value}, got: {hash}",
             )));
         }
 
@@ -102,22 +74,25 @@ pub struct ManifestFile {
     kind: ManifestType,
     name: String,
     size: u64,
-    checksums: Vec<Checksum>,
+    hashes: IndexMap<HashType, String>,
 }
 
 impl ManifestFile {
-    fn try_new(kind: ManifestType, name: &str, size: u64, hashes: &[&str]) -> crate::Result<Self> {
-        let checksums: Vec<_> = hashes
-            .iter()
-            .tuples()
-            .map(|(kind, val)| Checksum::try_new(kind, val))
-            .try_collect()?;
+    fn try_new(kind: ManifestType, name: &str, size: u64, data: &[&str]) -> crate::Result<Self> {
+        let mut hashes = IndexMap::new();
+        for (kind, value) in data.iter().tuples() {
+            let kind: HashType = kind
+                .parse()
+                .map_err(|_| Error::InvalidValue(format!("unsupported hash: {kind}")))?;
+            let value = kind.value(value)?;
+            hashes.insert(kind, value);
+        }
 
         Ok(Self {
             kind,
             name: name.to_string(),
             size,
-            checksums,
+            hashes,
         })
     }
 
@@ -132,13 +107,16 @@ impl ManifestFile {
         let name = path
             .file_name()
             .ok_or_else(|| Error::InvalidValue(format!("invalid file: {path}")))?;
-        let checksums = hashes.iter().map(|kind| kind.checksum(&data)).collect();
+        let hashes = hashes
+            .iter()
+            .map(|kind| (*kind, kind.hash(&data)))
+            .collect();
 
         Ok(Self {
             kind,
             name: name.to_string(),
             size: data.len() as u64,
-            checksums,
+            hashes,
         })
     }
 
@@ -150,8 +128,8 @@ impl ManifestFile {
         self.size
     }
 
-    pub fn checksums(&self) -> &[Checksum] {
-        &self.checksums
+    pub fn hashes(&self) -> &IndexMap<HashType, String> {
+        &self.hashes
     }
 
     pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
@@ -164,9 +142,9 @@ impl ManifestFile {
         let data =
             fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {path}: {e}")))?;
 
-        self.checksums.iter().try_for_each(|c| {
-            c.verify(&data)
-                .map_err(|e| Error::InvalidValue(format!("failed verifying: {name}: {e}")))
+        self.hashes.iter().try_for_each(|(hash, value)| {
+            hash.verify(&data, value)
+                .map_err(|e| Error::InvalidValue(format!("failed verifying {hash}: {name}: {e}")))
         })
     }
 }
@@ -207,8 +185,11 @@ impl Borrow<str> for ManifestFile {
 
 impl fmt::Display for ManifestFile {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let checksums = self.checksums.iter().join(" ");
-        write!(f, "{} {} {} {}", self.kind, self.name, self.size, checksums)
+        write!(f, "{} {} {}", self.kind, self.name, self.size)?;
+        for (hash, value) in &self.hashes {
+            write!(f, " {hash} {value}")?;
+        }
+        Ok(())
     }
 }
 
@@ -368,18 +349,18 @@ mod tests {
         let r = manifest.verify(distdir, distdir);
         assert_err_re!(r, "No such file or directory");
 
-        // primary checksum failure
+        // primary hash failure
         fs::write(distdir.join("a.tar.gz"), "value").unwrap();
         let r = manifest.verify(distdir, distdir);
-        assert_err_re!(r, "BLAKE2B checksum failed");
+        assert_err_re!(r, "BLAKE2B hash failed");
 
-        // secondary checksum failure
+        // secondary hash failure
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
         "#};
         let manifest = Manifest::parse(data).unwrap();
         let r = manifest.verify(distdir, distdir);
-        assert_err_re!(r, "SHA512 checksum failed");
+        assert_err_re!(r, "SHA512 hash failed");
 
         // verified
         let data = indoc::indoc! {r#"
