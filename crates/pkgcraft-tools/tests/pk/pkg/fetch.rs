@@ -69,6 +69,9 @@ async fn nonexistent() {
     temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
     let repo = temp.path();
 
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
     cmd("pk pkg fetch")
         .arg(repo)
         .assert()
