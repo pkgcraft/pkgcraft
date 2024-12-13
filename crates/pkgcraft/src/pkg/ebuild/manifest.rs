@@ -278,7 +278,7 @@ impl Manifest {
         distfiles: I,
         hashes: J,
         pkgdir: &Utf8Path,
-        thin: bool,
+        thick: bool,
     ) -> crate::Result<()>
     where
         I: IntoParallelIterator<Item = Utf8PathBuf>,
@@ -291,7 +291,7 @@ impl Manifest {
             .collect();
 
         // generate file hashes for thick manifests
-        if !thin {
+        if thick {
             files.par_extend(
                 relative_paths(pkgdir)
                     .collect::<Vec<_>>()

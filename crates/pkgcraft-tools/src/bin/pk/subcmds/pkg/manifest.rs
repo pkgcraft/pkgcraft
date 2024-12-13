@@ -97,6 +97,10 @@ pub(crate) struct Command {
     #[arg(long)]
     restrict: bool,
 
+    /// Force thick manifests
+    #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+    thick: Option<bool>,
+
     // positionals
     /// Target packages or paths
     #[arg(
@@ -339,9 +343,11 @@ impl Command {
                 let distfiles = uris.into_par_iter().map(|x| dir.join(x.filename()));
 
                 // update manifest entries
-                let thin = repo.metadata().config.thin_manifests;
+                let thick = self
+                    .thick
+                    .unwrap_or_else(|| !repo.metadata().config.thin_manifests);
                 let hashes = &repo.metadata().config.manifest_hashes;
-                if let Err(e) = manifest.update(distfiles, hashes, &pkgdir, thin) {
+                if let Err(e) = manifest.update(distfiles, hashes, &pkgdir, thick) {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
                     continue;
