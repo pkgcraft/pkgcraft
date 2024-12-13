@@ -1,6 +1,11 @@
+use std::time::Duration;
+
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[test]
 fn invalid_cwd_target() {
@@ -44,4 +49,42 @@ fn invalid_pkgs() {
         .stderr(predicate::str::is_empty().not())
         .failure()
         .code(1);
+}
+
+#[tokio::test]
+async fn timeout() {
+    let server = MockServer::start().await;
+    let delay = Duration::from_secs(1);
+    let uri = server.uri();
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_bytes(b"test")
+                .set_delay(delay),
+        )
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with slow URI connection"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    // TODO: check for timeout error message
+    for opt in ["-t", "--timeout"] {
+        cmd("pk pkg manifest")
+            .args([opt, "0.1"])
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr(contains(format!("failed to get: {uri}/file")))
+            .failure()
+            .code(1);
+    }
 }
