@@ -187,7 +187,7 @@ async fn current_dir_package_scope() {
 }
 
 #[tokio::test]
-async fn output() {
+async fn stdout() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
@@ -211,8 +211,7 @@ async fn output() {
         DIST file 4 BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff
     "};
 
-    // write to stdout
-    cmd("pk pkg manifest --output -")
+    cmd("pk pkg manifest --stdout")
         .arg(repo)
         .assert()
         .stdout(expected)

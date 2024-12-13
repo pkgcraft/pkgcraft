@@ -53,9 +53,9 @@ pub(crate) struct Command {
     #[arg(short, long)]
     no_progress: bool,
 
-    /// Alternative file output
+    /// Output to stdout
     #[arg(long)]
-    output: Option<String>,
+    stdout: bool,
 
     /// Target repo
     #[arg(long)]
@@ -280,13 +280,8 @@ impl Command {
                 let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
                 let manifest = repo.metadata().manifest(&cpn);
 
-                let result = if let Some(output) = self.output.as_ref() {
-                    if output == "-" {
-                        manifest.update(&mut stdout, paths, &repo)
-                    } else {
-                        let mut f = File::create(output)?;
-                        manifest.update(&mut f, paths, &repo)
-                    }
+                let result = if self.stdout {
+                    manifest.update(&mut stdout, paths, &repo)
                 } else {
                     let path = build_path!(&repo, cpn.category(), cpn.package(), "Manifest");
                     let mut f = File::create(path)?;
