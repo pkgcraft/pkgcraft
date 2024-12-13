@@ -1,6 +1,6 @@
 use std::fs;
 use std::ops::Deref;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use camino::{Utf8DirEntry, Utf8Path};
@@ -8,6 +8,7 @@ use itertools::Itertools;
 use nix::{sys::stat, unistd};
 use walkdir::{DirEntry, WalkDir};
 
+use crate::utils::relpath;
 use crate::Error;
 
 #[derive(Debug, Clone)]
@@ -90,6 +91,16 @@ pub(crate) fn sorted_dir_list<P: AsRef<Path>>(path: P) -> WalkDir {
         .sort_by_file_name()
         .min_depth(1)
         .max_depth(1)
+}
+
+pub(crate) fn relative_paths(path: &Utf8Path) -> impl Iterator<Item = PathBuf> + '_ {
+    WalkDir::new(path)
+        .min_depth(1)
+        .into_iter()
+        .filter_entry(|e| !is_hidden(e))
+        .filter_map(Result::ok)
+        .filter(|e| e.path().is_file())
+        .filter_map(move |e| relpath(e.path(), path))
 }
 
 pub(crate) fn is_file(entry: &DirEntry) -> bool {

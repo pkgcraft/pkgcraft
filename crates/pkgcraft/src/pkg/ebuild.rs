@@ -23,7 +23,7 @@ pub use configured::EbuildConfiguredPkg;
 pub mod iuse;
 pub mod keyword;
 pub mod manifest;
-pub use manifest::{Manifest, ManifestFile};
+use manifest::{Manifest, ManifestFile};
 pub mod metadata;
 use metadata::{Key, Metadata};
 mod raw;

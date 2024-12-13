@@ -4,14 +4,14 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::{fmt, fs, io};
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
 use strum::{Display, EnumIter, EnumString};
 
+use crate::files::relative_paths;
 use crate::macros::build_path;
-use crate::repo::ebuild::EbuildRepo;
 use crate::traits::PkgCacheData;
 use crate::utils::digest;
 use crate::Error;
@@ -272,25 +272,44 @@ impl Manifest {
         self.0.is_empty()
     }
 
-    /// Update the [`Manifest`] entries relating to an iterator of paths.
-    pub fn update<I, P>(&mut self, paths: I, repo: &EbuildRepo) -> crate::Result<()>
+    /// Update the [`Manifest`] entries relating to an iterator of distfile paths.
+    pub fn update<'a, I, J>(
+        &mut self,
+        distfiles: I,
+        hashes: J,
+        pkgdir: &Utf8Path,
+        thin: bool,
+    ) -> crate::Result<()>
     where
-        I: IntoParallelIterator<Item = P>,
-        P: AsRef<Utf8Path>,
+        I: IntoParallelIterator<Item = Utf8PathBuf>,
+        J: IntoIterator<Item = &'a HashType> + Send + Sync + Copy,
     {
-        // TODO: support thick manifests
-        if !repo.metadata().config.thin_manifests {
-            return Err(Error::InvalidValue(
-                "updating thick manifests isn't supported".to_string(),
-            ));
-        }
-
-        let hashes = &repo.metadata().config.manifest_hashes;
-        let new: Vec<_> = paths
+        // generate distfile hashes
+        let mut files: Vec<_> = distfiles
             .into_par_iter()
             .map(|path| ManifestFile::from_path(ManifestType::Dist, path, hashes))
             .collect();
-        for result in new {
+
+        // generate file hashes for thick manifests
+        if !thin {
+            files.par_extend(
+                relative_paths(pkgdir)
+                    .collect::<Vec<_>>()
+                    .into_par_iter()
+                    .filter_map(|p| Utf8PathBuf::from_path_buf(p).ok())
+                    .filter_map(|x| match x {
+                        x if x.extension().map_or(false, |x| x == "ebuild") => {
+                            Some((ManifestType::Ebuild, x))
+                        }
+                        x if x.starts_with("files") => Some((ManifestType::Aux, x)),
+                        x if x.as_str() == "Manifest" => None,
+                        _ => Some((ManifestType::Misc, x)),
+                    })
+                    .map(|(kind, path)| ManifestFile::from_path(kind, path, hashes)),
+            );
+        };
+
+        for result in files {
             self.0.replace(result?);
         }
         self.0.par_sort();
