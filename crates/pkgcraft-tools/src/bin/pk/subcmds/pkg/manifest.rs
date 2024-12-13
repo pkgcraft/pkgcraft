@@ -4,6 +4,7 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::builder::ArgPredicate;
 use clap::Args;
@@ -23,6 +24,7 @@ use pkgcraft::traits::{Contains, LogErrors};
 use pkgcraft::utils::bounded_jobs;
 use rayon::prelude::*;
 use reqwest::StatusCode;
+use tempfile::tempdir;
 use tracing::{error, warn};
 
 use super::tokio;
@@ -35,8 +37,8 @@ pub(crate) struct Command {
     concurrent: usize,
 
     /// Destination directory
-    #[arg(short, long, default_value = ".")]
-    dir: Utf8PathBuf,
+    #[arg(short, long)]
+    dir: Option<Utf8PathBuf>,
 
     /// Force remanifest
     #[arg(short, long)]
@@ -167,7 +169,21 @@ async fn download(
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         let concurrent = bounded_jobs(self.concurrent);
-        fs::create_dir_all(&self.dir)?;
+
+        // TODO: pull DISTDIR from config for the default
+        // conditionally use a temporary directory for downloads by default
+        let tmpdir = if self.dir.is_none() {
+            Some(tempdir().map_err(|e| anyhow!("failed creating temporary directory: {e}"))?)
+        } else {
+            None
+        };
+        let dir = match (self.dir.as_deref(), tmpdir.as_ref()) {
+            (Some(path), _) => path,
+            (_, Some(tmpdir)) => Utf8Path::from_path(tmpdir.path())
+                .ok_or_else(|| anyhow!("invalid temporary directory"))?,
+            _ => unreachable!("invalid directory path"),
+        };
+        fs::create_dir_all(dir)?;
 
         // convert targets to restrictions
         let targets: Vec<_> = TargetRestrictions::new(config)
@@ -206,7 +222,7 @@ impl Command {
             .read_timeout(Duration::from_secs_f64(self.timeout))
             .connect_timeout(Duration::from_secs_f64(self.timeout))
             .build()
-            .map_err(|e| anyhow::anyhow!("failed creating client: {e}"))?;
+            .map_err(|e| anyhow!("failed creating client: {e}"))?;
 
         // show a global progress bar when downloading more files than concurrency limit
         let downloads = pkgs.values().flatten().count();
@@ -231,7 +247,7 @@ impl Command {
             // assume existing files are completely downloaded
             let targets = pkgs.iter().flat_map(|((repo, cpn), uris)| {
                 uris.iter()
-                    .filter(|uri| !self.dir.join(uri.filename()).exists())
+                    .filter(|uri| !dir.join(uri.filename()).exists())
                     .map(move |uri| {
                         let pkg_manifest = repo.metadata().manifest(cpn);
                         let manifest = pkg_manifest.get(uri.filename());
@@ -247,7 +263,7 @@ impl Command {
                     async move {
                         let pb = mb.add(progress_bar(hidden));
                         let size = manifest.as_ref().map(|m| m.size());
-                        let path = self.dir.join(uri.filename());
+                        let path = dir.join(uri.filename());
                         let result = download(client, uri, &path, &pb, size).await;
                         mb.remove(&pb);
                         result
@@ -290,7 +306,7 @@ impl Command {
                 };
 
                 // update manifest entries
-                let paths = uris.into_par_iter().map(|x| self.dir.join(x.filename()));
+                let paths = uris.into_par_iter().map(|x| dir.join(x.filename()));
                 if let Err(e) = manifest.update(paths, &repo) {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
