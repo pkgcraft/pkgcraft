@@ -8,6 +8,7 @@ use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
+use tempfile::tempdir;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -209,6 +210,54 @@ async fn current_dir() {
     let expected = indoc::indoc! {"
         DIST file1 5 BLAKE3 3599edef28afa67b9bec983d57416d9a2cc33a166527c3f6ce2aabef96f66c52
         DIST file2 5 BLAKE3 74704b4c3477ac155c2ca3ebbeb8f10db2badac161e331d006af5820f0acca7a
+    "};
+    assert_eq!(&data, expected);
+}
+
+#[tokio::test]
+async fn resumed() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test resume"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    // create a partially downloaded file
+    let partial_file = dir.path().join("file.part");
+    fs::write(&partial_file, "test").unwrap();
+
+    cmd("pk pkg manifest")
+        .args(["-d", dir.path().to_str().unwrap()])
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    // verify file content
+    let data = fs::read_to_string("file").unwrap();
+    assert_eq!(&data, "test resume");
+    assert!(!partial_file.exists());
+    // verify manifest content
+    let path = repo.join("cat/pkg/Manifest");
+    let data = fs::read_to_string(&path).unwrap();
+    let expected = indoc::indoc! {"
+        DIST file 11 BLAKE2B 1ca3b378d699a0106a2b3ff84f9daec7596e484e205494c6c81c643b91dadc85c3ddca3fc0f77c16b03922fbb9b38fd11cea1b046b3dc5621af1a5cf054bc1fa SHA512 bca6bd2bb722d500e9e5d9c570a7e382d17e978f4dae51ca689915333f9e8fc4d193dcbcc1adc4c26c010eb1e14ba7f518a8e01f02a4c5f0c75cdab994874c69
     "};
     assert_eq!(&data, expected);
 }
