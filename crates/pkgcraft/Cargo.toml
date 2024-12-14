@@ -22,7 +22,7 @@ default = []
 # enable git repo syncing support
 git = ["dep:git2"]
 # enable repo syncing over https, e.g. tar+https
-https = ["dep:flate2", "dep:reqwest", "dep:tar", "dep:tokio"]
+https = ["dep:flate2", "dep:tar"]
 # external test support
 test = ["dep:assert_cmd", "dep:pretty_assertions"]
 
@@ -56,7 +56,7 @@ num_cpus = "1.16.0"
 peg = "0.8.4"
 rayon = "1.10.0"
 regex = "1.11.1"
-reqwest = { version = "0.12.9", default-features = false, features = ["rustls-tls", "stream"], optional = true }
+reqwest = { version = "0.12.9", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 roxmltree = "0.20.0"
 rust-ini = "0.21.1"
 scallop = { path = "../scallop", version = "0.0.19" }
@@ -69,7 +69,7 @@ tempfile = "3.14.0"
 thiserror = "2.0.6"
 tree-sitter = "0.24.4"
 tree-sitter-bash = "0.23.3"
-tokio = { version = "1.42.0", features = ["full"], optional = true }
+tokio = { version = "1.42.0", features = ["full"] }
 toml = "0.8.19"
 tracing = "0.1.41"
 walkdir = "2.5.0"
