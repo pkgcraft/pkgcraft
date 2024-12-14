@@ -394,14 +394,13 @@ fn exit() {
 
 #[test]
 fn filters() {
-    let gentoo_repo_path = test_data_path().join("repos/valid/gentoo");
-    let primary_repo_path = test_data_path().join("repos/valid/qa-primary");
-    let expected = glob_reports!("{gentoo_repo_path}/Header/HeaderInvalid/reports.json");
+    let repo = &test_data_path().join("repos/valid/gentoo");
+    let expected = glob_reports!("{repo}/Header/HeaderInvalid/reports.json");
 
     // none
     let reports = cmd("pkgcruft scan -R json")
         .args(["-r", "HeaderInvalid"])
-        .arg(&gentoo_repo_path)
+        .arg(repo)
         .to_reports()
         .unwrap();
     assert_unordered_eq!(&reports, &expected);
@@ -411,7 +410,7 @@ fn filters() {
         cmd("pkgcruft scan -R json")
             .args([opt, "@invalid"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .assert()
             .stdout("")
             .stderr(contains("--filter"))
@@ -422,7 +421,7 @@ fn filters() {
         cmd("pkgcruft scan -R json")
             .args([opt, "slot = 1"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .assert()
             .stdout("")
             .stderr(contains("--filter"))
@@ -434,7 +433,7 @@ fn filters() {
             .args([opt, "latest"])
             .args([opt, "@invalid"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .assert()
             .stdout("")
             .stderr(contains("--filter"))
@@ -444,7 +443,7 @@ fn filters() {
         // invalid in package scope
         cmd("pkgcruft scan -R json")
             .args([opt, "live"])
-            .arg(primary_repo_path.join("Whitespace/WhitespaceInvalid"))
+            .arg(repo.join("Header/HeaderInvalid"))
             .assert()
             .stdout("")
             .stderr(contains("filters unsupported in package scope"))
@@ -454,7 +453,7 @@ fn filters() {
         // invalid in version scope
         cmd("pkgcruft scan -R json")
             .args([opt, "live"])
-            .arg(primary_repo_path.join("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild"))
+            .arg(repo.join("Header/HeaderInvalid/HeaderInvalid-0.ebuild"))
             .assert()
             .stdout("")
             .stderr(contains("filters unsupported in version scope"))
@@ -465,7 +464,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "latest"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[5..]);
@@ -474,7 +473,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!latest"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[..5]);
@@ -484,7 +483,7 @@ fn filters() {
             .args([opt, "latest"])
             .args([opt, "!latest"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &[]);
@@ -493,7 +492,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "latest-slots"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(reports, [&expected[1..=1], &expected[5..]].concat());
@@ -502,36 +501,34 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!latest-slots"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(reports, [&expected[..1], &expected[2..5]].concat());
 
         // live
-        let live_reports = glob_reports!("{primary_repo_path}/Keywords/KeywordsLive/reports.json");
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "live"])
-            .args(["-r", "KeywordsLive"])
-            .arg(&primary_repo_path)
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
             .to_reports()
             .unwrap();
-        assert_unordered_eq!(&reports, &live_reports);
+        assert_unordered_eq!(&reports, &expected[5..]);
 
         // live inverted
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!live"])
-            .args([opt, "Keywords/KeywordsLive"])
-            .args(["-r", "KeywordsLive"])
-            .arg(&primary_repo_path)
+            .args(["-r", "HeaderInvalid"])
+            .arg(repo)
             .to_reports()
             .unwrap();
-        assert_unordered_eq!(&reports, &[]);
+        assert_unordered_eq!(&reports, &expected[..5]);
 
         // stable
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "stable"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[..3]);
@@ -540,7 +537,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!stable"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[3..5]);
@@ -550,7 +547,7 @@ fn filters() {
             .args([opt, "stable"])
             .args([opt, "latest"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[2..=2]);
@@ -559,7 +556,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "masked"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[..1]);
@@ -568,7 +565,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!masked"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[1..]);
@@ -577,7 +574,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "slot == '1'"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[2..]);
@@ -586,7 +583,7 @@ fn filters() {
         let reports = cmd("pkgcruft scan -R json")
             .args([opt, "!slot == '1'"])
             .args(["-r", "HeaderInvalid"])
-            .arg(&gentoo_repo_path)
+            .arg(repo)
             .to_reports()
             .unwrap();
         assert_unordered_eq!(&reports, &expected[..2]);
