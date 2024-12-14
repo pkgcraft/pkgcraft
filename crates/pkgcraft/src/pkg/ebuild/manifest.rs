@@ -132,19 +132,11 @@ impl ManifestFile {
         &self.hashes
     }
 
-    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
-        let name = self.name();
-        let path = match self.kind {
-            ManifestType::Aux => build_path!(pkgdir, "files", name),
-            ManifestType::Dist => distdir.join(name),
-            _ => pkgdir.join(name),
-        };
-        let data =
-            fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {path}: {e}")))?;
-
+    pub fn verify(&self, path: &Utf8Path) -> crate::Result<()> {
+        let data = fs::read(path).map_err(|e| Error::IO(format!("failed reading: {path}: {e}")))?;
         self.hashes.iter().try_for_each(|(hash, value)| {
             hash.verify(&data, value)
-                .map_err(|e| Error::InvalidValue(format!("failed verifying {hash}: {name}: {e}")))
+                .map_err(|e| Error::InvalidValue(format!("failed verifying {hash}: {path}: {e}")))
         })
     }
 }
@@ -317,7 +309,14 @@ impl Manifest {
     }
 
     pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
-        self.into_iter().try_for_each(|f| f.verify(pkgdir, distdir))
+        self.into_iter().try_for_each(|f| {
+            let path = match f.kind {
+                ManifestType::Aux => build_path!(pkgdir, "files", f.name()),
+                ManifestType::Dist => distdir.join(f.name()),
+                _ => pkgdir.join(f.name()),
+            };
+            f.verify(&path)
+        })
     }
 }
 
