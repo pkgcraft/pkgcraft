@@ -249,7 +249,7 @@ impl Command {
             }
         }
 
-        let client = reqwest::Client::builder()
+        let client = &reqwest::Client::builder()
             .danger_accept_invalid_certs(self.insecure)
             .hickory_dns(true)
             .read_timeout(Duration::from_secs_f64(self.timeout))
@@ -267,7 +267,7 @@ impl Command {
         };
 
         // initialize progress handling
-        let mb = MultiProgress::new();
+        let mb = &MultiProgress::new();
         let hidden = !stdout().is_terminal() || self.no_progress;
         if hidden {
             mb.set_draw_target(ProgressDrawTarget::hidden());
@@ -276,41 +276,49 @@ impl Command {
         }
 
         // download files asynchronously tracking failure status
-        let failed = AtomicBool::new(false);
+        let failed = &AtomicBool::new(false);
+        let global_pb = &global_pb;
         tokio().block_on(async {
             // assume existing files are completely downloaded
             let targets = pkgs.iter().flat_map(|((repo, cpn), uris)| {
-                uris.iter()
-                    .filter(|uri| !dir.join(uri.filename()).exists())
-                    .map(move |uri| {
+                uris.iter().filter_map(move |uri| {
+                    let path = dir.join(uri.filename());
+                    if !path.exists() {
                         let pkg_manifest = repo.metadata().manifest(cpn);
                         let manifest = pkg_manifest.get(uri.filename());
-                        (uri, manifest.cloned())
-                    })
+                        Some((uri, path, manifest.cloned()))
+                    } else {
+                        None
+                    }
+                })
             });
 
             // convert targets into download results stream
             let results = stream::iter(targets)
-                .map(|(uri, manifest)| {
-                    let client = &client;
-                    let mb = &mb;
-                    async move {
-                        let pb = mb.add(progress_bar(hidden));
-                        let size = manifest.as_ref().map(|m| m.size());
-                        let path = dir.join(uri.filename());
-                        let result = download(client, uri, &path, &pb, size).await;
-                        mb.remove(&pb);
-                        result
-                    }
+                .map(|(uri, path, manifest)| async move {
+                    let pb = mb.add(progress_bar(hidden));
+                    let size = manifest.as_ref().map(|m| m.size());
+                    let part_path = Utf8PathBuf::from(format!("{path}.part"));
+                    let result = download(client, uri, &part_path, &pb, size).await;
+                    mb.remove(&pb);
+                    (result, manifest, part_path, path)
                 })
                 .buffer_unordered(concurrent);
 
             // process results stream while logging errors
             results
-                .for_each(|result| async {
+                .for_each(|(mut result, manifest, src, dest)| async move {
+                    // verify file hashes if manifest entry exists
+                    if let Some(manifest) = manifest.as_ref() {
+                        result = result.and_then(|_| manifest.verify(&src));
+                    }
+
                     if let Err(e) = result {
                         mb.suspend(|| error!("{e}"));
                         failed.store(true, Ordering::Relaxed);
+                        fs::rename(src, format!("{dest}.failed")).ok();
+                    } else {
+                        fs::rename(src, dest).ok();
                     }
 
                     if let Some(pb) = global_pb.as_ref() {
