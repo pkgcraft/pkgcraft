@@ -41,11 +41,12 @@ macro_rules! glob_reports {
     ($($pattern:expr,)+) => {{
         let mut reports = vec![];
         $(
-            let deserialized = $crate::test::glob_reports_iter(format!($pattern))
+            let glob = format!($pattern);
+            let deserialized = $crate::test::glob_reports_iter(&glob)
                 .collect::<$crate::Result<Vec<_>>>().unwrap();
+            assert!(!deserialized.is_empty(), "no reports matching: {glob}");
             reports.extend(deserialized);
         )+
-        assert!(!reports.is_empty());
         reports
     }};
 
