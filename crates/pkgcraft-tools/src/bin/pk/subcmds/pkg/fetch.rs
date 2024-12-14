@@ -252,7 +252,14 @@ impl Command {
                 .for_each(|(mut result, manifest, src, dest)| async move {
                     // verify file hashes if manifest entry exists
                     if let Some(manifest) = manifest.as_ref() {
-                        result = result.and_then(|_| manifest.verify(&src));
+                        if result.is_ok() {
+                            result = match tokio::fs::read(&src).await {
+                                Ok(data) => manifest.verify(&data),
+                                Err(e) => {
+                                    Err(Error::InvalidValue(format!("failed reading: {src}: {e}")))
+                                }
+                            }
+                        }
                     }
 
                     if let Err(e) = result {

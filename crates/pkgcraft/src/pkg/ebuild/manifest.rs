@@ -132,11 +132,11 @@ impl ManifestFile {
         &self.hashes
     }
 
-    pub fn verify(&self, path: &Utf8Path) -> crate::Result<()> {
-        let data = fs::read(path).map_err(|e| Error::IO(format!("failed reading: {path}: {e}")))?;
+    pub fn verify(&self, data: &[u8]) -> crate::Result<()> {
+        let name = self.name();
         self.hashes.iter().try_for_each(|(hash, value)| {
-            hash.verify(&data, value)
-                .map_err(|e| Error::InvalidValue(format!("failed verifying {hash}: {path}: {e}")))
+            hash.verify(data, value)
+                .map_err(|e| Error::InvalidValue(format!("{name}: failed verifying {hash}: {e}")))
         })
     }
 }
@@ -315,7 +315,9 @@ impl Manifest {
                 ManifestType::Dist => distdir.join(f.name()),
                 _ => pkgdir.join(f.name()),
             };
-            f.verify(&path)
+            let data =
+                fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {path}: {e}")))?;
+            f.verify(&data)
         })
     }
 }

@@ -313,7 +313,14 @@ impl Command {
                     // verify file hashes if manifest entry exists
                     if !self.force {
                         if let Some(manifest) = manifest.as_ref() {
-                            result = result.and_then(|_| manifest.verify(&src));
+                            if result.is_ok() {
+                                result = match tokio::fs::read(&src).await {
+                                    Ok(data) => manifest.verify(&data),
+                                    Err(e) => Err(Error::InvalidValue(format!(
+                                        "failed reading: {src}: {e}"
+                                    ))),
+                                }
+                            }
                         }
                     }
 
