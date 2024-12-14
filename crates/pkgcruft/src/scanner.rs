@@ -487,6 +487,38 @@ mod tests {
     }
 
     #[test]
+    fn filters() {
+        let data = test_data();
+        let repo = data.ebuild_repo("gentoo").unwrap();
+        let path = repo.path();
+        let expected = glob_reports!("{path}/Header/HeaderInvalid/reports.json");
+
+        // none
+        let mut scanner = Scanner::new(repo).reports([ReportKind::HeaderInvalid]);
+        let reports: Vec<_> = scanner.run(repo).unwrap().collect();
+        assert_unordered_eq!(&reports, &expected);
+
+        for (filters, expected) in [
+            (vec!["latest"], &expected[4..]),
+            (vec!["!latest"], &expected[..4]),
+            (vec!["latest", "!latest"], &[]),
+            (vec!["latest-slots"], &[&expected[1..=1], &expected[4..]].concat()),
+            (vec!["!latest-slots"], &[&expected[..1], &expected[2..4]].concat()),
+            (vec!["stable"], &expected[..3]),
+            (vec!["!stable"], &expected[3..]),
+            (vec!["stable", "latest"], &expected[2..=2]),
+            (vec!["masked"], &expected[..1]),
+            (vec!["!masked"], &expected[1..]),
+            (vec!["slot == '1'"], &expected[2..]),
+            (vec!["!slot == '1'"], &expected[..2]),
+        ] {
+            scanner = scanner.filters(filters.iter().map(|x| x.parse().unwrap()));
+            let reports: Vec<_> = scanner.run(repo).unwrap().collect();
+            assert_unordered_eq!(&reports, expected);
+        }
+    }
+
+    #[test]
     fn failed() {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
