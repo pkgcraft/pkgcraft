@@ -49,12 +49,17 @@ pub async fn download(
 
     // create file or open it for appending
     let mut file = match response.status() {
-        StatusCode::PARTIAL_CONTENT => tokio::fs::OpenOptions::new().append(true).open(path).await,
-        _ => tokio::fs::File::create(path).await,
+        StatusCode::PARTIAL_CONTENT => {
+            pb.set_message(format!("Resuming {uri}"));
+            tokio::fs::OpenOptions::new().append(true).open(path).await
+        }
+        _ => {
+            pb.set_message(format!("Downloading {uri}"));
+            tokio::fs::File::create(path).await
+        }
     }?;
 
     // initialize progress bar
-    pb.set_message(format!("Downloading {uri}"));
     // enable completion progress if content size is available
     if let Some(value) = size.or(response.content_length()) {
         pb.set_length(value);
