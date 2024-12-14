@@ -55,6 +55,7 @@ pub async fn download(
         }
         _ => {
             pb.set_message(format!("Downloading {uri}"));
+            position = 0;
             tokio::fs::File::create(path).await
         }
     }?;
