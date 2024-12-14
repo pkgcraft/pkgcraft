@@ -364,11 +364,11 @@ impl Command {
                     continue;
                 }
 
-                // write manifest to stdout or its file
+                // write manifest to target output
                 if self.stdout {
                     write!(&mut stdout, "{manifest}")?;
                 } else {
-                    fs::write(&manifest_path, format!("{manifest}"))?;
+                    fs::write(&manifest_path, manifest.to_string())?;
                 };
             }
         }
