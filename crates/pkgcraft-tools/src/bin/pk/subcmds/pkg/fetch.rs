@@ -14,7 +14,7 @@ use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
-use pkgcraft::fetch::download;
+use pkgcraft::fetch::Fetcher;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::restrict::{str::Restrict as StrRestrict, Restrict, Restriction};
 use pkgcraft::traits::{Contains, LogErrors};
@@ -132,14 +132,13 @@ impl Command {
             }
         }
 
-        let client = &reqwest::Client::builder()
+        let builder = reqwest::Client::builder()
             .danger_accept_invalid_certs(self.insecure)
             .hickory_dns(true)
             .read_timeout(Duration::from_secs_f64(self.timeout))
             .connect_timeout(Duration::from_secs_f64(self.timeout))
-            .referer(false)
-            .build()
-            .map_err(|e| anyhow::anyhow!("failed creating client: {e}"))?;
+            .referer(false);
+        let fetcher = &Fetcher::new(builder)?;
 
         // TODO: track overall download size if all target URIs have manifest data
         // show a global progress bar when downloading more files than concurrency limit
@@ -168,7 +167,7 @@ impl Command {
                     let pb = mb.add(progress_bar(hidden));
                     let size = manifest.as_ref().map(|m| m.size());
                     let part_path = Utf8PathBuf::from(format!("{path}.part"));
-                    let result = download(client, &uri, &part_path, &pb, size).await;
+                    let result = fetcher.fetch(&uri, &part_path, &pb, size).await;
                     mb.remove(&pb);
                     (result, manifest, part_path, path)
                 })
