@@ -309,8 +309,10 @@ impl Command {
             results
                 .for_each(|(mut result, manifest, src, dest)| async move {
                     // verify file hashes if manifest entry exists
-                    if let Some(manifest) = manifest.as_ref() {
-                        result = result.and_then(|_| manifest.verify(&src));
+                    if !self.force {
+                        if let Some(manifest) = manifest.as_ref() {
+                            result = result.and_then(|_| manifest.verify(&src));
+                        }
                     }
 
                     if let Err(e) = result {
