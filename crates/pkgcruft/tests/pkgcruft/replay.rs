@@ -3,7 +3,7 @@ use std::io::Write;
 
 use itertools::Itertools;
 use pkgcraft::repo::Repository;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::*;
 use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -240,7 +240,7 @@ fn scopes() {
     let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
     let multiple_expected = glob_reports!(
         "{repo}/Dependency/DependencyDeprecated/reports.json",
-        "{repo}/UnstableOnly/UnstableOnly/reports.json",
+        "{repo}/Filesdir/FilesUnused/reports.json",
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
