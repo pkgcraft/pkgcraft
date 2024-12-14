@@ -26,7 +26,7 @@ pub async fn download(
 
         // check if completed or invalid
         let current_size = meta.len();
-        if current_size - size.unwrap_or_default() == 0 {
+        if current_size != 0 && current_size == size.unwrap_or_default() {
             return Ok(());
         } else if let Some(value) = size {
             if current_size > value {
