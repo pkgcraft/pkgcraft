@@ -504,6 +504,8 @@ mod tests {
             (vec!["latest", "!latest"], &[]),
             (vec!["latest-slots"], &[&expected[1..=1], &expected[5..]].concat()),
             (vec!["!latest-slots"], &[&expected[..1], &expected[2..5]].concat()),
+            (vec!["live"], &expected[5..]),
+            (vec!["!live"], &expected[..5]),
             (vec!["stable"], &expected[..3]),
             (vec!["!stable"], &expected[3..5]),
             (vec!["stable", "latest"], &expected[2..=2]),
