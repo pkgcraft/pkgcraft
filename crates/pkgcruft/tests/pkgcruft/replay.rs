@@ -276,14 +276,15 @@ fn scopes() {
 #[test]
 fn sources() {
     let file = qa_primary_file();
-    let data = test_data();
-    let repo = data.ebuild_repo("qa-primary").unwrap();
-    let repo = repo.path();
-    let expected = glob_reports!(
-        "{repo}/Dependency/DependencyDeprecated/reports.json",
-        "{repo}/UnstableOnly/UnstableOnly/reports.json",
+    let primary_repo = &test_data_path().join("repos/valid/qa-primary");
+    let gentoo_repo = &test_data_path().join("repos/valid/gentoo");
+    let single_expected =
+        glob_reports!("{primary_repo}/Dependency/DependencyDeprecated/reports.json");
+    let multiple_expected = glob_reports!(
+        "{primary_repo}/Dependency/DependencyDeprecated/reports.json",
+        "{gentoo_repo}/Header/HeaderInvalid/reports.json",
     );
-    let data = expected.iter().map(|x| x.to_json()).join("\n");
+    let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     for opt in ["-S", "--sources"] {
         // invalid
@@ -302,9 +303,15 @@ fn sources() {
             .write_stdin(data.as_str())
             .to_reports()
             .unwrap();
-        assert_eq!(&expected, &reports);
+        assert_eq!(&single_expected, &reports);
 
-        // TODO: add test for multiple args once issue #178 is fixed
+        // multiple
+        let reports = cmd("pkgcruft replay -R json -")
+            .args([opt, "ebuild-pkg,ebuild-raw-pkg"])
+            .write_stdin(data.as_str())
+            .to_reports()
+            .unwrap();
+        assert_eq!(&multiple_expected, &reports);
     }
 }
 
