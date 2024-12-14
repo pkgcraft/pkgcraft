@@ -93,7 +93,10 @@ pub(crate) fn sorted_dir_list<P: AsRef<Path>>(path: P) -> WalkDir {
         .max_depth(1)
 }
 
-pub(crate) fn relative_paths(path: &Utf8Path) -> impl Iterator<Item = PathBuf> + '_ {
+pub(crate) fn relative_paths<'a, P>(path: P) -> impl Iterator<Item = PathBuf> + 'a
+where
+    P: AsRef<Path> + Copy + 'a,
+{
     WalkDir::new(path)
         .min_depth(1)
         .into_iter()
