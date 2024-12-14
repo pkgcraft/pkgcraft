@@ -192,8 +192,8 @@ impl Command {
                         .filter(|uri| restrict.matches(uri.as_str()))
                         .filter_map(|uri| {
                             let path = self.dir.join(uri.filename());
-                            let manifest = pkg.manifest().get(uri.filename());
                             if self.force || !path.exists() {
+                                let manifest = pkg.manifest().get(uri.filename());
                                 Some((uri.into_owned(), path, manifest.cloned()))
                             } else {
                                 None
