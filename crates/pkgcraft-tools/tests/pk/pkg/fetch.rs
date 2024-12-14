@@ -262,7 +262,7 @@ async fn fetch() {
 }
 
 #[tokio::test]
-async fn resumed() {
+async fn resume() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
@@ -347,4 +347,48 @@ async fn custom_mirror() {
         .success();
     let data = fs::read_to_string("file1").unwrap();
     assert_eq!(&data, "test1");
+}
+
+#[tokio::test]
+async fn redirect() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(ResponseTemplate::new(301).insert_header("Location", "file1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file1"))
+        .respond_with(ResponseTemplate::new(302).insert_header("Location", "file2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test redirect"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    cmd("pk pkg fetch")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file").unwrap();
+    assert_eq!(&data, "test redirect");
 }

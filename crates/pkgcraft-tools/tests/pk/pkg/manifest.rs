@@ -215,7 +215,7 @@ async fn current_dir() {
 }
 
 #[tokio::test]
-async fn resumed() {
+async fn resume() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
@@ -258,6 +258,52 @@ async fn resumed() {
     let data = fs::read_to_string(&path).unwrap();
     let expected = indoc::indoc! {"
         DIST file 11 BLAKE2B 1ca3b378d699a0106a2b3ff84f9daec7596e484e205494c6c81c643b91dadc85c3ddca3fc0f77c16b03922fbb9b38fd11cea1b046b3dc5621af1a5cf054bc1fa SHA512 bca6bd2bb722d500e9e5d9c570a7e382d17e978f4dae51ca689915333f9e8fc4d193dcbcc1adc4c26c010eb1e14ba7f518a8e01f02a4c5f0c75cdab994874c69
+    "};
+    assert_eq!(&data, expected);
+}
+
+#[tokio::test]
+async fn redirect() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(ResponseTemplate::new(301).insert_header("Location", "file1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file1"))
+        .respond_with(ResponseTemplate::new(302).insert_header("Location", "file2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test redirect"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    cmd("pk pkg manifest")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    // verify manifest content
+    let path = repo.join("cat/pkg/Manifest");
+    let data = fs::read_to_string(&path).unwrap();
+    let expected = indoc::indoc! {"
+        DIST file 13 BLAKE2B 24855fa68b937586d7f6fdab98bd2d5208c085f9c63da71fea0625138e511ba26000fcf7ffd47a2a4b55a656c47603c5c056ca4210f792cc35e7daf4b8967b24 SHA512 06deeee1e90583d80396ce7bbd4004408a82431af818573dc2fa78d1756622f5be65cdb22c2199c4e25821337957251aea543a82b650f72731f84fd009fa935e
     "};
     assert_eq!(&data, expected);
 }
