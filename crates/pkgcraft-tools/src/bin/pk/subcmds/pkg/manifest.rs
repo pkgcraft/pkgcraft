@@ -332,6 +332,7 @@ impl Command {
                 .await;
         });
 
+        // clear global progress bar
         if let Some(pb) = global_pb.as_ref() {
             pb.finish_and_clear();
         }

@@ -270,6 +270,11 @@ impl Command {
                 .await;
         });
 
+        // clear global progress bar
+        if let Some(pb) = global_pb.as_ref() {
+            pb.finish_and_clear();
+        }
+
         let status = iter.failed() | failed.load(Ordering::Relaxed);
         Ok(ExitCode::from(status as u8))
     }
