@@ -72,7 +72,7 @@ async fn unsupported() {
         .arg(repo)
         .assert()
         .stdout("")
-        .stderr(contains("failed to get: ftp://pkgcraft.pkgcraft/file"))
+        .stderr(contains("fetch failed: ftp://pkgcraft.pkgcraft/file: unsupported URI"))
         .failure()
         .code(1);
 }
@@ -109,7 +109,7 @@ async fn timeout() {
             .arg(repo)
             .assert()
             .stdout("")
-            .stderr(contains(format!("failed to get: {uri}/file")))
+            .stderr(contains(format!("fetch failed: {uri}/file: request timed out")))
             .failure()
             .code(1);
     }

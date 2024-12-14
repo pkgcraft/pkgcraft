@@ -29,7 +29,7 @@ impl Uri {
 
     /// Return the string slice for the [`Uri`].
     pub fn as_str(&self) -> &str {
-        self.as_ref()
+        &self.uri
     }
 
     /// Return the file name for the Uri.

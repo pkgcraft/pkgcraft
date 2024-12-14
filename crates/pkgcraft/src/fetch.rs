@@ -7,6 +7,26 @@ use tokio::io::AsyncWriteExt;
 use crate::dep::Uri;
 use crate::error::Error;
 
+/// Convert an error into an error string.
+trait IntoReason {
+    fn into_reason(self) -> String;
+}
+
+impl IntoReason for reqwest::Error {
+    fn into_reason(self) -> String {
+        if self.is_timeout() {
+            "request timed out".to_string()
+        } else if self.is_builder() {
+            "unsupported URI".to_string()
+        } else if let Some(value) = self.status() {
+            value.to_string()
+        } else {
+            // drop URL from error to avoid potentially leaking authentication parameters
+            self.without_url().to_string()
+        }
+    }
+}
+
 /// Download the file related to a URI.
 pub async fn download(
     client: &Client,
@@ -45,7 +65,10 @@ pub async fn download(
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .map_err(|e| Error::InvalidValue(format!("failed to get: {uri}: {e}")))?;
+        .map_err(|e| Error::FetchFailed {
+            uri: uri.as_str().to_string(),
+            reason: e.into_reason(),
+        })?;
 
     // create file or open it for appending
     let mut file = match response.status() {

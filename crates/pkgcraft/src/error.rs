@@ -46,8 +46,8 @@ pub enum Error {
     RepoInit(String),
     #[error("failed syncing repo: {0}")]
     RepoSync(String),
-    #[error("timed out: {0}")]
-    Timeout(String),
+    #[error("fetch failed: {uri}: {reason}")]
+    FetchFailed { uri: String, reason: String },
 }
 
 impl From<Error> for scallop::Error {
