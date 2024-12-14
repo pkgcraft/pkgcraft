@@ -56,6 +56,27 @@ fn invalid_pkgs() {
 }
 
 #[tokio::test]
+async fn unsupported() {
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with unsupported URI"
+        SRC_URI="ftp://pkgcraft.pkgcraft/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    cmd("pk pkg manifest")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("failed to get: ftp://pkgcraft.pkgcraft/file"))
+        .failure()
+        .code(1);
+}
+
+#[tokio::test]
 async fn timeout() {
     let server = MockServer::start().await;
     let delay = Duration::from_secs(1);
