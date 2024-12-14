@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use regex::Regex;
 
@@ -35,10 +36,21 @@ struct Check {
 
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
-        let mut lines = pkg.data().lines();
+        let lines: Vec<_> = pkg
+            .data()
+            .lines()
+            .take(2)
+            .filter(|x| x.starts_with('#'))
+            .collect();
+        let Some((copyright, license)) = lines.into_iter().collect_tuple() else {
+            HeaderInvalid
+                .version(pkg)
+                .message("missing copyright and/or license")
+                .report(filter);
+            return;
+        };
 
-        let mut line = lines.next().unwrap_or_default();
-        if let Some(m) = self.copyright_re.captures(line.trim()) {
+        if let Some(m) = self.copyright_re.captures(copyright.trim()) {
             // Copyright policy is active since 2018-10-21 via GLEP 76, so it applies to all
             // ebuilds committed in 2019 and later.
             let end: u64 = m.name("end").unwrap().as_str().parse().unwrap();
@@ -53,32 +65,19 @@ impl EbuildRawPkgCheck for Check {
                 }
             }
         } else {
-            let mut report = HeaderInvalid.version(pkg);
-
-            if !line.trim().starts_with('#') || line.trim().is_empty() {
-                report = report.message("missing copyright header");
-            } else {
-                report = report
-                    .message(format!("invalid copyright: {line}"))
-                    .location(1);
-            };
-
-            report.report(filter);
+            HeaderInvalid
+                .version(pkg)
+                .message(format!("invalid copyright: {copyright}"))
+                .location(1)
+                .report(filter);
         }
 
-        line = lines.next().unwrap_or_default();
-        if line != GENTOO_LICENSE_HEADER {
-            let mut report = HeaderInvalid.version(pkg);
-
-            if !line.trim().starts_with('#') || line.trim().is_empty() {
-                report = report.message("missing license header");
-            } else {
-                report = report
-                    .message(format!("invalid license: {line}"))
-                    .location(2);
-            };
-
-            report.report(filter);
+        if license != GENTOO_LICENSE_HEADER {
+            HeaderInvalid
+                .version(pkg)
+                .message(format!("invalid license: {license}"))
+                .location(2)
+                .report(filter);
         }
     }
 }

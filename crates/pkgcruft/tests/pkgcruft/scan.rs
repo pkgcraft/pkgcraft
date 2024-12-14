@@ -468,7 +468,7 @@ fn filters() {
             .arg(&gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_unordered_eq!(&reports, &expected[4..]);
+        assert_unordered_eq!(&reports, &expected[5..]);
 
         // latest inverted
         let reports = cmd("pkgcruft scan -R json")
@@ -477,7 +477,7 @@ fn filters() {
             .arg(&gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_unordered_eq!(&reports, &expected[..4]);
+        assert_unordered_eq!(&reports, &expected[..5]);
 
         // chaining a filter and its inversion returns no results
         let reports = cmd("pkgcruft scan -R json")
@@ -496,7 +496,7 @@ fn filters() {
             .arg(&gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_unordered_eq!(reports, [&expected[1..=1], &expected[4..]].concat());
+        assert_unordered_eq!(reports, [&expected[1..=1], &expected[5..]].concat());
 
         // latest slots inverted
         let reports = cmd("pkgcruft scan -R json")
@@ -505,7 +505,7 @@ fn filters() {
             .arg(&gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_unordered_eq!(reports, [&expected[..1], &expected[2..4]].concat());
+        assert_unordered_eq!(reports, [&expected[..1], &expected[2..5]].concat());
 
         // live
         let live_reports = glob_reports!("{primary_repo_path}/Keywords/KeywordsLive/reports.json");
@@ -543,7 +543,7 @@ fn filters() {
             .arg(&gentoo_repo_path)
             .to_reports()
             .unwrap();
-        assert_unordered_eq!(&reports, &expected[3..]);
+        assert_unordered_eq!(&reports, &expected[3..5]);
 
         // stable + latest
         let reports = cmd("pkgcruft scan -R json")

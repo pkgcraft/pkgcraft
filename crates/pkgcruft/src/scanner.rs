@@ -499,13 +499,13 @@ mod tests {
         assert_unordered_eq!(&reports, &expected);
 
         for (filters, expected) in [
-            (vec!["latest"], &expected[4..]),
-            (vec!["!latest"], &expected[..4]),
+            (vec!["latest"], &expected[5..]),
+            (vec!["!latest"], &expected[..5]),
             (vec!["latest", "!latest"], &[]),
-            (vec!["latest-slots"], &[&expected[1..=1], &expected[4..]].concat()),
-            (vec!["!latest-slots"], &[&expected[..1], &expected[2..4]].concat()),
+            (vec!["latest-slots"], &[&expected[1..=1], &expected[5..]].concat()),
+            (vec!["!latest-slots"], &[&expected[..1], &expected[2..5]].concat()),
             (vec!["stable"], &expected[..3]),
-            (vec!["!stable"], &expected[3..]),
+            (vec!["!stable"], &expected[3..5]),
             (vec!["stable", "latest"], &expected[2..=2]),
             (vec!["masked"], &expected[..1]),
             (vec!["!masked"], &expected[1..]),
@@ -514,7 +514,8 @@ mod tests {
         ] {
             scanner = scanner.filters(filters.iter().map(|x| x.parse().unwrap()));
             let reports: Vec<_> = scanner.run(repo).unwrap().collect();
-            assert_unordered_eq!(&reports, expected);
+            let failed = filters.iter().join(", ");
+            assert_unordered_eq!(&reports, expected, format!("failed filters: {failed}"));
         }
     }
 
