@@ -262,6 +262,45 @@ async fn fetch() {
 }
 
 #[tokio::test]
+async fn resumed() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test resume"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    // create a partially downloaded file
+    let partial_file = dir.path().join("file.part");
+    fs::write(&partial_file, "test").unwrap();
+
+    cmd("pk pkg fetch")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file").unwrap();
+    assert_eq!(&data, "test resume");
+    assert!(!partial_file.exists());
+}
+
+#[tokio::test]
 async fn custom_mirror() {
     let server = MockServer::start().await;
     let uri = server.uri();
