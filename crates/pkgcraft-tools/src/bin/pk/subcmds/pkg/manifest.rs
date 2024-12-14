@@ -242,7 +242,10 @@ impl Command {
                 if uris.peek().is_some() {
                     pkgs.entry((pkg.repo(), pkg.cpn().clone()))
                         .or_default()
-                        .extend(uris);
+                        .extend(uris.map(|uri| {
+                            let path = dir.join(uri.filename());
+                            (uri, path)
+                        }))
                 }
             } else {
                 warn!("skipping fetch restricted package: {pkg}");
@@ -281,8 +284,7 @@ impl Command {
         tokio().block_on(async {
             // assume existing files are completely downloaded
             let targets = pkgs.iter().flat_map(|((repo, cpn), uris)| {
-                uris.iter().filter_map(move |uri| {
-                    let path = dir.join(uri.filename());
+                uris.iter().filter_map(move |(uri, path)| {
                     if !path.exists() {
                         let pkg_manifest = repo.metadata().manifest(cpn);
                         let manifest = pkg_manifest.get(uri.filename());
@@ -351,7 +353,7 @@ impl Command {
                 };
 
                 // collect files for hashing
-                let distfiles = uris.into_par_iter().map(|x| dir.join(x.filename()));
+                let distfiles = uris.into_par_iter().map(|(_, path)| path);
 
                 // update manifest entries
                 let thick = self
