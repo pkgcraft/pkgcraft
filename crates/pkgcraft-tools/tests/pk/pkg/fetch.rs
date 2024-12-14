@@ -103,6 +103,67 @@ async fn unsupported() {
 }
 
 #[tokio::test]
+async fn force() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    cmd("pk pkg fetch")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file").unwrap();
+    assert_eq!(&data, "test");
+    let mut prev_modified = fs::metadata("file").unwrap().modified().unwrap();
+
+    // re-run skips downloaded file
+    cmd("pk pkg fetch")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let mut modified = fs::metadata("file").unwrap().modified().unwrap();
+    assert_eq!(modified, prev_modified);
+
+    // -f/--force causes download
+    for opt in ["-f", "--force"] {
+        cmd("pk pkg fetch")
+            .arg(opt)
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+        modified = fs::metadata("file").unwrap().modified().unwrap();
+        assert_ne!(modified, prev_modified);
+        prev_modified = modified;
+        let data = fs::read_to_string("file").unwrap();
+        assert_eq!(&data, "test");
+    }
+}
+
+#[tokio::test]
 async fn timeout() {
     let server = MockServer::start().await;
     let delay = Duration::from_secs(1);
