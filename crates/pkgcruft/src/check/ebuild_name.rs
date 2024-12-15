@@ -42,7 +42,7 @@ impl CpnCheck for Check {
             }
         }
 
-        for (_, versions) in cpvs {
+        for versions in cpvs.values() {
             if versions.len() > 1 {
                 let versions = versions.iter().sorted().join(", ");
                 EbuildVersionsEqual
