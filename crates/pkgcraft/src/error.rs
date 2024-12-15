@@ -3,7 +3,8 @@ use std::io;
 
 use serde::{Deserialize, Serialize};
 
-use crate::pkg::Package;
+use crate::dep::Cpv;
+use crate::pkg::{Package, RepoPackage};
 use crate::repo::RepoFormat;
 
 mod peg;
@@ -32,10 +33,18 @@ pub enum Error {
     },
     #[error("{kind} repo can't be manually loaded: {id}")]
     LoadRepo { kind: RepoFormat, id: String },
-    #[error("invalid pkg: {id}: {err}")]
-    InvalidPkg { id: String, err: String },
-    #[error("{id}: {err}")]
-    Pkg { id: String, err: String },
+    #[error("invalid pkg: {cpv}::{repo}: {err}")]
+    InvalidPkg {
+        cpv: Box<Cpv>,
+        repo: String,
+        err: String,
+    },
+    #[error("{cpv}::{repo}: {err}")]
+    Pkg {
+        cpv: Box<Cpv>,
+        repo: String,
+        err: String,
+    },
     #[error("{0}")]
     IO(String),
     #[error("{0}")]
@@ -71,17 +80,19 @@ impl From<Infallible> for Error {
     }
 }
 
-pub(crate) trait PackageError: Package {
+pub(crate) trait PackageError: Package + RepoPackage {
     fn invalid_pkg_err<E: std::error::Error>(&self, err: E) -> Error {
         Error::InvalidPkg {
-            id: self.to_string(),
+            cpv: Box::new(self.cpv().clone()),
+            repo: self.repo().to_string(),
             err: err.to_string(),
         }
     }
 
     fn pkg_err<E: std::error::Error>(&self, err: E) -> Error {
         Error::Pkg {
-            id: self.to_string(),
+            cpv: Box::new(self.cpv().clone()),
+            repo: self.repo().to_string(),
             err: err.to_string(),
         }
     }

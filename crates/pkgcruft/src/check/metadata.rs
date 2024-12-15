@@ -34,7 +34,7 @@ impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
         if let Err(e) = self.pool.metadata(self.repo, cpv, false, false) {
             match e {
-                InvalidPkg { id: _, err } => MetadataError.version(cpv).message(err).report(filter),
+                InvalidPkg { err, .. } => MetadataError.version(cpv).message(err).report(filter),
                 _ => unreachable!("{cpv}: unhandled metadata error: {e}"),
             }
         }

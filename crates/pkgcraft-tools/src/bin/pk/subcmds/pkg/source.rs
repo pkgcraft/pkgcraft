@@ -7,7 +7,7 @@ use clap::Args;
 use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild_raw, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage, Source};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
 use pkgcraft::Error;
@@ -105,7 +105,8 @@ where
             let start = Instant::now();
             // TODO: move error mapping into pkgcraft for pkg sourcing
             pkg.source().map_err(|e| Error::InvalidPkg {
-                id: pkg.to_string(),
+                cpv: Box::new(pkg.cpv().clone()),
+                repo: pkg.repo().to_string(),
                 err: e.to_string(),
             })?;
             let source_elapsed = micros!(start.elapsed());
@@ -179,7 +180,8 @@ where
         // TODO: move error mapping into pkgcraft for pkg sourcing
         let pkg = pkg?;
         pkg.source().map_err(|e| Error::InvalidPkg {
-            id: pkg.to_string(),
+            cpv: Box::new(pkg.cpv().clone()),
+            repo: pkg.repo().to_string(),
             err: e.to_string(),
         })?;
         let elapsed = micros!(start.elapsed());
