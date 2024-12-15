@@ -174,253 +174,152 @@ impl CheckRunner {
     }
 }
 
-/// Check runner for ebuild package checks.
-struct EbuildPkgCheckRunner {
-    pkg_checks: IndexMap<Check, EbuildPkgRunner>,
-    pkg_set_checks: IndexMap<Check, EbuildPkgSetRunner>,
-    source: EbuildPkgSource,
-    cache: PkgCache<EbuildPkg>,
-    repo: &'static EbuildRepo,
-}
-
-impl EbuildPkgCheckRunner {
-    fn new(
-        repo: &'static EbuildRepo,
-        restrict: Option<&Restrict>,
-        filters: IndexSet<PkgFilter>,
-    ) -> Self {
-        let source = EbuildPkgSource::new(repo, filters);
-        // create pkg cache when running in pkg or version scope
-        let cache = if let Some(restrict) = restrict {
-            PkgCache::new(&source, restrict)
-        } else {
-            Default::default()
-        };
-
-        Self {
-            pkg_checks: Default::default(),
-            pkg_set_checks: Default::default(),
-            source,
-            cache,
-            repo,
+/// Create generic package check runners.
+macro_rules! make_pkg_check_runner {
+    ($pkg_check_runner:ident, $pkg_runner:ty, $pkg_set_runner:ty, $source:ty, $pkg:ty) => {
+        /// Check runner for package checks.
+        struct $pkg_check_runner {
+            pkg_checks: IndexMap<Check, $pkg_runner>,
+            pkg_set_checks: IndexMap<Check, $pkg_set_runner>,
+            source: $source,
+            cache: PkgCache<$pkg>,
+            repo: &'static EbuildRepo,
         }
-    }
 
-    /// Add a check to the check runner.
-    fn add_check(&mut self, check: Check) {
-        match &check.scope {
-            Scope::Version => {
-                self.pkg_checks.insert(check, check.to_runner(self.repo));
+        impl $pkg_check_runner {
+            fn new(
+                repo: &'static EbuildRepo,
+                restrict: Option<&Restrict>,
+                filters: IndexSet<PkgFilter>,
+            ) -> Self {
+                let source = <$source>::new(repo, filters);
+                // create pkg cache when running in pkg or version scope
+                let cache = if let Some(restrict) = restrict {
+                    PkgCache::new(&source, restrict)
+                } else {
+                    Default::default()
+                };
+
+                Self {
+                    pkg_checks: Default::default(),
+                    pkg_set_checks: Default::default(),
+                    source,
+                    cache,
+                    repo,
+                }
             }
-            Scope::Package => {
-                self.pkg_set_checks
-                    .insert(check, check.to_runner(self.repo));
-            }
-            _ => unreachable!("unsupported check: {check}"),
-        }
-    }
 
-    /// Return the iterator of registered checks.
-    fn iter(&self) -> impl Iterator<Item = Check> + '_ {
-        self.pkg_checks
-            .keys()
-            .chain(self.pkg_set_checks.keys())
-            .cloned()
-    }
-
-    /// Run all checks for a Cpn.
-    fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
-        let source = &self.source;
-        let mut pkgs = Ok(vec![]);
-
-        for result in source.iter_restrict(cpn) {
-            match result {
-                Ok(pkg) => {
-                    for (check, runner) in &self.pkg_checks {
-                        let now = Instant::now();
-                        runner.run(&pkg, filter);
-                        debug!("{check}: {pkg}: {:?}", now.elapsed());
+            /// Add a check to the check runner.
+            fn add_check(&mut self, check: Check) {
+                match &check.scope {
+                    Scope::Version => {
+                        self.pkg_checks.insert(check, check.to_runner(self.repo));
                     }
+                    Scope::Package => {
+                        self.pkg_set_checks
+                            .insert(check, check.to_runner(self.repo));
+                    }
+                    _ => unreachable!("unsupported check: {check}"),
+                }
+            }
 
-                    if !self.pkg_set_checks.is_empty() {
-                        if let Ok(pkgs) = pkgs.as_mut() {
-                            pkgs.push(pkg);
+            /// Return the iterator of registered checks.
+            fn iter(&self) -> impl Iterator<Item = Check> + '_ {
+                self.pkg_checks
+                    .keys()
+                    .chain(self.pkg_set_checks.keys())
+                    .cloned()
+            }
+
+            /// Run all checks for a Cpn.
+            fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+                let source = &self.source;
+                let mut pkgs = Ok(vec![]);
+
+                for result in source.iter_restrict(cpn) {
+                    match result {
+                        Ok(pkg) => {
+                            for (check, runner) in &self.pkg_checks {
+                                let now = Instant::now();
+                                runner.run(&pkg, filter);
+                                debug!("{check}: {pkg}: {:?}", now.elapsed());
+                            }
+
+                            if !self.pkg_set_checks.is_empty() {
+                                if let Ok(pkgs) = pkgs.as_mut() {
+                                    pkgs.push(pkg);
+                                }
+                            }
+                        }
+                        Err(e) => pkgs = Err(e),
+                    }
+                }
+
+                // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
+                // ignores empty pkgs.
+                match &pkgs {
+                    Ok(pkgs) if !pkgs.is_empty() => {
+                        for (check, runner) in &self.pkg_set_checks {
+                            let now = Instant::now();
+                            runner.run(cpn, pkgs, filter);
+                            debug!("{check}: {cpn}: {:?}", now.elapsed());
                         }
                     }
-                }
-                Err(e) => pkgs = Err(e),
-            }
-        }
-
-        // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
-        // ignores empty pkgs.
-        match &pkgs {
-            Ok(pkgs) if !pkgs.is_empty() => {
-                for (check, runner) in &self.pkg_set_checks {
-                    let now = Instant::now();
-                    runner.run(cpn, pkgs, filter);
-                    debug!("{check}: {cpn}: {:?}", now.elapsed());
+                    Ok(_) => (),
+                    Err(e) => warn!("skipping {source} set checks due to {e}"),
                 }
             }
-            Ok(_) => (),
-            Err(e) => warn!("skipping {source} set checks due to {e}"),
-        }
-    }
 
-    /// Run a check for a Cpn.
-    fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
-        if let Some(runner) = self.pkg_set_checks.get(check) {
-            match self.cache.get_pkgs() {
-                Ok(pkgs) => {
-                    debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
-                    let now = Instant::now();
-                    runner.run(cpn, pkgs, filter);
-                    debug!("{check}: {cpn}: {:?}", now.elapsed());
-                }
-                Err(e) => warn!("{check}: skipping due to {e}"),
-            }
-        }
-    }
-
-    /// Run a check for a Cpv.
-    fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
-        if let Some(runner) = self.pkg_checks.get(check) {
-            match self.cache.get_pkg(cpv) {
-                Some(Ok(pkg)) => {
-                    let now = Instant::now();
-                    runner.run(pkg, filter);
-                    debug!("{check}: {cpv}: {:?}", now.elapsed());
-                }
-                Some(Err(e)) => warn!("{check}: skipping due to {e}"),
-                None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
-            }
-        }
-    }
-}
-
-/// Check runner for raw ebuild package checks.
-struct EbuildRawPkgCheckRunner {
-    pkg_checks: IndexMap<Check, EbuildRawPkgRunner>,
-    pkg_set_checks: IndexMap<Check, EbuildRawPkgSetRunner>,
-    source: EbuildRawPkgSource,
-    cache: PkgCache<EbuildRawPkg>,
-    repo: &'static EbuildRepo,
-}
-
-impl EbuildRawPkgCheckRunner {
-    fn new(
-        repo: &'static EbuildRepo,
-        restrict: Option<&Restrict>,
-        filters: IndexSet<PkgFilter>,
-    ) -> Self {
-        let source = EbuildRawPkgSource::new(repo, filters);
-        // create pkg cache when running in pkg or version scope
-        let cache = if let Some(restrict) = restrict {
-            PkgCache::new(&source, restrict)
-        } else {
-            Default::default()
-        };
-
-        Self {
-            pkg_checks: Default::default(),
-            pkg_set_checks: Default::default(),
-            source,
-            cache,
-            repo,
-        }
-    }
-
-    /// Add a check to the check runner.
-    fn add_check(&mut self, check: Check) {
-        match &check.scope {
-            Scope::Version => {
-                self.pkg_checks.insert(check, check.to_runner(self.repo));
-            }
-            Scope::Package => {
-                self.pkg_set_checks
-                    .insert(check, check.to_runner(self.repo));
-            }
-            _ => unreachable!("unsupported check: {check}"),
-        }
-    }
-
-    /// Return the iterator of registered checks.
-    fn iter(&self) -> impl Iterator<Item = Check> + '_ {
-        self.pkg_checks
-            .keys()
-            .chain(self.pkg_set_checks.keys())
-            .cloned()
-    }
-
-    /// Run all checks for a Cpn.
-    fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
-        let source = &self.source;
-        let mut pkgs = Ok(vec![]);
-
-        for result in source.iter_restrict(cpn) {
-            match result {
-                Ok(pkg) => {
-                    for (check, runner) in &self.pkg_checks {
-                        let now = Instant::now();
-                        runner.run(&pkg, filter);
-                        debug!("{check}: {pkg}: {:?}", now.elapsed());
-                    }
-
-                    if !self.pkg_set_checks.is_empty() {
-                        if let Ok(pkgs) = pkgs.as_mut() {
-                            pkgs.push(pkg);
+            /// Run a check for a Cpn.
+            fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
+                if let Some(runner) = self.pkg_set_checks.get(check) {
+                    match self.cache.get_pkgs() {
+                        Ok(pkgs) => {
+                            debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
+                            let now = Instant::now();
+                            runner.run(cpn, pkgs, filter);
+                            debug!("{check}: {cpn}: {:?}", now.elapsed());
                         }
+                        Err(e) => warn!("{check}: skipping due to {e}"),
                     }
                 }
-                Err(e) => pkgs = Err(e),
             }
-        }
 
-        // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
-        // ignores empty pkgs.
-        match &pkgs {
-            Ok(pkgs) if !pkgs.is_empty() => {
-                for (check, runner) in &self.pkg_set_checks {
-                    let now = Instant::now();
-                    runner.run(cpn, pkgs, filter);
-                    debug!("{check}: {cpn}: {:?}", now.elapsed());
+            /// Run a check for a Cpv.
+            fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+                if let Some(runner) = self.pkg_checks.get(check) {
+                    match self.cache.get_pkg(cpv) {
+                        Some(Ok(pkg)) => {
+                            let now = Instant::now();
+                            runner.run(pkg, filter);
+                            debug!("{check}: {cpv}: {:?}", now.elapsed());
+                        }
+                        Some(Err(e)) => warn!("{check}: skipping due to {e}"),
+                        None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
+                    }
                 }
             }
-            Ok(_) => (),
-            Err(e) => warn!("skipping {source} set checks due to {e}"),
         }
-    }
-
-    /// Run a check for a Cpn.
-    fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
-        if let Some(runner) = self.pkg_set_checks.get(check) {
-            match self.cache.get_pkgs() {
-                Ok(pkgs) => {
-                    debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
-                    let now = Instant::now();
-                    runner.run(cpn, pkgs, filter);
-                    debug!("{check}: {cpn}: {:?}", now.elapsed());
-                }
-                Err(e) => warn!("{check}: skipping due to {e}"),
-            }
-        }
-    }
-
-    /// Run a check for a Cpv.
-    fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
-        if let Some(runner) = self.pkg_checks.get(check) {
-            match self.cache.get_pkg(cpv) {
-                Some(Ok(pkg)) => {
-                    let now = Instant::now();
-                    runner.run(pkg, filter);
-                    debug!("{check}: {cpv}: {:?}", now.elapsed());
-                }
-                Some(Err(e)) => warn!("{check}: skipping due to {e}"),
-                None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
-            }
-        }
-    }
+    };
 }
+
+// Check runner for ebuild package checks.
+make_pkg_check_runner!(
+    EbuildPkgCheckRunner,
+    EbuildPkgRunner,
+    EbuildPkgSetRunner,
+    EbuildPkgSource,
+    EbuildPkg
+);
+
+// Check runner for raw ebuild package checks.
+make_pkg_check_runner!(
+    EbuildRawPkgCheckRunner,
+    EbuildRawPkgRunner,
+    EbuildRawPkgSetRunner,
+    EbuildRawPkgSource,
+    EbuildRawPkg
+);
 
 /// Check runner for Cpn objects.
 struct CpnCheckRunner {
