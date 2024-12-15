@@ -73,12 +73,9 @@ impl SyncCheckRunner {
         Self { runners }
     }
 
-    /// Return an iterator of filtered checks.
-    pub(super) fn checks<'a, F>(&'a self, filter: F) -> impl Iterator<Item = Check> + 'a
-    where
-        F: Fn(&Check) -> bool + 'a,
-    {
-        self.runners.values().flat_map(|r| r.iter()).filter(filter)
+    /// Return an iterator of all the runner's checks.
+    pub(super) fn checks(&self) -> impl Iterator<Item = Check> + '_ {
+        self.runners.values().flat_map(|r| r.iter())
     }
 
     /// Run all check runners in order of priority.

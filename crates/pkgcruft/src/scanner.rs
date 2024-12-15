@@ -211,12 +211,12 @@ fn pkg_producer(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
-        for check in runner.checks(|c| !c.scope.is_pkg()) {
+        for check in runner.checks().filter(|c| !c.scope.is_pkg()) {
             tx.send((Some(check), Target::Repo(repo))).ok();
         }
 
         // parallelize per package if relevant checks are selected
-        if runner.checks(|c| c.scope.is_pkg()).next().is_some() {
+        if runner.checks().any(|c| c.scope.is_pkg()) {
             for cpn in repo.iter_cpn_restrict(&restrict) {
                 tx.send((None, Target::Cpn(cpn))).ok();
             }
@@ -284,13 +284,13 @@ fn version_producer(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in repo.iter_cpv_restrict(&restrict) {
-            for check in runner.checks(|c| c.scope == Scope::Version) {
+            for check in runner.checks().filter(|c| c.scope == Scope::Version) {
                 tx.send((check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 
         for cpn in repo.iter_cpn_restrict(&restrict) {
-            for check in runner.checks(|c| c.scope == Scope::Package) {
+            for check in runner.checks().filter(|c| c.scope == Scope::Package) {
                 tx.send((check, Target::Cpn(cpn.clone()))).ok();
             }
         }
