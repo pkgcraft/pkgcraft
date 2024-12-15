@@ -96,21 +96,19 @@ impl SyncCheckRunner {
 
     /// Run a specific check.
     pub(super) fn run_check(&self, check: Check, target: Target, filter: &mut ReportFilter) {
-        if let Some(runner) = self.runners.get(&check.source) {
-            match (runner, &target) {
-                (CheckRunner::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
-                (CheckRunner::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(&check, cpn, filter),
-                (CheckRunner::EbuildRawPkg(r), Target::Cpv(cpv)) => {
-                    r.run_check(&check, cpv, filter)
-                }
-                (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => {
-                    r.run_pkg_set(&check, cpn, filter)
-                }
-                (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_check(&check, cpn, filter),
-                (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
-                (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_check(&check, repo, filter),
-                _ => panic!("incompatible target {target} for check: {check}"),
-            }
+        let runner = self
+            .runners
+            .get(&check.source)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        match (runner, &target) {
+            (CheckRunner::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
+            (CheckRunner::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(&check, cpn, filter),
+            (CheckRunner::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
+            (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(&check, cpn, filter),
+            (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_check(&check, cpn, filter),
+            (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
+            (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_check(&check, repo, filter),
+            _ => panic!("incompatible target {target} for check: {check}"),
         }
     }
 }
@@ -272,31 +270,35 @@ macro_rules! make_pkg_check_runner {
 
             /// Run a check for a Cpn.
             fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
-                if let Some(runner) = self.pkg_set_checks.get(check) {
-                    match self.cache.get_pkgs() {
-                        Ok(pkgs) => {
-                            debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
-                            let now = Instant::now();
-                            runner.run(cpn, pkgs, filter);
-                            debug!("{check}: {cpn}: {:?}", now.elapsed());
-                        }
-                        Err(e) => warn!("{check}: skipping due to {e}"),
+                match self.cache.get_pkgs() {
+                    Ok(pkgs) => {
+                        debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
+                        let runner = self
+                            .pkg_set_checks
+                            .get(check)
+                            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+                        let now = Instant::now();
+                        runner.run(cpn, pkgs, filter);
+                        debug!("{check}: {cpn}: {:?}", now.elapsed());
                     }
+                    Err(e) => warn!("{check}: skipping due to {e}"),
                 }
             }
 
             /// Run a check for a Cpv.
             fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
-                if let Some(runner) = self.pkg_checks.get(check) {
-                    match self.cache.get_pkg(cpv) {
-                        Some(Ok(pkg)) => {
-                            let now = Instant::now();
-                            runner.run(pkg, filter);
-                            debug!("{check}: {cpv}: {:?}", now.elapsed());
-                        }
-                        Some(Err(e)) => warn!("{check}: skipping due to {e}"),
-                        None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
+                match self.cache.get_pkg(cpv) {
+                    Some(Ok(pkg)) => {
+                        let now = Instant::now();
+                        let runner = self
+                            .pkg_checks
+                            .get(check)
+                            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+                        runner.run(pkg, filter);
+                        debug!("{check}: {cpv}: {:?}", now.elapsed());
                     }
+                    Some(Err(e)) => warn!("{check}: skipping due to {e}"),
+                    None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
                 }
             }
         }
@@ -361,11 +363,13 @@ impl CpnCheckRunner {
 
     /// Run a check for a Cpn.
     fn run_check(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
-        if let Some(runner) = self.checks.get(check) {
-            let now = Instant::now();
-            runner.run(cpn, filter);
-            debug!("{check}: {cpn}: {:?}", now.elapsed());
-        }
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.run(cpn, filter);
+        debug!("{check}: {cpn}: {:?}", now.elapsed());
     }
 }
 
@@ -411,11 +415,13 @@ impl CpvCheckRunner {
 
     /// Run a check for a Cpv.
     fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
-        if let Some(runner) = self.checks.get(check) {
-            let now = Instant::now();
-            runner.run(cpv, filter);
-            debug!("{check}: {cpv}: {:?}", now.elapsed());
-        }
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.run(cpv, filter);
+        debug!("{check}: {cpv}: {:?}", now.elapsed());
     }
 }
 
@@ -450,10 +456,12 @@ impl RepoCheckRunner {
 
     /// Run a check for a repo.
     fn run_check(&self, check: &Check, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if let Some(runner) = self.checks.get(check) {
-            let now = Instant::now();
-            runner.run(repo, filter);
-            debug!("{check}: {repo}: {:?}", now.elapsed());
-        }
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.run(repo, filter);
+        debug!("{check}: {repo}: {:?}", now.elapsed());
     }
 }
