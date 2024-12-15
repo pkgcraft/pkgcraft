@@ -235,14 +235,13 @@ pub(crate) trait Source: fmt::Display {
     fn is_filtered(&self) -> bool;
 
     /// Return the iterator of items matching a restriction.
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R)
-        -> Box<dyn Iterator<Item = Self::Item> + '_>;
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_;
 
     /// Return the parallelized, ordered iterator of items matching a restriction.
     fn iter_restrict_ordered<R: Into<Restrict>>(
         &self,
         val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_>;
+    ) -> impl Iterator<Item = Self::Item> + '_;
 }
 
 pub(crate) struct EbuildPkgSource {
@@ -276,33 +275,30 @@ impl Source for EbuildPkgSource {
         !self.filters.is_empty()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(
-        &self,
-        val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
         if self.is_filtered() {
-            Box::new(
+            Either::Left(
                 self.filters
                     .iter_restrict(self.repo, val)
                     .flat_map(|pkg| self.repo.iter_restrict(&pkg)),
             )
         } else {
-            Box::new(self.repo.iter_restrict(val))
+            Either::Right(self.repo.iter_restrict(val))
         }
     }
 
     fn iter_restrict_ordered<R: Into<Restrict>>(
         &self,
         val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
+    ) -> impl Iterator<Item = Self::Item> + '_ {
         if self.is_filtered() {
-            Box::new(
+            Either::Left(
                 self.filters
                     .iter_restrict_ordered(self.repo, val)
                     .flat_map(|pkg| self.repo.iter_restrict_ordered(&pkg)),
             )
         } else {
-            Box::new(self.repo.iter_restrict_ordered(val))
+            Either::Right(self.repo.iter_restrict_ordered(val))
         }
     }
 }
@@ -338,33 +334,30 @@ impl Source for EbuildRawPkgSource {
         !self.filters.is_empty()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(
-        &self,
-        val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
+    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
         if self.is_filtered() {
-            Box::new(
+            Either::Left(
                 self.filters
                     .iter_restrict(self.repo, val)
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             )
         } else {
-            Box::new(self.repo.iter_raw_restrict(val))
+            Either::Right(self.repo.iter_raw_restrict(val))
         }
     }
 
     fn iter_restrict_ordered<R: Into<Restrict>>(
         &self,
         val: R,
-    ) -> Box<dyn Iterator<Item = Self::Item> + '_> {
+    ) -> impl Iterator<Item = Self::Item> + '_ {
         if self.is_filtered() {
-            Box::new(
+            Either::Left(
                 self.filters
                     .iter_restrict_ordered(self.repo, val)
                     .flat_map(|pkg| self.repo.iter_raw_restrict_ordered(&pkg)),
             )
         } else {
-            Box::new(self.repo.iter_raw_restrict_ordered(val))
+            Either::Right(self.repo.iter_raw_restrict_ordered(val))
         }
     }
 }
