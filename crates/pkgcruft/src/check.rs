@@ -8,6 +8,7 @@ use std::sync::LazyLock;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
+use itertools::Either;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
@@ -218,12 +219,12 @@ impl Check {
     }
 
     /// Return an iterator of all checks enabled by default.
-    pub fn iter_default(target_repo: Option<&EbuildRepo>) -> Box<dyn Iterator<Item = Check> + '_> {
+    pub fn iter_default(target_repo: Option<&EbuildRepo>) -> impl Iterator<Item = Check> + '_ {
         let selected = IndexSet::new();
         if let Some(repo) = target_repo {
-            Box::new(Check::iter().filter(move |x| x.skipped(repo, &selected).is_none()))
+            Either::Left(Check::iter().filter(move |x| x.skipped(repo, &selected).is_none()))
         } else {
-            Box::new(Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional)))
+            Either::Right(Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional)))
         }
     }
 
