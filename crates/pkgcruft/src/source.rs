@@ -225,8 +225,10 @@ impl From<&Target> for Restrict {
     }
 }
 
-pub(crate) trait IterSource {
+pub(crate) trait Source: fmt::Display {
     type Item;
+
+    fn kind(&self) -> SourceKind;
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R)
         -> Box<dyn Iterator<Item = Self::Item> + '_>;
@@ -251,8 +253,18 @@ impl EbuildPkgSource {
     }
 }
 
-impl IterSource for EbuildPkgSource {
+impl fmt::Display for EbuildPkgSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.kind().fmt(f)
+    }
+}
+
+impl Source for EbuildPkgSource {
     type Item = pkgcraft::Result<EbuildPkg>;
+
+    fn kind(&self) -> SourceKind {
+        SourceKind::EbuildPkg
+    }
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
@@ -299,8 +311,18 @@ impl EbuildRawPkgSource {
     }
 }
 
-impl IterSource for EbuildRawPkgSource {
+impl fmt::Display for EbuildRawPkgSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.kind().fmt(f)
+    }
+}
+
+impl Source for EbuildRawPkgSource {
     type Item = pkgcraft::Result<EbuildRawPkg>;
+
+    fn kind(&self) -> SourceKind {
+        SourceKind::EbuildRawPkg
+    }
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
@@ -344,7 +366,7 @@ impl<T: Package + Clone> PkgCache<T> {
     /// Create a new package cache from a source and restriction.
     pub(crate) fn new<S>(source: &S, restrict: &Restrict) -> Self
     where
-        S: IterSource<Item = pkgcraft::Result<T>>,
+        S: Source<Item = pkgcraft::Result<T>>,
     {
         let mut cache = IndexMap::new();
         for result in source.iter_restrict_ordered(restrict) {
