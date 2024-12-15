@@ -364,7 +364,7 @@ pub(crate) struct PkgCache<T> {
 
 impl<T: Package + Clone> PkgCache<T> {
     /// Create a new package cache from a source and restriction.
-    pub(crate) fn new<S>(source: &S, restrict: &Restrict) -> Self
+    pub(crate) fn new<S>(source: &S, scope: Scope, restrict: &Restrict) -> Self
     where
         S: Source<Item = pkgcraft::Result<T>>,
     {
@@ -382,7 +382,7 @@ impl<T: Package + Clone> PkgCache<T> {
         }
 
         // don't collect values when running in version scope since set checks aren't run
-        let pkgs = if Scope::from(restrict) != Scope::Version {
+        let pkgs = if scope == Scope::Package {
             cache.values().cloned().try_collect()
         } else {
             Ok(Default::default())

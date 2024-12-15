@@ -130,22 +130,16 @@ impl CheckRunner {
         repo: &'static EbuildRepo,
         filters: IndexSet<PkgFilter>,
     ) -> Self {
-        match (scope, source) {
-            (Scope::Package | Scope::Version, SourceKind::EbuildPkg) => {
-                Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, Some(restrict), filters))
+        match source {
+            SourceKind::EbuildPkg => {
+                Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, scope, restrict, filters))
             }
-            (_, SourceKind::EbuildPkg) => {
-                Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, None, filters))
+            SourceKind::EbuildRawPkg => {
+                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, scope, restrict, filters))
             }
-            (Scope::Package | Scope::Version, SourceKind::EbuildRawPkg) => {
-                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, Some(restrict), filters))
-            }
-            (_, SourceKind::EbuildRawPkg) => {
-                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, None, filters))
-            }
-            (_, SourceKind::Cpn) => Self::Cpn(CpnCheckRunner::new(repo)),
-            (_, SourceKind::Cpv) => Self::Cpv(CpvCheckRunner::new(repo)),
-            (_, SourceKind::Repo) => Self::Repo(RepoCheckRunner::new(repo)),
+            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(repo)),
+            SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(repo)),
+            SourceKind::Repo => Self::Repo(RepoCheckRunner::new(repo)),
         }
     }
 
@@ -187,13 +181,14 @@ macro_rules! make_pkg_check_runner {
         impl $pkg_check_runner {
             fn new(
                 repo: &'static EbuildRepo,
-                restrict: Option<&Restrict>,
+                scope: Scope,
+                restrict: &Restrict,
                 filters: IndexSet<PkgFilter>,
             ) -> Self {
                 let source = <$source>::new(repo, filters);
                 // create pkg cache when running in pkg or version scope
-                let cache = if let Some(restrict) = restrict {
-                    PkgCache::new(&source, restrict)
+                let cache = if scope <= Scope::Package {
+                    PkgCache::new(&source, scope, restrict)
                 } else {
                     Default::default()
                 };
