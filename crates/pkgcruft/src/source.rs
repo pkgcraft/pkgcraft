@@ -399,8 +399,8 @@ impl<T: Package + Clone> PkgCache<T> {
             }
         }
 
-        // only collect set in package scope, in all other scopes it's not used
-        let pkgs = if scope == Scope::Package {
+        // only collect set in unfiltered package scope, in all other scopes it's not used
+        let pkgs = if scope == Scope::Package && !source.is_filtered() {
             cache.values().cloned().try_collect()
         } else {
             Ok(Default::default())
