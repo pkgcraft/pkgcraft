@@ -273,7 +273,7 @@ impl EbuildPkgCheckRunner {
                 Ok(pkgs) => {
                     debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
                     let now = Instant::now();
-                    runner.run(cpn, &pkgs, filter);
+                    runner.run(cpn, pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
                 }
                 Err(e) => warn!("{check}: skipping due to {e}"),
@@ -396,7 +396,7 @@ impl EbuildRawPkgCheckRunner {
                 Ok(pkgs) => {
                     debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
                     let now = Instant::now();
-                    runner.run(cpn, &pkgs, filter);
+                    runner.run(cpn, pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
                 }
                 Err(e) => warn!("{check}: skipping due to {e}"),

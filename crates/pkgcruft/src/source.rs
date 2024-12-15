@@ -14,7 +14,8 @@ use pkgcraft::restrict::{self, Restrict, Restriction};
 use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
-use crate::Error;
+use crate::error::Error;
+use crate::scope::Scope;
 
 /// All check runner source variants.
 #[derive(
@@ -334,7 +335,10 @@ impl IterSource for EbuildRawPkgSource {
 
 /// Cache used to avoid recreating package objects for package and version scope scans.
 #[derive(Debug)]
-pub(crate) struct PkgCache<T>(IndexMap<Cpv, pkgcraft::Result<T>>);
+pub(crate) struct PkgCache<T> {
+    cache: IndexMap<Cpv, pkgcraft::Result<T>>,
+    pkgs: pkgcraft::Result<Vec<T>>,
+}
 
 impl<T: Package + Clone> PkgCache<T> {
     /// Create a new package cache from a source and restriction.
@@ -354,22 +358,33 @@ impl<T: Package + Clone> PkgCache<T> {
                 Err(e) => unreachable!("unhandled metadata error: {e}"),
             }
         }
-        Self(cache)
+
+        // don't collect values when running in version scope since set checks aren't run
+        let pkgs = if Scope::from(restrict) != Scope::Version {
+            cache.values().cloned().try_collect()
+        } else {
+            Ok(Default::default())
+        };
+
+        Self { cache, pkgs }
     }
 
     /// Get all packages from the cache if none were invalid on creation.
-    pub(crate) fn get_pkgs(&self) -> pkgcraft::Result<Vec<T>> {
-        self.0.values().cloned().try_collect()
+    pub(crate) fn get_pkgs(&self) -> Result<&[T], &pkgcraft::Error> {
+        self.pkgs.as_deref()
     }
 
     /// Get a matching package result from the cache if it exists.
     pub(crate) fn get_pkg(&self, cpv: &Cpv) -> Option<&pkgcraft::Result<T>> {
-        self.0.get(cpv)
+        self.cache.get(cpv)
     }
 }
 
 impl<T> Default for PkgCache<T> {
     fn default() -> Self {
-        Self(Default::default())
+        Self {
+            cache: Default::default(),
+            pkgs: Ok(Default::default()),
+        }
     }
 }
