@@ -275,11 +275,11 @@ macro_rules! make_pkg_check_runner {
             fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
                 match self.cache.get_pkg(cpv) {
                     Some(Ok(pkg)) => {
-                        let now = Instant::now();
                         let runner = self
                             .pkg_checks
                             .get(check)
                             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+                        let now = Instant::now();
                         runner.run(pkg, filter);
                         debug!("{check}: {cpv}: {:?}", now.elapsed());
                     }
