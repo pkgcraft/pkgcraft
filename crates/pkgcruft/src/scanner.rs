@@ -494,8 +494,8 @@ mod tests {
     fn filters() {
         let data = test_data();
         let repo = data.ebuild_repo("gentoo").unwrap();
-        let path = repo.path();
-        let expected = glob_reports!("{path}/Header/HeaderInvalid/reports.json");
+        let pkgdir = repo.path().join("Header/HeaderInvalid");
+        let expected = glob_reports!("{pkgdir}/reports.json");
 
         // none
         let mut scanner = Scanner::new(repo).reports([ReportKind::HeaderInvalid]);
@@ -518,10 +518,26 @@ mod tests {
             (vec!["slot == '1'"], &expected[2..]),
             (vec!["!slot == '1'"], &expected[..2]),
         ] {
+            // apply package filters to scanner
             scanner = scanner.filters(filters.iter().map(|x| x.parse().unwrap()));
+
+            // run scanner in repo scope
             let reports: Vec<_> = scanner.run(repo).unwrap().collect();
             let failed = filters.iter().join(", ");
-            assert_unordered_eq!(&reports, expected, format!("failed filters: {failed}"));
+            assert_unordered_eq!(
+                &reports,
+                expected,
+                format!("repo scope: failed filters: {failed}")
+            );
+
+            // run scanner in package scope
+            let restrict = repo.restrict_from_path(&pkgdir).unwrap();
+            let reports: Vec<_> = scanner.run(restrict).unwrap().collect();
+            assert_unordered_eq!(
+                &reports,
+                expected,
+                format!("pkg scope: failed filters: {failed}")
+            );
         }
     }
 
