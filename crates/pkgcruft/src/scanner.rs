@@ -265,13 +265,16 @@ impl Iterator for IterPkg {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.reports.pop_front().or_else(|| {
-            self.rx.recv().ok().and_then(|reports| {
+        loop {
+            if let Some(report) = self.reports.pop_front() {
+                return Some(report);
+            } else if let Ok(reports) = self.rx.recv() {
                 debug_assert!(!reports.is_empty());
                 self.reports.extend(reports);
-                self.next()
-            })
-        })
+            } else {
+                return None;
+            }
+        }
     }
 }
 
@@ -333,11 +336,12 @@ impl Iterator for IterVersion {
     type Item = Report;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(reports) = self.reports.as_mut() {
-            reports.pop()
-        } else {
-            self.reports = Some(self.rx.iter().sorted_by(|a, b| b.cmp(a)).collect());
-            self.next()
+        loop {
+            if let Some(reports) = self.reports.as_mut() {
+                return reports.pop();
+            } else {
+                self.reports = Some(self.rx.iter().sorted_by(|a, b| b.cmp(a)).collect());
+            }
         }
     }
 }
