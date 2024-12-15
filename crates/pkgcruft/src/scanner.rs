@@ -139,7 +139,7 @@ impl Scanner {
             })))
         } else {
             // parallel by check
-            if !self.filters.is_empty() {
+            if scope == Scope::Version && !self.filters.is_empty() {
                 return Err(Error::InvalidValue(format!("filters unsupported in {scope} scope")));
             }
 

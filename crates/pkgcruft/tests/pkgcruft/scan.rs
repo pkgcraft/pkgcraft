@@ -440,16 +440,6 @@ fn filters() {
             .failure()
             .code(2);
 
-        // invalid in package scope
-        cmd("pkgcruft scan -R json")
-            .args([opt, "live"])
-            .arg(repo.join("Header/HeaderInvalid"))
-            .assert()
-            .stdout("")
-            .stderr(contains("filters unsupported in package scope"))
-            .failure()
-            .code(2);
-
         // invalid in version scope
         cmd("pkgcruft scan -R json")
             .args([opt, "live"])
@@ -459,6 +449,15 @@ fn filters() {
             .stderr(contains("filters unsupported in version scope"))
             .failure()
             .code(2);
+
+        // valid in package scope
+        cmd("pkgcruft scan -R json")
+            .args([opt, "live"])
+            .arg(repo.join("Header/HeaderInvalid"))
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
 
         // latest
         let reports = cmd("pkgcruft scan -R json")
