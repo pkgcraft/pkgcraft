@@ -230,9 +230,10 @@ impl EbuildPkgCheckRunner {
 
     /// Run all checks for a Cpn.
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        let source = &self.source;
         let mut pkgs = Ok(vec![]);
 
-        for result in self.source.iter_restrict(cpn) {
+        for result in source.iter_restrict(cpn) {
             match result {
                 Ok(pkg) => {
                     for (check, runner) in &self.pkg_checks {
@@ -253,16 +254,16 @@ impl EbuildPkgCheckRunner {
 
         // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
         // ignores empty pkgs.
-        for (check, runner) in &self.pkg_set_checks {
-            match &pkgs {
-                Ok(pkgs) if !pkgs.is_empty() => {
+        match &pkgs {
+            Ok(pkgs) if !pkgs.is_empty() => {
+                for (check, runner) in &self.pkg_set_checks {
                     let now = Instant::now();
                     runner.run(cpn, pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
                 }
-                Ok(_) => (),
-                Err(e) => warn!("{check}: skipping due to {e}"),
             }
+            Ok(_) => (),
+            Err(e) => warn!("skipping {source} set checks due to {e}"),
         }
     }
 
@@ -353,9 +354,10 @@ impl EbuildRawPkgCheckRunner {
 
     /// Run all checks for a Cpn.
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+        let source = &self.source;
         let mut pkgs = Ok(vec![]);
 
-        for result in self.source.iter_restrict(cpn) {
+        for result in source.iter_restrict(cpn) {
             match result {
                 Ok(pkg) => {
                     for (check, runner) in &self.pkg_checks {
@@ -376,16 +378,16 @@ impl EbuildRawPkgCheckRunner {
 
         // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
         // ignores empty pkgs.
-        for (check, runner) in &self.pkg_set_checks {
-            match &pkgs {
-                Ok(pkgs) if !pkgs.is_empty() => {
+        match &pkgs {
+            Ok(pkgs) if !pkgs.is_empty() => {
+                for (check, runner) in &self.pkg_set_checks {
                     let now = Instant::now();
                     runner.run(cpn, pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
                 }
-                Ok(_) => (),
-                Err(e) => warn!("{check}: skipping due to {e}"),
             }
+            Ok(_) => (),
+            Err(e) => warn!("skipping {source} set checks due to {e}"),
         }
     }
 
