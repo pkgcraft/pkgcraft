@@ -35,7 +35,7 @@ impl SyncCheckRunner {
             .iter()
             .filter(|c| {
                 if !filters.is_empty() && c.filtered() {
-                    warn!("check disabled due to filtering: {c}");
+                    warn!("{c}: disabled due to filtering");
                     false
                 } else {
                     true
@@ -43,7 +43,7 @@ impl SyncCheckRunner {
             })
             .filter(|c| {
                 if !c.enabled(repo, checks) {
-                    warn!("check disabled due to context: {c}");
+                    warn!("{c}: disabled due to context");
                     false
                 } else {
                     true
@@ -51,7 +51,7 @@ impl SyncCheckRunner {
             })
             .filter(|c| {
                 if c.scope > scope {
-                    warn!("check disabled due to {scope} scope: {c}");
+                    warn!("{c}: disabled due to {scope} scope");
                     false
                 } else {
                     true
