@@ -126,9 +126,9 @@ impl FromStr for PkgFilter {
             "live" => Ok(Self::Live(inverted)),
             "masked" => Ok(Self::Masked(inverted)),
             "stable" => Ok(Self::Stable(inverted)),
-            s if s.contains(|c: char| c.is_whitespace()) => restrict::parse::pkg(s)
-                .map(|r| Self::Restrict(inverted, r))
-                .map_err(|e| Error::InvalidValue(format!("{e}"))),
+            s if s.contains(|c: char| c.is_whitespace()) => {
+                Ok(restrict::parse::pkg(s).map(|r| Self::Restrict(inverted, r))?)
+            }
             s => {
                 // support dep restrictions
                 if let Ok(r) = restrict::parse::dep(s) {

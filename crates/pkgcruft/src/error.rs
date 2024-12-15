@@ -3,7 +3,7 @@ use std::io;
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
-    Pkgcraft(pkgcraft::Error),
+    Pkgcraft(String),
     #[error("{0}")]
     InvalidValue(String),
     #[error("skipping remaining checks due to failure")]
@@ -20,6 +20,6 @@ impl From<io::Error> for Error {
 
 impl From<pkgcraft::Error> for Error {
     fn from(e: pkgcraft::Error) -> Self {
-        Error::Pkgcraft(e)
+        Error::Pkgcraft(e.to_string())
     }
 }
