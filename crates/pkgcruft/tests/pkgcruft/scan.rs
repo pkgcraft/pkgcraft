@@ -440,24 +440,33 @@ fn filters() {
             .failure()
             .code(2);
 
-        // invalid in version scope
-        cmd("pkgcruft scan -R json")
+        // valid in version scope
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "live"])
-            .arg(repo.join("Header/HeaderInvalid/HeaderInvalid-0.ebuild"))
-            .assert()
-            .stdout("")
-            .stderr(contains("filters unsupported in version scope"))
-            .failure()
-            .code(2);
+            .arg(repo.join("Header/HeaderInvalid/HeaderInvalid-9999.ebuild"))
+            .to_reports()
+            .unwrap();
+        assert_unordered_eq!(&reports, &expected[5..=5]);
+        let reports = cmd("pkgcruft scan -R json")
+            .args([opt, "!live"])
+            .arg(repo.join("Header/HeaderInvalid/HeaderInvalid-9999.ebuild"))
+            .to_reports()
+            .unwrap();
+        assert_unordered_eq!(&reports, &[]);
 
         // valid in package scope
-        cmd("pkgcruft scan -R json")
+        let reports = cmd("pkgcruft scan -R json")
             .args([opt, "live"])
             .arg(repo.join("Header/HeaderInvalid"))
-            .assert()
-            .stdout(predicate::str::is_empty().not())
-            .stderr("")
-            .success();
+            .to_reports()
+            .unwrap();
+        assert_unordered_eq!(&reports, &expected[5..]);
+        let reports = cmd("pkgcruft scan -R json")
+            .args([opt, "!live"])
+            .arg(repo.join("Header/HeaderInvalid"))
+            .to_reports()
+            .unwrap();
+        assert_unordered_eq!(&reports, &expected[..5]);
 
         // latest
         let reports = cmd("pkgcruft scan -R json")

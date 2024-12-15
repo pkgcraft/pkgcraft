@@ -139,10 +139,6 @@ impl Scanner {
             })))
         } else {
             // parallel by check
-            if scope == Scope::Version && !self.filters.is_empty() {
-                return Err(Error::InvalidValue(format!("filters unsupported in {scope} scope")));
-            }
-
             let (restrict_tx, restrict_rx) = bounded(self.jobs);
             let (reports_tx, reports_rx) = bounded(self.jobs);
             let filter = ReportFilter {
