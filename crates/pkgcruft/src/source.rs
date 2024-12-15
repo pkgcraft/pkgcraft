@@ -369,19 +369,23 @@ impl<T: Package + Clone> PkgCache<T> {
         S: Source<Item = pkgcraft::Result<T>>,
     {
         let mut cache = IndexMap::new();
-        for result in source.iter_restrict_ordered(restrict) {
-            match &result {
-                Ok(pkg) => {
-                    cache.insert(pkg.cpv().clone(), result);
+
+        // create pkg cache when running in pkg or version scope
+        if scope <= Scope::Package {
+            for result in source.iter_restrict_ordered(restrict) {
+                match &result {
+                    Ok(pkg) => {
+                        cache.insert(pkg.cpv().clone(), result);
+                    }
+                    Err(InvalidPkg { cpv, .. }) => {
+                        cache.insert(*cpv.clone(), result);
+                    }
+                    Err(e) => unreachable!("unhandled metadata error: {e}"),
                 }
-                Err(InvalidPkg { cpv, .. }) => {
-                    cache.insert(*cpv.clone(), result);
-                }
-                Err(e) => unreachable!("unhandled metadata error: {e}"),
             }
         }
 
-        // don't collect values when running in version scope since set checks aren't run
+        // only collect set in package scope, in all other scopes it's not used
         let pkgs = if scope == Scope::Package {
             cache.values().cloned().try_collect()
         } else {
@@ -399,14 +403,5 @@ impl<T: Package + Clone> PkgCache<T> {
     /// Get a matching package result from the cache if it exists.
     pub(crate) fn get_pkg(&self, cpv: &Cpv) -> Option<&pkgcraft::Result<T>> {
         self.cache.get(cpv)
-    }
-}
-
-impl<T> Default for PkgCache<T> {
-    fn default() -> Self {
-        Self {
-            cache: Default::default(),
-            pkgs: Ok(Default::default()),
-        }
     }
 }

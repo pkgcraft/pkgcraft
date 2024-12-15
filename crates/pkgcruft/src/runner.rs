@@ -186,12 +186,7 @@ macro_rules! make_pkg_check_runner {
                 filters: IndexSet<PkgFilter>,
             ) -> Self {
                 let source = <$source>::new(repo, filters);
-                // create pkg cache when running in pkg or version scope
-                let cache = if scope <= Scope::Package {
-                    PkgCache::new(&source, scope, restrict)
-                } else {
-                    Default::default()
-                };
+                let cache = PkgCache::new(&source, scope, restrict);
 
                 Self {
                     pkg_checks: Default::default(),
