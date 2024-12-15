@@ -31,7 +31,7 @@ impl SyncCheckRunner {
 
         // TODO: error out instead of skipping checks silently
         // filter checks
-        let enabled = checks
+        checks
             .iter()
             .filter(|c| {
                 if !filters.is_empty() && c.filtered() {
@@ -59,16 +59,15 @@ impl SyncCheckRunner {
             })
             .copied()
             // sort checks by priority so they run in the correct order
-            .sorted();
-
-        for check in enabled {
-            runners
-                .entry(check.source)
-                .or_insert_with(|| {
-                    CheckRunner::new(scope, restrict, check.source, repo, filters.clone())
-                })
-                .add_check(check);
-        }
+            .sorted()
+            .for_each(|check| {
+                runners
+                    .entry(check.source)
+                    .or_insert_with(|| {
+                        CheckRunner::new(scope, restrict, check.source, repo, filters.clone())
+                    })
+                    .add_check(check)
+            });
 
         Self { runners }
     }
