@@ -42,8 +42,8 @@ impl SyncCheckRunner {
                 }
             })
             .filter(|c| {
-                if !c.enabled(repo, checks) {
-                    warn!("{c}: disabled due to context");
+                if let Some(context) = c.skipped(repo, checks) {
+                    warn!("{c}: disabled due to {context} context");
                     false
                 } else {
                     true

@@ -2,6 +2,7 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::Not;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
@@ -125,8 +126,9 @@ impl From<CheckKind> for Check {
 }
 
 /// Check contexts.
-#[derive(PartialEq, Eq, Hash, Copy, Clone)]
-enum CheckContext {
+#[derive(Display, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "kebab-case")]
+pub(crate) enum CheckContext {
     /// Check only runs by default in the gentoo repo.
     Gentoo,
 
@@ -219,7 +221,7 @@ impl Check {
     pub fn iter_default(target_repo: Option<&EbuildRepo>) -> Box<dyn Iterator<Item = Check> + '_> {
         let selected = IndexSet::new();
         if let Some(repo) = target_repo {
-            Box::new(Check::iter().filter(move |x| x.enabled(repo, &selected)))
+            Box::new(Check::iter().filter(move |x| x.skipped(repo, &selected).is_none()))
         } else {
             Box::new(Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional)))
         }
@@ -243,13 +245,20 @@ impl Check {
             .copied()
     }
 
-    /// Determine if a check is enabled for a scanning run due to scan context.
-    pub(crate) fn enabled(&self, repo: &EbuildRepo, selected: &IndexSet<Self>) -> bool {
-        self.context.iter().all(|x| match x {
-            CheckContext::Gentoo => repo.name() == "gentoo" || selected.contains(self),
-            CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
-            CheckContext::Optional => selected.contains(self),
-            CheckContext::Overlay => !repo.masters().is_empty(),
+    /// Determine if a check is skipped for a scanning run due to scan context.
+    pub(crate) fn skipped(
+        &self,
+        repo: &EbuildRepo,
+        selected: &IndexSet<Self>,
+    ) -> Option<CheckContext> {
+        self.context.iter().copied().find(|context| {
+            match context {
+                CheckContext::Gentoo => repo.name() == "gentoo" || selected.contains(self),
+                CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
+                CheckContext::Optional => selected.contains(self),
+                CheckContext::Overlay => !repo.masters().is_empty(),
+            }
+            .not()
         })
     }
 
