@@ -5,6 +5,7 @@ use colored::{Color, Colorize};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use pkgcraft::dep::{Cpn, Cpv};
+use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus, EbuildPkg, EbuildRawPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -333,10 +334,7 @@ impl IterSource for EbuildRawPkgSource {
 
 /// Cache used to avoid recreating package objects for package and version scope scans.
 #[derive(Debug)]
-pub(crate) struct PkgCache<T> {
-    pkgs: IndexMap<Cpv, T>,
-    failed: bool,
-}
+pub(crate) struct PkgCache<T>(IndexMap<Cpv, pkgcraft::Result<T>>);
 
 impl<T: Package + Clone> PkgCache<T> {
     /// Create a new package cache from a source and restriction.
@@ -344,37 +342,34 @@ impl<T: Package + Clone> PkgCache<T> {
     where
         S: IterSource<Item = pkgcraft::Result<T>>,
     {
-        let mut cache = Self::default();
-        for pkg in source.iter_restrict_ordered(restrict) {
-            if let Ok(pkg) = pkg {
-                cache.pkgs.insert(pkg.cpv().clone(), pkg);
-            } else {
-                cache.failed = true;
+        let mut cache = IndexMap::new();
+        for result in source.iter_restrict_ordered(restrict) {
+            match &result {
+                Ok(pkg) => {
+                    cache.insert(pkg.cpv().clone(), result);
+                }
+                Err(InvalidPkg { cpv, .. }) => {
+                    cache.insert(*cpv.clone(), result);
+                }
+                Err(e) => unreachable!("unhandled metadata error: {e}"),
             }
         }
-        cache
+        Self(cache)
     }
 
     /// Get all packages from the cache if none were invalid on creation.
-    pub(crate) fn get_pkgs(&self) -> Option<Vec<T>> {
-        if self.failed {
-            None
-        } else {
-            Some(self.pkgs.values().cloned().collect())
-        }
+    pub(crate) fn get_pkgs(&self) -> pkgcraft::Result<Vec<T>> {
+        self.0.values().cloned().try_collect()
     }
 
-    /// Get a matching package from the cache if it exists.
-    pub(crate) fn get_pkg(&self, cpv: &Cpv) -> Option<&T> {
-        self.pkgs.get(cpv)
+    /// Get a matching package result from the cache if it exists.
+    pub(crate) fn get_pkg(&self, cpv: &Cpv) -> Option<&pkgcraft::Result<T>> {
+        self.0.get(cpv)
     }
 }
 
 impl<T> Default for PkgCache<T> {
     fn default() -> Self {
-        Self {
-            pkgs: Default::default(),
-            failed: false,
-        }
+        Self(Default::default())
     }
 }

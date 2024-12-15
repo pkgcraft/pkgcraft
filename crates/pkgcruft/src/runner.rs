@@ -230,35 +230,38 @@ impl EbuildPkgCheckRunner {
 
     /// Run all checks for a Cpn.
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
-        let mut failed = false;
-        let mut pkgs = vec![];
+        let mut pkgs = Ok(vec![]);
 
         for result in self.source.iter_restrict(cpn) {
-            if let Ok(pkg) = result {
-                for (check, runner) in &self.pkg_checks {
-                    let now = Instant::now();
-                    runner.run(&pkg, filter);
-                    debug!("{check}: {pkg}: {:?}", now.elapsed());
-                }
+            match result {
+                Ok(pkg) => {
+                    for (check, runner) in &self.pkg_checks {
+                        let now = Instant::now();
+                        runner.run(&pkg, filter);
+                        debug!("{check}: {pkg}: {:?}", now.elapsed());
+                    }
 
-                if !self.pkg_set_checks.is_empty() {
-                    pkgs.push(pkg);
+                    if !self.pkg_set_checks.is_empty() {
+                        if let Ok(pkgs) = pkgs.as_mut() {
+                            pkgs.push(pkg);
+                        }
+                    }
                 }
-            } else {
-                failed = true;
+                Err(e) => pkgs = Err(e),
             }
         }
 
-        // TODO: replace with debug_assert!() once iter_cpn_restrict() ignores empty pkgs
-        if !pkgs.is_empty() {
-            for (check, runner) in &self.pkg_set_checks {
-                if !failed {
+        // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
+        // ignores empty pkgs.
+        for (check, runner) in &self.pkg_set_checks {
+            match &pkgs {
+                Ok(pkgs) if !pkgs.is_empty() => {
                     let now = Instant::now();
-                    runner.run(cpn, &pkgs, filter);
+                    runner.run(cpn, pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
-                } else {
-                    warn!("{check}: skipping due to invalid pkgs: {cpn}");
                 }
+                Ok(_) => (),
+                Err(e) => warn!("{check}: skipping due to {e}"),
             }
         }
     }
@@ -266,13 +269,14 @@ impl EbuildPkgCheckRunner {
     /// Run a check for a Cpn.
     fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_set_checks.get(check) {
-            if let Some(pkgs) = self.cache.get_pkgs() {
-                debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
-                let now = Instant::now();
-                runner.run(cpn, &pkgs, filter);
-                debug!("{check}: {cpn}: {:?}", now.elapsed());
-            } else {
-                warn!("{check}: skipping due to invalid pkgs: {cpn}");
+            match self.cache.get_pkgs() {
+                Ok(pkgs) => {
+                    debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
+                    let now = Instant::now();
+                    runner.run(cpn, &pkgs, filter);
+                    debug!("{check}: {cpn}: {:?}", now.elapsed());
+                }
+                Err(e) => warn!("{check}: skipping due to {e}"),
             }
         }
     }
@@ -280,12 +284,14 @@ impl EbuildPkgCheckRunner {
     /// Run a check for a Cpv.
     fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_checks.get(check) {
-            if let Some(pkg) = self.cache.get_pkg(cpv) {
-                let now = Instant::now();
-                runner.run(pkg, filter);
-                debug!("{check}: {cpv}: {:?}", now.elapsed());
-            } else {
-                warn!("{check}: skipping due to invalid pkg: {cpv}");
+            match self.cache.get_pkg(cpv) {
+                Some(Ok(pkg)) => {
+                    let now = Instant::now();
+                    runner.run(pkg, filter);
+                    debug!("{check}: {cpv}: {:?}", now.elapsed());
+                }
+                Some(Err(e)) => warn!("{check}: skipping due to {e}"),
+                None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
             }
         }
     }
@@ -347,35 +353,38 @@ impl EbuildRawPkgCheckRunner {
 
     /// Run all checks for a Cpn.
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
-        let mut failed = false;
-        let mut pkgs = vec![];
+        let mut pkgs = Ok(vec![]);
 
         for result in self.source.iter_restrict(cpn) {
-            if let Ok(pkg) = result {
-                for (check, runner) in &self.pkg_checks {
-                    let now = Instant::now();
-                    runner.run(&pkg, filter);
-                    debug!("{check}: {pkg}: {:?}", now.elapsed());
-                }
+            match result {
+                Ok(pkg) => {
+                    for (check, runner) in &self.pkg_checks {
+                        let now = Instant::now();
+                        runner.run(&pkg, filter);
+                        debug!("{check}: {pkg}: {:?}", now.elapsed());
+                    }
 
-                if !self.pkg_set_checks.is_empty() {
-                    pkgs.push(pkg);
+                    if !self.pkg_set_checks.is_empty() {
+                        if let Ok(pkgs) = pkgs.as_mut() {
+                            pkgs.push(pkg);
+                        }
+                    }
                 }
-            } else {
-                failed = true;
+                Err(e) => pkgs = Err(e),
             }
         }
 
-        // TODO: replace with debug_assert!() once iter_cpn_restrict() ignores empty pkgs
-        if !pkgs.is_empty() {
-            for (check, runner) in &self.pkg_set_checks {
-                if !failed {
+        // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
+        // ignores empty pkgs.
+        for (check, runner) in &self.pkg_set_checks {
+            match &pkgs {
+                Ok(pkgs) if !pkgs.is_empty() => {
                     let now = Instant::now();
-                    runner.run(cpn, &pkgs, filter);
+                    runner.run(cpn, pkgs, filter);
                     debug!("{check}: {cpn}: {:?}", now.elapsed());
-                } else {
-                    warn!("{check}: skipping due to invalid pkgs: {cpn}");
                 }
+                Ok(_) => (),
+                Err(e) => warn!("{check}: skipping due to {e}"),
             }
         }
     }
@@ -383,13 +392,14 @@ impl EbuildRawPkgCheckRunner {
     /// Run a check for a Cpn.
     fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_set_checks.get(check) {
-            if let Some(pkgs) = self.cache.get_pkgs() {
-                debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
-                let now = Instant::now();
-                runner.run(cpn, &pkgs, filter);
-                debug!("{check}: {cpn}: {:?}", now.elapsed());
-            } else {
-                warn!("{check}: skipping due to invalid pkgs: {cpn}");
+            match self.cache.get_pkgs() {
+                Ok(pkgs) => {
+                    debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
+                    let now = Instant::now();
+                    runner.run(cpn, &pkgs, filter);
+                    debug!("{check}: {cpn}: {:?}", now.elapsed());
+                }
+                Err(e) => warn!("{check}: skipping due to {e}"),
             }
         }
     }
@@ -397,12 +407,14 @@ impl EbuildRawPkgCheckRunner {
     /// Run a check for a Cpv.
     fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
         if let Some(runner) = self.pkg_checks.get(check) {
-            if let Some(pkg) = self.cache.get_pkg(cpv) {
-                let now = Instant::now();
-                runner.run(pkg, filter);
-                debug!("{check}: {cpv}: {:?}", now.elapsed());
-            } else {
-                warn!("{check}: skipping due to invalid pkg: {cpv}");
+            match self.cache.get_pkg(cpv) {
+                Some(Ok(pkg)) => {
+                    let now = Instant::now();
+                    runner.run(pkg, filter);
+                    debug!("{check}: {cpv}: {:?}", now.elapsed());
+                }
+                Some(Err(e)) => warn!("{check}: skipping due to {e}"),
+                None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
             }
         }
     }
