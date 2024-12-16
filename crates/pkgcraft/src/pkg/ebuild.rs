@@ -262,14 +262,14 @@ impl EbuildPkg {
     pub fn metadata(&self) -> &xml::Metadata {
         self.0
             .metadata
-            .get_or_init(|| self.0.repo.metadata().pkg(self.cpn()))
+            .get_or_init(|| self.0.repo.metadata().pkg_metadata(self.cpn()))
     }
 
     /// Return a package's manifest.
     pub fn manifest(&self) -> &Manifest {
         self.0
             .manifest
-            .get_or_init(|| self.0.repo.metadata().manifest(self.cpn()))
+            .get_or_init(|| self.0.repo.metadata().pkg_manifest(self.cpn()))
     }
 
     /// Generate fetchable URIs for a package's SRC_URI targets.

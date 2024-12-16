@@ -12,7 +12,6 @@ use strum::{Display, EnumIter, EnumString};
 
 use crate::files::relative_paths;
 use crate::macros::build_path;
-use crate::traits::PkgCacheData;
 use crate::utils::digest;
 use crate::Error;
 
@@ -215,17 +214,9 @@ impl FromStr for ManifestFile {
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
 pub struct Manifest(IndexSet<ManifestFile>);
 
-impl PkgCacheData for Manifest {
-    const RELPATH: &'static str = "Manifest";
-
-    fn parse(data: &str) -> crate::Result<Self> {
-        Self::parse(data)
-    }
-}
-
 impl Manifest {
     /// Parse a [`Manifest`] from a file.
-    pub fn from_path(path: &Utf8Path) -> crate::Result<Self> {
+    pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
         match fs::read_to_string(path) {
             Ok(data) => Self::parse(&data)
                 .map_err(|e| Error::InvalidValue(format!("invalid manifest: {path}: {e}"))),

@@ -17,7 +17,6 @@ use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetcher;
 use pkgcraft::macros::build_path;
-use pkgcraft::pkg::ebuild::manifest::Manifest;
 use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::{Contains, LogErrors};
@@ -212,7 +211,7 @@ impl Command {
             let targets = pkgs.iter().flat_map(|((repo, cpn), uris)| {
                 uris.iter().filter_map(move |(uri, path)| {
                     if !path.exists() {
-                        let pkg_manifest = repo.metadata().manifest(cpn);
+                        let pkg_manifest = repo.metadata().pkg_manifest(cpn);
                         let manifest = pkg_manifest.get(uri.filename());
                         Some((uri, path, manifest.cloned()))
                     } else {
@@ -278,7 +277,7 @@ impl Command {
                 let manifest_path = pkgdir.join("Manifest");
 
                 // load manifest from file
-                let mut manifest = match Manifest::from_path(&manifest_path) {
+                let mut manifest = match repo.metadata().pkg_manifest_parse(&cpn) {
                     Ok(value) => value,
                     Err(e) => {
                         error!("{e}");

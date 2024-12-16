@@ -1,12 +1,13 @@
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::{fs, io};
 
+use camino::Utf8Path;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use roxmltree::Node;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::traits::PkgCacheData;
 use crate::types::OrderedSet;
 use crate::xml::parse_xml_with_dtd;
 use crate::Error;
@@ -259,8 +260,16 @@ pub struct Metadata {
     description: Option<String>,
 }
 
-impl PkgCacheData for Metadata {
-    const RELPATH: &'static str = "metadata.xml";
+impl Metadata {
+    /// Parse XML [`Metadata`] from a file.
+    pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
+        match fs::read_to_string(path) {
+            Ok(data) => Self::parse(&data)
+                .map_err(|e| Error::InvalidValue(format!("invalid metadata: {path}: {e}"))),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(e) => Err(Error::IO(format!("failed reading metadata: {path}: {e}"))),
+        }
+    }
 
     fn parse(data: &str) -> crate::Result<Self> {
         let doc = parse_xml_with_dtd(data).map_err(|e| Error::InvalidValue(e.to_string()))?;
@@ -282,9 +291,7 @@ impl PkgCacheData for Metadata {
 
         Ok(data)
     }
-}
 
-impl Metadata {
     fn parse_slots(node: Node, data: &mut Self) {
         for n in node.children() {
             match (n.tag_name().name(), n.text().and_then(string_or_none)) {

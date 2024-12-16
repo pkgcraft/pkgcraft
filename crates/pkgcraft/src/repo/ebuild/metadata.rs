@@ -7,6 +7,7 @@ use std::str::{FromStr, SplitWhitespace};
 use std::sync::{Arc, OnceLock};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
+use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -24,7 +25,7 @@ use crate::pkg::ebuild::keyword::Arch;
 use crate::pkg::ebuild::manifest::{HashType, Manifest};
 use crate::pkg::ebuild::xml;
 use crate::repo::{PkgRepository, RepoFormat};
-use crate::traits::{FilterLines, PkgCacheData};
+use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
 use crate::Error;
 
@@ -51,12 +52,12 @@ impl Ini {
         }
     }
 
-    /// Iterate over the config values for a given key, splitting by whitespace.
+    /// Iterate over the config values for a key, splitting by whitespace.
     fn iter(&self, key: &str) -> SplitWhitespace {
         self.get(key).unwrap_or_default().split_whitespace()
     }
 
-    /// Get a value from the main section if it exists given its key.
+    /// Get a value related to a key from the main section if it exists.
     fn get(&self, key: &str) -> Option<&str> {
         self.0.general_section().get(key)
     }
@@ -279,38 +280,6 @@ fn is_eclass(e: &Utf8DirEntry) -> bool {
 }
 
 #[derive(Debug, Default)]
-struct PkgCache<T: PkgCacheData>(dashmap::DashMap<Cpn, Arc<T>>);
-
-impl<T: PkgCacheData> PkgCache<T> {
-    /// Get a copy of the cache data related to a given [`Cpn`].
-    fn get(&self, repo_path: &Utf8Path, repo_id: &str, cpn: &Cpn) -> Arc<T> {
-        if let Some(value) = self.0.get(cpn) {
-            value.clone()
-        } else {
-            // parse data and insert value into the cache
-            let path = build_path!(repo_path, cpn.category(), cpn.package(), T::RELPATH);
-            let value = Arc::new(
-                fs::read_to_string(&path)
-                    .map_err(|e| {
-                        if e.kind() != io::ErrorKind::NotFound {
-                            warn!("{repo_id}: failed reading: {path}: {e}");
-                        }
-                    })
-                    .and_then(|data| {
-                        T::parse(&data).map_err(|e| {
-                            warn!("{repo_id}: failed parsing: {path}: {e}");
-                        })
-                    })
-                    // fallback to default value on I/O or parsing failures
-                    .unwrap_or_default(),
-            );
-            self.0.insert(cpn.clone(), value.clone());
-            value
-        }
-    }
-}
-
-#[derive(Debug, Default)]
 pub struct Metadata {
     pub(super) id: String,
     pub(super) name: String,
@@ -327,8 +296,8 @@ pub struct Metadata {
     mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
     pkg_deprecated: OnceLock<IndexSet<Dep>>,
     pkg_mask: OnceLock<IndexSet<Dep>>,
-    pkg_metadata: PkgCache<xml::Metadata>,
-    manifest_cache: PkgCache<Manifest>,
+    pkg_metadata_cache: DashMap<Cpn, Arc<xml::Metadata>>,
+    pkg_manifest_cache: DashMap<Cpn, Arc<Manifest>>,
     updates: OnceLock<IndexSet<PkgUpdate>>,
     use_global: OnceLock<IndexMap<String, String>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
@@ -658,14 +627,38 @@ impl Metadata {
         })
     }
 
-    /// Return the package metadata for a given [`Cpn`].
-    pub fn pkg(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
-        self.pkg_metadata.get(&self.path, &self.id, cpn)
+    /// Return the parsed package metadata result for a [`Cpn`].
+    pub fn pkg_metadata_parse(&self, cpn: &Cpn) -> crate::Result<xml::Metadata> {
+        let path = build_path!(&self.path, cpn.category(), cpn.package(), "metadata.xml");
+        xml::Metadata::from_path(&path)
     }
 
-    /// Return the package manifest for a given [`Cpn`].
-    pub fn manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
-        self.manifest_cache.get(&self.path, &self.id, cpn)
+    /// Return the cached package manifest for a [`Cpn`].
+    pub fn pkg_metadata(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
+        if let Some(value) = self.pkg_metadata_cache.get(cpn) {
+            value.clone()
+        } else {
+            let value = Arc::new(self.pkg_metadata_parse(cpn).unwrap_or_default());
+            self.pkg_metadata_cache.insert(cpn.clone(), value.clone());
+            value
+        }
+    }
+
+    /// Return the parsed package manifest result for a [`Cpn`].
+    pub fn pkg_manifest_parse(&self, cpn: &Cpn) -> crate::Result<Manifest> {
+        let path = build_path!(&self.path, cpn.category(), cpn.package(), "Manifest");
+        Manifest::from_path(&path)
+    }
+
+    /// Return the cached package manifest for a [`Cpn`].
+    pub fn pkg_manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
+        if let Some(value) = self.pkg_manifest_cache.get(cpn) {
+            value.clone()
+        } else {
+            let value = Arc::new(self.pkg_manifest_parse(cpn).unwrap_or_default());
+            self.pkg_manifest_cache.insert(cpn.clone(), value.clone());
+            value
+        }
     }
 
     /// Return the ordered set of package updates.
@@ -784,7 +777,7 @@ impl Metadata {
                     })
                     .collect::<Vec<_>>()
             })
-            .map(|cpn| (self.pkg(&cpn), cpn))
+            .map(|cpn| (self.pkg_metadata(&cpn), cpn))
             .collect::<Vec<_>>();
 
         let mut data = data

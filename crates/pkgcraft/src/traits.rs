@@ -155,12 +155,6 @@ where
     }
 }
 
-/// Shared data cache trait.
-pub(crate) trait PkgCacheData: Default {
-    const RELPATH: &'static str;
-    fn parse(data: &str) -> crate::Result<Self>;
-}
-
 /// Support bash sourcing via file paths or directly from string content.
 pub(crate) trait SourceBash {
     fn source_bash(&self) -> scallop::Result<ExecStatus>;
