@@ -206,15 +206,11 @@ macro_rules! make_pkg_check_runner {
 
             /// Add a check to the check runner.
             fn add_check(&mut self, check: Check) {
-                match &check.scope {
-                    Scope::Version => {
-                        self.pkg_checks.insert(check, check.to_runner(self.repo));
-                    }
-                    Scope::Package => {
-                        self.pkg_set_checks
-                            .insert(check, check.to_runner(self.repo));
-                    }
-                    _ => unreachable!("unsupported check: {check}"),
+                if check.scope == Scope::Version {
+                    self.pkg_checks.insert(check, check.to_runner(self.repo));
+                } else {
+                    self.pkg_set_checks
+                        .insert(check, check.to_runner(self.repo));
                 }
             }
 
@@ -336,12 +332,7 @@ impl CpnCheckRunner {
 
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
-        match &check.scope {
-            Scope::Package => {
-                self.checks.insert(check, check.to_runner(self.repo));
-            }
-            _ => unreachable!("unsupported check: {check}"),
-        }
+        self.checks.insert(check, check.to_runner(self.repo));
     }
 
     /// Return the iterator of registered checks.
@@ -386,12 +377,7 @@ impl CpvCheckRunner {
 
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
-        match &check.scope {
-            Scope::Version => {
-                self.checks.insert(check, check.to_runner(self.repo));
-            }
-            _ => unreachable!("unsupported check: {check}"),
-        }
+        self.checks.insert(check, check.to_runner(self.repo));
     }
 
     /// Return the iterator of registered checks.
@@ -438,12 +424,7 @@ impl RepoCheckRunner {
 
     /// Add a check to the check runner.
     fn add_check(&mut self, check: Check) {
-        match &check.scope {
-            Scope::Repo => {
-                self.checks.insert(check, check.to_runner(self.repo));
-            }
-            _ => unreachable!("unsupported check: {check}"),
-        }
+        self.checks.insert(check, check.to_runner(self.repo));
     }
 
     /// Return the iterator of registered checks.
