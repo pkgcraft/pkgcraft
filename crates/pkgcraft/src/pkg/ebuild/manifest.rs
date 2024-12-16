@@ -102,7 +102,7 @@ impl ManifestFile {
     {
         let path = path.as_ref();
         let data = fs::read(path)
-            .map_err(|e| Error::InvalidValue(format!("failed reading file: {path}: {e}")))?;
+            .map_err(|e| Error::InvalidValue(format!("failed reading: {path}: {e}")))?;
         let name = path
             .file_name()
             .ok_or_else(|| Error::InvalidValue(format!("invalid file: {path}")))?;
@@ -222,10 +222,11 @@ impl Manifest {
     /// Parse a [`Manifest`] from a file.
     pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
         match fs::read_to_string(path) {
-            Ok(data) => Self::parse(&data)
-                .map_err(|e| Error::InvalidValue(format!("invalid manifest: {path}: {e}"))),
+            Ok(data) => {
+                Self::parse(&data).map_err(|e| Error::InvalidValue(format!("failed parsing: {e}")))
+            }
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(Error::IO(format!("failed reading manifest: {path}: {e}"))),
+            Err(e) => Err(Error::IO(format!("failed reading: {e}"))),
         }
     }
 
@@ -236,7 +237,7 @@ impl Manifest {
         for (i, line) in data.lines().enumerate() {
             let entry: ManifestFile = line
                 .parse()
-                .map_err(|e| Error::InvalidValue(format!("invalid entry, line {}: {e}", i + 1)))?;
+                .map_err(|e| Error::InvalidValue(format!("line {}: {e}", i + 1)))?;
             manifest.0.insert(entry);
         }
 
@@ -314,8 +315,7 @@ impl Manifest {
                 ManifestType::Dist => distdir.join(f.name()),
                 _ => pkgdir.join(f.name()),
             };
-            let data =
-                fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {path}: {e}")))?;
+            let data = fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {e}")))?;
             f.verify(&data)
         })
     }
