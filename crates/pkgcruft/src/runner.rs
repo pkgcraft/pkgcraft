@@ -7,7 +7,7 @@ use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Restrict;
-use tracing::{debug, trace, warn};
+use tracing::{debug, warn};
 
 use crate::check::*;
 use crate::scanner::ReportFilter;
@@ -78,34 +78,18 @@ impl SyncCheckRunner {
     }
 
     /// Run all check runners in order of priority.
-    pub(super) fn run(&self, target: Target, filter: &mut ReportFilter) {
-        for (source, runner) in &self.runners {
-            match (runner, &target) {
-                (CheckRunner::EbuildPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
-                (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
-                (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
-                (CheckRunner::Cpv(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
-                (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_checks(repo, filter),
-                _ => trace!("skipping incompatible target {target} for source: {source:?}"),
-            }
+    pub(super) fn run_checks(&self, target: Target, filter: &mut ReportFilter) {
+        for runner in self.runners.values() {
+            runner.run_checks(&target, filter);
         }
     }
 
     /// Run a specific check.
     pub(super) fn run_check(&self, check: Check, target: Target, filter: &mut ReportFilter) {
-        let runner = self
-            .runners
-            .get(&check.source)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        match (runner, &target) {
-            (CheckRunner::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
-            (CheckRunner::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(&check, cpn, filter),
-            (CheckRunner::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
-            (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(&check, cpn, filter),
-            (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_check(&check, cpn, filter),
-            (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
-            (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_check(&check, repo, filter),
-            _ => unreachable!("incompatible target {target} for check: {check}"),
+        if let Some(runner) = self.runners.get(&check.source) {
+            runner.run_check(&check, &target, filter);
+        } else {
+            unreachable!("unknown check: {check}");
         }
     }
 }
@@ -159,6 +143,32 @@ impl CheckRunner {
             Self::Cpn(r) => r.add_check(check),
             Self::Cpv(r) => r.add_check(check),
             Self::Repo(r) => r.add_check(check),
+        }
+    }
+
+    /// Run all check runners in order of priority.
+    fn run_checks(&self, target: &Target, filter: &mut ReportFilter) {
+        match (self, target) {
+            (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
+            (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
+            (Self::Cpn(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
+            (Self::Cpv(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
+            (Self::Repo(r), Target::Repo(repo)) => r.run_checks(repo, filter),
+            _ => (),
+        }
+    }
+
+    /// Run a specific check.
+    fn run_check(&self, check: &Check, target: &Target, filter: &mut ReportFilter) {
+        match (self, target) {
+            (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
+            (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
+            (Self::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
+            (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
+            (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, filter),
+            (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
+            (Self::Repo(r), Target::Repo(repo)) => r.run_check(check, repo, filter),
+            _ => unreachable!("incompatible target {target} for check: {check}"),
         }
     }
 }

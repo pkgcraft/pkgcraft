@@ -241,7 +241,7 @@ fn pkg_worker(
             if let Some(check) = check {
                 runner.run_check(check, target, &mut filter);
             } else {
-                runner.run(target, &mut filter);
+                runner.run_checks(target, &mut filter);
             }
             filter.process();
         }
