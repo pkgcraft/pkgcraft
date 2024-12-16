@@ -85,6 +85,7 @@ impl SyncCheckRunner {
                 (CheckRunner::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
                 (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
                 (CheckRunner::Cpv(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
+                (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_checks(repo, filter),
                 _ => trace!("skipping incompatible target {target} for source: {source:?}"),
             }
         }
@@ -104,7 +105,7 @@ impl SyncCheckRunner {
             (CheckRunner::Cpn(r), Target::Cpn(cpn)) => r.run_check(&check, cpn, filter),
             (CheckRunner::Cpv(r), Target::Cpv(cpv)) => r.run_check(&check, cpv, filter),
             (CheckRunner::Repo(r), Target::Repo(repo)) => r.run_check(&check, repo, filter),
-            _ => panic!("incompatible target {target} for check: {check}"),
+            _ => unreachable!("incompatible target {target} for check: {check}"),
         }
     }
 }
@@ -438,6 +439,15 @@ impl RepoCheckRunner {
     /// Return the iterator of registered checks.
     fn iter(&self) -> impl Iterator<Item = Check> + '_ {
         self.checks.keys().cloned()
+    }
+
+    /// Run all checks for a repo.
+    fn run_checks(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+        for (check, runner) in &self.checks {
+            let now = Instant::now();
+            runner.run(repo, filter);
+            debug!("{check}: {repo}: {:?}", now.elapsed());
+        }
     }
 
     /// Run a check for a repo.
