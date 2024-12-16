@@ -41,7 +41,10 @@ impl EbuildPkgSetCheck for Check {
         let manifest_distfiles: IndexSet<_> = manifest.distfiles().map(|x| x.name()).collect();
         let pkg_distfiles: IndexSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
 
-        let unknown = manifest_distfiles.difference(&pkg_distfiles).join(", ");
+        let unknown = manifest_distfiles
+            .difference(&pkg_distfiles)
+            .sorted()
+            .join(", ");
         if !unknown.is_empty() {
             ManifestInvalid
                 .package(cpn)
@@ -49,7 +52,10 @@ impl EbuildPkgSetCheck for Check {
                 .report(filter);
         }
 
-        let missing = pkg_distfiles.difference(&manifest_distfiles).join(", ");
+        let missing = pkg_distfiles
+            .difference(&manifest_distfiles)
+            .sorted()
+            .join(", ");
         if !missing.is_empty() {
             ManifestInvalid
                 .package(cpn)
