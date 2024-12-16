@@ -34,6 +34,7 @@ mod keywords;
 mod keywords_dropped;
 mod license;
 mod live;
+mod manifest;
 mod metadata;
 mod overlay;
 mod properties;
@@ -78,6 +79,7 @@ pub enum CheckKind {
     KeywordsDropped,
     License,
     Live,
+    Manifest,
     Metadata,
     Overlay,
     Properties,
@@ -109,6 +111,7 @@ impl From<CheckKind> for Check {
             CheckKind::KeywordsDropped => keywords_dropped::CHECK,
             CheckKind::License => license::CHECK,
             CheckKind::Live => live::CHECK,
+            CheckKind::Manifest => manifest::CHECK,
             CheckKind::Overlay => overlay::CHECK,
             CheckKind::Metadata => metadata::CHECK,
             CheckKind::Properties => properties::CHECK,
@@ -301,6 +304,7 @@ impl ToRunner<EbuildPkgSetRunner> for Check {
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
             CheckKind::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
             CheckKind::Live => Box::new(live::create()),
+            CheckKind::Manifest => Box::new(manifest::create(repo)),
             CheckKind::UnstableOnly => Box::new(unstable_only::create(repo)),
             CheckKind::UseLocal => Box::new(use_local::create(repo)),
             _ => unreachable!("unsupported check: {self}"),

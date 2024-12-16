@@ -148,6 +148,9 @@ pub enum ReportKind {
     /// Package only has live ebuilds.
     LiveOnly,
 
+    /// Package manifest is invalid.
+    ManifestInvalid,
+
     /// Ebuild fails during metadata generation.
     MetadataError,
 
@@ -279,6 +282,7 @@ impl ReportKind {
             Self::LicenseMissing => Error,
             Self::LicenseUnneeded => Warning,
             Self::LiveOnly => Warning,
+            Self::ManifestInvalid => Error,
             Self::MetadataError => Critical,
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
