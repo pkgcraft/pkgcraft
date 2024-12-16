@@ -119,6 +119,10 @@ impl ManifestFile {
         })
     }
 
+    pub fn kind(&self) -> ManifestType {
+        self.kind
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
