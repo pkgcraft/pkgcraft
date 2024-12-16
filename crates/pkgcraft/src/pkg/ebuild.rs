@@ -23,7 +23,7 @@ pub use configured::EbuildConfiguredPkg;
 pub mod iuse;
 pub mod keyword;
 pub mod manifest;
-use manifest::{Manifest, ManifestFile};
+use manifest::Manifest;
 pub mod metadata;
 use metadata::{Key, Metadata};
 mod raw;
@@ -280,11 +280,9 @@ impl EbuildPkg {
         }
     }
 
-    /// Return a package's registered distfiles.
-    pub fn distfiles(&self) -> impl Iterator<Item = &ManifestFile> {
-        self.src_uri()
-            .iter_flatten()
-            .filter_map(move |u| self.manifest().get(u.filename()))
+    /// Return a package's distfile names.
+    pub fn distfiles(&self) -> impl Iterator<Item = &str> {
+        self.src_uri().iter_flatten().map(|x| x.filename())
     }
 }
 
@@ -906,10 +904,7 @@ mod tests {
         temp.create_ebuild_from_str("cat1/pkg-2", data).unwrap();
         let pkg2 = repo.get_pkg("cat1/pkg-2").unwrap();
         for pkg in [pkg1, pkg2] {
-            let dist: Vec<_> = pkg.distfiles().collect();
-            assert_eq!(dist.len(), 1);
-            assert_eq!(dist[0].name(), "a.tar.gz");
-            assert_eq!(dist[0].size(), 1);
+            assert_ordered_eq!(pkg.distfiles(), ["a.tar.gz"]);
         }
 
         // multiple
@@ -935,13 +930,7 @@ mod tests {
         "#};
         temp.create_ebuild_from_str("cat2/pkg-2", data).unwrap();
         let pkg2 = repo.get_pkg("cat2/pkg-2").unwrap();
-        let dist: Vec<_> = pkg1.distfiles().collect();
-        assert_eq!(dist.len(), 1);
-        assert_eq!(dist[0].name(), "a.tar.gz");
-        assert_eq!(dist[0].size(), 1);
-        let dist: Vec<_> = pkg2.distfiles().collect();
-        assert_eq!(dist.len(), 1);
-        assert_eq!(dist[0].name(), "b.tar.gz");
-        assert_eq!(dist[0].size(), 2);
+        assert_ordered_eq!(pkg1.distfiles(), ["a.tar.gz"]);
+        assert_ordered_eq!(pkg2.distfiles(), ["b.tar.gz"]);
     }
 }
