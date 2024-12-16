@@ -1,6 +1,8 @@
-use indexmap::IndexSet;
+use std::collections::HashSet;
+
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
+use pkgcraft::pkg::ebuild::manifest::ManifestType;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
@@ -21,11 +23,15 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
-    Check { repo }
+    Check {
+        repo,
+        thin_manifests: repo.metadata().config.thin_manifests,
+    }
 }
 
 struct Check {
     repo: &'static EbuildRepo,
+    thin_manifests: bool,
 }
 
 impl EbuildPkgSetCheck for Check {
@@ -38,8 +44,8 @@ impl EbuildPkgSetCheck for Check {
             }
         };
 
-        let manifest_distfiles: IndexSet<_> = manifest.distfiles().map(|x| x.name()).collect();
-        let pkg_distfiles: IndexSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
+        let manifest_distfiles: HashSet<_> = manifest.distfiles().map(|x| x.name()).collect();
+        let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
 
         let unknown = manifest_distfiles
             .difference(&pkg_distfiles)
@@ -61,6 +67,21 @@ impl EbuildPkgSetCheck for Check {
                 .package(cpn)
                 .message(format!("missing: {missing}"))
                 .report(filter);
+        }
+
+        if self.thin_manifests {
+            let files: HashSet<_> = manifest
+                .iter()
+                .filter(|x| x.kind() != ManifestType::Dist)
+                .map(|x| x.name())
+                .collect();
+            if !files.is_empty() {
+                let files = files.iter().sorted().join(", ");
+                ManifestInvalid
+                    .package(cpn)
+                    .message(format!("unnecessary: {files}"))
+                    .report(filter);
+            }
         }
     }
 }
