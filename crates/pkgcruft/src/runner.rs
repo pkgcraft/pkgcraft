@@ -77,7 +77,7 @@ impl SyncCheckRunner {
         self.runners.values().flat_map(|r| r.iter())
     }
 
-    /// Run all check runners in order of priority.
+    /// Run all checks in order of priority.
     pub(super) fn run_checks(&self, target: Target, filter: &mut ReportFilter) {
         for runner in self.runners.values() {
             runner.run_checks(&target, filter);
@@ -135,7 +135,7 @@ impl CheckRunner {
         }
     }
 
-    /// Add a check to the check runner.
+    /// Add a check to the runner.
     fn add_check(&mut self, check: Check) {
         match self {
             Self::EbuildPkg(r) => r.add_check(check),
@@ -204,7 +204,7 @@ macro_rules! make_pkg_check_runner {
                 }
             }
 
-            /// Add a check to the check runner.
+            /// Add a check to the runner.
             fn add_check(&mut self, check: Check) {
                 if check.scope == Scope::Version {
                     self.pkg_checks.insert(check, check.to_runner(self.repo));
@@ -222,7 +222,7 @@ macro_rules! make_pkg_check_runner {
                     .cloned()
             }
 
-            /// Run all checks for a Cpn.
+            /// Run all checks for a [`Cpn`].
             fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
                 let source = &self.source;
                 let mut pkgs = Ok(vec![]);
@@ -261,7 +261,7 @@ macro_rules! make_pkg_check_runner {
                 }
             }
 
-            /// Run a check for a Cpn.
+            /// Run a check for a [`Cpn`].
             fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
                 match self.cache.get_pkgs() {
                     Ok(pkgs) => {
@@ -278,7 +278,7 @@ macro_rules! make_pkg_check_runner {
                 }
             }
 
-            /// Run a check for a Cpv.
+            /// Run a check for a [`Cpv`].
             fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
                 match self.cache.get_pkg(cpv) {
                     Some(Ok(pkg)) => {
@@ -316,7 +316,7 @@ make_pkg_check_runner!(
     EbuildRawPkg
 );
 
-/// Check runner for Cpn objects.
+/// Check runner for [`Cpn`] objects.
 struct CpnCheckRunner {
     checks: IndexMap<Check, CpnRunner>,
     repo: &'static EbuildRepo,
@@ -330,7 +330,7 @@ impl CpnCheckRunner {
         }
     }
 
-    /// Add a check to the check runner.
+    /// Add a check to the runner.
     fn add_check(&mut self, check: Check) {
         self.checks.insert(check, check.to_runner(self.repo));
     }
@@ -340,7 +340,7 @@ impl CpnCheckRunner {
         self.checks.keys().cloned()
     }
 
-    /// Run all checks for a Cpn.
+    /// Run all checks for a [`Cpn`].
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         for (check, runner) in &self.checks {
             let now = Instant::now();
@@ -349,7 +349,7 @@ impl CpnCheckRunner {
         }
     }
 
-    /// Run a check for a Cpn.
+    /// Run a check for a [`Cpn`].
     fn run_check(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
         let runner = self
             .checks
@@ -361,7 +361,7 @@ impl CpnCheckRunner {
     }
 }
 
-/// Check runner for Cpv objects.
+/// Check runner for [`Cpv`] objects.
 struct CpvCheckRunner {
     checks: IndexMap<Check, CpvRunner>,
     repo: &'static EbuildRepo,
@@ -375,7 +375,7 @@ impl CpvCheckRunner {
         }
     }
 
-    /// Add a check to the check runner.
+    /// Add a check to the runner.
     fn add_check(&mut self, check: Check) {
         self.checks.insert(check, check.to_runner(self.repo));
     }
@@ -385,7 +385,7 @@ impl CpvCheckRunner {
         self.checks.keys().cloned()
     }
 
-    /// Run all checks for a Cpn.
+    /// Run all checks for a [`Cpn`].
     fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
         for cpv in self.repo.iter_cpv_restrict(cpn) {
             for (check, runner) in &self.checks {
@@ -396,7 +396,7 @@ impl CpvCheckRunner {
         }
     }
 
-    /// Run a check for a Cpv.
+    /// Run a check for a [`Cpv`].
     fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
         let runner = self
             .checks
@@ -422,7 +422,7 @@ impl RepoCheckRunner {
         }
     }
 
-    /// Add a check to the check runner.
+    /// Add a check to the runner.
     fn add_check(&mut self, check: Check) {
         self.checks.insert(check, check.to_runner(self.repo));
     }
