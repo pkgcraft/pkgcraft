@@ -251,8 +251,12 @@ impl Manifest {
         self.0.get(name)
     }
 
+    pub fn iter(&self) -> Iter {
+        self.into_iter()
+    }
+
     pub fn distfiles(&self) -> impl Iterator<Item = &ManifestFile> {
-        self.0.iter().filter(|x| x.kind == ManifestType::Dist)
+        self.into_iter().filter(|x| x.kind == ManifestType::Dist)
     }
 
     pub fn is_empty(&self) -> bool {
