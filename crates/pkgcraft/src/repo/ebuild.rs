@@ -536,18 +536,9 @@ impl PkgRepository for EbuildRepo {
             .filter(is_ebuild)
             .filter_map(|entry| {
                 let p = entry.path().file_stem().expect("invalid ebuild file");
-                let version = p.strip_prefix(pkg).and_then(|s| s.strip_prefix('-'));
-                if let Some(version) = version {
-                    match Version::try_new(version) {
-                        Ok(v) => return Some(v),
-                        Err(e) => warn!("{}: {e}: {path}", self.id()),
-                    }
-                } else if p.contains('-') {
-                    warn!("{}: mismatched package name: {path}", self.id());
-                } else {
-                    warn!("{}: missing version: {path}", self.id());
-                }
-                None
+                p.strip_prefix(pkg)
+                    .and_then(|s| s.strip_prefix('-'))
+                    .and_then(|s| Version::try_new(s).ok())
             })
             .collect();
         versions.sort();
