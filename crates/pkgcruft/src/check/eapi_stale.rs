@@ -16,7 +16,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[EapiStale],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create() -> impl EbuildPkgSetCheck {

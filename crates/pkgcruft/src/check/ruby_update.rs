@@ -22,7 +22,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[RubyUpdate],
     context: &[CheckContext::GentooInherited],
-    priority: 0,
 };
 
 static IUSE_PREFIX: &str = "ruby_targets_";

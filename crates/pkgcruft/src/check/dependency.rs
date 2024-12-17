@@ -20,7 +20,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {

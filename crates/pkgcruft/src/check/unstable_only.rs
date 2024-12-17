@@ -19,7 +19,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[UnstableOnly],
     context: &[CheckContext::Optional],
-    priority: 0,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {

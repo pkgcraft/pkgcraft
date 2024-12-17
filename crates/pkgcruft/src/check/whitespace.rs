@@ -15,7 +15,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildRawPkg,
     reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create() -> impl EbuildRawPkgCheck {

@@ -16,7 +16,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::Cpn,
     reports: &[PackageOverride],
     context: &[CheckContext::Optional, CheckContext::Overlay],
-    priority: 0,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl CpnCheck {

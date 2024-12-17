@@ -28,7 +28,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[FileUnknown, FilesUnused],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {

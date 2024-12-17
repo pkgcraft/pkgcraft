@@ -205,9 +205,6 @@ pub struct Check {
 
     /// Check variant contexts.
     context: &'static [CheckContext],
-
-    /// The priority of the check for enabling a deterministic running order.
-    priority: i64,
 }
 
 impl Check {
@@ -405,9 +402,7 @@ impl Borrow<CheckKind> for Check {
 
 impl Ord for Check {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.priority
-            .cmp(&other.priority)
-            .then_with(|| self.kind.cmp(&other.kind))
+        self.kind.cmp(&other.kind)
     }
 }
 

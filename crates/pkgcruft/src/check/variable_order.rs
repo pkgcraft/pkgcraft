@@ -15,7 +15,6 @@ pub(crate) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildRawPkg,
     reports: &[VariableOrder],
     context: &[],
-    priority: 0,
 };
 
 #[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]

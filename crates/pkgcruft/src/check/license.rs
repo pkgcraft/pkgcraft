@@ -16,7 +16,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[LicenseDeprecated, LicenseMissing, LicenseUnneeded],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {

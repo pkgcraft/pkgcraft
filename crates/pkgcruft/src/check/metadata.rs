@@ -18,7 +18,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::Cpv,
     reports: &[MetadataError],
     context: &[],
-    priority: -9999,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl CpvCheck {

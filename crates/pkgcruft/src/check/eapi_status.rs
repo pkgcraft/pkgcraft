@@ -14,7 +14,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildRawPkg,
     reports: &[EapiBanned, EapiDeprecated],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildRawPkgCheck {

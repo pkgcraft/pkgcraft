@@ -13,7 +13,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[UriUnsupported],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create() -> impl EbuildPkgCheck {

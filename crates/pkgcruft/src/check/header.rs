@@ -15,7 +15,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildRawPkg,
     reports: &[HeaderInvalid],
     context: &[CheckContext::Gentoo],
-    priority: 0,
 };
 
 static GENTOO_LICENSE_HEADER: &str =

@@ -1,7 +1,6 @@
 use std::time::Instant;
 
 use indexmap::{IndexMap, IndexSet};
-use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -58,8 +57,6 @@ impl SyncCheckRunner {
                 }
             })
             .copied()
-            // sort checks by priority so they run in the correct order
-            .sorted()
             .for_each(|check| {
                 runners
                     .entry(check.source)

@@ -14,7 +14,6 @@ pub(crate) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildRawPkg,
     reports: &[BuiltinCommand],
     context: &[],
-    priority: 0,
 };
 
 type TestFn = fn(&str, &EbuildRawPkg) -> Option<String>;

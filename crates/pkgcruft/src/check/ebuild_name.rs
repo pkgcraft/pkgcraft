@@ -17,7 +17,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::Cpn,
     reports: &[EbuildNameInvalid, EbuildVersionsEqual],
     context: &[],
-    priority: 0,
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl CpnCheck {

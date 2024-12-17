@@ -15,7 +15,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[EclassUnused],
     context: &[CheckContext::Overlay],
-    priority: 0,
 };
 
 // TODO: use eclass deprecation flags instead

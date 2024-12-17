@@ -24,7 +24,6 @@ pub(super) static CHECK: super::Check = super::Check {
     source: SourceKind::EbuildPkg,
     reports: &[PythonUpdate],
     context: &[CheckContext::GentooInherited],
-    priority: 0,
 };
 
 static IUSE_PREFIX: &str = "python_targets_";
