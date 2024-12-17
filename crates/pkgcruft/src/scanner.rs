@@ -107,7 +107,8 @@ impl Scanner {
         // return early for non-matching restrictions
         if restrict != Restrict::True
             && (restrict == Restrict::False
-                || self.repo.iter_cpv_restrict(&restrict).next().is_none())
+                || (self.repo.iter_cpv_restrict(&restrict).next().is_none()
+                    && self.repo.iter_cpn_restrict(&restrict).next().is_none()))
         {
             return Err(Error::InvalidValue("no matches found".to_string()));
         }
