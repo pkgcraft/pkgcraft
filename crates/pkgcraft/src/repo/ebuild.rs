@@ -1609,8 +1609,16 @@ mod tests {
 
     #[test]
     fn contains() {
-        let data = test_data();
-        let repo = data.ebuild_repo("metadata").unwrap();
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        temp.create_ebuild("cat/pkg-2", &[]).unwrap();
+        config.finalize().unwrap();
 
         // path
         assert!(repo.contains(""));
@@ -1618,25 +1626,29 @@ mod tests {
         assert!(repo.contains(repo.path()));
         assert!(repo.contains("profiles"));
         assert!(!repo.contains("a/pkg"));
-        assert!(repo.contains("optional"));
-        assert!(repo.contains("optional/none"));
-        assert!(repo.contains("optional/none/none-8.ebuild"));
-        assert!(!repo.contains("none-8.ebuild"));
+        assert!(repo.contains("cat"));
+        assert!(repo.contains("cat/pkg"));
+        assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
+        assert!(!repo.contains("pkg-1.ebuild"));
 
         // Cpv
-        let cpv = Cpv::try_new("optional/none-8").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         assert!(repo.contains(&cpv));
-        let cpv = Cpv::try_new("optional/none-0").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-0").unwrap();
         assert!(!repo.contains(&cpv));
         let cpv = Cpv::try_new("a/pkg-1").unwrap();
         assert!(!repo.contains(&cpv));
 
         // Dep
-        let d = Dep::try_new("optional/none").unwrap();
+        let d = Dep::try_new("cat/pkg").unwrap();
         assert!(repo.contains(&d));
-        let d = Dep::try_new("=optional/none-8::metadata").unwrap();
+        let d = Dep::try_new("=cat/pkg-1").unwrap();
         assert!(repo.contains(&d));
-        let d = Dep::try_new("=optional/none-0::metadata").unwrap();
+        let d = Dep::try_new("=cat/pkg-1::test").unwrap();
+        assert!(repo.contains(&d));
+        let d = Dep::try_new("=cat/pkg-0").unwrap();
+        assert!(!repo.contains(&d));
+        let d = Dep::try_new("=cat/pkg-1::repo").unwrap();
         assert!(!repo.contains(&d));
         let d = Dep::try_new("a/pkg").unwrap();
         assert!(!repo.contains(&d));
