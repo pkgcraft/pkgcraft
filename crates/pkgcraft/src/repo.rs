@@ -446,19 +446,29 @@ pub trait PkgRepository:
 }
 
 pub trait Repository: PkgRepository + fmt::Display {
+    /// Return the repo's format.
     fn format(&self) -> RepoFormat;
-    /// Locally configured repo identifier.
+
+    /// Return the repo's locally configured identifier.
     fn id(&self) -> &str;
-    /// Official repo identifier.
+
+    /// Return the repo's official identifier.
     fn name(&self) -> &str {
         self.id()
     }
+
+    /// Return the repo's priority.
     fn priority(&self) -> i32;
+
+    /// Return the repo's path.
     fn path(&self) -> &Utf8Path;
+
     /// Try converting a path to a [`Restrict`], returns None if the path isn't in the repo.
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, _path: P) -> Option<Restrict> {
         None
     }
+
+    /// Try to sync the repo.
     fn sync(&self) -> crate::Result<()>;
 }
 
