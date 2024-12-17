@@ -8,6 +8,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
+use pkgcraft::traits::Contains;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 use tracing::info;
@@ -105,11 +106,7 @@ impl Scanner {
         info!("target: {restrict:?}");
 
         // return early for non-matching restrictions
-        if restrict != Restrict::True
-            && (restrict == Restrict::False
-                || (self.repo.iter_cpv_restrict(&restrict).next().is_none()
-                    && self.repo.iter_cpn_restrict(&restrict).next().is_none()))
-        {
+        if !self.repo.contains(&restrict) {
             return Err(Error::InvalidValue("no matches found".to_string()));
         }
 
