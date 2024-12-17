@@ -24,7 +24,7 @@ impl ArchiveFormat for Tar {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
-        cmd.args(["-c", src.as_str(), "-f", dest.as_str()]);
+        cmd.args(["-f", dest.as_str(), "-c", src.as_str()]);
         cmd.run()
     }
 
@@ -47,13 +47,13 @@ impl ArchiveFormat for TarGz {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
-        cmd.args(["-c", src.as_str(), "-I", "gzip", "-f", dest.as_str()]);
+        cmd.args(["--use-compress-program", "gzip", "-f", dest.as_str(), "-c", src.as_str()]);
         cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
-        cmd.args(["xf", self.path.as_str(), "-I", "gzip"]);
+        cmd.args(["xf", self.path.as_str()]);
         cmd.run()
     }
 }
@@ -70,13 +70,13 @@ impl ArchiveFormat for TarBz2 {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
-        cmd.args(["-c", src.as_str(), "-I", "bzip2", "-f", dest.as_str()]);
+        cmd.args(["--use-compress-program", "bzip2", "-f", dest.as_str(), "-c", src.as_str()]);
         cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
-        cmd.args(["xf", self.path.as_str(), "-I", "bzip2"]);
+        cmd.args(["xf", self.path.as_str()]);
         cmd.run()
     }
 }
@@ -93,13 +93,13 @@ impl ArchiveFormat for TarLzma {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
-        cmd.args(["-c", src.as_str(), "-I", "lzma", "-f", dest.as_str()]);
+        cmd.args(["--use-compress-program", "lzma", "-f", dest.as_str(), "-c", src.as_str()]);
         cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
-        cmd.args(["xf", self.path.as_str(), "-I", "lzma"]);
+        cmd.args(["xf", self.path.as_str()]);
         cmd.run()
     }
 }
@@ -116,13 +116,13 @@ impl ArchiveFormat for TarXz {
         let src = src.as_ref();
         let dest = dest.as_ref();
         let mut cmd = Command::new("tar");
-        cmd.args(["-c", src.as_str(), "-I", "xz", "-f", dest.as_str()]);
+        cmd.args(["--use-compress-program", "xz", "-f", dest.as_str(), "-c", src.as_str()]);
         cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("tar");
-        cmd.args(["xf", self.path.as_str(), "-I", "xz"]);
+        cmd.args(["xf", self.path.as_str()]);
         cmd.run()
     }
 }
