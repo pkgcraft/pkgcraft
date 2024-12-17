@@ -243,17 +243,16 @@ macro_rules! make_pkg_check_runner {
                     }
                 }
 
-                // TODO: Replace is_empty() usage with debug_assert!() once iter_cpn_restrict()
-                // ignores empty pkgs.
                 match &pkgs {
-                    Ok(pkgs) if !pkgs.is_empty() => {
-                        for (check, runner) in &self.pkg_set_checks {
-                            let now = Instant::now();
-                            runner.run(cpn, pkgs, filter);
-                            debug!("{check}: {cpn}: {:?}", now.elapsed());
+                    Ok(pkgs) => {
+                        if !pkgs.is_empty() {
+                            for (check, runner) in &self.pkg_set_checks {
+                                let now = Instant::now();
+                                runner.run(cpn, pkgs, filter);
+                                debug!("{check}: {cpn}: {:?}", now.elapsed());
+                            }
                         }
                     }
-                    Ok(_) => (),
                     Err(e) => warn!("skipping {source} set checks due to {e}"),
                 }
             }
@@ -262,14 +261,15 @@ macro_rules! make_pkg_check_runner {
             fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
                 match self.cache.get_pkgs() {
                     Ok(pkgs) => {
-                        debug_assert!(!pkgs.is_empty(), "no matching packages: {cpn}");
-                        let runner = self
-                            .pkg_set_checks
-                            .get(check)
-                            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                        let now = Instant::now();
-                        runner.run(cpn, pkgs, filter);
-                        debug!("{check}: {cpn}: {:?}", now.elapsed());
+                        if !pkgs.is_empty() {
+                            let runner = self
+                                .pkg_set_checks
+                                .get(check)
+                                .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+                            let now = Instant::now();
+                            runner.run(cpn, pkgs, filter);
+                            debug!("{check}: {cpn}: {:?}", now.elapsed());
+                        }
                     }
                     Err(e) => warn!("{check}: skipping due to {e}"),
                 }
