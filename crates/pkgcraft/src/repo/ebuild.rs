@@ -1631,6 +1631,12 @@ mod tests {
         assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
         assert!(!repo.contains("pkg-1.ebuild"));
 
+        // Cpn
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
+        assert!(repo.contains(&cpn));
+        let cpn = Cpn::try_new("a/pkg").unwrap();
+        assert!(!repo.contains(&cpn));
+
         // Cpv
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         assert!(repo.contains(&cpv));
@@ -1652,6 +1658,14 @@ mod tests {
         assert!(!repo.contains(&d));
         let d = Dep::try_new("a/pkg").unwrap();
         assert!(!repo.contains(&d));
+
+        // Restrict
+        assert!(repo.contains(&Restrict::True));
+        assert!(!repo.contains(&Restrict::False));
+        let restrict = Restrict::from(Cpn::try_new("cat/pkg").unwrap());
+        assert!(repo.contains(&restrict));
+        let restrict = Restrict::from(Cpv::try_new("cat/pkg-1").unwrap());
+        assert!(repo.contains(&restrict));
     }
 
     #[test]
