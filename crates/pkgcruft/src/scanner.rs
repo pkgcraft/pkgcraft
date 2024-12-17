@@ -107,7 +107,7 @@ impl Scanner {
 
         // return early for non-matching restrictions
         if !self.repo.contains(&restrict) {
-            return Err(Error::InvalidValue("no matches found".to_string()));
+            return Err(Error::NoMatches);
         }
 
         let runner = Arc::new(SyncCheckRunner::new(
