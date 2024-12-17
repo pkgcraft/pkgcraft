@@ -140,7 +140,6 @@ impl EbuildTempRepo {
         T: TryInto<Cpv>,
         Error: From<<T as TryInto<Cpv>>::Error>,
     {
-        use Key::*;
         let cpv = value.try_into()?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
         fs::create_dir_all(path.parent().unwrap())
@@ -150,9 +149,9 @@ impl EbuildTempRepo {
 
         // ebuild defaults
         let mut values = indexmap::IndexMap::from([
-            (EAPI, EAPI_LATEST_OFFICIAL.as_str()),
-            (SLOT, "0"),
-            (DESCRIPTION, "stub package description"),
+            (Key::EAPI, EAPI_LATEST_OFFICIAL.as_str()),
+            (Key::SLOT, "0"),
+            (Key::DESCRIPTION, "stub package description"),
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"

@@ -22,11 +22,10 @@ impl TryFrom<&EbuildRawPkg> for Metadata {
         let mut meta = Self::default();
 
         // populate metadata fields using the current build state
-        use Key::*;
         for key in eapi.metadata_keys() {
             match key {
-                CHKSUM => meta.deserialize(eapi, repo, key, pkg.chksum())?,
-                DEFINED_PHASES => {
+                Key::CHKSUM => meta.deserialize(eapi, repo, key, pkg.chksum())?,
+                Key::DEFINED_PHASES => {
                     meta.defined_phases = eapi
                         .phases()
                         .iter()
@@ -34,8 +33,8 @@ impl TryFrom<&EbuildRawPkg> for Metadata {
                         .copied()
                         .collect();
                 }
-                INHERIT => meta.inherit = build.inherit.clone(),
-                INHERITED => meta.inherited = build.inherited.clone(),
+                Key::INHERIT => meta.inherit = build.inherit.clone(),
+                Key::INHERITED => meta.inherited = build.inherited.clone(),
                 key => {
                     if let Some(val) = build.incrementals.get(key) {
                         let s = val.iter().join(" ");

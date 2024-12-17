@@ -121,17 +121,16 @@ impl Metadata {
                 .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
         };
 
-        use Key::*;
         match key {
-            CHKSUM => self.chksum = val.to_string(),
-            DESCRIPTION => self.description = val.to_string(),
-            SLOT => self.slot = Slot::try_new(val)?,
-            BDEPEND => self.bdepend = DependencySet::package(val, eapi)?,
-            DEPEND => self.depend = DependencySet::package(val, eapi)?,
-            IDEPEND => self.idepend = DependencySet::package(val, eapi)?,
-            PDEPEND => self.pdepend = DependencySet::package(val, eapi)?,
-            RDEPEND => self.rdepend = DependencySet::package(val, eapi)?,
-            LICENSE => {
+            Key::CHKSUM => self.chksum = val.to_string(),
+            Key::DESCRIPTION => self.description = val.to_string(),
+            Key::SLOT => self.slot = Slot::try_new(val)?,
+            Key::BDEPEND => self.bdepend = DependencySet::package(val, eapi)?,
+            Key::DEPEND => self.depend = DependencySet::package(val, eapi)?,
+            Key::IDEPEND => self.idepend = DependencySet::package(val, eapi)?,
+            Key::PDEPEND => self.pdepend = DependencySet::package(val, eapi)?,
+            Key::RDEPEND => self.rdepend = DependencySet::package(val, eapi)?,
+            Key::LICENSE => {
                 self.license = DependencySet::license(val)?;
                 for l in self.license.iter_flatten() {
                     if !repo.licenses().contains(l) {
@@ -139,28 +138,28 @@ impl Metadata {
                     }
                 }
             }
-            PROPERTIES => self.properties = DependencySet::properties(val)?,
-            REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
-            RESTRICT => self.restrict = DependencySet::restrict(val)?,
-            SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
-            HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
-            DEFINED_PHASES => {
+            Key::PROPERTIES => self.properties = DependencySet::properties(val)?,
+            Key::REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
+            Key::RESTRICT => self.restrict = DependencySet::restrict(val)?,
+            Key::SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
+            Key::HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
+            Key::DEFINED_PHASES => {
                 // PMS specifies if no phase functions are defined, a single hyphen is used.
                 if val != "-" {
                     self.defined_phases = val.split_whitespace().map(phase).try_collect()?
                 }
             }
-            KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
-            IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
-            INHERIT => self.inherit = val.split_whitespace().map(eclass).try_collect()?,
-            INHERITED => {
+            Key::KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
+            Key::IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
+            Key::INHERIT => self.inherit = val.split_whitespace().map(eclass).try_collect()?,
+            Key::INHERITED => {
                 self.inherited = val
                     .split_whitespace()
                     .tuples()
                     .map(|(name, _chksum)| eclass(name))
                     .try_collect()?
             }
-            EAPI => {
+            Key::EAPI => {
                 let sourced: &Eapi = val.try_into()?;
                 if sourced != eapi {
                     return Err(Error::InvalidValue(format!(
