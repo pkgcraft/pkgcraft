@@ -33,7 +33,7 @@ cached = "0.54.0"
 camino = { version = "1.1.9", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.5.23", features = ["derive"] }
-crossbeam-channel = "0.5.13"
+crossbeam-channel = "0.5.14"
 dashmap = "6.1.0"
 digest = "0.10.7"
 enum-as-inner = "0.6.1"
@@ -60,14 +60,14 @@ reqwest = { version = "0.12.9", default-features = false, features = ["hickory-d
 roxmltree = "0.20.0"
 rust-ini = "0.21.1"
 scallop = { path = "../scallop", version = "0.0.19" }
-serde = { version = "1.0.215", features = ["derive"] }
+serde = { version = "1.0.216", features = ["derive"] }
 serde_with = { version = "3.11.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
 strum = { version = "0.26.3", features = ["derive"] }
 tar = { version = "0.4.43", optional = true }
 tempfile = "3.14.0"
-thiserror = "2.0.6"
-tree-sitter = "0.24.4"
+thiserror = "2.0.7"
+tree-sitter = "0.24.5"
 tree-sitter-bash = "0.23.3"
 tokio = { version = "1.42.0", features = ["full"] }
 toml = "0.8.19"
