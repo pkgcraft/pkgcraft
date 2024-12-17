@@ -16,8 +16,6 @@ pub(crate) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-type TestFn = fn(&str, &EbuildRawPkg) -> Option<String>;
-
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     Check {
         commands: ["find", "xargs"]
