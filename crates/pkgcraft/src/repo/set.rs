@@ -16,7 +16,7 @@ use crate::types::OrderedSet;
 use super::{PkgRepository, Repo, Repository};
 
 /// Ordered set of repos.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RepoSet {
     pub repos: OrderedSet<Repo>,
 }
@@ -24,7 +24,7 @@ pub struct RepoSet {
 impl RepoSet {
     /// Construct a new, empty `RepoSet`.
     pub fn new() -> Self {
-        Self { repos: OrderedSet::new() }
+        Self::default()
     }
 
     /// Iterate over all ebuild repos in the set.
@@ -55,12 +55,6 @@ impl RepoSet {
         }
 
         (self, restrict)
-    }
-}
-
-impl Default for RepoSet {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
