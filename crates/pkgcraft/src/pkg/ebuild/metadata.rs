@@ -94,6 +94,14 @@ impl Metadata {
         key: &Key,
         val: &str,
     ) -> crate::Result<()> {
+        // return the Eclass for a given identifier if it exists
+        let eclass = |name: &str| -> crate::Result<Eclass> {
+            repo.eclasses()
+                .get(name)
+                .cloned()
+                .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {name}")))
+        };
+
         // return the Keyword for a given identifier if it exists
         let keyword = |s: &str| -> crate::Result<Keyword> {
             let keyword = Keyword::try_new(s)?;
@@ -105,8 +113,17 @@ impl Metadata {
             }
         };
 
+        // return the Phase for a given name if it exists
+        let phase = |name: &str| -> crate::Result<Phase> {
+            eapi.phases()
+                .get(name)
+                .copied()
+                .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
+        };
+
         use Key::*;
         match key {
+            CHKSUM => self.chksum = val.to_string(),
             DESCRIPTION => self.description = val.to_string(),
             SLOT => self.slot = Slot::try_new(val)?,
             BDEPEND => self.bdepend = DependencySet::package(val, eapi)?,
@@ -127,8 +144,22 @@ impl Metadata {
             RESTRICT => self.restrict = DependencySet::restrict(val)?,
             SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
             HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
+            DEFINED_PHASES => {
+                // PMS specifies if no phase functions are defined, a single hyphen is used.
+                if val != "-" {
+                    self.defined_phases = val.split_whitespace().map(phase).try_collect()?
+                }
+            }
             KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
             IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
+            INHERIT => self.inherit = val.split_whitespace().map(eclass).try_collect()?,
+            INHERITED => {
+                self.inherited = val
+                    .split_whitespace()
+                    .tuples()
+                    .map(|(name, _chksum)| eclass(name))
+                    .try_collect()?
+            }
             EAPI => {
                 let sourced: &Eapi = val.try_into()?;
                 if sourced != eapi {
@@ -138,7 +169,6 @@ impl Metadata {
                 }
                 self.eapi = eapi;
             }
-            _ => unreachable!("{key} metadata deserialization should pull from build state"),
         }
 
         Ok(())

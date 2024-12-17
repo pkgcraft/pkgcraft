@@ -9,14 +9,12 @@ use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
 
-use crate::dep::{Cpv, DependencySet, Slot};
-use crate::eapi::Eapi;
+use crate::dep::Cpv;
 use crate::files::{atomic_write_file, is_file};
 use crate::pkg::ebuild::metadata::{Key, Metadata};
-use crate::pkg::ebuild::{iuse::Iuse, keyword::Keyword, EbuildRawPkg};
+use crate::pkg::ebuild::EbuildRawPkg;
 use crate::pkg::{Package, RepoPackage};
-use crate::repo::ebuild::{EbuildRepo, Eclass};
-use crate::shell::phase::Phase;
+use crate::repo::ebuild::EbuildRepo;
 use crate::traits::Contains;
 use crate::utils::digest;
 use crate::Error;
@@ -63,107 +61,21 @@ impl fmt::Display for Md5DictKey {
 #[derive(Debug, Default)]
 pub struct Md5DictEntry(IndexMap<Md5DictKey, String>);
 
-/// Deserialize a cache entry value to its Metadata field value.
-fn deserialize(
-    meta: &mut Metadata,
-    eapi: &'static Eapi,
-    repo: &EbuildRepo,
-    key: &Key,
-    val: &str,
-) -> crate::Result<()> {
-    // return the Eclass for a given identifier if it exists
-    let eclass = |name: &str| -> crate::Result<Eclass> {
-        repo.eclasses()
-            .get(name)
-            .cloned()
-            .ok_or_else(|| Error::InvalidValue(format!("nonexistent eclass: {name}")))
-    };
-
-    // return the Keyword for a given identifier if it exists
-    let keyword = |s: &str| -> crate::Result<Keyword> {
-        let keyword = Keyword::try_new(s)?;
-        let arch = keyword.arch();
-        if arch != "*" && !repo.arches().contains(arch) {
-            Err(Error::InvalidValue(format!("nonexistent arch: {arch}")))
-        } else {
-            Ok(keyword)
-        }
-    };
-
-    // return the Phase for a given name if it exists
-    let phase = |name: &str| -> crate::Result<Phase> {
-        eapi.phases()
-            .get(name)
-            .copied()
-            .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
-    };
-
-    use Key::*;
-    match key {
-        CHKSUM => meta.chksum = val.to_string(),
-        DESCRIPTION => meta.description = val.to_string(),
-        SLOT => meta.slot = Slot::try_new(val)?,
-        BDEPEND => meta.bdepend = DependencySet::package(val, eapi)?,
-        DEPEND => meta.depend = DependencySet::package(val, eapi)?,
-        IDEPEND => meta.idepend = DependencySet::package(val, eapi)?,
-        PDEPEND => meta.pdepend = DependencySet::package(val, eapi)?,
-        RDEPEND => meta.rdepend = DependencySet::package(val, eapi)?,
-        LICENSE => {
-            meta.license = DependencySet::license(val)?;
-            for l in meta.license.iter_flatten() {
-                if !repo.licenses().contains(l) {
-                    return Err(Error::InvalidValue(format!("nonexistent license: {l}")));
-                }
-            }
-        }
-        PROPERTIES => meta.properties = DependencySet::properties(val)?,
-        REQUIRED_USE => meta.required_use = DependencySet::required_use(val)?,
-        RESTRICT => meta.restrict = DependencySet::restrict(val)?,
-        SRC_URI => meta.src_uri = DependencySet::src_uri(val)?,
-        HOMEPAGE => meta.homepage = val.split_whitespace().map(String::from).collect(),
-        DEFINED_PHASES => {
-            // PMS specifies if no phase functions are defined, a single hyphen is used.
-            if val != "-" {
-                meta.defined_phases = val.split_whitespace().map(phase).try_collect()?
-            }
-        }
-        KEYWORDS => meta.keywords = val.split_whitespace().map(keyword).try_collect()?,
-        IUSE => meta.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
-        INHERIT => meta.inherit = val.split_whitespace().map(eclass).try_collect()?,
-        INHERITED => {
-            meta.inherited = val
-                .split_whitespace()
-                .tuples()
-                .map(|(name, _chksum)| eclass(name))
-                .try_collect()?
-        }
-        EAPI => {
-            let sourced: &Eapi = val.try_into()?;
-            if sourced != eapi {
-                return Err(Error::InvalidValue(format!(
-                    "mismatched sourced and parsed EAPIs: {sourced} != {eapi}"
-                )));
-            }
-            meta.eapi = eapi;
-        }
-    }
-
-    Ok(())
-}
-
 impl CacheEntry for Md5DictEntry {
     fn to_metadata(&self, pkg: &EbuildRawPkg) -> crate::Result<Metadata> {
         let mut meta = Metadata::default();
+        let eapi = pkg.eapi();
+        let repo = &pkg.repo();
 
-        for key in pkg.eapi().mandatory_keys() {
+        for key in eapi.mandatory_keys() {
             if !self.0.contains_key(key) {
                 return Err(Error::InvalidValue(format!("missing required value: {key}")));
             }
         }
 
-        for key in pkg.eapi().metadata_keys() {
+        for key in eapi.metadata_keys() {
             if let Some(val) = self.0.get(key) {
-                deserialize(&mut meta, pkg.eapi(), &pkg.repo(), key, val)?;
+                meta.deserialize(eapi, repo, key, val)?;
             }
         }
 

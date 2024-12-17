@@ -17,7 +17,7 @@ impl TryFrom<&EbuildRawPkg> for Metadata {
         pkg.source()?;
 
         let eapi = pkg.eapi();
-        let repo = pkg.repo();
+        let repo = &pkg.repo();
         let build = get_build_mut();
         let mut meta = Self::default();
 
@@ -25,7 +25,7 @@ impl TryFrom<&EbuildRawPkg> for Metadata {
         use Key::*;
         for key in eapi.metadata_keys() {
             match key {
-                CHKSUM => meta.chksum = pkg.chksum().to_string(),
+                CHKSUM => meta.deserialize(eapi, repo, key, pkg.chksum())?,
                 DEFINED_PHASES => {
                     meta.defined_phases = eapi
                         .phases()
@@ -39,10 +39,10 @@ impl TryFrom<&EbuildRawPkg> for Metadata {
                 key => {
                     if let Some(val) = build.incrementals.get(key) {
                         let s = val.iter().join(" ");
-                        meta.deserialize(eapi, &repo, key, &s)?;
+                        meta.deserialize(eapi, repo, key, &s)?;
                     } else if let Some(val) = variables::optional(key) {
                         let s = val.split_whitespace().join(" ");
-                        meta.deserialize(eapi, &repo, key, &s)?;
+                        meta.deserialize(eapi, repo, key, &s)?;
                     } else if eapi.mandatory_keys().contains(key) {
                         return Err(Error::InvalidValue(format!("missing required value: {key}")));
                     }
