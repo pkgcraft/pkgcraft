@@ -435,8 +435,7 @@ mod tests {
     use crate::pkg::RepoPackage;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::fake::FakeRepo;
-    use crate::repo::{Contains, Repository};
-    use crate::test::{assert_ordered_eq, test_data};
+    use crate::test::*;
     use crate::utils::hash;
 
     use super::*;

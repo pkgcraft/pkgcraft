@@ -166,9 +166,6 @@ impl Repository for Repo {
 
 #[cfg(test)]
 mod tests {
-    use crate::dep::Dep;
-    use crate::repo::Contains;
-
     use super::*;
 
     #[test]

@@ -1340,12 +1340,8 @@ impl Iterator for IterRawRestrictOrdered {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
-    use crate::dep::Dep;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkg::Package;
-    use crate::repo::Contains;
     use crate::test::*;
 
     use super::*;

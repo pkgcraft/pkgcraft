@@ -367,9 +367,7 @@ mod tests {
     use itertools::Itertools;
     use tracing_test::traced_test;
 
-    use crate::dep::Dep;
     use crate::pkg::Package;
-    use crate::repo::Contains;
     use crate::test::*;
 
     use super::*;
