@@ -399,6 +399,7 @@ pub trait PkgRepository:
     + for<'a> Contains<&'a Cpn>
     + for<'a> Contains<&'a Cpv>
     + for<'a> Contains<&'a Dep>
+    + for<'a> Contains<&'a Restrict>
 {
     type Pkg: Package;
     type IterCpn: Iterator<Item = Cpn>;
@@ -800,6 +801,15 @@ macro_rules! make_repo_traits {
         impl From<$x> for crate::pkg::Restrict {
             fn from(r: $x) -> Self {
                 crate::pkg::Restrict::repo(r.id())
+            }
+        }
+
+        impl Contains<&crate::restrict::Restrict> for $x {
+            fn contains(&self, value: &crate::restrict::Restrict) -> bool {
+                value == &Restrict::True
+                    || (value != &Restrict::False
+                        && (self.iter_cpv_restrict(value).next().is_some()
+                            || self.iter_cpn_restrict(value).next().is_some()))
             }
         }
 

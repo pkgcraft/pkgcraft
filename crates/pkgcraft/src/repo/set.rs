@@ -203,6 +203,12 @@ impl Contains<&Dep> for RepoSet {
     }
 }
 
+impl Contains<&Restrict> for RepoSet {
+    fn contains(&self, value: &Restrict) -> bool {
+        self.repos.iter().any(|r| r.contains(value))
+    }
+}
+
 pub struct IterCpn(indexmap::set::IntoIter<Cpn>);
 
 impl Iterator for IterCpn {
