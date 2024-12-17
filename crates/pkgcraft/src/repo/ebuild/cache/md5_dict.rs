@@ -67,15 +67,11 @@ impl CacheEntry for Md5DictEntry {
         let eapi = pkg.eapi();
         let repo = &pkg.repo();
 
-        for key in eapi.mandatory_keys() {
-            if !self.0.contains_key(key) {
-                return Err(Error::InvalidValue(format!("missing required value: {key}")));
-            }
-        }
-
         for key in eapi.metadata_keys() {
             if let Some(val) = self.0.get(key) {
                 meta.deserialize(eapi, repo, key, val)?;
+            } else if eapi.mandatory_keys().contains(key) {
+                return Err(Error::InvalidValue(format!("missing required value: {key}")));
             }
         }
 
