@@ -22,10 +22,10 @@ use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::shell::BuildPool;
-use crate::traits::Intersects;
+use crate::traits::{Contains, Intersects};
 use crate::xml::parse_xml_with_dtd;
 
-use super::{make_repo_traits, Contains, PkgRepository, RepoFormat, Repository};
+use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
 pub mod cache;
 pub(crate) mod configured;
