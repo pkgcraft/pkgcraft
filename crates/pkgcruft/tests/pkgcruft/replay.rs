@@ -2,7 +2,6 @@ use std::fs;
 use std::io::Write;
 
 use itertools::Itertools;
-use pkgcraft::repo::Repository;
 use pkgcraft::test::*;
 use pkgcruft::test::*;
 use predicates::prelude::*;

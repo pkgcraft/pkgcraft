@@ -87,7 +87,6 @@ impl EbuildPkgSetCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
 
     use crate::scanner::Scanner;

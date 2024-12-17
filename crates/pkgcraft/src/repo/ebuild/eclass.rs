@@ -109,7 +109,6 @@ impl SourceBash for Eclass {
 
 #[cfg(test)]
 mod tests {
-    use crate::repo::Repository;
     use crate::test::test_data;
 
     use super::*;

@@ -41,7 +41,6 @@ impl RepoCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::repo::Repository;
     use pkgcraft::test::{assert_unordered_eq, test_data, test_data_patched};
 
     use crate::scanner::Scanner;

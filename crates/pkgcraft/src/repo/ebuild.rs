@@ -153,6 +153,11 @@ impl EbuildRepo {
         &self.0.config
     }
 
+    /// Return the repo's path.
+    pub fn path(&self) -> &Utf8Path {
+        &self.repo_config().location
+    }
+
     /// Return the build pool for the repo.
     pub fn pool(&self) -> Arc<BuildPool> {
         self.0
@@ -588,7 +593,7 @@ impl Repository for EbuildRepo {
     }
 
     fn path(&self) -> &Utf8Path {
-        &self.repo_config().location
+        self.path()
     }
 
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {

@@ -45,7 +45,6 @@ impl EbuildPkgCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::repo::Repository;
     use pkgcraft::test::{assert_unordered_eq, test_data};
 
     use crate::scanner::Scanner;

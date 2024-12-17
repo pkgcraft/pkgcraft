@@ -1,7 +1,6 @@
 use std::env;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::repo::Repository;
 use pkgcraft::test::{cmd, test_data};
 use predicates::str::contains;
 

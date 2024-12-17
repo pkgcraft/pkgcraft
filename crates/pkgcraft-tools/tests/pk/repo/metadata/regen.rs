@@ -4,7 +4,6 @@ use indexmap::IndexMap;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::repo::Repository;
 use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
 use predicates::prelude::*;
 use pretty_assertions::assert_eq;
