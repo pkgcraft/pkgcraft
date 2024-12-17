@@ -33,14 +33,8 @@ use super::cache::{CacheFormat, MetadataCache};
 use super::Eclass;
 
 /// Wrapper for ini format config files.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Ini(ini::Ini);
-
-impl Default for Ini {
-    fn default() -> Self {
-        Self(ini::Ini::new())
-    }
-}
 
 impl Ini {
     fn load(path: &Utf8Path) -> crate::Result<Self> {
