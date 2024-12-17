@@ -462,22 +462,40 @@ mod tests {
 
     #[test]
     fn contains() {
-        let repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-0"]).unwrap();
+        let repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
 
         // path is always false due to fake repo
         assert!(!repo.contains("cat/pkg"));
 
-        // cpv
-        let cpv = Cpv::try_new("cat/pkg-0").unwrap();
-        assert!(repo.contains(&cpv));
+        // Cpn
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
+        assert!(repo.contains(&cpn));
+        let cpn = Cpn::try_new("a/pkg").unwrap();
+        assert!(!repo.contains(&cpn));
+
+        // Cpv
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        assert!(repo.contains(&cpv));
+        let cpv = Cpv::try_new("cat/pkg-2").unwrap();
         assert!(!repo.contains(&cpv));
 
-        // unversioned dep
-        let a = Dep::try_new("cat/pkg").unwrap();
-        assert!(repo.contains(&a));
-        let a = Dep::try_new("cat/pkg-a").unwrap();
-        assert!(!repo.contains(&a));
+        // Dep
+        let dep = Dep::try_new("cat/pkg::fake").unwrap();
+        assert!(repo.contains(&dep));
+        let dep = Dep::try_new("cat/pkg::repo").unwrap();
+        assert!(!repo.contains(&dep));
+        let dep = Dep::try_new("=cat/pkg-1").unwrap();
+        assert!(repo.contains(&dep));
+        let dep = Dep::try_new(">cat/pkg-1").unwrap();
+        assert!(!repo.contains(&dep));
+
+        // Restrict
+        assert!(repo.contains(&Restrict::True));
+        assert!(!repo.contains(&Restrict::False));
+        let restrict = Restrict::from(Cpn::try_new("cat/pkg").unwrap());
+        assert!(repo.contains(&restrict));
+        let restrict = Restrict::from(Cpv::try_new("cat/pkg-1").unwrap());
+        assert!(repo.contains(&restrict));
     }
 
     #[test]
