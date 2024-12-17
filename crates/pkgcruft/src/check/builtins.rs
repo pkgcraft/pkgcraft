@@ -1,5 +1,5 @@
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use crate::report::ReportKind::BuiltinCommand;
 use crate::scanner::ReportFilter;
@@ -18,37 +18,22 @@ pub(crate) static CHECK: super::Check = super::Check {
 
 type TestFn = fn(&str, &EbuildRawPkg) -> Option<String>;
 
-// TODO: scan for multiple -exec uses and -execdir?
-fn find(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
-    cmd.split_whitespace()
-        .skip_while(|x| *x != "-exec")
-        .nth(1)
-        .and_then(|x| pkg.eapi().commands().get(x))
-        .map(|x| x.to_string())
-}
-
-fn xargs(cmd: &str, pkg: &EbuildRawPkg) -> Option<String> {
-    cmd.split_whitespace()
-        .nth(1)
-        .and_then(|x| pkg.eapi().commands().get(x))
-        .map(|x| x.to_string())
-}
-
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     Check {
-        commands: [("find", find as TestFn), ("xargs", xargs as TestFn)]
+        commands: ["find", "xargs"]
             .into_iter()
-            .map(|(name, x)| (name.to_string(), x))
+            .map(|name| name.to_string())
             .collect(),
     }
 }
 
 struct Check {
-    commands: HashMap<String, TestFn>,
+    commands: HashSet<String>,
 }
 
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
+        let mut cursor = pkg.tree().walk();
         // TODO: use parse tree query
         for node in pkg
             .tree()
@@ -56,14 +41,20 @@ impl EbuildRawPkgCheck for Check {
             .filter(|x| x.kind() == "command_name")
         {
             let cmd_name = node.as_str();
-            if let Some(func) = self.commands.get(cmd_name) {
+            if self.commands.contains(cmd_name) {
                 let cmd = node.parent().unwrap();
-                if let Some(builtin) = func(cmd.as_str(), pkg) {
-                    BuiltinCommand
-                        .version(pkg)
-                        .message(format!("{cmd_name} uses {builtin}"))
-                        .location(&cmd)
-                        .report(filter);
+                for x in cmd
+                    .children(&mut cursor)
+                    .iter()
+                    .filter(|x| x.kind() == "word")
+                {
+                    if let Some(builtin) = pkg.eapi().commands().get(x.as_str()) {
+                        BuiltinCommand
+                            .version(pkg)
+                            .message(format!("{cmd_name} uses {builtin}"))
+                            .location(&cmd)
+                            .report(filter);
+                    }
                 }
             }
         }
