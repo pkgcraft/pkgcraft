@@ -105,7 +105,10 @@ impl Scanner {
         info!("target: {restrict:?}");
 
         // return early for non-matching restrictions
-        if restrict == Restrict::False || self.repo.iter_cpv_restrict(&restrict).next().is_none() {
+        if restrict != Restrict::True
+            && (restrict == Restrict::False
+                || self.repo.iter_cpv_restrict(&restrict).next().is_none())
+        {
             return Err(Error::InvalidValue("no matches found".to_string()));
         }
 
@@ -458,6 +461,10 @@ mod tests {
         // empty repo
         let repo = data.ebuild_repo("empty").unwrap();
         let scanner = Scanner::new(repo);
+        // no failure with repo target
+        let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, []);
+        // fails with specific target
         let r = scanner.run(&dep);
         assert_err_re!(r, "no matches found");
 
