@@ -322,9 +322,13 @@ impl Command {
                 // write manifest to target output
                 if self.stdout {
                     write!(&mut stdout, "{manifest}")?;
-                } else {
-                    fs::write(&manifest_path, manifest.to_string())?;
-                };
+                } else if !manifest.is_empty() {
+                    fs::write(&manifest_path, manifest.to_string())
+                        .map_err(|e| anyhow!("{cpn}::{repo}: failed writing manifest: {e}"))?;
+                } else if manifest_path.exists() {
+                    fs::remove_file(&manifest_path)
+                        .map_err(|e| anyhow!("{cpn}::{repo}: failed removing manifest: {e}"))?;
+                }
             }
         }
 
