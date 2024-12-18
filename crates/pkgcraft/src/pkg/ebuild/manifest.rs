@@ -287,8 +287,8 @@ impl Manifest {
             .map(|path| ManifestFile::from_path(ManifestType::Dist, path, hashes))
             .collect();
 
-        // generate file hashes for thick manifests
         if thick {
+            // generate file hashes for thick manifests
             files.par_extend(
                 relative_paths(pkgdir)
                     .collect::<Vec<_>>()
@@ -309,10 +309,14 @@ impl Manifest {
             self.0.retain(|x| x.kind == ManifestType::Dist);
         }
 
+        // replace matching entries with newly hashed values
         for result in files {
             self.0.replace(result?);
         }
+
+        // sort manifest entries by kind then by name
         self.0.par_sort();
+
         Ok(())
     }
 

@@ -93,6 +93,7 @@ pub(crate) fn sorted_dir_list<P: AsRef<Path>>(path: P) -> WalkDir {
         .max_depth(1)
 }
 
+/// Return an iterator of all the relative paths to files under a path.
 pub(crate) fn relative_paths<'a, P>(path: P) -> impl Iterator<Item = PathBuf> + 'a
 where
     P: AsRef<Path> + Copy + 'a,
