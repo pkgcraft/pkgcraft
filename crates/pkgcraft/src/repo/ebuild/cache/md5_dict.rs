@@ -57,7 +57,7 @@ impl fmt::Display for Md5DictKey {
 }
 
 /// The format for md5-dict metadata cache entries.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct Md5DictEntry(IndexMap<Md5DictKey, String>);
 
 impl CacheEntry for Md5DictEntry {
@@ -322,7 +322,7 @@ mod tests {
         // valid
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
-        let cache = CacheFormat::Md5Dict.from_repo(repo);
+        let cache = Md5Dict::from_repo(repo);
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
             let r = cache.get(&pkg).unwrap();
@@ -339,6 +339,19 @@ mod tests {
             let err = fs::read_to_string(pkg.path().parent().unwrap().join("error")).unwrap();
             let err = err.trim();
             assert_err_re!(pkg.metadata(false), format!("^{pkg}: invalid metadata: {err}$"));
+        }
+    }
+
+    #[test]
+    fn serialize() {
+        let data = test_data();
+        let repo = data.ebuild_repo("metadata").unwrap();
+        let cache = Md5Dict::from_repo(repo);
+        for pkg in repo.iter_raw() {
+            let pkg = pkg.unwrap();
+            let meta = pkg.metadata(false).unwrap();
+            let entry = Md5DictEntry::from(&meta);
+            assert_eq!(entry, cache.get(&pkg).unwrap().unwrap());
         }
     }
 }
