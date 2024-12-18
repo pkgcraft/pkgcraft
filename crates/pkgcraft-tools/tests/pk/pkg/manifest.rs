@@ -379,7 +379,7 @@ async fn stdout() {
         EBUILD pkg-1.ebuild {bytes_len} BLAKE2B {blake2b} SHA512 {sha512}
     "};
 
-    cmd("pk pkg manifest --stdout --thick")
+    cmd("pk pkg manifest --stdout --thick true")
         .arg(repo)
         .assert()
         .stdout(expected)

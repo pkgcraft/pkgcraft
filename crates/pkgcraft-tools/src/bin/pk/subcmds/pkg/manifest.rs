@@ -95,8 +95,14 @@ pub(crate) struct Command {
     #[arg(long)]
     restrict: bool,
 
-    /// Force thick manifests
-    #[arg(long, num_args = 0, default_missing_value = "true")]
+    /// Force manifest type
+    #[arg(
+        long,
+        num_args = 0..=1,
+        default_missing_value = "true",
+        hide_possible_values = true,
+        value_name = "BOOL",
+    )]
     thick: Option<bool>,
 
     // positionals
