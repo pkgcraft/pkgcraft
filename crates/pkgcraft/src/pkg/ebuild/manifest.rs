@@ -288,16 +288,16 @@ impl Manifest {
                 relative_paths(pkgdir)
                     .collect::<Vec<_>>()
                     .into_par_iter()
-                    .filter_map(|p| Utf8PathBuf::from_path_buf(p).ok())
-                    .filter_map(|x| match x {
-                        x if x.extension().map_or(false, |x| x == "ebuild") => {
-                            Some((ManifestType::Ebuild, x))
+                    .filter_map(|path| Utf8PathBuf::from_path_buf(path).ok())
+                    .filter_map(|path| match path {
+                        path if path.extension().map_or(false, |ext| ext == "ebuild") => {
+                            Some((ManifestType::Ebuild, path))
                         }
-                        x if x.starts_with("files") => Some((ManifestType::Aux, x)),
-                        x if x.as_str() == "Manifest" => None,
-                        _ => Some((ManifestType::Misc, x)),
+                        path if path.starts_with("files") => Some((ManifestType::Aux, path)),
+                        path if path.as_str() == "Manifest" => None,
+                        path => Some((ManifestType::Misc, path)),
                     })
-                    .map(|(kind, path)| ManifestFile::from_path(kind, path, hashes)),
+                    .map(|(kind, path)| ManifestFile::from_path(kind, pkgdir.join(path), hashes)),
             );
         };
 
