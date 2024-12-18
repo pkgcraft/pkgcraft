@@ -210,20 +210,17 @@ impl Fetcher {
         let mut result = Ok(());
         let pb = mb.add(progress_bar(mb.is_hidden()));
 
-        let mut mirrors = f.mirrors().peekable();
-        while let Some(fetchable) = mirrors.next() {
+        for fetchable in f.mirrors() {
             match self.fetch(&fetchable, path, &pb, size).await {
-                Err(e @ Error::FetchFailed { .. }) => {
-                    if mirrors.peek().is_some() {
-                        mb.suspend(|| warn!("{e}"));
-                    } else {
-                        result = Err(e);
-                    }
-                }
+                Err(e @ Error::FetchFailed { .. }) => result = Err(e),
                 res => {
                     result = res;
                     break;
                 }
+            }
+
+            if let Err(e) = &result {
+                mb.suspend(|| warn!("{e}"));
             }
         }
 
