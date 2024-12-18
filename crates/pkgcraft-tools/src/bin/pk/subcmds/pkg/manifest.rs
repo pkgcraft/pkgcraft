@@ -291,7 +291,6 @@ impl Command {
         if let Some(pb) = global_pb.as_ref() {
             pb.finish_and_clear();
         }
-        let mut stdout = stdout().lock();
 
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
@@ -321,7 +320,7 @@ impl Command {
                 // write manifest to target output
                 let manifest_path = pkgdir.join("Manifest");
                 if self.stdout {
-                    write!(&mut stdout, "{manifest}")?;
+                    write!(stdout(), "{manifest}")?;
                 } else if !manifest.is_empty() {
                     fs::write(&manifest_path, manifest.to_string())
                         .map_err(|e| anyhow!("{cpn}::{repo}: failed writing manifest: {e}"))?;
