@@ -1,10 +1,9 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
-use std::fs::{self, File};
 use std::hash::{Hash, Hasher};
-use std::io::{self, Write};
 use std::str::{FromStr, SplitWhitespace};
 use std::sync::{Arc, OnceLock};
+use std::{fmt, fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path, Utf8PathBuf};
 use dashmap::DashMap;
@@ -150,45 +149,50 @@ impl Config {
 
     /// Write the config back to its related path.
     pub fn write(&self) -> crate::Result<()> {
-        let mut f = File::create(&self.path).unwrap();
+        let data = self.to_string();
+        atomic_write_file(&self.path, &data)
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.cache_formats.is_empty() {
             let values = self.cache_formats.iter().join(" ");
-            writeln!(&mut f, "cache-formats: {values}")?;
+            writeln!(f, "cache-formats: {values}")?;
         }
         if !self.eapis_banned.is_empty() {
             let values = self.eapis_banned.iter().join(" ");
-            writeln!(&mut f, "eapis-banned: {values}")?;
+            writeln!(f, "eapis-banned: {values}")?;
         }
         if !self.eapis_deprecated.is_empty() {
             let values = self.eapis_deprecated.iter().join(" ");
-            writeln!(&mut f, "eapis-deprecated: {values}")?;
+            writeln!(f, "eapis-deprecated: {values}")?;
         }
         if !self.eapis_testing.is_empty() {
             let values = self.eapis_testing.iter().join(" ");
-            writeln!(&mut f, "eapis-testing: {values}")?;
+            writeln!(f, "eapis-testing: {values}")?;
         }
         if !self.manifest_hashes.is_empty() {
             let values = self.manifest_hashes.iter().join(" ");
-            writeln!(&mut f, "manifest-hashes: {values}")?;
+            writeln!(f, "manifest-hashes: {values}")?;
         }
         if !self.manifest_required_hashes.is_empty() {
             let values = self.manifest_required_hashes.iter().join(" ");
-            writeln!(&mut f, "manifest-required-hashes: {values}")?;
+            writeln!(f, "manifest-required-hashes: {values}")?;
         }
         if !self.masters.is_empty() {
             let values = self.masters.iter().join(" ");
-            writeln!(&mut f, "masters: {values}")?;
+            writeln!(f, "masters: {values}")?;
         }
         if !self.properties_allowed.is_empty() {
             let values = self.properties_allowed.iter().join(" ");
-            writeln!(&mut f, "properties-allowed: {values}")?;
+            writeln!(f, "properties-allowed: {values}")?;
         }
         if !self.restrict_allowed.is_empty() {
             let values = self.restrict_allowed.iter().join(" ");
-            writeln!(&mut f, "restrict-allowed: {values}")?;
+            writeln!(f, "restrict-allowed: {values}")?;
         }
-        writeln!(&mut f, "thin-manifests: {}", self.thin_manifests)?;
-        Ok(())
+        writeln!(f, "thin-manifests: {}", self.thin_manifests)
     }
 }
 
