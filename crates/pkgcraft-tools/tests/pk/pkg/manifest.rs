@@ -290,6 +290,42 @@ async fn regen() {
     assert_eq!(&data, expected);
 }
 
+#[test]
+fn thick_to_thin() {
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::indoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with no URIs"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+
+    let manifest_path = temp.path().join("cat/pkg/Manifest");
+    let manifest_data = || fs::read_to_string(&manifest_path);
+
+    // create thick manifest with ebuild hashes
+    cmd("pk pkg manifest --thick true")
+        .arg(temp.path())
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = manifest_data().unwrap();
+    let expected = indoc::indoc! {"
+        EBUILD pkg-1.ebuild 48 BLAKE2B 98be2c3746bed71c41c0af0e731cf6ccd1d5e181e6a91a0c6c7f4fabe64322a701d6e4f52ca02a3bccf4f6185403892182e154d61021b712d0291b7bbf7834b3 SHA512 82e43e0b441e17c1941dc58ada3686b69047f7749b75e4ba1df193af50450f756e0865b6217cd9b36d6321fa4f34836b091cf596fc5c1224584fe152a5a07a2e
+    "};
+    assert_eq!(&data, expected);
+
+    // thin manifest without distfiles is removed
+    cmd("pk pkg manifest")
+        .arg(temp.path())
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    assert!(!manifest_path.exists());
+}
+
 #[tokio::test]
 async fn resume() {
     let server = MockServer::start().await;
@@ -497,7 +533,7 @@ async fn invalid_manifest() {
     assert_eq!(&data, expected);
 
     // hash order doesn't match repo
-    fs::write(&path, "DIST file 4 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff").unwrap();
+    fs::write(&path, "DIST file 4 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572").unwrap();
     cmd("pk pkg manifest")
         .arg(repo)
         .assert()
