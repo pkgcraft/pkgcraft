@@ -263,25 +263,20 @@ impl MetadataCacheRegen<'_> {
         let pool = repo.pool();
         let errors = cpvs
             .into_par_iter()
-            .map(|cpv| {
+            .filter_map(|cpv| {
                 self.progress.inc(1);
-                pool.metadata(repo, &cpv, self.force, self.verify)
+                pool.metadata(repo, &cpv, self.force, self.verify).err()
             })
-            .filter(|result| {
-                // log errors
-                if let Err(e) = result {
-                    // hack to force log capturing for tests to work in threads
-                    // https://github.com/dbrgn/tracing-test/issues/23
-                    #[cfg(test)]
-                    let _entered = thread_span.clone().entered();
+            .inspect(|err| {
+                // hack to force log capturing for tests to work in threads
+                // https://github.com/dbrgn/tracing-test/issues/23
+                #[cfg(test)]
+                let _entered = thread_span.clone().entered();
 
-                    self.progress.suspend(|| {
-                        error!("{e}");
-                    });
-                    true
-                } else {
-                    false
-                }
+                // log errors
+                self.progress.suspend(|| {
+                    error!("{err}");
+                });
             })
             .count();
 
