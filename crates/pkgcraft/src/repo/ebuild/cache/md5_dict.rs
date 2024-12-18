@@ -80,13 +80,15 @@ impl CacheEntry for Md5DictEntry {
     }
 
     fn verify(&self, pkg: &EbuildRawPkg) -> crate::Result<()> {
+        let invalid = |e| Error::InvalidValue(format!("{pkg}: invalid metadata: {e}"));
+
         // verify ebuild checksum
         if let Some(val) = self.0.get(&Key::CHKSUM) {
             if val != pkg.chksum() {
-                return Err(Error::InvalidValue("mismatched ebuild checksum".to_string()));
+                return Err(invalid("mismatched ebuild checksum"));
             }
         } else {
-            return Err(Error::InvalidValue("missing ebuild checksum".to_string()));
+            return Err(invalid("missing ebuild checksum"));
         }
 
         // verify eclass checksums
@@ -94,11 +96,11 @@ impl CacheEntry for Md5DictEntry {
             let repo = pkg.repo();
             for (name, chksum) in val.split_whitespace().tuples() {
                 let Some(eclass) = repo.eclasses().get(name) else {
-                    return Err(Error::InvalidValue(format!("nonexistent eclass: {name}")));
+                    return Err(invalid(&format!("nonexistent eclass: {name}")));
                 };
 
                 if eclass.chksum() != chksum {
-                    return Err(Error::InvalidValue(format!("mismatched eclass checksum: {name}")));
+                    return Err(invalid(&format!("mismatched eclass checksum: {name}")));
                 }
             }
         }
