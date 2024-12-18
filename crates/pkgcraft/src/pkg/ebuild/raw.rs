@@ -110,8 +110,10 @@ impl EbuildRawPkg {
         })
     }
 
-    /// Load metadata from the cache if valid, otherwise try to generate it and update the cache.
-    pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
+    /// Try to deserialize the package's metadata from the cache.
+    ///
+    /// Optionally, try to regenerate it and update the cache on failure.
+    pub(crate) fn metadata(&self, regen_on_failure: bool) -> crate::Result<Metadata> {
         // get and deserialize raw metadata cache entry
         let get_metadata = || {
             self.0
@@ -122,12 +124,16 @@ impl EbuildRawPkg {
                 .and_then(|c| c.to_metadata(self))
         };
 
-        get_metadata().or_else(|_| {
-            self.0
-                .repo
-                .pool()
-                .metadata(&self.0.repo, &self.0.cpv, true, false)?;
-            get_metadata()
+        get_metadata().or_else(|e| {
+            if regen_on_failure {
+                self.0
+                    .repo
+                    .pool()
+                    .metadata(&self.0.repo, &self.0.cpv, true, false)?;
+                get_metadata()
+            } else {
+                Err(e)
+            }
         })
     }
 }

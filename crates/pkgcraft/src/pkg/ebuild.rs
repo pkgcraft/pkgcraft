@@ -62,7 +62,7 @@ impl TryFrom<EbuildRawPkg> for EbuildPkg {
         Ok(Self(Arc::new(InternalEbuildPkg {
             cpv: pkg.cpv().clone(),
             repo: pkg.repo(),
-            meta: pkg.metadata()?,
+            meta: pkg.metadata(true)?,
             data: OnceLock::new(),
             tree: OnceLock::new(),
             iuse_effective: OnceLock::new(),
