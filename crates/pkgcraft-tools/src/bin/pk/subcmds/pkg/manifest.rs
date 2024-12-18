@@ -96,7 +96,7 @@ pub(crate) struct Command {
     restrict: bool,
 
     /// Force thick manifests
-    #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+    #[arg(long, num_args = 0, default_missing_value = "true")]
     thick: Option<bool>,
 
     // positionals
