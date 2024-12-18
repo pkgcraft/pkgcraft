@@ -9,7 +9,7 @@ use clap::builder::ArgPredicate;
 use clap::Args;
 use futures::{stream, StreamExt};
 use indexmap::IndexSet;
-use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
@@ -72,20 +72,6 @@ pub(crate) struct Command {
         help_heading = "Arguments",
     )]
     targets: Vec<MaybeStdinVec<String>>,
-}
-
-// TODO: support custom templates or colors?
-/// Create a progress bar for a file download.
-fn progress_bar(hidden: bool) -> ProgressBar {
-    let pb = if hidden {
-        ProgressBar::hidden()
-    } else {
-        ProgressBar::no_length()
-    };
-    pb.set_style(ProgressStyle::default_bar()
-        .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})").unwrap()
-        .progress_chars("#>-"));
-    pb
 }
 
 impl Command {
@@ -171,11 +157,9 @@ impl Command {
             // convert fetchables into download results stream
             let results = stream::iter(fetchables)
                 .map(|(f, path, manifest)| async move {
-                    let pb = mb.add(progress_bar(hidden));
                     let size = manifest.as_ref().map(|m| m.size());
                     let part_path = Utf8PathBuf::from(format!("{path}.part"));
-                    let result = fetcher.fetch_from_mirrors(&f, &part_path, &pb, size).await;
-                    mb.remove(&pb);
+                    let result = fetcher.fetch_from_mirrors(&f, &part_path, mb, size).await;
                     (result, manifest, part_path, path)
                 })
                 .buffer_unordered(concurrent);

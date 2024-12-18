@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 use camino::Utf8Path;
 use futures::StreamExt;
 use indexmap::IndexSet;
-use indicatif::ProgressBar;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Either;
 use reqwest::{Client, ClientBuilder, StatusCode};
 use tokio::io::AsyncWriteExt;
@@ -176,6 +176,20 @@ impl Deref for Fetcher {
     }
 }
 
+// TODO: support custom templates or colors?
+/// Create a progress bar for a file download.
+fn progress_bar(hidden: bool) -> ProgressBar {
+    let pb = if hidden {
+        ProgressBar::hidden()
+    } else {
+        ProgressBar::no_length()
+    };
+    pb.set_style(ProgressStyle::default_bar()
+        .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})").unwrap()
+        .progress_chars("#>-"));
+    pb
+}
+
 impl Fetcher {
     /// Create a [`ClientBuilder`] to configure a [`Fetcher`].
     pub fn new(builder: ClientBuilder) -> crate::Result<Self> {
@@ -190,26 +204,31 @@ impl Fetcher {
         &self,
         f: &Fetchable,
         path: &Utf8Path,
-        pb: &ProgressBar,
+        mb: &MultiProgress,
         size: Option<u64>,
     ) -> crate::Result<()> {
+        let mut result = Ok(());
+        let pb = mb.add(progress_bar(mb.is_hidden()));
+
         let mut mirrors = f.mirrors().peekable();
         while let Some(fetchable) = mirrors.next() {
-            match self.fetch(&fetchable, path, pb, size).await {
-                Ok(()) => return Ok(()),
+            match self.fetch(&fetchable, path, &pb, size).await {
                 Err(e @ Error::FetchFailed { .. }) => {
                     if mirrors.peek().is_some() {
-                        warn!("{e}");
-                        continue;
+                        mb.suspend(|| warn!("{e}"));
                     } else {
-                        return Err(e);
+                        result = Err(e);
                     }
                 }
-                Err(e) => return Err(e),
+                res => {
+                    result = res;
+                    break;
+                }
             }
         }
 
-        unreachable!("invalid fetchable mirror looping")
+        mb.remove(&pb);
+        result
     }
 
     /// Fetch the file related to a [`Fetchable`].
