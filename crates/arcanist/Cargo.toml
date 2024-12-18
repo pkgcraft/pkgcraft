@@ -15,14 +15,14 @@ rust-version.workspace = true
 anyhow = "1.0.94"
 async-stream = "0.3.6"
 clap = { version = "4.5.23", default-features = false, features = ["std", "suggestions"] }
-config = { version = "0.14.1", default-features = false, features = ["toml"] }
+config = { version = "0.15.0", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 hyper-util = "0.1.10"
 pkgcraft = { path = "../pkgcraft", version = "0.0.20" }
 prost = "0.13.4"
 regex = "1.11.1"
 serde = { version = "1.0.216", features = ["derive"] }
-thiserror = "2.0.7"
+thiserror = "2.0.8"
 tokio = { version = "1.42", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["net"] }
 tonic = { version = "0.12.3", features = ["tls", "gzip"] }
