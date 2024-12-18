@@ -1,4 +1,4 @@
-# 0.0.20 (unreleased)
+# 0.0.20 (2024-12-18)
 
 ## Added
 - `pk pkg fetch`: add initial support to download package distfiles in parallel
