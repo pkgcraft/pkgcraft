@@ -68,9 +68,12 @@ impl CacheEntry for Md5DictEntry {
 
         for key in eapi.metadata_keys() {
             if let Some(val) = self.0.get(key) {
-                meta.deserialize(eapi, repo, key, val)?;
+                meta.deserialize(eapi, repo, key, val)
+                    .map_err(|e| Error::InvalidValue(format!("{pkg}: invalid metadata: {e}")))?;
             } else if eapi.mandatory_keys().contains(key) {
-                return Err(Error::InvalidValue(format!("missing required value: {key}")));
+                return Err(Error::InvalidValue(format!(
+                    "{pkg}: invalid metadata: missing required value: {key}"
+                )));
             }
         }
 
@@ -328,7 +331,7 @@ mod tests {
                 .unwrap();
             assert_err_re!(
                 pkg.metadata(false),
-                format!("^{err}$"),
+                format!("^{pkg}: invalid metadata: {err}$"),
                 format!("{pkg}: didn't fail loading metadata")
             );
         }
