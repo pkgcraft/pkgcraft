@@ -116,12 +116,11 @@ impl EbuildRawPkg {
     pub(crate) fn metadata(&self, regen_on_failure: bool) -> crate::Result<Metadata> {
         // get and deserialize raw metadata cache entry
         let get_metadata = || {
-            self.0
-                .repo
-                .metadata()
-                .cache()
-                .get(self)
-                .and_then(|c| c.to_metadata(self))
+            if let Some(result) = self.0.repo.metadata().cache().get(self) {
+                result.and_then(|entry| entry.to_metadata(self))
+            } else {
+                Err(Error::InvalidValue(format!("{self}: missing metadata entry")))
+            }
         };
 
         get_metadata().or_else(|e| {

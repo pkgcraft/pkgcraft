@@ -231,14 +231,22 @@ impl Cache for Md5Dict {
         &self.path
     }
 
-    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
+    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>> {
         let path = self.path.join(pkg.cpv().to_string());
-        let data = fs::read_to_string(&path)
-            .map_err(|e| Error::IO(format!("failed loading ebuild metadata: {path}: {e}")))?;
+        let data = match fs::read_to_string(&path) {
+            Ok(value) => value,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return None,
+            Err(e) => {
+                return Some(Err(Error::IO(format!(
+                    "failed loading ebuild metadata: {path}: {e}"
+                ))));
+            }
+        };
 
-        let entry = data.parse::<Self::Entry>()?;
-        entry.verify(pkg)?;
-        Ok(entry)
+        Some(
+            data.parse::<Self::Entry>()
+                .and_then(|entry| entry.verify(pkg).and(Ok(entry))),
+        )
     }
 
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()> {
@@ -313,7 +321,7 @@ mod tests {
         let cache = CacheFormat::Md5Dict.from_repo(repo);
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
-            let r = cache.get(&pkg);
+            let r = cache.get(&pkg).unwrap();
             assert!(r.is_ok(), "{pkg}: failed loading cache entry: {}", r.unwrap_err());
             let r = r.unwrap().to_metadata(&pkg);
             assert!(r.is_ok(), "{pkg}: failed converting to metadata: {}", r.unwrap_err());

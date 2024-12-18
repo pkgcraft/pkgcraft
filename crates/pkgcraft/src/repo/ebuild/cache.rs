@@ -32,8 +32,8 @@ pub trait Cache {
     fn format(&self) -> CacheFormat;
     /// Return the cache's filesystem path.
     fn path(&self) -> &Utf8Path;
-    /// Get the cache entry for a given package.
-    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry>;
+    /// Get the cache entry for a given package if it exists.
+    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>>;
     /// Update the cache with the given package metadata.
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()>;
     /// Forcibly remove the entire cache.
@@ -114,9 +114,11 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
+    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>> {
         match self {
-            Self::Md5Dict(cache) => cache.get(pkg).map(MetadataCacheEntry::Md5Dict),
+            Self::Md5Dict(cache) => cache
+                .get(pkg)
+                .map(|result| result.map(MetadataCacheEntry::Md5Dict)),
         }
     }
 
