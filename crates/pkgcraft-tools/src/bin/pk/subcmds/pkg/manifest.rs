@@ -297,7 +297,6 @@ impl Command {
         if !failed.load(Ordering::Relaxed) {
             for ((repo, cpn, thick), uris) in pkgs {
                 let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
-                let manifest_path = pkgdir.join("Manifest");
 
                 // load manifest from file
                 let mut manifest = match repo.metadata().pkg_manifest_parse(&cpn) {
@@ -320,6 +319,7 @@ impl Command {
                 }
 
                 // write manifest to target output
+                let manifest_path = pkgdir.join("Manifest");
                 if self.stdout {
                     write!(&mut stdout, "{manifest}")?;
                 } else if !manifest.is_empty() {
