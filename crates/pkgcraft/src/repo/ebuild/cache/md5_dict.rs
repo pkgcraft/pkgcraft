@@ -6,7 +6,6 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
-use tracing::warn;
 use walkdir::WalkDir;
 
 use crate::dep::Cpv;
@@ -230,16 +229,12 @@ impl Cache for Md5Dict {
 
     fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
         let path = self.path.join(pkg.cpv().to_string());
-        let data = fs::read_to_string(&path).map_err(|e| {
-            if e.kind() != io::ErrorKind::NotFound {
-                warn!("error loading ebuild metadata: {path}: {e}");
-            }
-            Error::IO(format!("failed loading ebuild metadata: {path}: {e}"))
-        })?;
+        let data = fs::read_to_string(&path)
+            .map_err(|e| Error::IO(format!("failed loading ebuild metadata: {path}: {e}")))?;
 
-        let meta = data.parse::<Self::Entry>()?;
-        meta.verify(pkg)?;
-        Ok(meta)
+        let entry = data.parse::<Self::Entry>()?;
+        entry.verify(pkg)?;
+        Ok(entry)
     }
 
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()> {
