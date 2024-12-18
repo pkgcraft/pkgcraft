@@ -160,12 +160,12 @@ impl BuildPool {
     ) -> crate::Result<()> {
         if !force {
             let pkg = EbuildRawPkg::try_new(cpv.clone(), repo)?;
-            if let Ok(entry) = repo.metadata().cache().get(&pkg) {
-                if verify {
-                    return entry.to_metadata(&pkg).map(|_| ());
-                } else {
-                    return Ok(());
-                }
+            let result = repo.metadata().cache().get(&pkg);
+            match (result, verify) {
+                (Ok(entry), true) => return entry.to_metadata(&pkg).map(|_| ()),
+                (Ok(_), false) => return Ok(()),
+                (Err(e), true) => return Err(e),
+                (Err(_), false) => (),
             }
         }
         let meta = Metadata::new(repo, cpv, verify);
