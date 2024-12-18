@@ -299,7 +299,10 @@ impl Manifest {
                     })
                     .map(|(kind, path)| ManifestFile::from_path(kind, pkgdir.join(path), hashes)),
             );
-        };
+        } else {
+            // remove thick entries
+            self.0.retain(|x| x.kind == ManifestType::Dist);
+        }
 
         for result in files {
             self.0.replace(result?);
