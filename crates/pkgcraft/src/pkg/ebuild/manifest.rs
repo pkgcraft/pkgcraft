@@ -25,7 +25,7 @@ pub enum HashType {
 
 impl HashType {
     /// Generate a hash value from data.
-    fn hash(&self, data: &[u8]) -> String {
+    pub fn hash(&self, data: &[u8]) -> String {
         match self {
             HashType::Blake2b => digest::<blake2::Blake2b512>(data),
             HashType::Blake3 => digest::<blake3::Hasher>(data),
