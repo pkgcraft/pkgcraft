@@ -297,12 +297,13 @@ impl Cache for Md5Dict {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::test_data;
+    use crate::test::*;
 
     use super::*;
 
     #[test]
-    fn load_and_convert() {
+    fn deserialize() {
+        // valid
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
         let cache = CacheFormat::Md5Dict.from_repo(repo);
@@ -313,5 +314,15 @@ mod tests {
             let r = r.unwrap().to_metadata(&pkg);
             assert!(r.is_ok(), "{pkg}: failed converting to metadata: {}", r.unwrap_err());
         }
+
+        // invalid
+        let data = test_data();
+        let repo = data.ebuild_repo("metadata-invalid").unwrap();
+        let pkg = repo.get_pkg_raw("eapi/missing-0").unwrap();
+        assert_err_re!(
+            pkg.metadata(false),
+            "^missing required value: EAPI$",
+            "{pkg}: didn't fail loading metadata"
+        );
     }
 }
