@@ -19,6 +19,7 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       rust-version: ${{ steps.vars.outputs.rust-version }}
     steps:
