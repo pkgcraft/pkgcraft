@@ -114,9 +114,11 @@ impl EbuildRawPkg {
     ///
     /// Optionally, try to regenerate it and update the cache on failure.
     pub(crate) fn metadata(&self, regen_on_failure: bool) -> crate::Result<Metadata> {
+        let repo = &self.0.repo;
+
         // get and deserialize raw metadata cache entry
         let get_metadata = || {
-            if let Some(result) = self.0.repo.metadata().cache().get(self) {
+            if let Some(result) = repo.metadata().cache().get(self) {
                 result.and_then(|entry| entry.to_metadata(self))
             } else {
                 Err(Error::InvalidValue(format!("{self}: missing metadata entry")))
@@ -125,10 +127,7 @@ impl EbuildRawPkg {
 
         get_metadata().or_else(|e| {
             if regen_on_failure {
-                self.0
-                    .repo
-                    .pool()
-                    .metadata(&self.0.repo, &self.0.cpv, true, false)?;
+                repo.pool().metadata(repo, &self.0.cpv, true, false)?;
                 get_metadata()
             } else {
                 Err(e)
