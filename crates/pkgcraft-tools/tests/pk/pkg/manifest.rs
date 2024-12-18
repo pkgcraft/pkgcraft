@@ -1,5 +1,5 @@
+use std::fs;
 use std::time::Duration;
-use std::{env, fs};
 
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::manifest::HashType;
@@ -115,7 +115,7 @@ async fn timeout() {
 }
 
 #[tokio::test]
-async fn current_dir() {
+async fn regen() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
@@ -154,56 +154,61 @@ async fn current_dir() {
     let pkg1 = repo.get_pkg_raw("cat/pkg-1").unwrap();
     let pkg2 = repo.get_pkg_raw("cat/pkg-2").unwrap();
 
-    env::set_current_dir(temp.path().join("cat/pkg")).unwrap();
-    assert!(fs::read_to_string("Manifest").is_err());
+    let manifest_path = repo.path().join("cat/pkg/Manifest");
+    let manifest_data = || fs::read_to_string(&manifest_path);
+    assert!(manifest_data().is_err());
 
     cmd("pk pkg manifest")
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
         .success();
-    let data = fs::read_to_string("Manifest").unwrap();
+    let data = manifest_data().unwrap();
     let expected = indoc::indoc! {"
         DIST file1 5 BLAKE2B c689bf21986252dab8c946042cd73c44995a205da7b8c0816c56ee33894acbace61f27ed94d9ffc2a0d3bee7539565aca834b220af95cc5abb2ceb90946606fe SHA512 b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181
         DIST file2 5 BLAKE2B e1b1bfe59054380ac6eb014388b2db3a03d054770ededd9ee148c8b29aa272bbd079344bb40a92d0a754cd925f4beb48c9fd66a0e90b0d341b6fe3bbb4893246 SHA512 6d201beeefb589b08ef0672dac82353d0cbd9ad99e1642c83a1601f3d647bcca003257b5e8f31bdc1d73fbec84fb085c79d6e2677b7ff927e823a54e789140d9
     "};
     assert_eq!(&data, expected);
-    let mut prev_modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    let mut prev_modified = fs::metadata(&manifest_path).unwrap().modified().unwrap();
 
     // re-run doesn't change file
     cmd("pk pkg manifest")
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
         .success();
-    let mut modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    let mut modified = fs::metadata(&manifest_path).unwrap().modified().unwrap();
     assert_eq!(modified, prev_modified);
 
     // -f/--force option cause updates
     for opt in ["-f", "--force"] {
         cmd("pk pkg manifest")
             .arg(opt)
+            .arg(&repo)
             .assert()
             .stdout("")
             .stderr("")
             .success();
-        modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+        modified = fs::metadata(&manifest_path).unwrap().modified().unwrap();
         assert_ne!(modified, prev_modified);
         prev_modified = modified;
-        let data = fs::read_to_string("Manifest").unwrap();
+        let data = manifest_data().unwrap();
         assert_eq!(&data, expected);
     }
 
     // --thick option on a thin manifest repo causes update
-    cmd("pk pkg manifest --thick")
+    cmd("pk pkg manifest --thick true")
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
         .success();
-    modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    modified = fs::metadata(&manifest_path).unwrap().modified().unwrap();
     assert_ne!(modified, prev_modified);
     prev_modified = modified;
-    let data = fs::read_to_string("Manifest").unwrap();
+    let data = manifest_data().unwrap();
     // generate ebuild hash since URI port number is dynamic
     let pkg1_bytes = pkg1.data().as_bytes();
     let pkg1_bytes_len = pkg1_bytes.len();
@@ -228,13 +233,14 @@ async fn current_dir() {
     config.write().unwrap();
 
     cmd("pk pkg manifest")
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
         .success();
-    modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    modified = fs::metadata(&manifest_path).unwrap().modified().unwrap();
     assert_ne!(modified, prev_modified);
-    let data = fs::read_to_string("Manifest").unwrap();
+    let data = manifest_data().unwrap();
     let expected = indoc::indoc! {"
         DIST file1 5 BLAKE3 3599edef28afa67b9bec983d57416d9a2cc33a166527c3f6ce2aabef96f66c52
         DIST file2 5 BLAKE3 74704b4c3477ac155c2ca3ebbeb8f10db2badac161e331d006af5820f0acca7a
@@ -263,10 +269,8 @@ async fn resume() {
     temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
     let repo = temp.path();
 
-    let dir = tempdir().unwrap();
-    env::set_current_dir(&dir).unwrap();
-
     // create a partially downloaded file
+    let dir = tempdir().unwrap();
     let partial_file = dir.path().join("file.part");
     fs::write(&partial_file, "test").unwrap();
 
@@ -278,7 +282,7 @@ async fn resume() {
         .stderr("")
         .success();
     // verify file content
-    let data = fs::read_to_string("file").unwrap();
+    let data = fs::read_to_string(dir.path().join("file")).unwrap();
     assert_eq!(&data, "test resume");
     assert!(!partial_file.exists());
     // verify manifest content
