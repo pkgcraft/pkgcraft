@@ -110,18 +110,26 @@ impl Command {
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
 
-        let mut uris = IndexSet::new();
+        let failed = &AtomicBool::new(false);
+        let mut fetchables = IndexSet::new();
         for pkg in &mut iter {
             if self.restrict || !pkg.restrict().contains("fetch") {
-                uris.extend(
-                    // TODO: flag or log unfetchable URIs
+                fetchables.extend(
                     pkg.fetchables()
-                        .filter(|uri| restrict.matches(uri.as_str()))
-                        .filter_map(|uri| {
-                            let path = self.dir.join(uri.filename());
+                        .filter_map(|result| match result {
+                            Ok(value) => Some(value),
+                            Err(e) => {
+                                error!("{e}");
+                                failed.store(true, Ordering::Relaxed);
+                                None
+                            }
+                        })
+                        .filter(|f| restrict.matches(f.as_str()))
+                        .filter_map(|f| {
+                            let path = self.dir.join(f.filename());
                             if self.force || !path.exists() {
-                                let manifest = pkg.manifest().get(uri.filename());
-                                Some((uri.into_owned(), path, manifest.cloned()))
+                                let manifest = pkg.manifest().get(f.filename());
+                                Some((f, path, manifest.cloned()))
                             } else {
                                 None
                             }
@@ -140,10 +148,10 @@ impl Command {
             .referer(false);
         let fetcher = &Fetcher::new(builder)?;
 
-        // TODO: track overall download size if all target URIs have manifest data
+        // TODO: track overall download size if all targets have manifest data
         // show a global progress bar when downloading more files than concurrency limit
-        let global_pb = if uris.len() > concurrent {
-            Some(ProgressBar::new(uris.len() as u64))
+        let global_pb = if fetchables.len() > concurrent {
+            Some(ProgressBar::new(fetchables.len() as u64))
         } else {
             None
         };
@@ -158,16 +166,15 @@ impl Command {
         }
 
         // download files asynchronously tracking failure status
-        let failed = &AtomicBool::new(false);
         let global_pb = &global_pb;
         tokio().block_on(async {
-            // convert URIs into download results stream
-            let results = stream::iter(uris)
-                .map(|(uri, path, manifest)| async move {
+            // convert fetchables into download results stream
+            let results = stream::iter(fetchables)
+                .map(|(f, path, manifest)| async move {
                     let pb = mb.add(progress_bar(hidden));
                     let size = manifest.as_ref().map(|m| m.size());
                     let part_path = Utf8PathBuf::from(format!("{path}.part"));
-                    let result = fetcher.fetch(&uri, &part_path, &pb, size).await;
+                    let result = fetcher.fetch_from_mirrors(&f, &part_path, &pb, size).await;
                     mb.remove(&pb);
                     (result, manifest, part_path, path)
                 })

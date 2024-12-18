@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
@@ -8,6 +7,7 @@ use indexmap::IndexSet;
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
+use crate::fetch::Fetchable;
 use crate::macros::bool_not_equal;
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::Repository;
@@ -291,11 +291,13 @@ pub struct IterFetchable<'a> {
     uris: crate::dep::IterFlatten<'a, Uri>,
 }
 
-impl<'a> Iterator for IterFetchable<'a> {
-    type Item = Cow<'a, Uri>;
+impl Iterator for IterFetchable<'_> {
+    type Item = crate::Result<Fetchable>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.uris.find_map(|uri| uri.fetchable(self.repo).ok())
+        self.uris
+            .next()
+            .map(|uri| Fetchable::from_uri(uri, self.repo))
     }
 }
 

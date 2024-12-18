@@ -19,6 +19,8 @@ pub enum Error {
     Config(String),
     #[error("config error: {0}")]
     ConfigMissing(String),
+    #[error("invalid fetchable: {0}")]
+    InvalidFetchable(String),
     #[error("{0}")]
     InvalidValue(String),
     #[error("invalid repo: {id}: {err}")]
@@ -55,8 +57,8 @@ pub enum Error {
     RepoInit(String),
     #[error("failed syncing repo: {0}")]
     RepoSync(String),
-    #[error("fetch failed: {uri}: {reason}")]
-    FetchFailed { uri: String, reason: String },
+    #[error("fetch failed: {url}: {reason}")]
+    FetchFailed { url: String, reason: String },
 }
 
 impl From<Error> for scallop::Error {

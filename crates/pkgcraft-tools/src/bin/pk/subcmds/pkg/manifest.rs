@@ -149,6 +149,7 @@ impl Command {
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();
 
+        let failed = &AtomicBool::new(false);
         let mut pkgs: IndexMap<_, IndexSet<_>> = IndexMap::new();
         for pkg in &mut iter {
             let manifest = pkg.manifest();
@@ -182,18 +183,24 @@ impl Command {
             };
 
             if self.restrict || !pkg.restrict().contains("fetch") {
-                // TODO: flag or log unfetchable URIs
-                let mut uris = pkg
+                let mut fetchables = pkg
                     .fetchables()
-                    .filter(|uri| self.force || regen_entry(uri.filename()))
-                    .map(|uri| uri.into_owned())
+                    .filter_map(|result| match result {
+                        Ok(value) => Some(value),
+                        Err(e) => {
+                            error!("{e}");
+                            failed.store(true, Ordering::Relaxed);
+                            None
+                        }
+                    })
+                    .filter(|f| self.force || regen_entry(f.filename()))
                     .peekable();
-                if uris.peek().is_some() || self.force || regen() {
+                if fetchables.peek().is_some() || self.force || regen() {
                     pkgs.entry((pkg.repo(), pkg.cpn().clone(), thick))
                         .or_default()
-                        .extend(uris.map(|uri| {
-                            let path = dir.join(uri.filename());
-                            (uri, path)
+                        .extend(fetchables.map(|f| {
+                            let path = dir.join(f.filename());
+                            (f, path)
                         }))
                 }
             } else {
@@ -227,16 +234,15 @@ impl Command {
         }
 
         // download files asynchronously tracking failure status
-        let failed = &AtomicBool::new(false);
         let global_pb = &global_pb;
         tokio().block_on(async {
             // assume existing files are completely downloaded
-            let targets = pkgs.iter().flat_map(|((repo, cpn, _), uris)| {
-                uris.iter().filter_map(move |(uri, path)| {
+            let targets = pkgs.iter().flat_map(|((repo, cpn, _), fetchables)| {
+                fetchables.iter().filter_map(move |(f, path)| {
                     if !path.exists() {
                         let pkg_manifest = repo.metadata().pkg_manifest(cpn);
-                        let manifest = pkg_manifest.get(uri.filename());
-                        Some((uri, path, manifest.cloned()))
+                        let manifest = pkg_manifest.get(f.filename());
+                        Some((f, path, manifest.cloned()))
                     } else {
                         None
                     }
@@ -245,11 +251,11 @@ impl Command {
 
             // convert targets into download results stream
             let results = stream::iter(targets)
-                .map(|(uri, path, manifest)| async move {
+                .map(|(f, path, manifest)| async move {
                     let pb = mb.add(progress_bar(hidden));
                     let size = manifest.as_ref().map(|m| m.size());
                     let part_path = Utf8PathBuf::from(format!("{path}.part"));
-                    let result = fetcher.fetch(uri, &part_path, &pb, size).await;
+                    let result = fetcher.fetch_from_mirrors(f, &part_path, &pb, size).await;
                     mb.remove(&pb);
                     (result, manifest, part_path, path)
                 })
@@ -294,7 +300,7 @@ impl Command {
 
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
-            for ((repo, cpn, thick), uris) in pkgs {
+            for ((repo, cpn, thick), fetchables) in pkgs {
                 let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
 
                 // load manifest from file
@@ -307,7 +313,7 @@ impl Command {
                 };
 
                 // collect files for hashing
-                let distfiles = uris.into_par_iter().map(|(_, path)| path);
+                let distfiles = fetchables.into_par_iter().map(|(_, path)| path);
 
                 // update manifest entries
                 let hashes = &repo.metadata().config.manifest_hashes;

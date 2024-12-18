@@ -1,13 +1,30 @@
+use std::cmp::Ordering;
+use std::collections::HashSet;
+use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::sync::LazyLock;
 
 use camino::Utf8Path;
 use futures::StreamExt;
+use indexmap::IndexSet;
 use indicatif::ProgressBar;
+use itertools::Either;
 use reqwest::{Client, ClientBuilder, StatusCode};
 use tokio::io::AsyncWriteExt;
+use tracing::warn;
+use url::Url;
 
 use crate::dep::Uri;
 use crate::error::Error;
+use crate::repo::ebuild::EbuildRepo;
+
+static SUPPORTED_PROTOCOLS: LazyLock<HashSet<String>> = LazyLock::new(|| {
+    ["http", "https", "mirror"]
+        .into_iter()
+        .map(Into::into)
+        .collect()
+});
 
 /// Convert an error into an error string.
 trait IntoReason {
@@ -26,6 +43,123 @@ impl IntoReason for reqwest::Error {
             // drop URL from error to avoid potentially leaking authentication parameters
             self.without_url().to_string()
         }
+    }
+}
+
+/// Wrapper for URI objects to generate valid URLs.
+#[derive(Debug, Clone)]
+pub struct Fetchable {
+    url: Url,
+    rename: Option<String>,
+    mirrors: Option<IndexSet<String>>,
+}
+
+impl Fetchable {
+    /// Create a [`Fetchable`] from a [`Uri`].
+    pub(crate) fn from_uri(uri: &Uri, repo: &EbuildRepo) -> crate::Result<Self> {
+        let url = Url::parse(uri.as_str()).map_err(|e| Error::InvalidFetchable(format!("{e}")))?;
+
+        // URLs without paths are invalid
+        if url.path() == "/" {
+            return Err(Error::InvalidFetchable(format!("lacks path: {url}")));
+        }
+
+        // validate protocol
+        if !SUPPORTED_PROTOCOLS.contains(url.scheme()) {
+            return Err(Error::InvalidFetchable(format!("unsupported protocol: {url}")));
+        }
+
+        // validate mirrors
+        let mirrors = if url.scheme() == "mirror" {
+            let Some(name) = url.domain() else {
+                return Err(Error::InvalidFetchable(format!("invalid mirror: {url}")));
+            };
+
+            if let Some(values) = repo.mirrors().get(name) {
+                Some(values.clone())
+            } else {
+                return Err(Error::InvalidFetchable(format!("unknown mirror {name}: {url}")));
+            }
+        } else {
+            None
+        };
+
+        Ok(Self {
+            url,
+            rename: uri.rename().map(Into::into),
+            mirrors,
+        })
+    }
+
+    /// Return the string serialization for the [`Fetchable`].
+    pub fn as_str(&self) -> &str {
+        self.url.as_str()
+    }
+
+    /// Return the file name for the [`Fetchable`].
+    pub fn filename(&self) -> &str {
+        self.rename.as_deref().unwrap_or_else(|| {
+            self.url
+                .path()
+                .rsplit_once('/')
+                .map(|(_, s)| s)
+                .expect("invalid fetchable")
+        })
+    }
+
+    /// Return an iterator of fetchables applying mirrors.
+    fn mirrors(&self) -> impl Iterator<Item = Self> + '_ {
+        if let Some(mirrors) = &self.mirrors {
+            // TODO: support some type of mirror choice algorithm
+            Either::Left(mirrors.iter().filter_map(|mirror| {
+                let mirror = mirror.trim_end_matches('/');
+                let path = self.url.path().trim_start_matches('/');
+                let url = format!("{mirror}/{path}");
+                Url::parse(&url).ok().map(|url| Self {
+                    url,
+                    rename: self.rename.clone(),
+                    mirrors: None,
+                })
+            }))
+        } else {
+            Either::Right(std::iter::once(self.clone()))
+        }
+    }
+}
+
+impl PartialEq for Fetchable {
+    fn eq(&self, other: &Self) -> bool {
+        self.filename() == other.filename()
+    }
+}
+
+impl Eq for Fetchable {}
+
+impl Hash for Fetchable {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.filename().hash(state)
+    }
+}
+
+impl Ord for Fetchable {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.filename().cmp(other.filename())
+    }
+}
+
+impl PartialOrd for Fetchable {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl fmt::Display for Fetchable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.url)?;
+        if let Some(value) = &self.rename {
+            write!(f, " -> {value}")?;
+        }
+        Ok(())
     }
 }
 
@@ -51,20 +185,47 @@ impl Fetcher {
         Ok(Self { client })
     }
 
-    /// Fetch the file related to a URI.
+    /// Fetch the file related to a [`Fetchable`], iterating over mirrors.
+    pub async fn fetch_from_mirrors(
+        &self,
+        f: &Fetchable,
+        path: &Utf8Path,
+        pb: &ProgressBar,
+        size: Option<u64>,
+    ) -> crate::Result<()> {
+        let mut mirrors = f.mirrors().peekable();
+        while let Some(fetchable) = mirrors.next() {
+            match self.fetch(&fetchable, path, pb, size).await {
+                Ok(()) => return Ok(()),
+                Err(e @ Error::FetchFailed { .. }) => {
+                    if mirrors.peek().is_some() {
+                        warn!("{e}");
+                        continue;
+                    } else {
+                        return Err(e);
+                    }
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        unreachable!("invalid fetchable mirror looping")
+    }
+
+    /// Fetch the file related to a [`Fetchable`].
     pub async fn fetch(
         &self,
-        uri: &Uri,
+        f: &Fetchable,
         path: &Utf8Path,
         pb: &ProgressBar,
         mut size: Option<u64>,
     ) -> crate::Result<()> {
         // determine the file position to start at supporting resumed downloads
-        let mut request = self.get(uri.as_ref());
+        let mut request = self.get(f.url.clone());
         let mut position = if let Ok(meta) = tokio::fs::metadata(path).await {
             // determine the target size for existing files without manifest entries
             if size.is_none() {
-                let response = self.get(uri.as_ref()).send().await;
+                let response = self.get(f.url.clone()).send().await;
                 size = response.ok().and_then(|r| r.content_length());
             }
 
@@ -90,18 +251,18 @@ impl Fetcher {
             .await
             .and_then(|r| r.error_for_status())
             .map_err(|e| Error::FetchFailed {
-                uri: uri.as_str().to_string(),
+                url: f.url.to_string(),
                 reason: e.into_reason(),
             })?;
 
         // create file or open it for appending
         let mut file = match response.status() {
             StatusCode::PARTIAL_CONTENT => {
-                pb.set_message(format!("Resuming {uri}"));
+                pb.set_message(format!("Resuming {f}"));
                 tokio::fs::OpenOptions::new().append(true).open(path).await
             }
             _ => {
-                pb.set_message(format!("Downloading {uri}"));
+                pb.set_message(format!("Downloading {f}"));
                 position = 0;
                 tokio::fs::File::create(path).await
             }

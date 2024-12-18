@@ -72,7 +72,7 @@ async fn unsupported() {
         .arg(repo)
         .assert()
         .stdout("")
-        .stderr(contains("fetch failed: ftp://pkgcraft.pkgcraft/file: unsupported URI"))
+        .stderr(contains("invalid fetchable: unsupported protocol: ftp://pkgcraft.pkgcraft/file"))
         .failure()
         .code(1);
 }

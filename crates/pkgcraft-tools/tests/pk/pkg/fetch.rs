@@ -93,11 +93,12 @@ async fn unsupported() {
     temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
     let repo = temp.path();
 
+    // FTP is not supported
     cmd("pk pkg fetch")
         .arg(repo)
         .assert()
         .stdout("")
-        .stderr(contains("fetch failed: ftp://pkgcraft.pkgcraft/file: unsupported URI"))
+        .stderr(contains("invalid fetchable: unsupported protocol: ftp://pkgcraft.pkgcraft/file"))
         .failure()
         .code(1);
 }
@@ -324,20 +325,24 @@ async fn custom_mirror() {
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
-    // unfetchable URIs are currently ignored
+    // unknown mirrors cause failures
     cmd("pk pkg fetch")
         .arg(repo)
         .assert()
         .stdout("")
-        .stderr("")
-        .success();
-    assert!(fs::read_to_string("file1").is_err());
+        .stderr(contains("invalid fetchable: unknown mirror mocked"))
+        .failure()
+        .code(1);
 
     // register mocked mirror
     fs::create_dir_all(repo.join("profiles")).unwrap();
-    fs::write(repo.join("profiles/thirdpartymirrors"), format!("{name} {uri}")).unwrap();
+    fs::write(
+        repo.join("profiles/thirdpartymirrors"),
+        format!("{name} {uri}/invalid1 {uri}/invalid2 {uri}"),
+    )
+    .unwrap();
 
-    // mirror resolves to fetchable URI
+    // iterate through mirrors until download succeeds
     cmd("pk pkg fetch")
         .arg(repo)
         .assert()
