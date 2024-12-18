@@ -151,6 +151,8 @@ async fn current_dir() {
         .unwrap()
         .into_ebuild()
         .unwrap();
+    let pkg1 = repo.get_pkg_raw("cat/pkg-1").unwrap();
+    let pkg2 = repo.get_pkg_raw("cat/pkg-2").unwrap();
 
     env::set_current_dir(temp.path().join("cat/pkg")).unwrap();
     assert!(fs::read_to_string("Manifest").is_err());
@@ -191,6 +193,42 @@ async fn current_dir() {
         let data = fs::read_to_string("Manifest").unwrap();
         assert_eq!(&data, expected);
     }
+
+    // --thick option on a thin manifest repo doesn't cause update
+    cmd("pk pkg manifest --thick")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    assert_eq!(modified, prev_modified);
+
+    // but does when forced
+    cmd("pk pkg manifest --thick -f")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    modified = fs::metadata("Manifest").unwrap().modified().unwrap();
+    assert_ne!(modified, prev_modified);
+    prev_modified = modified;
+    let data = fs::read_to_string("Manifest").unwrap();
+    // generate ebuild hash since URI port number is dynamic
+    let pkg1_bytes = pkg1.data().as_bytes();
+    let pkg1_bytes_len = pkg1_bytes.len();
+    let pkg1_blake2b = HashType::Blake2b.hash(pkg1_bytes);
+    let pkg1_sha512 = HashType::Sha512.hash(pkg1_bytes);
+    let pkg2_bytes = pkg2.data().as_bytes();
+    let pkg2_bytes_len = pkg2_bytes.len();
+    let pkg2_blake2b = HashType::Blake2b.hash(pkg2_bytes);
+    let pkg2_sha512 = HashType::Sha512.hash(pkg2_bytes);
+    let expected = indoc::formatdoc! {"
+        DIST file1 5 BLAKE2B c689bf21986252dab8c946042cd73c44995a205da7b8c0816c56ee33894acbace61f27ed94d9ffc2a0d3bee7539565aca834b220af95cc5abb2ceb90946606fe SHA512 b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181
+        DIST file2 5 BLAKE2B e1b1bfe59054380ac6eb014388b2db3a03d054770ededd9ee148c8b29aa272bbd079344bb40a92d0a754cd925f4beb48c9fd66a0e90b0d341b6fe3bbb4893246 SHA512 6d201beeefb589b08ef0672dac82353d0cbd9ad99e1642c83a1601f3d647bcca003257b5e8f31bdc1d73fbec84fb085c79d6e2677b7ff927e823a54e789140d9
+        EBUILD pkg-1.ebuild {pkg1_bytes_len} BLAKE2B {pkg1_blake2b} SHA512 {pkg1_sha512}
+        EBUILD pkg-2.ebuild {pkg2_bytes_len} BLAKE2B {pkg2_blake2b} SHA512 {pkg2_sha512}
+    "};
+    assert_eq!(data, expected);
 
     // altering repo manifest-hashes setting changes the content
     let mut config = repo.metadata().config.clone();
@@ -333,6 +371,24 @@ async fn stdout() {
     "};
 
     cmd("pk pkg manifest --stdout")
+        .arg(repo)
+        .assert()
+        .stdout(expected)
+        .stderr("")
+        .success();
+
+    // generate ebuild hash since URI port number is dynamic
+    let bytes = data.as_bytes();
+    let bytes_len = bytes.len();
+    let blake2b = HashType::Blake2b.hash(bytes);
+    let sha512 = HashType::Sha512.hash(bytes);
+
+    let expected = indoc::formatdoc! {"
+        DIST file 4 BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff
+        EBUILD pkg-1.ebuild {bytes_len} BLAKE2B {blake2b} SHA512 {sha512}
+    "};
+
+    cmd("pk pkg manifest --stdout --thick")
         .arg(repo)
         .assert()
         .stdout(expected)
