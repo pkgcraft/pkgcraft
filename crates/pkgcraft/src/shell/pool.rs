@@ -11,7 +11,7 @@ use crate::dep::Cpv;
 use crate::error::{Error, PackageError};
 use crate::pkg::ebuild::metadata::Metadata as PkgMetadata;
 use crate::pkg::ebuild::EbuildRawPkg;
-use crate::repo::ebuild::cache::Cache;
+use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::ebuild::EbuildRepo;
 use crate::repo::Repository;
 
@@ -160,8 +160,12 @@ impl BuildPool {
     ) -> crate::Result<()> {
         if !force {
             let pkg = EbuildRawPkg::try_new(cpv.clone(), repo)?;
-            if repo.metadata().cache().get(&pkg).is_ok() {
-                return Ok(());
+            if let Ok(entry) = repo.metadata().cache().get(&pkg) {
+                if verify {
+                    return entry.to_metadata(&pkg).map(|_| ());
+                } else {
+                    return Ok(());
+                }
             }
         }
         let meta = Metadata::new(repo, cpv, verify);
