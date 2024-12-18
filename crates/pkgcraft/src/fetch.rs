@@ -17,6 +17,7 @@ use url::Url;
 
 use crate::dep::Uri;
 use crate::error::Error;
+use crate::pkg::ebuild::manifest::HashType;
 use crate::repo::ebuild::EbuildRepo;
 
 static SUPPORTED_PROTOCOLS: LazyLock<HashSet<String>> = LazyLock::new(|| {
@@ -51,7 +52,7 @@ impl IntoReason for reqwest::Error {
 pub struct Fetchable {
     url: Url,
     rename: Option<String>,
-    mirrors: Option<IndexSet<String>>,
+    mirrors: Option<(String, IndexSet<String>)>,
 }
 
 impl Fetchable {
@@ -76,7 +77,7 @@ impl Fetchable {
             };
 
             if let Some(values) = repo.mirrors().get(name) {
-                Some(values.clone())
+                Some((name.to_string(), values.clone()))
             } else {
                 return Err(Error::InvalidFetchable(format!("unknown mirror {name}: {url}")));
             }
@@ -109,11 +110,18 @@ impl Fetchable {
 
     /// Return an iterator of fetchables applying mirrors.
     fn mirrors(&self) -> impl Iterator<Item = Self> + '_ {
-        if let Some(mirrors) = &self.mirrors {
+        if let Some((name, mirrors)) = &self.mirrors {
             // TODO: support some type of mirror choice algorithm
-            Either::Left(mirrors.iter().filter_map(|mirror| {
+            Either::Left(mirrors.iter().filter_map(move |mirror| {
                 let mirror = mirror.trim_end_matches('/');
-                let path = self.url.path().trim_start_matches('/');
+                // TODO: properly implement GLEP 75 by fetching and parsing layout.conf
+                let path = if name == "gentoo" {
+                    let filename = self.filename();
+                    let hash = HashType::Blake2b.hash(filename.as_bytes());
+                    format!("{}/{filename}", &hash[..2])
+                } else {
+                    self.url.path().trim_start_matches('/').to_string()
+                };
                 let url = format!("{mirror}/{path}");
                 Url::parse(&url).ok().map(|url| Self {
                     url,
