@@ -103,6 +103,10 @@ impl CacheEntry for Md5DictEntry {
                     return Err(invalid(&format!("mismatched eclass checksum: {name}")));
                 }
             }
+        } else if self.0.get(&Key::INHERIT).is_some() {
+            // Note that this doesn't catch all missing error variants, but it's the best
+            // that can be done without sourcing the ebuild.
+            return Err(invalid("missing eclass checksum"));
         }
 
         Ok(())
@@ -332,17 +336,9 @@ mod tests {
         let repo = data.ebuild_repo("metadata-invalid").unwrap();
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
-            let err = pkg
-                .data()
-                .lines()
-                .filter_map(|s| s.strip_prefix("# cache error: "))
-                .next()
-                .unwrap();
-            assert_err_re!(
-                pkg.metadata(false),
-                format!("^{pkg}: invalid metadata: {err}$"),
-                format!("{pkg}: didn't fail loading metadata")
-            );
+            let err = fs::read_to_string(pkg.path().parent().unwrap().join("error")).unwrap();
+            let err = err.trim();
+            assert_err_re!(pkg.metadata(false), format!("^{pkg}: invalid metadata: {err}$"));
         }
     }
 }
