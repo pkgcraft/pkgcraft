@@ -102,7 +102,6 @@ async fn timeout() {
     temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
     let repo = temp.path();
 
-    // TODO: check for timeout error message
     for opt in ["-t", "--timeout"] {
         cmd("pk pkg manifest")
             .args([opt, "0.1"])

@@ -191,7 +191,6 @@ async fn timeout() {
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
-    // TODO: check for timeout error message
     for opt in ["-t", "--timeout"] {
         cmd("pk pkg fetch")
             .args([opt, "0.1"])
