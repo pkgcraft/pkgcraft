@@ -322,12 +322,9 @@ mod tests {
         // valid
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
-        let cache = Md5Dict::from_repo(repo);
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
-            let r = cache.get(&pkg).unwrap();
-            assert!(r.is_ok(), "{pkg}: failed loading cache entry: {}", r.unwrap_err());
-            let r = r.unwrap().to_metadata(&pkg);
+            let r = pkg.metadata(false);
             assert!(r.is_ok(), "{pkg}: failed converting to metadata: {}", r.unwrap_err());
         }
 
@@ -350,8 +347,9 @@ mod tests {
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
             let meta = pkg.metadata(false).unwrap();
-            let entry = Md5DictEntry::from(&meta);
-            assert_eq!(entry, cache.get(&pkg).unwrap().unwrap());
+            let new_entry = Md5DictEntry::from(&meta);
+            let cache_entry = cache.get(&pkg).unwrap().unwrap();
+            assert_eq!(new_entry, cache_entry);
         }
     }
 }
