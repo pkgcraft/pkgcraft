@@ -1,2 +1,2 @@
-ignore-interior-mutability = ["bytes::Bytes", "pkgcraft::repo::Repo"]
+ignore-interior-mutability = ["pkgcraft::repo::Repo"]
 too-many-arguments-threshold = 10
