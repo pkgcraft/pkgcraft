@@ -151,15 +151,15 @@ impl Command {
 
         let mut pkgs: IndexMap<_, IndexSet<_>> = IndexMap::new();
         for pkg in &mut iter {
+            let manifest = pkg.manifest();
             let thick = self
                 .thick
                 .unwrap_or_else(|| !pkg.repo().metadata().config.thin_manifests);
 
-            // A manifest is regenerated if its type (thick vs thin) doesn't match the requested
-            // setting, the entry hashes don't match the repo hashes, or the related file isn't in
-            // the manifest.
-            let regen = |name: &str| -> bool {
-                let manifest = pkg.manifest();
+            // A manifest entry is regenerated if its type (thick vs thin) doesn't match
+            // the requested setting, the entry hashes don't match the repo hashes, or the
+            // related file isn't in the manifest.
+            let regen_entry = |name: &str| -> bool {
                 if let Some(entry) = manifest.get(name) {
                     manifest.is_thick() != thick
                         || entry
@@ -171,14 +171,24 @@ impl Command {
                 }
             };
 
+            // A manifest is regenerated if its type (thick vs thin) doesn't match
+            // the requested setting or the entry hashes don't match the repo hashes.
+            let regen = || -> bool {
+                manifest.is_thick() != thick
+                    || manifest
+                        .iter()
+                        .flat_map(|e| e.hashes().keys())
+                        .any(|hash| !pkg.repo().metadata().config.manifest_hashes.contains(hash))
+            };
+
             if self.restrict || !pkg.restrict().contains("fetch") {
                 // TODO: flag or log unfetchable URIs
                 let mut uris = pkg
                     .fetchables()
-                    .filter(|uri| self.force || regen(uri.filename()))
+                    .filter(|uri| self.force || regen_entry(uri.filename()))
                     .map(|uri| uri.into_owned())
                     .peekable();
-                if uris.peek().is_some() {
+                if uris.peek().is_some() || self.force || regen() {
                     pkgs.entry((pkg.repo(), pkg.cpn().clone(), thick))
                         .or_default()
                         .extend(uris.map(|uri| {
