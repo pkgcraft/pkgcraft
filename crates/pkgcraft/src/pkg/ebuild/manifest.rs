@@ -264,6 +264,11 @@ impl Manifest {
         self.0.is_empty()
     }
 
+    /// Return true if the [`Manifest`] contains thick entries, false otherwise.
+    pub fn is_thick(&self) -> bool {
+        self.0.iter().any(|x| x.kind() == ManifestType::Ebuild)
+    }
+
     /// Update the [`Manifest`] entries relating to an iterator of distfile paths.
     pub fn update<'a, I, J>(
         &mut self,
