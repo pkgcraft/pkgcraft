@@ -318,11 +318,19 @@ mod tests {
         // invalid
         let data = test_data();
         let repo = data.ebuild_repo("metadata-invalid").unwrap();
-        let pkg = repo.get_pkg_raw("eapi/missing-0").unwrap();
-        assert_err_re!(
-            pkg.metadata(false),
-            "^missing required value: EAPI$",
-            "{pkg}: didn't fail loading metadata"
-        );
+        for pkg in repo.iter_raw() {
+            let pkg = pkg.unwrap();
+            let err = pkg
+                .data()
+                .lines()
+                .filter_map(|s| s.strip_prefix("# cache error: "))
+                .next()
+                .unwrap();
+            assert_err_re!(
+                pkg.metadata(false),
+                format!("^{err}$"),
+                format!("{pkg}: didn't fail loading metadata")
+            );
+        }
     }
 }
