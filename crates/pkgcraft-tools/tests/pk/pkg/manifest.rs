@@ -194,17 +194,8 @@ async fn current_dir() {
         assert_eq!(&data, expected);
     }
 
-    // --thick option on a thin manifest repo doesn't cause update
+    // --thick option on a thin manifest repo causes update
     cmd("pk pkg manifest --thick")
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
-    modified = fs::metadata("Manifest").unwrap().modified().unwrap();
-    assert_eq!(modified, prev_modified);
-
-    // but does when forced
-    cmd("pk pkg manifest --thick -f")
         .assert()
         .stdout("")
         .stderr("")

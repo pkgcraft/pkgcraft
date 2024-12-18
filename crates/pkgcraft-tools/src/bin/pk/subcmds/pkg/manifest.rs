@@ -145,14 +145,21 @@ impl Command {
 
         let mut pkgs: IndexMap<_, IndexSet<_>> = IndexMap::new();
         for pkg in &mut iter {
-            // determine if a manifest has an outdated or nonexistent entry
+            let thick = self
+                .thick
+                .unwrap_or_else(|| !pkg.repo().metadata().config.thin_manifests);
+
+            // A manifest is regenerated if its type (thick vs thin) doesn't match the requested
+            // setting, the entry hashes don't match the repo hashes, or the related file isn't in
+            // the manifest.
             let regen = |name: &str| -> bool {
-                if let Some(entry) = pkg.manifest().get(name) {
-                    // verify entry hashes match repo settings
-                    entry
-                        .hashes()
-                        .keys()
-                        .ne(&pkg.repo().metadata().config.manifest_hashes)
+                let manifest = pkg.manifest();
+                if let Some(entry) = manifest.get(name) {
+                    manifest.is_thick() != thick
+                        || entry
+                            .hashes()
+                            .keys()
+                            .ne(&pkg.repo().metadata().config.manifest_hashes)
                 } else {
                     true
                 }
@@ -166,7 +173,7 @@ impl Command {
                     .map(|uri| uri.into_owned())
                     .peekable();
                 if uris.peek().is_some() {
-                    pkgs.entry((pkg.repo(), pkg.cpn().clone()))
+                    pkgs.entry((pkg.repo(), pkg.cpn().clone(), thick))
                         .or_default()
                         .extend(uris.map(|uri| {
                             let path = dir.join(uri.filename());
@@ -208,7 +215,7 @@ impl Command {
         let global_pb = &global_pb;
         tokio().block_on(async {
             // assume existing files are completely downloaded
-            let targets = pkgs.iter().flat_map(|((repo, cpn), uris)| {
+            let targets = pkgs.iter().flat_map(|((repo, cpn, _), uris)| {
                 uris.iter().filter_map(move |(uri, path)| {
                     if !path.exists() {
                         let pkg_manifest = repo.metadata().pkg_manifest(cpn);
@@ -272,7 +279,7 @@ impl Command {
 
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
-            for ((repo, cpn), uris) in pkgs {
+            for ((repo, cpn, thick), uris) in pkgs {
                 let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
                 let manifest_path = pkgdir.join("Manifest");
 
@@ -289,9 +296,6 @@ impl Command {
                 let distfiles = uris.into_par_iter().map(|(_, path)| path);
 
                 // update manifest entries
-                let thick = self
-                    .thick
-                    .unwrap_or_else(|| !repo.metadata().config.thin_manifests);
                 let hashes = &repo.metadata().config.manifest_hashes;
                 if let Err(e) = manifest.update(distfiles, hashes, &pkgdir, thick) {
                     error!("{e}");
