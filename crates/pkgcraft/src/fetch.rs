@@ -74,13 +74,17 @@ impl Fetchable {
         // validate mirrors
         let mirrors = if url.scheme() == "mirror" {
             let Some(name) = url.domain() else {
-                return Err(Error::InvalidFetchable(format!("invalid mirror: {url}")));
+                return Err(Error::InvalidFetchable(format!("mirror missing: {url}")));
             };
+
+            if name == uri.filename() {
+                return Err(Error::InvalidFetchable(format!("mirror missing: {url}")));
+            }
 
             if let Some(values) = repo.mirrors().get(name) {
                 Some((name.to_string(), values.clone()))
             } else {
-                return Err(Error::InvalidFetchable(format!("unknown mirror {name}: {url}")));
+                return Err(Error::InvalidFetchable(format!("mirror unknown: {url}")));
             }
         } else {
             None
