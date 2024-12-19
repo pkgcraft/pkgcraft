@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::Error;
-
 /// Uri object.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Uri {
@@ -10,19 +8,14 @@ pub struct Uri {
 }
 
 impl Uri {
-    /// Try to create a new Uri.
-    pub(crate) fn try_new(uri: &str, rename: Option<&str>) -> crate::Result<Self> {
-        let uri = Self {
+    /// Create a new Uri.
+    pub(crate) fn new(uri: &str, rename: Option<&str>) -> Self {
+        // TODO: Verify URLs or fetch restricted file names once parsing is reworked to
+        // allow custom errors.
+        Self {
             uri: uri.trim().to_string(),
             rename: rename.map(Into::into),
-        };
-
-        // rudimentary URI validity check since full parsing isn't used
-        if uri.filename().is_empty() {
-            return Err(Error::InvalidValue(format!("URI missing filename: {uri}")));
         }
-
-        Ok(uri)
     }
 
     /// Return the string slice for the [`Uri`].

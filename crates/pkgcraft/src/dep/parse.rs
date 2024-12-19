@@ -264,9 +264,9 @@ peg::parser!(grammar depspec() for str {
     pub(super) rule src_uri_dependency() -> Dependency<Uri>
         = conditional(<src_uri_dependency()>)
         / all_of(<src_uri_dependency()>)
-        / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {?
-            let uri = Uri::try_new(s, rename).map_err(|_| "invalid URI")?;
-            Ok(Dependency::Enabled(uri))
+        / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {
+            let uri = Uri::new(s, rename);
+            Dependency::Enabled(uri)
         }
 
     // Technically RESTRICT tokens have no restrictions, but license
@@ -623,17 +623,14 @@ mod tests {
 
     #[test]
     fn src_uri() {
-        // invalid
-        for s in ["http://", "https://a/uri/with/no/filename/"] {
-            assert!(src_uri_dependency_set(s).is_err(), "{s:?} didn't fail");
-            assert!(src_uri_dependency(s).is_err(), "{s:?} didn't fail");
-        }
-
         // empty set
         assert!(src_uri_dependency_set("").unwrap().is_empty());
 
-        // valid
         for (s, expected_flatten) in [
+            // invalid URIs are flagged when converting to fetchables
+            ("http://", vec!["http://"]),
+            ("https://a/uri/with/no/filename/", vec!["https://a/uri/with/no/filename/"]),
+            // valid
             ("uri", vec!["uri"]),
             ("http://uri", vec!["http://uri"]),
             ("uri1 uri2", vec!["uri1", "uri2"]),
