@@ -330,7 +330,7 @@ async fn custom_mirror() {
         .arg(repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid fetchable: unknown mirror mocked"))
+        .stderr(contains("invalid fetchable: mirror unknown: mirror://mocked/file1"))
         .failure()
         .code(1);
 
