@@ -7,7 +7,7 @@ use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::tempdir;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[test]
@@ -259,6 +259,33 @@ async fn fetch() {
         .success();
     let data = fs::read_to_string("file2").unwrap();
     assert_eq!(&data, "test2");
+}
+
+#[tokio::test]
+async fn rename() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(query_param("p", "pkgcraft"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI and rename"
+        SRC_URI="{uri}/?p=pkgcraft -> pkgcraft-${{PV}}"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+
+    env::set_current_dir(temp.path()).unwrap();
+
+    cmd("pk pkg fetch").assert().stdout("").stderr("").success();
+    let data = fs::read_to_string("pkgcraft-1").unwrap();
+    assert_eq!(&data, "test");
 }
 
 #[tokio::test]
