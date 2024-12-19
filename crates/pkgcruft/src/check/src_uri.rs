@@ -1,6 +1,8 @@
+use pkgcraft::error::Error::InvalidFetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::traits::Contains;
 
-use crate::report::ReportKind::UriUnsupported;
+use crate::report::ReportKind::UriInvalid;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -11,7 +13,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::SrcUri,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[UriUnsupported],
+    reports: &[UriInvalid],
     context: &[],
 };
 
@@ -23,9 +25,13 @@ struct Check;
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
-        for uri in pkg.src_uri().iter_flatten() {
-            if uri.as_str().starts_with("ftp://") {
-                UriUnsupported.version(pkg).message(uri).report(filter);
+        if !pkg.restrict().contains("fetch") {
+            for result in pkg.fetchables() {
+                match result {
+                    Ok(_) => (),
+                    Err(InvalidFetchable(e)) => UriInvalid.version(pkg).message(e).report(filter),
+                    Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
+                }
             }
         }
     }
