@@ -202,7 +202,7 @@ impl Checks {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use pkgcraft::test::{assert_err_re, assert_ordered_eq, test_data};
+    use pkgcraft::test::*;
 
     use pkgcruft::check::CheckKind;
 

@@ -82,7 +82,7 @@ impl EbuildPkgSetCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::test::{assert_unordered_eq, test_data, test_data_patched};
+    use pkgcraft::test::*;
 
     use crate::scanner::Scanner;
     use crate::test::glob_reports;
