@@ -426,9 +426,9 @@ fn reporter() {
             .code(2);
 
         // valid format string
-        cmd("pkgcruft replay -s version,package")
+        cmd("pkgcruft replay")
             .args([opt, "format"])
-            .args(["--format", "{package}"])
+            .args(["--format", "{name}"])
             .arg(file.path())
             .assert()
             .stdout(predicate::str::is_empty().not())

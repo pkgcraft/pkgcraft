@@ -642,9 +642,9 @@ fn reporter() {
             .failure();
 
         // valid format string
-        cmd("pkgcruft scan -s version,package")
+        cmd("pkgcruft scan")
             .args([opt, "format"])
-            .args(["--format", "{package}"])
+            .args(["--format", "{name}"])
             .assert()
             .stdout(predicate::str::is_empty().not())
             .stderr("")
