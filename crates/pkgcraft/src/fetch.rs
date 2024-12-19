@@ -58,7 +58,8 @@ pub struct Fetchable {
 impl Fetchable {
     /// Create a [`Fetchable`] from a [`Uri`].
     pub(crate) fn from_uri(uri: &Uri, repo: &EbuildRepo) -> crate::Result<Self> {
-        let url = Url::parse(uri.as_str()).map_err(|e| Error::InvalidFetchable(format!("{e}")))?;
+        let url =
+            Url::parse(uri.as_str()).map_err(|e| Error::InvalidFetchable(format!("{e}: {uri}")))?;
 
         // validate protocol
         if !SUPPORTED_PROTOCOLS.contains(url.scheme()) {
