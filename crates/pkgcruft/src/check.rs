@@ -210,11 +210,6 @@ pub struct Check {
 }
 
 impl Check {
-    /// Return the name of the check.
-    pub fn name(&self) -> &str {
-        self.kind.as_ref()
-    }
-
     /// Return an iterator of all registered checks.
     pub fn iter() -> impl Iterator<Item = Check> {
         CheckKind::iter().map(Into::into)
@@ -422,7 +417,7 @@ impl PartialOrd for Check {
 
 impl AsRef<Utf8Path> for Check {
     fn as_ref(&self) -> &Utf8Path {
-        Utf8Path::new(self.name())
+        Utf8Path::new(&self.kind)
     }
 }
 
