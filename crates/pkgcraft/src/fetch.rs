@@ -60,14 +60,14 @@ impl Fetchable {
     pub(crate) fn from_uri(uri: &Uri, repo: &EbuildRepo) -> crate::Result<Self> {
         let url = Url::parse(uri.as_str()).map_err(|e| Error::InvalidFetchable(format!("{e}")))?;
 
-        // URLs without paths are invalid
-        if url.path() == "/" {
-            return Err(Error::InvalidFetchable(format!("lacks path: {url}")));
-        }
-
         // validate protocol
         if !SUPPORTED_PROTOCOLS.contains(url.scheme()) {
             return Err(Error::InvalidFetchable(format!("unsupported protocol: {url}")));
+        }
+
+        // URLs without paths or queries are invalid
+        if url.path() == "/" && url.query().is_none() {
+            return Err(Error::InvalidFetchable(format!("target missing: {url}")));
         }
 
         // validate mirrors
