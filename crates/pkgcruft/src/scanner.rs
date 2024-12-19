@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::{mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_utils::sync::WaitGroup;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
@@ -117,10 +118,13 @@ impl Scanner {
             &self.filters,
             &self.checks,
         ));
+
         if scope >= Scope::Category {
             // parallel by package
-            let (restrict_tx, restrict_rx) = bounded(self.jobs);
+            let (targets_tx, targets_rx) = bounded(self.jobs);
+            let (finish_tx, finish_rx) = bounded(self.jobs);
             let (reports_tx, reports_rx) = bounded(self.jobs);
+            let wg = WaitGroup::new();
             let filter = ReportFilter {
                 reports: Default::default(),
                 filter: self.reports.clone(),
@@ -128,19 +132,36 @@ impl Scanner {
                 failed: self.failed.clone(),
                 pkg_tx: Some(reports_tx),
                 version_tx: None,
+                scope,
             };
 
             Ok(ReportIter(ReportIterInternal::Pkg(IterPkg {
                 rx: reports_rx,
-                _producer: pkg_producer(self.repo, runner.clone(), restrict, restrict_tx),
                 _workers: (0..self.jobs)
-                    .map(|_| pkg_worker(runner.clone(), filter.clone(), restrict_rx.clone()))
+                    .map(|_| {
+                        pkg_worker(
+                            runner.clone(),
+                            wg.clone(),
+                            filter.clone(),
+                            targets_rx.clone(),
+                            finish_rx.clone(),
+                        )
+                    })
                     .collect(),
+                _producer: pkg_producer(
+                    scope,
+                    self.repo,
+                    runner.clone(),
+                    wg,
+                    restrict,
+                    targets_tx,
+                    finish_tx,
+                ),
                 reports: Default::default(),
             })))
         } else {
             // parallel by check
-            let (restrict_tx, restrict_rx) = bounded(self.jobs);
+            let (targets_tx, targets_rx) = bounded(self.jobs);
             let (reports_tx, reports_rx) = bounded(self.jobs);
             let filter = ReportFilter {
                 reports: Default::default(),
@@ -149,14 +170,15 @@ impl Scanner {
                 failed: self.failed.clone(),
                 pkg_tx: None,
                 version_tx: Some(reports_tx),
+                scope,
             };
 
             Ok(ReportIter(ReportIterInternal::Version(IterVersion {
                 rx: reports_rx,
-                _producer: version_producer(self.repo, runner.clone(), restrict, restrict_tx),
                 _workers: (0..self.jobs)
-                    .map(|_| version_worker(runner.clone(), filter.clone(), restrict_rx.clone()))
+                    .map(|_| version_worker(runner.clone(), filter.clone(), targets_rx.clone()))
                     .collect(),
+                _producer: version_producer(self.repo, runner.clone(), restrict, targets_tx),
                 reports: Default::default(),
             })))
         }
@@ -171,6 +193,7 @@ pub(crate) struct ReportFilter {
     failed: Arc<AtomicBool>,
     pkg_tx: Option<Sender<Vec<Report>>>,
     version_tx: Option<Sender<Report>>,
+    scope: Scope,
 }
 
 impl ReportFilter {
@@ -198,13 +221,22 @@ impl ReportFilter {
             }
         }
     }
+
+    /// Notify parallelized check runs to mangle values for post-run finalization.
+    pub(crate) fn finish(&self) -> bool {
+        self.scope == Scope::Repo
+    }
 }
+
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
+    scope: Scope,
     repo: &'static EbuildRepo,
     runner: Arc<SyncCheckRunner>,
+    wg: WaitGroup,
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
+    finish_tx: Sender<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
@@ -217,6 +249,17 @@ fn pkg_producer(
             for cpn in repo.iter_cpn_restrict(&restrict) {
                 tx.send((None, Target::Cpn(cpn))).ok();
             }
+
+            // wait for all parallelized checks to finish
+            drop(tx);
+            wg.wait();
+
+            // run all checks that accumulate pkg values across parallel version runs
+            if scope == Scope::Repo {
+                for check in runner.checks().filter(|c| c.finish()) {
+                    finish_tx.send((check, Target::Repo(repo))).ok();
+                }
+            }
         }
     })
 }
@@ -224,8 +267,10 @@ fn pkg_producer(
 /// Create worker thread that parallelizes check running at a package level.
 fn pkg_worker(
     runner: Arc<SyncCheckRunner>,
+    wg: WaitGroup,
     mut filter: ReportFilter,
     rx: Receiver<(Option<Check>, Target)>,
+    finish_rx: Receiver<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
@@ -244,6 +289,14 @@ fn pkg_worker(
             } else {
                 runner.run_checks(target, &mut filter);
             }
+            filter.process();
+        }
+
+        // signal the wait group
+        drop(wg);
+
+        for (check, target) in finish_rx {
+            runner.run_check(check, target, &mut filter);
             filter.process();
         }
     })

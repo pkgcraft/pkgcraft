@@ -145,6 +145,9 @@ pub enum ReportKind {
     /// Ebuild has an unneeded license.
     LicenseUnneeded,
 
+    /// Repo has unused licenses.
+    LicensesUnused,
+
     /// Package only has live ebuilds.
     LiveOnly,
 
@@ -281,6 +284,7 @@ impl ReportKind {
             Self::LicenseDeprecated => Warning,
             Self::LicenseMissing => Error,
             Self::LicenseUnneeded => Warning,
+            Self::LicensesUnused => Warning,
             Self::LiveOnly => Warning,
             Self::ManifestInvalid => Error,
             Self::MetadataError => Critical,

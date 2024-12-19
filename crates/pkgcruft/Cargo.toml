@@ -47,6 +47,8 @@ clap_complete = { version = "4.5.40", optional = true }
 clap-verbosity-flag = "3.0.2"
 colored = "2.2.0"
 crossbeam-channel = "0.5.14"
+crossbeam-utils = "0.8.21"
+dashmap = "6.1.0"
 indexmap = { version = "2.7.0", features = ["rayon", "serde"] }
 indoc = "2.0.5"
 itertools = "0.13.0"

@@ -3,7 +3,9 @@ use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::report::ReportKind::{LicenseDeprecated, LicenseMissing, LicenseUnneeded};
+use crate::report::ReportKind::{
+    LicenseDeprecated, LicenseMissing, LicenseUnneeded, LicensesUnused,
+};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -14,7 +16,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::License,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[LicenseDeprecated, LicenseMissing, LicenseUnneeded],
+    reports: &[LicenseDeprecated, LicenseMissing, LicenseUnneeded, LicensesUnused],
     context: &[],
 };
 
@@ -29,12 +31,14 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
             .iter()
             .map(|x| x.to_string())
             .collect(),
+        unused: repo.metadata().licenses().iter().collect(),
     }
 }
 
 struct Check {
     deprecated: IndexSet<&'static String>,
     unlicensed_categories: IndexSet<String>,
+    unused: dashmap::DashSet<&'static String>,
 }
 
 impl EbuildPkgCheck for Check {
@@ -54,6 +58,25 @@ impl EbuildPkgCheck for Check {
                     .message(deprecated)
                     .report(filter);
             }
+        }
+
+        // mangle values for post-run finalization
+        if filter.finish() && !self.unused.is_empty() {
+            for license in licenses {
+                self.unused.remove(license);
+            }
+        }
+    }
+
+    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+        if !self.unused.is_empty() {
+            let unused = self
+                .unused
+                .iter()
+                .map(|x| x.to_string())
+                .sorted()
+                .join(", ");
+            LicensesUnused.repo(repo).message(unused).report(filter);
         }
     }
 }

@@ -160,12 +160,14 @@ impl CheckRunner {
         match (self, target) {
             (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
+            (Self::EbuildPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
             (Self::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
+            (Self::EbuildRawPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, filter),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::Repo(r), Target::Repo(repo)) => r.run_check(check, repo, filter),
-            _ => unreachable!("incompatible target {target} for check: {check}"),
+            _ => unreachable!("incompatible target {target:?} for check: {check}"),
         }
     }
 }
@@ -290,6 +292,17 @@ macro_rules! make_pkg_check_runner {
                     Some(Err(e)) => warn!("{check}: skipping due to {e}"),
                     None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
                 }
+            }
+
+            /// Finish a check for a repo.
+            fn finish(&self, check: &Check, repo: &EbuildRepo, filter: &mut ReportFilter) {
+                let runner = self
+                    .pkg_checks
+                    .get(check)
+                    .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+                let now = Instant::now();
+                runner.finish(repo, filter);
+                debug!("{check}: finish: {:?}", now.elapsed());
             }
         }
     };
