@@ -35,14 +35,15 @@ struct Check {
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+        let allowed_missing = self.missing_categories.contains(pkg.category());
         if pkg.homepage().is_empty() {
-            if !self.missing_categories.contains(pkg.category()) {
+            if !allowed_missing {
                 HomepageInvalid
                     .version(pkg)
                     .message("missing")
                     .report(filter);
             }
-        } else if self.missing_categories.contains(pkg.category()) {
+        } else if allowed_missing {
             HomepageInvalid
                 .version(pkg)
                 .message("unneeded")

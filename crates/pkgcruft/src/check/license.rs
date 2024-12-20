@@ -47,14 +47,15 @@ struct Check {
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
+        let allowed_missing = self.missing_categories.contains(pkg.category());
         if licenses.is_empty() {
-            if !self.missing_categories.contains(pkg.category()) {
+            if !allowed_missing {
                 LicenseInvalid
                     .version(pkg)
                     .message("missing")
                     .report(filter);
             }
-        } else if self.missing_categories.contains(pkg.category()) {
+        } else if allowed_missing {
             LicenseInvalid
                 .version(pkg)
                 .message("unneeded")
