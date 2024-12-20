@@ -62,7 +62,7 @@ impl EbuildPkgCheck for Check {
         }
 
         // mangle values for post-run finalization
-        if filter.finalize(LicensesUnused) && !self.unused.is_empty() {
+        if filter.finalize(LicensesUnused) {
             for license in licenses {
                 self.unused.remove(license);
             }
