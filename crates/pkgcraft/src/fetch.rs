@@ -1,9 +1,9 @@
 use std::cmp::Ordering;
 use std::collections::HashSet;
-use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::LazyLock;
+use std::{fmt, iter};
 
 use camino::Utf8Path;
 use futures::StreamExt;
@@ -109,30 +109,61 @@ impl Fetchable {
         })
     }
 
-    /// Return an iterator of fetchables applying mirrors.
-    fn mirrors(&self) -> impl Iterator<Item = Self> + '_ {
+    /// Return the mirrors for the [`Fetchable`].
+    pub fn mirrors(&self) -> Option<&(String, IndexSet<String>)> {
+        self.mirrors.as_ref()
+    }
+}
+
+impl<'a> IntoIterator for &'a Fetchable {
+    type Item = Fetchable;
+    type IntoIter = Either<IterFetchableMirrors<'a>, iter::Once<Fetchable>>;
+
+    fn into_iter(self) -> Self::IntoIter {
         if let Some((name, mirrors)) = &self.mirrors {
             // TODO: support some type of mirror choice algorithm
-            Either::Left(mirrors.iter().filter_map(move |mirror| {
-                let mirror = mirror.trim_end_matches('/');
-                // TODO: properly implement GLEP 75 by fetching and parsing layout.conf
-                let path = if name == "gentoo" {
-                    let filename = self.filename();
-                    let hash = HashType::Blake2b.hash(filename.as_bytes());
-                    format!("{}/{filename}", &hash[..2])
-                } else {
-                    self.url.path().trim_start_matches('/').to_string()
-                };
-                let url = format!("{mirror}/{path}");
-                Url::parse(&url).ok().map(|url| Self {
-                    url,
-                    rename: self.rename.clone(),
-                    mirrors: None,
-                })
-            }))
+            Either::Left(IterFetchableMirrors {
+                fetchable: self,
+                name,
+                mirrors: mirrors.iter(),
+            })
         } else {
-            Either::Right(std::iter::once(self.clone()))
+            Either::Right(iter::once(self.clone()))
         }
+    }
+}
+
+pub struct IterFetchableMirrors<'a> {
+    fetchable: &'a Fetchable,
+    name: &'a String,
+    mirrors: indexmap::set::Iter<'a, String>,
+}
+
+impl Iterator for IterFetchableMirrors<'_> {
+    type Item = Fetchable;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.mirrors.find_map(|mirror| {
+            let mirror = mirror.trim_end_matches('/');
+            // TODO: properly implement GLEP 75 by fetching and parsing layout.conf
+            let path = if self.name == "gentoo" {
+                let filename = self.fetchable.filename();
+                let hash = HashType::Blake2b.hash(filename.as_bytes());
+                format!("{}/{filename}", &hash[..2])
+            } else {
+                self.fetchable
+                    .url
+                    .path()
+                    .trim_start_matches('/')
+                    .to_string()
+            };
+            let url = format!("{mirror}/{path}");
+            Url::parse(&url).ok().map(|url| Self::Item {
+                url,
+                rename: self.fetchable.rename.clone(),
+                mirrors: None,
+            })
+        })
     }
 }
 
@@ -219,7 +250,7 @@ impl Fetcher {
         let mut result = Ok(());
         let pb = mb.add(progress_bar(mb.is_hidden()));
 
-        for fetchable in f.mirrors() {
+        for fetchable in f {
             match self.fetch(&fetchable, path, &pb, size).await {
                 Err(e @ Error::FetchFailed { .. }) => result = Err(e),
                 res => {
