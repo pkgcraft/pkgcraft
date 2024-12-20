@@ -68,7 +68,7 @@ impl EbuildPkgCheck for Check {
                         .report(filter);
 
                     // mangle values for post-run finalization
-                    if filter.finalize() && !self.unused.is_empty() {
+                    if filter.finalize(PackageDeprecatedUnused) && !self.unused.is_empty() {
                         self.unused.remove(entry);
                     }
                 }

@@ -35,7 +35,7 @@ impl Check {
     fn process_fetchable(&self, fetchable: &Fetchable, filter: &mut ReportFilter) {
         if let Some((name, _)) = fetchable.mirrors() {
             // mangle values for post-run finalization
-            if filter.finalize() && !self.unused.is_empty() {
+            if filter.finalize(MirrorsUnused) && !self.unused.is_empty() {
                 self.unused.remove(name);
             }
         }

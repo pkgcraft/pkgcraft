@@ -164,9 +164,9 @@ impl ReportFilter {
         }
     }
 
-    /// Notify parallelized check runs to mangle values for post-run finalization.
-    pub(crate) fn finalize(&self) -> bool {
-        self.finalize
+    /// Return true if post-run finalization should be performed for a report variant.
+    pub(crate) fn finalize(&self, kind: ReportKind) -> bool {
+        self.finalize && self.filter.contains(&kind)
     }
 }
 
