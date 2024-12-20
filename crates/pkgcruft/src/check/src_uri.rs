@@ -1,8 +1,12 @@
+use dashmap::DashSet;
+use itertools::Itertools;
 use pkgcraft::error::Error::InvalidFetchable;
+use pkgcraft::fetch::Fetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Contains;
 
-use crate::report::ReportKind::UriInvalid;
+use crate::report::ReportKind::{MirrorsUnused, UriInvalid};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -13,26 +17,53 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::SrcUri,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[UriInvalid],
+    reports: &[MirrorsUnused, UriInvalid],
     context: &[],
 };
 
-pub(super) fn create() -> impl EbuildPkgCheck {
-    Check
+pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
+    Check {
+        unused: repo.metadata().mirrors().keys().collect(),
+    }
 }
 
-struct Check;
+struct Check {
+    unused: DashSet<&'static String>,
+}
+
+impl Check {
+    fn process_fetchable(&self, fetchable: &Fetchable, filter: &mut ReportFilter) {
+        if let Some((name, _)) = fetchable.mirrors() {
+            // mangle values for post-run finalization
+            if filter.finish() && !self.unused.is_empty() {
+                self.unused.remove(name);
+            }
+        }
+    }
+}
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if !pkg.restrict().contains("fetch") {
             for result in pkg.fetchables() {
                 match result {
-                    Ok(_) => (),
+                    Ok(f) => self.process_fetchable(&f, filter),
                     Err(InvalidFetchable(e)) => UriInvalid.version(pkg).message(e).report(filter),
                     Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
                 }
             }
+        }
+    }
+
+    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+        if !self.unused.is_empty() {
+            let unused = self
+                .unused
+                .iter()
+                .map(|x| x.to_string())
+                .sorted()
+                .join(", ");
+            MirrorsUnused.repo(repo).message(unused).report(filter);
         }
     }
 }

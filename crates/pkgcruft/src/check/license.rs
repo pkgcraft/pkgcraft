@@ -1,3 +1,4 @@
+use dashmap::DashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
@@ -38,7 +39,7 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
 struct Check {
     deprecated: IndexSet<&'static String>,
     unlicensed_categories: IndexSet<String>,
-    unused: dashmap::DashSet<&'static String>,
+    unused: DashSet<&'static String>,
 }
 
 impl EbuildPkgCheck for Check {

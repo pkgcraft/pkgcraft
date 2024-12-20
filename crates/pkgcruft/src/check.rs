@@ -291,7 +291,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::Restrict => Box::new(restrict::create(repo)),
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
-            CheckKind::SrcUri => Box::new(src_uri::create()),
+            CheckKind::SrcUri => Box::new(src_uri::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }

@@ -157,6 +157,9 @@ pub enum ReportKind {
     /// Ebuild fails during metadata generation.
     MetadataError,
 
+    /// Repo has unused mirrors.
+    MirrorsUnused,
+
     /// Overlay package matches the name of a package from a parent repo.
     PackageOverride,
 
@@ -288,6 +291,7 @@ impl ReportKind {
             Self::LiveOnly => Warning,
             Self::ManifestInvalid => Error,
             Self::MetadataError => Critical,
+            Self::MirrorsUnused => Warning,
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
             Self::PythonUpdate => Info,
