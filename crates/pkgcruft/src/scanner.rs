@@ -120,9 +120,9 @@ impl Scanner {
         ));
 
         if scope >= Scope::Category {
-            Ok(ReportIter::pkg(runner, self, scope, restrict))
+            Ok(ReportIter::pkg(runner, self, restrict))
         } else {
-            Ok(ReportIter::version(runner, self, scope, restrict))
+            Ok(ReportIter::version(runner, self, restrict))
         }
     }
 }
@@ -135,7 +135,7 @@ pub(crate) struct ReportFilter {
     failed: Arc<AtomicBool>,
     pkg_tx: Option<Sender<Vec<Report>>>,
     version_tx: Option<Sender<Report>>,
-    scope: Scope,
+    finish: bool,
 }
 
 impl ReportFilter {
@@ -166,13 +166,12 @@ impl ReportFilter {
 
     /// Notify parallelized check runs to mangle values for post-run finalization.
     pub(crate) fn finish(&self) -> bool {
-        self.scope == Scope::Repo
+        self.finish
     }
 }
 
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
-    scope: Scope,
     repo: &'static EbuildRepo,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
@@ -192,12 +191,13 @@ fn pkg_producer(
                 tx.send((None, Target::Cpn(cpn))).ok();
             }
 
-            // wait for all parallelized checks to finish
-            drop(tx);
-            wg.wait();
+            // conditionally run check finalization
+            if runner.finish() {
+                // wait for all parallelized checks to finish
+                drop(tx);
+                wg.wait();
 
-            // run all checks that accumulate pkg values across parallel version runs
-            if scope == Scope::Repo {
+                // run all checks that accumulate pkg values across parallel version runs
                 for check in runner.checks().filter(|c| c.finish()) {
                     finish_tx.send((check, Target::Repo(repo))).ok();
                 }
@@ -362,12 +362,7 @@ pub struct ReportIter(ReportIterInternal);
 
 impl ReportIter {
     /// Create an iterator that parallelizes scanning by package.
-    fn pkg(
-        runner: Arc<SyncCheckRunner>,
-        scanner: &Scanner,
-        scope: Scope,
-        restrict: Restrict,
-    ) -> Self {
+    fn pkg(runner: Arc<SyncCheckRunner>, scanner: &Scanner, restrict: Restrict) -> Self {
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
@@ -379,7 +374,7 @@ impl ReportIter {
             failed: scanner.failed.clone(),
             pkg_tx: Some(reports_tx),
             version_tx: None,
-            scope,
+            finish: runner.finish(),
         };
 
         Self(ReportIterInternal::Pkg(IterPkg {
@@ -396,7 +391,6 @@ impl ReportIter {
                 })
                 .collect(),
             _producer: pkg_producer(
-                scope,
                 scanner.repo,
                 runner.clone(),
                 wg,
@@ -409,12 +403,7 @@ impl ReportIter {
     }
 
     /// Create an iterator that parallelizes scanning by check.
-    fn version(
-        runner: Arc<SyncCheckRunner>,
-        scanner: &Scanner,
-        scope: Scope,
-        restrict: Restrict,
-    ) -> Self {
+    fn version(runner: Arc<SyncCheckRunner>, scanner: &Scanner, restrict: Restrict) -> Self {
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let filter = ReportFilter {
@@ -424,7 +413,7 @@ impl ReportIter {
             failed: scanner.failed.clone(),
             pkg_tx: None,
             version_tx: Some(reports_tx),
-            scope,
+            finish: runner.finish(),
         };
 
         Self(ReportIterInternal::Version(IterVersion {

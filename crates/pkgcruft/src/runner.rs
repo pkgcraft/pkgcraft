@@ -16,6 +16,7 @@ use crate::source::*;
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, CheckRunner>,
+    finish: bool,
 }
 
 impl SyncCheckRunner {
@@ -66,7 +67,15 @@ impl SyncCheckRunner {
                     .add_check(check)
             });
 
-        Self { runners }
+        Self {
+            runners,
+            finish: scope == Scope::Repo && filters.is_empty(),
+        }
+    }
+
+    /// Notify parallelized check runs to mangle values for post-run finalization.
+    pub(super) fn finish(&self) -> bool {
+        self.finish
     }
 
     /// Return an iterator of all the runner's checks.
