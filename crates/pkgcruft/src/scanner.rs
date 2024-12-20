@@ -182,12 +182,12 @@ fn pkg_producer(
     wg: WaitGroup,
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
-    finish_tx: Sender<(Check, Target)>,
+    finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
         for check in runner.checks().filter(|c| !c.scope.is_pkg()) {
-            tx.send((Some(check), Target::Repo(repo))).ok();
+            tx.send((Some(check), Target::Repo)).ok();
         }
 
         // return if no package checks are selected
@@ -211,7 +211,7 @@ fn pkg_producer(
 
         // finalize checks in parallel
         for check in runner.checks().filter(|c| c.finalize()) {
-            finish_tx.send((check, Target::Repo(repo))).ok();
+            finish_tx.send(check).ok();
         }
     })
 }
@@ -222,7 +222,7 @@ fn pkg_worker(
     wg: WaitGroup,
     mut filter: ReportFilter,
     rx: Receiver<(Option<Check>, Target)>,
-    finish_rx: Receiver<(Check, Target)>,
+    finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
@@ -249,8 +249,8 @@ fn pkg_worker(
         drop(wg);
 
         // finalize checks
-        for (check, target) in finish_rx {
-            runner.finish(check, target, &mut filter);
+        for check in finish_rx {
+            runner.finish(check, &mut filter);
             filter.process();
         }
     })

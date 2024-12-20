@@ -202,7 +202,7 @@ impl PkgFilters {
 pub(crate) enum Target {
     Cpv(Cpv),
     Cpn(Cpn),
-    Repo(&'static EbuildRepo),
+    Repo,
 }
 
 pub(crate) trait Source: fmt::Display {

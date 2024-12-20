@@ -100,12 +100,12 @@ impl SyncCheckRunner {
     }
 
     /// Run finalization for a specific check.
-    pub(super) fn finish(&self, check: Check, target: Target, filter: &mut ReportFilter) {
+    pub(super) fn finish(&self, check: Check, filter: &mut ReportFilter) {
         let runner = self
             .runners
             .get(&check.source)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        runner.finish(&check, &target, filter);
+        runner.finish(&check, filter);
     }
 }
 
@@ -168,7 +168,7 @@ impl CheckRunner {
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
             (Self::Cpv(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
-            (Self::Repo(r), Target::Repo(repo)) => r.run_checks(repo, filter),
+            (Self::Repo(r), Target::Repo) => r.run_checks(filter),
             _ => (),
         }
     }
@@ -182,17 +182,17 @@ impl CheckRunner {
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, filter),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
-            (Self::Repo(r), Target::Repo(repo)) => r.run_check(check, repo, filter),
+            (Self::Repo(r), Target::Repo) => r.run_check(check, filter),
             _ => unreachable!("incompatible target {target:?} for check: {check}"),
         }
     }
 
     /// Run finalization for a specific check.
-    fn finish(&self, check: &Check, target: &Target, filter: &mut ReportFilter) {
-        match (self, target) {
-            (Self::EbuildPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
-            (Self::EbuildRawPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
-            _ => unreachable!("incompatible target {target:?} for check: {check}"),
+    fn finish(&self, check: &Check, filter: &mut ReportFilter) {
+        match self {
+            Self::EbuildPkg(r) => r.finish(check, filter),
+            Self::EbuildRawPkg(r) => r.finish(check, filter),
+            _ => unreachable!("unsupported check finalization: {check}"),
         }
     }
 }
@@ -320,13 +320,13 @@ macro_rules! make_pkg_check_runner {
             }
 
             /// Finish a check for a repo.
-            fn finish(&self, check: &Check, repo: &EbuildRepo, filter: &mut ReportFilter) {
+            fn finish(&self, check: &Check, filter: &mut ReportFilter) {
                 let runner = self
                     .pkg_checks
                     .get(check)
                     .unwrap_or_else(|| unreachable!("unknown check: {check}"));
                 let now = Instant::now();
-                runner.finish(repo, filter);
+                runner.finish(self.repo, filter);
                 debug!("{check}: finish: {:?}", now.elapsed());
             }
         }
@@ -468,22 +468,22 @@ impl RepoCheckRunner {
     }
 
     /// Run all checks for a repo.
-    fn run_checks(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn run_checks(&self, filter: &mut ReportFilter) {
         for (check, runner) in &self.checks {
             let now = Instant::now();
-            runner.run(repo, filter);
-            debug!("{check}: {repo}: {:?}", now.elapsed());
+            runner.run(self.repo, filter);
+            debug!("{check}: {}: {:?}", self.repo, now.elapsed());
         }
     }
 
     /// Run a check for a repo.
-    fn run_check(&self, check: &Check, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn run_check(&self, check: &Check, filter: &mut ReportFilter) {
         let runner = self
             .checks
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.run(repo, filter);
-        debug!("{check}: {repo}: {:?}", now.elapsed());
+        runner.run(self.repo, filter);
+        debug!("{check}: {} {:?}", self.repo, now.elapsed());
     }
 }
