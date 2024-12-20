@@ -160,6 +160,9 @@ pub enum ReportKind {
     /// Repo has unused mirrors.
     MirrorsUnused,
 
+    /// Repo has unused profiles/package.deprecated entries.
+    PackageDeprecatedUnused,
+
     /// Overlay package matches the name of a package from a parent repo.
     PackageOverride,
 
@@ -292,6 +295,7 @@ impl ReportKind {
             Self::ManifestInvalid => Error,
             Self::MetadataError => Critical,
             Self::MirrorsUnused => Warning,
+            Self::PackageDeprecatedUnused => Warning,
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Critical,
             Self::PythonUpdate => Info,

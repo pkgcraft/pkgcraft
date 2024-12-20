@@ -1,12 +1,13 @@
+use dashmap::DashSet;
 use itertools::Itertools;
-use pkgcraft::dep::{Dependency, Operator, SlotOperator, UseDepKind};
+use pkgcraft::dep::{Dep, Dependency, Operator, SlotOperator, UseDepKind};
 use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{
-    DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing,
+    DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing, PackageDeprecatedUnused,
 };
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -18,16 +19,25 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Dependency,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing],
+    reports: &[
+        DependencyDeprecated,
+        DependencyInvalid,
+        DependencyRevisionMissing,
+        PackageDeprecatedUnused,
+    ],
     context: &[],
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
-    Check { repo }
+    Check {
+        repo,
+        unused: repo.metadata().pkg_deprecated().iter().collect(),
+    }
 }
 
 struct Check {
     repo: &'static EbuildRepo,
+    unused: DashSet<&'static Dep>,
 }
 
 impl EbuildPkgCheck for Check {
@@ -50,12 +60,17 @@ impl EbuildPkgCheck for Check {
                         .report(filter);
                 }
 
-                if self.repo.deprecated(dep).is_some() {
+                if let Some(entry) = self.repo.deprecated(dep) {
                     // drop use deps since package.deprecated doesn't include them
                     DependencyDeprecated
                         .version(pkg)
                         .message(format!("{key}: {}", dep.no_use_deps()))
                         .report(filter);
+
+                    // mangle values for post-run finalization
+                    if filter.finish() && !self.unused.is_empty() {
+                        self.unused.remove(entry);
+                    }
                 }
 
                 // TODO: consider moving into parser when it supports dynamic error strings
@@ -110,6 +125,21 @@ impl EbuildPkgCheck for Check {
                     .message(format!("{key}: = slot operator in any-of: {dep}"))
                     .report(filter);
             }
+        }
+    }
+
+    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+        if !self.unused.is_empty() {
+            let unused = self
+                .unused
+                .iter()
+                .map(|x| x.to_string())
+                .sorted()
+                .join(", ");
+            PackageDeprecatedUnused
+                .repo(repo)
+                .message(unused)
+                .report(filter);
         }
     }
 }
