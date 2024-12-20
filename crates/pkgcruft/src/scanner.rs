@@ -120,67 +120,9 @@ impl Scanner {
         ));
 
         if scope >= Scope::Category {
-            // parallel by package
-            let (targets_tx, targets_rx) = bounded(self.jobs);
-            let (finish_tx, finish_rx) = bounded(self.jobs);
-            let (reports_tx, reports_rx) = bounded(self.jobs);
-            let wg = WaitGroup::new();
-            let filter = ReportFilter {
-                reports: Default::default(),
-                filter: self.reports.clone(),
-                exit: self.exit.clone(),
-                failed: self.failed.clone(),
-                pkg_tx: Some(reports_tx),
-                version_tx: None,
-                scope,
-            };
-
-            Ok(ReportIter(ReportIterInternal::Pkg(IterPkg {
-                rx: reports_rx,
-                _workers: (0..self.jobs)
-                    .map(|_| {
-                        pkg_worker(
-                            runner.clone(),
-                            wg.clone(),
-                            filter.clone(),
-                            targets_rx.clone(),
-                            finish_rx.clone(),
-                        )
-                    })
-                    .collect(),
-                _producer: pkg_producer(
-                    scope,
-                    self.repo,
-                    runner.clone(),
-                    wg,
-                    restrict,
-                    targets_tx,
-                    finish_tx,
-                ),
-                reports: Default::default(),
-            })))
+            Ok(ReportIter::pkg(runner, self, scope, restrict))
         } else {
-            // parallel by check
-            let (targets_tx, targets_rx) = bounded(self.jobs);
-            let (reports_tx, reports_rx) = bounded(self.jobs);
-            let filter = ReportFilter {
-                reports: Default::default(),
-                filter: self.reports.clone(),
-                exit: self.exit.clone(),
-                failed: self.failed.clone(),
-                pkg_tx: None,
-                version_tx: Some(reports_tx),
-                scope,
-            };
-
-            Ok(ReportIter(ReportIterInternal::Version(IterVersion {
-                rx: reports_rx,
-                _workers: (0..self.jobs)
-                    .map(|_| version_worker(runner.clone(), filter.clone(), targets_rx.clone()))
-                    .collect(),
-                _producer: version_producer(self.repo, runner.clone(), restrict, targets_tx),
-                reports: Default::default(),
-            })))
+            Ok(ReportIter::version(runner, self, scope, restrict))
         }
     }
 }
@@ -417,6 +359,84 @@ impl Iterator for ReportIterInternal {
 /// Iterator of reports.
 #[derive(Debug)]
 pub struct ReportIter(ReportIterInternal);
+
+impl ReportIter {
+    /// Create an iterator that parallelizes scanning by package.
+    fn pkg(
+        runner: Arc<SyncCheckRunner>,
+        scanner: &Scanner,
+        scope: Scope,
+        restrict: Restrict,
+    ) -> Self {
+        let (targets_tx, targets_rx) = bounded(scanner.jobs);
+        let (finish_tx, finish_rx) = bounded(scanner.jobs);
+        let (reports_tx, reports_rx) = bounded(scanner.jobs);
+        let wg = WaitGroup::new();
+        let filter = ReportFilter {
+            reports: Default::default(),
+            filter: scanner.reports.clone(),
+            exit: scanner.exit.clone(),
+            failed: scanner.failed.clone(),
+            pkg_tx: Some(reports_tx),
+            version_tx: None,
+            scope,
+        };
+
+        Self(ReportIterInternal::Pkg(IterPkg {
+            rx: reports_rx,
+            _workers: (0..scanner.jobs)
+                .map(|_| {
+                    pkg_worker(
+                        runner.clone(),
+                        wg.clone(),
+                        filter.clone(),
+                        targets_rx.clone(),
+                        finish_rx.clone(),
+                    )
+                })
+                .collect(),
+            _producer: pkg_producer(
+                scope,
+                scanner.repo,
+                runner.clone(),
+                wg,
+                restrict,
+                targets_tx,
+                finish_tx,
+            ),
+            reports: Default::default(),
+        }))
+    }
+
+    /// Create an iterator that parallelizes scanning by check.
+    fn version(
+        runner: Arc<SyncCheckRunner>,
+        scanner: &Scanner,
+        scope: Scope,
+        restrict: Restrict,
+    ) -> Self {
+        let (targets_tx, targets_rx) = bounded(scanner.jobs);
+        let (reports_tx, reports_rx) = bounded(scanner.jobs);
+        let filter = ReportFilter {
+            reports: Default::default(),
+            filter: scanner.reports.clone(),
+            exit: scanner.exit.clone(),
+            failed: scanner.failed.clone(),
+            pkg_tx: None,
+            version_tx: Some(reports_tx),
+            scope,
+        };
+
+        Self(ReportIterInternal::Version(IterVersion {
+            rx: reports_rx,
+            _workers: (0..scanner.jobs)
+                .map(|_| version_worker(runner.clone(), filter.clone(), targets_rx.clone()))
+                .collect(),
+            _producer: version_producer(scanner.repo, runner.clone(), restrict, targets_tx),
+            reports: Default::default(),
+        }))
+    }
+}
 
 impl Iterator for ReportIter {
     type Item = Report;
