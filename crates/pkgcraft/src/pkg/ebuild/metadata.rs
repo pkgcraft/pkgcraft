@@ -130,14 +130,7 @@ impl Metadata {
             Key::IDEPEND => self.idepend = DependencySet::package(val, eapi)?,
             Key::PDEPEND => self.pdepend = DependencySet::package(val, eapi)?,
             Key::RDEPEND => self.rdepend = DependencySet::package(val, eapi)?,
-            Key::LICENSE => {
-                self.license = DependencySet::license(val)?;
-                for l in self.license.iter_flatten() {
-                    if !repo.licenses().contains(l) {
-                        return Err(Error::InvalidValue(format!("nonexistent license: {l}")));
-                    }
-                }
-            }
+            Key::LICENSE => self.license = DependencySet::license(val)?,
             Key::PROPERTIES => self.properties = DependencySet::properties(val)?,
             Key::REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
             Key::RESTRICT => self.restrict = DependencySet::restrict(val)?,
