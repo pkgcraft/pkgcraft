@@ -43,10 +43,7 @@ impl EbuildPkgCheck for Check {
 
             if !vals.is_empty() {
                 let vals = vals.iter().sorted().join(", ");
-                RestrictInvalid
-                    .version(pkg)
-                    .message(format!("RESTRICT not allowed: {vals}"))
-                    .report(filter);
+                RestrictInvalid.version(pkg).message(vals).report(filter);
             }
         }
         // TODO: verify USE flags in conditionals

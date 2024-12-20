@@ -43,10 +43,7 @@ impl EbuildPkgCheck for Check {
 
             if !vals.is_empty() {
                 let vals = vals.iter().sorted().join(", ");
-                PropertiesInvalid
-                    .version(pkg)
-                    .message(format!("PROPERTIES not allowed: {vals}"))
-                    .report(filter);
+                PropertiesInvalid.version(pkg).message(vals).report(filter);
             }
         }
         // TODO: verify USE flags in conditionals
