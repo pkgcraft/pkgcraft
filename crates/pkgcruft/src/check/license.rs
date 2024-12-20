@@ -5,7 +5,7 @@ use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{
-    LicenseDeprecated, LicenseInvalid, LicenseMissing, LicenseUnneeded, LicensesUnused,
+    LicenseDeprecated, LicenseInvalid, LicenseUnneeded, LicensesUnused,
 };
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -17,7 +17,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::License,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[LicenseDeprecated, LicenseMissing, LicenseUnneeded, LicensesUnused, LicenseInvalid],
+    reports: &[LicenseDeprecated, LicenseUnneeded, LicensesUnused, LicenseInvalid],
     context: &[],
 };
 
@@ -49,7 +49,7 @@ impl EbuildPkgCheck for Check {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
         if licenses.is_empty() {
             if !self.unlicensed_categories.contains(pkg.category()) {
-                LicenseMissing.version(pkg).report(filter);
+                LicenseInvalid.version(pkg).message("missing").report(filter);
             }
         } else if self.unlicensed_categories.contains(pkg.category()) {
             LicenseUnneeded.version(pkg).report(filter);
