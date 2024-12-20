@@ -135,7 +135,7 @@ pub(crate) struct ReportFilter {
     failed: Arc<AtomicBool>,
     pkg_tx: Option<Sender<Vec<Report>>>,
     version_tx: Option<Sender<Report>>,
-    finish: bool,
+    finalize: bool,
 }
 
 impl ReportFilter {
@@ -165,8 +165,8 @@ impl ReportFilter {
     }
 
     /// Notify parallelized check runs to mangle values for post-run finalization.
-    pub(crate) fn finish(&self) -> bool {
-        self.finish
+    pub(crate) fn finalize(&self) -> bool {
+        self.finalize
     }
 }
 
@@ -192,13 +192,13 @@ fn pkg_producer(
             }
 
             // conditionally run check finalization
-            if runner.finish() {
+            if runner.finalize() {
                 // wait for all parallelized checks to finish
                 drop(tx);
                 wg.wait();
 
                 // run all checks that accumulate pkg values across parallel version runs
-                for check in runner.checks().filter(|c| c.finish()) {
+                for check in runner.checks().filter(|c| c.finalize()) {
                     finish_tx.send((check, Target::Repo(repo))).ok();
                 }
             }
@@ -225,6 +225,7 @@ fn pkg_worker(
         #[cfg(test)]
         let _entered = thread_span.clone().entered();
 
+        // run checks across packages in parallel
         for (check, target) in rx {
             if let Some(check) = check {
                 runner.run_check(check, target, &mut filter);
@@ -237,8 +238,9 @@ fn pkg_worker(
         // signal the wait group
         drop(wg);
 
+        // finalize checks
         for (check, target) in finish_rx {
-            runner.run_check(check, target, &mut filter);
+            runner.finish(check, target, &mut filter);
             filter.process();
         }
     })
@@ -374,7 +376,7 @@ impl ReportIter {
             failed: scanner.failed.clone(),
             pkg_tx: Some(reports_tx),
             version_tx: None,
-            finish: runner.finish(),
+            finalize: runner.finalize(),
         };
 
         Self(ReportIterInternal::Pkg(IterPkg {
@@ -413,7 +415,7 @@ impl ReportIter {
             failed: scanner.failed.clone(),
             pkg_tx: None,
             version_tx: Some(reports_tx),
-            finish: runner.finish(),
+            finalize: runner.finalize(),
         };
 
         Self(ReportIterInternal::Version(IterVersion {

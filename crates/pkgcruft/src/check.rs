@@ -267,7 +267,7 @@ impl Check {
     }
 
     /// Check supports post-run finalization.
-    pub(crate) fn finish(&self) -> bool {
+    pub(crate) fn finalize(&self) -> bool {
         self.scope == Scope::Version
             && (self.source == SourceKind::EbuildPkg || self.source == SourceKind::EbuildRawPkg)
     }

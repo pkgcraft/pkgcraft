@@ -16,7 +16,7 @@ use crate::source::*;
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, CheckRunner>,
-    finish: bool,
+    finalize: bool,
 }
 
 impl SyncCheckRunner {
@@ -69,13 +69,13 @@ impl SyncCheckRunner {
 
         Self {
             runners,
-            finish: scope == Scope::Repo && filters.is_empty(),
+            finalize: scope == Scope::Repo && filters.is_empty(),
         }
     }
 
     /// Notify parallelized check runs to mangle values for post-run finalization.
-    pub(super) fn finish(&self) -> bool {
-        self.finish
+    pub(super) fn finalize(&self) -> bool {
+        self.finalize
     }
 
     /// Return an iterator of all the runner's checks.
@@ -92,11 +92,20 @@ impl SyncCheckRunner {
 
     /// Run a specific check.
     pub(super) fn run_check(&self, check: Check, target: Target, filter: &mut ReportFilter) {
-        if let Some(runner) = self.runners.get(&check.source) {
-            runner.run_check(&check, &target, filter);
-        } else {
-            unreachable!("unknown check: {check}");
-        }
+        let runner = self
+            .runners
+            .get(&check.source)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        runner.run_check(&check, &target, filter);
+    }
+
+    /// Run finalization for a specific check.
+    pub(super) fn finish(&self, check: Check, target: Target, filter: &mut ReportFilter) {
+        let runner = self
+            .runners
+            .get(&check.source)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        runner.finish(&check, &target, filter);
     }
 }
 
@@ -169,13 +178,20 @@ impl CheckRunner {
         match (self, target) {
             (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
-            (Self::EbuildPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
             (Self::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
-            (Self::EbuildRawPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, filter),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::Repo(r), Target::Repo(repo)) => r.run_check(check, repo, filter),
+            _ => unreachable!("incompatible target {target:?} for check: {check}"),
+        }
+    }
+
+    /// Run finalization for a specific check.
+    fn finish(&self, check: &Check, target: &Target, filter: &mut ReportFilter) {
+        match (self, target) {
+            (Self::EbuildPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
+            (Self::EbuildRawPkg(r), Target::Repo(repo)) => r.finish(check, repo, filter),
             _ => unreachable!("incompatible target {target:?} for check: {check}"),
         }
     }
