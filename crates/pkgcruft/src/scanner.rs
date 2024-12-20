@@ -164,9 +164,14 @@ impl ReportFilter {
         }
     }
 
+    /// Return true if the filter has a report variant enabled.
+    pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
+        self.filter.contains(&kind)
+    }
+
     /// Return true if post-run finalization should be performed for a report variant.
     pub(crate) fn finalize(&self, kind: ReportKind) -> bool {
-        self.finalize && self.filter.contains(&kind)
+        self.finalize && self.enabled(kind)
     }
 }
 
