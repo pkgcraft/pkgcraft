@@ -145,9 +145,6 @@ pub enum ReportKind {
     /// Ebuild has an invalid license.
     LicenseInvalid,
 
-    /// Ebuild has an unneeded license.
-    LicenseUnneeded,
-
     /// Repo has unused licenses.
     LicensesUnused,
 
@@ -293,7 +290,6 @@ impl ReportKind {
             Self::KeywordsUnsorted => Style,
             Self::LicenseDeprecated => Warning,
             Self::LicenseInvalid => Error,
-            Self::LicenseUnneeded => Warning,
             Self::LicensesUnused => Warning,
             Self::LiveOnly => Warning,
             Self::ManifestInvalid => Error,

@@ -1,12 +1,12 @@
+use std::collections::HashSet;
+
 use dashmap::DashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::report::ReportKind::{
-    LicenseDeprecated, LicenseInvalid, LicenseUnneeded, LicensesUnused,
-};
+use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::SourceKind;
@@ -17,7 +17,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::License,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[LicenseDeprecated, LicenseUnneeded, LicensesUnused, LicenseInvalid],
+    reports: &[LicenseDeprecated, LicensesUnused, LicenseInvalid],
     context: &[],
 };
 
@@ -28,7 +28,7 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
             .get("DEPRECATED")
             .map(|x| x.iter().collect())
             .unwrap_or_default(),
-        unlicensed_categories: ["acct-group", "acct-user", "virtual"]
+        missing_categories: ["acct-group", "acct-user", "virtual"]
             .iter()
             .map(|x| x.to_string())
             .collect(),
@@ -39,7 +39,7 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
 
 struct Check {
     deprecated: IndexSet<&'static String>,
-    unlicensed_categories: IndexSet<String>,
+    missing_categories: HashSet<String>,
     unused: DashSet<&'static String>,
     repo: &'static EbuildRepo,
 }
@@ -48,11 +48,17 @@ impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
         if licenses.is_empty() {
-            if !self.unlicensed_categories.contains(pkg.category()) {
-                LicenseInvalid.version(pkg).message("missing").report(filter);
+            if !self.missing_categories.contains(pkg.category()) {
+                LicenseInvalid
+                    .version(pkg)
+                    .message("missing")
+                    .report(filter);
             }
-        } else if self.unlicensed_categories.contains(pkg.category()) {
-            LicenseUnneeded.version(pkg).report(filter);
+        } else if self.missing_categories.contains(pkg.category()) {
+            LicenseInvalid
+                .version(pkg)
+                .message("unneeded")
+                .report(filter);
         } else {
             let deprecated = licenses.intersection(&self.deprecated).sorted().join(", ");
             if !deprecated.is_empty() {
@@ -106,7 +112,7 @@ mod tests {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let check_dir = repo.path().join(CHECK);
-        let report_dir = repo.path().join("virtual/LicenseUnneeded");
+        let report_dir = repo.path().join("virtual/LicenseInvalid");
         let scanner = Scanner::new(repo).checks([CHECK]);
         let expected = glob_reports!("{check_dir}/*/reports.json", "{report_dir}/reports.json");
         let reports = scanner.run(repo).unwrap();
