@@ -67,7 +67,7 @@ impl Fetchable {
         }
 
         // URLs without paths or queries are invalid
-        if url.path() == "/" && url.query().is_none() {
+        if url.path().trim_start_matches('/').is_empty() && url.query().is_none() {
             return Err(Error::InvalidFetchable(format!("target missing: {url}")));
         }
 
@@ -76,10 +76,6 @@ impl Fetchable {
             let Some(name) = url.domain() else {
                 return Err(Error::InvalidFetchable(format!("mirror missing: {url}")));
             };
-
-            if name == uri.filename() {
-                return Err(Error::InvalidFetchable(format!("mirror missing: {url}")));
-            }
 
             if let Some(values) = repo.mirrors().get(name) {
                 Some((name.to_string(), values.clone()))
