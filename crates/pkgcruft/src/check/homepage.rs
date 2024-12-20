@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use url::Url;
 
 use crate::report::ReportKind::HomepageInvalid;
@@ -21,15 +21,34 @@ pub(super) static CHECK: super::Check = super::Check {
 pub(super) fn create() -> impl EbuildPkgCheck {
     Check {
         allowed_protocols: ["http", "https"].into_iter().map(Into::into).collect(),
+        missing_categories: ["acct-group", "acct-user", "virtual"]
+            .iter()
+            .map(|x| x.to_string())
+            .collect(),
     }
 }
 
 struct Check {
     allowed_protocols: HashSet<String>,
+    missing_categories: HashSet<String>,
 }
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+        if pkg.homepage().is_empty() {
+            if !self.missing_categories.contains(pkg.category()) {
+                HomepageInvalid
+                    .version(pkg)
+                    .message("missing")
+                    .report(filter);
+            }
+        } else if self.missing_categories.contains(pkg.category()) {
+            HomepageInvalid
+                .version(pkg)
+                .message("unneeded")
+                .report(filter);
+        }
+
         for value in pkg.homepage() {
             match Url::parse(value) {
                 Ok(url) => {
