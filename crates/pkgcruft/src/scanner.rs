@@ -185,23 +185,28 @@ fn pkg_producer(
             tx.send((Some(check), Target::Repo(repo))).ok();
         }
 
+        // return if no package checks are selected
+        if !runner.checks().any(|c| c.scope.is_pkg()) {
+            return;
+        }
+
         // parallelize per package if relevant checks are selected
-        if runner.checks().any(|c| c.scope.is_pkg()) {
-            for cpn in repo.iter_cpn_restrict(&restrict) {
-                tx.send((None, Target::Cpn(cpn))).ok();
-            }
+        for cpn in repo.iter_cpn_restrict(&restrict) {
+            tx.send((None, Target::Cpn(cpn))).ok();
+        }
 
-            // conditionally run check finalization
-            if runner.finalize() {
-                // wait for all parallelized checks to finish
-                drop(tx);
-                wg.wait();
+        // return if scanning run doesn't support check finalization
+        if !runner.finalize() {
+            return;
+        }
 
-                // run all checks that accumulate pkg values across parallel version runs
-                for check in runner.checks().filter(|c| c.finalize()) {
-                    finish_tx.send((check, Target::Repo(repo))).ok();
-                }
-            }
+        // wait for all parallelized checks to finish
+        drop(tx);
+        wg.wait();
+
+        // finalize checks in parallel
+        for check in runner.checks().filter(|c| c.finalize()) {
+            finish_tx.send((check, Target::Repo(repo))).ok();
         }
     })
 }
