@@ -169,7 +169,10 @@ impl Restriction<&EbuildPkg> for Restrict {
                 _ => false,
             },
             Self::Homepage(r) => match (r, pkg.homepage()) {
-                (Some(r), val) => r.matches(val),
+                (Some(r), val) => {
+                    let val = val.into_iter().map(|x| x.to_string()).collect();
+                    r.matches(&val)
+                }
                 (None, val) if val.is_empty() => true,
                 _ => false,
             },

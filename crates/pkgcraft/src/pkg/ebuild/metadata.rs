@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
+use url::Url;
 
 use crate::dep::{Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
@@ -76,7 +77,7 @@ pub struct Metadata {
     pub(crate) required_use: DependencySet<String>,
     pub(crate) restrict: DependencySet<String>,
     pub(crate) src_uri: DependencySet<Uri>,
-    pub(crate) homepage: OrderedSet<String>,
+    pub(crate) homepage: OrderedSet<Url>,
     pub(crate) defined_phases: OrderedSet<Phase>,
     pub(crate) keywords: OrderedSet<Keyword>,
     pub(crate) iuse: OrderedSet<Iuse>,
@@ -142,7 +143,15 @@ impl Metadata {
             Key::REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
             Key::RESTRICT => self.restrict = DependencySet::restrict(val)?,
             Key::SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
-            Key::HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
+            Key::HOMEPAGE => {
+                self.homepage = Default::default();
+                for value in val.split_whitespace() {
+                    let url = Url::parse(value).map_err(|e| {
+                        Error::InvalidValue(format!("invalid homepage: {e}: {value}"))
+                    })?;
+                    self.homepage.insert(url);
+                }
+            }
             Key::DEFINED_PHASES => {
                 // PMS specifies if no phase functions are defined, a single hyphen is used.
                 if val != "-" {
