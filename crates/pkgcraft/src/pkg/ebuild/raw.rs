@@ -43,13 +43,15 @@ impl EbuildRawPkg {
             fs::read_to_string(repo.path().join(&relpath)).map_err(|e| Error::InvalidPkg {
                 cpv: Box::new(cpv.clone()),
                 repo: repo.to_string(),
-                err: format!("failed reading ebuild: {relpath}: {e}"),
+                err: Box::new(Error::InvalidValue(format!(
+                    "failed reading ebuild: {relpath}: {e}"
+                ))),
             })?;
 
-        let eapi = Self::parse_eapi(&data).map_err(|e| Error::InvalidPkg {
+        let eapi = Self::parse_eapi(&data).map_err(|error| Error::InvalidPkg {
             cpv: Box::new(cpv.clone()),
             repo: repo.to_string(),
-            err: e.to_string(),
+            err: Box::new(error),
         })?;
 
         let chksum = repo.metadata().cache().chksum(&data);

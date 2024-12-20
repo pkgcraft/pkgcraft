@@ -7,10 +7,9 @@ use clap::Args;
 use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild_raw, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage, Source};
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
-use pkgcraft::Error;
 use scallop::pool::PoolIter;
 use tracing::error;
 
@@ -104,10 +103,9 @@ where
         while elapsed < duration {
             let start = Instant::now();
             // TODO: move error mapping into pkgcraft for pkg sourcing
-            pkg.source().map_err(|e| Error::InvalidPkg {
-                cpv: Box::new(pkg.cpv().clone()),
-                repo: pkg.repo().to_string(),
-                err: e.to_string(),
+            pkg.source().map_err(|e| {
+                let err: pkgcraft::Error = e.into();
+                err.into_invalid_pkg_err(&pkg)
             })?;
             let source_elapsed = micros!(start.elapsed());
             data.push(source_elapsed);
@@ -177,12 +175,11 @@ where
     let mut failed = false;
     let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
         let start = Instant::now();
-        // TODO: move error mapping into pkgcraft for pkg sourcing
         let pkg = pkg?;
-        pkg.source().map_err(|e| Error::InvalidPkg {
-            cpv: Box::new(pkg.cpv().clone()),
-            repo: pkg.repo().to_string(),
-            err: e.to_string(),
+        // TODO: move error mapping into pkgcraft for pkg sourcing
+        pkg.source().map_err(|e| {
+            let err: pkgcraft::Error = e.into();
+            err.into_invalid_pkg_err(&pkg)
         })?;
         let elapsed = micros!(start.elapsed());
         Ok((pkg.to_string(), elapsed))

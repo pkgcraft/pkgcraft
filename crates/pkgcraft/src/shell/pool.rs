@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::dep::Cpv;
-use crate::error::{Error, PackageError};
+use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata as PkgMetadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
@@ -44,7 +44,7 @@ impl Metadata {
     fn run(self, config: &Config) -> crate::Result<()> {
         let repo = get_ebuild_repo(config, self.repo)?;
         let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
-        let meta = PkgMetadata::try_from(&pkg).map_err(|e| pkg.invalid_pkg_err(e))?;
+        let meta = PkgMetadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
         if !self.verify {
             repo.metadata().cache().update(&pkg, &meta)?;
         }

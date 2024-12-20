@@ -113,8 +113,6 @@ pub trait Source: Package {
 
 macro_rules! make_pkg_traits {
     ($($x:ty),+) => {$(
-        impl $crate::error::PackageError for $x {}
-
         impl PartialEq for $x {
             fn eq(&self, other: &Self) -> bool {
                 self.repo() == other.repo() && self.cpv() == other.cpv()

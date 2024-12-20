@@ -4,7 +4,6 @@ use scallop::pool::redirect_output;
 use scallop::{functions, Error, ExecStatus};
 use tempfile::NamedTempFile;
 
-use crate::error::PackageError;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Build, Package, Pretend, Source};
 use crate::shell::scope::Scope;
@@ -14,12 +13,16 @@ use super::OperationKind;
 
 impl Build for EbuildPkg {
     fn build(&self) -> scallop::Result<()> {
-        get_build_mut()
-            .source_ebuild(&self.path())
-            .map_err(|e| self.invalid_pkg_err(e))?;
+        get_build_mut().source_ebuild(&self.path()).map_err(|e| {
+            let err: crate::Error = e.into();
+            err.into_invalid_pkg_err(self)
+        })?;
 
         for phase in self.eapi().operation(OperationKind::Build)? {
-            phase.run().map_err(|e| self.pkg_err(e))?;
+            phase.run().map_err(|e| {
+                let err: crate::Error = e.into();
+                err.into_pkg_err(self)
+            })?;
         }
 
         Ok(())

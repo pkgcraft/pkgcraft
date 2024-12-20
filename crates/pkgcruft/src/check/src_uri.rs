@@ -1,6 +1,6 @@
 use dashmap::DashSet;
 use itertools::Itertools;
-use pkgcraft::error::Error::InvalidFetchable;
+use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -48,7 +48,14 @@ impl EbuildPkgCheck for Check {
             for result in pkg.fetchables() {
                 match result {
                     Ok(f) => self.process_fetchable(&f, filter),
-                    Err(InvalidFetchable(e)) => UriInvalid.version(pkg).message(e).report(filter),
+                    // TODO: use deref patterns to matched boxed field when stabilized
+                    // https://github.com/rust-lang/rust/issues/87121
+                    Err(Error::Pkg { err, .. }) if matches!(*err, Error::InvalidFetchable(_)) => {
+                        let Error::InvalidFetchable(error) = *err else {
+                            panic!("invalid fetchable error");
+                        };
+                        UriInvalid.version(pkg).message(error).report(filter)
+                    }
                     Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
                 }
             }

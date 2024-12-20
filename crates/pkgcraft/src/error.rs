@@ -3,7 +3,7 @@ use std::io;
 
 use serde::{Deserialize, Serialize};
 
-use crate::dep::Cpv;
+use crate::dep::{Cpn, Cpv};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::RepoFormat;
 
@@ -39,13 +39,19 @@ pub enum Error {
     InvalidPkg {
         cpv: Box<Cpv>,
         repo: String,
-        err: String,
+        err: Box<Error>,
     },
     #[error("{cpv}::{repo}: {err}")]
     Pkg {
         cpv: Box<Cpv>,
         repo: String,
-        err: String,
+        err: Box<Error>,
+    },
+    #[error("{cpn}::{repo}: {err}")]
+    UnversionedPkg {
+        cpn: Box<Cpn>,
+        repo: String,
+        err: Box<Error>,
     },
     #[error("{0}")]
     IO(String),
@@ -59,6 +65,44 @@ pub enum Error {
     RepoSync(String),
     #[error("fetch failed: {url}: {reason}")]
     FetchFailed { url: String, reason: String },
+}
+
+impl Error {
+    /// Convert an error into an invalid package error.
+    pub fn into_invalid_pkg_err<P>(self, pkg: P) -> Self
+    where
+        P: Package + RepoPackage,
+    {
+        Self::InvalidPkg {
+            cpv: Box::new(pkg.cpv().clone()),
+            repo: pkg.repo().to_string(),
+            err: Box::new(self),
+        }
+    }
+
+    /// Convert an error into a package error.
+    pub fn into_pkg_err<P>(self, pkg: P) -> Self
+    where
+        P: Package + RepoPackage,
+    {
+        Self::Pkg {
+            cpv: Box::new(pkg.cpv().clone()),
+            repo: pkg.repo().to_string(),
+            err: Box::new(self),
+        }
+    }
+
+    /// Convert an error into an unversioned package error.
+    pub fn into_unversioned_pkg_err<S>(self, cpn: &Cpn, repo: S) -> Self
+    where
+        S: std::fmt::Display,
+    {
+        Self::UnversionedPkg {
+            cpn: Box::new(cpn.clone()),
+            repo: repo.to_string(),
+            err: Box::new(self),
+        }
+    }
 }
 
 impl From<Error> for scallop::Error {
@@ -79,23 +123,5 @@ impl From<io::Error> for Error {
 impl From<Infallible> for Error {
     fn from(_: Infallible) -> Self {
         unreachable!()
-    }
-}
-
-pub(crate) trait PackageError: Package + RepoPackage {
-    fn invalid_pkg_err<E: std::error::Error>(&self, err: E) -> Error {
-        Error::InvalidPkg {
-            cpv: Box::new(self.cpv().clone()),
-            repo: self.repo().to_string(),
-            err: err.to_string(),
-        }
-    }
-
-    fn pkg_err<E: std::error::Error>(&self, err: E) -> Error {
-        Error::Pkg {
-            cpv: Box::new(self.cpv().clone()),
-            repo: self.repo().to_string(),
-            err: err.to_string(),
-        }
     }
 }

@@ -7,11 +7,10 @@ use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild_raw, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage, Source};
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
 use pkgcraft::utils::bounded_jobs;
-use pkgcraft::Error;
 use scallop::pool::PoolIter;
 use scallop::variables::{self, ShellVariable};
 use strum::IntoEnumIterator;
@@ -74,12 +73,11 @@ impl Command {
         };
 
         let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<(String, String)>)> {
-            // TODO: move error mapping into pkgcraft for pkg sourcing
             let pkg = pkg?;
-            pkg.source().map_err(|e| Error::InvalidPkg {
-                cpv: Box::new(pkg.cpv().clone()),
-                repo: pkg.repo().to_string(),
-                err: e.to_string(),
+            // TODO: move error mapping into pkgcraft for pkg sourcing
+            pkg.source().map_err(|e| {
+                let err: pkgcraft::Error = e.into();
+                err.into_invalid_pkg_err(&pkg)
             })?;
 
             let env: Vec<(_, _)> = variables::visible()

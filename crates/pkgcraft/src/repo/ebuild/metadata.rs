@@ -628,7 +628,7 @@ impl Metadata {
     /// Return the parsed package metadata result for a [`Cpn`].
     pub fn pkg_metadata_parse(&self, cpn: &Cpn) -> crate::Result<xml::Metadata> {
         let path = build_path!(&self.path, cpn.category(), cpn.package(), "metadata.xml");
-        xml::Metadata::from_path(&path)
+        xml::Metadata::from_path(&path).map_err(|e| e.into_unversioned_pkg_err(cpn, &self.id))
     }
 
     /// Return the cached package manifest for a [`Cpn`].
@@ -645,7 +645,7 @@ impl Metadata {
     /// Return the parsed package manifest result for a [`Cpn`].
     pub fn pkg_manifest_parse(&self, cpn: &Cpn) -> crate::Result<Manifest> {
         let path = build_path!(&self.path, cpn.category(), cpn.package(), "Manifest");
-        Manifest::from_path(&path)
+        Manifest::from_path(&path).map_err(|e| e.into_unversioned_pkg_err(cpn, &self.id))
     }
 
     /// Return the cached package manifest for a [`Cpn`].
