@@ -205,26 +205,6 @@ pub(crate) enum Target {
     Repo(&'static EbuildRepo),
 }
 
-impl fmt::Display for Target {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Cpv(cpv) => cpv.fmt(f),
-            Self::Cpn(cpn) => cpn.fmt(f),
-            Self::Repo(repo) => repo.fmt(f),
-        }
-    }
-}
-
-impl From<&Target> for Restrict {
-    fn from(value: &Target) -> Restrict {
-        match value {
-            Target::Cpv(cpv) => cpv.into(),
-            Target::Cpn(cpn) => cpn.into(),
-            Target::Repo(repo) => (*repo).into(),
-        }
-    }
-}
-
 pub(crate) trait Source: fmt::Display {
     type Item;
 
