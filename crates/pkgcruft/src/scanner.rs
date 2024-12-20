@@ -190,7 +190,7 @@ fn pkg_producer(
             return;
         }
 
-        // parallelize per package if relevant checks are selected
+        // parallelize running checks per package
         for cpn in repo.iter_cpn_restrict(&restrict) {
             tx.send((None, Target::Cpn(cpn))).ok();
         }
