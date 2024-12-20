@@ -30,6 +30,7 @@ mod eapi_status;
 mod ebuild_name;
 mod filesdir;
 mod header;
+mod homepage;
 mod keywords;
 mod keywords_dropped;
 mod license;
@@ -75,6 +76,7 @@ pub enum CheckKind {
     EbuildName,
     Filesdir,
     Header,
+    Homepage,
     Keywords,
     KeywordsDropped,
     License,
@@ -107,6 +109,7 @@ impl From<CheckKind> for Check {
             CheckKind::Filesdir => filesdir::CHECK,
             CheckKind::EbuildName => ebuild_name::CHECK,
             CheckKind::Header => header::CHECK,
+            CheckKind::Homepage => homepage::CHECK,
             CheckKind::Keywords => keywords::CHECK,
             CheckKind::KeywordsDropped => keywords_dropped::CHECK,
             CheckKind::License => license::CHECK,
@@ -283,6 +286,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
             CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
+            CheckKind::Homepage => Box::new(homepage::create()),
             CheckKind::Keywords => Box::new(keywords::create(repo)),
             CheckKind::License => Box::new(license::create(repo)),
             CheckKind::Overlay => Box::new(overlay::create(repo)),

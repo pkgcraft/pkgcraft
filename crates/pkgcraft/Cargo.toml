@@ -72,7 +72,7 @@ tree-sitter-bash = "0.23.3"
 tokio = { version = "1.42.0", features = ["full"] }
 toml = "0.8.19"
 tracing = "0.1.41"
-url = { version = "2.5.4", features = ["serde"] }
+url = { version = "2.5.4" }
 walkdir = "2.5.0"
 
 # exported test support deps

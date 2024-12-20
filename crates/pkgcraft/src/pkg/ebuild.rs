@@ -3,7 +3,6 @@ use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use indexmap::IndexSet;
-use url::Url;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DependencySet, Uri};
@@ -218,7 +217,7 @@ impl EbuildPkg {
     }
 
     /// Return a package's homepage.
-    pub fn homepage(&self) -> &OrderedSet<Url> {
+    pub fn homepage(&self) -> &OrderedSet<String> {
         &self.0.meta.homepage
     }
 
@@ -615,28 +614,25 @@ mod tests {
         // single-line
         let pkg = repo.get_pkg("homepage/single-8").unwrap();
         assert_ordered_eq!(
-            pkg.homepage().iter().map(|x| x.as_str()),
+            pkg.homepage(),
             ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
         );
 
         // multi-line
         let pkg = repo.get_pkg("homepage/multi-8").unwrap();
         assert_ordered_eq!(
-            pkg.homepage().iter().map(|x| x.as_str()),
+            pkg.homepage(),
             ["https://github.com/pkgcraft/1", "https://github.com/pkgcraft/2"],
         );
 
         // inherited and overridden
         let pkg = repo.get_pkg("homepage/inherit-8").unwrap();
-        assert_ordered_eq!(
-            pkg.homepage().iter().map(|x| x.as_str()),
-            ["https://github.com/pkgcraft/1"]
-        );
+        assert_ordered_eq!(pkg.homepage(), ["https://github.com/pkgcraft/1"]);
 
         // inherited and appended
         let pkg = repo.get_pkg("homepage/append-8").unwrap();
         assert_ordered_eq!(
-            pkg.homepage().iter().map(|x| x.as_str()),
+            pkg.homepage(),
             ["https://github.com/pkgcraft/a", "https://github.com/pkgcraft/1"],
         );
     }

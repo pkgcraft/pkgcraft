@@ -2223,6 +2223,7 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "tree-sitter",
+ "url",
  "walkdir",
 ]
 
@@ -3461,7 +3462,6 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
- "serde",
 ]
 
 [[package]]

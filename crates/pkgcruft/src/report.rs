@@ -124,6 +124,9 @@ pub enum ReportKind {
     /// File has an invalid copyright and/or license header.
     HeaderInvalid,
 
+    /// Ebuild has an invalid homepage.
+    HomepageInvalid,
+
     /// Keywords have been dropped between releases.
     KeywordsDropped,
 
@@ -283,6 +286,7 @@ impl ReportKind {
             Self::FileUnknown => Error,
             Self::FilesUnused => Warning,
             Self::HeaderInvalid => Error,
+            Self::HomepageInvalid => Error,
             Self::KeywordsDropped => Warning,
             Self::KeywordsLive => Warning,
             Self::KeywordsOverlapping => Error,
