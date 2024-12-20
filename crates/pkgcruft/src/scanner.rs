@@ -504,6 +504,12 @@ mod tests {
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
 
+        // non-matching filter
+        let filter = "cat/pkg".parse().unwrap();
+        let scanner = Scanner::new(repo).filters([filter]);
+        let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, []);
+
         // non-matching restriction
         let scanner = Scanner::new(repo);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
