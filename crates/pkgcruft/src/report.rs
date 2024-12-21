@@ -73,6 +73,9 @@ impl From<ReportLevel> for Color {
     Clone,
 )]
 pub enum ReportKind {
+    /// Arches that are unused.
+    ArchesUnused,
+
     /// Ebuild uses a bash builtin as an external command.
     BuiltinCommand,
 
@@ -273,6 +276,7 @@ impl ReportKind {
     pub fn level(&self) -> ReportLevel {
         use ReportLevel::*;
         match self {
+            Self::ArchesUnused => Warning,
             Self::BuiltinCommand => Error,
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Error,

@@ -1,11 +1,12 @@
+use dashmap::DashSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus::Stable, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::ReportKind::{
-    EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
+    ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
 };
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
@@ -17,16 +18,25 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Keywords,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted],
+    reports: &[EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted, ArchesUnused],
     context: &[],
 };
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
-    Check { repo }
+    Check {
+        repo,
+        unused: repo
+            .metadata()
+            .arches()
+            .iter()
+            .map(|x| x.to_string())
+            .collect(),
+    }
 }
 
 struct Check {
     repo: &'static EbuildRepo,
+    unused: DashSet<String>,
 }
 
 impl EbuildPkgCheck for Check {
@@ -38,11 +48,15 @@ impl EbuildPkgCheck for Check {
                 .report(filter);
         }
 
-        let keywords_map = pkg
-            .keywords()
-            .iter()
-            .map(|k| (k.arch(), k))
-            .collect::<OrderedMap<_, OrderedSet<_>>>();
+        let mut keywords_map = IndexMap::<_, IndexSet<_>>::new();
+        for k in pkg.keywords() {
+            // mangle values for post-run finalization
+            if filter.finalize(ArchesUnused) {
+                self.unused.remove(k.arch().as_ref());
+            }
+
+            keywords_map.entry(k.arch()).or_default().insert(k);
+        }
 
         for keywords in keywords_map.values().filter(|k| k.len() > 1) {
             KeywordsOverlapping
@@ -82,6 +96,18 @@ impl EbuildPkgCheck for Check {
                 .version(pkg)
                 .message(format!("unsorted KEYWORD: {unsorted} (sorted: {sorted})"))
                 .report(filter);
+        }
+    }
+
+    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+        if !self.unused.is_empty() {
+            let unused = self
+                .unused
+                .iter()
+                .map(|x| x.to_string())
+                .sorted()
+                .join(", ");
+            ArchesUnused.repo(repo).message(unused).report(filter);
         }
     }
 }
