@@ -193,6 +193,9 @@ pub enum ReportKind {
     /// Ebuild has an unsupported or invalid URI.
     UriInvalid,
 
+    /// Ebuild has an invalid USE flag.
+    UseFlagInvalid,
+
     /// Local USE flag missing description.
     UseLocalDescMissing,
 
@@ -304,12 +307,13 @@ impl ReportKind {
             Self::RestrictInvalid => Error,
             Self::RestrictMissing => Warning,
             Self::RubyUpdate => Info,
-            Self::UriInvalid => Error,
             Self::UnstableOnly => Info,
+            Self::UriInvalid => Error,
+            Self::UseFlagInvalid => Error,
             Self::UseLocalDescMissing => Error,
             Self::UseLocalGlobal => Warning,
-            Self::UseLocalUnused => Warning,
             Self::UseLocalUnsorted => Style,
+            Self::UseLocalUnused => Warning,
             Self::VariableOrder => Style,
             Self::WhitespaceInvalid => Warning,
             Self::WhitespaceUnneeded => Style,

@@ -46,6 +46,7 @@ mod restrict_test_missing;
 mod ruby_update;
 mod src_uri;
 mod unstable_only;
+mod use_flag;
 mod use_local;
 mod variable_order;
 mod whitespace;
@@ -92,6 +93,7 @@ pub enum CheckKind {
     RubyUpdate,
     SrcUri,
     UnstableOnly,
+    UseFlag,
     UseLocal,
     VariableOrder,
     Whitespace,
@@ -125,6 +127,7 @@ impl From<CheckKind> for Check {
             CheckKind::RubyUpdate => ruby_update::CHECK,
             CheckKind::SrcUri => src_uri::CHECK,
             CheckKind::UnstableOnly => unstable_only::CHECK,
+            CheckKind::UseFlag => use_flag::CHECK,
             CheckKind::UseLocal => use_local::CHECK,
             CheckKind::VariableOrder => variable_order::CHECK,
             CheckKind::Whitespace => whitespace::CHECK,
@@ -296,6 +299,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
             CheckKind::SrcUri => Box::new(src_uri::create(repo)),
+            CheckKind::UseFlag => Box::new(use_flag::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
