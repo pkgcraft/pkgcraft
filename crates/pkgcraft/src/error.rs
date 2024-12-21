@@ -3,7 +3,7 @@ use std::io;
 
 use serde::{Deserialize, Serialize};
 
-use crate::dep::{Cpn, Cpv};
+use crate::dep::{Cpn, Cpv, Uri};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::RepoFormat;
 
@@ -21,6 +21,8 @@ pub enum Error {
     ConfigMissing(String),
     #[error("invalid fetchable: {0}")]
     InvalidFetchable(String),
+    #[error("restricted fetchable: {0}")]
+    RestrictedFetchable(Box<Uri>),
     #[error("{0}")]
     InvalidValue(String),
     #[error("invalid repo: {id}: {err}")]

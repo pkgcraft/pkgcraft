@@ -1,7 +1,6 @@
 use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::error::Error;
-use pkgcraft::fetch::Fetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Contains;
@@ -23,31 +22,27 @@ pub(super) static CHECK: super::Check = super::Check {
 
 pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
     Check {
-        unused: repo.metadata().mirrors().keys().collect(),
+        unused: repo.metadata().mirrors().keys().cloned().collect(),
     }
 }
 
 struct Check {
-    unused: DashSet<&'static String>,
-}
-
-impl Check {
-    fn process_fetchable(&self, fetchable: &Fetchable, filter: &mut ReportFilter) {
-        if let Some((name, _)) = fetchable.mirrors() {
-            // mangle values for post-run finalization
-            if filter.finalize(MirrorsUnused) {
-                self.unused.remove(name);
-            }
-        }
-    }
+    unused: DashSet<String>,
 }
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if !pkg.restrict().contains("fetch") {
-            for result in pkg.fetchables() {
+            for result in pkg.fetchables(false) {
                 match result {
-                    Ok(f) => self.process_fetchable(&f, filter),
+                    Ok(f) => {
+                        if let Some(mirror) = f.mirrors().first() {
+                            // mangle values for post-run finalization
+                            if filter.finalize(MirrorsUnused) {
+                                self.unused.remove(mirror.name());
+                            }
+                        }
+                    }
                     // TODO: use deref patterns to matched boxed field when stabilized
                     // https://github.com/rust-lang/rust/issues/87121
                     Err(Error::Pkg { err, .. }) if matches!(*err, Error::InvalidFetchable(_)) => {

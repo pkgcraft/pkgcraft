@@ -32,7 +32,7 @@ pub(crate) mod configured;
 mod eclass;
 pub use eclass::Eclass;
 mod metadata;
-pub use metadata::Metadata;
+pub use metadata::{Metadata, Mirror};
 mod temp;
 pub use temp::{EbuildRepoBuilder, EbuildTempRepo};
 
@@ -45,7 +45,7 @@ struct InternalEbuildRepo {
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
-    mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
+    mirrors: OnceLock<IndexMap<String, IndexSet<Mirror>>>,
     eclasses: OnceLock<IndexSet<Eclass>>,
     use_expand: OnceLock<IndexMap<String, IndexMap<String, String>>>,
     categories_xml: OnceLock<IndexMap<String, String>>,
@@ -325,7 +325,7 @@ impl EbuildRepo {
     }
 
     /// Return the set of mirrors merged via inheritance.
-    pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
+    pub fn mirrors(&self) -> &IndexMap<String, IndexSet<Mirror>> {
         self.0.mirrors.get_or_init(|| {
             let mut mirrors: IndexMap<_, _> = self
                 .trees()

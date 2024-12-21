@@ -17,9 +17,9 @@ use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetcher;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::restrict::{str::Restrict as StrRestrict, Restrict, Restriction};
-use pkgcraft::traits::{Contains, LogErrors};
+use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
-use tracing::{error, warn};
+use tracing::error;
 
 use super::tokio;
 
@@ -58,10 +58,6 @@ pub(crate) struct Command {
     #[arg(long)]
     repo: Option<String>,
 
-    /// Process fetch-restricted packages
-    #[arg(long)]
-    restrict: bool,
-
     // positionals
     /// Target packages or paths
     #[arg(
@@ -99,31 +95,27 @@ impl Command {
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();
         for pkg in &mut iter {
-            if self.restrict || !pkg.restrict().contains("fetch") {
-                fetchables.extend(
-                    pkg.fetchables()
-                        .filter_map(|result| match result {
-                            Ok(value) => Some(value),
-                            Err(e) => {
-                                error!("{e}");
-                                failed.store(true, Ordering::Relaxed);
-                                None
-                            }
-                        })
-                        .filter(|f| restrict.matches(f.as_str()))
-                        .filter_map(|f| {
-                            let path = self.dir.join(f.filename());
-                            if self.force || !path.exists() {
-                                let manifest = pkg.manifest().get(f.filename());
-                                Some((f, path, manifest.cloned()))
-                            } else {
-                                None
-                            }
-                        }),
-                );
-            } else {
-                warn!("skipping fetch restricted package: {pkg}");
-            }
+            fetchables.extend(
+                pkg.fetchables(false)
+                    .filter_map(|result| match result {
+                        Ok(value) => Some(value),
+                        Err(e) => {
+                            error!("{e}");
+                            failed.store(true, Ordering::Relaxed);
+                            None
+                        }
+                    })
+                    .filter(|f| restrict.matches(f.as_str()))
+                    .filter_map(|f| {
+                        let path = self.dir.join(f.filename());
+                        if self.force || !path.exists() {
+                            let manifest = pkg.manifest().get(f.filename());
+                            Some((f, path, manifest.cloned()))
+                        } else {
+                            None
+                        }
+                    }),
+            );
         }
 
         let builder = reqwest::Client::builder()

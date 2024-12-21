@@ -19,11 +19,11 @@ use pkgcraft::fetch::Fetcher;
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::{Contains, LogErrors};
+use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
 use rayon::prelude::*;
 use tempfile::TempDir;
-use tracing::{error, warn};
+use tracing::error;
 
 use super::tokio;
 
@@ -90,10 +90,6 @@ pub(crate) struct Command {
     /// Target repo
     #[arg(long)]
     repo: Option<String>,
-
-    /// Process fetch-restricted packages
-    #[arg(long)]
-    restrict: bool,
 
     /// Force manifest type
     #[arg(
@@ -168,29 +164,25 @@ impl Command {
                         .any(|hash| !pkg.repo().metadata().config.manifest_hashes.contains(hash))
             };
 
-            if self.restrict || !pkg.restrict().contains("fetch") {
-                let mut fetchables = pkg
-                    .fetchables()
-                    .filter_map(|result| match result {
-                        Ok(value) => Some(value),
-                        Err(e) => {
-                            error!("{e}");
-                            failed.store(true, Ordering::Relaxed);
-                            None
-                        }
-                    })
-                    .filter(|f| self.force || regen_entry(f.filename()))
-                    .peekable();
-                if fetchables.peek().is_some() || self.force || regen() {
-                    pkgs.entry((pkg.repo(), pkg.cpn().clone(), thick))
-                        .or_default()
-                        .extend(fetchables.map(|f| {
-                            let path = dir.join(f.filename());
-                            (f, path)
-                        }))
-                }
-            } else {
-                warn!("skipping fetch restricted package: {pkg}");
+            let mut fetchables = pkg
+                .fetchables(false)
+                .filter_map(|result| match result {
+                    Ok(value) => Some(value),
+                    Err(e) => {
+                        error!("{e}");
+                        failed.store(true, Ordering::Relaxed);
+                        None
+                    }
+                })
+                .filter(|f| self.force || regen_entry(f.filename()))
+                .peekable();
+            if fetchables.peek().is_some() || self.force || regen() {
+                pkgs.entry((pkg.repo(), pkg.cpn().clone(), thick))
+                    .or_default()
+                    .extend(fetchables.map(|f| {
+                        let path = dir.join(f.filename());
+                        (f, path)
+                    }))
             }
         }
 

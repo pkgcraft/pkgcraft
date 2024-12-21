@@ -12,6 +12,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use strum::{AsRefStr, Display, EnumString};
 use tracing::{error, warn};
+use url::Url;
 
 use crate::dep::{parse, Cpn, Dep};
 use crate::eapi::Eapi;
@@ -264,6 +265,51 @@ impl FromStr for PkgUpdate {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+pub struct Mirror {
+    name: String,
+    url: Url,
+}
+
+impl Mirror {
+    /// Return the mirror's name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Return a mirrored url for a path.
+    pub fn get_url(&self, path: &str) -> crate::Result<Url> {
+        self.url
+            .join(path.trim_start_matches('/'))
+            .map_err(|e| Error::InvalidValue(format!("invalid url: {e}")))
+    }
+
+    /// Parse a line from profiles/thirdpartymirrors into a set of mirrors.
+    fn from_line(line: &str) -> crate::Result<(String, IndexSet<Self>)> {
+        let vals: Vec<_> = line.split_whitespace().collect();
+        let [name, urls @ ..] = &vals[..] else {
+            return Err(Error::InvalidValue("empty line".to_string()));
+        };
+
+        if urls.is_empty() {
+            return Err(Error::InvalidValue("no urls listed".to_string()));
+        }
+
+        let mut mirrors = IndexSet::new();
+        for url in urls {
+            let mirror = Self {
+                name: name.to_string(),
+                url: url
+                    .parse()
+                    .map_err(|e| Error::InvalidValue(format!("invalid mirror url: {url}: {e}")))?,
+            };
+            mirrors.insert(mirror);
+        }
+
+        Ok((name.to_string(), mirrors))
+    }
+}
+
 /// Parse a USE description line into a (name, description) tuple.
 fn parse_use_desc(s: &str) -> crate::Result<(String, String)> {
     let (flag, desc) = s
@@ -291,7 +337,7 @@ pub struct Metadata {
     eclasses: OnceLock<IndexSet<Eclass>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
-    mirrors: OnceLock<IndexMap<String, IndexSet<String>>>,
+    mirrors: OnceLock<IndexMap<String, IndexSet<Mirror>>>,
     pkg_deprecated: OnceLock<IndexSet<Dep>>,
     pkg_mask: OnceLock<IndexSet<Dep>>,
     pkg_metadata_cache: DashMap<Cpn, Arc<xml::Metadata>>,
@@ -571,22 +617,15 @@ impl Metadata {
     }
 
     /// Return a repo's globally defined mirrors.
-    pub fn mirrors(&self) -> &IndexMap<String, IndexSet<String>> {
+    pub fn mirrors(&self) -> &IndexMap<String, IndexSet<Mirror>> {
         self.mirrors.get_or_init(|| {
             self.read_path("profiles/thirdpartymirrors")
                 .filter_lines()
-                .filter_map(|(i, s)| {
-                    let vals: Vec<_> = s.split_whitespace().collect();
-                    if vals.len() <= 1 {
-                        warn!(
-                            "{}::profiles/thirdpartymirrors, line {i}: no mirrors listed",
-                            self.id,
-                        );
+                .filter_map(|(i, s)| match Mirror::from_line(s) {
+                    Ok((name, mirrors)) => Some((name, mirrors)),
+                    Err(e) => {
+                        warn!("{}::profiles/thirdpartymirrors, line {i}: {e}", self.id,);
                         None
-                    } else {
-                        let name = vals[0].to_string();
-                        let mirrors = vals[1..].iter().map(|s| s.to_string()).collect();
-                        Some((name, mirrors))
                     }
                 })
                 .collect()
@@ -1079,11 +1118,21 @@ mod tests {
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/thirdpartymirrors"), data).unwrap();
         assert_ordered_eq!(
-            metadata.mirrors().get("mirror1").unwrap(),
+            metadata
+                .mirrors()
+                .get("mirror1")
+                .unwrap()
+                .iter()
+                .map(|x| x.url.as_str()),
             ["https://a/mirror/", "https://another/mirror"],
         );
         assert_ordered_eq!(
-            metadata.mirrors().get("mirror2").unwrap(),
+            metadata
+                .mirrors()
+                .get("mirror2")
+                .unwrap()
+                .iter()
+                .map(|x| x.url.as_str()),
             ["http://yet/another/mirror/"]
         );
     }

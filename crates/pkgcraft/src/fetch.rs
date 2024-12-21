@@ -9,16 +9,20 @@ use camino::Utf8Path;
 use futures::StreamExt;
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use itertools::Either;
 use reqwest::{Client, ClientBuilder, StatusCode};
 use tokio::io::AsyncWriteExt;
 use tracing::warn;
 use url::Url;
 
 use crate::dep::Uri;
+use crate::eapi::Feature::SrcUriUnrestrict;
 use crate::error::Error;
 use crate::pkg::ebuild::manifest::HashType;
-use crate::repo::ebuild::EbuildRepo;
+use crate::pkg::ebuild::EbuildPkg;
+use crate::pkg::{Package, RepoPackage};
+use crate::repo::ebuild::Mirror;
+use crate::repo::Repository;
+use crate::traits::Contains;
 
 static SUPPORTED_PROTOCOLS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     ["http", "https", "mirror"]
@@ -50,16 +54,41 @@ impl IntoReason for reqwest::Error {
 /// Wrapper for URI objects to generate valid URLs.
 #[derive(Debug, Clone)]
 pub struct Fetchable {
-    url: Url,
+    pub url: Url,
     rename: Option<String>,
-    mirrors: Option<(String, IndexSet<String>)>,
+    mirrors: IndexSet<Mirror>,
 }
 
 impl Fetchable {
     /// Create a [`Fetchable`] from a [`Uri`].
-    pub(crate) fn from_uri(uri: &Uri, repo: &EbuildRepo) -> crate::Result<Self> {
+    pub(crate) fn from_uri(
+        uri: &Uri,
+        pkg: &EbuildPkg,
+        default_mirrors: bool,
+    ) -> crate::Result<Self> {
+        let mut fetch_restricted = pkg.restrict().contains("fetch");
+        let mut mirror_restricted = fetch_restricted || pkg.restrict().contains("mirror");
+
+        // strip selective URI restrictions
+        let mut value = uri.as_str();
+        if pkg.eapi().has(SrcUriUnrestrict) {
+            if let Some(s) = value.strip_prefix("mirror+") {
+                value = s;
+                fetch_restricted = false;
+                mirror_restricted = false;
+            } else if let Some(s) = value.strip_prefix("fetch+") {
+                value = s;
+                fetch_restricted = false;
+            }
+        }
+
+        // error out for fetch-restricted URIs
+        if fetch_restricted {
+            return Err(Error::RestrictedFetchable(Box::new(uri.clone())));
+        }
+
         let url =
-            Url::parse(uri.as_str()).map_err(|e| Error::InvalidFetchable(format!("{e}: {uri}")))?;
+            Url::parse(value).map_err(|e| Error::InvalidFetchable(format!("{e}: {value}")))?;
 
         // validate protocol
         if !SUPPORTED_PROTOCOLS.contains(url.scheme()) {
@@ -71,20 +100,28 @@ impl Fetchable {
             return Err(Error::InvalidFetchable(format!("target missing: {url}")));
         }
 
-        // validate mirrors
-        let mirrors = if url.scheme() == "mirror" {
+        let repo = pkg.repo();
+        let mut mirrors = IndexSet::new();
+
+        // add default mirrors
+        if default_mirrors && !mirror_restricted {
+            if let Some(values) = repo.mirrors().get(repo.name()) {
+                mirrors.extend(values.clone());
+            }
+        }
+
+        // validate mirror URIs
+        if url.scheme() == "mirror" {
             let Some(name) = url.domain() else {
                 return Err(Error::InvalidFetchable(format!("mirror missing: {url}")));
             };
 
             if let Some(values) = repo.mirrors().get(name) {
-                Some((name.to_string(), values.clone()))
+                mirrors.extend(values.clone());
             } else {
                 return Err(Error::InvalidFetchable(format!("mirror unknown: {url}")));
             }
-        } else {
-            None
-        };
+        }
 
         Ok(Self {
             url,
@@ -115,33 +152,28 @@ impl Fetchable {
     }
 
     /// Return the mirrors for the [`Fetchable`].
-    pub fn mirrors(&self) -> Option<&(String, IndexSet<String>)> {
-        self.mirrors.as_ref()
+    pub fn mirrors(&self) -> &IndexSet<Mirror> {
+        &self.mirrors
     }
 }
 
 impl<'a> IntoIterator for &'a Fetchable {
     type Item = Fetchable;
-    type IntoIter = Either<IterFetchableMirrors<'a>, iter::Once<Fetchable>>;
+    type IntoIter = iter::Chain<IterFetchableMirrors<'a>, iter::Once<Fetchable>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        if let Some((name, mirrors)) = &self.mirrors {
-            // TODO: support some type of mirror choice algorithm
-            Either::Left(IterFetchableMirrors {
-                fetchable: self,
-                name,
-                mirrors: mirrors.iter(),
-            })
-        } else {
-            Either::Right(iter::once(self.clone()))
-        }
+        // TODO: support some type of mirror choice algorithm
+        let mirrors = IterFetchableMirrors {
+            fetchable: self,
+            mirrors: self.mirrors.iter(),
+        };
+        mirrors.chain(iter::once(self.clone()))
     }
 }
 
 pub struct IterFetchableMirrors<'a> {
     fetchable: &'a Fetchable,
-    name: &'a String,
-    mirrors: indexmap::set::Iter<'a, String>,
+    mirrors: indexmap::set::Iter<'a, Mirror>,
 }
 
 impl Iterator for IterFetchableMirrors<'_> {
@@ -149,24 +181,18 @@ impl Iterator for IterFetchableMirrors<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.mirrors.find_map(|mirror| {
-            let mirror = mirror.trim_end_matches('/');
             // TODO: properly implement GLEP 75 by fetching and parsing layout.conf
-            let path = if self.name == "gentoo" {
+            let path = if mirror.name() == "gentoo" {
                 let filename = self.fetchable.filename();
                 let hash = HashType::Blake2b.hash(filename.as_bytes());
                 format!("{}/{filename}", &hash[..2])
             } else {
-                self.fetchable
-                    .url
-                    .path()
-                    .trim_start_matches('/')
-                    .to_string()
+                self.fetchable.url.path().to_string()
             };
-            let url = format!("{mirror}/{path}");
-            Url::parse(&url).ok().map(|url| Self::Item {
+            mirror.get_url(&path).ok().map(|url| Self::Item {
                 url,
                 rename: self.fetchable.rename.clone(),
-                mirrors: None,
+                mirrors: Default::default(),
             })
         })
     }
