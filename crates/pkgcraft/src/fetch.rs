@@ -98,11 +98,16 @@ impl Fetchable {
         self.url.as_str()
     }
 
+    /// Return the renamed file name for the [`Fetchable`] if it exists.
+    pub fn rename(&self) -> Option<&str> {
+        self.rename.as_deref()
+    }
+
     /// Return the file name for the [`Fetchable`].
     pub fn filename(&self) -> &str {
-        self.rename.as_deref().unwrap_or_else(|| {
+        self.rename().unwrap_or_else(|| {
             self.url
-                .path()
+                .as_str()
                 .rsplit_once('/')
                 .map(|(_, s)| s)
                 .expect("invalid fetchable")
