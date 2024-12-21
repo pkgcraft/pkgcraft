@@ -75,7 +75,9 @@ impl PkgFilter {
             Self::Latest(inverted) => {
                 let items: Vec<_> = iter.collect();
                 let len = items.len();
-                if *inverted {
+                if items.is_empty() {
+                    Box::new(items.into_iter())
+                } else if *inverted {
                     Box::new(items.into_iter().take(len - 1))
                 } else {
                     Box::new(items.into_iter().skip(len - 1))
