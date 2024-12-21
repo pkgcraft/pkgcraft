@@ -46,13 +46,17 @@ pub(crate) struct Command {
     #[arg(short, long)]
     insecure: bool,
 
-    /// Connection timeout in seconds
-    #[arg(short, long, default_value = "15")]
-    timeout: f64,
+    /// Try fetching from default mirrors
+    #[arg(short, long)]
+    mirrors: bool,
 
     /// Disable progress output
     #[arg(short, long)]
     no_progress: bool,
+
+    /// Connection timeout in seconds
+    #[arg(short, long, default_value = "15")]
+    timeout: f64,
 
     /// Target repo
     #[arg(long)]
@@ -96,7 +100,7 @@ impl Command {
         let mut fetchables = IndexSet::new();
         for pkg in &mut iter {
             fetchables.extend(
-                pkg.fetchables(false)
+                pkg.fetchables(self.mirrors)
                     .filter_map(|result| match result {
                         Ok(value) => Some(value),
                         Err(e) => {
