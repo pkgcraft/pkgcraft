@@ -236,7 +236,7 @@ impl Command {
                 .map(|(f, path, manifest)| async move {
                     let size = manifest.as_ref().map(|m| m.size());
                     let part_path = Utf8PathBuf::from(format!("{path}.part"));
-                    let result = fetcher.fetch_from_mirrors(f, &part_path, mb, size).await;
+                    let result = fetcher.fetch(f, &part_path, mb, size).await;
                     (result, manifest, part_path, path)
                 })
                 .buffer_unordered(concurrent);

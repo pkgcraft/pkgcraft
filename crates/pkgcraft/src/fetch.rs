@@ -271,7 +271,7 @@ impl Fetcher {
     }
 
     /// Fetch the file related to a [`Fetchable`], iterating over mirrors.
-    pub async fn fetch_from_mirrors(
+    pub async fn fetch(
         &self,
         f: &Fetchable,
         path: &Utf8Path,
@@ -282,7 +282,7 @@ impl Fetcher {
         let pb = mb.add(progress_bar(mb.is_hidden()));
 
         for fetchable in f {
-            match self.fetch(&fetchable, path, &pb, size).await {
+            match self.fetch_internal(&fetchable, path, &pb, size).await {
                 Err(e @ Error::FetchFailed { .. }) => result = Err(e),
                 res => {
                     result = res;
@@ -300,7 +300,7 @@ impl Fetcher {
     }
 
     /// Fetch the file related to a [`Fetchable`].
-    pub async fn fetch(
+    async fn fetch_internal(
         &self,
         f: &Fetchable,
         path: &Utf8Path,
