@@ -64,7 +64,7 @@ impl Fetchable {
     pub(crate) fn from_uri(
         uri: &Uri,
         pkg: &EbuildPkg,
-        default_mirrors: bool,
+        use_default_mirrors: bool,
     ) -> crate::Result<Self> {
         let mut fetch_restricted = pkg.restrict().contains("fetch");
         let mut mirror_restricted = fetch_restricted || pkg.restrict().contains("mirror");
@@ -104,7 +104,7 @@ impl Fetchable {
         let mut mirrors = IndexSet::new();
 
         // add default mirrors
-        if default_mirrors && !mirror_restricted {
+        if use_default_mirrors && !mirror_restricted {
             if let Some(values) = repo.mirrors().get(repo.name()) {
                 mirrors.extend(values.clone());
             }

@@ -273,11 +273,11 @@ impl EbuildPkg {
     }
 
     /// Generate fetchable URIs for a package's SRC_URI targets.
-    pub fn fetchables(&self, default_mirrors: bool) -> IterFetchable {
+    pub fn fetchables(&self, use_default_mirrors: bool) -> IterFetchable {
         IterFetchable {
             pkg: self,
             uris: self.src_uri().iter_flatten(),
-            default_mirrors,
+            use_default_mirrors,
         }
     }
 
@@ -290,19 +290,20 @@ impl EbuildPkg {
 pub struct IterFetchable<'a> {
     pkg: &'a EbuildPkg,
     uris: crate::dep::IterFlatten<'a, Uri>,
-    default_mirrors: bool,
+    use_default_mirrors: bool,
 }
 
 impl Iterator for IterFetchable<'_> {
     type Item = crate::Result<Fetchable>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.uris
-            .find_map(|uri| match Fetchable::from_uri(uri, self.pkg, self.default_mirrors) {
+        self.uris.find_map(|uri| {
+            match Fetchable::from_uri(uri, self.pkg, self.use_default_mirrors) {
                 Ok(f) => Some(Ok(f)),
                 Err(Error::RestrictedFetchable(_)) => None,
                 Err(e) => Some(Err(e.into_pkg_err(self.pkg))),
-            })
+            }
+        })
     }
 }
 
