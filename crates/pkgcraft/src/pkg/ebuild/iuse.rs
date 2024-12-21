@@ -21,6 +21,16 @@ impl Iuse {
         &self.flag
     }
 
+    /// Return true if the USE flag is enabled by default.
+    pub fn is_enabled(&self) -> bool {
+        self.default.unwrap_or(false)
+    }
+
+    /// Return true if the USE flag is disabled by default.
+    pub fn is_disabled(&self) -> bool {
+        !self.default.unwrap_or(true)
+    }
+
     /// Return the default status, if it exists.
     pub fn default(&self) -> Option<bool> {
         self.default
@@ -83,22 +93,29 @@ mod tests {
 
     #[test]
     fn flag_and_default() {
-        for (s, flag, default) in [
-            ("u", "u", None),
-            ("-u", "u", Some(false)),
-            ("+u", "u", Some(true)),
-            ("+u+", "u+", Some(true)),
+        for (s, flag, default, disabled, enabled) in [
+            ("u", "u", None, false, false),
+            ("-u", "u", Some(false), true, false),
+            ("+u", "u", Some(true), false, true),
+            ("+u+", "u+", Some(true), false, true),
         ] {
             let iuse = Iuse::try_new(s).unwrap();
             assert_eq!(iuse.flag(), flag);
             assert_eq!(iuse.default(), default);
+            assert_eq!(iuse.is_disabled(), disabled);
+            assert_eq!(iuse.is_enabled(), enabled);
         }
     }
 
     #[test]
     fn cmp() {
+        #[rustfmt::skip]
         let exprs = [
+            // equality
             "u == u",
+            "u != -u",
+            "u != +u",
+            "-u != +u",
             "u1 != u2",
             // lexical flag order
             "u1 < u2",
@@ -107,7 +124,8 @@ mod tests {
             "+a < +b",
             "-1 > +0",
             // default order
-            "-u1 < +u1",
+            "u < -u",
+            "-u < +u",
         ];
 
         let op_map: HashMap<_, _> =
