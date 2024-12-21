@@ -171,7 +171,7 @@ impl PkgFilters {
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
-        repo: &'static EbuildRepo,
+        repo: &EbuildRepo,
         val: R,
     ) -> Box<dyn Iterator<Item = EbuildPkg> + '_> {
         let mut iter: Box<dyn Iterator<Item = EbuildPkg>> =
@@ -186,7 +186,7 @@ impl PkgFilters {
 
     fn iter_restrict_ordered<R: Into<Restrict>>(
         &self,
-        repo: &'static EbuildRepo,
+        repo: &EbuildRepo,
         val: R,
     ) -> Box<dyn Iterator<Item = EbuildPkg> + '_> {
         let mut iter: Box<dyn Iterator<Item = EbuildPkg>> =
@@ -227,12 +227,12 @@ pub(crate) trait Source: fmt::Display {
 }
 
 pub(crate) struct EbuildPkgSource {
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
     filters: PkgFilters,
 }
 
 impl EbuildPkgSource {
-    pub(crate) fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
+    pub(crate) fn new(repo: EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             repo,
             filters: PkgFilters(filters),
@@ -261,7 +261,7 @@ impl Source for EbuildPkgSource {
         if self.is_filtered() {
             Either::Left(
                 self.filters
-                    .iter_restrict(self.repo, val)
+                    .iter_restrict(&self.repo, val)
                     .flat_map(|pkg| self.repo.iter_restrict(&pkg)),
             )
         } else {
@@ -276,7 +276,7 @@ impl Source for EbuildPkgSource {
         if self.is_filtered() {
             Either::Left(
                 self.filters
-                    .iter_restrict_ordered(self.repo, val)
+                    .iter_restrict_ordered(&self.repo, val)
                     .flat_map(|pkg| self.repo.iter_restrict_ordered(&pkg)),
             )
         } else {
@@ -286,12 +286,12 @@ impl Source for EbuildPkgSource {
 }
 
 pub(crate) struct EbuildRawPkgSource {
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
     filters: PkgFilters,
 }
 
 impl EbuildRawPkgSource {
-    pub(crate) fn new(repo: &'static EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
+    pub(crate) fn new(repo: EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
         Self {
             repo,
             filters: PkgFilters(filters),
@@ -320,7 +320,7 @@ impl Source for EbuildRawPkgSource {
         if self.is_filtered() {
             Either::Left(
                 self.filters
-                    .iter_restrict(self.repo, val)
+                    .iter_restrict(&self.repo, val)
                     .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
             )
         } else {
@@ -335,7 +335,7 @@ impl Source for EbuildRawPkgSource {
         if self.is_filtered() {
             Either::Left(
                 self.filters
-                    .iter_restrict_ordered(self.repo, val)
+                    .iter_restrict_ordered(&self.repo, val)
                     .flat_map(|pkg| self.repo.iter_raw_restrict_ordered(&pkg)),
             )
         } else {

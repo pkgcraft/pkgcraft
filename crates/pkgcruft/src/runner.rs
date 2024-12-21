@@ -216,7 +216,7 @@ macro_rules! make_pkg_check_runner {
                 restrict: &Restrict,
                 filters: IndexSet<PkgFilter>,
             ) -> Self {
-                let source = <$source>::new(repo, filters);
+                let source = <$source>::new(repo.clone(), filters);
                 let cache = PkgCache::new(&source, scope, restrict);
 
                 Self {
