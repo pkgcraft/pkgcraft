@@ -203,7 +203,7 @@ impl<'a> IntoIterator for &'a Fetchable {
 pub struct IterFetchable<'a> {
     fetchable: &'a Fetchable,
     mirrors: indexmap::set::Iter<'a, Mirror>,
-    skip_mirrors: HashSet<String>,
+    skip_mirrors: HashSet<&'a str>,
     upstream: Option<Fetchable>,
 }
 
@@ -318,7 +318,7 @@ impl Fetcher {
                     // skip all alternative URLs from failed, default mirrors
                     if let Some(name) = mirror.map(|x| x.name()) {
                         if name == fetchable.default_mirror {
-                            fetchables.skip_mirrors.insert(name.to_string());
+                            fetchables.skip_mirrors.insert(name);
                         }
                     }
                     result = Err(e);
