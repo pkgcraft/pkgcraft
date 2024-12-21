@@ -215,13 +215,13 @@ impl<'a> Iterator for IterFetchable<'a> {
             .find_map(|mirror| {
                 // skip requested mirrors
                 if self.skip_mirrors.contains(mirror.name()) {
-                    return None;
+                    None
+                } else {
+                    self.fetchable
+                        .mirrored(mirror)
+                        .ok()
+                        .map(|f| (Some(mirror), f))
                 }
-
-                self.fetchable
-                    .mirrored(mirror)
-                    .ok()
-                    .map(|f| (Some(mirror), f))
             })
             // fallback to the upstream if not already tried
             .or_else(|| self.upstream.take().map(|f| (None, f)))
