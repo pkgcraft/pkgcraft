@@ -196,6 +196,9 @@ pub enum ReportKind {
     /// Ebuild has an invalid USE flag.
     UseFlagInvalid,
 
+    /// Global USE flags that are unused.
+    UseGlobalUnused,
+
     /// Local USE flag missing description.
     UseLocalDescMissing,
 
@@ -310,6 +313,7 @@ impl ReportKind {
             Self::UnstableOnly => Info,
             Self::UriInvalid => Error,
             Self::UseFlagInvalid => Error,
+            Self::UseGlobalUnused => Warning,
             Self::UseLocalDescMissing => Error,
             Self::UseLocalGlobal => Warning,
             Self::UseLocalUnsorted => Style,
