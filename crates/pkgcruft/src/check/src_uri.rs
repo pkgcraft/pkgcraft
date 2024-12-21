@@ -20,7 +20,7 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         unused: repo.metadata().mirrors().keys().cloned().collect(),
     }

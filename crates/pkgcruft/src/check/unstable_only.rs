@@ -21,7 +21,7 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[CheckContext::Optional],
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
         stable: repo
             .metadata()
