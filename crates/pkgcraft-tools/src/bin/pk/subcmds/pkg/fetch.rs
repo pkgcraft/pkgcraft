@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{stdout, IsTerminal};
+use std::io::{stdout, IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -53,6 +53,10 @@ pub(crate) struct Command {
     /// Disable progress output
     #[arg(short, long)]
     no_progress: bool,
+
+    /// Output targets instead of fetching them
+    #[arg(short, long)]
+    pretend: bool,
 
     /// Connection timeout in seconds
     #[arg(short, long, default_value = "15")]
@@ -120,6 +124,14 @@ impl Command {
                         }
                     }),
             );
+        }
+
+        // output targets if pretending to fetch
+        if self.pretend {
+            let mut stdout = stdout().lock();
+            for (f, _, _) in fetchables.drain(..) {
+                writeln!(stdout, "{f}")?;
+            }
         }
 
         let builder = reqwest::Client::builder()
