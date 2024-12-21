@@ -1,9 +1,9 @@
 use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::error::Error;
+use pkgcraft::fetch::Fetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::traits::Contains;
 
 use crate::report::ReportKind::{MirrorsUnused, UriInvalid};
 use crate::scanner::ReportFilter;
@@ -32,27 +32,21 @@ struct Check {
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
-        if !pkg.restrict().contains("fetch") {
-            for result in pkg.fetchables(false) {
-                match result {
-                    Ok(f) => {
-                        if let Some(mirror) = f.mirrors().first() {
-                            // mangle values for post-run finalization
-                            if filter.finalize(MirrorsUnused) {
-                                self.unused.remove(mirror.name());
-                            }
+        for uri in pkg.src_uri().iter_flatten() {
+            match Fetchable::from_uri(uri, pkg, false) {
+                Ok(f) => {
+                    if let Some(mirror) = f.mirrors().first() {
+                        // mangle values for post-run finalization
+                        if filter.finalize(MirrorsUnused) {
+                            self.unused.remove(mirror.name());
                         }
                     }
-                    // TODO: use deref patterns to matched boxed field when stabilized
-                    // https://github.com/rust-lang/rust/issues/87121
-                    Err(Error::Pkg { err, .. }) if matches!(*err, Error::InvalidFetchable(_)) => {
-                        let Error::InvalidFetchable(error) = *err else {
-                            panic!("invalid fetchable error");
-                        };
-                        UriInvalid.version(pkg).message(error).report(filter)
-                    }
-                    Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
                 }
+                Err(Error::InvalidFetchable(err)) => {
+                    UriInvalid.version(pkg).message(err).report(filter);
+                }
+                Err(Error::RestrictedFetchable(_)) => (),
+                Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
             }
         }
     }

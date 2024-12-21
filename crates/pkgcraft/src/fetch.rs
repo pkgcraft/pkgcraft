@@ -62,11 +62,7 @@ pub struct Fetchable {
 
 impl Fetchable {
     /// Create a [`Fetchable`] from a [`Uri`].
-    pub(crate) fn from_uri(
-        uri: &Uri,
-        pkg: &EbuildPkg,
-        use_default_mirrors: bool,
-    ) -> crate::Result<Self> {
+    pub fn from_uri(uri: &Uri, pkg: &EbuildPkg, use_default_mirrors: bool) -> crate::Result<Self> {
         let mut fetch_restricted = pkg.restrict().contains("fetch");
         let mut mirror_restricted = fetch_restricted || pkg.restrict().contains("mirror");
 
