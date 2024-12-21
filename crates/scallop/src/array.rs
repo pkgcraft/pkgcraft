@@ -107,9 +107,9 @@ impl Array<'_> {
 }
 
 impl<S: AsRef<str>> Extend<S> for Array<'_> {
-    fn extend<T>(&mut self, iter: T)
+    fn extend<I>(&mut self, iter: I)
     where
-        T: IntoIterator<Item = S>,
+        I: IntoIterator<Item = S>,
     {
         for value in iter {
             self.push(value);

@@ -180,10 +180,10 @@ impl From<&Builtin> for bash::Builtin {
 }
 
 // Enable or disable function overriding for an iterable of builtins.
-pub fn override_funcs<I, S>(builtins: I, enable: bool) -> crate::Result<()>
+pub fn override_funcs<I>(builtins: I, enable: bool) -> crate::Result<()>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     for name in builtins {
         let name = name.as_ref();
@@ -208,10 +208,10 @@ where
 }
 
 // Enable or disable an iterable of builtins.
-fn toggle_status<I, S>(builtins: I, enable: bool) -> crate::Result<()>
+fn toggle_status<I>(builtins: I, enable: bool) -> crate::Result<()>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     for name in builtins {
         let name = name.as_ref();
@@ -236,19 +236,19 @@ where
 }
 
 /// Disable a given list of builtins by name.
-pub fn disable<I, S>(builtins: I) -> crate::Result<()>
+pub fn disable<I>(builtins: I) -> crate::Result<()>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     toggle_status(builtins, false)
 }
 
 /// Enable a given list of builtins by name.
-pub fn enable<I, S>(builtins: I) -> crate::Result<()>
+pub fn enable<I>(builtins: I) -> crate::Result<()>
 where
-    I: IntoIterator<Item = S>,
-    S: AsRef<str>,
+    I: IntoIterator,
+    I::Item: AsRef<str>,
 {
     toggle_status(builtins, true)
 }
@@ -276,10 +276,10 @@ pub fn shell_builtins() -> (HashSet<String>, HashSet<String>) {
 }
 
 /// Register builtins into the internal list for use.
-pub fn register<I, B>(builtins: I)
+pub fn register<I>(builtins: I)
 where
-    I: IntoIterator<Item = B>,
-    B: Into<Builtin>,
+    I: IntoIterator,
+    I::Item: Into<Builtin>,
 {
     // convert builtins into pointers
     let mut builtin_ptrs: Vec<_> = builtins
