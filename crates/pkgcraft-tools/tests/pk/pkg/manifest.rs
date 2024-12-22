@@ -625,7 +625,7 @@ async fn restrict() {
         .assert()
         .stdout("")
         .stderr(contains(format!(
-            "restricted/fetchable-1::test: skipping restricted fetchable: {uri}/file2"
+            "restricted/fetchable-1::test: nonexistent restricted fetchable: {uri}/file2"
         )))
         .failure()
         .code(1);

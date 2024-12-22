@@ -172,7 +172,7 @@ impl Command {
                                 Some(*f)
                             } else {
                                 if !dir.join(f.filename()).exists() {
-                                    error!("{pkg}: skipping restricted fetchable: {f}");
+                                    error!("{pkg}: nonexistent restricted fetchable: {f}");
                                     failed.store(true, Ordering::Relaxed);
                                 }
                                 None
