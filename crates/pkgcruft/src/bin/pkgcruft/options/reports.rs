@@ -107,8 +107,8 @@ impl ReportAlias {
 #[derive(Debug, Args)]
 #[clap(next_help_heading = Some("Report selection"))]
 pub(crate) struct Reports {
-    /// Restrict by report alias
-    #[arg(short, long, value_name = "REPORT[,...]", value_delimiter = ',')]
+    /// Restrict by tri-state report aliases
+    #[arg(short, long, value_name = "ALIAS[,...]", value_delimiter = ',')]
     reports: Vec<TriState<ReportAlias>>,
 }
 
