@@ -46,15 +46,10 @@ impl Check {
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for x in pkg.iuse() {
-            if x.is_disabled() {
+            if x.is_disabled() || (x.is_enabled() && self.use_expand(x.flag())) {
                 IuseInvalid
                     .version(pkg)
-                    .message(format!("disabled default: {x}"))
-                    .report(filter);
-            } else if x.is_enabled() && self.use_expand(x.flag()) {
-                IuseInvalid
-                    .version(pkg)
-                    .message(format!("enabled default: {x}"))
+                    .message(format!("invalid default: {x}"))
                     .report(filter);
             }
 
@@ -75,5 +70,34 @@ impl EbuildPkgCheck for Check {
                 .join(", ");
             UseGlobalUnused.repo(repo).message(unused).report(filter);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::test::*;
+
+    use crate::scanner::Scanner;
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        // primary unfixed
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let dir = repo.path().join(CHECK);
+        let scanner = Scanner::new(repo).checks([CHECK]);
+        let expected = glob_reports!("{dir}/*/reports.json");
+        let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, expected);
+
+        // primary fixed
+        let data = test_data_patched();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let scanner = Scanner::new(repo).checks([CHECK]);
+        let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, []);
     }
 }
