@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use camino::Utf8Path;
+use itertools::Itertools;
 
 use crate::config::Config;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
@@ -164,6 +165,20 @@ impl<'a> TargetRestrictions<'a> {
         values
             .into_iter()
             .map(move |s| self.target_restriction(s.as_ref()))
+    }
+
+    /// Determine target restrictions and finalize the config.
+    pub fn finalize_targets<I>(mut self, values: I) -> crate::Result<Vec<(RepoSet, Restrict)>>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let targets: Vec<_> = values
+            .into_iter()
+            .map(|s| self.target_restriction(s.as_ref()))
+            .try_collect()?;
+        self.config.finalize()?;
+        Ok(targets)
     }
 }
 
