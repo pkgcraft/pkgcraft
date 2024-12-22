@@ -30,6 +30,7 @@ mod ebuild_name;
 mod filesdir;
 mod header;
 mod homepage;
+mod iuse;
 mod keywords;
 mod keywords_dropped;
 mod license;
@@ -45,7 +46,6 @@ mod restrict_test_missing;
 mod ruby_update;
 mod src_uri;
 mod unstable_only;
-mod use_flag;
 mod use_local;
 mod variable_order;
 mod whitespace;
@@ -77,6 +77,7 @@ pub enum CheckKind {
     Filesdir,
     Header,
     Homepage,
+    Iuse,
     Keywords,
     KeywordsDropped,
     License,
@@ -92,7 +93,6 @@ pub enum CheckKind {
     RubyUpdate,
     SrcUri,
     UnstableOnly,
-    UseFlag,
     UseLocal,
     VariableOrder,
     Whitespace,
@@ -111,6 +111,7 @@ impl From<CheckKind> for Check {
             CheckKind::EbuildName => ebuild_name::CHECK,
             CheckKind::Header => header::CHECK,
             CheckKind::Homepage => homepage::CHECK,
+            CheckKind::Iuse => iuse::CHECK,
             CheckKind::Keywords => keywords::CHECK,
             CheckKind::KeywordsDropped => keywords_dropped::CHECK,
             CheckKind::License => license::CHECK,
@@ -126,7 +127,6 @@ impl From<CheckKind> for Check {
             CheckKind::RubyUpdate => ruby_update::CHECK,
             CheckKind::SrcUri => src_uri::CHECK,
             CheckKind::UnstableOnly => unstable_only::CHECK,
-            CheckKind::UseFlag => use_flag::CHECK,
             CheckKind::UseLocal => use_local::CHECK,
             CheckKind::VariableOrder => variable_order::CHECK,
             CheckKind::Whitespace => whitespace::CHECK,
@@ -289,6 +289,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
                 Box::new(dependency_slot_missing::create(repo))
             }
             CheckKind::Homepage => Box::new(homepage::create()),
+            CheckKind::Iuse => Box::new(iuse::create(repo)),
             CheckKind::Keywords => Box::new(keywords::create(repo)),
             CheckKind::License => Box::new(license::create(repo)),
             CheckKind::Overlay => Box::new(overlay::create(repo)),
@@ -298,7 +299,6 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
             CheckKind::SrcUri => Box::new(src_uri::create(repo)),
-            CheckKind::UseFlag => Box::new(use_flag::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }

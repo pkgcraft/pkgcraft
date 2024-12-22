@@ -130,6 +130,9 @@ pub enum ReportKind {
     /// Ebuild has an invalid homepage.
     HomepageInvalid,
 
+    /// Ebuild has an invalid USE flag.
+    IuseInvalid,
+
     /// Keywords have been dropped between releases.
     KeywordsDropped,
 
@@ -195,9 +198,6 @@ pub enum ReportKind {
 
     /// Ebuild has an unsupported or invalid URI.
     UriInvalid,
-
-    /// Ebuild has an invalid USE flag.
-    UseFlagInvalid,
 
     /// Global USE flags that are unused.
     UseGlobalUnused,
@@ -294,6 +294,7 @@ impl ReportKind {
             Self::FilesUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::HomepageInvalid => Error,
+            Self::IuseInvalid => Error,
             Self::KeywordsDropped => Warning,
             Self::KeywordsLive => Warning,
             Self::KeywordsOverlapping => Error,
@@ -316,7 +317,6 @@ impl ReportKind {
             Self::RubyUpdate => Info,
             Self::UnstableOnly => Info,
             Self::UriInvalid => Error,
-            Self::UseFlagInvalid => Error,
             Self::UseGlobalUnused => Warning,
             Self::UseLocalDescMissing => Error,
             Self::UseLocalGlobal => Warning,
