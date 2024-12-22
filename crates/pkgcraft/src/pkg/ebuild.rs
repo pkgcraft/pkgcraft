@@ -274,10 +274,11 @@ impl EbuildPkg {
     }
 
     /// Generate fetchable URIs for a package's SRC_URI targets.
-    pub fn fetchables(&self, use_default_mirrors: bool) -> IterFetchable {
+    pub fn fetchables(&self, override_restrict: bool, use_default_mirrors: bool) -> IterFetchable {
         IterFetchable {
             pkg: self,
             uris: self.src_uri().iter_flatten(),
+            override_restrict,
             use_default_mirrors,
         }
     }
@@ -296,6 +297,7 @@ impl EbuildPkg {
 pub struct IterFetchable<'a> {
     pkg: &'a EbuildPkg,
     uris: crate::dep::IterFlatten<'a, Uri>,
+    override_restrict: bool,
     use_default_mirrors: bool,
 }
 
@@ -307,8 +309,12 @@ impl Iterator for IterFetchable<'_> {
             match Fetchable::from_uri(uri, self.pkg, self.use_default_mirrors) {
                 Ok(f) => Some(Ok(f)),
                 Err(Error::RestrictedFetchable(f)) => {
-                    warn!("ignoring restricted fetchable: {f}");
-                    None
+                    if self.override_restrict {
+                        Some(Ok(*f))
+                    } else {
+                        warn!("ignoring restricted fetchable: {f}");
+                        None
+                    }
                 }
                 Err(Error::RestrictedFile(f)) => {
                     warn!("ignoring restricted file: {f}");

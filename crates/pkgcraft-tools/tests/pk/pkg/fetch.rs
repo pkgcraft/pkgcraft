@@ -481,6 +481,16 @@ async fn restrict() {
         .stderr(contains(format!("ignoring restricted fetchable: {uri}/file")))
         .success();
     assert!(fs::read_to_string("file").is_err());
+
+    // restricted fetchables can be forcibly processed via --restrict
+    cmd("pk pkg fetch --restrict")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file").unwrap();
+    assert_eq!(&data, "file");
 }
 
 #[tokio::test]
@@ -529,4 +539,14 @@ async fn selective_restrict() {
     assert_eq!(&data, "file2");
     let data = fs::read_to_string("file3").unwrap();
     assert_eq!(&data, "file3");
+
+    // restricted fetchables can be forcibly processed via --restrict
+    cmd("pk pkg fetch --restrict")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file1").unwrap();
+    assert_eq!(&data, "file1");
 }

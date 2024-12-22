@@ -95,6 +95,10 @@ pub(crate) struct Command {
     #[arg(long)]
     repo: Option<String>,
 
+    /// Process fetch-restricted URLS
+    #[arg(long)]
+    restrict: bool,
+
     /// Force manifest type
     #[arg(
         long,
@@ -169,7 +173,7 @@ impl Command {
             };
 
             let mut fetchables = pkg
-                .fetchables(self.mirrors)
+                .fetchables(self.restrict, self.mirrors)
                 .filter_map(|result| match result {
                     Ok(value) => Some(value),
                     Err(e) => {

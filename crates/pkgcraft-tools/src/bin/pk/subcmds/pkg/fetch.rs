@@ -66,6 +66,10 @@ pub(crate) struct Command {
     #[arg(long)]
     repo: Option<String>,
 
+    /// Process fetch-restricted URLS
+    #[arg(long)]
+    restrict: bool,
+
     // positionals
     /// Target packages or paths
     #[arg(
@@ -104,7 +108,7 @@ impl Command {
         let mut fetchables = IndexSet::new();
         for pkg in &mut iter {
             fetchables.extend(
-                pkg.fetchables(self.mirrors)
+                pkg.fetchables(self.restrict, self.mirrors)
                     .filter_map(|result| match result {
                         Ok(value) => Some(value),
                         Err(e) => {
