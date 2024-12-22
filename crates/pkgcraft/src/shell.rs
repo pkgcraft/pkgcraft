@@ -28,7 +28,7 @@ mod metadata;
 pub(crate) mod operations;
 pub(crate) mod phase;
 mod pool;
-pub use pool::BuildPool;
+pub(crate) use pool::BuildPool;
 pub mod scope;
 pub(crate) mod test;
 mod unescape;

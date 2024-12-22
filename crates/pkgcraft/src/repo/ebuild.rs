@@ -159,13 +159,18 @@ impl EbuildRepo {
     }
 
     /// Return the build pool for the repo.
-    pub fn pool(&self) -> Arc<BuildPool> {
+    pub(crate) fn pool(&self) -> Arc<BuildPool> {
         self.0
             .pool
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
             .upgrade()
             .unwrap_or_else(|| panic!("destroyed ebuild repo: {self}"))
+    }
+
+    /// Update the repo's package metadata cache for a given [`Cpv`].
+    pub fn generate_pkg_metadata(&self, cpv: &Cpv, force: bool, verify: bool) -> crate::Result<()> {
+        self.pool().metadata(self, cpv, force, verify)
     }
 
     pub fn metadata(&self) -> &Metadata {

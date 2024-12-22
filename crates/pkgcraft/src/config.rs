@@ -317,7 +317,7 @@ impl Config {
     }
 
     /// Return the build pool for the config.
-    pub fn pool(&self) -> &Arc<shell::BuildPool> {
+    pub(crate) fn pool(&self) -> &Arc<shell::BuildPool> {
         &self.pool
     }
 
