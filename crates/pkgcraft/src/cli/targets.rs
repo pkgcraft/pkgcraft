@@ -101,17 +101,18 @@ impl<'a> TargetRestrictions<'a> {
 
             match paths[..] {
                 [path] if path.contains('/') => {
-                    let path = Utf8Path::new(path)
-                        .canonicalize_utf8()
-                        .map_err(|e| Error::InvalidValue(format!("invalid repo: {path}: {e}")))?;
+                    let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
+                        Error::InvalidValue(format!("invalid repo: {path}: {e}"))
+                    })?;
 
                     // add external repo to the config if it doesn't exist
-                    let repo =
-                        if let Some(repo) = self.repo_set.repos.iter().find(|r| r.path() == path) {
-                            repo.clone()
-                        } else {
-                            self.repo_from_path(&path)?
-                        };
+                    let repo = if let Some(repo) =
+                        self.repo_set.repos.iter().find(|r| r.path() == path)
+                    {
+                        repo.clone()
+                    } else {
+                        self.repo_from_path(&path)?
+                    };
 
                     return Ok((repo.into(), Restrict::and(restricts)));
                 }
@@ -143,7 +144,9 @@ impl<'a> TargetRestrictions<'a> {
             (Ok(restrict), Ok(_), _) if target.contains('/') => self.dep_restriction(restrict),
             (_, Ok(path), Some(Ok(repo))) => repo
                 .restrict_from_path(&path)
-                .ok_or_else(|| Error::InvalidValue(format!("{repo} doesn't contain path: {path}")))
+                .ok_or_else(|| {
+                    Error::InvalidValue(format!("{repo} doesn't contain path: {path}"))
+                })
                 .map(|restrict| (repo.into(), restrict)),
             (Ok(restrict), _, _) => self.dep_restriction(restrict),
             (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),

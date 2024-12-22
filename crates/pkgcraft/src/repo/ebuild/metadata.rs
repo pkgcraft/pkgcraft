@@ -41,7 +41,9 @@ impl Ini {
     fn load(path: &Utf8Path) -> crate::Result<Self> {
         match ini::Ini::load_from_file(path) {
             Ok(c) => Ok(Self(c)),
-            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => {
+                Ok(Self::default())
+            }
             Err(ini::Error::Io(e)) => Err(Error::IO(e.to_string())),
             Err(ini::Error::Parse(e)) => Err(Error::IO(format!("failed parsing INI: {e}"))),
         }
@@ -101,8 +103,9 @@ macro_rules! parse_iter {
     ($ini:expr, $key:expr) => {
         $ini.iter($key)
             .map(|s| {
-                s.parse()
-                    .map_err(|_| Error::InvalidValue(format!("{}: unsupported value: {s}", $key)))
+                s.parse().map_err(|_| {
+                    Error::InvalidValue(format!("{}: unsupported value: {s}", $key))
+                })
             })
             .try_collect()
     };
@@ -113,8 +116,9 @@ macro_rules! parse {
     ($ini:expr, $key:expr) => {
         $ini.get($key)
             .map(|s| {
-                s.parse()
-                    .map_err(|_| Error::InvalidValue(format!("{}: unsupported value: {s}", $key)))
+                s.parse().map_err(|_| {
+                    Error::InvalidValue(format!("{}: unsupported value: {s}", $key))
+                })
             })
             .transpose()
     };
@@ -300,9 +304,9 @@ impl Mirror {
         for url in urls {
             let mirror = Self {
                 name: name.to_string(),
-                url: url
-                    .parse()
-                    .map_err(|e| Error::InvalidValue(format!("invalid mirror url: {url}: {e}")))?,
+                url: url.parse().map_err(|e| {
+                    Error::InvalidValue(format!("invalid mirror url: {url}: {e}"))
+                })?,
             };
             mirrors.insert(mirror);
         }
@@ -487,11 +491,13 @@ impl Metadata {
                     let mut vals: IndexSet<_> = entries
                         .filter_map(Result::ok)
                         .filter(is_eclass)
-                        .filter_map(|entry| match Eclass::try_new(entry.path(), self.cache()) {
-                            Ok(eclass) => Some(eclass),
-                            Err(e) => {
-                                error!("{}: {e}", self.id);
-                                None
+                        .filter_map(|entry| {
+                            match Eclass::try_new(entry.path(), self.cache()) {
+                                Ok(eclass) => Some(eclass),
+                                Err(e) => {
+                                    error!("{}: {e}", self.id);
+                                    None
+                                }
                             }
                         })
                         .collect();
@@ -715,7 +721,10 @@ impl Metadata {
                         .filter_map(|(i, line)| {
                             line.parse()
                                 .map_err(|err| {
-                                    warn!("{}::profiles/updates/{file}, line {i}: {err}", self.id)
+                                    warn!(
+                                        "{}::profiles/updates/{file}, line {i}: {err}",
+                                        self.id
+                                    )
                                 })
                                 .ok()
                         })
@@ -733,7 +742,10 @@ impl Metadata {
                 .filter_map(|(i, s)| {
                     parse_use_desc(s)
                         .map_err(|e| {
-                            warn!("{}::profiles/use.desc, line {i}: invalid format: {e}", self.id);
+                            warn!(
+                                "{}::profiles/use.desc, line {i}: invalid format: {e}",
+                                self.id
+                            );
                         })
                         .ok()
                 })
@@ -955,7 +967,8 @@ mod tests {
 
         // multiple with ignored 3rd column
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64\nppc\nppc64").unwrap();
+        fs::write(metadata.path.join("profiles/arch.list"), "amd64\narm64\nppc\nppc64")
+            .unwrap();
         fs::write(
             metadata.path.join("profiles/arches.desc"),
             "amd64 stable\narm64 testing\nppc testing\nppc64 transitional 3rd-col",

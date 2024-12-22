@@ -14,7 +14,8 @@ static SHELL: OnceLock<CString> = OnceLock::new();
 /// Initialize the shell for library use.
 pub fn init(restricted: bool) {
     let name = CString::new("scallop").unwrap();
-    let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
+    let shm =
+        create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
         bash::lib_error_handlers(Some(bash_error), Some(error::bash_warning_log));
         bash::lib_init(name.as_ptr() as *mut _, shm, restricted as i32);
@@ -38,7 +39,8 @@ fn pid() -> Pid {
 /// Reinitialize the shell when forking processes.
 pub fn fork_init() {
     // use new shared memory object for proxying errors
-    let shm = create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
+    let shm =
+        create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
         bash::SHM_BUF = shm;
         // update shell pid for child process

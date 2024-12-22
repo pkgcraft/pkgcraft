@@ -431,7 +431,9 @@ impl Ord for ReportScope {
             (Self::Repo(v1), Self::Repo(v2)) => v1.cmp(v2),
             (Self::Category(v1), Self::Category(v2)) => v1.cmp(v2),
             (Self::Package(v1), Self::Package(v2)) => v1.cmp(v2),
-            (Self::Version(v1, l1), Self::Version(v2, l2)) => v1.cmp(v2).then_with(|| l1.cmp(l2)),
+            (Self::Version(v1, l1), Self::Version(v2, l2)) => {
+                v1.cmp(v2).then_with(|| l1.cmp(l2))
+            }
             (Self::Version(v1, _), Self::Package(v2)) => v1
                 .cpn()
                 .cmp(v2)
@@ -453,7 +455,9 @@ impl PartialOrd for ReportScope {
 impl fmt::Debug for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Version(cpv, Some(location)) => write!(f, "Version( {cpv}, {location:?} )"),
+            Self::Version(cpv, Some(location)) => {
+                write!(f, "Version( {cpv}, {location:?} )")
+            }
             Self::Version(cpv, None) => write!(f, "Version( {cpv} )"),
             Self::Package(cpn) => write!(f, "Package( {cpn} )"),
             Self::Category(cat) => write!(f, "Category( {cat} )"),

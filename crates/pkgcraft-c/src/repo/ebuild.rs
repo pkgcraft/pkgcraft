@@ -26,7 +26,10 @@ macro_rules! try_repo_from_ptr {
 /// # Safety
 /// The arguments must be valid Repo and Config pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_configure(r: *mut Repo, c: *mut Config) -> *mut Repo {
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_configure(
+    r: *mut Repo,
+    c: *mut Config,
+) -> *mut Repo {
     let repo = try_repo_from_ptr!(r);
     let config = try_ref_from_ptr!(c);
     Box::into_raw(Box::new(repo.configure(config).into()))

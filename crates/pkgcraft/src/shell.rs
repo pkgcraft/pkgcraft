@@ -28,7 +28,7 @@ mod metadata;
 pub(crate) mod operations;
 pub(crate) mod phase;
 mod pool;
-pub(crate) use pool::BuildPool;
+pub use pool::BuildPool;
 pub mod scope;
 pub(crate) mod test;
 mod unescape;
@@ -242,7 +242,8 @@ impl BuildData {
 
             FILESDIR => {
                 let cpv = self.cpv();
-                let path = build_path!(self.repo().path(), cpv.category(), cpv.package(), "files");
+                let path =
+                    build_path!(self.repo().path(), cpv.category(), cpv.package(), "files");
                 path.to_string()
             }
             PORTDIR => self.repo().path().to_string(),

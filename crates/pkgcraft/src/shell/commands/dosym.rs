@@ -30,7 +30,9 @@ fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<Pat
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let eapi = get_build_mut().eapi();
     let (target, name) = match args[..] {
-        ["-r", target, name] if eapi.has(DosymRelative) => (convert_target(target, name)?, name),
+        ["-r", target, name] if eapi.has(DosymRelative) => {
+            (convert_target(target, name)?, name)
+        }
         [target, name] => (PathBuf::from(target), name),
         _ => return Err(Error::Base(format!("requires 2 args, got {}", args.len()))),
     };

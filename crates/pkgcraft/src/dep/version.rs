@@ -728,7 +728,8 @@ mod tests {
     fn hashing() {
         let data = test_data();
         for d in &data.version_toml.hashing {
-            let set: HashSet<Version> = d.versions.iter().map(|s| s.parse().unwrap()).collect();
+            let set: HashSet<Version> =
+                d.versions.iter().map(|s| s.parse().unwrap()).collect();
             if d.equal {
                 assert_eq!(set.len(), 1, "failed hashing versions: {set:?}");
             } else {

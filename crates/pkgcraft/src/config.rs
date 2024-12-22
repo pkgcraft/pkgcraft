@@ -167,7 +167,8 @@ impl Config {
     pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
         if !self.loaded {
             if self.path.config.exists() {
-                self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
+                self.repos =
+                    repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
             } else {
                 self.load_portage_conf(Some(path))?;
             }
@@ -272,13 +273,22 @@ impl Config {
     }
 
     /// Add external repo from a URI.
-    pub fn add_repo_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
+    pub fn add_repo_uri(
+        &mut self,
+        name: &str,
+        priority: i32,
+        uri: &str,
+    ) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
         self.add_repo(&r, false)
     }
 
     /// Add a repo to the config.
-    pub fn add_repo<T: Into<Repo>>(&mut self, value: T, external: bool) -> crate::Result<Repo> {
+    pub fn add_repo<T: Into<Repo>>(
+        &mut self,
+        value: T,
+        external: bool,
+    ) -> crate::Result<Repo> {
         let repo: Repo = value.into();
         self.repos
             .extend([repo.clone()], &self.settings, external)?;
@@ -317,7 +327,7 @@ impl Config {
     }
 
     /// Return the build pool for the config.
-    pub(crate) fn pool(&self) -> &Arc<shell::BuildPool> {
+    pub fn pool(&self) -> &Arc<shell::BuildPool> {
         &self.pool
     }
 
@@ -386,7 +396,10 @@ mod tests {
         // prefix
         let config = Config::new("pkgcraft", "/prefix");
         assert_eq!(config.path.cache, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
-        assert_eq!(config.path.config, Utf8PathBuf::from("/prefix/home/user/.config/pkgcraft"));
+        assert_eq!(
+            config.path.config,
+            Utf8PathBuf::from("/prefix/home/user/.config/pkgcraft")
+        );
         assert_eq!(config.path.run, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
         env::remove_var("HOME");
 

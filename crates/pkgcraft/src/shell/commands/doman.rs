@@ -43,7 +43,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     for path in args.iter().map(Utf8Path::new) {
         let (mut base, ext) = match (path.file_stem(), path.extension()) {
             (Some(base), Some(ext)) => (base, ext),
-            _ => return Err(Error::Base(format!("invalid file target, use `newman`: {path}"))),
+            _ => {
+                return Err(Error::Base(format!("invalid file target, use `newman`: {path}")))
+            }
         };
 
         if let Some(m) = DETECT_LANG_RE.captures(base) {
@@ -133,9 +135,10 @@ mod tests {
         }
 
         // filename lang detection
-        for (file, path) in
-            [("pkgcraft.en.1", "en/man1/pkgcraft.1"), ("pkgcraft.en_US.1", "en_US/man1/pkgcraft.1")]
-        {
+        for (file, path) in [
+            ("pkgcraft.en.1", "en/man1/pkgcraft.1"),
+            ("pkgcraft.en_US.1", "en_US/man1/pkgcraft.1"),
+        ] {
             fs::File::create(file).unwrap();
             doman(&[file]).unwrap();
             file_tree.assert(format!(

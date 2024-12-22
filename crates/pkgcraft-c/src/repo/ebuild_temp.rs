@@ -34,7 +34,9 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(r: *mut EbuildTempRepo) -> *mut c_char {
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(
+    r: *mut EbuildTempRepo,
+) -> *mut c_char {
     let temp = try_ref_from_ptr!(r);
     try_ptr_from_str!(temp.path().as_str())
 }

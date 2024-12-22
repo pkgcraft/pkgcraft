@@ -18,7 +18,10 @@ use crate::utils::{boxed, str_to_raw};
 /// # Safety
 /// The argument must be an array of Repo pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_set_new(repos: *mut *mut Repo, len: usize) -> *mut RepoSet {
+pub unsafe extern "C" fn pkgcraft_repo_set_new(
+    repos: *mut *mut Repo,
+    len: usize,
+) -> *mut RepoSet {
     let repos = unsafe { slice::from_raw_parts(repos, len) };
     let repos = repos.iter().map(|r| try_ref_from_ptr!(r));
     Box::into_raw(Box::new(repos.collect()))

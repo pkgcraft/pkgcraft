@@ -33,8 +33,8 @@ pub(crate) fn create_shm(prefix: &str, size: usize) -> crate::Result<*mut c_void
     ftruncate(&shm_fd, size as i64).map_err(|e| Error::Base(format!("ftruncate(): {e}")))?;
 
     // map file into memory
-    let length =
-        NonZeroUsize::new(size).ok_or_else(|| Error::Base("size must be nonzero".to_string()))?;
+    let length = NonZeroUsize::new(size)
+        .ok_or_else(|| Error::Base("size must be nonzero".to_string()))?;
     let shm_ptr = unsafe {
         mmap(
             None,

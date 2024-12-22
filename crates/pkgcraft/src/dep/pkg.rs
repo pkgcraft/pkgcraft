@@ -316,7 +316,9 @@ impl Dep {
                             dep.to_mut().cpn.category = val.to_string();
                         }
                     } else {
-                        return Err(Error::InvalidValue("category cannot be unset".to_string()));
+                        return Err(Error::InvalidValue(
+                            "category cannot be unset".to_string(),
+                        ));
                     }
                 }
                 DepField::Package => {
@@ -326,14 +328,16 @@ impl Dep {
                             dep.to_mut().cpn.package = val.to_string();
                         }
                     } else {
-                        return Err(Error::InvalidValue("package cannot be unset".to_string()));
+                        return Err(Error::InvalidValue(
+                            "package cannot be unset".to_string(),
+                        ));
                     }
                 }
                 DepField::Blocker => {
                     if let Some(s) = s {
-                        let val = s
-                            .parse()
-                            .map_err(|_| Error::InvalidValue(format!("invalid blocker: {s}")))?;
+                        let val = s.parse().map_err(|_| {
+                            Error::InvalidValue(format!("invalid blocker: {s}"))
+                        })?;
                         if !dep.blocker.as_ref().map(|v| v == &val).unwrap_or_default() {
                             dep.to_mut().blocker = Some(val);
                         }
@@ -471,7 +475,14 @@ impl Dep {
 
     /// Return a key value used to implement various traits, e.g. Eq, Ord, and Hash.
     fn key(&self) -> DepKey {
-        (self.cpn(), self.version(), self.blocker(), self.slot_dep(), self.use_deps(), self.repo())
+        (
+            self.cpn(),
+            self.version(),
+            self.blocker(),
+            self.slot_dep(),
+            self.use_deps(),
+            self.repo(),
+        )
     }
 }
 
@@ -804,8 +815,16 @@ mod tests {
                 // different types
                 assert_eq!(d1.partial_cmp(&d2_cow), Some(op), "failed: {expr}");
                 assert_eq!(d1_cow.partial_cmp(&d2), Some(op), "failed: {expr}");
-                assert_eq!(d2.partial_cmp(&d1_cow), Some(op.reverse()), "failed inverted: {expr}");
-                assert_eq!(d2_cow.partial_cmp(&d1), Some(op.reverse()), "failed inverted: {expr}");
+                assert_eq!(
+                    d2.partial_cmp(&d1_cow),
+                    Some(op.reverse()),
+                    "failed inverted: {expr}"
+                );
+                assert_eq!(
+                    d2_cow.partial_cmp(&d1),
+                    Some(op.reverse()),
+                    "failed inverted: {expr}"
+                );
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)

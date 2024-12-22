@@ -188,7 +188,9 @@ impl<T: Ordered> Iterator for IntoIterRecursive<T> {
                 AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
                 AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                Conditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
+                Conditional(_, vals) => {
+                    self.0.extend_left(vals.into_iter().map(|x| *x.clone()))
+                }
             }
         }
 

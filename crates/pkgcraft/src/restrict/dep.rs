@@ -185,7 +185,10 @@ impl From<Cpn> for BaseRestrict {
 
 impl From<&Cpn> for BaseRestrict {
     fn from(cpn: &Cpn) -> Self {
-        BaseRestrict::and([Restrict::category(cpn.category()), Restrict::package(cpn.package())])
+        BaseRestrict::and([
+            Restrict::category(cpn.category()),
+            Restrict::package(cpn.package()),
+        ])
     }
 }
 

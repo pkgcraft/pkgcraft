@@ -41,8 +41,8 @@ fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<P
     let mut files = vec![];
 
     for f in globs.iter().map(|s| s.as_ref()) {
-        let paths =
-            glob(f).map_err(|e| Error::Base(format!("invalid docs glob pattern: {f}: {e}")))?;
+        let paths = glob(f)
+            .map_err(|e| Error::Base(format!("invalid docs glob pattern: {f}: {e}")))?;
         let paths: Vec<_> = paths
             .map(|r| r.map_err(|e| Error::Base(format!("failed reading docs file: {e}"))))
             .try_collect()?;

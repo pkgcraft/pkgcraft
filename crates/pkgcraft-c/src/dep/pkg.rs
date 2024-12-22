@@ -40,7 +40,10 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
 /// # Safety
 /// The eapi argument may be NULL to use the default EAPI.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_parse(s: *const c_char, eapi: *const Eapi) -> *const c_char {
+pub unsafe extern "C" fn pkgcraft_dep_parse(
+    s: *const c_char,
+    eapi: *const Eapi,
+) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
         let eapi = option_from_ptr!(eapi).unwrap_or_default();
@@ -327,11 +330,16 @@ pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> u32 {
 /// # Safety
 /// The argument must be a non-null Dep pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dep_use_deps(d: *mut Dep, len: *mut usize) -> *mut *mut UseDep {
+pub unsafe extern "C" fn pkgcraft_dep_use_deps(
+    d: *mut Dep,
+    len: *mut usize,
+) -> *mut *mut UseDep {
     // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
     let dep = try_ref_from_ptr!(d);
     match dep.use_deps() {
-        Some(use_deps) => iter_to_array!(use_deps.iter(), len, |u| boxed(u.clone().into())),
+        Some(use_deps) => {
+            iter_to_array!(use_deps.iter(), len, |u| boxed(u.clone().into()))
+        }
         None => ptr::null_mut(),
     }
 }

@@ -120,7 +120,9 @@ mod tests {
         let cache = repo.metadata().cache();
 
         // nonexistent path
-        assert!(Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass"), cache).is_err());
+        assert!(
+            Eclass::try_new(&repo.path().join("eclass/nonexistent.eclass"), cache).is_err()
+        );
 
         // non-eclass path
         assert!(Eclass::try_new(&repo.path().join("licenses/l1"), cache).is_err());

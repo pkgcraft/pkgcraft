@@ -24,7 +24,9 @@ impl ToReports for Command {
 }
 
 /// Return an iterator of reports from a globbed path pattern.
-pub fn glob_reports_iter<P: AsRef<str>>(pattern: P) -> impl Iterator<Item = crate::Result<Report>> {
+pub fn glob_reports_iter<P: AsRef<str>>(
+    pattern: P,
+) -> impl Iterator<Item = crate::Result<Report>> {
     glob(pattern.as_ref()).unwrap().flat_map(|path| {
         let path = path.unwrap();
         let path = path

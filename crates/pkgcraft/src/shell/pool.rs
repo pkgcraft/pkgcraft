@@ -77,7 +77,7 @@ enum Command {
 }
 
 #[derive(Debug)]
-pub(crate) struct BuildPool {
+pub struct BuildPool {
     jobs: usize,
     tx: IpcSender<Command>,
     rx: IpcReceiver<Command>,
@@ -104,7 +104,7 @@ impl BuildPool {
     }
 
     /// Return true if the build pool is running, false otherwise.
-    pub(crate) fn running(&self) -> bool {
+    pub fn running(&self) -> bool {
         self.running.get().is_some()
     }
 
@@ -151,7 +151,7 @@ impl BuildPool {
     }
 
     /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
-    pub(crate) fn metadata(
+    pub fn metadata(
         &self,
         repo: &EbuildRepo,
         cpv: &Cpv,

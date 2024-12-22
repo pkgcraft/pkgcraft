@@ -44,7 +44,8 @@ fn args() {
             .filter(|v| v.op().is_none())
             .collect();
         if !versions.is_empty() {
-            let mut reversed: Vec<_> = versions.iter().map(|v| format!("cat/pkg-{v}")).collect();
+            let mut reversed: Vec<_> =
+                versions.iter().map(|v| format!("cat/pkg-{v}")).collect();
             reversed.reverse();
             let output = cmd("pk cpv sort").args(&reversed).output().unwrap();
             let mut sorted: Vec<_> = std::str::from_utf8(&output.stdout)

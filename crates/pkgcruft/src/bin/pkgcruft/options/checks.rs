@@ -217,8 +217,9 @@ mod tests {
     #[test]
     fn parse() {
         // verify checks and reports options don't affect each other when both are specified
-        let cmd = Command::try_parse_from(["cmd", "-c", "Dependency", "-r", "DependencyInvalid"])
-            .unwrap();
+        let cmd =
+            Command::try_parse_from(["cmd", "-c", "Dependency", "-r", "DependencyInvalid"])
+                .unwrap();
         let (checks, reports) = cmd.checks.collapse(None).unwrap();
         assert_ordered_eq!(checks, [CheckKind::Dependency.into()]);
         assert_ordered_eq!(reports, [ReportKind::DependencyInvalid]);

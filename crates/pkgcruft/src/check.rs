@@ -227,7 +227,9 @@ impl Check {
         if let Some(repo) = target_repo {
             Either::Left(Check::iter().filter(move |x| x.skipped(repo, &selected).is_none()))
         } else {
-            Either::Right(Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional)))
+            Either::Right(
+                Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional)),
+            )
         }
     }
 
@@ -269,13 +271,15 @@ impl Check {
     /// Determine if a check is disabled for a scanning run due to package filtering.
     pub(crate) fn filtered(&self) -> bool {
         self.scope != Scope::Version
-            || (self.source != SourceKind::EbuildPkg && self.source != SourceKind::EbuildRawPkg)
+            || (self.source != SourceKind::EbuildPkg
+                && self.source != SourceKind::EbuildRawPkg)
     }
 
     /// Check supports post-run finalization.
     pub(crate) fn finalize(&self) -> bool {
         self.scope == Scope::Version
-            && (self.source == SourceKind::EbuildPkg || self.source == SourceKind::EbuildRawPkg)
+            && (self.source == SourceKind::EbuildPkg
+                || self.source == SourceKind::EbuildRawPkg)
     }
 }
 
@@ -288,7 +292,9 @@ impl ToRunner<EbuildPkgRunner> for Check {
     fn to_runner(&self, repo: &EbuildRepo) -> EbuildPkgRunner {
         match &self.kind {
             CheckKind::Dependency => Box::new(dependency::create(repo)),
-            CheckKind::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
+            CheckKind::DependencySlotMissing => {
+                Box::new(dependency_slot_missing::create(repo))
+            }
             CheckKind::Homepage => Box::new(homepage::create()),
             CheckKind::Keywords => Box::new(keywords::create(repo)),
             CheckKind::License => Box::new(license::create(repo)),
@@ -430,11 +436,12 @@ impl AsRef<Utf8Path> for Check {
 }
 
 /// The mapping of all report variants to the checks that can generate them.
-static REPORT_CHECKS: LazyLock<OrderedMap<ReportKind, OrderedSet<Check>>> = LazyLock::new(|| {
-    Check::iter()
-        .flat_map(|c| c.reports.iter().copied().map(move |r| (r, c)))
-        .collect()
-});
+static REPORT_CHECKS: LazyLock<OrderedMap<ReportKind, OrderedSet<Check>>> =
+    LazyLock::new(|| {
+        Check::iter()
+            .flat_map(|c| c.reports.iter().copied().map(move |r| (r, c)))
+            .collect()
+    });
 
 /// The mapping of all source variants to the checks that use them.
 static SOURCE_CHECKS: LazyLock<OrderedMap<SourceKind, OrderedSet<Check>>> =

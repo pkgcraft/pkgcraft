@@ -84,7 +84,8 @@ impl DepToml {
     pub fn load(path: &Utf8Path) -> crate::Result<Self> {
         let data = fs::read_to_string(path)
             .map_err(|e| Error::IO(format!("failed loading data: {path}: {e}")))?;
-        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
+        toml::from_str(&data)
+            .map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
     }
 
     pub fn compares(&self) -> ComparesIter {
@@ -112,7 +113,8 @@ impl VersionToml {
     pub fn load(path: &Utf8Path) -> crate::Result<Self> {
         let data = fs::read_to_string(path)
             .map_err(|e| Error::IO(format!("failed loading data: {path}: {e}")))?;
-        toml::from_str(&data).map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
+        toml::from_str(&data)
+            .map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
     }
 
     pub fn compares(&self) -> ComparesIter {

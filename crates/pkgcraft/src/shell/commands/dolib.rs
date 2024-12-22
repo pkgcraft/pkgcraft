@@ -10,7 +10,10 @@ use super::make_builtin;
 
 const LONG_DOC: &str = "Install libraries.";
 
-pub(super) fn install_lib(args: &[&str], opts: Option<&[&str]>) -> scallop::Result<ExecStatus> {
+pub(super) fn install_lib(
+    args: &[&str],
+    opts: Option<&[&str]>,
+) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let libdir = get_libdir(Some("lib")).unwrap();
     let dest = build_path!(build.env(DESTTREE), &libdir);

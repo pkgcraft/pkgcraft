@@ -199,8 +199,9 @@ impl MetadataCacheRegen<'_> {
     pub fn progress(mut self, value: bool) -> Self {
         if value {
             self.progress = ProgressBar::new(0);
-            self.progress
-                .set_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
+            self.progress.set_style(
+                ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap(),
+            );
         }
         self
     }

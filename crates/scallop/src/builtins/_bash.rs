@@ -16,7 +16,10 @@ where
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
-                Err(Error::Base(format!("failed running declare builtin: exit status {}", ret)))
+                Err(Error::Base(format!(
+                    "failed running declare builtin: exit status {}",
+                    ret
+                )))
             }
         })
     })

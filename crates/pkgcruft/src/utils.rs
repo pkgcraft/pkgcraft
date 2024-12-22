@@ -7,8 +7,9 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 pub(crate) fn use_starts_with<S: AsRef<str>>(dep: &Dep, prefixes: &[S]) -> bool {
     dep.use_deps()
         .map(|u| {
-            u.iter()
-                .any(|x| x.enabled() && prefixes.iter().any(|s| x.flag().starts_with(s.as_ref())))
+            u.iter().any(|x| {
+                x.enabled() && prefixes.iter().any(|s| x.flag().starts_with(s.as_ref()))
+            })
         })
         .unwrap_or_default()
 }

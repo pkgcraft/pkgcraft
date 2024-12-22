@@ -77,7 +77,12 @@ pub struct ManifestFile {
 }
 
 impl ManifestFile {
-    fn try_new(kind: ManifestType, name: &str, size: u64, data: &[&str]) -> crate::Result<Self> {
+    fn try_new(
+        kind: ManifestType,
+        name: &str,
+        size: u64,
+        data: &[&str],
+    ) -> crate::Result<Self> {
         let mut hashes = IndexMap::new();
         for (kind, value) in data.iter().tuples() {
             let kind: HashType = kind
@@ -138,8 +143,9 @@ impl ManifestFile {
     pub fn verify(&self, data: &[u8]) -> crate::Result<()> {
         let name = self.name();
         self.hashes.iter().try_for_each(|(hash, value)| {
-            hash.verify(data, value)
-                .map_err(|e| Error::InvalidValue(format!("{name}: failed verifying {hash}: {e}")))
+            hash.verify(data, value).map_err(|e| {
+                Error::InvalidValue(format!("{name}: failed verifying {hash}: {e}"))
+            })
         })
     }
 }
@@ -196,11 +202,15 @@ impl FromStr for ManifestFile {
 
         // verify manifest tokens include at least one hash
         let (mtype, name, size, hashes) = match &fields[..] {
-            [mtype, name, size, hashes @ ..] if !hashes.is_empty() && hashes.len() % 2 == 0 => {
+            [mtype, name, size, hashes @ ..]
+                if !hashes.is_empty() && hashes.len() % 2 == 0 =>
+            {
                 (mtype, name, size, hashes)
             }
             _ => {
-                return Err(Error::InvalidValue("invalid number of manifest tokens".to_string()));
+                return Err(Error::InvalidValue(
+                    "invalid number of manifest tokens".to_string(),
+                ));
             }
         };
 
@@ -222,9 +232,8 @@ impl Manifest {
     /// Parse a [`Manifest`] from a file.
     pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
         match fs::read_to_string(path) {
-            Ok(data) => {
-                Self::parse(&data).map_err(|e| Error::InvalidValue(format!("failed parsing: {e}")))
-            }
+            Ok(data) => Self::parse(&data)
+                .map_err(|e| Error::InvalidValue(format!("failed parsing: {e}"))),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(Error::IO(format!("failed reading: {e}"))),
         }
@@ -302,7 +311,9 @@ impl Manifest {
                         path if path.as_str() == "Manifest" => None,
                         path => Some((ManifestType::Misc, path)),
                     })
-                    .map(|(kind, path)| ManifestFile::from_path(kind, pkgdir.join(path), hashes)),
+                    .map(|(kind, path)| {
+                        ManifestFile::from_path(kind, pkgdir.join(path), hashes)
+                    }),
             );
         } else {
             // remove thick entries
@@ -327,7 +338,8 @@ impl Manifest {
                 ManifestType::Dist => distdir.join(f.name()),
                 _ => pkgdir.join(f.name()),
             };
-            let data = fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {e}")))?;
+            let data =
+                fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {e}")))?;
             f.verify(&data)
         })
     }

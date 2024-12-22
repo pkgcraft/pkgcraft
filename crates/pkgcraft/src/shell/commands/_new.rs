@@ -20,17 +20,20 @@ pub(super) fn new(args: &[&str], builtin: Builtin) -> scallop::Result<ExecStatus
     }
 
     // TODO: create tempdir in $T to avoid cross-fs issues as much as possible
-    let tmp_dir = tempdir().map_err(|e| Error::Base(format!("failed creating tempdir: {e}")))?;
+    let tmp_dir =
+        tempdir().map_err(|e| Error::Base(format!("failed creating tempdir: {e}")))?;
     let dest = tmp_dir.path().join(name);
 
     if source == "-" {
         let mut file = File::create(&dest)
             .map_err(|e| Error::Base(format!("failed opening file: {dest:?}: {e}")))?;
-        io::copy(&mut stdin(), &mut file)
-            .map_err(|e| Error::Base(format!("failed writing stdin to file: {dest:?}: {e}")))?;
+        io::copy(&mut stdin(), &mut file).map_err(|e| {
+            Error::Base(format!("failed writing stdin to file: {dest:?}: {e}"))
+        })?;
     } else {
-        fs::copy(source, &dest)
-            .map_err(|e| Error::Base(format!("failed copying file {source:?} to {dest:?}: {e}")))?;
+        fs::copy(source, &dest).map_err(|e| {
+            Error::Base(format!("failed copying file {source:?} to {dest:?}: {e}"))
+        })?;
     }
 
     let path = dest

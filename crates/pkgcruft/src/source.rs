@@ -97,7 +97,9 @@ impl PkgFilter {
                     }),
             ),
             Self::Live(inverted) => Box::new(iter.filter(move |pkg| inverted ^ pkg.live())),
-            Self::Masked(inverted) => Box::new(iter.filter(move |pkg| inverted ^ pkg.masked())),
+            Self::Masked(inverted) => {
+                Box::new(iter.filter(move |pkg| inverted ^ pkg.masked()))
+            }
             Self::Stable(inverted) => {
                 let status = if *inverted {
                     KeywordStatus::Unstable
@@ -217,7 +219,10 @@ pub(crate) trait Source: fmt::Display {
     fn is_filtered(&self) -> bool;
 
     /// Return the iterator of items matching a restriction.
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_;
+    fn iter_restrict<R: Into<Restrict>>(
+        &self,
+        val: R,
+    ) -> impl Iterator<Item = Self::Item> + '_;
 
     /// Return the parallelized, ordered iterator of items matching a restriction.
     fn iter_restrict_ordered<R: Into<Restrict>>(
@@ -257,7 +262,10 @@ impl Source for EbuildPkgSource {
         !self.filters.is_empty()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
+    fn iter_restrict<R: Into<Restrict>>(
+        &self,
+        val: R,
+    ) -> impl Iterator<Item = Self::Item> + '_ {
         if self.is_filtered() {
             Either::Left(
                 self.filters
@@ -316,7 +324,10 @@ impl Source for EbuildRawPkgSource {
         !self.filters.is_empty()
     }
 
-    fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> impl Iterator<Item = Self::Item> + '_ {
+    fn iter_restrict<R: Into<Restrict>>(
+        &self,
+        val: R,
+    ) -> impl Iterator<Item = Self::Item> + '_ {
         if self.is_filtered() {
             Either::Left(
                 self.filters

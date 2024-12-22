@@ -181,9 +181,9 @@ impl Command {
                         if result.is_ok() {
                             result = match tokio::fs::read(&src).await {
                                 Ok(data) => manifest.verify(&data),
-                                Err(e) => {
-                                    Err(Error::InvalidValue(format!("failed reading: {src}: {e}")))
-                                }
+                                Err(e) => Err(Error::InvalidValue(format!(
+                                    "failed reading: {src}: {e}"
+                                ))),
                             }
                         }
                     }

@@ -135,15 +135,21 @@ impl Metadata {
             Key::REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
             Key::RESTRICT => self.restrict = DependencySet::restrict(val)?,
             Key::SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
-            Key::HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
+            Key::HOMEPAGE => {
+                self.homepage = val.split_whitespace().map(String::from).collect()
+            }
             Key::DEFINED_PHASES => {
                 // PMS specifies if no phase functions are defined, a single hyphen is used.
                 if val != "-" {
                     self.defined_phases = val.split_whitespace().map(phase).try_collect()?
                 }
             }
-            Key::KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
-            Key::IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
+            Key::KEYWORDS => {
+                self.keywords = val.split_whitespace().map(keyword).try_collect()?
+            }
+            Key::IUSE => {
+                self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?
+            }
             Key::INHERIT => self.inherit = val.split_whitespace().map(eclass).try_collect()?,
             Key::INHERITED => {
                 self.inherited = val

@@ -120,7 +120,8 @@ impl Check {
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
-        let Some(eclass) = Eclass::iter().find(|x| pkg.inherited().contains(x.as_ref())) else {
+        let Some(eclass) = Eclass::iter().find(|x| pkg.inherited().contains(x.as_ref()))
+        else {
             return;
         };
 

@@ -117,7 +117,8 @@ fn current_dir_targets() {
 
     // package dir
     env::set_current_dir(primary_repo.join("Dependency/DependencyDeprecated")).unwrap();
-    let expected = glob_reports!("{primary_repo}/Dependency/DependencyDeprecated/reports.json");
+    let expected =
+        glob_reports!("{primary_repo}/Dependency/DependencyDeprecated/reports.json");
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 

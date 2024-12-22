@@ -28,7 +28,9 @@ pub(super) fn use_conf(
         (ExecStatus::Success, None) => write!(stdout(), "--{enabled}-{opt}")?,
         (ExecStatus::Success, Some(value)) => write!(stdout(), "--{enabled}-{opt}={value}")?,
         (ExecStatus::Failure(_), None) => write!(stdout(), "--{disabled}-{opt}")?,
-        (ExecStatus::Failure(_), Some(value)) => write!(stdout(), "--{disabled}-{opt}={value}")?,
+        (ExecStatus::Failure(_), Some(value)) => {
+            write!(stdout(), "--{disabled}-{opt}={value}")?
+        }
     }
 
     Ok(ret)

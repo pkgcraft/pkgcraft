@@ -164,7 +164,8 @@ pub(crate) fn atomic_write_file<C: AsRef<[u8]>, P: AsRef<Utf8Path>>(
     let dir = path
         .parent()
         .ok_or_else(|| Error::IO(format!("invalid file path: {path}")))?;
-    fs::create_dir_all(dir).map_err(|e| Error::IO(format!("failed creating dir: {dir}: {e}")))?;
+    fs::create_dir_all(dir)
+        .map_err(|e| Error::IO(format!("failed creating dir: {dir}: {e}")))?;
 
     // TODO: support custom temporary file path formats
     let pid = std::process::id();
@@ -174,7 +175,8 @@ pub(crate) fn atomic_write_file<C: AsRef<[u8]>, P: AsRef<Utf8Path>>(
     let temp = dir.join(format!(".{file_name}.{pid}"));
 
     // write to the temporary file
-    fs::write(&temp, data).map_err(|e| Error::IO(format!("failed writing data: {temp}: {e}")))?;
+    fs::write(&temp, data)
+        .map_err(|e| Error::IO(format!("failed writing data: {temp}: {e}")))?;
 
     // move file to final path
     fs::rename(&temp, path)

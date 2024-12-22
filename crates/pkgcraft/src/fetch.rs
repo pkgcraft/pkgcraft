@@ -63,7 +63,11 @@ pub struct Fetchable {
 
 impl Fetchable {
     /// Create a [`Fetchable`] from a [`Uri`].
-    pub fn from_uri(uri: &Uri, pkg: &EbuildPkg, use_default_mirrors: bool) -> crate::Result<Self> {
+    pub fn from_uri(
+        uri: &Uri,
+        pkg: &EbuildPkg,
+        use_default_mirrors: bool,
+    ) -> crate::Result<Self> {
         let mut fetch_restricted = pkg.restrict().contains("fetch");
         let mut mirror_restricted = fetch_restricted || pkg.restrict().contains("mirror");
 
@@ -364,7 +368,9 @@ impl Fetcher {
                 return Ok(());
             } else if let Some(value) = size {
                 if current_size > value {
-                    return Err(Error::InvalidValue(format!("file larger than expected: {path}")));
+                    return Err(Error::InvalidValue(format!(
+                        "file larger than expected: {path}"
+                    )));
                 }
             }
 
@@ -409,8 +415,9 @@ impl Fetcher {
         // download chunks while tracking progress
         let mut stream = response.bytes_stream();
         while let Some(item) = stream.next().await {
-            let chunk = item
-                .map_err(|e| Error::InvalidValue(format!("error while downloading file: {e}")))?;
+            let chunk = item.map_err(|e| {
+                Error::InvalidValue(format!("error while downloading file: {e}"))
+            })?;
             file.write_all(&chunk).await?;
             position += chunk.len() as u64;
             // TODO: handle progress differently for unsized downloads?

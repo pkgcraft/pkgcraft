@@ -274,7 +274,11 @@ impl EbuildPkg {
     }
 
     /// Generate fetchable URIs for a package's SRC_URI targets.
-    pub fn fetchables(&self, override_restrict: bool, use_default_mirrors: bool) -> IterFetchable {
+    pub fn fetchables(
+        &self,
+        override_restrict: bool,
+        use_default_mirrors: bool,
+    ) -> IterFetchable {
         IterFetchable {
             pkg: self,
             uris: self.src_uri().iter_flatten(),
@@ -574,7 +578,10 @@ mod tests {
             assert_eq!(pkg.dependencies([*key]).to_string(), "a/pkg u? ( b/pkg )");
         }
         assert_eq!(pkg.dependencies([]).to_string(), "a/pkg u? ( b/pkg )");
-        assert_eq!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg u? ( b/pkg )");
+        assert_eq!(
+            pkg.dependencies([Key::DEPEND, Key::RDEPEND]).to_string(),
+            "a/pkg u? ( b/pkg )"
+        );
 
         // non-dependency keys are ignored
         assert!(pkg.dependencies([Key::LICENSE]).is_empty());

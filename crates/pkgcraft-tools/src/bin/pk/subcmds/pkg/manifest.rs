@@ -35,11 +35,12 @@ impl PathOrTempdir {
     /// Create a new [`PathOrTempdir`] from an optional path.
     fn new(path: Option<&Utf8Path>) -> anyhow::Result<Self> {
         if let Some(value) = path {
-            fs::create_dir_all(value).map_err(|e| anyhow!("failed creating directory: {e}"))?;
+            fs::create_dir_all(value)
+                .map_err(|e| anyhow!("failed creating directory: {e}"))?;
             Ok(Self::Path(value.to_path_buf()))
         } else {
-            let tmpdir =
-                TempDir::new().map_err(|e| anyhow!("failed creating temporary directory: {e}"))?;
+            let tmpdir = TempDir::new()
+                .map_err(|e| anyhow!("failed creating temporary directory: {e}"))?;
             Ok(Self::Tempdir(tmpdir))
         }
     }
@@ -150,10 +151,11 @@ impl Command {
             let regen_entry = |name: &str| -> bool {
                 if let Some(entry) = manifest.get(name) {
                     manifest.is_thick() != thick
-                        || entry
-                            .hashes()
-                            .keys()
-                            .ne(&pkg.repo().metadata().config.manifest_hashes)
+                        || entry.hashes().keys().ne(&pkg
+                            .repo()
+                            .metadata()
+                            .config
+                            .manifest_hashes)
                 } else {
                     true
                 }
@@ -206,10 +208,9 @@ impl Command {
             // the requested setting or the entry hashes don't match the repo hashes.
             let regen = || -> bool {
                 manifest.is_thick() != thick
-                    || manifest
-                        .iter()
-                        .flat_map(|e| e.hashes().keys())
-                        .any(|hash| !pkg.repo().metadata().config.manifest_hashes.contains(hash))
+                    || manifest.iter().flat_map(|e| e.hashes().keys()).any(|hash| {
+                        !pkg.repo().metadata().config.manifest_hashes.contains(hash)
+                    })
             };
 
             let mut distfiles = pkg
@@ -328,8 +329,9 @@ impl Command {
                     fs::write(&manifest_path, manifest.to_string())
                         .map_err(|e| anyhow!("{cpn}::{repo}: failed writing manifest: {e}"))?;
                 } else if manifest_path.exists() {
-                    fs::remove_file(&manifest_path)
-                        .map_err(|e| anyhow!("{cpn}::{repo}: failed removing manifest: {e}"))?;
+                    fs::remove_file(&manifest_path).map_err(|e| {
+                        anyhow!("{cpn}::{repo}: failed removing manifest: {e}")
+                    })?;
                 }
             }
         }

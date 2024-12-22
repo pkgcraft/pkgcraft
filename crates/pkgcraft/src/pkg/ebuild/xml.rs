@@ -232,7 +232,9 @@ impl TryFrom<Node<'_, '_>> for Upstream {
                 "changelog" => upstream.changelog = u_child.text().and_then(string_or_none),
                 "doc" => upstream.doc = u_child.text().and_then(string_or_none),
                 "remote-id" => {
-                    if let (Some(site), Some(name)) = (u_child.attribute("type"), u_child.text()) {
+                    if let (Some(site), Some(name)) =
+                        (u_child.attribute("type"), u_child.text())
+                    {
                         let r = RemoteId {
                             site: site.to_string(),
                             name: name.to_string(),

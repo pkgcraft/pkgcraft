@@ -439,7 +439,10 @@ mod tests {
         // add valid cpv
         repo.extend(["cat/pkg-0"]).unwrap();
         let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["cat/pkg-0", "cat/pkg-2"]);
+        assert_ordered_eq!(
+            pkgs.iter().map(|x| x.cpv().to_string()),
+            ["cat/pkg-0", "cat/pkg-2"]
+        );
 
         // add multiple cpvs, invalid cpvs logged and ignored
         repo.extend(["cat/pkg-3", "cat/pkg", "cat/pkg-1", "a/b-0"])
@@ -504,7 +507,10 @@ mod tests {
             .pkgs(["cat/pkg-0", "acat/bpkg-1"])
             .unwrap();
         let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["acat/bpkg-1", "cat/pkg-0"]);
+        assert_ordered_eq!(
+            pkgs.iter().map(|x| x.cpv().to_string()),
+            ["acat/bpkg-1", "cat/pkg-0"]
+        );
     }
 
     #[test]

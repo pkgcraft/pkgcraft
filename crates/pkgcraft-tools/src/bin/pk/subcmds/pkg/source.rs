@@ -95,24 +95,25 @@ where
     I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>>,
 {
     let mut failed = false;
-    let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
-        let pkg = pkg?;
-        let mut data = vec![];
-        let mut elapsed = Duration::new(0, 0);
-        while elapsed < duration {
-            let start = Instant::now();
-            // TODO: move error mapping into pkgcraft for pkg sourcing
-            pkg.source().map_err(|e| {
-                let err: pkgcraft::Error = e.into();
-                err.into_invalid_pkg_err(&pkg)
-            })?;
-            let source_elapsed = micros!(start.elapsed());
-            data.push(source_elapsed);
-            elapsed += source_elapsed;
-            scallop::shell::reset(&[]);
-        }
-        Ok((pkg.to_string(), data))
-    };
+    let func =
+        |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
+            let pkg = pkg?;
+            let mut data = vec![];
+            let mut elapsed = Duration::new(0, 0);
+            while elapsed < duration {
+                let start = Instant::now();
+                // TODO: move error mapping into pkgcraft for pkg sourcing
+                pkg.source().map_err(|e| {
+                    let err: pkgcraft::Error = e.into();
+                    err.into_invalid_pkg_err(&pkg)
+                })?;
+                let source_elapsed = micros!(start.elapsed());
+                data.push(source_elapsed);
+                elapsed += source_elapsed;
+                scallop::shell::reset(&[]);
+            }
+            Ok((pkg.to_string(), data))
+        };
 
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();

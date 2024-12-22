@@ -37,9 +37,9 @@ impl FromStr for Md5DictKey {
         let key = match s {
             "_eclasses_" => Key::INHERITED,
             "_md5_" => Key::CHKSUM,
-            s => s
-                .parse()
-                .map_err(|_| Error::InvalidValue(format!("invalid md5-dict cache key: {s}")))?,
+            s => s.parse().map_err(|_| {
+                Error::InvalidValue(format!("invalid md5-dict cache key: {s}"))
+            })?,
         };
 
         Ok(Md5DictKey(key))

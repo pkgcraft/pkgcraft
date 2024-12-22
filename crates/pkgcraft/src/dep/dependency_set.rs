@@ -479,7 +479,10 @@ mod tests {
 
         // Dependency objects
         assert!(dep_set.contains(&target_dep), "{dep_set} doesn't contain {target_dep}");
-        assert!(dep_set_ref.contains(&target_dep), "{dep_set_ref} doesn't contain {target_dep}");
+        assert!(
+            dep_set_ref.contains(&target_dep),
+            "{dep_set_ref} doesn't contain {target_dep}"
+        );
 
         // contains string types
         let s = "c/d".to_string();
@@ -548,7 +551,11 @@ mod tests {
         ] {
             let dep_set = DependencySet::required_use(s).unwrap();
             // borrowed
-            assert_ordered_eq!(dep_set.iter().map(|x| x.to_string()), expected.iter().copied(), s);
+            assert_ordered_eq!(
+                dep_set.iter().map(|x| x.to_string()),
+                expected.iter().copied(),
+                s
+            );
             // owned
             assert_ordered_eq!(
                 dep_set.clone().into_iter().map(|x| x.to_string()),
@@ -628,7 +635,10 @@ mod tests {
             ("^^ ( a b ) c", vec!["^^ ( a b )", "a", "b", "c"]),
             ("?? ( a b ) c", vec!["?? ( a b )", "a", "b", "c"]),
             ("u? ( a b ) c", vec!["u? ( a b )", "a", "b", "c"]),
-            ("u1? ( a !u2? ( b ) ) c", vec!["u1? ( a !u2? ( b ) )", "a", "!u2? ( b )", "b", "c"]),
+            (
+                "u1? ( a !u2? ( b ) ) c",
+                vec!["u1? ( a !u2? ( b ) )", "a", "!u2? ( b )", "b", "c"],
+            ),
         ] {
             let dep_set = DependencySet::required_use(s).unwrap();
             // borrowed

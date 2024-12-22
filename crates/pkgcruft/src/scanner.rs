@@ -431,7 +431,12 @@ impl ReportIter {
             _workers: (0..scanner.jobs)
                 .map(|_| version_worker(runner.clone(), filter.clone(), targets_rx.clone()))
                 .collect(),
-            _producer: version_producer(scanner.repo.clone(), runner.clone(), restrict, targets_tx),
+            _producer: version_producer(
+                scanner.repo.clone(),
+                runner.clone(),
+                restrict,
+                targets_tx,
+            ),
             reports: Default::default(),
         }))
     }
@@ -499,7 +504,8 @@ mod tests {
 
         // specific reports
         let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
-        let expected = glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
+        let expected =
+            glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 

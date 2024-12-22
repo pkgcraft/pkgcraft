@@ -2,11 +2,14 @@ use std::cmp::Ordering;
 use std::ffi::{c_char, c_int, c_void};
 use std::hash::{Hash, Hasher};
 use std::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Sub, SubAssign,
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Sub,
+    SubAssign,
 };
 use std::{fmt, ptr, slice};
 
-use pkgcraft::dep::{self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, Recursive, Uri};
+use pkgcraft::dep::{
+    self, Conditionals, Dep, Evaluate, EvaluateForce, Flatten, Recursive, Uri,
+};
 use pkgcraft::eapi::Eapi;
 use pkgcraft::traits::{Contains, IntoOwned};
 use pkgcraft::types::Ordered;
@@ -271,7 +274,9 @@ impl DoubleEndedIterator for DependencyIntoIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         match self {
             Self::Dep(_, iter) => iter.next_back().map(Dependency::new_dep),
-            Self::String(set, iter) => iter.next_back().map(|d| Dependency::new_string(d, *set)),
+            Self::String(set, iter) => {
+                iter.next_back().map(|d| Dependency::new_string(d, *set))
+            }
             Self::Uri(_, iter) => iter.next_back().map(Dependency::new_uri),
         }
     }
@@ -855,7 +860,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_insert(
 
     match (set.deref_mut(), spec.clone()) {
         (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(dep)) => deps.insert(dep),
-        (DependencySetWrapper::String(deps), DependencyWrapper::String(dep)) => deps.insert(dep),
+        (DependencySetWrapper::String(deps), DependencyWrapper::String(dep)) => {
+            deps.insert(dep)
+        }
         (DependencySetWrapper::Uri(deps), DependencyWrapper::Uri(dep)) => deps.insert(dep),
         _ => panic!("invalid DependencySet and Dependency type combination"),
     }
@@ -868,7 +875,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_insert(
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_dependency_set_pop(d: *mut DependencySet) -> *mut Dependency {
+pub unsafe extern "C" fn pkgcraft_dependency_set_pop(
+    d: *mut DependencySet,
+) -> *mut Dependency {
     let set = try_mut_from_ptr!(d);
 
     use DependencySetWrapper::*;
@@ -929,9 +938,11 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_replace(
     let value = try_deref_from_ptr!(value);
 
     let dep = match (set.deref_mut(), key, value) {
-        (DependencySetWrapper::Dep(deps), DependencyWrapper::Dep(k), DependencyWrapper::Dep(v)) => {
-            deps.shift_replace(k, v.clone()).map(Dependency::new_dep)
-        }
+        (
+            DependencySetWrapper::Dep(deps),
+            DependencyWrapper::Dep(k),
+            DependencyWrapper::Dep(v),
+        ) => deps.shift_replace(k, v.clone()).map(Dependency::new_dep),
         (
             DependencySetWrapper::String(deps),
             DependencyWrapper::String(k),
@@ -939,9 +950,11 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_replace(
         ) => deps
             .shift_replace(k, v.clone())
             .map(|d| Dependency::new_string(d, set.set)),
-        (DependencySetWrapper::Uri(deps), DependencyWrapper::Uri(k), DependencyWrapper::Uri(v)) => {
-            deps.shift_replace(k, v.clone()).map(Dependency::new_uri)
-        }
+        (
+            DependencySetWrapper::Uri(deps),
+            DependencyWrapper::Uri(k),
+            DependencyWrapper::Uri(v),
+        ) => deps.shift_replace(k, v.clone()).map(Dependency::new_uri),
         _ => panic!("invalid DependencySet and Dependency type combination"),
     };
 
@@ -1532,7 +1545,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_into_iter_flatten(
     let dep = try_deref_from_ptr!(d);
     let iter = match dep.clone() {
         DependencyWrapper::Dep(d) => DependencyIntoIterFlatten::Dep(d.into_iter_flatten()),
-        DependencyWrapper::String(d) => DependencyIntoIterFlatten::String(d.into_iter_flatten()),
+        DependencyWrapper::String(d) => {
+            DependencyIntoIterFlatten::String(d.into_iter_flatten())
+        }
         DependencyWrapper::Uri(d) => DependencyIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))
@@ -1549,7 +1564,9 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten(
     let deps = try_deref_from_ptr!(d);
     let iter = match deps.clone() {
         DependencySetWrapper::Dep(d) => DependencyIntoIterFlatten::Dep(d.into_iter_flatten()),
-        DependencySetWrapper::String(d) => DependencyIntoIterFlatten::String(d.into_iter_flatten()),
+        DependencySetWrapper::String(d) => {
+            DependencyIntoIterFlatten::String(d.into_iter_flatten())
+        }
         DependencySetWrapper::Uri(d) => DependencyIntoIterFlatten::Uri(d.into_iter_flatten()),
     };
     Box::into_raw(Box::new(iter))

@@ -307,7 +307,10 @@ mod tests {
 
         let r = Restrict::Ebuild(StrRestrict::regex("SLOT=").unwrap());
         let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1", "cat/pkg-2"],);
+        assert_ordered_eq!(
+            pkgs.iter().map(|p| p.cpv().to_string()),
+            ["cat/pkg-1", "cat/pkg-2"],
+        );
     }
 
     #[test]
@@ -339,7 +342,10 @@ mod tests {
 
         let r = Restrict::Description(StrRestrict::regex("desc").unwrap());
         let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1", "cat/pkg-2"],);
+        assert_ordered_eq!(
+            pkgs.iter().map(|p| p.cpv().to_string()),
+            ["cat/pkg-1", "cat/pkg-2"],
+        );
     }
 
     #[test]
@@ -369,7 +375,10 @@ mod tests {
 
         let r = Restrict::Slot(StrRestrict::regex("0|1").unwrap());
         let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-0", "cat/pkg-1"],);
+        assert_ordered_eq!(
+            pkgs.iter().map(|p| p.cpv().to_string()),
+            ["cat/pkg-0", "cat/pkg-1"],
+        );
     }
 
     #[test]
@@ -405,7 +414,10 @@ mod tests {
 
         let r = Restrict::Subslot(StrRestrict::regex("0|2").unwrap());
         let pkgs: Vec<_> = repo.iter_restrict(r).try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-0", "cat/pkg-1"],);
+        assert_ordered_eq!(
+            pkgs.iter().map(|p| p.cpv().to_string()),
+            ["cat/pkg-0", "cat/pkg-1"],
+        );
     }
 
     #[test]

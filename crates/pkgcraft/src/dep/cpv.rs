@@ -101,7 +101,9 @@ impl Intersects<CpvOrDep> for Cow<'_, Dep> {
 }
 
 /// Versioned package.
-#[derive(SerializeDisplay, DeserializeFromStr, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
+#[derive(
+    SerializeDisplay, DeserializeFromStr, PartialEq, Eq, PartialOrd, Ord, Clone, Hash,
+)]
 pub struct Cpv {
     pub(crate) cpn: Cpn,
     pub(crate) version: Version,

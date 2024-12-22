@@ -98,7 +98,9 @@ async fn unsupported() {
         .arg(repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid fetchable: unsupported protocol: ftp://pkgcraft.pkgcraft/file"))
+        .stderr(contains(
+            "invalid fetchable: unsupported protocol: ftp://pkgcraft.pkgcraft/file",
+        ))
         .failure()
         .code(1);
 }

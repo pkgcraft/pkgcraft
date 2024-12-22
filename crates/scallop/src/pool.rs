@@ -91,8 +91,8 @@ impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
         F: FnOnce(O) -> T,
     {
         let mut sem = SharedSemaphore::new(size)?;
-        let (tx, rx): (IpcSender<T>, IpcReceiver<T>) =
-            ipc::channel().map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
+        let (tx, rx): (IpcSender<T>, IpcReceiver<T>) = ipc::channel()
+            .map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
 
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),

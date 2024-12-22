@@ -91,9 +91,10 @@ mod tests {
         let repo = data.ebuild_repo("commands").unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
-        get_build_mut().user_patches = ["files/0.patch".to_string(), "files/1.patch".to_string()]
-            .into_iter()
-            .collect();
+        get_build_mut().user_patches =
+            ["files/0.patch".to_string(), "files/1.patch".to_string()]
+                .into_iter()
+                .collect();
 
         let file_content = indoc::indoc! {"
             0

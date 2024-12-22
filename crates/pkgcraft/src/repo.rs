@@ -217,7 +217,10 @@ impl Repo {
     }
 
     /// Try to load a repo from a potentially nested path.
-    pub fn from_nested_path<P: AsRef<Utf8Path>>(path: P, priority: i32) -> crate::Result<Self> {
+    pub fn from_nested_path<P: AsRef<Utf8Path>>(
+        path: P,
+        priority: i32,
+    ) -> crate::Result<Self> {
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {

@@ -197,7 +197,10 @@ pub unsafe extern "C" fn pkgcraft_repo_hash(r: *mut Repo) -> u64 {
 /// # Safety
 /// The argument must be a non-null Repo pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_contains_path(r: *mut Repo, path: *const c_char) -> bool {
+pub unsafe extern "C" fn pkgcraft_repo_contains_path(
+    r: *mut Repo,
+    path: *const c_char,
+) -> bool {
     let repo = try_ref_from_ptr!(r);
     let path = try_str_from_ptr!(path);
     repo.contains(path)
@@ -305,7 +308,9 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_restrict(
 /// # Safety
 /// The argument must be a non-null RepoIterRestrict pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_repo_iter_restrict_next(i: *mut RepoIterRestrict) -> *mut Pkg {
+pub unsafe extern "C" fn pkgcraft_repo_iter_restrict_next(
+    i: *mut RepoIterRestrict,
+) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
     // TODO: determine how to differentiate return types for pkg errors and iterator end.
     iter.find_map(|r| r.ok())

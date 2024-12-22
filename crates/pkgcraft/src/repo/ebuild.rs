@@ -159,18 +159,13 @@ impl EbuildRepo {
     }
 
     /// Return the build pool for the repo.
-    pub(crate) fn pool(&self) -> Arc<BuildPool> {
+    pub fn pool(&self) -> Arc<BuildPool> {
         self.0
             .pool
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
             .upgrade()
             .unwrap_or_else(|| panic!("destroyed ebuild repo: {self}"))
-    }
-
-    /// Update the repo's package metadata cache for a given [`Cpv`].
-    pub fn generate_pkg_metadata(&self, cpv: &Cpv, force: bool, verify: bool) -> crate::Result<()> {
-        self.pool().metadata(self, cpv, force, verify)
     }
 
     pub fn metadata(&self) -> &Metadata {
@@ -429,7 +424,10 @@ impl EbuildRepo {
     /// restriction.
     ///
     /// This constructs packages in parallel and returns them in repo order.
-    pub fn iter_raw_restrict_ordered<R: Into<Restrict>>(&self, value: R) -> IterRawRestrictOrdered {
+    pub fn iter_raw_restrict_ordered<R: Into<Restrict>>(
+        &self,
+        value: R,
+    ) -> IterRawRestrictOrdered {
         IterRawRestrictOrdered::new(self, value)
     }
 
@@ -474,7 +472,10 @@ impl EbuildRepo {
     }
 
     /// Return a configured repo using the given config settings.
-    pub fn configure<T: Into<Arc<Settings>>>(&self, settings: T) -> configured::ConfiguredRepo {
+    pub fn configure<T: Into<Arc<Settings>>>(
+        &self,
+        settings: T,
+    ) -> configured::ConfiguredRepo {
         configured::ConfiguredRepo::new(self.clone(), settings.into())
     }
 }
@@ -1401,7 +1402,9 @@ mod tests {
         let r = EbuildRepo::from_path(&path, 0, &path);
         assert_err_re!(
             r,
-            format!(r##"^invalid repo: {path}: profiles/eapi: invalid EAPI: "# invalid\\n8""##)
+            format!(
+                r##"^invalid repo: {path}: profiles/eapi: invalid EAPI: "# invalid\\n8""##
+            )
         );
 
         // nonexistent profiles/repo_name file
@@ -1726,7 +1729,10 @@ mod tests {
 
         // single match via package name
         let restrict = DepRestrict::package("pkgb");
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict).map(|c| c.to_string()), ["cat1/pkgb"]);
+        assert_ordered_eq!(
+            repo.iter_cpn_restrict(restrict).map(|c| c.to_string()),
+            ["cat1/pkgb"]
+        );
 
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
@@ -1832,7 +1838,10 @@ mod tests {
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
         let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|x| x.cpv().to_string()), ["cat1/pkg-1", "cat2/pkg-1"]);
+        assert_ordered_eq!(
+            pkgs.iter().map(|x| x.cpv().to_string()),
+            ["cat1/pkg-1", "cat2/pkg-1"]
+        );
     }
 
     #[test]

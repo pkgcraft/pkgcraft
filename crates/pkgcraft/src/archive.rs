@@ -156,8 +156,8 @@ impl ArchiveFormat for Gz {
 
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
-        let src =
-            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
+        let src = File::open(src)
+            .map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
@@ -193,8 +193,8 @@ impl ArchiveFormat for Bz2 {
 
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
-        let src =
-            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
+        let src = File::open(src)
+            .map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)
@@ -230,8 +230,8 @@ impl ArchiveFormat for Xz {
 
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
         let src = src.as_ref();
-        let src =
-            File::open(src).map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
+        let src = File::open(src)
+            .map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
 
         let dest = dest.as_ref();
         let dest = File::create(dest)

@@ -44,7 +44,8 @@ impl EbuildPkgCheck for Check {
                     .version(pkg)
                     .message(format!("disabled default: {x}"))
                     .report(filter);
-            } else if x.is_enabled() && self.use_expand.iter().any(|s| x.flag().starts_with(s)) {
+            } else if x.is_enabled() && self.use_expand.iter().any(|s| x.flag().starts_with(s))
+            {
                 UseFlagInvalid
                     .version(pkg)
                     .message(format!("enabled default: {x}"))

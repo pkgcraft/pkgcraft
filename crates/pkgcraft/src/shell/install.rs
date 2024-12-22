@@ -143,14 +143,17 @@ impl Install {
         let uid = opts.owner.as_ref().map(|o| o.uid);
         let gid = opts.group.as_ref().map(|g| g.gid);
         if uid.is_some() || gid.is_some() {
-            unistd::fchownat(None, path, uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW)
-                .map_err(|e| Error::Base(format!("failed setting file uid/gid: {path:?}: {e}")))?;
+            unistd::fchownat(None, path, uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW).map_err(
+                |e| Error::Base(format!("failed setting file uid/gid: {path:?}: {e}")),
+            )?;
         }
 
         if let Some(mode) = &opts.mode {
             if !path.is_symlink() {
                 stat::fchmodat(None, path, **mode, stat::FchmodatFlags::FollowSymlink)
-                    .map_err(|e| Error::Base(format!("failed setting file mode: {path:?}: {e}")))?;
+                    .map_err(|e| {
+                        Error::Base(format!("failed setting file mode: {path:?}: {e}"))
+                    })?;
             }
         }
 

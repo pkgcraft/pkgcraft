@@ -43,7 +43,9 @@ impl TryFrom<&EbuildRawPkg> for Metadata {
                         let s = val.split_whitespace().join(" ");
                         meta.deserialize(eapi, repo, key, &s)?;
                     } else if eapi.mandatory_keys().contains(key) {
-                        return Err(Error::InvalidValue(format!("missing required value: {key}")));
+                        return Err(Error::InvalidValue(format!(
+                            "missing required value: {key}"
+                        )));
                     }
                 }
             }

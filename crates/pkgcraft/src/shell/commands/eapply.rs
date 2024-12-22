@@ -14,7 +14,8 @@ const LONG_DOC: &str = "Apply patches to a package's source code.";
 
 /// Try to apply a path as a patch.
 fn apply_patch(path: &Utf8Path, options: &[&str]) -> scallop::Result<()> {
-    let data = File::open(path).map_err(|e| Error::Base(format!("invalid patch: {path}: {e}")))?;
+    let data =
+        File::open(path).map_err(|e| Error::Base(format!("invalid patch: {path}: {e}")))?;
 
     let patch = Command::new("patch")
         .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])

@@ -115,7 +115,8 @@ mod tests {
         let check_dir = repo.path().join(CHECK);
         let report_dir = repo.path().join("virtual/LicenseInvalid");
         let scanner = Scanner::new(repo).checks([CHECK]);
-        let expected = glob_reports!("{check_dir}/*/reports.json", "{report_dir}/reports.json");
+        let expected =
+            glob_reports!("{check_dir}/*/reports.json", "{report_dir}/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 

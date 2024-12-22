@@ -85,7 +85,8 @@ impl EbuildPkgSetCheck for Check {
             previous = arches;
         }
 
-        #[allow(clippy::mutable_key_type)] // false positive due to ebuild pkg OnceLock usage
+        #[allow(clippy::mutable_key_type)]
+        // false positive due to ebuild pkg OnceLock usage
         let mut dropped = HashMap::<_, Vec<_>>::new();
         for (arch, pkg) in changes {
             // TODO: report all pkgs with dropped keywords in verbose mode?

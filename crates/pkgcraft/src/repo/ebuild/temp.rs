@@ -176,7 +176,11 @@ impl EbuildTempRepo {
     }
 
     /// Create an ebuild file in the repo from raw data.
-    pub fn create_ebuild_from_str<T>(&mut self, value: T, data: &str) -> crate::Result<Utf8PathBuf>
+    pub fn create_ebuild_from_str<T>(
+        &mut self,
+        value: T,
+        data: &str,
+    ) -> crate::Result<Utf8PathBuf>
     where
         T: TryInto<Cpv>,
         Error: From<<T as TryInto<Cpv>>::Error>,
@@ -196,7 +200,8 @@ impl EbuildTempRepo {
         let path = self.path.join(format!("eclass/{name}.eclass"));
         fs::create_dir_all(path.parent().unwrap())
             .map_err(|e| Error::IO(format!("failed creating eclass dir: {e}")))?;
-        fs::write(&path, data).map_err(|e| Error::IO(format!("failed writing to eclass: {e}")))?;
+        fs::write(&path, data)
+            .map_err(|e| Error::IO(format!("failed writing to eclass: {e}")))?;
         Ok(path)
     }
 

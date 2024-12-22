@@ -419,11 +419,13 @@ pub(super) fn properties_dependency_set(s: &str) -> crate::Result<DependencySet<
 }
 
 pub(super) fn properties_dependency(s: &str) -> crate::Result<Dependency<String>> {
-    depspec::properties_dependency(s).map_err(|e| peg_error("invalid PROPERTIES dependency", s, e))
+    depspec::properties_dependency(s)
+        .map_err(|e| peg_error("invalid PROPERTIES dependency", s, e))
 }
 
 pub(super) fn required_use_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
-    depspec::required_use_dependency_set(s).map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
+    depspec::required_use_dependency_set(s)
+        .map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
 }
 
 pub(super) fn required_use_dependency(s: &str) -> crate::Result<Dependency<String>> {
@@ -446,8 +448,12 @@ pub(super) fn package_dependency_set(
     depspec::package_dependency_set(s, eapi).map_err(|e| peg_error("invalid dependency", s, e))
 }
 
-pub(super) fn package_dependency(s: &str, eapi: &'static Eapi) -> crate::Result<Dependency<Dep>> {
-    depspec::package_dependency(s, eapi).map_err(|e| peg_error("invalid package dependency", s, e))
+pub(super) fn package_dependency(
+    s: &str,
+    eapi: &'static Eapi,
+) -> crate::Result<Dependency<Dep>> {
+    depspec::package_dependency(s, eapi)
+        .map_err(|e| peg_error("invalid package dependency", s, e))
 }
 
 #[cfg(test)]
@@ -483,7 +489,11 @@ mod tests {
         ] {
             for eapi in &*EAPIS {
                 let result = dep(s, eapi);
-                assert!(result.is_ok(), "{s:?} failed for EAPI {eapi}: {}", result.err().unwrap());
+                assert!(
+                    result.is_ok(),
+                    "{s:?} failed for EAPI {eapi}: {}",
+                    result.err().unwrap()
+                );
                 let d = result.unwrap();
                 assert_eq!(d.blocker(), blocker);
                 assert_eq!(d.to_string(), s);
@@ -697,9 +707,17 @@ mod tests {
     #[test]
     fn package() {
         // invalid
-        for s in ["(", ")", "( )", "|| ( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"] {
-            assert!(package_dependency_set(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
-            assert!(package_dependency(s, &EAPI_LATEST_OFFICIAL).is_err(), "{s:?} didn't fail");
+        for s in
+            ["(", ")", "( )", "|| ( )", "( a/b)", "| ( a/b )", "use ( a/b )", "!use ( a/b )"]
+        {
+            assert!(
+                package_dependency_set(s, &EAPI_LATEST_OFFICIAL).is_err(),
+                "{s:?} didn't fail"
+            );
+            assert!(
+                package_dependency(s, &EAPI_LATEST_OFFICIAL).is_err(),
+                "{s:?} didn't fail"
+            );
         }
 
         // empty set
@@ -726,7 +744,8 @@ mod tests {
     #[test]
     fn properties() {
         // invalid
-        for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"] {
+        for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"]
+        {
             assert!(properties_dependency_set(s).is_err(), "{s:?} didn't fail");
             assert!(properties_dependency(s).is_err(), "{s:?} didn't fail");
         }
@@ -761,7 +780,8 @@ mod tests {
     #[test]
     fn restrict() {
         // invalid
-        for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"] {
+        for s in ["(", ")", "( )", "( v)", "| ( v )", "!use ( v )", "|| ( v )", "|| ( v1 v2 )"]
+        {
             assert!(restrict_dependency_set(s).is_err(), "{s:?} didn't fail");
             assert!(restrict_dependency(s).is_err(), "{s:?} didn't fail");
         }

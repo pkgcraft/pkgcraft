@@ -24,7 +24,10 @@ Unpacks one or more source archives, in order, into the current directory.";
 //
 // unpacked file required permissions: a+r,u+w,go-w
 static FILE_MODE: LazyLock<Mode> = LazyLock::new(|| {
-    Mode::S_IRUSR | Mode::S_IRGRP | Mode::S_IROTH | Mode::S_IWUSR & !Mode::S_IWGRP & !Mode::S_IWOTH
+    Mode::S_IRUSR
+        | Mode::S_IRGRP
+        | Mode::S_IROTH
+        | Mode::S_IWUSR & !Mode::S_IWGRP & !Mode::S_IWOTH
 });
 // unpacked dir required permissions: a+rx,u+w,go-w
 static DIR_MODE: LazyLock<Mode> =
@@ -179,7 +182,10 @@ mod tests {
             if eapi.has(Feature::UnpackExtendedPath) {
                 result.unwrap();
             } else {
-                assert_err_re!(result, format!("^EAPI {eapi}: unsupported absolute path: .*$"));
+                assert_err_re!(
+                    result,
+                    format!("^EAPI {eapi}: unsupported absolute path: .*$")
+                );
             }
 
             // prefixed relative paths work everywhere
@@ -190,7 +196,10 @@ mod tests {
             if eapi.has(Feature::UnpackExtendedPath) {
                 result.unwrap();
             } else {
-                assert_err_re!(result, format!("^EAPI {eapi}: unsupported relative path: .*$"));
+                assert_err_re!(
+                    result,
+                    format!("^EAPI {eapi}: unsupported relative path: .*$")
+                );
             }
         }
     }

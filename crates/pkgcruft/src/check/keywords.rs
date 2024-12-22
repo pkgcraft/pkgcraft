@@ -18,7 +18,13 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Keywords,
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
-    reports: &[EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted, ArchesUnused],
+    reports: &[
+        EapiUnstable,
+        KeywordsLive,
+        KeywordsOverlapping,
+        KeywordsUnsorted,
+        ArchesUnused,
+    ],
     context: &[],
 };
 

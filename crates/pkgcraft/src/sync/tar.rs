@@ -112,8 +112,8 @@ impl Syncable for Repo {
 
         // fallback to built-in support on tar failure
         if tar_unpack.is_err() || !tar_unpack.unwrap().success() {
-            let tar_file =
-                fs::File::open(temp_file.path()).map_err(|e| Error::RepoSync(e.to_string()))?;
+            let tar_file = fs::File::open(temp_file.path())
+                .map_err(|e| Error::RepoSync(e.to_string()))?;
             // TODO: run decompression in a separate thread
             let mut archive = Archive::new(GzDecoder::new(tar_file));
             archive
@@ -130,7 +130,9 @@ impl Syncable for Repo {
                         .collect();
                     entry
                         .unpack(tmp_dir.path().join(&stripped_path))
-                        .map_err(|e| Error::RepoSync(format!("failed unpacking archive: {e}")))?;
+                        .map_err(|e| {
+                            Error::RepoSync(format!("failed unpacking archive: {e}"))
+                        })?;
                     Ok(stripped_path)
                 })
                 .filter_map(|e| e.ok())
@@ -140,7 +142,9 @@ impl Syncable for Repo {
         // move old repo out of the way if it exists and replace with unpacked repo
         if path.exists() {
             fs::rename(path, &tmp_dir_old).map_err(|e| {
-                Error::RepoSync(format!("failed moving old repo {path:?} -> {tmp_dir_old:?}: {e}"))
+                Error::RepoSync(format!(
+                    "failed moving old repo {path:?} -> {tmp_dir_old:?}: {e}"
+                ))
             })?;
         }
         fs::rename(&tmp_dir, path).map_err(|e| {
@@ -150,8 +154,9 @@ impl Syncable for Repo {
         // TODO: store this in cache instead of repo file
         // update cached ETag value
         if let Some(etag) = resp_headers.get(ETAG) {
-            fs::write(&etag_path, etag.as_bytes())
-                .map_err(|e| Error::RepoSync(format!("failed writing etag {etag_path:?}: {e}")))?;
+            fs::write(&etag_path, etag.as_bytes()).map_err(|e| {
+                Error::RepoSync(format!("failed writing etag {etag_path:?}: {e}"))
+            })?;
         }
 
         Ok(())

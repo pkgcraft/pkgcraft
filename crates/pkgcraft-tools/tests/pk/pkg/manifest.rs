@@ -72,7 +72,9 @@ async fn unsupported() {
         .arg(repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid fetchable: unsupported protocol: ftp://pkgcraft.pkgcraft/file"))
+        .stderr(contains(
+            "invalid fetchable: unsupported protocol: ftp://pkgcraft.pkgcraft/file",
+        ))
         .failure()
         .code(1);
 }
@@ -700,7 +702,9 @@ async fn selective_restrict() {
         .args(["-d", dir.path().to_str().unwrap()])
         .assert()
         .stdout("")
-        .stderr(contains(format!("cat/pkg-1::test: nonexistent restricted fetchable: {uri}/file1")))
+        .stderr(contains(format!(
+            "cat/pkg-1::test: nonexistent restricted fetchable: {uri}/file1"
+        )))
         .failure()
         .code(1);
     assert!(fs::read_to_string("Manifest").is_err());

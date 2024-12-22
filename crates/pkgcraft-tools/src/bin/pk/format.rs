@@ -3,7 +3,9 @@ use std::str::FromStr;
 use aho_corasick::AhoCorasick;
 use strum::IntoEnumIterator;
 
-pub(crate) trait EnumVariable<'a>: std::fmt::Display + FromStr + IntoEnumIterator {
+pub(crate) trait EnumVariable<'a>:
+    std::fmt::Display + FromStr + IntoEnumIterator
+{
     type Object;
     fn value(&self, obj: &'a Self::Object) -> String;
 }

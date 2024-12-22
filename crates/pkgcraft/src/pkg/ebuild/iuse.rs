@@ -145,7 +145,11 @@ mod tests {
             if op != "!=" {
                 let op = op_map[op];
                 assert_eq!(iuse1.cmp(&iuse2), op, "failed comparing: {expr}");
-                assert_eq!(iuse2.cmp(&iuse1), op.reverse(), "failed comparing inverted: {expr}");
+                assert_eq!(
+                    iuse2.cmp(&iuse1),
+                    op.reverse(),
+                    "failed comparing inverted: {expr}"
+                );
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)

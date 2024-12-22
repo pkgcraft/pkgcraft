@@ -37,9 +37,9 @@ impl Syncable for Repo {
             let branch = head
                 .shorthand()
                 .ok_or_else(|| Error::RepoSync("not on a git branch".to_string()))?;
-            let mut remote = repo
-                .find_remote("origin")
-                .map_err(|e| Error::RepoSync(format!("invalid remote origin: {}", e.message())))?;
+            let mut remote = repo.find_remote("origin").map_err(|e| {
+                Error::RepoSync(format!("invalid remote origin: {}", e.message()))
+            })?;
             let fetch_commit = do_fetch(&repo, &[branch], &mut remote)
                 .map_err(|e| Error::RepoSync(format!("failed fetching: {}", e.message())))?;
             do_merge(&repo, branch, fetch_commit)

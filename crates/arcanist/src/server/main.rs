@@ -96,7 +96,8 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
     };
 
     let subscriber = fmt().with_max_level(tracing_filter).finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     Ok((settings, config))
 }

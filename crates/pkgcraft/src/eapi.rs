@@ -249,9 +249,9 @@ impl Eapi {
 
     /// Return the ordered set of phases for a given operation.
     pub(crate) fn operation(&self, op: OperationKind) -> crate::Result<&Operation> {
-        self.operations
-            .get(&op)
-            .ok_or_else(|| Error::InvalidValue(format!("EAPI {self}: unknown operation: {op}")))
+        self.operations.get(&op).ok_or_else(|| {
+            Error::InvalidValue(format!("EAPI {self}: unknown operation: {op}"))
+        })
     }
 
     /// Return all the known phases for an EAPI.
@@ -677,9 +677,9 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             SRC_URI,
         ])
         .enable_archives(&[
-            "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2", "tar.bz",
-            "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh", "a",
-            "deb", "lzma", "tar.lzma", "tar.xz", "xz",
+            "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2",
+            "tar.bz", "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa",
+            "lha", "lzh", "a", "deb", "lzma", "tar.lzma", "tar.xz", "xz",
         ])
         .update_env([
             P.internal([All]),
@@ -733,7 +733,12 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
     use Feature::*;
 
     Eapi::new("6", Some(&EAPI5))
-        .enable_features([NonfatalDie, GlobalFailglob, UnpackExtendedPath, UnpackCaseInsensitive])
+        .enable_features([
+            NonfatalDie,
+            GlobalFailglob,
+            UnpackExtendedPath,
+            UnpackCaseInsensitive,
+        ])
         .update_commands([
             Command::new(eapply, [SrcPrepare]),
             Command::new(eapply_user, [SrcPrepare]),

@@ -136,9 +136,9 @@ impl CheckRunner {
             SourceKind::EbuildPkg => {
                 Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, scope, restrict, filters))
             }
-            SourceKind::EbuildRawPkg => {
-                Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(repo, scope, restrict, filters))
-            }
+            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(
+                repo, scope, restrict, filters,
+            )),
             SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(repo)),
             SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(repo)),
             SourceKind::Repo => Self::Repo(RepoCheckRunner::new(repo)),

@@ -298,7 +298,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_license(p: *mut Pkg) -> *mut Depend
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DependencySet::new_string(pkg.properties().clone(), DependencySetKind::Properties);
+    let set =
+        DependencySet::new_string(pkg.properties().clone(), DependencySetKind::Properties);
     Box::into_raw(Box::new(set))
 }
 
@@ -309,7 +310,8 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_properties(p: *mut Pkg) -> *mut Dep
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_pkg_ebuild_required_use(p: *mut Pkg) -> *mut DependencySet {
     let pkg = try_pkg_from_ptr!(p);
-    let set = DependencySet::new_string(pkg.required_use().clone(), DependencySetKind::RequiredUse);
+    let set =
+        DependencySet::new_string(pkg.required_use().clone(), DependencySetKind::RequiredUse);
     Box::into_raw(Box::new(set))
 }
 
@@ -525,8 +527,11 @@ pub unsafe extern "C" fn pkgcraft_pkg_ebuild_upstream(p: *mut Pkg) -> *mut Upstr
                 };
                 Box::into_raw(Box::new(obj))
             };
-            let maintainers =
-                iter_to_array!(u.maintainers().iter(), &mut maintainers_len as *mut _, convert);
+            let maintainers = iter_to_array!(
+                u.maintainers().iter(),
+                &mut maintainers_len as *mut _,
+                convert
+            );
 
             let upstream = Upstream {
                 remote_ids_len,

@@ -234,7 +234,10 @@ mod tests {
         temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
         let repo = repo.configure(&config);
         let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat1/pkg-1", "cat2/pkg-1"]);
+        assert_ordered_eq!(
+            pkgs.iter().map(|p| p.cpv().to_string()),
+            ["cat1/pkg-1", "cat2/pkg-1"]
+        );
     }
 
     #[test]
@@ -265,6 +268,9 @@ mod tests {
         // multiple matches
         let restrict = DepRestrict::package("pkg");
         let pkgs: Vec<_> = repo.iter_restrict(restrict).try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["cat/pkg-1", "cat/pkg-2"]);
+        assert_ordered_eq!(
+            pkgs.iter().map(|p| p.cpv().to_string()),
+            ["cat/pkg-1", "cat/pkg-2"]
+        );
     }
 }

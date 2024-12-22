@@ -124,8 +124,12 @@ impl PartialOrd for Change<'_> {
 impl fmt::Display for Change<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Removed(report) => write!(f, "{}", format!("-{report}").color(Color::Red)),
-            Self::Added(report) => write!(f, "{}", format!("+{report}").color(Color::Green)),
+            Self::Removed(report) => {
+                write!(f, "{}", format!("-{report}").color(Color::Red))
+            }
+            Self::Added(report) => {
+                write!(f, "{}", format!("+{report}").color(Color::Green))
+            }
         }
     }
 }

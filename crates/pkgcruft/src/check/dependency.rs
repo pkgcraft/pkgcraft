@@ -7,7 +7,8 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{
-    DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing, PackageDeprecatedUnused,
+    DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing,
+    PackageDeprecatedUnused,
 };
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;

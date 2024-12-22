@@ -246,7 +246,8 @@ mod tests {
                                 ""
                             };
 
-                            let external = if eapi.env().get(&var).is_some_and(|v| v.external) {
+                            let external = if eapi.env().get(&var).is_some_and(|v| v.external)
+                            {
                                 "yes"
                             } else {
                                 ""

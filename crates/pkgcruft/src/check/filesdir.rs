@@ -145,7 +145,9 @@ fn expand_node<'a>(
             "word" | "string_content" | "number" => path.push_str(x.as_str()),
             "\"" => continue,
             kind => {
-                return Err(Error::InvalidValue(format!("unhandled node variant: {kind}: {x}")))
+                return Err(Error::InvalidValue(format!(
+                    "unhandled node variant: {kind}: {x}"
+                )))
             }
         }
     }
@@ -242,7 +244,8 @@ impl EbuildPkgSetCheck for Check {
 
         if !files.is_empty() {
             // ignore unused files if inherited eclasses use FILESDIR
-            let inherited: HashSet<_> = pkgs.iter().flat_map(|x| x.inherited()).cloned().collect();
+            let inherited: HashSet<_> =
+                pkgs.iter().flat_map(|x| x.inherited()).cloned().collect();
             if let Some(eclass) = self.eclasses.intersection(&inherited).next() {
                 warn!(
                     "{CHECK}: {cpn}: skipping unused files due to eclass FILESDIR usage: {eclass}"

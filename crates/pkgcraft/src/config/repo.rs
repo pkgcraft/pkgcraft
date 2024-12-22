@@ -32,8 +32,9 @@ impl RepoConfig {
         let data = fs::read_to_string(path)
             .map_err(|e| Error::Config(format!("failed loading repo config {path:?}: {e}")))?;
 
-        let config: RepoConfig = toml::from_str(&data)
-            .map_err(|e| Error::Config(format!("failed loading repo config toml {path:?}: {e}")))?;
+        let config: RepoConfig = toml::from_str(&data).map_err(|e| {
+            Error::Config(format!("failed loading repo config toml {path:?}: {e}"))
+        })?;
 
         Ok(config)
     }
@@ -131,7 +132,12 @@ impl Config {
     }
 
     /// Add external repo from a URI.
-    pub(super) fn add_uri(&mut self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
+    pub(super) fn add_uri(
+        &mut self,
+        name: &str,
+        priority: i32,
+        uri: &str,
+    ) -> crate::Result<Repo> {
         let config = RepoConfig {
             location: self.repo_dir.join(name),
             priority,
@@ -143,8 +149,9 @@ impl Config {
         let repo = Repo::from_path(name, config.location, priority)?;
 
         // write repo config file to disk
-        let data = toml::to_string(repo.repo_config())
-            .map_err(|e| Error::Config(format!("failed serializing repo config to toml: {e}")))?;
+        let data = toml::to_string(repo.repo_config()).map_err(|e| {
+            Error::Config(format!("failed serializing repo config to toml: {e}"))
+        })?;
         let path = self.config_dir.join(name);
         let mut file = fs::File::create(&path).map_err(|e| {
             Error::Config(format!("failed creating repo config file: {path:?}: {e}"))
@@ -156,7 +163,11 @@ impl Config {
         Ok(repo)
     }
 
-    pub(super) fn del<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
+    pub(super) fn del<S: AsRef<str>>(
+        &mut self,
+        repos: &[S],
+        clean: bool,
+    ) -> crate::Result<()> {
         for name in repos {
             let name = name.as_ref();
             // error out if repo config is missing
@@ -164,7 +175,10 @@ impl Config {
             if let Some(repo) = self.repos.get(name) {
                 if clean {
                     fs::remove_dir_all(repo.path()).map_err(|e| {
-                        Error::Config(format!("failed removing repo files: {:?}: {e}", repo.path()))
+                        Error::Config(format!(
+                            "failed removing repo files: {:?}: {e}",
+                            repo.path()
+                        ))
                     })?;
                     let path = self.config_dir.join(name);
                     fs::remove_file(&path).map_err(|e| {
@@ -210,10 +224,14 @@ impl Config {
         let repos = self.repos.values();
         match kind {
             None => repos.collect(),
-            Some(RepoFormat::Ebuild) => repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect(),
+            Some(RepoFormat::Ebuild) => {
+                repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect()
+            }
             Some(RepoFormat::Configured) => self.configured.iter().collect(),
             Some(RepoFormat::Fake) => repos.filter(|r| matches!(r, Repo::Fake(_))).collect(),
-            Some(RepoFormat::Empty) => repos.filter(|r| matches!(r, Repo::Unsynced(_))).collect(),
+            Some(RepoFormat::Empty) => {
+                repos.filter(|r| matches!(r, Repo::Unsynced(_))).collect()
+            }
         }
     }
 

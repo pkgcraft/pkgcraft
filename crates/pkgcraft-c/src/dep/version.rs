@@ -122,7 +122,10 @@ pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> u32 {
 /// # Safety
 /// The argument must be a non-null Version pointer.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_with_op(v: *mut Version, op: Operator) -> *mut Version {
+pub unsafe extern "C" fn pkgcraft_version_with_op(
+    v: *mut Version,
+    op: Operator,
+) -> *mut Version {
     ffi_catch_panic! {
         let ver = try_ref_from_ptr!(v);
         if ver.op() == Some(op) {
@@ -184,7 +187,10 @@ pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut Version, v2: *mut Version
 /// # Safety
 /// The version arguments should be non-null Version pointers.
 #[no_mangle]
-pub unsafe extern "C" fn pkgcraft_version_intersects(v1: *mut Version, v2: *mut Version) -> bool {
+pub unsafe extern "C" fn pkgcraft_version_intersects(
+    v1: *mut Version,
+    v2: *mut Version,
+) -> bool {
     let v1 = try_ref_from_ptr!(v1);
     let v2 = try_ref_from_ptr!(v2);
     v1.intersects(v2)
