@@ -283,7 +283,12 @@ impl EbuildPkg {
 
     /// Return a package's distfile names.
     pub fn distfiles(&self) -> impl Iterator<Item = &str> {
-        self.src_uri().iter_flatten().map(|x| x.filename())
+        // TODO: Use inspect() instead of filter() to panic on invalid filenames that
+        // should be caught during parsing once it is reworked to support custom errors.
+        self.src_uri()
+            .iter_flatten()
+            .map(|x| x.filename())
+            .filter(|x| !x.is_empty())
     }
 }
 
