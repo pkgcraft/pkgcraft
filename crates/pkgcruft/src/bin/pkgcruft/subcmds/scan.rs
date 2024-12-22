@@ -69,11 +69,9 @@ impl Command {
         let mut reporter = self.reporter.collapse();
 
         // determine target restrictions
-        let targets: Vec<_> = TargetRestrictions::new(config)
+        let targets = TargetRestrictions::new(config)
             .repo(self.repo.as_deref())?
-            .targets(self.targets.iter().flatten())
-            .try_collect()?;
-        config.finalize()?;
+            .finalize_targets(self.targets.iter().flatten())?;
 
         // run scanner for all targets
         let mut failed = false;

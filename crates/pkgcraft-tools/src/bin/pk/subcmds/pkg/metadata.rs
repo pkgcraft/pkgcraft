@@ -2,7 +2,6 @@ use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::Args;
-use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
@@ -53,11 +52,9 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // convert targets to restrictions
-        let targets: Vec<_> = TargetRestrictions::new(config)
+        let targets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .targets(self.targets.iter().flatten())
-            .try_collect()?;
-        config.finalize()?;
+            .finalize_targets(self.targets.iter().flatten())?;
 
         for (repo_set, restrict) in targets {
             for repo in repo_set.ebuild() {

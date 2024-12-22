@@ -10,7 +10,6 @@ use clap::Args;
 use futures::{stream, StreamExt};
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
@@ -94,12 +93,10 @@ impl Command {
         fs::create_dir_all(&self.dir)?;
 
         // convert targets to restrictions
-        let targets: Vec<_> = TargetRestrictions::new(config)
+        let targets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .targets(self.targets.iter().flatten())
-            .try_collect()?;
-        config.finalize()?;
+            .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkgs
         let mut iter = pkgs_ebuild(targets).log_errors();

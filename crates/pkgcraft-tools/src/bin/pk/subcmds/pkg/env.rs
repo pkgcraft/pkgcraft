@@ -3,7 +3,6 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild_raw, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
@@ -94,11 +93,9 @@ impl Command {
         let mut failed = false;
 
         // convert targets to restrictions
-        let targets: Vec<_> = TargetRestrictions::new(config)
+        let targets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
-            .targets(self.targets.iter().flatten())
-            .try_collect()?;
-        config.finalize()?;
+            .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkgs
         let pkgs = pkgs_ebuild_raw(targets);
