@@ -60,10 +60,9 @@ impl<T: FromStr> FromStr for TriState<T> {
     }
 }
 
-/// Tri-state value support for command-line arguments.
+/// Report aliases support for command line arguments.
 ///
-/// This supports arguments of the form: `set`, `+add`, and `-remove` that relate to their
-/// matching variants.
+/// Supports @Check, %ReportLevel, and Report variants.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 enum ReportAlias {
     Check(Check),
