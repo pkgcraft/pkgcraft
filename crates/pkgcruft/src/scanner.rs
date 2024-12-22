@@ -36,7 +36,7 @@ impl Scanner {
     pub fn new(repo: &EbuildRepo) -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: Check::iter_default(Some(repo)).collect(),
+            checks: Check::iter_default(repo).collect(),
             reports: Arc::new(ReportKind::iter().collect()),
             exit: Default::default(),
             filters: Default::default(),

@@ -8,7 +8,6 @@ use std::sync::LazyLock;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
-use itertools::Either;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
@@ -222,15 +221,9 @@ impl Check {
     }
 
     /// Return an iterator of all checks enabled by default.
-    pub fn iter_default(target_repo: Option<&EbuildRepo>) -> impl Iterator<Item = Check> + '_ {
+    pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
         let selected = IndexSet::new();
-        if let Some(repo) = target_repo {
-            Either::Left(Check::iter().filter(move |x| x.skipped(repo, &selected).is_none()))
-        } else {
-            Either::Right(
-                Check::iter().filter(|x| !x.context.contains(&CheckContext::Optional)),
-            )
-        }
+        Check::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
     /// Return an iterator of checks that generate a given report.
@@ -391,7 +384,7 @@ impl FromStr for Check {
     fn from_str(s: &str) -> crate::Result<Self> {
         let kind: CheckKind = s
             .parse()
-            .map_err(|_| Error::InvalidValue(format!("unknown check: {s}")))?;
+            .map_err(|_| Error::InvalidValue(format!("invalid check: {s}")))?;
 
         Ok(kind.into())
     }

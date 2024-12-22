@@ -8,7 +8,7 @@ use itertools::{Either, Itertools};
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
 use pkgcruft::scope::Scope;
-use strum::VariantNames;
+use strum::{IntoEnumIterator, VariantNames};
 
 use crate::options;
 
@@ -42,7 +42,7 @@ pub(crate) struct Options {
 #[derive(Debug, Args)]
 pub(crate) struct Command {
     #[clap(flatten)]
-    checks: options::checks::Checks,
+    reports: options::reports::Reports,
 
     #[clap(flatten)]
     options: Options,
@@ -122,7 +122,7 @@ impl Replay {
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         // determine enabled checks and reports
-        let (_checks, reports) = self.checks.collapse(None)?;
+        let (_checks, reports) = self.reports.collapse(ReportKind::iter())?;
 
         let mut replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
 

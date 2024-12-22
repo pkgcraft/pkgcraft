@@ -119,33 +119,28 @@ fn checks() {
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
-    for opt in ["-c", "--checks"] {
-        // invalid
-        cmd("pkgcruft replay")
-            .args([opt, "invalid"])
-            .arg(file.path())
-            .assert()
-            .stdout("")
-            .stderr(contains("--checks"))
-            .failure()
-            .code(2);
+    // invalid
+    cmd("pkgcruft replay -r @invalid")
+        .arg(file.path())
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid check: invalid"))
+        .failure()
+        .code(2);
 
-        // single
-        let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "Dependency"])
-            .write_stdin(data.as_str())
-            .to_reports()
-            .unwrap();
-        assert_eq!(&single_expected, &reports);
+    // single
+    let reports = cmd("pkgcruft replay -R json -r @Dependency -")
+        .write_stdin(data.as_str())
+        .to_reports()
+        .unwrap();
+    assert_eq!(&single_expected, &reports);
 
-        // multiple
-        let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "Dependency,EapiStatus,Keywords"])
-            .write_stdin(data.as_str())
-            .to_reports()
-            .unwrap();
-        assert_eq!(&multiple_expected, &reports);
-    }
+    // multiple
+    let reports = cmd("pkgcruft replay -R json -r @Dependency,@EapiStatus,@Keywords -")
+        .write_stdin(data.as_str())
+        .to_reports()
+        .unwrap();
+    assert_eq!(&multiple_expected, &reports);
 }
 
 #[test]
@@ -158,33 +153,28 @@ fn levels() {
     let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
-    for opt in ["-l", "--levels"] {
-        // invalid
-        cmd("pkgcruft replay")
-            .args([opt, "invalid"])
-            .arg(file.path())
-            .assert()
-            .stdout("")
-            .stderr(contains("--levels"))
-            .failure()
-            .code(2);
+    // invalid
+    cmd("pkgcruft replay -r %invalid")
+        .arg(file.path())
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid level: invalid"))
+        .failure()
+        .code(2);
 
-        // single
-        let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "warning"])
-            .write_stdin(data.as_str())
-            .to_reports()
-            .unwrap();
-        assert_eq!(&single_expected, &reports);
+    // single
+    let reports = cmd("pkgcruft replay -R json -r %warning -")
+        .write_stdin(data.as_str())
+        .to_reports()
+        .unwrap();
+    assert_eq!(&single_expected, &reports);
 
-        // multiple
-        let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "warning,error"])
-            .write_stdin(data.as_str())
-            .to_reports()
-            .unwrap();
-        assert_eq!(&multiple_expected, &reports);
-    }
+    // multiple
+    let reports = cmd("pkgcruft replay -R json -r %warning,%error -")
+        .write_stdin(data.as_str())
+        .to_reports()
+        .unwrap();
+    assert_eq!(&multiple_expected, &reports);
 }
 
 #[test]

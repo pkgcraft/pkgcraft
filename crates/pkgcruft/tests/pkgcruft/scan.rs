@@ -663,33 +663,28 @@ fn checks() {
         "{repo}/Keywords/**/reports.json",
     );
 
-    for opt in ["-c", "--checks"] {
-        // invalid
-        cmd("pkgcruft scan -R json")
-            .args([opt, "invalid"])
-            .arg(&repo)
-            .assert()
-            .stdout("")
-            .stderr(contains("--checks"))
-            .failure()
-            .code(2);
+    // invalid
+    cmd("pkgcruft scan -R json -r @invalid")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid check: invalid"))
+        .failure()
+        .code(2);
 
-        // single
-        let reports = cmd("pkgcruft scan -R json")
-            .args([opt, "Dependency"])
-            .arg(&repo)
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&single_expected, &reports);
+    // single
+    let reports = cmd("pkgcruft scan -R json -r @Dependency")
+        .arg(&repo)
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&single_expected, &reports);
 
-        // multiple
-        let reports = cmd("pkgcruft scan -R json")
-            .args([opt, "Dependency,EapiStatus,Keywords"])
-            .arg(&repo)
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&multiple_expected, &reports);
-    }
+    // multiple
+    let reports = cmd("pkgcruft scan -R json -r @Dependency,@EapiStatus,@Keywords")
+        .arg(&repo)
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&multiple_expected, &reports);
 }
 
 #[test]
@@ -698,33 +693,28 @@ fn levels() {
     let single_expected = glob_reports!("{repo}/EapiStatus/EapiDeprecated/reports.json");
     let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
 
-    for opt in ["-l", "--levels"] {
-        // invalid
-        cmd("pkgcruft scan -R json")
-            .args([opt, "invalid"])
-            .arg(&repo)
-            .assert()
-            .stdout("")
-            .stderr(contains("--levels"))
-            .failure()
-            .code(2);
+    // invalid
+    cmd("pkgcruft scan -R json -r %invalid")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid level: invalid"))
+        .failure()
+        .code(2);
 
-        // single
-        let reports = cmd("pkgcruft scan -R json")
-            .args([opt, "warning"])
-            .arg(repo.join("EapiStatus"))
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&single_expected, &reports);
+    // single
+    let reports = cmd("pkgcruft scan -R json -r %warning")
+        .arg(repo.join("EapiStatus"))
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&single_expected, &reports);
 
-        // multiple
-        let reports = cmd("pkgcruft scan -R json")
-            .args([opt, "warning,error"])
-            .arg(repo.join("EapiStatus"))
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&multiple_expected, &reports);
-    }
+    // multiple
+    let reports = cmd("pkgcruft scan -R json -r %warning,%error")
+        .arg(repo.join("EapiStatus"))
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&multiple_expected, &reports);
 }
 
 #[test]

@@ -6,6 +6,7 @@ use clap::Args;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
+use pkgcruft::check::Check;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scanner::Scanner;
 use pkgcruft::source::PkgFilter;
@@ -46,7 +47,7 @@ pub(crate) struct Command {
     reporter: options::reporter::ReporterOptions,
 
     #[clap(flatten)]
-    checks: options::checks::Checks,
+    reports: options::reports::Reports,
 
     // positionals
     /// Target packages or paths
@@ -82,8 +83,10 @@ impl Command {
                     .as_ebuild()
                     .ok_or_else(|| anyhow::anyhow!("non-ebuild repo: {repo}"))?;
 
+                let defaults = Check::iter_default(repo).flat_map(|x| x.reports).copied();
+
                 // determine enabled checks and reports
-                let (checks, reports) = self.checks.collapse(Some(repo))?;
+                let (checks, reports) = self.reports.collapse(defaults)?;
 
                 // create report scanner
                 let scanner = Scanner::new(repo)
