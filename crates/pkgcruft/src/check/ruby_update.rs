@@ -27,19 +27,22 @@ pub(super) static CHECK: super::Check = super::Check {
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
-    Check { repo, targets: OnceLock::new() }
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
+    Check {
+        repo: repo.clone(),
+        targets: OnceLock::new(),
+    }
 }
 
 struct Check {
-    repo: &'static EbuildRepo,
-    targets: OnceLock<IndexSet<&'static str>>,
+    repo: EbuildRepo,
+    targets: OnceLock<IndexSet<String>>,
 }
 
 impl Check {
-    fn targets(&self) -> &IndexSet<&str> {
+    fn targets(&self) -> &IndexSet<String> {
         self.targets
-            .get_or_init(|| use_expand(self.repo, "ruby_targets", "ruby"))
+            .get_or_init(|| use_expand(&self.repo, "ruby_targets", "ruby"))
     }
 }
 
@@ -73,7 +76,6 @@ impl EbuildPkgCheck for Check {
             .iter()
             .rev()
             .take_while(|x| *x != &latest)
-            .copied()
             .collect::<Vec<_>>();
 
         if targets.is_empty() {
@@ -97,7 +99,7 @@ impl EbuildPkgCheck for Check {
                 .iter()
                 .filter_map(|x| x.flag().strip_prefix(IUSE_PREFIX))
                 .collect::<HashSet<_>>();
-            targets.retain(|x| iuse.contains(x));
+            targets.retain(|x| iuse.contains(x.as_str()));
             if targets.is_empty() {
                 // no updates available
                 return;

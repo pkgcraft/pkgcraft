@@ -21,32 +21,32 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         deprecated: repo
             .license_groups()
             .get("DEPRECATED")
-            .map(|x| x.iter().collect())
+            .map(|x| x.iter().cloned().collect())
             .unwrap_or_default(),
         missing_categories: ["acct-group", "acct-user", "virtual"]
             .iter()
             .map(|x| x.to_string())
             .collect(),
-        unused: repo.metadata().licenses().iter().collect(),
-        repo,
+        unused: repo.metadata().licenses().iter().map(Into::into).collect(),
+        repo: repo.clone(),
     }
 }
 
 struct Check {
-    deprecated: IndexSet<&'static String>,
+    deprecated: IndexSet<String>,
     missing_categories: HashSet<String>,
-    unused: DashSet<&'static String>,
-    repo: &'static EbuildRepo,
+    unused: DashSet<String>,
+    repo: EbuildRepo,
 }
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
-        let licenses: IndexSet<_> = pkg.license().iter_flatten().collect();
+        let licenses: IndexSet<_> = pkg.license().iter_flatten().cloned().collect();
         let allowed_missing = self.missing_categories.contains(pkg.category());
         if licenses.is_empty() {
             if !allowed_missing {
@@ -71,7 +71,7 @@ impl EbuildPkgCheck for Check {
         }
 
         for license in licenses {
-            if !self.repo.licenses().contains(license) {
+            if !self.repo.licenses().contains(&license) {
                 LicenseInvalid
                     .version(pkg)
                     .message(format!("nonexistent: {license}"))
@@ -80,7 +80,7 @@ impl EbuildPkgCheck for Check {
 
             // mangle values for post-run finalization
             if filter.finalize(LicensesUnused) {
-                self.unused.remove(license);
+                self.unused.remove(&license);
             }
         }
     }

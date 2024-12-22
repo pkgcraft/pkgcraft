@@ -22,7 +22,7 @@ pub(super) struct SyncCheckRunner {
 impl SyncCheckRunner {
     pub(super) fn new(
         scope: Scope,
-        repo: &'static EbuildRepo,
+        repo: &EbuildRepo,
         restrict: &Restrict,
         filters: &IndexSet<PkgFilter>,
         checks: &IndexSet<Check>,
@@ -62,7 +62,13 @@ impl SyncCheckRunner {
                 runners
                     .entry(check.source)
                     .or_insert_with(|| {
-                        CheckRunner::new(scope, restrict, check.source, repo, filters.clone())
+                        CheckRunner::new(
+                            scope,
+                            restrict,
+                            check.source,
+                            repo.clone(),
+                            filters.clone(),
+                        )
                     })
                     .add_check(check)
             });
@@ -123,7 +129,7 @@ impl CheckRunner {
         scope: Scope,
         restrict: &Restrict,
         source: SourceKind,
-        repo: &'static EbuildRepo,
+        repo: EbuildRepo,
         filters: IndexSet<PkgFilter>,
     ) -> Self {
         match source {
@@ -206,12 +212,12 @@ macro_rules! make_pkg_check_runner {
             pkg_set_checks: IndexMap<Check, $pkg_set_runner>,
             source: $source,
             cache: PkgCache<$pkg>,
-            repo: &'static EbuildRepo,
+            repo: EbuildRepo,
         }
 
         impl $pkg_check_runner {
             fn new(
-                repo: &'static EbuildRepo,
+                repo: EbuildRepo,
                 scope: Scope,
                 restrict: &Restrict,
                 filters: IndexSet<PkgFilter>,
@@ -231,10 +237,10 @@ macro_rules! make_pkg_check_runner {
             /// Add a check to the runner.
             fn add_check(&mut self, check: Check) {
                 if check.scope == Scope::Version {
-                    self.pkg_checks.insert(check, check.to_runner(self.repo));
+                    self.pkg_checks.insert(check, check.to_runner(&self.repo));
                 } else {
                     self.pkg_set_checks
-                        .insert(check, check.to_runner(self.repo));
+                        .insert(check, check.to_runner(&self.repo));
                 }
             }
 
@@ -326,7 +332,7 @@ macro_rules! make_pkg_check_runner {
                     .get(check)
                     .unwrap_or_else(|| unreachable!("unknown check: {check}"));
                 let now = Instant::now();
-                runner.finish(self.repo, filter);
+                runner.finish(&self.repo, filter);
                 debug!("{check}: finish: {:?}", now.elapsed());
             }
         }
@@ -354,11 +360,11 @@ make_pkg_check_runner!(
 /// Check runner for [`Cpn`] objects.
 struct CpnCheckRunner {
     checks: IndexMap<Check, CpnRunner>,
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
 }
 
 impl CpnCheckRunner {
-    fn new(repo: &'static EbuildRepo) -> Self {
+    fn new(repo: EbuildRepo) -> Self {
         Self {
             checks: Default::default(),
             repo,
@@ -367,7 +373,7 @@ impl CpnCheckRunner {
 
     /// Add a check to the runner.
     fn add_check(&mut self, check: Check) {
-        self.checks.insert(check, check.to_runner(self.repo));
+        self.checks.insert(check, check.to_runner(&self.repo));
     }
 
     /// Return the iterator of registered checks.
@@ -399,11 +405,11 @@ impl CpnCheckRunner {
 /// Check runner for [`Cpv`] objects.
 struct CpvCheckRunner {
     checks: IndexMap<Check, CpvRunner>,
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
 }
 
 impl CpvCheckRunner {
-    fn new(repo: &'static EbuildRepo) -> Self {
+    fn new(repo: EbuildRepo) -> Self {
         Self {
             checks: Default::default(),
             repo,
@@ -412,7 +418,7 @@ impl CpvCheckRunner {
 
     /// Add a check to the runner.
     fn add_check(&mut self, check: Check) {
-        self.checks.insert(check, check.to_runner(self.repo));
+        self.checks.insert(check, check.to_runner(&self.repo));
     }
 
     /// Return the iterator of registered checks.
@@ -446,11 +452,11 @@ impl CpvCheckRunner {
 /// Check runner for Repo objects.
 struct RepoCheckRunner {
     checks: IndexMap<Check, RepoRunner>,
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
 }
 
 impl RepoCheckRunner {
-    fn new(repo: &'static EbuildRepo) -> Self {
+    fn new(repo: EbuildRepo) -> Self {
         Self {
             checks: Default::default(),
             repo,
@@ -459,7 +465,7 @@ impl RepoCheckRunner {
 
     /// Add a check to the runner.
     fn add_check(&mut self, check: Check) {
-        self.checks.insert(check, check.to_runner(self.repo));
+        self.checks.insert(check, check.to_runner(&self.repo));
     }
 
     /// Return the iterator of registered checks.
@@ -471,7 +477,7 @@ impl RepoCheckRunner {
     fn run_checks(&self, filter: &mut ReportFilter) {
         for (check, runner) in &self.checks {
             let now = Instant::now();
-            runner.run(self.repo, filter);
+            runner.run(&self.repo, filter);
             debug!("{check}: {}: {:?}", self.repo, now.elapsed());
         }
     }
@@ -483,7 +489,7 @@ impl RepoCheckRunner {
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.run(self.repo, filter);
+        runner.run(&self.repo, filter);
         debug!("{check}: {} {:?}", self.repo, now.elapsed());
     }
 }

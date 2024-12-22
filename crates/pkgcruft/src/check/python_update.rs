@@ -41,7 +41,7 @@ enum Eclass {
 
 impl Eclass {
     /// USE_EXPAND targets pulled from the given repo.
-    fn targets<'a>(&self, repo: &'a EbuildRepo) -> IndexSet<&'a str> {
+    fn targets(&self, repo: &EbuildRepo) -> IndexSet<String> {
         match self {
             Self::PythonR1 => use_expand(repo, "python_targets", "python"),
             Self::PythonSingleR1 => use_expand(repo, "python_single_target", "python"),
@@ -69,13 +69,17 @@ impl Eclass {
 }
 
 /// Remove a prefix from a string, given a list of prefixes.
-fn deprefix<'a>(s: &'a str, prefixes: &[&str]) -> Option<&'a str> {
-    prefixes.iter().filter_map(|x| s.strip_prefix(x)).next()
+fn deprefix<S: AsRef<str>>(s: &str, prefixes: &[S]) -> Option<String> {
+    prefixes
+        .iter()
+        .filter_map(|x| s.strip_prefix(x.as_ref()))
+        .map(|x| x.to_string())
+        .next()
 }
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
-        repo,
+        repo: repo.clone(),
         targets: OnceLock::new(),
         keys: OnceLock::new(),
         prefixes: OnceLock::new(),
@@ -83,16 +87,16 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
 }
 
 struct Check {
-    repo: &'static EbuildRepo,
-    targets: OnceLock<IndexMap<Eclass, IndexSet<&'static str>>>,
+    repo: EbuildRepo,
+    targets: OnceLock<IndexMap<Eclass, IndexSet<String>>>,
     keys: OnceLock<IndexMap<Eclass, Vec<Key>>>,
     prefixes: OnceLock<IndexMap<Eclass, Vec<&'static str>>>,
 }
 
 impl Check {
-    fn targets(&self, eclass: &Eclass) -> &IndexSet<&'static str> {
+    fn targets(&self, eclass: &Eclass) -> &IndexSet<String> {
         self.targets
-            .get_or_init(|| Eclass::iter().map(|e| (e, e.targets(self.repo))).collect())
+            .get_or_init(|| Eclass::iter().map(|e| (e, e.targets(&self.repo))).collect())
             .get(eclass)
             .unwrap_or_else(|| unreachable!("missing eclass targets: {eclass}"))
     }
@@ -144,7 +148,6 @@ impl EbuildPkgCheck for Check {
             .into_iter()
             .rev()
             .take_while(|x| *x != &latest)
-            .copied()
             .collect::<Vec<_>>();
 
         if targets.is_empty() {
@@ -168,7 +171,7 @@ impl EbuildPkgCheck for Check {
                 .iter()
                 .filter_map(|x| deprefix(x.flag(), self.prefixes(&eclass)))
                 .collect::<HashSet<_>>();
-            targets.retain(|x| iuse.contains(x));
+            targets.retain(|x| iuse.contains(x.as_str()));
             if targets.is_empty() {
                 // no updates available
                 return;

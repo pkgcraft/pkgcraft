@@ -30,7 +30,7 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     let eclasses = repo
         .eclasses()
         .into_par_iter()
@@ -45,13 +45,14 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
             }
             None
         })
+        .cloned()
         .collect();
-    Check { repo, eclasses }
+    Check { repo: repo.clone(), eclasses }
 }
 
 struct Check {
-    repo: &'static EbuildRepo,
-    eclasses: HashSet<&'static Eclass>,
+    repo: EbuildRepo,
+    eclasses: HashSet<Eclass>,
 }
 
 /// Expand a variable into its actual value.
@@ -153,7 +154,7 @@ fn expand_node<'a>(
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
-        let filesdir = build_path!(self.repo, cpn.category(), cpn.package(), "files");
+        let filesdir = build_path!(&self.repo, cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
         let mut files: HashSet<_> = WalkDir::new(&filesdir)
             .min_depth(1)
@@ -241,7 +242,7 @@ impl EbuildPkgSetCheck for Check {
 
         if !files.is_empty() {
             // ignore unused files if inherited eclasses use FILESDIR
-            let inherited: HashSet<_> = pkgs.iter().flat_map(|x| x.inherited()).collect();
+            let inherited: HashSet<_> = pkgs.iter().flat_map(|x| x.inherited()).cloned().collect();
             if let Some(eclass) = self.eclasses.intersection(&inherited).next() {
                 warn!(
                     "{CHECK}: {cpn}: skipping unused files due to eclass FILESDIR usage: {eclass}"

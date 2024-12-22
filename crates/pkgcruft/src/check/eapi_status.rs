@@ -16,12 +16,12 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildRawPkgCheck {
-    Check { repo }
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildRawPkgCheck {
+    Check { repo: repo.clone() }
 }
 
 struct Check {
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
 }
 
 impl EbuildRawPkgCheck for Check {

@@ -28,14 +28,12 @@ pub struct Scanner {
     exit: Arc<IndexSet<ReportKind>>,
     filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
 }
 
 impl Scanner {
     /// Create a new scanner.
     pub fn new(repo: &EbuildRepo) -> Self {
-        // TODO: drop forced static lifetime once repo handling is improved
-        let repo: &'static EbuildRepo = unsafe { mem::transmute(repo) };
         Self {
             jobs: bounded_jobs(0),
             checks: Check::iter_default(Some(repo)).collect(),
@@ -43,7 +41,7 @@ impl Scanner {
             exit: Default::default(),
             filters: Default::default(),
             failed: Default::default(),
-            repo,
+            repo: repo.clone(),
         }
     }
 
@@ -113,7 +111,7 @@ impl Scanner {
 
         let runner = Arc::new(SyncCheckRunner::new(
             scope,
-            self.repo,
+            &self.repo,
             &restrict,
             &self.filters,
             &self.checks,
@@ -177,7 +175,7 @@ impl ReportFilter {
 
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     restrict: Restrict,
@@ -284,7 +282,7 @@ impl Iterator for IterPkg {
 
 /// Create a producer thread that sends checks with targets over a channel to workers.
 fn version_producer(
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
     runner: Arc<SyncCheckRunner>,
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
@@ -403,7 +401,7 @@ impl ReportIter {
                 })
                 .collect(),
             _producer: pkg_producer(
-                scanner.repo,
+                scanner.repo.clone(),
                 runner.clone(),
                 wg,
                 restrict,
@@ -433,7 +431,7 @@ impl ReportIter {
             _workers: (0..scanner.jobs)
                 .map(|_| version_worker(runner.clone(), filter.clone(), targets_rx.clone()))
                 .collect(),
-            _producer: version_producer(scanner.repo, runner.clone(), restrict, targets_tx),
+            _producer: version_producer(scanner.repo.clone(), runner.clone(), restrict, targets_tx),
             reports: Default::default(),
         }))
     }

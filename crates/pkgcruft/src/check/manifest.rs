@@ -21,15 +21,15 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
-        repo,
+        repo: repo.clone(),
         thin_manifests: repo.metadata().config.thin_manifests,
     }
 }
 
 struct Check {
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
     thin_manifests: bool,
 }
 

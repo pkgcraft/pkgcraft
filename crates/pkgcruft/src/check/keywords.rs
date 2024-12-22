@@ -22,9 +22,9 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
-        repo,
+        repo: repo.clone(),
         unused: repo
             .metadata()
             .arches()
@@ -35,7 +35,7 @@ pub(super) fn create(repo: &'static EbuildRepo) -> impl EbuildPkgCheck {
 }
 
 struct Check {
-    repo: &'static EbuildRepo,
+    repo: EbuildRepo,
     unused: DashSet<String>,
 }
 
