@@ -81,7 +81,7 @@ fn invalid_pkgs() {
         .code(1);
 
     // repo target
-    cmd(format!("pk pkg source {}", path))
+    cmd(format!("pk pkg source {path}"))
         .assert()
         .stdout("")
         .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
@@ -89,7 +89,7 @@ fn invalid_pkgs() {
         .code(1);
 
     // benchmarking failures
-    cmd(format!("pk pkg source --bench 500ms {}", path))
+    cmd(format!("pk pkg source --bench 500ms {path}"))
         .assert()
         .stdout("")
         .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
