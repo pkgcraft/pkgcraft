@@ -10,6 +10,7 @@ use dashmap::DashMap;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString};
 use tracing::{error, warn};
 use url::Url;
@@ -265,7 +266,7 @@ impl FromStr for PkgUpdate {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Mirror {
     name: String,
     url: Url,

@@ -46,6 +46,7 @@ impl EbuildPkgCheck for Check {
                     UriInvalid.version(pkg).message(err).report(filter);
                 }
                 Err(Error::RestrictedFetchable(_)) => (),
+                Err(Error::RestrictedFile(_)) => (),
                 Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
             }
         }

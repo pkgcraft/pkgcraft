@@ -10,6 +10,7 @@ use futures::StreamExt;
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use reqwest::{Client, ClientBuilder, StatusCode};
+use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
 use tracing::warn;
 use url::Url;
@@ -52,7 +53,7 @@ impl IntoReason for reqwest::Error {
 }
 
 /// Wrapper for URI objects to generate valid URLs.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fetchable {
     pub url: Url,
     rename: Option<String>,
@@ -79,9 +80,9 @@ impl Fetchable {
             }
         }
 
-        // error out for fetch-restricted URIs
-        if fetch_restricted {
-            return Err(Error::RestrictedFetchable(Box::new(uri.clone())));
+        // error out for fetch-restricted flat file URI
+        if !uri.as_str().contains('/') && fetch_restricted {
+            return Err(Error::RestrictedFile(Box::new(uri.clone())));
         }
 
         let url =
@@ -121,12 +122,18 @@ impl Fetchable {
             }
         }
 
-        Ok(Self {
+        let fetchable = Self {
             url,
             rename: uri.rename().map(Into::into),
             mirrors,
             default_mirror,
-        })
+        };
+
+        if fetch_restricted {
+            Err(Error::RestrictedFetchable(Box::new(fetchable)))
+        } else {
+            Ok(fetchable)
+        }
     }
 
     /// Create a new fetchable using a mirror.
