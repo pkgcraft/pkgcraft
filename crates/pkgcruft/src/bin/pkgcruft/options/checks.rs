@@ -8,7 +8,6 @@ use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcruft::check::Check;
 use pkgcruft::report::{ReportKind, ReportLevel};
-use pkgcruft::scope::Scope;
 use pkgcruft::Error;
 use strum::{IntoEnumIterator, VariantNames};
 
@@ -86,18 +85,6 @@ pub(crate) struct Checks {
             .map(|s| s.parse::<ReportKind>().unwrap()),
     )]
     reports: Vec<ReportKind>,
-
-    /// Restrict by scope
-    #[arg(
-        short,
-        long,
-        value_name = "SCOPE[,...]",
-        value_delimiter = ',',
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(Scope::VARIANTS)
-            .map(|s| s.parse::<Scope>().unwrap()),
-    )]
-    scopes: Vec<Scope>,
 }
 
 impl Checks {
@@ -135,18 +122,6 @@ impl Checks {
                     .iter()
                     .filter(|r| levels.contains(&r.level()))
                     .copied(),
-            );
-            defaults = false;
-        }
-
-        // enable reports related to check scope
-        if !self.scopes.is_empty() {
-            let scopes: IndexSet<_> = self.scopes.iter().collect();
-            reports.extend(
-                Check::iter()
-                    .filter(|c| scopes.contains(&c.scope))
-                    .flat_map(|c| c.reports)
-                    .filter(|r| default_reports.contains(r)),
             );
             defaults = false;
         }
@@ -242,13 +217,6 @@ mod tests {
         let (_, reports) = cmd.checks.collapse(Some(repo)).unwrap();
         assert!(!reports.contains(&report));
         assert!(!reports.is_empty());
-
-        // non-default checks aren't enabled when their matching scope is targeted
-        let check: Check = CheckKind::Header.into();
-        let cmd = Command::try_parse_from(["cmd", "-s", check.scope.as_ref()]).unwrap();
-        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
-        assert!(!checks.contains(&CheckKind::Header));
-        assert!(!checks.is_empty());
 
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-c", "+UnstableOnly,+Header"]).unwrap();

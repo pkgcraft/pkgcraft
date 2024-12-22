@@ -559,6 +559,7 @@ pub struct Iter<'a, R: BufRead> {
     line: String,
     reports: Option<&'a IndexSet<ReportKind>>,
     restrict: Option<&'a Restrict>,
+    scopes: Option<&'a IndexSet<Scope>>,
 }
 
 impl<'a> Iter<'a, BufReader<File>> {
@@ -567,6 +568,7 @@ impl<'a> Iter<'a, BufReader<File>> {
         path: P,
         reports: Option<&'a IndexSet<ReportKind>>,
         restrict: Option<&'a Restrict>,
+        scopes: Option<&'a IndexSet<Scope>>,
     ) -> crate::Result<Iter<'a, BufReader<File>>> {
         let path = path.as_ref();
         let file = File::open(path)
@@ -576,6 +578,7 @@ impl<'a> Iter<'a, BufReader<File>> {
             line: String::new(),
             reports,
             restrict,
+            scopes,
         })
     }
 }
@@ -586,12 +589,14 @@ impl<'a, R: BufRead> Iter<'a, R> {
         reader: R,
         reports: Option<&'a IndexSet<ReportKind>>,
         restrict: Option<&'a Restrict>,
+        scopes: Option<&'a IndexSet<Scope>>,
     ) -> Iter<'a, R> {
         Iter {
             reader,
             line: String::new(),
             reports,
             restrict,
+            scopes,
         }
     }
 
@@ -600,6 +605,13 @@ impl<'a, R: BufRead> Iter<'a, R> {
         // skip excluded report variants
         if let Some(reports) = self.reports {
             if !reports.contains(report.kind()) {
+                return true;
+            }
+        }
+
+        // skip excluded scope variants
+        if let Some(scopes) = self.scopes {
+            if !scopes.contains(&report.scope().scope()) {
                 return true;
             }
         }

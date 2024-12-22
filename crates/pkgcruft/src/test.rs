@@ -32,7 +32,7 @@ pub fn glob_reports_iter<P: AsRef<str>>(
         let path = path
             .to_str()
             .unwrap_or_else(|| panic!("invalid path: {path:?}"));
-        Iter::try_from_file(path, None, None).unwrap()
+        Iter::try_from_file(path, None, None, None).unwrap()
     })
 }
 

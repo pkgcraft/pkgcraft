@@ -82,7 +82,8 @@ impl Replay {
         &self,
         target: String,
     ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
-        let iter = Iter::try_from_file(&target, self.reports.as_ref(), self.pkgs.as_ref())?;
+        let iter =
+            Iter::try_from_file(&target, self.reports.as_ref(), self.pkgs.as_ref(), None)?;
         Ok(iter)
     }
 }
