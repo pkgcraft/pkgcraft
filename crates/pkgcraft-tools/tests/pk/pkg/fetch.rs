@@ -423,3 +423,110 @@ async fn redirect() {
     let data = fs::read_to_string("file").unwrap();
     assert_eq!(&data, "test redirect");
 }
+
+#[tokio::test]
+async fn restrict() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with restricted file"
+        SRC_URI="file"
+        SLOT=0
+        RESTRICT="fetch"
+    "#};
+    temp.create_ebuild_from_str("restricted/file-1", &data)
+        .unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with restricted fetchable"
+        SRC_URI="{uri}/file"
+        SLOT=0
+        RESTRICT="fetch"
+    "#};
+    temp.create_ebuild_from_str("restricted/fetchable-1", &data)
+        .unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    // restricted targets are ignored by default
+    cmd("pk pkg fetch")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    // but will be shown as warnings
+    cmd("pk pkg fetch -v")
+        .arg(repo.join("restricted/file"))
+        .assert()
+        .stdout("")
+        .stderr(contains("ignoring restricted file: file"))
+        .success();
+    cmd("pk pkg fetch -v")
+        .arg(repo.join("restricted/fetchable"))
+        .assert()
+        .stdout("")
+        .stderr(contains(format!("ignoring restricted fetchable: {uri}/file")))
+        .success();
+    assert!(fs::read_to_string("file").is_err());
+}
+
+#[tokio::test]
+async fn selective_restrict() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file1"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file3"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file3"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with selective restrictions"
+        SRC_URI="{uri}/file1 fetch+{uri}/file2 mirror+{uri}/file3"
+        SLOT=0
+        RESTRICT="fetch mirror"
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    cmd("pk pkg fetch")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    assert!(fs::read_to_string("file1").is_err());
+    let data = fs::read_to_string("file2").unwrap();
+    assert_eq!(&data, "file2");
+    let data = fs::read_to_string("file3").unwrap();
+    assert_eq!(&data, "file3");
+}
