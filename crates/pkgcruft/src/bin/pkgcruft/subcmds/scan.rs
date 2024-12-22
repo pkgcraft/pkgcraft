@@ -83,7 +83,10 @@ impl Command {
                     .as_ebuild()
                     .ok_or_else(|| anyhow::anyhow!("non-ebuild repo: {repo}"))?;
 
-                let defaults = Check::iter_default(repo).flat_map(|x| x.reports).copied();
+                let defaults = Check::iter_default(repo)
+                    .flat_map(|x| x.reports)
+                    .copied()
+                    .collect();
 
                 // determine enabled checks and reports
                 let (checks, reports) = self.reports.collapse(defaults)?;

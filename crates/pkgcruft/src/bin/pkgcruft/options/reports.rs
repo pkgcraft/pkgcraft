@@ -113,23 +113,19 @@ pub(crate) struct Reports {
 }
 
 impl Reports {
-    pub(crate) fn collapse<I>(
+    pub(crate) fn collapse(
         &self,
-        defaults: I,
-    ) -> pkgcruft::Result<(IndexSet<Check>, IndexSet<ReportKind>)>
-    where
-        I: IntoIterator<Item = ReportKind>,
-    {
-        let defaults: IndexSet<_> = defaults.into_iter().collect();
-        let mut reports = defaults.clone();
-
+        defaults: IndexSet<ReportKind>,
+    ) -> pkgcruft::Result<(IndexSet<Check>, IndexSet<ReportKind>)> {
         // sort by variant
         let selected: Vec<_> = self.reports.iter().copied().sorted().collect();
 
         // don't use defaults if neutral options exist
-        if let Some(TriState::Set(_)) = selected.first() {
-            std::mem::take(&mut reports);
-        }
+        let mut reports = if let Some(TriState::Set(_)) = selected.first() {
+            Default::default()
+        } else {
+            defaults.clone()
+        };
 
         for x in selected {
             match x {
@@ -176,7 +172,10 @@ mod tests {
 
         // default checks for gentoo repo
         let repo = data.ebuild_repo("gentoo").unwrap();
-        let defaults = Check::iter_default(repo).flat_map(|x| x.reports).copied();
+        let defaults = Check::iter_default(repo)
+            .flat_map(|x| x.reports)
+            .copied()
+            .collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (checks, _) = cmd.reports.collapse(defaults).unwrap();
         // repo specific checks enabled when scanning the matching repo
@@ -184,7 +183,7 @@ mod tests {
 
         // default checks
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let defaults: Vec<_> = Check::iter_default(repo)
+        let defaults: IndexSet<_> = Check::iter_default(repo)
             .flat_map(|x| x.reports)
             .copied()
             .collect();
