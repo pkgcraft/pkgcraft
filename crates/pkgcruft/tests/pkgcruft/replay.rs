@@ -273,48 +273,6 @@ fn scopes() {
 }
 
 #[test]
-fn sources() {
-    let file = qa_primary_file();
-    let primary_repo = &test_data_path().join("repos/valid/qa-primary");
-    let gentoo_repo = &test_data_path().join("repos/valid/gentoo");
-    let single_expected =
-        glob_reports!("{primary_repo}/Dependency/DependencyDeprecated/reports.json");
-    let multiple_expected = glob_reports!(
-        "{primary_repo}/Dependency/DependencyDeprecated/reports.json",
-        "{gentoo_repo}/Header/HeaderInvalid/reports.json",
-    );
-    let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
-
-    for opt in ["-S", "--sources"] {
-        // invalid
-        cmd("pkgcruft replay")
-            .args([opt, "invalid"])
-            .arg(file.path())
-            .assert()
-            .stdout("")
-            .stderr(contains("--sources"))
-            .failure()
-            .code(2);
-
-        // single
-        let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "ebuild-pkg"])
-            .write_stdin(data.as_str())
-            .to_reports()
-            .unwrap();
-        assert_eq!(&single_expected, &reports);
-
-        // multiple
-        let reports = cmd("pkgcruft replay -R json -")
-            .args([opt, "ebuild-pkg,ebuild-raw-pkg"])
-            .write_stdin(data.as_str())
-            .to_reports()
-            .unwrap();
-        assert_eq!(&multiple_expected, &reports);
-    }
-}
-
-#[test]
 fn pkgs() {
     let file = qa_primary_file();
     let reports = indoc::indoc! {r#"

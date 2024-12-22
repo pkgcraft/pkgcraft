@@ -9,7 +9,6 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcruft::check::Check;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scope::Scope;
-use pkgcruft::source::SourceKind;
 use pkgcruft::Error;
 use strum::{IntoEnumIterator, VariantNames};
 
@@ -99,18 +98,6 @@ pub(crate) struct Checks {
             .map(|s| s.parse::<Scope>().unwrap()),
     )]
     scopes: Vec<Scope>,
-
-    /// Restrict by source
-    #[arg(
-        short = 'S',
-        long,
-        value_name = "SOURCE[,...]",
-        value_delimiter = ',',
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(SourceKind::VARIANTS)
-            .map(|s| s.parse::<SourceKind>().unwrap()),
-    )]
-    sources: Vec<SourceKind>,
 }
 
 impl Checks {
@@ -159,17 +146,6 @@ impl Checks {
                 Check::iter()
                     .filter(|c| scopes.contains(&c.scope))
                     .flat_map(|c| c.reports)
-                    .filter(|r| default_reports.contains(r)),
-            );
-            defaults = false;
-        }
-
-        // enable reports related to sources
-        if !self.sources.is_empty() {
-            reports.extend(
-                self.sources
-                    .iter()
-                    .flat_map(|s| Check::iter_source(s).flat_map(|x| x.reports))
                     .filter(|r| default_reports.contains(r)),
             );
             defaults = false;
@@ -270,13 +246,6 @@ mod tests {
         // non-default checks aren't enabled when their matching scope is targeted
         let check: Check = CheckKind::Header.into();
         let cmd = Command::try_parse_from(["cmd", "-s", check.scope.as_ref()]).unwrap();
-        let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
-        assert!(!checks.contains(&CheckKind::Header));
-        assert!(!checks.is_empty());
-
-        // non-default checks aren't enabled when their matching source is targeted
-        let check: Check = CheckKind::Header.into();
-        let cmd = Command::try_parse_from(["cmd", "-S", check.source.as_ref()]).unwrap();
         let (checks, _) = cmd.checks.collapse(Some(repo)).unwrap();
         assert!(!checks.contains(&CheckKind::Header));
         assert!(!checks.is_empty());
