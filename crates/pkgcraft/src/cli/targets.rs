@@ -140,10 +140,10 @@ impl<'a> TargetRestrictions<'a> {
         match (restrict::parse::dep(target), path_target, repo_target) {
             // prefer dep restrictions for valid cat/pkg paths
             (Ok(restrict), Ok(_), _) if target.contains('/') => self.dep_restriction(restrict),
-            (_, Ok(path), Some(Ok(repo))) => {
-                let restrict = repo.restrict_from_path(path).expect("invalid repo");
-                Ok((repo.into(), restrict))
-            }
+            (_, Ok(path), Some(Ok(repo))) => repo
+                .restrict_from_path(&path)
+                .ok_or_else(|| Error::InvalidValue(format!("{repo} doesn't contain path: {path}")))
+                .map(|restrict| (repo.into(), restrict)),
             (Ok(restrict), _, _) => self.dep_restriction(restrict),
             (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
             (_, Err(e), _) if target.contains('/') => Err(e),
