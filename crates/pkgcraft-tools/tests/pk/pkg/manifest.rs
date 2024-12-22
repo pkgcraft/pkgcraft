@@ -659,3 +659,66 @@ async fn restrict() {
     "};
     assert_eq!(&data, expected);
 }
+
+#[tokio::test]
+async fn selective_restrict() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file1"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file3"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file3"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with selective restrictions"
+        SRC_URI="{uri}/file1 fetch+{uri}/file2 mirror+{uri}/file3"
+        SLOT=0
+        RESTRICT="fetch mirror"
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+
+    env::set_current_dir(temp.path().join("cat/pkg")).unwrap();
+    let dir = tempdir().unwrap();
+
+    // Any restricted fetchable stops Manifest from being created but not other
+    // files from being downloaded.
+    cmd("pk pkg manifest")
+        .args(["-d", dir.path().to_str().unwrap()])
+        .assert()
+        .stdout("")
+        .stderr(contains(format!("cat/pkg-1::test: nonexistent restricted fetchable: {uri}/file1")))
+        .failure()
+        .code(1);
+    assert!(fs::read_to_string("Manifest").is_err());
+    assert!(dir.path().join("file2").exists());
+    assert!(dir.path().join("file3").exists());
+
+    // restricted fetchables can be forcibly processed via --restrict
+    cmd("pk pkg manifest --restrict")
+        .args(["-d", dir.path().to_str().unwrap()])
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("Manifest").unwrap();
+    let expected = indoc::indoc! {"
+        DIST file1 5 BLAKE2B cdd6f110d8bd98e98a7c7446696348339bde07da2291f2d2be7648f2f6165fe246e219f8592a736770f96f64d3fd550ac64c11fe612e3452b82ba34367d435fc SHA512 119c19f868a33109852c09d66f6a5c73a7cd52f38325020a461cd94a74edef88709fcbc547d96d0ad9da671260fc42322d177378bad7a285f5df03f8e28f8565
+        DIST file2 5 BLAKE2B e7d271d6ad3714e5fb653a1b7f6b6b93970605e41a9e8f81eaadacd2f9988ecc8c89340948b55e1516880dc55a52db935f97c54f3a92a9b909dc3a644a0a19d8 SHA512 eb827f1c183373d14958e0253e58496455821fa747996f09d2670cb9f9ff17b5ef3346ffb9d122bf537fcc3bd6480fb916ed3e906763f3bc98b520626ef86329
+        DIST file3 5 BLAKE2B dbc2a62e696433d9f3b49e911a14cd7418dce6441821d88fbf45aa26bb69860604d336c536fc732ed8a77b7fdf8363a6efa6849ced443a5e38917eb073b9c786 SHA512 b10ff867df18165a0e100d99cd3d27f845f7ef9ad84eeb627a53aabaea04805940c3693154b8a32541a31887dda9fb1e667e93307473b1c581021714768bd032
+    "};
+    assert_eq!(&data, expected);
+}
