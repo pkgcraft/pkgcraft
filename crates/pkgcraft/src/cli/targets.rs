@@ -173,7 +173,7 @@ impl<'a> TargetRestrictions<'a> {
         I: IntoIterator,
         I::Item: AsRef<str>,
     {
-        let targets: Vec<_> = values
+        let targets = values
             .into_iter()
             .map(|s| self.target_restriction(s.as_ref()))
             .try_collect()?;
