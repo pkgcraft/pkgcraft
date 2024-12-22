@@ -579,3 +579,83 @@ async fn invalid_manifest() {
     let data = fs::read_to_string(&path).unwrap();
     assert_eq!(&data, expected);
 }
+
+#[tokio::test]
+async fn restrict() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file2"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with restricted file"
+        SRC_URI="file1"
+        SLOT=0
+        RESTRICT="fetch"
+    "#};
+    temp.create_ebuild_from_str("restricted/file-1", &data)
+        .unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with restricted fetchable"
+        SRC_URI="{uri}/file2"
+        SLOT=0
+        RESTRICT="fetch"
+    "#};
+    temp.create_ebuild_from_str("restricted/fetchable-1", &data)
+        .unwrap();
+    let repo = temp.path();
+
+    // unfetched, restricted distfiles cause errors
+    cmd("pk pkg manifest")
+        .arg(repo.join("restricted/file"))
+        .assert()
+        .stdout("")
+        .stderr(contains("restricted/file-1::test: nonexistent restricted file: file1"))
+        .failure()
+        .code(1);
+    cmd("pk pkg manifest")
+        .arg(repo.join("restricted/fetchable"))
+        .assert()
+        .stdout("")
+        .stderr(contains(format!(
+            "restricted/fetchable-1::test: skipping restricted fetchable: {uri}/file2"
+        )))
+        .failure()
+        .code(1);
+
+    // restricted fetchables can be forcibly processed via --restrict
+    env::set_current_dir(temp.path().join("restricted/fetchable")).unwrap();
+    cmd("pk pkg manifest --restrict")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("Manifest").unwrap();
+    let expected = indoc::indoc! {"
+        DIST file2 5 BLAKE2B e7d271d6ad3714e5fb653a1b7f6b6b93970605e41a9e8f81eaadacd2f9988ecc8c89340948b55e1516880dc55a52db935f97c54f3a92a9b909dc3a644a0a19d8 SHA512 eb827f1c183373d14958e0253e58496455821fa747996f09d2670cb9f9ff17b5ef3346ffb9d122bf537fcc3bd6480fb916ed3e906763f3bc98b520626ef86329
+    "};
+    assert_eq!(&data, expected);
+
+    // restricted files must be manually fetched
+    env::set_current_dir(temp.path().join("restricted/file")).unwrap();
+    let dir = tempdir().unwrap();
+    fs::write(dir.path().join("file1"), "file1").unwrap();
+    cmd("pk pkg manifest")
+        .args(["-d", dir.path().to_str().unwrap()])
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("Manifest").unwrap();
+    let expected = indoc::indoc! {"
+        DIST file1 5 BLAKE2B cdd6f110d8bd98e98a7c7446696348339bde07da2291f2d2be7648f2f6165fe246e219f8592a736770f96f64d3fd550ac64c11fe612e3452b82ba34367d435fc SHA512 119c19f868a33109852c09d66f6a5c73a7cd52f38325020a461cd94a74edef88709fcbc547d96d0ad9da671260fc42322d177378bad7a285f5df03f8e28f8565
+    "};
+    assert_eq!(&data, expected);
+}

@@ -40,13 +40,12 @@ clap_complete = { version = "4.5.40", optional = true }
 clap-verbosity-flag = "3.0.2"
 futures = "0.3.31"
 humantime = "2.1.0"
-indexmap = { version = "2.7.0", features = ["rayon", "serde"] }
+indexmap = { version = "2.7.0", features = ["serde"] }
 indicatif = "0.17.9"
 indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.20" }
-rayon = "1.10.0"
 reqwest = { version = "0.12.9", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 scallop = { path = "../scallop", version = "0.0.19" }
 strum = { version = "0.26.3", features = ["derive"] }

@@ -459,7 +459,7 @@ async fn restrict() {
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
-    // restricted targets are ignored by default
+    // restricted targets are skipped by default
     cmd("pk pkg fetch")
         .arg(repo)
         .assert()
@@ -472,13 +472,13 @@ async fn restrict() {
         .arg(repo.join("restricted/file"))
         .assert()
         .stdout("")
-        .stderr(contains("ignoring restricted file: file"))
+        .stderr(contains("skipping restricted file: file"))
         .success();
     cmd("pk pkg fetch -v")
         .arg(repo.join("restricted/fetchable"))
         .assert()
         .stdout("")
-        .stderr(contains(format!("ignoring restricted fetchable: {uri}/file")))
+        .stderr(contains(format!("skipping restricted fetchable: {uri}/file")))
         .success();
     assert!(fs::read_to_string("file").is_err());
 

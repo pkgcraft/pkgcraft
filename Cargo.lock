@@ -2173,7 +2173,6 @@ dependencies = [
  "pkgcraft",
  "predicates",
  "pretty_assertions",
- "rayon",
  "reqwest",
  "scallop",
  "strum",

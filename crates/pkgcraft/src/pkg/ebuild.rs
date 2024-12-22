@@ -312,12 +312,12 @@ impl Iterator for IterFetchable<'_> {
                     if self.override_restrict {
                         Some(Ok(*f))
                     } else {
-                        warn!("ignoring restricted fetchable: {f}");
+                        warn!("skipping restricted fetchable: {f}");
                         None
                     }
                 }
                 Err(Error::RestrictedFile(f)) => {
-                    warn!("ignoring restricted file: {f}");
+                    warn!("skipping restricted file: {f}");
                     None
                 }
                 Err(e) => Some(Err(e.into_pkg_err(self.pkg))),

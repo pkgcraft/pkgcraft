@@ -15,13 +15,12 @@ use itertools::Itertools;
 use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
-use pkgcraft::fetch::Fetcher;
+use pkgcraft::fetch::{Fetchable, Fetcher};
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
-use rayon::prelude::*;
 use tempfile::TempDir;
 use tracing::error;
 
@@ -140,7 +139,8 @@ impl Command {
         let mut iter = pkgs_ebuild(targets).log_errors();
 
         let failed = &AtomicBool::new(false);
-        let mut pkgs: IndexMap<_, IndexSet<_>> = IndexMap::new();
+        let mut fetchables = IndexSet::new();
+        let mut pkg_distfiles: IndexMap<_, IndexSet<_>> = IndexMap::new();
         for pkg in &mut iter {
             let manifest = pkg.manifest();
             let thick = self
@@ -162,6 +162,49 @@ impl Command {
                 }
             };
 
+            fetchables.extend(
+                pkg.src_uri()
+                    .iter_flatten()
+                    .filter_map(|uri| match Fetchable::from_uri(uri, &pkg, self.mirrors) {
+                        Ok(f) => Some(f),
+                        Err(Error::RestrictedFetchable(f)) => {
+                            if self.restrict {
+                                Some(*f)
+                            } else {
+                                if !dir.join(f.filename()).exists() {
+                                    error!("{pkg}: skipping restricted fetchable: {f}");
+                                    failed.store(true, Ordering::Relaxed);
+                                }
+                                None
+                            }
+                        }
+                        Err(Error::RestrictedFile(uri)) => {
+                            let name = uri.filename();
+                            if !dir.join(name).exists() {
+                                error!("{pkg}: nonexistent restricted file: {name}");
+                                failed.store(true, Ordering::Relaxed);
+                            }
+                            None
+                        }
+                        Err(e) => {
+                            error!("{pkg}: {e}");
+                            failed.store(true, Ordering::Relaxed);
+                            None
+                        }
+                    })
+                    .filter(|f| self.force || regen_entry(f.filename()))
+                    .filter_map(|f| {
+                        let path = dir.join(f.filename());
+                        // assume existing files are completely downloaded
+                        if !path.exists() {
+                            let manifest_entry = manifest.get(f.filename()).cloned();
+                            Some((f, path, manifest_entry))
+                        } else {
+                            None
+                        }
+                    }),
+            );
+
             // A manifest is regenerated if its type (thick vs thin) doesn't match
             // the requested setting or the entry hashes don't match the repo hashes.
             let regen = || -> bool {
@@ -172,25 +215,15 @@ impl Command {
                         .any(|hash| !pkg.repo().metadata().config.manifest_hashes.contains(hash))
             };
 
-            let mut fetchables = pkg
-                .fetchables(self.restrict, self.mirrors)
-                .filter_map(|result| match result {
-                    Ok(value) => Some(value),
-                    Err(e) => {
-                        error!("{e}");
-                        failed.store(true, Ordering::Relaxed);
-                        None
-                    }
-                })
-                .filter(|f| self.force || regen_entry(f.filename()))
+            let mut distfiles = pkg
+                .distfiles()
+                .filter(|f| self.force || regen_entry(f))
                 .peekable();
-            if fetchables.peek().is_some() || self.force || regen() {
-                pkgs.entry((pkg.repo(), pkg.cpn().clone(), thick))
+            if distfiles.peek().is_some() || self.force || regen() {
+                pkg_distfiles
+                    .entry((pkg.repo(), pkg.cpn().clone(), thick))
                     .or_default()
-                    .extend(fetchables.map(|f| {
-                        let path = dir.join(f.filename());
-                        (f, path)
-                    }))
+                    .extend(distfiles.map(|f| dir.join(f)));
             }
         }
 
@@ -203,9 +236,8 @@ impl Command {
         let fetcher = &Fetcher::new(builder)?;
 
         // show a global progress bar when downloading more files than concurrency limit
-        let downloads = pkgs.values().flatten().count();
-        let global_pb = if downloads > concurrent {
-            Some(ProgressBar::new(downloads as u64))
+        let global_pb = if fetchables.len() > concurrent {
+            Some(ProgressBar::new(fetchables.len() as u64))
         } else {
             None
         };
@@ -222,25 +254,12 @@ impl Command {
         // download files asynchronously tracking failure status
         let global_pb = &global_pb;
         tokio().block_on(async {
-            // assume existing files are completely downloaded
-            let targets = pkgs.iter().flat_map(|((repo, cpn, _), fetchables)| {
-                fetchables.iter().filter_map(move |(f, path)| {
-                    if !path.exists() {
-                        let pkg_manifest = repo.metadata().pkg_manifest(cpn);
-                        let manifest = pkg_manifest.get(f.filename());
-                        Some((f, path, manifest.cloned()))
-                    } else {
-                        None
-                    }
-                })
-            });
-
             // convert targets into download results stream
-            let results = stream::iter(targets)
+            let results = stream::iter(fetchables)
                 .map(|(f, path, manifest)| async move {
                     let size = manifest.as_ref().map(|m| m.size());
                     let part_path = Utf8PathBuf::from(format!("{path}.part"));
-                    let result = fetcher.fetch(f, &part_path, mb, size).await;
+                    let result = fetcher.fetch(&f, &part_path, mb, size).await;
                     (result, manifest, part_path, path)
                 })
                 .buffer_unordered(concurrent);
@@ -284,7 +303,7 @@ impl Command {
 
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
-            for ((repo, cpn, thick), fetchables) in pkgs {
+            for ((repo, cpn, thick), distfiles) in pkg_distfiles {
                 let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
 
                 // load manifest from file
@@ -295,9 +314,6 @@ impl Command {
                         Default::default()
                     }
                 };
-
-                // collect files for hashing
-                let distfiles = fetchables.into_par_iter().map(|(_, path)| path);
 
                 // update manifest entries
                 let hashes = &repo.metadata().config.manifest_hashes;
