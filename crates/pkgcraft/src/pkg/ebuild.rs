@@ -3,6 +3,7 @@ use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use indexmap::IndexSet;
+use tracing::warn;
 
 use crate::dep::{Cpv, Dep};
 use crate::dep::{DependencySet, Uri};
@@ -305,7 +306,14 @@ impl Iterator for IterFetchable<'_> {
         self.uris.find_map(|uri| {
             match Fetchable::from_uri(uri, self.pkg, self.use_default_mirrors) {
                 Ok(f) => Some(Ok(f)),
-                Err(Error::RestrictedFetchable(_)) => None,
+                Err(Error::RestrictedFetchable(f)) => {
+                    warn!("ignoring restricted fetchable: {f}");
+                    None
+                }
+                Err(Error::RestrictedFile(f)) => {
+                    warn!("ignoring restricted file: {f}");
+                    None
+                }
                 Err(e) => Some(Err(e.into_pkg_err(self.pkg))),
             }
         })
