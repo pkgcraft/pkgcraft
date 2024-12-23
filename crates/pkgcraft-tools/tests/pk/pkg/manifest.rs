@@ -123,7 +123,12 @@ async fn incremental() {
 
     Mock::given(method("GET"))
         .and(path("/file2"))
-        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file3"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file3"))
         .mount(&server)
         .await;
 
@@ -131,7 +136,7 @@ async fn incremental() {
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
-        SRC_URI="{uri}/file1 use? ( {uri}/file2 )"
+        SRC_URI="{uri}/file1"
         SLOT=0
         IUSE="use"
     "#};
@@ -140,9 +145,29 @@ async fn incremental() {
     let existing = indoc::indoc! {"
         DIST file1 5 BLAKE2B c689bf21986252dab8c946042cd73c44995a205da7b8c0816c56ee33894acbace61f27ed94d9ffc2a0d3bee7539565aca834b220af95cc5abb2ceb90946606fe SHA512 b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181
     "};
-
     env::set_current_dir(temp.path().join("cat/pkg")).unwrap();
     fs::write("Manifest", existing).unwrap();
+
+    // no distfiles missing from the manifest, no nothing occurs
+    cmd("pk pkg manifest")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("Manifest").unwrap();
+    let expected = indoc::indoc! {"
+        DIST file1 5 BLAKE2B c689bf21986252dab8c946042cd73c44995a205da7b8c0816c56ee33894acbace61f27ed94d9ffc2a0d3bee7539565aca834b220af95cc5abb2ceb90946606fe SHA512 b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181
+    "};
+    assert_eq!(&data, expected);
+
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="use? ( {uri}/file2 {uri}/file3 )"
+        SLOT=0
+        IUSE="use"
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
 
     // only distfiles missing from the manifest are downloaded by default
     cmd("pk pkg manifest")
@@ -153,7 +178,21 @@ async fn incremental() {
     let data = fs::read_to_string("Manifest").unwrap();
     let expected = indoc::indoc! {"
         DIST file1 5 BLAKE2B c689bf21986252dab8c946042cd73c44995a205da7b8c0816c56ee33894acbace61f27ed94d9ffc2a0d3bee7539565aca834b220af95cc5abb2ceb90946606fe SHA512 b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181
-        DIST file2 5 BLAKE2B e1b1bfe59054380ac6eb014388b2db3a03d054770ededd9ee148c8b29aa272bbd079344bb40a92d0a754cd925f4beb48c9fd66a0e90b0d341b6fe3bbb4893246 SHA512 6d201beeefb589b08ef0672dac82353d0cbd9ad99e1642c83a1601f3d647bcca003257b5e8f31bdc1d73fbec84fb085c79d6e2677b7ff927e823a54e789140d9
+        DIST file2 5 BLAKE2B e7d271d6ad3714e5fb653a1b7f6b6b93970605e41a9e8f81eaadacd2f9988ecc8c89340948b55e1516880dc55a52db935f97c54f3a92a9b909dc3a644a0a19d8 SHA512 eb827f1c183373d14958e0253e58496455821fa747996f09d2670cb9f9ff17b5ef3346ffb9d122bf537fcc3bd6480fb916ed3e906763f3bc98b520626ef86329
+        DIST file3 5 BLAKE2B dbc2a62e696433d9f3b49e911a14cd7418dce6441821d88fbf45aa26bb69860604d336c536fc732ed8a77b7fdf8363a6efa6849ced443a5e38917eb073b9c786 SHA512 b10ff867df18165a0e100d99cd3d27f845f7ef9ad84eeb627a53aabaea04805940c3693154b8a32541a31887dda9fb1e667e93307473b1c581021714768bd032
+    "};
+    assert_eq!(&data, expected);
+
+    // removing an ebuild removes old entries
+    fs::remove_file(temp.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
+    cmd("pk pkg manifest")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("Manifest").unwrap();
+    let expected = indoc::indoc! {"
+        DIST file1 5 BLAKE2B c689bf21986252dab8c946042cd73c44995a205da7b8c0816c56ee33894acbace61f27ed94d9ffc2a0d3bee7539565aca834b220af95cc5abb2ceb90946606fe SHA512 b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181
     "};
     assert_eq!(&data, expected);
 }

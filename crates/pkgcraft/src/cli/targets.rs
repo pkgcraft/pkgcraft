@@ -4,8 +4,9 @@ use camino::Utf8Path;
 use itertools::Itertools;
 
 use crate::config::Config;
+use crate::dep::Cpn;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
-use crate::pkg::Pkg;
+use crate::pkg::{Package, Pkg, RepoPackage};
 use crate::repo::ebuild::EbuildRepo;
 use crate::repo::set::RepoSet;
 use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
@@ -205,6 +206,18 @@ where
             .filter_map(|r| r.into_ebuild().ok())
             .flat_map(move |r| r.iter_restrict_ordered(&restrict))
     })
+}
+
+/// Convert target restrictions into expanded ebuild package data.
+///
+/// This is useful to create pkg sets while still being able to log or ignore errors.
+pub fn pkgs_ebuild_expand<I>(
+    values: I,
+) -> impl Iterator<Item = crate::Result<(EbuildRepo, Cpn, EbuildPkg)>>
+where
+    I: IntoIterator<Item = (RepoSet, Restrict)>,
+{
+    pkgs_ebuild(values).map(|result| result.map(|pkg| (pkg.repo(), pkg.cpn().clone(), pkg)))
 }
 
 /// Convert target restrictions to raw ebuild packages.

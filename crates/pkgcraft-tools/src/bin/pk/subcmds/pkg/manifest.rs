@@ -11,12 +11,11 @@ use clap::Args;
 use futures::{stream, StreamExt};
 use indexmap::{IndexMap, IndexSet};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{pkgs_ebuild_expand, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::{Fetchable, Fetcher};
 use pkgcraft::macros::build_path;
-use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
@@ -133,95 +132,89 @@ impl Command {
             .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?;
 
-        // convert restrictions to pkgs
-        let mut iter = pkgs_ebuild(targets).log_errors();
+        // convert restrictions to pkg sets
+        let mut iter = pkgs_ebuild_expand(targets).log_errors();
+        let mut pkg_sets = IndexMap::<_, Vec<_>>::new();
+        for (repo, cpn, pkg) in &mut iter {
+            pkg_sets.entry((repo, cpn)).or_default().push(pkg);
+        }
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();
-        let mut pkg_distfiles: IndexMap<_, IndexSet<_>> = IndexMap::new();
-        for pkg in &mut iter {
-            let manifest = pkg.manifest();
-            let thick = self
-                .thick
-                .unwrap_or_else(|| !pkg.repo().metadata().config.thin_manifests);
+        let mut pkg_distfiles: IndexMap<_, IndexMap<_, _>> = IndexMap::new();
+        for ((repo, cpn), pkgs) in pkg_sets {
+            let manifest = repo.metadata().pkg_manifest(&cpn);
 
-            // A manifest entry is regenerated if its type (thick vs thin) doesn't match
-            // the requested setting, the entry hashes don't match the repo hashes, or the
-            // related file isn't in the manifest.
+            // A manifest entry is regenerated if the entry hashes don't match the repo
+            // hashes or the related file isn't in the manifest.
             let regen_entry = |name: &str| -> bool {
                 if let Some(entry) = manifest.get(name) {
-                    manifest.is_thick() != thick
-                        || entry.hashes().keys().ne(&pkg
-                            .repo()
-                            .metadata()
-                            .config
-                            .manifest_hashes)
+                    entry
+                        .hashes()
+                        .keys()
+                        .ne(&repo.metadata().config.manifest_hashes)
                 } else {
                     true
                 }
             };
 
-            fetchables.extend(
-                pkg.src_uri()
-                    .iter_flatten()
-                    .filter_map(|uri| match Fetchable::from_uri(uri, &pkg, self.mirrors) {
-                        Ok(f) => Some(f),
-                        Err(Error::RestrictedFetchable(f)) => {
-                            if self.restrict {
-                                Some(*f)
-                            } else {
-                                if !dir.join(f.filename()).exists() {
-                                    error!("{pkg}: nonexistent restricted fetchable: {f}");
+            for pkg in &pkgs {
+                fetchables.extend(
+                    pkg.src_uri()
+                        .iter_flatten()
+                        .filter_map(|uri| match Fetchable::from_uri(uri, pkg, self.mirrors) {
+                            Ok(f) => Some(f),
+                            Err(Error::RestrictedFetchable(f)) => {
+                                if self.restrict {
+                                    Some(*f)
+                                } else {
+                                    if !dir.join(f.filename()).exists() {
+                                        error!("{pkg}: nonexistent restricted fetchable: {f}");
+                                        failed.store(true, Ordering::Relaxed);
+                                    }
+                                    None
+                                }
+                            }
+                            Err(Error::RestrictedFile(uri)) => {
+                                let name = uri.filename();
+                                if !dir.join(name).exists() {
+                                    error!("{pkg}: nonexistent restricted file: {name}");
                                     failed.store(true, Ordering::Relaxed);
                                 }
                                 None
                             }
-                        }
-                        Err(Error::RestrictedFile(uri)) => {
-                            let name = uri.filename();
-                            if !dir.join(name).exists() {
-                                error!("{pkg}: nonexistent restricted file: {name}");
+                            Err(e) => {
+                                error!("{pkg}: {e}");
                                 failed.store(true, Ordering::Relaxed);
+                                None
                             }
-                            None
-                        }
-                        Err(e) => {
-                            error!("{pkg}: {e}");
-                            failed.store(true, Ordering::Relaxed);
-                            None
-                        }
-                    })
-                    .filter(|f| self.force || regen_entry(f.filename()))
-                    .filter_map(|f| {
-                        let path = dir.join(f.filename());
-                        // assume existing files are completely downloaded
-                        if !path.exists() {
-                            let manifest_entry = manifest.get(f.filename()).cloned();
-                            Some((f, path, manifest_entry))
-                        } else {
-                            None
-                        }
-                    }),
-            );
+                        })
+                        .filter(|f| self.force || regen_entry(f.filename()))
+                        .filter_map(|f| {
+                            let path = dir.join(f.filename());
+                            // assume existing files are completely downloaded
+                            if !path.exists() {
+                                let manifest_entry = manifest.get(f.filename()).cloned();
+                                Some((f, path, manifest_entry))
+                            } else {
+                                None
+                            }
+                        }),
+                );
+            }
 
-            // A manifest is regenerated if its type (thick vs thin) doesn't match
-            // the requested setting or the entry hashes don't match the repo hashes.
-            let regen = || -> bool {
-                manifest.is_thick() != thick
-                    || manifest.iter().flat_map(|e| e.hashes().keys()).any(|hash| {
-                        !pkg.repo().metadata().config.manifest_hashes.contains(hash)
-                    })
-            };
-
-            let mut distfiles = pkg
-                .distfiles()
-                .filter(|f| self.force || regen_entry(f))
-                .peekable();
-            if distfiles.peek().is_some() || self.force || regen() {
-                pkg_distfiles
-                    .entry((pkg.repo(), pkg.cpn().clone(), thick))
-                    .or_default()
-                    .extend(distfiles.map(|f| (f.to_string(), dir.join(f))));
+            let thick = self
+                .thick
+                .unwrap_or_else(|| !repo.metadata().config.thin_manifests);
+            let distfiles: IndexMap<_, _> = pkgs
+                .iter()
+                .flat_map(|x| x.distfiles())
+                .map(|f| (f.to_string(), (dir.join(f), self.force || regen_entry(f))))
+                .collect();
+            let regen = distfiles.values().any(|(_, outdated)| *outdated);
+            let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
+            if self.force || regen || manifest.outdated(&pkgdir, &distfiles, thick) {
+                pkg_distfiles.insert((repo, cpn, pkgdir, thick), distfiles);
             }
         }
 
@@ -301,9 +294,7 @@ impl Command {
 
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
-            for ((repo, cpn, thick), distfiles) in pkg_distfiles {
-                let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
-
+            for ((repo, cpn, pkgdir, thick), distfiles) in pkg_distfiles {
                 // load manifest from file
                 let mut manifest = match repo.metadata().pkg_manifest_parse(&cpn) {
                     Ok(value) => value,
@@ -315,7 +306,7 @@ impl Command {
 
                 // update manifest entries
                 let hashes = &repo.metadata().config.manifest_hashes;
-                if let Err(e) = manifest.update(distfiles, hashes, &pkgdir, thick) {
+                if let Err(e) = manifest.update(&distfiles, hashes, &pkgdir, thick) {
                     error!("{e}");
                     failed.store(true, Ordering::Relaxed);
                     continue;

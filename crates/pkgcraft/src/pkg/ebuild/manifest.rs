@@ -281,30 +281,49 @@ impl Manifest {
         self.0.iter().any(|x| x.kind() == ManifestType::Ebuild)
     }
 
+    /// Determine if a Manifest is outdated.
+    pub fn outdated(
+        &self,
+        pkgdir: &Utf8Path,
+        distfiles: &IndexMap<String, (Utf8PathBuf, bool)>,
+        thick: bool,
+    ) -> bool {
+        let mut files: IndexSet<_> = distfiles.keys().map(|s| s.to_string()).collect();
+        if thick {
+            files.extend(
+                relative_paths(pkgdir)
+                    .filter_map(|path| Utf8PathBuf::from_path_buf(path).ok())
+                    .map(|path| path.into()),
+            );
+        }
+
+        files.len() != self.0.len() || files.iter().any(|x| self.get(x).is_none())
+    }
+
     /// Update the [`Manifest`] entries relating to an iterator of distfile paths.
-    pub fn update<'a, I, J>(
+    pub fn update<'a, I>(
         &mut self,
-        distfiles: I,
-        hashes: J,
+        distfiles: &IndexMap<String, (Utf8PathBuf, bool)>,
+        hashes: I,
         pkgdir: &Utf8Path,
         thick: bool,
     ) -> crate::Result<()>
     where
-        I: IntoParallelIterator<Item = (String, Utf8PathBuf)>,
-        J: IntoIterator<Item = &'a HashType> + Send + Sync + Copy,
+        I: IntoIterator<Item = &'a HashType> + Send + Sync + Copy,
     {
         // generate distfile hashes
         let mut files: Vec<_> = distfiles
             .into_par_iter()
-            .map(|(name, path)| {
+            .filter(|(_, (_, update))| *update)
+            .map(|(name, (path, _))| {
                 ManifestFile::from_path(ManifestType::Dist, name, path, hashes)
             })
             .collect();
 
         // generate file hashes for thick manifests
+        let files_path = pkgdir.join("files");
         if thick {
             // add files dir entries
-            let files_path = pkgdir.join("files");
             files.par_extend(
                 relative_paths(&files_path)
                     .collect::<Vec<_>>()
@@ -349,6 +368,16 @@ impl Manifest {
         for result in files {
             self.0.replace(result?);
         }
+
+        // remove entries for nonexistent files
+        self.0.retain(|entry| {
+            let name = entry.name();
+            match entry.kind() {
+                ManifestType::Aux => files_path.join(name).exists(),
+                ManifestType::Ebuild | ManifestType::Misc => pkgdir.join(name).exists(),
+                ManifestType::Dist => distfiles.contains_key(name),
+            }
+        });
 
         // sort manifest entries by kind then by name
         self.0.par_sort();
