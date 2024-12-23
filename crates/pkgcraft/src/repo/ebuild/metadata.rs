@@ -1140,7 +1140,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .map(|x| x.url.as_str()),
-            ["https://a/mirror/", "https://another/mirror"],
+            ["https://a/mirror/", "https://another/mirror/"],
         );
         assert_ordered_eq!(
             metadata
