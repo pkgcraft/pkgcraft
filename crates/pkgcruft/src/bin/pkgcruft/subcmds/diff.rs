@@ -140,9 +140,9 @@ impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         // determine enabled reports
         let defaults = ReportKind::iter().collect();
-        let reports = self.reports.collapse(defaults)?;
+        let (enabled, _) = self.reports.collapse(defaults)?;
 
-        let replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
+        let replay = Replay::new().reports(enabled).pkgs(self.options.pkgs)?;
 
         let old: IndexSet<_> = replay.run(self.old)?.try_collect()?;
         let new: IndexSet<_> = replay.run(self.new)?.try_collect()?;

@@ -23,7 +23,8 @@ use crate::source::{PkgFilter, Target};
 
 pub struct Scanner {
     jobs: usize,
-    checks: IndexSet<Check>,
+    enabled: Option<IndexSet<Check>>,
+    selected: Option<IndexSet<Check>>,
     reports: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
     filters: IndexSet<PkgFilter>,
@@ -36,7 +37,8 @@ impl Scanner {
     pub fn new(repo: &EbuildRepo) -> Self {
         Self {
             jobs: bounded_jobs(0),
-            checks: Check::iter_default(repo).collect(),
+            enabled: Default::default(),
+            selected: Default::default(),
             reports: Arc::new(ReportKind::iter().collect()),
             exit: Default::default(),
             filters: Default::default(),
@@ -51,13 +53,13 @@ impl Scanner {
         self
     }
 
-    /// Set the checks to run.
+    /// Set the enabled checks.
     pub fn checks<I>(mut self, values: I) -> Self
     where
         I: IntoIterator,
         I::Item: Into<Check>,
     {
-        self.checks = values.into_iter().map(Into::into).collect();
+        self.enabled = Some(values.into_iter().map(Into::into).collect());
         self
     }
 
@@ -67,6 +69,17 @@ impl Scanner {
         I: IntoIterator<Item = ReportKind>,
     {
         self.reports = Arc::new(values.into_iter().collect());
+        self
+    }
+
+    /// Set the enabled and selected checks.
+    pub fn selected(
+        mut self,
+        enabled: &IndexSet<ReportKind>,
+        selected: &IndexSet<ReportKind>,
+    ) -> Self {
+        self.enabled = Some(enabled.iter().flat_map(Check::iter_report).collect());
+        self.selected = Some(selected.iter().flat_map(Check::iter_report).collect());
         self
     }
 
@@ -109,13 +122,23 @@ impl Scanner {
             return Err(Error::NoMatches);
         }
 
-        let runner = Arc::new(SyncCheckRunner::new(
+        // determine enabled and selected checks
+        let defaults = Check::iter_default(&self.repo).collect();
+        let empty = Default::default();
+        let (enabled, selected) = match (self.enabled.as_ref(), self.selected.as_ref()) {
+            (Some(x), Some(y)) => (x, y),
+            (Some(x), None) | (None, Some(x)) => (x, x),
+            (None, None) => (&defaults, &empty),
+        };
+
+        let runner = SyncCheckRunner::new(
             scope,
             &self.repo,
             &restrict,
             &self.filters,
-            &self.checks,
-        ));
+            enabled,
+            selected,
+        )?;
 
         if scope >= Scope::Category {
             Ok(ReportIter::pkg(runner, self, restrict))
@@ -372,7 +395,8 @@ pub struct ReportIter(ReportIterInternal);
 
 impl ReportIter {
     /// Create an iterator that parallelizes scanning by package.
-    fn pkg(runner: Arc<SyncCheckRunner>, scanner: &Scanner, restrict: Restrict) -> Self {
+    fn pkg(runner: SyncCheckRunner, scanner: &Scanner, restrict: Restrict) -> Self {
+        let runner = Arc::new(runner);
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
@@ -413,7 +437,8 @@ impl ReportIter {
     }
 
     /// Create an iterator that parallelizes scanning by check.
-    fn version(runner: Arc<SyncCheckRunner>, scanner: &Scanner, restrict: Restrict) -> Self {
+    fn version(runner: SyncCheckRunner, scanner: &Scanner, restrict: Restrict) -> Self {
+        let runner = Arc::new(runner);
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let filter = ReportFilter {

@@ -89,14 +89,13 @@ impl Command {
                     .collect();
 
                 // determine enabled checks and reports
-                let reports = self.reports.collapse(defaults)?;
-                let checks = reports.iter().flat_map(Check::iter_report);
+                let (enabled, selected) = self.reports.collapse(defaults)?;
 
                 // create report scanner
                 let scanner = Scanner::new(repo)
                     .jobs(self.jobs.unwrap_or_default())
-                    .checks(checks)
-                    .reports(reports)
+                    .selected(&enabled, &selected)
+                    .reports(enabled)
                     .filters(self.filters.iter().cloned())
                     .exit(self.exit.iter().copied());
 

@@ -115,34 +115,44 @@ impl Reports {
     pub(crate) fn collapse(
         &self,
         defaults: IndexSet<ReportKind>,
-    ) -> pkgcruft::Result<IndexSet<ReportKind>> {
+    ) -> pkgcruft::Result<(IndexSet<ReportKind>, IndexSet<ReportKind>)> {
         // sort by variant
-        let selected: Vec<_> = self.reports.iter().copied().sorted().collect();
+        let reports: Vec<_> = self.reports.iter().copied().sorted().collect();
 
         // don't use defaults if neutral options exist
-        let mut reports = if let Some(TriState::Set(_)) = selected.first() {
+        let mut enabled = if let Some(TriState::Set(_)) = reports.first() {
             Default::default()
         } else {
             defaults.clone()
         };
 
-        for x in selected {
+        let mut selected = IndexSet::new();
+        for x in reports {
             match x {
-                TriState::Set(val) => reports.extend(val.expand(&defaults)),
-                TriState::Add(val) => reports.extend(val.expand(&defaults)),
+                TriState::Set(val) => {
+                    enabled.extend(val.expand(&defaults));
+                    if matches!(val, ReportAlias::Check(_) | ReportAlias::Report(_)) {
+                        selected.extend(val.expand(&defaults));
+                    }
+                }
+                TriState::Add(val) => {
+                    enabled.extend(val.expand(&defaults));
+                    if matches!(val, ReportAlias::Check(_) | ReportAlias::Report(_)) {
+                        selected.extend(val.expand(&defaults));
+                    }
+                }
                 TriState::Remove(val) => {
                     for x in val.expand(&defaults) {
-                        reports.swap_remove(&x);
+                        enabled.swap_remove(&x);
                     }
                 }
             };
         }
 
-        if reports.is_empty() {
-            Err(Error::InvalidValue("no reports selected".to_string()))
+        if enabled.is_empty() {
+            Err(Error::InvalidValue("no reports enabled".to_string()))
         } else {
-            reports.sort();
-            Ok(reports)
+            Ok((enabled, selected))
         }
     }
 }
@@ -173,8 +183,8 @@ mod tests {
             .copied()
             .collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let reports = cmd.reports.collapse(defaults).unwrap();
-        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
+        let (enabled, _) = cmd.reports.collapse(defaults).unwrap();
+        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
         // repo specific checks enabled when scanning the matching repo
         assert!(checks.contains(&CheckKind::Header));
 
@@ -185,8 +195,8 @@ mod tests {
             .copied()
             .collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
+        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
         assert!(checks.contains(&CheckKind::Dependency));
         // optional checks aren't run by default when scanning
         assert!(!checks.contains(&CheckKind::UnstableOnly));
@@ -197,36 +207,36 @@ mod tests {
         let report = ReportKind::HeaderInvalid;
         assert_eq!(report.level(), ReportLevel::Error);
         let cmd = Command::try_parse_from(["cmd", "-r", "%error"]).unwrap();
-        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
-        assert!(!reports.contains(&report));
-        assert!(!reports.is_empty());
+        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        assert!(!enabled.contains(&report));
+        assert!(!enabled.is_empty());
 
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-r", "+@UnstableOnly,+@Header"]).unwrap();
-        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
+        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
         assert!(checks.contains(&CheckKind::UnstableOnly));
         assert!(checks.contains(&CheckKind::Header));
         assert!(checks.len() > 2);
 
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency"]).unwrap();
-        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
+        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,+@Dependency"]).unwrap();
-        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
+        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // error when args cancel out
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,@Dependency"]).unwrap();
         let r = cmd.reports.collapse(defaults.clone());
-        assert_err_re!(r, "no reports selected");
+        assert_err_re!(r, "no reports enabled");
 
         // invalid check aliases in args
         for arg in ["-r=@unknown", "-r=-@unknown", "-r=+@unknown"] {

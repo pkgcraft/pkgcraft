@@ -123,9 +123,9 @@ impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
         // determine enabled reports
         let defaults = ReportKind::iter().collect();
-        let reports = self.reports.collapse(defaults)?;
+        let (enabled, _) = self.reports.collapse(defaults)?;
 
-        let mut replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
+        let mut replay = Replay::new().reports(enabled).pkgs(self.options.pkgs)?;
 
         if !self.options.scopes.is_empty() {
             replay = replay.scopes(self.options.scopes);

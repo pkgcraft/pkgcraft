@@ -9,6 +9,7 @@ use pkgcraft::restrict::Restrict;
 use tracing::{debug, warn};
 
 use crate::check::*;
+use crate::error::Error;
 use crate::scanner::ReportFilter;
 use crate::scope::Scope;
 use crate::source::*;
@@ -25,58 +26,60 @@ impl SyncCheckRunner {
         repo: &EbuildRepo,
         restrict: &Restrict,
         filters: &IndexSet<PkgFilter>,
-        checks: &IndexSet<Check>,
-    ) -> Self {
+        enabled: &IndexSet<Check>,
+        selected: &IndexSet<Check>,
+    ) -> crate::Result<Self> {
         let mut runners = IndexMap::new();
 
-        // TODO: error out instead of skipping checks silently
-        // filter checks
-        checks
-            .iter()
-            .filter(|c| {
-                if !filters.is_empty() && c.filtered() {
-                    warn!("{c}: disabled due to filtering");
-                    false
+        for check in enabled.iter().copied() {
+            if !filters.is_empty() && check.filtered() {
+                let msg = format!("{check}: requires no filters");
+                if selected.contains(&check) {
+                    return Err(Error::InvalidValue(format!("selected check {msg}")));
                 } else {
-                    true
+                    warn!("skipping check {msg}");
+                    continue;
                 }
-            })
-            .filter(|c| {
-                if let Some(context) = c.skipped(repo, checks) {
-                    warn!("{c}: disabled due to {context} context");
-                    false
-                } else {
-                    true
-                }
-            })
-            .filter(|c| {
-                if c.scope > scope {
-                    warn!("{c}: disabled due to {scope} scope");
-                    false
-                } else {
-                    true
-                }
-            })
-            .copied()
-            .for_each(|check| {
-                runners
-                    .entry(check.source)
-                    .or_insert_with(|| {
-                        CheckRunner::new(
-                            scope,
-                            restrict,
-                            check.source,
-                            repo.clone(),
-                            filters.clone(),
-                        )
-                    })
-                    .add_check(check)
-            });
+            }
 
-        Self {
+            if let Some(context) = check.skipped(repo, selected) {
+                let msg = format!("{check}: requires {context} context");
+                if selected.contains(&check) {
+                    return Err(Error::InvalidValue(format!("selected check {msg}")));
+                } else {
+                    warn!("skipping check {msg}");
+                    continue;
+                }
+            }
+
+            if check.scope > scope {
+                let msg = format!("{check}: requires {} scope", check.scope);
+                if selected.contains(&check) {
+                    return Err(Error::InvalidValue(format!("selected check {msg}")));
+                } else {
+                    warn!("skipping check {msg}");
+                    continue;
+                }
+            }
+
+            runners
+                .entry(check.source)
+                .or_insert_with(|| {
+                    CheckRunner::new(
+                        scope,
+                        restrict,
+                        check.source,
+                        repo.clone(),
+                        filters.clone(),
+                    )
+                })
+                .add_check(check)
+        }
+
+        Ok(Self {
             runners,
             finalize: scope == Scope::Repo && filters.is_empty(),
-        }
+        })
     }
 
     /// Notify parallelized check runs to mangle values for post-run finalization.
