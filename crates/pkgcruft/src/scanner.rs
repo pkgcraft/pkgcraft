@@ -9,13 +9,11 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
-use pkgcraft::traits::Contains;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
 use tracing::info;
 
 use crate::check::Check;
-use crate::error::Error;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 use crate::source::{PkgFilter, Target};
@@ -115,11 +113,6 @@ impl Scanner {
         info!("repo: {}", self.repo);
         info!("scope: {scope}");
         info!("target: {restrict:?}");
-
-        // return early for non-matching restrictions
-        if !self.repo.contains(&restrict) {
-            return Err(Error::NoMatches);
-        }
 
         // determine enabled and selected checks
         let defaults = Check::iter_default(&self.repo).collect();
@@ -550,11 +543,11 @@ mod tests {
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
 
-        // non-matching restriction
+        // non-matching restriction doesn't raise error
         let scanner = Scanner::new(repo);
         let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let r = scanner.run(&dep);
-        assert_err_re!(r, "no matches found");
+        let reports = scanner.run(&dep).unwrap();
+        assert_unordered_eq!(reports, []);
 
         // repo with bad metadata
         let repo = data.ebuild_repo("bad").unwrap();
@@ -570,9 +563,9 @@ mod tests {
         // no failure with repo target
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
-        // fails with specific target
-        let r = scanner.run(&dep);
-        assert_err_re!(r, "no matches found");
+        // no failure with specific target
+        let reports = scanner.run(&dep).unwrap();
+        assert_unordered_eq!(reports, []);
 
         // overlay repo -- dependent repo is auto-loaded
         let repo = data.ebuild_repo("qa-secondary").unwrap();

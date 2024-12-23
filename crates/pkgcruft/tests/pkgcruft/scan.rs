@@ -8,6 +8,35 @@ use pretty_assertions::assert_eq;
 use tempfile::{tempdir, NamedTempFile};
 
 #[test]
+fn no_matches() {
+    cmd("pkgcruft scan nonexistent/pkg")
+        .assert()
+        .stdout("")
+        .stderr(contains("no matches found: nonexistent/pkg"))
+        .failure()
+        .code(2);
+
+    // empty repo target doesn't fail
+    let data = test_data();
+    let repo = data.ebuild_repo("empty").unwrap();
+    cmd("pkgcruft scan")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    // specific targets in an empty repo fail
+    cmd("pkgcruft scan cat/pkg")
+        .args(["--repo", repo.as_ref()])
+        .assert()
+        .stdout("")
+        .stderr(contains("no matches found: cat/pkg"))
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn stdin_targets() {
     let data = test_data();
     let repo = data.ebuild_repo("qa-primary").unwrap();

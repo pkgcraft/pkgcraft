@@ -6,8 +6,6 @@ pub enum Error {
     Pkgcraft(String),
     #[error("{0}")]
     InvalidValue(String),
-    #[error("no matches found")]
-    NoMatches,
     #[error("skipping remaining checks due to failure")]
     SkipRemainingChecks,
     #[error("{0}")]
