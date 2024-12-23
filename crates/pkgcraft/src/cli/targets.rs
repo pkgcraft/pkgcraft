@@ -197,7 +197,7 @@ where
 }
 
 /// Convert target restrictions to ebuild packages.
-pub fn pkgs_ebuild<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildPkg>>
+pub fn ebuild_pkgs<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildPkg>>
 where
     I: IntoIterator<Item = (RepoSet, Restrict)>,
 {
@@ -211,17 +211,17 @@ where
 /// Convert target restrictions into expanded ebuild package data.
 ///
 /// This is useful to create pkg sets while still being able to log or ignore errors.
-pub fn pkgs_ebuild_expand<I>(
+pub fn ebuild_pkgs_expand<I>(
     values: I,
 ) -> impl Iterator<Item = crate::Result<(EbuildRepo, Cpn, EbuildPkg)>>
 where
     I: IntoIterator<Item = (RepoSet, Restrict)>,
 {
-    pkgs_ebuild(values).map(|result| result.map(|pkg| (pkg.repo(), pkg.cpn().clone(), pkg)))
+    ebuild_pkgs(values).map(|result| result.map(|pkg| ((pkg.repo(), pkg.cpn().clone()), pkg)))
 }
 
 /// Convert target restrictions to raw ebuild packages.
-pub fn pkgs_ebuild_raw<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildRawPkg>>
+pub fn ebuild_raw_pkgs<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildRawPkg>>
 where
     I: IntoIterator<Item = (RepoSet, Restrict)>,
 {

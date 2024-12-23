@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use clap::builder::ArgPredicate;
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{ebuild_pkgs, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
@@ -38,7 +38,7 @@ impl Command {
 
         let mut stdout = io::stdout().lock();
         // convert restrictions to pkgs
-        let mut iter = pkgs_ebuild(targets).log_errors();
+        let mut iter = ebuild_pkgs(targets).log_errors();
         for pkg in &mut iter {
             writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
         }

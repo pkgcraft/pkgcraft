@@ -10,7 +10,7 @@ use clap::Args;
 use futures::{stream, StreamExt};
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use pkgcraft::cli::{pkgs_ebuild, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{ebuild_pkgs, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetcher;
@@ -99,7 +99,7 @@ impl Command {
             .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkgs
-        let mut iter = pkgs_ebuild(targets).log_errors();
+        let mut iter = ebuild_pkgs(targets).log_errors();
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();
