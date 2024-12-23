@@ -1,8 +1,8 @@
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{RepoCategoryEmpty, RepoPackageEmpty};
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, RepoCheck};

@@ -1,10 +1,10 @@
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
+use pkgcraft::restrict::Scope;
 use strum::{Display, EnumString};
 
 use crate::report::ReportKind::VariableOrder;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};

@@ -4,6 +4,7 @@ use pkgcraft::dep::{Dep, Dependency, Operator, SlotOperator, UseDepKind};
 use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{
@@ -11,7 +12,6 @@ use crate::report::ReportKind::{
     PackageDeprecatedUnused,
 };
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

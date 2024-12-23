@@ -9,12 +9,11 @@ use indexmap::IndexSet;
 use pkgcraft::bash::Node;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::Repository;
-use pkgcraft::restrict::{Restrict, Restriction};
+use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::Error;
 
 /// The severity of the report.

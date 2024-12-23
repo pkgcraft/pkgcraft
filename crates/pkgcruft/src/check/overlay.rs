@@ -1,10 +1,10 @@
 use indexmap::IndexSet;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::EclassUnused;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, EbuildPkgCheck};

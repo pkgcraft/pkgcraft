@@ -5,10 +5,10 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::KeywordsDropped;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgSetCheck};

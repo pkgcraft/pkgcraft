@@ -8,11 +8,11 @@ use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
+use pkgcraft::restrict::Scope;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::report::ReportKind::PythonUpdate;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::utils::{use_expand, use_starts_with};
 

@@ -1,11 +1,11 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repository;
+use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Contains;
 
 use crate::report::ReportKind::PackageOverride;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, CpnCheck};

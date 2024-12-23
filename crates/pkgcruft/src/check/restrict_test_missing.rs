@@ -1,10 +1,10 @@
 use pkgcraft::dep::{Dependency, DependencySet};
 use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::RestrictMissing;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

@@ -4,7 +4,6 @@ pub mod report;
 pub mod reporter;
 mod runner;
 pub mod scanner;
-pub mod scope;
 pub mod source;
 #[cfg(feature = "test")]
 pub mod test;

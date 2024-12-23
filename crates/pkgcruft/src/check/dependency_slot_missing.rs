@@ -2,10 +2,10 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::DependencySlotMissing;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

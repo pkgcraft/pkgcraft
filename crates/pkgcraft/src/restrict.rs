@@ -1,5 +1,7 @@
 use std::fmt;
 
+use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
+
 use crate::pkg::Restrict as PkgRestrict;
 use crate::restrict::dep::Restrict as DepRestrict;
 
@@ -86,6 +88,56 @@ impl Restriction<&str> for Restrict {
         restrict_match! {self, s,
             Self::Dep(r) => r.matches(s),
             Self::Str(r) => r.matches(s),
+        }
+    }
+}
+
+#[derive(
+    AsRefStr,
+    Display,
+    EnumIter,
+    EnumString,
+    VariantNames,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Copy,
+    Clone,
+)]
+#[strum(serialize_all = "kebab-case")]
+pub enum Scope {
+    Version,
+    Package,
+    Category,
+    Repo,
+}
+
+impl From<&Restrict> for Scope {
+    fn from(value: &Restrict) -> Self {
+        use dep::Restrict::{Category, Package, Version};
+
+        let restrict_scope = |restrict: &Restrict| match restrict {
+            Restrict::Dep(Category(_)) => Scope::Category,
+            Restrict::Dep(Package(_)) => Scope::Package,
+            Restrict::Dep(Version(Some(_))) => Scope::Version,
+            _ => Scope::Repo,
+        };
+
+        match value {
+            Restrict::And(vals) => vals
+                .iter()
+                .map(|x| restrict_scope(x))
+                .min()
+                .unwrap_or(Scope::Repo),
+            Restrict::Or(vals) => vals
+                .iter()
+                .map(|x| restrict_scope(x))
+                .max()
+                .unwrap_or(Scope::Repo),
+            _ => restrict_scope(value),
         }
     }
 }

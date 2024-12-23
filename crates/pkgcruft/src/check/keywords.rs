@@ -4,12 +4,12 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus::Stable, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{
     ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
 };
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

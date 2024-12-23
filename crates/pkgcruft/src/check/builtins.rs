@@ -1,9 +1,9 @@
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
+use pkgcraft::restrict::Scope;
 use std::collections::HashSet;
 
 use crate::report::ReportKind::BuiltinCommand;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};

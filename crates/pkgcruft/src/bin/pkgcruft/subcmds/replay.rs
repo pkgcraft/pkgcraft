@@ -5,9 +5,8 @@ use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Args, ValueHint};
 use indexmap::IndexSet;
 use itertools::{Either, Itertools};
-use pkgcraft::restrict::{self, Restrict};
+use pkgcraft::restrict::{self, Restrict, Scope};
 use pkgcruft::report::{Iter, Report, ReportKind};
-use pkgcruft::scope::Scope;
 use strum::{IntoEnumIterator, VariantNames};
 
 use crate::options;

@@ -11,12 +11,12 @@ use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
+use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::report::ReportKind;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 

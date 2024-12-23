@@ -5,13 +5,12 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::Restrict;
+use pkgcraft::restrict::{Restrict, Scope};
 use tracing::{debug, warn};
 
 use crate::check::*;
 use crate::error::Error;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::*;
 
 /// Check runner for synchronous checks.

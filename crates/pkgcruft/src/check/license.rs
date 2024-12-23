@@ -5,10 +5,10 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

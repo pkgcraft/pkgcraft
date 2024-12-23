@@ -8,7 +8,7 @@ use crossbeam_utils::sync::WaitGroup;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
-use pkgcraft::restrict::Restrict;
+use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::traits::Contains;
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
@@ -18,7 +18,6 @@ use crate::check::Check;
 use crate::error::Error;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
-use crate::scope::Scope;
 use crate::source::{PkgFilter, Target};
 
 pub struct Scanner {
@@ -207,12 +206,12 @@ fn pkg_producer(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
-        for check in runner.checks().filter(|c| !c.scope.is_pkg()) {
+        for check in runner.checks().filter(|c| c.scope > Scope::Package) {
             tx.send((Some(check), Target::Repo)).ok();
         }
 
         // return if no package checks are selected
-        if !runner.checks().any(|c| c.scope.is_pkg()) {
+        if !runner.checks().any(|c| c.scope <= Scope::Package) {
             return;
         }
 

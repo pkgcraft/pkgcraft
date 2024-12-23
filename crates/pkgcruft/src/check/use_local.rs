@@ -4,12 +4,12 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{
     UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
 };
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgSetCheck};

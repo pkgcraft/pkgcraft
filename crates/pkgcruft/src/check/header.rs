@@ -1,10 +1,10 @@
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
+use pkgcraft::restrict::Scope;
 use regex::Regex;
 
 use crate::report::ReportKind::HeaderInvalid;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, EbuildRawPkgCheck};

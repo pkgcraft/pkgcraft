@@ -3,11 +3,11 @@ use std::sync::Arc;
 use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 use pkgcraft::shell::BuildPool;
 
 use crate::report::ReportKind::MetadataError;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, CpvCheck};

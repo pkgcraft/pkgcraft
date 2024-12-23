@@ -4,11 +4,11 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::ReportKind::UnstableOnly;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, EbuildPkgSetCheck};

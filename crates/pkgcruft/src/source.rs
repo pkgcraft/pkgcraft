@@ -10,12 +10,11 @@ use pkgcraft::pkg::ebuild::{keyword::KeywordStatus, EbuildPkg, EbuildRawPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::{self, Restrict, Restriction};
+use pkgcraft::restrict::{self, Restrict, Restriction, Scope};
 use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::error::Error;
-use crate::scope::Scope;
 
 /// All check runner source variants.
 #[derive(

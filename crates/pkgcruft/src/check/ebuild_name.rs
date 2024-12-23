@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{EbuildNameInvalid, EbuildVersionsEqual};
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, CpnCheck};

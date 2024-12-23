@@ -1,9 +1,9 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::LiveOnly;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, EbuildPkgSetCheck};

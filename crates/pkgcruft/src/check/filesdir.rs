@@ -9,6 +9,7 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
+use pkgcraft::restrict::Scope;
 use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
@@ -16,7 +17,6 @@ use walkdir::WalkDir;
 use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 use crate::Error;
 

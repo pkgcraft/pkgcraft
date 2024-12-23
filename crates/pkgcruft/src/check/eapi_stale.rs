@@ -1,11 +1,11 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::Package;
+use pkgcraft::restrict::Scope;
 use pkgcraft::types::OrderedMap;
 
 use crate::report::ReportKind::EapiStale;
 use crate::scanner::ReportFilter;
-use crate::scope::Scope;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgSetCheck};
