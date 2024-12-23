@@ -44,6 +44,16 @@ fn empty_repo() {
 }
 
 #[test]
+fn invalid_scope() {
+    cmd("pk pkg manifest cat/pkg-1")
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid version scope: cat/pkg-1"))
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn invalid_pkgs() {
     let data = test_data();
     let repo = data.ebuild_repo("bad").unwrap();

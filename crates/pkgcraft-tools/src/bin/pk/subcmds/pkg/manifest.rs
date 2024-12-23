@@ -17,6 +17,7 @@ use pkgcraft::error::Error;
 use pkgcraft::fetch::{Fetchable, Fetcher};
 use pkgcraft::macros::build_path;
 use pkgcraft::repo::RepoFormat;
+use pkgcraft::restrict::Scope;
 use pkgcraft::utils::bounded_jobs;
 use tempfile::TempDir;
 use tracing::error;
@@ -129,6 +130,7 @@ impl Command {
         let targets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
+            .scopes(|x| *x >= Scope::Package)
             .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkg sets
