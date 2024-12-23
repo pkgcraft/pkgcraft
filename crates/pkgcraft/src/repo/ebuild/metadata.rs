@@ -285,7 +285,7 @@ impl Mirror {
     /// Return a mirrored url for a path.
     pub fn get_url(&self, path: &str) -> crate::Result<Url> {
         self.url
-            .join(path.trim_start_matches('/'))
+            .join(path)
             .map_err(|e| Error::InvalidValue(format!("invalid url: {e}")))
     }
 
@@ -302,6 +302,8 @@ impl Mirror {
 
         let mut mirrors = IndexSet::new();
         for url in urls {
+            // force URL to end with / so Url::join() works as expected
+            let url = format!("{}/", url.trim_end_matches('/'));
             let mirror = Self {
                 name: name.to_string(),
                 url: url.parse().map_err(|e| {
