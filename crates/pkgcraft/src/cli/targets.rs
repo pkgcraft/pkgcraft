@@ -1,7 +1,9 @@
+use std::collections::HashSet;
 use std::ops::Deref;
 
 use camino::Utf8Path;
 use itertools::Itertools;
+use strum::IntoEnumIterator;
 
 use crate::config::Config;
 use crate::dep::Cpn;
@@ -12,7 +14,7 @@ use crate::repo::set::RepoSet;
 use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::{self, Restrict};
+use crate::restrict::{self, Restrict, Scope};
 use crate::types::OrderedMap;
 use crate::utils::current_dir;
 use crate::Error;
@@ -40,6 +42,7 @@ pub struct TargetRestrictions<'a> {
     config: &'a mut Config,
     repo_set: RepoSet,
     repo_format: RepoFormat,
+    scopes: Option<HashSet<Scope>>,
 }
 
 impl<'a> TargetRestrictions<'a> {
@@ -49,12 +52,21 @@ impl<'a> TargetRestrictions<'a> {
             config,
             repo_set,
             repo_format: Default::default(),
+            scopes: Default::default(),
         }
     }
 
     pub fn repo_format(mut self, value: RepoFormat) -> Self {
         self.repo_format = value;
         self.repo_set = self.config.repos.set(Some(value));
+        self
+    }
+
+    pub fn scopes<F>(mut self, f: F) -> Self
+    where
+        F: Fn(&Scope) -> bool,
+    {
+        self.scopes = Some(Scope::iter().filter(f).collect());
         self
     }
 
@@ -139,11 +151,11 @@ impl<'a> TargetRestrictions<'a> {
             .map(|_| self.repo_from_nested_path(target));
 
         // avoid treating `cat/pkg/` as path restriction
-        let target = target.trim_end_matches('/');
+        let s = target.trim_end_matches('/');
 
-        match (restrict::parse::dep(target), path_target, repo_target) {
+        match (restrict::parse::dep(s), path_target, repo_target) {
             // prefer dep restrictions for valid cat/pkg paths
-            (Ok(restrict), Ok(_), _) if target.contains('/') => self.dep_restriction(restrict),
+            (Ok(restrict), Ok(_), _) if s.contains('/') => self.dep_restriction(restrict),
             (_, Ok(path), Some(Ok(repo))) => repo
                 .restrict_from_path(&path)
                 .ok_or_else(|| {
@@ -152,9 +164,20 @@ impl<'a> TargetRestrictions<'a> {
                 .map(|restrict| (repo.into(), restrict)),
             (Ok(restrict), _, _) => self.dep_restriction(restrict),
             (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
-            (_, Err(e), _) if target.contains('/') => Err(e),
+            (_, Err(e), _) if s.contains('/') => Err(e),
             (Err(e), _, _) => Err(e),
         }
+        .and_then(|(set, restrict)| {
+            if let Some(scopes) = self.scopes.as_ref() {
+                let scope = Scope::from(&restrict);
+                if !scopes.contains(&scope) {
+                    return Err(Error::InvalidValue(format!(
+                        "invalid {scope} scope: {target}"
+                    )));
+                }
+            }
+            Ok((set, restrict))
+        })
     }
 
     /// Determine target restrictions.
