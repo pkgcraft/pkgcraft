@@ -89,7 +89,8 @@ impl Command {
                     .collect();
 
                 // determine enabled checks and reports
-                let (checks, reports) = self.reports.collapse(defaults)?;
+                let reports = self.reports.collapse(defaults)?;
+                let checks = reports.iter().flat_map(Check::iter_report);
 
                 // create report scanner
                 let scanner = Scanner::new(repo)

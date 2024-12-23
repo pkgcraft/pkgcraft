@@ -115,7 +115,7 @@ impl Reports {
     pub(crate) fn collapse(
         &self,
         defaults: IndexSet<ReportKind>,
-    ) -> pkgcruft::Result<(IndexSet<Check>, IndexSet<ReportKind>)> {
+    ) -> pkgcruft::Result<IndexSet<ReportKind>> {
         // sort by variant
         let selected: Vec<_> = self.reports.iter().copied().sorted().collect();
 
@@ -142,10 +142,7 @@ impl Reports {
             Err(Error::InvalidValue("no reports selected".to_string()))
         } else {
             reports.sort();
-            let mut checks: IndexSet<_> =
-                reports.iter().flat_map(Check::iter_report).collect();
-            checks.sort();
-            Ok((checks, reports))
+            Ok(reports)
         }
     }
 }
@@ -176,7 +173,8 @@ mod tests {
             .copied()
             .collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let (checks, _) = cmd.reports.collapse(defaults).unwrap();
+        let reports = cmd.reports.collapse(defaults).unwrap();
+        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
         // repo specific checks enabled when scanning the matching repo
         assert!(checks.contains(&CheckKind::Header));
 
@@ -187,7 +185,8 @@ mod tests {
             .copied()
             .collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let (checks, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
         assert!(checks.contains(&CheckKind::Dependency));
         // optional checks aren't run by default when scanning
         assert!(!checks.contains(&CheckKind::UnstableOnly));
@@ -198,32 +197,36 @@ mod tests {
         let report = ReportKind::HeaderInvalid;
         assert_eq!(report.level(), ReportLevel::Error);
         let cmd = Command::try_parse_from(["cmd", "-r", "%error"]).unwrap();
-        let (_, reports) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
         assert!(!reports.contains(&report));
         assert!(!reports.is_empty());
 
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-r", "+@UnstableOnly,+@Header"]).unwrap();
-        let (checks, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
         assert!(checks.contains(&CheckKind::UnstableOnly));
         assert!(checks.contains(&CheckKind::Header));
         assert!(checks.len() > 2);
 
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency"]).unwrap();
-        let (checks, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,+@Dependency"]).unwrap();
-        let (checks, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let reports = cmd.reports.collapse(defaults.clone()).unwrap();
+        let checks: IndexSet<_> = reports.iter().flat_map(Check::iter_report).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // error when args cancel out
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,@Dependency"]).unwrap();
-        assert!(cmd.reports.collapse(defaults.clone()).is_err());
+        let r = cmd.reports.collapse(defaults.clone());
+        assert_err_re!(r, "no reports selected");
 
         // invalid check aliases in args
         for arg in ["-r=@unknown", "-r=-@unknown", "-r=+@unknown"] {

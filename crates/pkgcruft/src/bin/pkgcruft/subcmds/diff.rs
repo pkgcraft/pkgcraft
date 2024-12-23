@@ -138,9 +138,9 @@ impl fmt::Display for Change<'_> {
 
 impl Command {
     pub(super) fn run(self) -> anyhow::Result<ExitCode> {
-        // determine enabled checks and reports
+        // determine enabled reports
         let defaults = ReportKind::iter().collect();
-        let (_checks, reports) = self.reports.collapse(defaults)?;
+        let reports = self.reports.collapse(defaults)?;
 
         let replay = Replay::new().reports(reports).pkgs(self.options.pkgs)?;
 
