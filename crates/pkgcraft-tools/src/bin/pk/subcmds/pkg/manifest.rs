@@ -11,13 +11,12 @@ use clap::Args;
 use futures::{stream, StreamExt};
 use indexmap::{IndexMap, IndexSet};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use pkgcraft::cli::{pkgs_ebuild_expand, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{ebuild_pkg_sets, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::{Fetchable, Fetcher};
 use pkgcraft::macros::build_path;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
 use tempfile::TempDir;
 use tracing::error;
@@ -133,11 +132,7 @@ impl Command {
             .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkg sets
-        let mut iter = pkgs_ebuild_expand(targets).log_errors();
-        let mut pkg_sets = IndexMap::<_, Vec<_>>::new();
-        for (repo, cpn, pkg) in &mut iter {
-            pkg_sets.entry((repo, cpn)).or_default().push(pkg);
-        }
+        let pkg_sets = ebuild_pkg_sets(targets)?;
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();
@@ -327,7 +322,7 @@ impl Command {
             }
         }
 
-        let status = iter.failed() | failed.load(Ordering::Relaxed);
+        let status = failed.load(Ordering::Relaxed);
         Ok(ExitCode::from(status as u8))
     }
 }

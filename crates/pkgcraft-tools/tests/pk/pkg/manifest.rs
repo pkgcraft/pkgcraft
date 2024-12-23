@@ -53,7 +53,7 @@ fn invalid_pkgs() {
         .stdout("")
         .stderr(predicate::str::is_empty().not())
         .failure()
-        .code(1);
+        .code(2);
 }
 
 #[tokio::test]

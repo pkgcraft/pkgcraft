@@ -13,6 +13,7 @@ use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict};
+use crate::types::OrderedMap;
 use crate::utils::current_dir;
 use crate::Error;
 
@@ -213,11 +214,21 @@ where
 /// This is useful to create pkg sets while still being able to log or ignore errors.
 pub fn ebuild_pkgs_expand<I>(
     values: I,
-) -> impl Iterator<Item = crate::Result<(EbuildRepo, Cpn, EbuildPkg)>>
+) -> impl Iterator<Item = crate::Result<((EbuildRepo, Cpn), EbuildPkg)>>
 where
     I: IntoIterator<Item = (RepoSet, Restrict)>,
 {
     ebuild_pkgs(values).map(|result| result.map(|pkg| ((pkg.repo(), pkg.cpn().clone()), pkg)))
+}
+
+/// Convert target restrictions into ebuild package sets.
+pub fn ebuild_pkg_sets<I>(
+    values: I,
+) -> crate::Result<OrderedMap<(EbuildRepo, Cpn), Vec<EbuildPkg>>>
+where
+    I: IntoIterator<Item = (RepoSet, Restrict)>,
+{
+    ebuild_pkgs_expand(values).try_collect()
 }
 
 /// Convert target restrictions to raw ebuild packages.
