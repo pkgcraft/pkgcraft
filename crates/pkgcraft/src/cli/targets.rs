@@ -15,6 +15,7 @@ use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{self, Restrict, Scope};
+use crate::traits::Contains;
 use crate::types::OrderedMap;
 use crate::utils::current_dir;
 use crate::Error;
@@ -211,7 +212,14 @@ impl<'a> TargetRestrictions<'a> {
     {
         let targets = values
             .into_iter()
-            .map(|s| self.target_restriction(s.as_ref()))
+            .map(|s| {
+                let target = s.as_ref();
+                match self.target_restriction(target) {
+                    Ok((set, restrict)) if set.contains(&restrict) => Ok((set, restrict)),
+                    Ok(_) => Err(Error::NoMatches(target.to_string())),
+                    Err(e) => Err(e),
+                }
+            })
             .try_collect()?;
         self.config.finalize()?;
         Ok(targets)
