@@ -130,7 +130,7 @@ impl Command {
         let targets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .scopes(|x| *x >= Scope::Package)
+            .scope(|x| *x >= Scope::Package)
             .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkg sets

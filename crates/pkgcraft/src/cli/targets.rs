@@ -46,6 +46,7 @@ pub struct TargetRestrictions<'a> {
 }
 
 impl<'a> TargetRestrictions<'a> {
+    /// Create a target restrictions parser.
     pub fn new(config: &'a mut Config) -> Self {
         let repo_set = config.repos.set(None);
         Self {
@@ -56,13 +57,15 @@ impl<'a> TargetRestrictions<'a> {
         }
     }
 
+    /// Set the allowed repo format.
     pub fn repo_format(mut self, value: RepoFormat) -> Self {
         self.repo_format = value;
         self.repo_set = self.config.repos.set(Some(value));
         self
     }
 
-    pub fn scopes<F>(mut self, f: F) -> Self
+    /// Set the allowed restriction scopes via a matching filter function.
+    pub fn scope<F>(mut self, f: F) -> Self
     where
         F: Fn(&Scope) -> bool,
     {
@@ -70,6 +73,11 @@ impl<'a> TargetRestrictions<'a> {
         self
     }
 
+    /// Use a specific repo for target restrictions.
+    ///
+    /// This can either be the repo's configured name or the path to an external repo.
+    ///
+    /// When None is passed, the current working directory is tried.
     pub fn repo(mut self, value: Option<&str>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
             let path = Utf8Path::new(s);
@@ -168,9 +176,9 @@ impl<'a> TargetRestrictions<'a> {
             (Err(e), _, _) => Err(e),
         }
         .and_then(|(set, restrict)| {
-            if let Some(scopes) = self.scopes.as_ref() {
+            if let Some(values) = self.scopes.as_ref() {
                 let scope = Scope::from(&restrict);
-                if !scopes.contains(&scope) {
+                if !values.contains(&scope) {
                     return Err(Error::InvalidValue(format!(
                         "invalid {scope} scope: {target}"
                     )));
