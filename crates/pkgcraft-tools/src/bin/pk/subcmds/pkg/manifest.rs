@@ -208,9 +208,8 @@ impl Command {
                 .flat_map(|x| x.distfiles())
                 .map(|f| (f.to_string(), (dir.join(f), self.force || regen_entry(f))))
                 .collect();
-            let regen = distfiles.values().any(|(_, outdated)| *outdated);
             let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
-            if self.force || regen || manifest.outdated(&pkgdir, &distfiles, thick) {
+            if self.force || manifest.outdated(&pkgdir, &distfiles, thick) {
                 pkg_distfiles.insert((repo, cpn, pkgdir, thick), distfiles);
             }
         }

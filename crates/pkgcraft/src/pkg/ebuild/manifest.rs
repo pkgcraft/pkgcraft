@@ -297,7 +297,9 @@ impl Manifest {
             );
         }
 
-        files.len() != self.0.len() || files.iter().any(|x| self.get(x).is_none())
+        files.len() != self.0.len()
+            || files.iter().any(|x| self.get(x).is_none())
+            || distfiles.values().any(|(_, regen)| *regen)
     }
 
     /// Update the [`Manifest`] entries relating to an iterator of distfile paths.
