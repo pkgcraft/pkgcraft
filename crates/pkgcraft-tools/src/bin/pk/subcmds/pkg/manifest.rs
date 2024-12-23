@@ -221,7 +221,7 @@ impl Command {
                 pkg_distfiles
                     .entry((pkg.repo(), pkg.cpn().clone(), thick))
                     .or_default()
-                    .extend(distfiles.map(|f| dir.join(f)));
+                    .extend(distfiles.map(|f| (f.to_string(), dir.join(f))));
             }
         }
 

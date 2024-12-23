@@ -100,17 +100,20 @@ impl ManifestFile {
         })
     }
 
-    fn from_path<'a, I, P>(kind: ManifestType, path: P, hashes: I) -> crate::Result<Self>
+    fn from_path<'a, I, P, S>(
+        kind: ManifestType,
+        name: S,
+        path: P,
+        hashes: I,
+    ) -> crate::Result<Self>
     where
         P: AsRef<Utf8Path>,
         I: IntoIterator<Item = &'a HashType>,
+        S: fmt::Display,
     {
         let path = path.as_ref();
         let data = fs::read(path)
             .map_err(|e| Error::InvalidValue(format!("failed reading: {path}: {e}")))?;
-        let name = path
-            .file_name()
-            .ok_or_else(|| Error::InvalidValue(format!("invalid file: {path}")))?;
         let hashes = hashes
             .into_iter()
             .map(|kind| (*kind, kind.hash(&data)))
@@ -287,32 +290,54 @@ impl Manifest {
         thick: bool,
     ) -> crate::Result<()>
     where
-        I: IntoParallelIterator<Item = Utf8PathBuf>,
+        I: IntoParallelIterator<Item = (String, Utf8PathBuf)>,
         J: IntoIterator<Item = &'a HashType> + Send + Sync + Copy,
     {
         // generate distfile hashes
         let mut files: Vec<_> = distfiles
             .into_par_iter()
-            .map(|path| ManifestFile::from_path(ManifestType::Dist, path, hashes))
+            .map(|(name, path)| {
+                ManifestFile::from_path(ManifestType::Dist, name, path, hashes)
+            })
             .collect();
 
+        // generate file hashes for thick manifests
         if thick {
-            // generate file hashes for thick manifests
+            // add files dir entries
+            let files_path = pkgdir.join("files");
             files.par_extend(
-                relative_paths(pkgdir)
+                relative_paths(&files_path)
                     .collect::<Vec<_>>()
                     .into_par_iter()
                     .filter_map(|path| Utf8PathBuf::from_path_buf(path).ok())
-                    .filter_map(|path| match path {
-                        path if path.extension().map_or(false, |ext| ext == "ebuild") => {
-                            Some((ManifestType::Ebuild, path))
-                        }
-                        path if path.starts_with("files") => Some((ManifestType::Aux, path)),
-                        path if path.as_str() == "Manifest" => None,
-                        path => Some((ManifestType::Misc, path)),
-                    })
-                    .map(|(kind, path)| {
-                        ManifestFile::from_path(kind, pkgdir.join(path), hashes)
+                    .map(|path| {
+                        let abspath = files_path.join(&path);
+                        ManifestFile::from_path(ManifestType::Aux, path, abspath, hashes)
+                    }),
+            );
+
+            let pkg_dir_files = pkgdir
+                .read_dir_utf8()
+                .map_err(|e| Error::IO(format!("failed reading package dir: {e}")))?;
+
+            // add package dir entries
+            files.par_extend(
+                pkg_dir_files
+                    .filter_map(Result::ok)
+                    .filter(|e| e.path().is_file())
+                    .filter(|e| e.file_name() != "Manifest")
+                    .collect::<Vec<_>>()
+                    .into_par_iter()
+                    .map(|e| {
+                        let ext = e.path().extension().unwrap_or_default();
+                        let kind = if ext == "ebuild" {
+                            ManifestType::Ebuild
+                        } else {
+                            ManifestType::Misc
+                        };
+                        let name = e.file_name();
+                        let abspath = pkgdir.join(e.path());
+                        ManifestFile::from_path(kind, name, abspath, hashes)
                     }),
             );
         } else {
