@@ -32,28 +32,21 @@ impl SyncCheckRunner {
         let mut runners = IndexMap::new();
 
         for check in enabled.iter().copied() {
+            let mut err = None;
+
             if !filters.is_empty() && check.filtered() {
-                let msg = format!("{check}: requires no filters");
-                if selected.contains(&check) {
-                    return Err(Error::InvalidValue(format!("selected check {msg}")));
-                } else {
-                    warn!("skipping check {msg}");
-                    continue;
-                }
+                err = Some(format!("{check}: requires no filters"));
             }
 
             if let Some(context) = check.skipped(repo, selected) {
-                let msg = format!("{check}: requires {context} context");
-                if selected.contains(&check) {
-                    return Err(Error::InvalidValue(format!("selected check {msg}")));
-                } else {
-                    warn!("skipping check {msg}");
-                    continue;
-                }
+                err = Some(format!("{check}: requires {context} context"));
             }
 
             if check.scope > scope {
-                let msg = format!("{check}: requires {} scope", check.scope);
+                err = Some(format!("{check}: requires {} scope", check.scope));
+            }
+
+            if let Some(msg) = err {
                 if selected.contains(&check) {
                     return Err(Error::InvalidValue(format!("selected check {msg}")));
                 } else {
