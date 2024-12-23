@@ -2,7 +2,7 @@ use std::io::stderr;
 use std::process::ExitCode;
 
 use clap::Parser;
-use clap_verbosity_flag::Verbosity;
+use clap_verbosity_flag::{log::LevelFilter, Verbosity};
 use pkgcraft::cli::reset_sigpipe;
 use pkgcraft::config::Config;
 use tracing_log::AsTrace;
@@ -43,16 +43,17 @@ impl Command {
 
         let args = Command::parse();
 
-        // custom log event formatter
+        // custom log event formatter that disables target prefixes by default
+        let level = args.verbosity.log_level_filter();
         let format = tracing_subscriber::fmt::format()
             .with_level(true)
-            .with_target(false)
+            .with_target(level > LevelFilter::Info)
             .without_time()
             .compact();
 
         tracing_subscriber::fmt()
             .event_format(format)
-            .with_max_level(args.verbosity.log_level_filter().as_trace())
+            .with_max_level(level.as_trace())
             .with_writer(stderr)
             .init();
 
