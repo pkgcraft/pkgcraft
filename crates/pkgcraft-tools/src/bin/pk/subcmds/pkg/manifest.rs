@@ -141,7 +141,7 @@ impl Command {
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();
-        let mut pkg_distfiles: IndexMap<_, IndexMap<_, _>> = IndexMap::new();
+        let mut pkg_distfiles = IndexMap::<_, IndexMap<_, _>>::new();
         for ((repo, cpn), pkgs) in pkg_sets {
             let manifest = repo.metadata().pkg_manifest(&cpn);
 
