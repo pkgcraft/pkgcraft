@@ -251,10 +251,12 @@ mod tests {
     use super::*;
 
     static REPORTS: &str = indoc::indoc! {r#"
-        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
         {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
         {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"message":"empty line"}
         {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
+        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
+        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat1"},"message":null}
+        {"kind":"LicensesUnused","scope":{"Repo":"repo1"},"message":"unused"}
     "#};
 
     fn report<R: Into<Reporter>>(reporter: R) -> String {
@@ -273,16 +275,18 @@ mod tests {
     #[test]
     fn count() {
         let output = report(CountReporter::default());
-        assert_eq!("4", output.trim());
+        assert_eq!("6", output.trim());
     }
 
     #[test]
     fn simple() {
         let expected = indoc::indoc! {r#"
-            cat/pkg: UnstableOnly: arch
             cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
             cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
             cat/pkg-1-r2, line 3, column 28: WhitespaceInvalid: character '\u{2001}'
+            cat/pkg: UnstableOnly: arch
+            cat1: RepoCategoryEmpty
+            repo1: LicensesUnused: unused
         "#};
 
         let output = report(SimpleReporter);
@@ -293,6 +297,8 @@ mod tests {
     fn stats() {
         let expected = indoc::indoc! {r#"
             DependencyDeprecated: 1
+            LicensesUnused: 1
+            RepoCategoryEmpty: 1
             UnstableOnly: 1
             WhitespaceInvalid: 1
             WhitespaceUnneeded: 1
@@ -306,10 +312,16 @@ mod tests {
     fn fancy() {
         let expected = indoc::indoc! {r#"
             cat/pkg
-              UnstableOnly: arch
               DependencyDeprecated: version 1-r2: BDEPEND: cat/deprecated
               WhitespaceUnneeded: version 1-r2, line 3: empty line
               WhitespaceInvalid: version 1-r2, line 3, column 28: character '\u{2001}'
+              UnstableOnly: arch
+
+            cat1
+              RepoCategoryEmpty
+
+            repo1
+              LicensesUnused: unused
         "#};
 
         let output = report(FancyReporter::default());
@@ -338,12 +350,14 @@ mod tests {
 
         // existing format strings
         let expected = indoc::indoc! {"
-            pkg
-            pkg
-            pkg
-            pkg
+            DependencyDeprecated
+            WhitespaceUnneeded
+            WhitespaceInvalid
+            UnstableOnly
+            RepoCategoryEmpty
+            LicensesUnused
         "};
-        format_reporter.format = "{package}".to_string();
+        format_reporter.format = "{name}".to_string();
         let output = report(format_reporter.clone());
         assert_eq!(expected, &output);
     }
