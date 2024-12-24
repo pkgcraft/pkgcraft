@@ -10,6 +10,9 @@ rust-version = "1.82"
 [workspace.lints.rust]
 unreachable_pub = "warn"
 
+[profile.release]
+panic = 'abort'
+
 [profile.release-strip]
 inherits = "release"
 strip = "symbols"
