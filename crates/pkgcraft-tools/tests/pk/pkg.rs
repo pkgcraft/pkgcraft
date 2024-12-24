@@ -1,5 +1,7 @@
+mod env;
 mod fetch;
 mod manifest;
+mod metadata;
 mod pretend;
 mod showkw;
 mod source;
