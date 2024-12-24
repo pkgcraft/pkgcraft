@@ -685,11 +685,20 @@ mod tests {
 
     #[test]
     fn cmp() {
-        // reverse reports and sort them back into the expected order
+        // deserialize reports
         let expected: Vec<_> = REPORTS
             .lines()
-            .filter_map(|s| Report::from_json(s).ok())
-            .collect();
+            .map(Report::from_json)
+            .try_collect()
+            .unwrap();
+
+        // verify ordering manually for PartialOrd tests
+        for (a, b) in expected.iter().tuples() {
+            assert!(a < b);
+            assert!(a.scope() <= b.scope());
+        }
+
+        // reverse reports and sort them back into the expected order
         let mut reports = expected.clone();
         reports.reverse();
         reports.sort();
