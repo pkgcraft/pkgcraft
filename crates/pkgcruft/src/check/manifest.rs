@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
+use pkgcraft::error::Error::UnversionedPkg;
 use pkgcraft::pkg::ebuild::manifest::ManifestType;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -37,10 +38,11 @@ impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let manifest = match self.repo.metadata().pkg_manifest_parse(cpn) {
             Ok(value) => value,
-            Err(e) => {
-                ManifestInvalid.package(cpn).message(e).report(filter);
+            Err(UnversionedPkg { err, .. }) => {
+                ManifestInvalid.package(cpn).message(err).report(filter);
                 return;
             }
+            Err(e) => unreachable!("{cpn}: unhandled manifest error: {e}"),
         };
 
         let manifest_distfiles: HashSet<_> = manifest.distfiles().map(|x| x.name()).collect();
@@ -78,7 +80,7 @@ impl EbuildPkgSetCheck for Check {
                 let files = files.iter().sorted().join(", ");
                 ManifestInvalid
                     .package(cpn)
-                    .message(format!("unnecessary: {files}"))
+                    .message(format!("unneeded: {files}"))
                     .report(filter);
             }
         }
