@@ -680,6 +680,10 @@ mod tests {
             {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}
             {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}
             {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
+            {"kind":"RepoCategoryEmpty","scope":{"Category":"cat1"},"message":null}
+            {"kind":"RepoCategoryEmpty","scope":{"Category":"cat2"},"message":null}
+            {"kind":"LicensesUnused","scope":{"Repo":"repo1"},"message":"unused"}
+            {"kind":"LicensesUnused","scope":{"Repo":"repo2"},"message":"unused"}
         "#};
 
         // reverse reports and sort them back into the expected order
