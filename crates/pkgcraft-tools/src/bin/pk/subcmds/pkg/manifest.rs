@@ -162,10 +162,12 @@ impl Command {
                         .filter_map(|uri| match Fetchable::from_uri(uri, pkg, self.mirrors) {
                             Ok(f) => Some(f),
                             Err(Error::RestrictedFetchable(f)) => {
+                                let name = f.filename();
                                 if self.restrict {
                                     Some(*f)
                                 } else {
-                                    if !dir.join(f.filename()).exists() {
+                                    if manifest.get(name).is_none() && !dir.join(name).exists()
+                                    {
                                         error!("{pkg}: nonexistent restricted fetchable: {f}");
                                         failed.store(true, Ordering::Relaxed);
                                     }
@@ -174,7 +176,7 @@ impl Command {
                             }
                             Err(Error::RestrictedFile(uri)) => {
                                 let name = uri.filename();
-                                if !dir.join(name).exists() {
+                                if manifest.get(name).is_none() && !dir.join(name).exists() {
                                     error!("{pkg}: nonexistent restricted file: {name}");
                                     failed.store(true, Ordering::Relaxed);
                                 }
