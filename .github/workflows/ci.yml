@@ -126,7 +126,11 @@ jobs:
           # generate coverage reports
           cargo llvm-cov report --lcov --output-path lcov.info
         else
+          # run tests
           cargo nextest run --all-features --workspace --tests
+          # generate shell completion files
+          cargo run --features shell --bin pk-shell-comp -p pkgcraft-tools
+          cargo run --features shell --bin pkgcruft-shell-comp -p pkgcruft
         fi
 
     - name: Upload build artifacts
