@@ -34,13 +34,12 @@ struct Check {
 
 impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
-        if let Err(e) = self.pool.metadata(&self.repo, cpv, false, false) {
-            match e {
-                InvalidPkg { err, .. } => {
-                    MetadataError.version(cpv).message(err).report(filter)
-                }
-                _ => unreachable!("{cpv}: unhandled metadata error: {e}"),
+        match self.pool.metadata(&self.repo, cpv, false, false) {
+            Err(InvalidPkg { err, .. }) => {
+                MetadataError.version(cpv).message(err).report(filter)
             }
+            Err(e) => unreachable!("{cpv}: unhandled metadata error: {e}"),
+            Ok(_) => (),
         }
     }
 }
