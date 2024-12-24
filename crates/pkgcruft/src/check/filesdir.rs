@@ -62,20 +62,25 @@ fn expand_var<'a>(
     cursor: &mut tree_sitter::TreeCursor<'a>,
     filesdir: &Utf8Path,
 ) -> crate::Result<String> {
-    let mut var_node = None;
-    let mut nodes = vec![];
-    for x in node {
-        if x.kind() == "variable_name" {
-            var_node = Some(x);
-        }
-        nodes.push(x);
-    }
-
     let err = |msg: &str| Err(Error::InvalidValue(format!("expanding {node}: {msg}")));
 
-    // TODO: handle string substitution
-    if nodes.len() > 3 {
-        return err("unhandled string expansion");
+    let mut var_node = None;
+    if node.kind() == "variable_name" {
+        var_node = Some(node);
+    } else {
+        let mut nodes = vec![];
+
+        for x in node {
+            if x.kind() == "variable_name" {
+                var_node = Some(x);
+            }
+            nodes.push(x);
+        }
+
+        // TODO: handle string substitution
+        if nodes.len() > 3 {
+            return err("unhandled string expansion");
+        }
     }
 
     let Some(var) = var_node else {
@@ -134,16 +139,18 @@ fn expand_node<'a>(
 
     for x in nodes {
         match x.kind() {
-            "expansion" | "simple_expansion" => match expand_var(pkg, x, cursor, filesdir) {
-                Ok(value) => path.push_str(&value),
-                Err(e) => return Err(e),
-            },
+            "expansion" | "simple_expansion" | "variable_name" => {
+                match expand_var(pkg, x, cursor, filesdir) {
+                    Ok(value) => path.push_str(&value),
+                    Err(e) => return Err(e),
+                }
+            }
             "string" => match expand_node(pkg, x, cursor, filesdir) {
                 Ok(value) => path.push_str(&value),
                 Err(e) => return Err(e),
             },
             "word" | "string_content" | "number" => path.push_str(x.as_str()),
-            "\"" => continue,
+            "\"" | "${" | "}" => continue,
             kind => {
                 return Err(Error::InvalidValue(format!(
                     "unhandled node variant: {kind}: {x}"
