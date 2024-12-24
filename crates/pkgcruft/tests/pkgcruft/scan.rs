@@ -37,6 +37,18 @@ fn no_matches() {
 }
 
 #[test]
+fn invalid_pkgs() {
+    let data = test_data();
+    let repo = data.ebuild_repo("bad").unwrap();
+    cmd("pkgcruft scan -R null -v")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("skipping ebuild-pkg set checks due to invalid pkg"))
+        .success();
+}
+
+#[test]
 fn stdin_targets() {
     let data = test_data();
     let repo = data.ebuild_repo("qa-primary").unwrap();
