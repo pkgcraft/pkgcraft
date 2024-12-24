@@ -455,7 +455,7 @@ impl fmt::Debug for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Version(cpv, Some(location)) => {
-                write!(f, "Version( {cpv}, {location:?} )")
+                write!(f, "Version( {cpv}, {location} )")
             }
             Self::Version(cpv, None) => write!(f, "Version( {cpv} )"),
             Self::Package(cpn) => write!(f, "Package( {cpn} )"),
@@ -659,6 +659,21 @@ mod tests {
 
     use super::*;
 
+    // serialized reports in order
+    static REPORTS: &str = indoc::indoc! {r#"
+        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}
+        {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}
+        {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg1-2-r3",{"line":3,"column":0}]},"message":"empty line"}
+        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg1-2-r3",{"line":6,"column":0}]},"message":"missing ending newline"}
+        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}
+        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}
+        {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
+        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat1"},"message":null}
+        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat2"},"message":null}
+        {"kind":"LicensesUnused","scope":{"Repo":"repo1"},"message":"unused"}
+        {"kind":"LicensesUnused","scope":{"Repo":"repo2"},"message":"unused"}
+    "#};
+
     #[test]
     fn kind() {
         // verify ReportKind are kept in lexical order
@@ -670,23 +685,8 @@ mod tests {
 
     #[test]
     fn cmp() {
-        // serialized reports in order
-        let data = indoc::indoc! {r#"
-            {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}
-            {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}
-            {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg1-2-r3",{"line":3,"column":0}]},"message":"empty line"}
-            {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg1-2-r3",{"line":6,"column":0}]},"message":"missing ending newline"}
-            {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}
-            {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}
-            {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
-            {"kind":"RepoCategoryEmpty","scope":{"Category":"cat1"},"message":null}
-            {"kind":"RepoCategoryEmpty","scope":{"Category":"cat2"},"message":null}
-            {"kind":"LicensesUnused","scope":{"Repo":"repo1"},"message":"unused"}
-            {"kind":"LicensesUnused","scope":{"Repo":"repo2"},"message":"unused"}
-        "#};
-
         // reverse reports and sort them back into the expected order
-        let expected: Vec<_> = data
+        let expected: Vec<_> = REPORTS
             .lines()
             .filter_map(|s| Report::from_json(s).ok())
             .collect();
@@ -698,5 +698,23 @@ mod tests {
         let expected = expected.iter().map(|r| r.to_string());
         let reports = reports.iter().map(|r| r.to_string());
         assert_ordered_eq!(expected, reports);
+    }
+
+    #[test]
+    fn display_and_debug() {
+        for report in REPORTS.lines().filter_map(|s| Report::from_json(s).ok()) {
+            let kind = report.kind().to_string();
+            let scope = report.scope().to_string();
+
+            // regular output
+            let s = report.to_string();
+            assert!(s.contains(&kind));
+            assert!(s.contains(&scope));
+
+            // debug output
+            let s = format!("{report:?}");
+            assert!(s.contains(&kind));
+            assert!(s.contains(&scope));
+        }
     }
 }
