@@ -455,7 +455,7 @@ impl fmt::Debug for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Version(cpv, Some(location)) => {
-                write!(f, "Version( {cpv}, {location} )")
+                write!(f, "Version( {cpv}, {location:?} )")
             }
             Self::Version(cpv, None) => write!(f, "Version( {cpv} )"),
             Self::Package(cpn) => write!(f, "Package( {cpn} )"),
