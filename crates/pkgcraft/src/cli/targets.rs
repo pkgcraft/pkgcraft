@@ -176,6 +176,7 @@ impl<'a> TargetRestrictions<'a> {
             (_, Err(e), _) if s.contains('/') => Err(e),
             (Err(e), _, _) => Err(e),
         }
+        // verify restriction matches required scopes, if any exist
         .and_then(|(set, restrict)| {
             if let Some(values) = self.scopes.as_ref() {
                 let scope = Scope::from(&restrict);
