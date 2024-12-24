@@ -29,7 +29,7 @@ pub(crate) struct Command {
     #[arg(short, long, default_value = "3")]
     concurrent: usize,
 
-    /// Destination directory
+    /// Download directory
     #[arg(short, long, default_value = ".")]
     dir: Utf8PathBuf,
 
