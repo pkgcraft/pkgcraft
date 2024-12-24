@@ -208,21 +208,32 @@ impl<'a> TargetRestrictions<'a> {
     pub fn finalize_targets<I>(mut self, values: I) -> crate::Result<Vec<(RepoSet, Restrict)>>
     where
         I: IntoIterator,
-        I::Item: AsRef<str>,
+        I::Item: std::fmt::Display,
     {
-        let targets = values
+        // convert targets into restrictions, initializing repos as necessary
+        let targets: Vec<_> = values
             .into_iter()
-            .map(|s| {
-                let target = s.as_ref();
-                match self.target_restriction(target) {
-                    Ok((set, restrict)) if set.contains(&restrict) => Ok((set, restrict)),
-                    Ok(_) => Err(Error::NoMatches(target.to_string())),
-                    Err(e) => Err(e),
-                }
+            .map(|target| {
+                let target = target.to_string();
+                self.target_restriction(&target)
+                    .map(|value| (target, value))
             })
             .try_collect()?;
+
+        // finalize the config after loading repos to start the build pool
         self.config.finalize()?;
-        Ok(targets)
+
+        // verify matches exist
+        targets
+            .into_iter()
+            .map(|(target, (set, restrict))| {
+                if set.contains(&restrict) {
+                    Ok((set, restrict))
+                } else {
+                    Err(Error::NoMatches(target))
+                }
+            })
+            .try_collect()
     }
 }
 
