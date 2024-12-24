@@ -290,6 +290,19 @@ mod tests {
     }
 
     #[test]
+    fn stats() {
+        let expected = indoc::indoc! {r#"
+            DependencyDeprecated: 1
+            UnstableOnly: 1
+            WhitespaceInvalid: 1
+            WhitespaceUnneeded: 1
+        "#};
+
+        let output = report(StatsReporter::default());
+        assert_eq!(expected, &output);
+    }
+
+    #[test]
     fn fancy() {
         let expected = indoc::indoc! {r#"
             cat/pkg
