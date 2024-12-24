@@ -83,7 +83,7 @@ impl<'a> IntoIterator for &'a Tree<'a> {
 }
 
 /// Wrapper for bash parse tree node.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Node<'a> {
     inner: tree_sitter::Node<'a>,
     data: &'a [u8],
@@ -167,6 +167,12 @@ impl Hash for Node<'_> {
 impl fmt::Display for Node<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_str())
+    }
+}
+
+impl fmt::Debug for Node<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Node {{ kind: {}, value: {self} }}", self.kind())
     }
 }
 
