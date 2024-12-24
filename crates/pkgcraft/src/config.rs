@@ -293,30 +293,43 @@ impl Config {
         self.repos
             .extend([repo.clone()], &self.settings, external)?;
 
-        // finalize external repo when added
         if external {
-            if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
-                // try loading repos from parent dir
-                if let Some(parent) = repo.path().parent() {
-                    for name in &repos {
-                        let path = parent.join(name);
-                        if self.add_repo_path(name, &path, 0, false).is_err() {
-                            break;
+            // try finalizing external repos to add missing repo deps
+            if let Err(Error::NonexistentRepoMasters { ref repos }) = repo.finalize(self) {
+                // load system repos if they aren't loaded
+                if !self.loaded {
+                    self.load()?;
+                }
+
+                // if still missing, try loading repos from parent dir
+                if !self.has_repos(repos) {
+                    if let Some(parent) = repo.path().parent() {
+                        for name in repos {
+                            let path = parent.join(name);
+                            if self.add_repo_path(name, &path, 0, false).is_err() {
+                                break;
+                            }
                         }
                     }
                 }
 
-                // load system repos if still missing
-                if !repos.iter().all(|x| self.repos.get(x).is_some()) {
-                    self.load()?;
+                // re-add repo if its masters now exist
+                if self.has_repos(repos) {
+                    return self.add_repo(repo, external);
                 }
-
-                // try re-adding repo after loading repos
-                return self.add_repo(repo, external);
             }
         }
 
         Ok(repo)
+    }
+
+    /// Determine if the config has all named repos loaded.
+    fn has_repos<I>(&self, repos: I) -> bool
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        repos.into_iter().all(|x| self.repos.get(x).is_some())
     }
 
     /// Remove configured repos.
