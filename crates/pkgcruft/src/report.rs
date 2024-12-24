@@ -668,7 +668,6 @@ mod tests {
         assert_eq!(&kinds, &ordered, "unordered ReportKind variants");
     }
 
-    #[rustfmt::skip]
     #[test]
     fn cmp() {
         // serialized reports in order
@@ -687,7 +686,10 @@ mod tests {
         "#};
 
         // reverse reports and sort them back into the expected order
-        let expected: Vec<_> = data.lines().filter_map(|s| Report::from_json(s).ok()).collect();
+        let expected: Vec<_> = data
+            .lines()
+            .filter_map(|s| Report::from_json(s).ok())
+            .collect();
         let mut reports = expected.clone();
         reports.reverse();
         reports.sort();
