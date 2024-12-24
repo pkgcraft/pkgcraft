@@ -10,36 +10,7 @@ use tempfile::tempdir;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-#[test]
-fn invalid_cwd_target() {
-    cmd("pk pkg fetch")
-        .assert()
-        .stdout("")
-        .stderr(contains("invalid ebuild repo"))
-        .failure();
-}
-
-#[test]
-fn nonexistent_path_target() {
-    let repo = "path/to/nonexistent/repo";
-    cmd(format!("pk pkg fetch {repo}"))
-        .assert()
-        .stdout("")
-        .stderr(contains(format!("invalid path target: {repo}: No such file or directory")))
-        .failure();
-}
-
-#[test]
-fn empty_repo() {
-    let data = test_data();
-    let repo = data.ebuild_repo("empty").unwrap();
-    cmd("pk pkg fetch")
-        .arg(repo)
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
-}
+super::cmd_arg_tests!("pk pkg fetch");
 
 #[test]
 fn invalid_pkgs() {

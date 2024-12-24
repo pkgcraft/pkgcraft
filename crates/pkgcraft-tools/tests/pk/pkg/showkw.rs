@@ -1,37 +1,7 @@
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
-use predicates::str::contains;
 
-#[test]
-fn invalid_cwd_target() {
-    cmd("pk pkg showkw")
-        .assert()
-        .stdout("")
-        .stderr(contains("invalid ebuild repo"))
-        .failure();
-}
-
-#[test]
-fn nonexistent_path_target() {
-    let path = "path/to/nonexistent/repo";
-    cmd(format!("pk pkg showkw {path}"))
-        .assert()
-        .stdout("")
-        .stderr(contains(format!("invalid path target: {path}: No such file or directory")))
-        .failure();
-}
-
-#[test]
-fn empty_repo() {
-    let data = test_data();
-    let repo = data.ebuild_repo("empty").unwrap();
-    cmd("pk pkg showkw")
-        .arg(repo)
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
-}
+super::cmd_arg_tests!("pk pkg showkw");
 
 #[test]
 fn invalid_pkgs() {

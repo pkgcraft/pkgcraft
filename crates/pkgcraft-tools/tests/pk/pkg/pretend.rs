@@ -2,7 +2,6 @@ use std::env;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
-use predicates::str::contains;
 
 use crate::predicates::lines_contain;
 
@@ -16,36 +15,7 @@ const SUCCESS_WITH_OUTPUT: &str = indoc::indoc! {r#"
     }
 "#};
 
-#[test]
-fn invalid_cwd_target() {
-    cmd("pk pkg pretend")
-        .assert()
-        .stdout("")
-        .stderr(contains("invalid ebuild repo"))
-        .failure();
-}
-
-#[test]
-fn nonexistent_path_target() {
-    let path = "path/to/nonexistent/repo";
-    cmd(format!("pk pkg pretend {path}"))
-        .assert()
-        .stdout("")
-        .stderr(contains(format!("invalid path target: {path}: No such file or directory")))
-        .failure();
-}
-
-#[test]
-fn empty_repo() {
-    let data = test_data();
-    let repo = data.ebuild_repo("empty").unwrap();
-    cmd("pk pkg pretend")
-        .arg(repo)
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
-}
+super::cmd_arg_tests!("pk pkg pretend");
 
 #[test]
 fn pkg_target_from_stdin() {
