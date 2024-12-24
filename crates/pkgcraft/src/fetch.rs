@@ -71,6 +71,7 @@ impl Fetchable {
         let mut fetch_restricted = pkg.restrict().contains("fetch");
         let mut mirror_restricted = fetch_restricted || pkg.restrict().contains("mirror");
 
+        // TODO: move into URI parsing once it supports custom errors (#214)
         // strip selective URI restrictions
         let mut value = uri.as_str();
         if pkg.eapi().has(SrcUriUnrestrict) {
