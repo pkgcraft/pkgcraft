@@ -191,7 +191,9 @@ impl EbuildPkgSetCheck for Check {
                             Err(e) => {
                                 let location = Location::from(&node);
                                 warn!("{CHECK}: {pkg}, {location}: {node}: {e}");
-                                return;
+                                // disable FilesUnused report
+                                files.clear();
+                                continue;
                             }
                         };
 
@@ -201,7 +203,9 @@ impl EbuildPkgSetCheck for Check {
                                 path = path.split_at(idx).1.to_string();
                             } else {
                                 warn!("{CHECK}: {pkg}: unhandled file path: {path}");
-                                return;
+                                // disable FilesUnused report
+                                files.clear();
+                                continue;
                             }
                         }
 
