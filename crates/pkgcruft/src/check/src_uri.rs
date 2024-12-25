@@ -47,6 +47,7 @@ impl EbuildPkgCheck for Check {
                 }
                 Err(Error::RestrictedFetchable(_)) => (),
                 Err(Error::RestrictedFile(_)) => (),
+                #[cfg_attr(coverage, coverage(off))]
                 Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
             }
         }

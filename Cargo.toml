@@ -9,6 +9,7 @@ rust-version = "1.82"
 
 [workspace.lints.rust]
 unreachable_pub = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
 
 [profile.release]
 panic = "abort"

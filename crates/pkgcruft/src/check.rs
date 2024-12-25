@@ -289,6 +289,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
             CheckKind::SrcUri => Box::new(src_uri::create(repo)),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -304,6 +305,7 @@ impl ToRunner<EbuildPkgSetRunner> for Check {
             CheckKind::Manifest => Box::new(manifest::create(repo)),
             CheckKind::UnstableOnly => Box::new(unstable_only::create(repo)),
             CheckKind::UseLocal => Box::new(use_local::create(repo)),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -317,6 +319,7 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
             CheckKind::Header => Box::new(header::create()),
             CheckKind::VariableOrder => Box::new(variable_order::create()),
             CheckKind::Whitespace => Box::new(whitespace::create()),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -324,6 +327,7 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
 
 impl ToRunner<EbuildRawPkgSetRunner> for Check {
     fn to_runner(&self, _repo: &EbuildRepo) -> EbuildRawPkgSetRunner {
+        #[cfg_attr(coverage, coverage(off))]
         unreachable!("unsupported check: {self}")
     }
 }
@@ -333,6 +337,7 @@ impl ToRunner<CpnRunner> for Check {
         match &self.kind {
             CheckKind::EbuildName => Box::new(ebuild_name::create(repo)),
             CheckKind::Duplicates => Box::new(duplicates::create(repo)),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -342,6 +347,7 @@ impl ToRunner<CpvRunner> for Check {
     fn to_runner(&self, repo: &EbuildRepo) -> CpvRunner {
         match &self.kind {
             CheckKind::Metadata => Box::new(metadata::create(repo)),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -351,6 +357,7 @@ impl ToRunner<RepoRunner> for Check {
     fn to_runner(&self, _repo: &EbuildRepo) -> RepoRunner {
         match &self.kind {
             CheckKind::RepoLayout => Box::new(repo_layout::create()),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("unsupported check: {self}"),
         }
     }

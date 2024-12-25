@@ -379,6 +379,7 @@ impl<T: Package + Clone> PkgCache<T> {
                     Err(InvalidPkg { cpv, .. }) => {
                         cache.insert(*cpv.clone(), result);
                     }
+                    #[cfg_attr(coverage, coverage(off))]
                     Err(e) => unreachable!("unhandled metadata error: {e}"),
                 }
             }

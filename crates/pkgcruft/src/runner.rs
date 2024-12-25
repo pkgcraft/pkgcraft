@@ -184,6 +184,7 @@ impl CheckRunner {
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, filter),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::Repo(r), Target::Repo) => r.run_check(check, filter),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("incompatible target {target:?} for check: {check}"),
         }
     }
@@ -193,6 +194,7 @@ impl CheckRunner {
         match self {
             Self::EbuildPkg(r) => r.finish(check, filter),
             Self::EbuildRawPkg(r) => r.finish(check, filter),
+            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("unsupported check finalization: {check}"),
         }
     }

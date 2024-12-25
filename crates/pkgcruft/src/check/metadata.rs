@@ -38,6 +38,7 @@ impl CpvCheck for Check {
             Err(InvalidPkg { err, .. }) => {
                 MetadataError.version(cpv).message(err).report(filter)
             }
+            #[cfg_attr(coverage, coverage(off))]
             Err(e) => unreachable!("{cpv}: unhandled metadata error: {e}"),
             Ok(_) => (),
         }
