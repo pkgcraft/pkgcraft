@@ -52,7 +52,7 @@ fn builtins<'a>(
     pkg: &EbuildRawPkg,
     filter: &mut ReportFilter,
 ) {
-    for x in cmd.children(cursor).iter().filter(|x| x.kind() == "word") {
+    for x in cmd.children(cursor).filter(|x| x.kind() == "word") {
         if let Some(builtin) = pkg.eapi().commands().get(x.as_str()) {
             Builtin
                 .version(pkg)
@@ -72,12 +72,7 @@ fn optfeature<'a>(
     pkg: &EbuildRawPkg,
     filter: &mut ReportFilter,
 ) {
-    for node in cmd
-        .children(cursor)
-        .iter()
-        .skip(2)
-        .filter(|x| x.kind() == "word")
-    {
+    for node in cmd.children(cursor).skip(2).filter(|x| x.kind() == "word") {
         match Dep::try_new(node) {
             Ok(dep) => {
                 if !pkg.repo().contains(dep.cpn()) {

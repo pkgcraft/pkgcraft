@@ -131,7 +131,7 @@ fn expand_node<'a>(
     filesdir: &Utf8Path,
 ) -> crate::Result<String> {
     let mut path = String::new();
-    let mut nodes = node.children(cursor);
+    let mut nodes: Vec<_> = node.children(cursor).collect();
     // handle static node variants like number or word
     if nodes.is_empty() {
         nodes.push(node);
