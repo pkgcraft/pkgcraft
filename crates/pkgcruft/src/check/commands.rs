@@ -5,7 +5,7 @@ use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
 use pkgcraft::restrict::Scope;
 use tree_sitter::TreeCursor;
 
-use crate::report::ReportKind::BuiltinCommand;
+use crate::report::ReportKind::Builtin;
 use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
@@ -15,7 +15,7 @@ pub(crate) static CHECK: super::Check = super::Check {
     kind: CheckKind::Commands,
     scope: Scope::Version,
     source: SourceKind::EbuildRawPkg,
-    reports: &[BuiltinCommand],
+    reports: &[Builtin],
     context: &[],
 };
 
@@ -45,7 +45,7 @@ fn builtins<'a>(
 ) {
     for x in cmd.children(cursor).iter().filter(|x| x.kind() == "word") {
         if let Some(builtin) = pkg.eapi().commands().get(x.as_str()) {
-            BuiltinCommand
+            Builtin
                 .version(pkg)
                 .message(format!("{name} uses {builtin}"))
                 .location(cmd)

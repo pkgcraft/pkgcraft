@@ -76,7 +76,7 @@ pub enum ReportKind {
     ArchesUnused,
 
     /// Ebuild uses a bash builtin as an external command.
-    BuiltinCommand,
+    Builtin,
 
     /// Package dependency flagged as deprecated by the repo.
     DependencyDeprecated,
@@ -279,7 +279,7 @@ impl ReportKind {
         use ReportLevel::*;
         match self {
             Self::ArchesUnused => Warning,
-            Self::BuiltinCommand => Error,
+            Self::Builtin => Error,
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Error,
             Self::DependencyRevisionMissing => Warning,
