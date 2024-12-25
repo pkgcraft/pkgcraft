@@ -4,7 +4,6 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Not;
 use std::str::FromStr;
-use std::sync::LazyLock;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -12,7 +11,6 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::restrict::Scope;
-use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::report::ReportKind;
@@ -227,21 +225,13 @@ impl Check {
     }
 
     /// Return an iterator of checks that generate a given report.
-    pub fn iter_report(report: &ReportKind) -> impl Iterator<Item = Check> {
-        REPORT_CHECKS
-            .get(report)
-            .unwrap_or_else(|| unreachable!("no checks for report: {report}"))
-            .iter()
-            .copied()
+    pub fn iter_report(report: &ReportKind) -> impl Iterator<Item = Check> + '_ {
+        Check::iter().filter(|c| c.reports.contains(report))
     }
 
     /// Return an iterator of checks that use a given source.
-    pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> {
-        SOURCE_CHECKS
-            .get(source)
-            .unwrap_or_else(|| unreachable!("no checks for source: {source}"))
-            .iter()
-            .copied()
+    pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> + '_ {
+        Check::iter().filter(move |c| c.source == *source)
     }
 
     /// Determine if a check is skipped for a scanning run due to scan context.
@@ -428,18 +418,6 @@ impl AsRef<Utf8Path> for Check {
     }
 }
 
-/// The mapping of all report variants to the checks that can generate them.
-static REPORT_CHECKS: LazyLock<OrderedMap<ReportKind, OrderedSet<Check>>> =
-    LazyLock::new(|| {
-        Check::iter()
-            .flat_map(|c| c.reports.iter().copied().map(move |r| (r, c)))
-            .collect()
-    });
-
-/// The mapping of all source variants to the checks that use them.
-static SOURCE_CHECKS: LazyLock<OrderedMap<SourceKind, OrderedSet<Check>>> =
-    LazyLock::new(|| Check::iter().map(|c| (c.source, c)).collect());
-
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
@@ -465,7 +443,7 @@ mod tests {
     fn report() {
         // verify all report variants have at least one check
         let reports: Vec<_> = ReportKind::iter()
-            .filter(|x| REPORT_CHECKS.get(x).is_none())
+            .filter(|x| Check::iter_report(x).next().is_none())
             .collect();
         assert!(reports.is_empty(), "no checks for reports: {}", reports.iter().join(", "));
     }
@@ -474,7 +452,7 @@ mod tests {
     fn source() {
         // verify all source variants have at least one check
         let sources: Vec<_> = SourceKind::iter()
-            .filter(|x| SOURCE_CHECKS.get(x).is_none())
+            .filter(|x| Check::iter_source(x).next().is_none())
             .collect();
         assert!(sources.is_empty(), "no checks for sources: {}", sources.iter().join(", "));
     }
