@@ -49,7 +49,14 @@ mod tests {
 
     #[test]
     fn check() {
+        // primary
         let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let scanner = Scanner::new(repo).checks([CHECK]);
+        let r = scanner.run(repo);
+        assert_err_re!(r, "requires overlay context");
+
+        // secondary
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         let scanner = Scanner::new(repo).checks([CHECK]);
         let reports: Vec<_> = scanner.run(repo).unwrap().collect();
