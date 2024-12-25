@@ -159,6 +159,9 @@ pub enum ReportKind {
     /// Package manifest is invalid.
     ManifestInvalid,
 
+    /// Package manifest has a matching entry with a different file name.
+    ManifestMatch,
+
     /// Ebuild fails during metadata generation.
     MetadataError,
 
@@ -303,6 +306,7 @@ impl ReportKind {
             Self::LicensesUnused => Warning,
             Self::LiveOnly => Warning,
             Self::ManifestInvalid => Error,
+            Self::ManifestMatch => Warning,
             Self::MetadataError => Critical,
             Self::MirrorsUnused => Warning,
             Self::PackageDeprecatedUnused => Warning,

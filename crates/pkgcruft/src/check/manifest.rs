@@ -1,14 +1,15 @@
 use std::collections::HashSet;
 
+use dashmap::DashMap;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::error::Error::UnversionedPkg;
-use pkgcraft::pkg::ebuild::manifest::ManifestType;
+use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
-use crate::report::ReportKind::ManifestInvalid;
+use crate::report::ReportKind::{ManifestInvalid, ManifestMatch};
 use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
@@ -18,7 +19,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Manifest,
     scope: Scope::Package,
     source: SourceKind::EbuildPkg,
-    reports: &[ManifestInvalid],
+    reports: &[ManifestInvalid, ManifestMatch],
     context: &[],
 };
 
@@ -26,12 +27,23 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
         repo: repo.clone(),
         thin_manifests: repo.metadata().config.thin_manifests,
+        used: Default::default(),
+        hash: repo
+            .metadata()
+            .config
+            .manifest_required_hashes
+            .iter()
+            .next()
+            .copied()
+            .unwrap_or(HashType::Blake2b),
     }
 }
 
 struct Check {
     repo: EbuildRepo,
     thin_manifests: bool,
+    used: DashMap<String, (Cpn, String)>,
+    hash: HashType,
 }
 
 impl EbuildPkgSetCheck for Check {
@@ -45,7 +57,29 @@ impl EbuildPkgSetCheck for Check {
             Err(e) => unreachable!("{cpn}: unhandled manifest error: {e}"),
         };
 
-        let manifest_distfiles: HashSet<_> = manifest.distfiles().map(|x| x.name()).collect();
+        let mut manifest_distfiles = HashSet::new();
+        for x in manifest.distfiles() {
+            let name = x.name();
+            manifest_distfiles.insert(name);
+
+            // check for duplicate files with different names
+            if filter.enabled(ManifestMatch) {
+                if let Some(hash) = x.hashes().get(&self.hash) {
+                    if let Some(entry) = self.used.get(hash) {
+                        let (pkg, file) = entry.value();
+                        if name != file {
+                            ManifestMatch
+                                .package(cpn)
+                                .message(format!("{name}: {file} ({pkg})"))
+                                .report(filter);
+                        }
+                    } else {
+                        self.used
+                            .insert(hash.clone(), (cpn.clone(), name.to_string()));
+                    }
+                }
+            }
+        }
         let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
 
         let unknown = manifest_distfiles
