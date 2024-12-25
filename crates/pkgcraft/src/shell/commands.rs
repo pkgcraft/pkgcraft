@@ -11,7 +11,7 @@ use scallop::builtins::Builtin;
 
 use super::get_build_mut;
 use super::phase::PhaseKind;
-use super::scope::{Scope, Scopes};
+use super::scope::{EbuildScope, Scope};
 
 mod _default_phase_func;
 mod _new;
@@ -230,7 +230,7 @@ pub(crate) use _phases::SRC_UNPACK as src_unpack_stub;
 #[derive(Debug, Clone)]
 pub struct Command {
     builtin: Builtin,
-    scopes: HashSet<Scope>,
+    allowed: HashSet<EbuildScope>,
 }
 
 impl PartialEq for Command {
@@ -303,18 +303,17 @@ impl Command {
     pub(crate) fn new<I>(builtin: Builtin, scopes: I) -> Self
     where
         I: IntoIterator,
-        I::Item: Into<Scopes>,
+        I::Item: Into<EbuildScope>,
     {
         Self {
             builtin,
-            scopes: scopes.into_iter().flat_map(Into::into).collect(),
+            allowed: scopes.into_iter().map(Into::into).collect(),
         }
     }
 
     /// Determine if the command is allowed in a given `Scope`.
     pub(crate) fn is_allowed(&self, scope: &Scope) -> bool {
-        self.scopes.contains(scope)
-            || (scope.is_eclass() && self.scopes.contains(&Scope::Eclass(None)))
+        self.allowed.iter().any(|x| x == scope)
     }
 
     /// Determine if the command is a phase stub.
@@ -583,7 +582,7 @@ macro_rules! cmd_scope_tests {
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::pkg::Source;
             use crate::repo::ebuild::EbuildRepoBuilder;
-            use crate::shell::scope::{Scope::*, Scopes};
+            use crate::shell::scope::{EbuildScope, Scope::*};
             use crate::test::assert_err_re;
 
             let cmd = $cmd;
@@ -616,13 +615,15 @@ macro_rules! cmd_scope_tests {
                 .into_ebuild()
                 .unwrap();
             config.finalize().unwrap();
-            let all_scopes: HashSet<_> = Scopes::All.into_iter().collect();
+            let all_scopes: HashSet<_> = EbuildScope::All.into_iter().collect();
 
             for eapi in &*EAPIS_OFFICIAL {
                 if let Some(cmd) = eapi.commands().get(name) {
+                    let scopes: HashSet<_> =
+                        cmd.allowed.iter().flat_map(|x| x.iter()).collect();
                     // test non-utf8 args for commands that accept arguments
                     if has_args {
-                        for scope in &cmd.scopes {
+                        for scope in &scopes {
                             let info = format!("EAPI={eapi}, scope: {scope}");
                             match scope {
                                 Eclass(_) => {
@@ -674,7 +675,7 @@ macro_rules! cmd_scope_tests {
                     }
 
                     // test invalid scope usage
-                    for scope in all_scopes.difference(&cmd.scopes) {
+                    for scope in all_scopes.difference(&scopes) {
                         let info = format!("EAPI={eapi}, scope: {scope}");
                         match scope {
                             Eclass(_) => {

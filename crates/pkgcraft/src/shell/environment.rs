@@ -8,7 +8,7 @@ use scallop::variables::{bind, unbind, Attr};
 use scallop::ExecStatus;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
-use super::scope::{Scope, Scopes};
+use super::scope::{EbuildScope, Scope};
 
 #[derive(AsRefStr, Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
@@ -73,11 +73,11 @@ impl Variable {
     pub(crate) fn internal<I>(self, scopes: I) -> BuildVariable
     where
         I: IntoIterator,
-        I::Item: Into<Scopes>,
+        I::Item: Into<EbuildScope>,
     {
         BuildVariable {
             var: self,
-            scopes: scopes.into_iter().flat_map(Into::into).collect(),
+            allowed: scopes.into_iter().map(Into::into).collect(),
             external: false,
         }
     }
@@ -86,7 +86,7 @@ impl Variable {
 #[derive(Debug, Clone)]
 pub(crate) struct BuildVariable {
     var: Variable,
-    scopes: HashSet<Scope>,
+    allowed: HashSet<EbuildScope>,
     external: bool,
 }
 
@@ -144,7 +144,7 @@ impl From<Variable> for BuildVariable {
     fn from(value: Variable) -> Self {
         BuildVariable {
             var: value,
-            scopes: Default::default(),
+            allowed: Default::default(),
             external: false,
         }
     }
@@ -159,7 +159,7 @@ impl BuildVariable {
 
     /// Determine if the variable is exported to a given scope.
     pub(crate) fn exported(&self, scope: &Scope) -> bool {
-        self.scopes.contains(scope)
+        self.allowed.iter().any(|x| x == scope)
     }
 
     /// Variable value does not vary between phases.
@@ -208,7 +208,7 @@ mod tests {
             .into_ebuild()
             .unwrap();
         config.finalize().unwrap();
-        let all_scopes: Vec<_> = Scopes::All.into_iter().collect();
+        let all_scopes: Vec<_> = EbuildScope::All.into_iter().collect();
 
         for eapi in &*EAPIS_OFFICIAL {
             for var in Variable::iter() {
