@@ -244,4 +244,49 @@ mod tests {
             assert_err_re!(r, "invalid check: unknown");
         }
     }
+
+    #[test]
+    fn tri_state() {
+        // empty
+        let mut enabled = IndexSet::<ReportKind>::new();
+        let selected = IndexSet::new();
+        TriState::enabled(&mut enabled, &selected);
+        assert_ordered_eq!(&enabled, &[]);
+
+        // no selections
+        let mut enabled: IndexSet<_> = [ReportKind::EapiBanned].into_iter().collect();
+        let selected = IndexSet::new();
+        TriState::enabled(&mut enabled, &selected);
+        assert_ordered_eq!(&enabled, &[ReportKind::EapiBanned]);
+
+        // override defaults
+        let mut enabled: IndexSet<_> = [ReportKind::EapiBanned].into_iter().collect();
+        let selected: IndexSet<TriState<ReportKind>> = ["HeaderInvalid"]
+            .iter()
+            .map(|s| s.parse())
+            .try_collect()
+            .unwrap();
+        TriState::enabled(&mut enabled, &selected);
+        assert_ordered_eq!(&enabled, &[ReportKind::HeaderInvalid]);
+
+        // negated selection
+        let mut enabled: IndexSet<_> = [ReportKind::EapiBanned].into_iter().collect();
+        let selected: IndexSet<_> = ["HeaderInvalid", "-HeaderInvalid"]
+            .iter()
+            .map(|s| s.parse())
+            .try_collect()
+            .unwrap();
+        TriState::enabled(&mut enabled, &selected);
+        assert_ordered_eq!(&enabled, &[]);
+
+        // add to defaults
+        let mut enabled: IndexSet<_> = [ReportKind::EapiBanned].into_iter().collect();
+        let selected: IndexSet<_> = ["+HeaderInvalid"]
+            .iter()
+            .map(|s| s.parse())
+            .try_collect()
+            .unwrap();
+        TriState::enabled(&mut enabled, &selected);
+        assert_ordered_eq!(&enabled, &[ReportKind::EapiBanned, ReportKind::HeaderInvalid]);
+    }
 }
