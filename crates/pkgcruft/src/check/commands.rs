@@ -103,16 +103,14 @@ impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let mut cursor = pkg.tree().walk();
         // TODO: use parse tree query
-        for node in pkg
+        for (name, node, func) in pkg
             .tree()
             .iter_func()
             .filter(|x| x.kind() == "command_name")
+            .filter_map(|x| self.commands.get(x.as_str()).map(|func| (x, func)))
+            .filter_map(|(x, func)| x.parent().map(|node| (x.to_string(), node, func)))
         {
-            let name = node.as_str();
-            if let Some(func) = self.commands.get(name) {
-                let cmd = node.parent().unwrap();
-                func(name, &cmd, &mut cursor, pkg, filter);
-            }
+            func(&name, &node, &mut cursor, pkg, filter);
         }
     }
 }
