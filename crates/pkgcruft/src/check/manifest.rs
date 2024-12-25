@@ -62,7 +62,6 @@ impl EbuildPkgSetCheck for Check {
                 ManifestInvalid.package(cpn).message(err).report(filter);
                 return;
             }
-            #[cfg_attr(coverage, coverage(off))]
             Err(e) => unreachable!("{cpn}: unhandled manifest error: {e}"),
         };
 

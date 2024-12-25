@@ -352,7 +352,6 @@ impl ReportBuilder {
     {
         match &mut self.0.scope {
             ReportScope::Version(_, location @ None) => *location = Some(value.into()),
-            #[cfg_attr(coverage, coverage(off))]
             _ => unreachable!("invalid report scope: {:?}", self.0.scope),
         }
         self
