@@ -440,6 +440,14 @@ mod tests {
     }
 
     #[test]
+    fn display_and_debug() {
+        for check in Check::iter() {
+            let s = check.to_string();
+            assert_eq!(format!("{check:?}"), s);
+        }
+    }
+
+    #[test]
     fn report() {
         // verify all report variants have at least one check
         let reports: Vec<_> = ReportKind::iter()
