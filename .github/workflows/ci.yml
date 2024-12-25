@@ -118,19 +118,10 @@ jobs:
       run: |
         # only collect code coverage for the latest rust release on linux
         if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          # run tests while collecting coverage data
           cargo llvm-cov --no-report nextest --all-features --workspace --tests
-          # generate shell completion files
-          cargo llvm-cov --no-report run --features shell --bin pk-shell-comp -p pkgcraft-tools
-          cargo llvm-cov --no-report run --features shell --bin pkgcruft-shell-comp -p pkgcruft
-          # generate coverage reports
           cargo llvm-cov report --lcov --output-path lcov.info
         else
-          # run tests
           cargo nextest run --all-features --workspace --tests
-          # generate shell completion files
-          cargo run --features shell --bin pk-shell-comp -p pkgcraft-tools
-          cargo run --features shell --bin pkgcruft-shell-comp -p pkgcruft
         fi
 
     - name: Upload build artifacts
