@@ -38,3 +38,21 @@ impl CpnCheck for Check {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::test::*;
+
+    use crate::scanner::Scanner;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-secondary").unwrap();
+        let scanner = Scanner::new(repo).checks([CHECK]);
+        let reports: Vec<_> = scanner.run(repo).unwrap().collect();
+        assert!(!reports.is_empty());
+    }
+}
