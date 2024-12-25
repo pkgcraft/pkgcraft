@@ -12,7 +12,7 @@ use crate::source::SourceKind;
 use super::{CheckKind, EbuildRawPkgCheck};
 
 pub(crate) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Builtins,
+    kind: CheckKind::Commands,
     scope: Scope::Version,
     source: SourceKind::EbuildRawPkg,
     reports: &[BuiltinCommand],
