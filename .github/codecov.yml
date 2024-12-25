@@ -1,3 +1,5 @@
 ignore:
   - "crates/arcanist"
   - "crates/pkgcraft-c"
+  # ignore binaries that generate shell completion files
+  - "crates/*/src/bin/*/shell.rs"
