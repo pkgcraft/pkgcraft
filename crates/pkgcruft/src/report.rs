@@ -159,7 +159,7 @@ pub enum ReportKind {
     /// Package manifest is invalid.
     ManifestInvalid,
 
-    /// Package manifest has a matching entry with a different file name.
+    /// Package manifest has a matching hash with a different file name.
     ManifestMatch,
 
     /// Ebuild fails during metadata generation.
