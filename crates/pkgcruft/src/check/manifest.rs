@@ -50,9 +50,7 @@ impl Check {
     // TODO: Drop this once ignore file support is added?
     /// Ignore ManifestMatch for go modules since go.mod files are designed to collide.
     fn is_go_module(&self, pkgs: &[EbuildPkg]) -> bool {
-        pkgs.first()
-            .map(|x| x.inherit().contains("go-module"))
-            .unwrap_or(false)
+        pkgs.iter().any(|x| x.inherit().contains("go-module"))
     }
 }
 
