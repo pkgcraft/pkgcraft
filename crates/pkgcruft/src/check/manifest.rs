@@ -46,6 +46,16 @@ struct Check {
     hash: HashType,
 }
 
+impl Check {
+    // TODO: Drop this once ignore file support is added?
+    /// Ignore ManifestMatch for go modules since go.mod files are designed to collide.
+    fn is_go_module(&self, pkgs: &[EbuildPkg]) -> bool {
+        pkgs.first()
+            .map(|x| x.inherit().contains("go-module"))
+            .unwrap_or(false)
+    }
+}
+
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let manifest = match self.repo.metadata().pkg_manifest_parse(cpn) {
@@ -63,7 +73,7 @@ impl EbuildPkgSetCheck for Check {
             manifest_distfiles.insert(name);
 
             // check for duplicate files with different names
-            if filter.enabled(ManifestMatch) {
+            if filter.enabled(ManifestMatch) && !self.is_go_module(pkgs) {
                 if let Some(hash) = x.hashes().get(&self.hash) {
                     if let Some(entry) = self.used.get(hash) {
                         let (pkg, file) = entry.value();
