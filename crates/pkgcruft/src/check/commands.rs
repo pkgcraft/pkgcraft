@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
 use pkgcraft::bash::Node;
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
+use pkgcraft::dep::Dep;
+use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage};
 use pkgcraft::restrict::Scope;
+use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
-use crate::report::ReportKind::Builtin;
+use crate::report::ReportKind::{Builtin, Optfeature};
 use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
@@ -15,7 +17,7 @@ pub(crate) static CHECK: super::Check = super::Check {
     kind: CheckKind::Commands,
     scope: Scope::Version,
     source: SourceKind::EbuildRawPkg,
-    reports: &[Builtin],
+    reports: &[Builtin, Optfeature],
     context: &[],
 };
 
@@ -23,12 +25,19 @@ type CommandFn =
     for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &mut ReportFilter);
 
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
-    Check {
-        commands: ["find", "xargs"]
+    let mut check = Check { commands: Default::default() };
+    check.commands.extend(
+        ["find", "xargs"]
             .into_iter()
-            .map(|name| (name.to_string(), builtins as CommandFn))
-            .collect(),
-    }
+            .map(|name| (name.to_string(), builtins as CommandFn)),
+    );
+    check.commands.extend(
+        ["optfeature"]
+            .into_iter()
+            .map(|name| (name.to_string(), optfeature as CommandFn)),
+    );
+
+    check
 }
 
 struct Check {
@@ -50,6 +59,42 @@ fn builtins<'a>(
                 .message(format!("{name} uses {builtin}"))
                 .location(cmd)
                 .report(filter);
+        }
+    }
+}
+
+// TODO: handle multi-dep arguments and USE flag queries
+/// Flag issues with optfeature usage.
+fn optfeature<'a>(
+    _name: &str,
+    cmd: &Node<'a>,
+    cursor: &mut TreeCursor<'a>,
+    pkg: &EbuildRawPkg,
+    filter: &mut ReportFilter,
+) {
+    for node in cmd
+        .children(cursor)
+        .iter()
+        .skip(2)
+        .filter(|x| x.kind() == "word")
+    {
+        match Dep::try_new(node) {
+            Ok(dep) => {
+                if !pkg.repo().contains(dep.cpn()) {
+                    Optfeature
+                        .version(pkg)
+                        .message(format!("nonexistent dep: {node}"))
+                        .location(cmd)
+                        .report(filter);
+                }
+            }
+            Err(_) => {
+                Optfeature
+                    .version(pkg)
+                    .message(format!("invalid dep: {node}"))
+                    .location(cmd)
+                    .report(filter);
+            }
         }
     }
 }

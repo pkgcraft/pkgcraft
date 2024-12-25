@@ -168,6 +168,11 @@ pub enum ReportKind {
     /// Repo has unused mirrors.
     MirrorsUnused,
 
+    /// Ebuild has an issue with optfeature usage.
+    ///
+    /// See the optfeature eclass for usage examples.
+    Optfeature,
+
     /// Repo has unused profiles/package.deprecated entries.
     PackageDeprecatedUnused,
 
@@ -309,6 +314,7 @@ impl ReportKind {
             Self::ManifestMatch => Warning,
             Self::MetadataError => Critical,
             Self::MirrorsUnused => Warning,
+            Self::Optfeature => Warning,
             Self::PackageDeprecatedUnused => Warning,
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Error,
