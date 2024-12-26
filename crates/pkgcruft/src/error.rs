@@ -1,13 +1,15 @@
 use std::io;
 
+use crate::check::Check;
+
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
     Pkgcraft(String),
     #[error("{0}")]
     InvalidValue(String),
-    #[error("skipping remaining checks due to failure")]
-    SkipRemainingChecks,
+    #[error("{0}: {1}")]
+    CheckInit(Check, String),
     #[error("{0}")]
     IO(String),
 }

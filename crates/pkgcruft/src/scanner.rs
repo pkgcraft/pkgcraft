@@ -11,9 +11,10 @@ use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::utils::bounded_jobs;
 use strum::IntoEnumIterator;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::check::Check;
+use crate::error::Error;
 use crate::report::{Report, ReportKind};
 use crate::runner::SyncCheckRunner;
 use crate::source::{PkgFilter, Target};
@@ -123,14 +124,33 @@ impl Scanner {
             (None, None) => (&defaults, &empty),
         };
 
-        let runner = SyncCheckRunner::new(
-            scope,
-            &self.repo,
-            &restrict,
-            &self.filters,
-            enabled,
-            selected,
-        )?;
+        // filter checks
+        let checks: IndexSet<_> = enabled
+            .iter()
+            .copied()
+            .map(|check| {
+                if !self.filters.is_empty() && check.filtered() {
+                    Err(Error::CheckInit(check, "requires no filters".to_string()))
+                } else if let Some(context) = check.skipped(&self.repo, selected) {
+                    Err(Error::CheckInit(check, format!("requires {context} context")))
+                } else if let Some(scope) = check.scoped(scope) {
+                    Err(Error::CheckInit(check, format!("requires {scope} scope")))
+                } else {
+                    Ok(check)
+                }
+            })
+            .filter_map(|result| {
+                if let Err(Error::CheckInit(check, msg)) = &result {
+                    if !selected.contains(check) {
+                        warn!("skipping check {msg}");
+                        return None;
+                    }
+                }
+                Some(result)
+            })
+            .try_collect()?;
+
+        let runner = SyncCheckRunner::new(scope, &self.repo, &restrict, &self.filters, checks);
 
         if scope >= Scope::Category {
             Ok(ReportIter::pkg(runner, self, restrict))

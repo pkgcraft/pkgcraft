@@ -258,6 +258,15 @@ impl Check {
                 && self.source != SourceKind::EbuildRawPkg)
     }
 
+    /// Determine if a check is disabled for a scanning run due to scan scope.
+    pub(crate) fn scoped(&self, scope: Scope) -> Option<Scope> {
+        if self.scope > scope {
+            Some(self.scope)
+        } else {
+            None
+        }
+    }
+
     /// Check supports post-run finalization.
     pub(crate) fn finalize(&self) -> bool {
         self.scope == Scope::Version

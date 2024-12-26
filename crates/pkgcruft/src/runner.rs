@@ -9,7 +9,6 @@ use pkgcraft::restrict::{Restrict, Scope};
 use tracing::{debug, warn};
 
 use crate::check::*;
-use crate::error::Error;
 use crate::scanner::ReportFilter;
 use crate::source::*;
 
@@ -20,40 +19,19 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(
+    pub(super) fn new<I>(
         scope: Scope,
         repo: &EbuildRepo,
         restrict: &Restrict,
         filters: &IndexSet<PkgFilter>,
-        enabled: &IndexSet<Check>,
-        selected: &IndexSet<Check>,
-    ) -> crate::Result<Self> {
+        checks: I,
+    ) -> Self
+    where
+        I: IntoIterator<Item = Check>,
+    {
         let mut runners = IndexMap::new();
 
-        for check in enabled.iter().copied() {
-            let mut err = None;
-
-            if !filters.is_empty() && check.filtered() {
-                err = Some(format!("{check}: requires no filters"));
-            }
-
-            if let Some(context) = check.skipped(repo, selected) {
-                err = Some(format!("{check}: requires {context} context"));
-            }
-
-            if check.scope > scope {
-                err = Some(format!("{check}: requires {} scope", check.scope));
-            }
-
-            if let Some(msg) = err {
-                if selected.contains(&check) {
-                    return Err(Error::InvalidValue(format!("selected check {msg}")));
-                } else {
-                    warn!("skipping check {msg}");
-                    continue;
-                }
-            }
-
+        for check in checks {
             runners
                 .entry(check.source)
                 .or_insert_with(|| {
@@ -62,10 +40,10 @@ impl SyncCheckRunner {
                 .add_check(check)
         }
 
-        Ok(Self {
+        Self {
             runners,
             finalize: scope == Scope::Repo && filters.is_empty(),
-        })
+        }
     }
 
     /// Notify parallelized check runs to mangle values for post-run finalization.
