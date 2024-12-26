@@ -6,7 +6,7 @@ use std::{mem, thread};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use crossbeam_utils::sync::WaitGroup;
 use indexmap::IndexSet;
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::utils::bounded_jobs;
@@ -116,18 +116,15 @@ impl Scanner {
         info!("target: {restrict:?}");
 
         // determine enabled and selected checks
-        let defaults = Check::iter_default(&self.repo).collect();
         let empty = Default::default();
         let (enabled, selected) = match (self.enabled.as_ref(), self.selected.as_ref()) {
-            (Some(x), Some(y)) => (x, y),
-            (Some(x), None) | (None, Some(x)) => (x, x),
-            (None, None) => (&defaults, &empty),
+            (Some(x), Some(y)) => (Either::Left(x.iter().copied()), y),
+            (Some(x), None) | (None, Some(x)) => (Either::Left(x.iter().copied()), x),
+            (None, None) => (Either::Right(Check::iter_default(&self.repo)), &empty),
         };
 
         // filter checks -- errors if filtered check is selected
-        let checks: IndexSet<_> = enabled
-            .iter()
-            .copied()
+        let checks = enabled
             .map(|check| {
                 if !self.filters.is_empty() && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
@@ -147,10 +144,10 @@ impl Scanner {
                     }
                 }
                 true
-            })
-            .try_collect()?;
+            });
 
-        let runner = SyncCheckRunner::new(scope, &self.repo, &restrict, &self.filters, checks);
+        let runner =
+            SyncCheckRunner::new(scope, &self.repo, &restrict, &self.filters, checks)?;
 
         if scope >= Scope::Category {
             Ok(ReportIter::pkg(runner, self, restrict))

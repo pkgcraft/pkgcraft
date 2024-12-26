@@ -25,13 +25,14 @@ impl SyncCheckRunner {
         restrict: &Restrict,
         filters: &IndexSet<PkgFilter>,
         checks: I,
-    ) -> Self
+    ) -> crate::Result<Self>
     where
-        I: IntoIterator<Item = Check>,
+        I: IntoIterator<Item = crate::Result<Check>>,
     {
         let mut runners = IndexMap::new();
 
         for check in checks {
+            let check = check?;
             runners
                 .entry(check.source)
                 .or_insert_with(|| {
@@ -40,10 +41,10 @@ impl SyncCheckRunner {
                 .add_check(check)
         }
 
-        Self {
+        Ok(Self {
             runners,
             finalize: scope == Scope::Repo && filters.is_empty(),
-        }
+        })
     }
 
     /// Notify parallelized check runs to mangle values for post-run finalization.
