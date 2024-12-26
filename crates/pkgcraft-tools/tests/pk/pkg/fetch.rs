@@ -184,6 +184,40 @@ async fn force() {
 }
 
 #[tokio::test]
+async fn pretend() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="{uri}/file1 {uri}/file2 -> ${{P}}-file2"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    for opt in ["-p", "--pretend"] {
+        cmd("pk pkg fetch")
+            .arg(opt)
+            .arg(repo)
+            .assert()
+            .stdout(indoc::formatdoc!(
+                "
+                {uri}/file1
+                {uri}/file2 -> pkg-1-file2
+            "
+            ))
+            .stderr("")
+            .success();
+    }
+}
+
+#[tokio::test]
 async fn timeout() {
     let server = MockServer::start().await;
     let delay = Duration::from_secs(1);
