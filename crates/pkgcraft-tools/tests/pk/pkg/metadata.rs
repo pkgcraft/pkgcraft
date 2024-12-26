@@ -14,6 +14,7 @@ fn targets() {
     temp.create_ebuild("cat/pkg-1", &[]).unwrap();
     temp.create_ebuild("cat/pkg-2", &[]).unwrap();
     temp.create_ebuild("cat/a-1", &[]).unwrap();
+    temp.create_ebuild("a/b-1", &[]).unwrap();
     let repo = config
         .add_repo(&temp, false)
         .unwrap()
@@ -28,7 +29,9 @@ fn targets() {
         .stdout("")
         .stderr("")
         .success();
-    for (cpv, status) in [("cat/pkg-1", true), ("cat/pkg-2", false), ("cat/a-1", false)] {
+    for (cpv, status) in
+        [("cat/pkg-1", true), ("cat/pkg-2", false), ("cat/a-1", false), ("a/b-1", false)]
+    {
         let path = repo.metadata().cache().path().join(cpv);
         assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
     }
@@ -39,7 +42,9 @@ fn targets() {
         .stdout("")
         .stderr("")
         .success();
-    for (cpv, status) in [("cat/pkg-1", true), ("cat/pkg-2", true), ("cat/a-1", false)] {
+    for (cpv, status) in
+        [("cat/pkg-1", true), ("cat/pkg-2", true), ("cat/a-1", false), ("a/b-1", false)]
+    {
         let path = repo.metadata().cache().path().join(cpv);
         assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
     }
@@ -50,7 +55,22 @@ fn targets() {
         .stdout("")
         .stderr("")
         .success();
-    for (cpv, status) in [("cat/pkg-1", true), ("cat/pkg-2", true), ("cat/a-1", true)] {
+    for (cpv, status) in
+        [("cat/pkg-1", true), ("cat/pkg-2", true), ("cat/a-1", true), ("a/b-1", false)]
+    {
+        let path = repo.metadata().cache().path().join(cpv);
+        assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
+    }
+
+    // repo target
+    cmd("pk pkg metadata")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    for (cpv, status) in
+        [("cat/pkg-1", true), ("cat/pkg-2", true), ("cat/a-1", true), ("a/b-1", true)]
+    {
         let path = repo.metadata().cache().path().join(cpv);
         assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
     }
@@ -63,6 +83,7 @@ fn remove() {
     temp.create_ebuild("cat/pkg-1", &[]).unwrap();
     temp.create_ebuild("cat/pkg-2", &[]).unwrap();
     temp.create_ebuild("cat/a-1", &[]).unwrap();
+    temp.create_ebuild("a/b-1", &[]).unwrap();
     let repo = config
         .add_repo(&temp, false)
         .unwrap()
@@ -86,7 +107,9 @@ fn remove() {
             .stdout("")
             .stderr("")
             .success();
-        for (cpv, status) in [("cat/pkg-1", false), ("cat/pkg-2", true), ("cat/a-1", true)] {
+        for (cpv, status) in
+            [("cat/pkg-1", false), ("cat/pkg-2", true), ("cat/a-1", true), ("a/b-1", true)]
+        {
             let path = repo.metadata().cache().path().join(cpv);
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
@@ -98,7 +121,9 @@ fn remove() {
             .stdout("")
             .stderr("")
             .success();
-        for (cpv, status) in [("cat/pkg-1", false), ("cat/pkg-2", false), ("cat/a-1", true)] {
+        for (cpv, status) in
+            [("cat/pkg-1", false), ("cat/pkg-2", false), ("cat/a-1", true), ("a/b-1", true)]
+        {
             let path = repo.metadata().cache().path().join(cpv);
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
@@ -110,7 +135,23 @@ fn remove() {
             .stdout("")
             .stderr("")
             .success();
-        for (cpv, status) in [("cat/pkg-1", false), ("cat/pkg-2", false), ("cat/a-1", false)] {
+        for (cpv, status) in
+            [("cat/pkg-1", false), ("cat/pkg-2", false), ("cat/a-1", false), ("a/b-1", true)]
+        {
+            let path = repo.metadata().cache().path().join(cpv);
+            assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
+        }
+
+        // repo target
+        cmd("pk pkg metadata")
+            .arg(opt)
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+        for (cpv, status) in
+            [("cat/pkg-1", false), ("cat/pkg-2", false), ("cat/a-1", false), ("a/b-1", false)]
+        {
             let path = repo.metadata().cache().path().join(cpv);
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
