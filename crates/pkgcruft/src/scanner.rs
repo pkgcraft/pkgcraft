@@ -124,7 +124,7 @@ impl Scanner {
             (None, None) => (&defaults, &empty),
         };
 
-        // filter checks
+        // filter checks -- errors if filtered check is selected
         let checks: IndexSet<_> = enabled
             .iter()
             .copied()
@@ -139,14 +139,14 @@ impl Scanner {
                     Ok(check)
                 }
             })
-            .filter_map(|result| {
+            .filter(|result| {
                 if let Err(Error::CheckInit(check, msg)) = &result {
                     if !selected.contains(check) {
                         warn!("skipping check {msg}");
-                        return None;
+                        return false;
                     }
                 }
-                Some(result)
+                true
             })
             .try_collect()?;
 
