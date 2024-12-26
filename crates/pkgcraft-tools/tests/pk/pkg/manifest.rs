@@ -98,6 +98,52 @@ async fn timeout() {
 }
 
 #[tokio::test]
+async fn concurrent() {
+    let server = MockServer::start().await;
+    let uri = server.uri();
+
+    Mock::given(method("GET"))
+        .and(path("/file1"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file1"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file2"))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/file3"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"file3"))
+        .mount(&server)
+        .await;
+
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with mocked SRC_URI"
+        SRC_URI="u1? ( {uri}/file1 ) u2? ( {uri}/file2 ) {uri}/file3"
+        SLOT=0
+    "#};
+    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    let repo = temp.path();
+
+    let dir = tempdir().unwrap();
+    env::set_current_dir(&dir).unwrap();
+
+    for opt in ["-c", "--concurrent"] {
+        // force nonconcurrent downloads
+        cmd("pk pkg manifest")
+            .args([opt, "1"])
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+    }
+}
+
+#[tokio::test]
 async fn incremental() {
     let server = MockServer::start().await;
     let uri = server.uri();
