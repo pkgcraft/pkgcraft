@@ -57,13 +57,7 @@ impl SyncCheckRunner {
             runners
                 .entry(check.source)
                 .or_insert_with(|| {
-                    CheckRunner::new(
-                        scope,
-                        restrict,
-                        check.source,
-                        repo.clone(),
-                        filters.clone(),
-                    )
+                    CheckRunner::new(scope, restrict, check.source, repo.clone(), filters)
                 })
                 .add_check(check)
         }
@@ -125,14 +119,20 @@ impl CheckRunner {
         restrict: &Restrict,
         source: SourceKind,
         repo: EbuildRepo,
-        filters: IndexSet<PkgFilter>,
+        filters: &IndexSet<PkgFilter>,
     ) -> Self {
         match source {
-            SourceKind::EbuildPkg => {
-                Self::EbuildPkg(EbuildPkgCheckRunner::new(repo, scope, restrict, filters))
-            }
+            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(
+                repo,
+                scope,
+                restrict,
+                filters.clone(),
+            )),
             SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(
-                repo, scope, restrict, filters,
+                repo,
+                scope,
+                restrict,
+                filters.clone(),
             )),
             SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(repo)),
             SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(repo)),
