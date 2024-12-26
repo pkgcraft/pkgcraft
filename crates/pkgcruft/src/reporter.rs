@@ -22,12 +22,6 @@ pub enum Reporter {
     Stats(StatsReporter),
 }
 
-impl Default for Reporter {
-    fn default() -> Self {
-        Reporter::Fancy(Default::default())
-    }
-}
-
 impl Reporter {
     /// Run a report through a reporter.
     pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
