@@ -25,6 +25,10 @@ pub(crate) struct Command {
     #[arg(short, long)]
     filter: Vec<String>,
 
+    /// Target repo
+    #[arg(long)]
+    repo: Option<String>,
+
     // positionals
     /// Target packages or paths
     #[arg(value_name = "TARGET", default_value = ".", help_heading = "Arguments")]
@@ -95,6 +99,7 @@ impl Command {
         // convert targets to restrictions
         let targets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
+            .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkgs
