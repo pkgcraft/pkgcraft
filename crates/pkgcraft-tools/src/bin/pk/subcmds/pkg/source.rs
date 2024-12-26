@@ -71,6 +71,10 @@ pub(crate) struct Command {
     #[arg(short, long)]
     bound: Vec<Bound>,
 
+    /// Target repo
+    #[arg(long)]
+    repo: Option<String>,
+
     /// Sort output in ascending order for elapsed time
     #[arg(long)]
     sort: bool,
@@ -225,6 +229,7 @@ impl Command {
         // convert targets to restrictions
         let targets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
+            .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?;
 
         // convert restrictions to pkgs
