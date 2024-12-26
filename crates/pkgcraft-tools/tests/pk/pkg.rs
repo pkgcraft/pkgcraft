@@ -46,8 +46,19 @@ macro_rules! cmd_arg_tests {
 
         #[test]
         fn no_matches() {
+            // Cpn target
             let cmd = format!("{} cat/pkg", $cmd);
             let s = "no matches found: cat/pkg";
+            pkgcraft::test::cmd(cmd)
+                .assert()
+                .stdout("")
+                .stderr(predicates::str::contains(s))
+                .failure()
+                .code(2);
+
+            // category target
+            let cmd = format!("{} category", $cmd);
+            let s = "no matches found: category";
             pkgcraft::test::cmd(cmd)
                 .assert()
                 .stdout("")
