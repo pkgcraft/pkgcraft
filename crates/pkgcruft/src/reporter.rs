@@ -68,7 +68,10 @@ impl CountReporter {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct StatsReporter(IndexMap<ReportKind, u64>);
+pub struct StatsReporter {
+    cache: IndexMap<ReportKind, u64>,
+    pub sort_by: String,
+}
 
 impl From<StatsReporter> for Reporter {
     fn from(value: StatsReporter) -> Self {
@@ -78,16 +81,23 @@ impl From<StatsReporter> for Reporter {
 
 impl StatsReporter {
     fn report<W: Write>(&mut self, report: &Report, _output: &mut W) -> crate::Result<()> {
-        *self.0.entry(*report.kind()).or_default() += 1;
+        *self.cache.entry(*report.kind()).or_default() += 1;
         Ok(())
     }
 
     fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
-        self.0.sort_keys();
-        for (kind, count) in &self.0 {
+        match self.sort_by.as_str() {
+            "count" => self
+                .cache
+                .sort_by(|k1, v1, k2, v2| v1.cmp(v2).then_with(|| k1.cmp(k2))),
+            _ => self.cache.sort_keys(),
+        }
+
+        for (kind, count) in &self.cache {
             write!(output, "{}", kind.as_ref().color(kind.level()))?;
             writeln!(output, ": {count}")?;
         }
+
         Ok(())
     }
 }
@@ -250,6 +260,7 @@ mod tests {
         {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
         {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
         {"kind":"RepoCategoryEmpty","scope":{"Category":"cat1"},"message":null}
+        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat2"},"message":null}
         {"kind":"LicensesUnused","scope":{"Repo":"repo1"},"message":"unused"}
     "#};
 
@@ -269,7 +280,7 @@ mod tests {
     #[test]
     fn count() {
         let output = report(CountReporter::default());
-        assert_eq!("6", output.trim());
+        assert_eq!("7", output.trim());
     }
 
     #[test]
@@ -280,6 +291,7 @@ mod tests {
             cat/pkg-1-r2, line 3, column 28: WhitespaceInvalid: character '\u{2001}'
             cat/pkg: UnstableOnly: arch
             cat1: RepoCategoryEmpty
+            cat2: RepoCategoryEmpty
             repo1: LicensesUnused: unused
         "#};
 
@@ -289,16 +301,30 @@ mod tests {
 
     #[test]
     fn stats() {
+        // sort by name
         let expected = indoc::indoc! {r#"
             DependencyDeprecated: 1
             LicensesUnused: 1
-            RepoCategoryEmpty: 1
+            RepoCategoryEmpty: 2
             UnstableOnly: 1
             WhitespaceInvalid: 1
             WhitespaceUnneeded: 1
         "#};
+        let mut reporter = StatsReporter::default();
+        let output = report(reporter.clone());
+        assert_eq!(expected, &output);
 
-        let output = report(StatsReporter::default());
+        // sort by count
+        let expected = indoc::indoc! {r#"
+            DependencyDeprecated: 1
+            LicensesUnused: 1
+            UnstableOnly: 1
+            WhitespaceInvalid: 1
+            WhitespaceUnneeded: 1
+            RepoCategoryEmpty: 2
+        "#};
+        reporter.sort_by = "count".to_string();
+        let output = report(reporter);
         assert_eq!(expected, &output);
     }
 
@@ -312,6 +338,9 @@ mod tests {
               UnstableOnly: arch
 
             cat1
+              RepoCategoryEmpty
+
+            cat2
               RepoCategoryEmpty
 
             repo1
@@ -348,6 +377,7 @@ mod tests {
             WhitespaceUnneeded
             WhitespaceInvalid
             UnstableOnly
+            RepoCategoryEmpty
             RepoCategoryEmpty
             LicensesUnused
         "};

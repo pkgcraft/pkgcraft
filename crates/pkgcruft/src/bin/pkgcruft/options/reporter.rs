@@ -20,6 +20,15 @@ pub(crate) struct ReporterOptions {
     /// Format string for the format reporter
     #[arg(long, required_if_eq("reporter", "format"))]
     format: Option<String>,
+
+    /// Sorting variant for the stats reporter
+    #[arg(
+        long,
+        default_value = "name",
+        hide_possible_values = true,
+        value_parser = ["name", "count"],
+    )]
+    stats: Option<String>,
 }
 
 impl ReporterOptions {
@@ -28,6 +37,10 @@ impl ReporterOptions {
 
         if let Reporter::Format(r) = &mut reporter {
             r.format = self.format.clone().unwrap_or_default();
+        }
+
+        if let Reporter::Stats(r) = &mut reporter {
+            r.sort_by = self.stats.clone().unwrap_or_default();
         }
 
         reporter
