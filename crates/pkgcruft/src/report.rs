@@ -156,14 +156,14 @@ pub enum ReportKind {
     /// Package only has live ebuilds.
     LiveOnly,
 
-    /// Package manifest is invalid.
-    ManifestInvalid,
+    /// Package manifest has a matching hash with a different file name.
+    ManifestCollide,
 
     /// Package manifest has matching file name with different hash.
     ManifestConflict,
 
-    /// Package manifest has a matching hash with a different file name.
-    ManifestMatch,
+    /// Package manifest is invalid.
+    ManifestInvalid,
 
     /// Ebuild fails during metadata generation.
     MetadataError,
@@ -314,8 +314,8 @@ impl ReportKind {
             Self::LicensesUnused => Warning,
             Self::LiveOnly => Warning,
             Self::ManifestInvalid => Error,
+            Self::ManifestCollide => Warning,
             Self::ManifestConflict => Error,
-            Self::ManifestMatch => Warning,
             Self::MetadataError => Critical,
             Self::MirrorsUnused => Warning,
             Self::Optfeature => Warning,

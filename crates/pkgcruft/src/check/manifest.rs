@@ -9,7 +9,7 @@ use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
-use crate::report::ReportKind::{ManifestConflict, ManifestInvalid, ManifestMatch};
+use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
 use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
@@ -19,7 +19,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Manifest,
     scope: Scope::Package,
     source: SourceKind::EbuildPkg,
-    reports: &[ManifestInvalid, ManifestConflict, ManifestMatch],
+    reports: &[ManifestInvalid, ManifestConflict, ManifestCollide],
     context: &[],
 };
 
@@ -72,7 +72,7 @@ impl EbuildPkgSetCheck for Check {
             let name = x.name();
             manifest_distfiles.insert(name);
 
-            if filter.enabled(ManifestConflict) || filter.enabled(ManifestMatch) {
+            if filter.enabled(ManifestConflict) || filter.enabled(ManifestCollide) {
                 if let Some(hash) = x.hashes().get(&self.hash) {
                     // check for duplicate names with different hashes
                     if let Some(entry) = self.used_files.get(name) {
@@ -93,7 +93,7 @@ impl EbuildPkgSetCheck for Check {
                         if let Some(entry) = self.used_hashes.get(hash) {
                             let (pkg, file) = entry.value();
                             if name != file {
-                                ManifestMatch
+                                ManifestCollide
                                     .package(cpn)
                                     .message(format!("{name}: {file} ({pkg})"))
                                     .report(filter);
