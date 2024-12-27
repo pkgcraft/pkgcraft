@@ -12,7 +12,7 @@ pub(crate) struct Command {
 }
 
 impl Command {
-    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         self.command.run()
     }
 }
@@ -26,7 +26,7 @@ enum Subcommand {
 }
 
 impl Subcommand {
-    fn run(self) -> anyhow::Result<ExitCode> {
+    fn run(&self) -> anyhow::Result<ExitCode> {
         match self {
             Self::Checks(cmd) => cmd.run(),
             Self::Reports(cmd) => cmd.run(),

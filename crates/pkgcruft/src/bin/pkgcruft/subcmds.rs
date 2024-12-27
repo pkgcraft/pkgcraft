@@ -28,7 +28,7 @@ impl Subcommand {
 }
 
 impl Subcommand {
-    pub(super) fn run(self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         match self {
             Self::Diff(cmd) => cmd.run(),
             Self::Replay(cmd) => cmd.run(),

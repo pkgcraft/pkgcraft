@@ -3,6 +3,7 @@ use std::fmt;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::{Args, ValueHint};
 use colored::{Color, Colorize};
 use indexmap::IndexSet;
@@ -35,11 +36,11 @@ pub(crate) struct Command {
 
     /// Old file path
     #[arg(help_heading = "Arguments", display_order = 0, value_hint = ValueHint::FilePath)]
-    old: String,
+    old: Utf8PathBuf,
 
     /// New file path
     #[arg(help_heading = "Arguments", display_order = 1, value_hint = ValueHint::FilePath)]
-    new: String,
+    new: Utf8PathBuf,
 }
 
 #[derive(Debug, Default)]
@@ -63,11 +64,12 @@ impl Replay {
 
     fn pkgs<I>(mut self, restricts: I) -> anyhow::Result<Self>
     where
-        I: IntoIterator<Item = String>,
+        I: IntoIterator,
+        I::Item: AsRef<str>,
     {
         let restricts: Vec<_> = restricts
             .into_iter()
-            .map(|x| restrict::parse::dep(&x))
+            .map(restrict::parse::dep)
             .try_collect()?;
 
         self.pkgs = if restricts.is_empty() {
@@ -81,10 +83,10 @@ impl Replay {
 
     fn run(
         &self,
-        target: String,
+        target: &Utf8Path,
     ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
         let iter =
-            Iter::try_from_file(&target, self.reports.as_ref(), self.pkgs.as_ref(), None)?;
+            Iter::try_from_file(target, self.reports.as_ref(), self.pkgs.as_ref(), None)?;
         Ok(iter)
     }
 }
@@ -137,15 +139,15 @@ impl fmt::Display for Change<'_> {
 }
 
 impl Command {
-    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         // determine enabled reports
         let defaults = ReportKind::iter().collect();
         let (enabled, _) = self.reports.collapse(defaults)?;
 
-        let replay = Replay::new().reports(enabled).pkgs(self.options.pkgs)?;
+        let replay = Replay::new().reports(enabled).pkgs(&self.options.pkgs)?;
 
-        let old: IndexSet<_> = replay.run(self.old)?.try_collect()?;
-        let new: IndexSet<_> = replay.run(self.new)?.try_collect()?;
+        let old: IndexSet<_> = replay.run(&self.old)?.try_collect()?;
+        let new: IndexSet<_> = replay.run(&self.new)?.try_collect()?;
         let removed = old.difference(&new).map(Change::Removed);
         let added = new.difference(&old).map(Change::Added);
         let mut changes: Vec<_> = removed.chain(added).collect();

@@ -22,11 +22,11 @@ pub(super) struct Subcommand {
 }
 
 impl Subcommand {
-    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let levels: IndexSet<_> = if self.levels.is_empty() {
             ReportLevel::iter().collect()
         } else {
-            self.levels.into_iter().collect()
+            self.levels.iter().copied().collect()
         };
 
         let mut stdout = io::stdout().lock();

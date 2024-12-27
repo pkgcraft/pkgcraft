@@ -77,12 +77,10 @@ impl Replay {
 
     fn pkgs<I>(mut self, values: I) -> anyhow::Result<Self>
     where
-        I: IntoIterator<Item = String>,
+        I: IntoIterator,
+        I::Item: AsRef<str>,
     {
-        let restricts: Vec<_> = values
-            .into_iter()
-            .map(|x| restrict::parse::dep(&x))
-            .try_collect()?;
+        let restricts: Vec<_> = values.into_iter().map(restrict::parse::dep).try_collect()?;
 
         self.pkgs = if restricts.is_empty() {
             None
@@ -93,11 +91,11 @@ impl Replay {
         Ok(self)
     }
 
-    fn scopes<I>(mut self, values: I) -> Self
+    fn scopes<'a, I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = Scope>,
+        I: IntoIterator<Item = &'a Scope>,
     {
-        self.scopes = Some(values.into_iter().collect());
+        self.scopes = Some(values.into_iter().copied().collect());
         self
     }
 
@@ -119,15 +117,15 @@ impl Replay {
 }
 
 impl Command {
-    pub(super) fn run(self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         // determine enabled reports
         let defaults = ReportKind::iter().collect();
         let (enabled, _) = self.reports.collapse(defaults)?;
 
-        let mut replay = Replay::new().reports(enabled).pkgs(self.options.pkgs)?;
+        let mut replay = Replay::new().reports(enabled).pkgs(&self.options.pkgs)?;
 
         if !self.options.scopes.is_empty() {
-            replay = replay.scopes(self.options.scopes);
+            replay = replay.scopes(&self.options.scopes);
         }
 
         let mut reports = vec![];
