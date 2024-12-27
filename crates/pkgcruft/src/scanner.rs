@@ -147,7 +147,7 @@ impl Scanner {
             .filter(|result| {
                 if let Err(Error::CheckInit(check, msg)) = &result {
                     if !selected.contains(check) {
-                        warn!("skipping check {msg}");
+                        warn!("skipping {check} check: {msg}");
                         return false;
                     }
                 }
