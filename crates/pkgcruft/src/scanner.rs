@@ -21,6 +21,7 @@ use crate::source::{PkgFilter, Target};
 
 pub struct Scanner {
     jobs: usize,
+    default: IndexSet<ReportKind>,
     enabled: Option<IndexSet<Check>>,
     selected: Option<IndexSet<Check>>,
     reports: Arc<IndexSet<ReportKind>>,
@@ -35,6 +36,7 @@ impl Scanner {
     pub fn new(repo: &EbuildRepo) -> Self {
         Self {
             jobs: bounded_jobs(0),
+            default: ReportKind::iter_default(repo).collect(),
             enabled: Default::default(),
             selected: Default::default(),
             reports: Arc::new(ReportKind::iter().collect()),
@@ -67,12 +69,11 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportAlias>,
     {
-        let defaults = ReportKind::iter_default(&self.repo).collect();
         self.reports = Arc::new(
             values
                 .into_iter()
                 .map(Into::into)
-                .flat_map(|x| x.expand(&defaults))
+                .flat_map(|x| x.expand(&self.default))
                 .collect(),
         );
         self
@@ -92,9 +93,16 @@ impl Scanner {
     /// Set report variants that trigger exit code failures.
     pub fn exit<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = ReportKind>,
+        I: IntoIterator,
+        I::Item: Into<ReportAlias>,
     {
-        self.exit = Arc::new(values.into_iter().collect());
+        self.exit = Arc::new(
+            values
+                .into_iter()
+                .map(Into::into)
+                .flat_map(|x| x.expand(&self.default))
+                .collect(),
+        );
         self
     }
 
@@ -128,7 +136,9 @@ impl Scanner {
         let (enabled, selected) = match (self.enabled.as_ref(), self.selected.as_ref()) {
             (Some(x), Some(y)) => (Either::Left(x.iter().copied()), y),
             (Some(x), None) | (None, Some(x)) => (Either::Left(x.iter().copied()), x),
-            (None, None) => (Either::Right(Check::iter_default(&self.repo)), &empty),
+            (None, None) => {
+                (Either::Right(self.default.iter().flat_map(Check::iter_report)), &empty)
+            }
         };
 
         // filter checks -- errors if filtered check is selected
