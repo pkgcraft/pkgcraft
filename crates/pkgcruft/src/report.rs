@@ -340,6 +340,65 @@ impl ReportKind {
             Self::WhitespaceUnneeded => Style,
         }
     }
+
+    /// Return the scope of the report variant.
+    pub fn scope(&self) -> Scope {
+        use Scope::*;
+        match self {
+            Self::ArchesUnused => Repo,
+            Self::Builtin => Version,
+            Self::DependencyDeprecated => Version,
+            Self::DependencyInvalid => Version,
+            Self::DependencyRevisionMissing => Version,
+            Self::DependencySlotMissing => Version,
+            Self::EapiBanned => Version,
+            Self::EapiDeprecated => Version,
+            Self::EapiFormat => Version,
+            Self::EapiStale => Version,
+            Self::EapiUnstable => Version,
+            Self::EbuildNameInvalid => Package,
+            Self::EbuildVersionsEqual => Package,
+            Self::EclassUnused => Version,
+            Self::FileUnknown => Version,
+            Self::FilesUnused => Package,
+            Self::HeaderInvalid => Version,
+            Self::HomepageInvalid => Version,
+            Self::IuseInvalid => Version,
+            Self::KeywordsDropped => Version,
+            Self::KeywordsLive => Version,
+            Self::KeywordsOverlapping => Version,
+            Self::KeywordsUnsorted => Version,
+            Self::LicenseDeprecated => Version,
+            Self::LicenseInvalid => Version,
+            Self::LicensesUnused => Repo,
+            Self::LiveOnly => Package,
+            Self::ManifestInvalid => Package,
+            Self::ManifestCollide => Repo,
+            Self::ManifestConflict => Repo,
+            Self::MetadataError => Version,
+            Self::MirrorsUnused => Repo,
+            Self::Optfeature => Version,
+            Self::PackageDeprecatedUnused => Repo,
+            Self::PackageOverride => Package,
+            Self::PropertiesInvalid => Version,
+            Self::PythonUpdate => Version,
+            Self::RepoCategoryEmpty => Category,
+            Self::RepoPackageEmpty => Package,
+            Self::RestrictInvalid => Version,
+            Self::RestrictMissing => Version,
+            Self::RubyUpdate => Version,
+            Self::UnstableOnly => Package,
+            Self::UriInvalid => Version,
+            Self::UseGlobalUnused => Repo,
+            Self::UseLocalDescMissing => Package,
+            Self::UseLocalGlobal => Package,
+            Self::UseLocalUnsorted => Package,
+            Self::UseLocalUnused => Package,
+            Self::VariableOrder => Version,
+            Self::WhitespaceInvalid => Version,
+            Self::WhitespaceUnneeded => Version,
+        }
+    }
 }
 
 /// Builder for reports.
@@ -369,6 +428,16 @@ impl ReportBuilder {
 
     /// Pass the report to the scanning filter for processing.
     pub(crate) fn report(self, filter: &mut ReportFilter) {
+        // verify report variant scope matches generated scope
+        debug_assert!(
+            self.0.kind.scope() == self.0.scope().scope(),
+            "{} scope: {} != {}",
+            self.0.kind,
+            self.0.kind.scope(),
+            self.0.scope().scope(),
+        );
+
+        // submit report
         filter.report(self.0)
     }
 }
