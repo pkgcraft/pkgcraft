@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use dashmap::DashMap;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::error::Error::UnversionedPkg;
@@ -28,7 +29,9 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
         repo: repo.clone(),
         thin_manifests: repo.metadata().config.thin_manifests,
         used_files: Default::default(),
+        conflicting: Default::default(),
         used_hashes: Default::default(),
+        colliding: Default::default(),
         hash: repo
             .metadata()
             .config
@@ -44,7 +47,9 @@ struct Check {
     repo: EbuildRepo,
     thin_manifests: bool,
     used_files: DashMap<String, (Cpn, String)>,
+    conflicting: DashMap<String, HashSet<Cpn>>,
     used_hashes: DashMap<String, (Cpn, String)>,
+    colliding: DashMap<String, IndexMap<Cpn, HashSet<String>>>,
     hash: HashType,
 }
 
@@ -78,14 +83,10 @@ impl EbuildPkgSetCheck for Check {
                     if let Some(entry) = self.used_files.get(name) {
                         let (pkg, value) = entry.value();
                         if hash != value {
-                            // sort pkgs to force deterministic test reports
-                            let mut data = [pkg, cpn];
-                            data.sort();
-                            let [pkg1, pkg2] = data;
-                            ManifestConflict
-                                .package(pkg2)
-                                .message(format!("{name}: {pkg1}"))
-                                .report(filter);
+                            self.conflicting
+                                .entry(name.to_string())
+                                .or_default()
+                                .extend([pkg.clone(), cpn.clone()]);
                         }
                     } else {
                         self.used_files
@@ -97,14 +98,14 @@ impl EbuildPkgSetCheck for Check {
                         if let Some(entry) = self.used_hashes.get(hash) {
                             let (pkg, file) = entry.value();
                             if name != file {
-                                // sort data to force deterministic test reports
-                                let mut data = [(pkg, file.as_str()), (cpn, name)];
-                                data.sort();
-                                let [(pkg1, file1), (pkg2, file2)] = data;
-                                ManifestCollide
-                                    .package(pkg2)
-                                    .message(format!("{file2}: {file1} ({pkg1})"))
-                                    .report(filter);
+                                for (pkg, name) in [(pkg, file.as_str()), (cpn, name)] {
+                                    self.colliding
+                                        .entry(hash.clone())
+                                        .or_default()
+                                        .entry(pkg.clone())
+                                        .or_default()
+                                        .insert(name.to_string());
+                                }
                             }
                         } else {
                             self.used_hashes
@@ -151,6 +152,29 @@ impl EbuildPkgSetCheck for Check {
                     .message(format!("unneeded: {files}"))
                     .report(filter);
             }
+        }
+    }
+
+    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+        for entry in &self.conflicting {
+            let (name, pkgs) = entry.pair();
+            let pkgs = pkgs.iter().sorted().join(", ");
+            ManifestConflict
+                .repo(repo)
+                .message(format!("{name}: {pkgs}"))
+                .report(filter);
+        }
+
+        for mut entry in self.colliding.iter_mut() {
+            entry.sort_keys();
+            let values = entry
+                .iter()
+                .map(|(cpn, files)| {
+                    let files = files.iter().sorted().join(", ");
+                    format!("({cpn}: {files})")
+                })
+                .join(", ");
+            ManifestCollide.repo(repo).message(values).report(filter);
         }
     }
 }
