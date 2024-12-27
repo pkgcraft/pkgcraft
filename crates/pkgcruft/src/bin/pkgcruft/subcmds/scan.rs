@@ -1,15 +1,13 @@
 use std::io;
 use std::process::ExitCode;
 
-use clap::builder::{ArgPredicate, PossibleValuesParser, TypedValueParser};
+use clap::builder::ArgPredicate;
 use clap::Args;
-use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
-use pkgcruft::report::{ReportKind, ReportLevel};
+use pkgcruft::report::{ReportAlias, ReportKind};
 use pkgcruft::scanner::Scanner;
 use pkgcruft::source::PkgFilter;
-use strum::{IntoEnumIterator, VariantNames};
 
 use crate::options;
 
@@ -27,16 +25,12 @@ pub(crate) struct Command {
     /// Exit status triggers
     #[arg(
         long,
-        value_name = "REPORT[,...]",
+        value_name = "ALIAS[,...]",
         value_delimiter = ',',
         num_args = 0..=1,
-        default_missing_value = ReportKind::iter()
-            .filter(|x| x.level() <= ReportLevel::Error).join(","),
-        hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(ReportKind::VARIANTS)
-            .map(|s| s.parse::<ReportKind>().unwrap()),
+        default_missing_value = "%critical,%error",
     )]
-    exit: Vec<ReportKind>,
+    exit: Vec<ReportAlias>,
 
     /// Package filters
     #[arg(short, long, value_name = "FILTER[,...]")]
