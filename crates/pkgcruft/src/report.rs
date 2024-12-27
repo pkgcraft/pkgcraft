@@ -65,6 +65,24 @@ pub enum ReportAlias {
     Report(ReportKind),
 }
 
+impl From<Check> for ReportAlias {
+    fn from(value: Check) -> Self {
+        Self::Check(value)
+    }
+}
+
+impl From<ReportLevel> for ReportAlias {
+    fn from(value: ReportLevel) -> Self {
+        Self::Level(value)
+    }
+}
+
+impl From<ReportKind> for ReportAlias {
+    fn from(value: ReportKind) -> Self {
+        Self::Report(value)
+    }
+}
+
 impl FromStr for ReportAlias {
     type Err = Error;
 

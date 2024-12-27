@@ -15,7 +15,7 @@ use tracing::{info, warn};
 
 use crate::check::Check;
 use crate::error::Error;
-use crate::report::{Report, ReportKind};
+use crate::report::{Report, ReportAlias, ReportKind};
 use crate::runner::SyncCheckRunner;
 use crate::source::{PkgFilter, Target};
 
@@ -64,9 +64,20 @@ impl Scanner {
     /// Set enabled report variants.
     pub fn reports<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = ReportKind>,
+        I: IntoIterator,
+        I::Item: Into<ReportAlias>,
     {
-        self.reports = Arc::new(values.into_iter().collect());
+        let defaults = Check::iter_default(&self.repo)
+            .flat_map(|x| x.reports)
+            .copied()
+            .collect();
+        self.reports = Arc::new(
+            values
+                .into_iter()
+                .map(Into::into)
+                .flat_map(|x| x.expand(&defaults))
+                .collect(),
+        );
         self
     }
 
@@ -550,7 +561,8 @@ mod tests {
         assert_unordered_eq!(reports, []);
 
         // no reports
-        let scanner = Scanner::new(repo).reports([]);
+        let kinds: [ReportKind; 0] = [];
+        let scanner = Scanner::new(repo).reports(kinds);
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
 
