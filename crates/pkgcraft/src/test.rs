@@ -265,9 +265,11 @@ pub fn test_data_patched() -> TestDataPatched {
 
                 // create directories and copy files
                 if src.is_dir() {
-                    fs::create_dir(dest).unwrap();
+                    fs::create_dir(&dest)
+                        .unwrap_or_else(|e| panic!("failed creating dir {dest}: {e}"));
                 } else if src.is_file() {
-                    fs::copy(src, dest).unwrap();
+                    fs::copy(src, &dest)
+                        .unwrap_or_else(|e| panic!("failed copying {src} to {dest}: {e}"));
                 }
             }
 
