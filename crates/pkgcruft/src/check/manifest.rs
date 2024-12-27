@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use std::collections::HashSet;
 
 use dashmap::DashMap;
@@ -78,9 +79,10 @@ impl EbuildPkgSetCheck for Check {
                     if let Some(entry) = self.used_files.get(name) {
                         let (pkg, value) = entry.value();
                         if hash != value {
+                            // uses min/max to force deterministic test reports
                             ManifestConflict
-                                .package(cpn)
-                                .message(format!("{name}: {pkg}"))
+                                .package(max(pkg, cpn))
+                                .message(format!("{name}: {}", min(pkg, cpn)))
                                 .report(filter);
                         }
                     } else {
