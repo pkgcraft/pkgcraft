@@ -1,4 +1,3 @@
-use std::cmp::{max, min};
 use std::collections::HashSet;
 
 use dashmap::DashMap;
@@ -79,10 +78,13 @@ impl EbuildPkgSetCheck for Check {
                     if let Some(entry) = self.used_files.get(name) {
                         let (pkg, value) = entry.value();
                         if hash != value {
-                            // uses min/max to force deterministic test reports
+                            // sort pkgs to force deterministic test reports
+                            let mut data = [pkg, cpn];
+                            data.sort();
+                            let [pkg1, pkg2] = data;
                             ManifestConflict
-                                .package(max(pkg, cpn))
-                                .message(format!("{name}: {}", min(pkg, cpn)))
+                                .package(pkg2)
+                                .message(format!("{name}: {pkg1}"))
                                 .report(filter);
                         }
                     } else {
@@ -95,9 +97,13 @@ impl EbuildPkgSetCheck for Check {
                         if let Some(entry) = self.used_hashes.get(hash) {
                             let (pkg, file) = entry.value();
                             if name != file {
+                                // sort data to force deterministic test reports
+                                let mut data = [(pkg, file.as_str()), (cpn, name)];
+                                data.sort();
+                                let [(pkg1, file1), (pkg2, file2)] = data;
                                 ManifestCollide
-                                    .package(cpn)
-                                    .message(format!("{name}: {file} ({pkg})"))
+                                    .package(pkg2)
+                                    .message(format!("{file2}: {file1} ({pkg1})"))
                                     .report(filter);
                             }
                         } else {
@@ -165,7 +171,7 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new(repo).checks([CHECK]);
-        let expected = glob_reports!("{dir}/*/reports.json");
+        let expected = glob_reports!("{dir}/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
