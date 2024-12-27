@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::str::FromStr;
 
 use camino::Utf8Path;
 use colored::Color;
@@ -13,6 +14,7 @@ use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
+use crate::check::Check;
 use crate::scanner::ReportFilter;
 use crate::Error;
 
@@ -49,6 +51,50 @@ impl From<ReportLevel> for Color {
             ReportLevel::Warning => Color::Yellow,
             ReportLevel::Style => Color::Cyan,
             ReportLevel::Info => Color::Green,
+        }
+    }
+}
+
+/// Report aliases that may related to one or more report variants.
+///
+/// Supports @Check, %ReportLevel, and Report variants.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub enum ReportAlias {
+    Check(Check),
+    Level(ReportLevel),
+    Report(ReportKind),
+}
+
+impl FromStr for ReportAlias {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(val) = s.strip_prefix('@') {
+            val.parse().map(Self::Check)
+        } else if let Some(val) = s.strip_prefix('%') {
+            val.parse()
+                .map(Self::Level)
+                .map_err(|_| Error::InvalidValue(format!("invalid level: {val}")))
+        } else {
+            s.parse()
+                .map(Self::Report)
+                .map_err(|_| Error::InvalidValue(format!("invalid report: {s}")))
+        }
+    }
+}
+
+impl ReportAlias {
+    /// Expand a report alias into an iterator of its variants.
+    pub fn expand(
+        self,
+        defaults: &IndexSet<ReportKind>,
+    ) -> Box<dyn Iterator<Item = ReportKind> + '_> {
+        match self {
+            Self::Check(check) => Box::new(check.reports.iter().copied()),
+            Self::Level(level) => {
+                Box::new(defaults.iter().filter(move |r| r.level() == level).copied())
+            }
+            Self::Report(kind) => Box::new([kind].into_iter()),
         }
     }
 }

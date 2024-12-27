@@ -4,8 +4,7 @@ use std::str::FromStr;
 use clap::Args;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcruft::check::Check;
-use pkgcruft::report::{ReportKind, ReportLevel};
+use pkgcruft::report::{ReportAlias, ReportKind};
 use pkgcruft::Error;
 
 /// Tri-state value support for command-line arguments.
@@ -56,49 +55,6 @@ impl<T: FromStr> FromStr for TriState<T> {
             val.parse().map(Self::Remove)
         } else {
             s.parse().map(Self::Set)
-        }
-    }
-}
-
-/// Report aliases support for command line arguments.
-///
-/// Supports @Check, %ReportLevel, and Report variants.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-enum ReportAlias {
-    Check(Check),
-    Level(ReportLevel),
-    Report(ReportKind),
-}
-
-impl FromStr for ReportAlias {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(val) = s.strip_prefix('@') {
-            val.parse().map(Self::Check)
-        } else if let Some(val) = s.strip_prefix('%') {
-            val.parse()
-                .map(Self::Level)
-                .map_err(|_| Error::InvalidValue(format!("invalid level: {val}")))
-        } else {
-            s.parse()
-                .map(Self::Report)
-                .map_err(|_| Error::InvalidValue(format!("invalid report: {s}")))
-        }
-    }
-}
-
-impl ReportAlias {
-    fn expand(
-        self,
-        defaults: &IndexSet<ReportKind>,
-    ) -> Box<dyn Iterator<Item = ReportKind> + '_> {
-        match self {
-            Self::Check(check) => Box::new(check.reports.iter().copied()),
-            Self::Level(level) => {
-                Box::new(defaults.iter().filter(move |r| r.level() == level).copied())
-            }
-            Self::Report(kind) => Box::new([kind].into_iter()),
         }
     }
 }
@@ -162,7 +118,8 @@ mod tests {
     use clap::Parser;
     use pkgcraft::test::*;
 
-    use pkgcruft::check::CheckKind;
+    use pkgcruft::check::{Check, CheckKind};
+    use pkgcruft::report::ReportLevel;
 
     use super::*;
 
