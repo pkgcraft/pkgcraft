@@ -6,6 +6,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcruft::report::{ReportAlias, ReportKind};
 use pkgcruft::Error;
+use strum::IntoEnumIterator;
 
 /// Tri-state value support for command-line arguments.
 ///
@@ -110,6 +111,13 @@ impl Reports {
         } else {
             Ok((enabled, selected))
         }
+    }
+
+    /// Return the set of report variants enabled for replaying.
+    pub(crate) fn replay(&self) -> pkgcruft::Result<IndexSet<ReportKind>> {
+        let defaults = ReportKind::iter().collect();
+        let (enabled, _) = self.collapse(defaults)?;
+        Ok(enabled)
     }
 }
 

@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 use itertools::{Either, Itertools};
 use pkgcraft::restrict::{self, Restrict, Scope};
 use pkgcruft::report::{Iter, Report, ReportKind};
-use strum::{IntoEnumIterator, VariantNames};
+use strum::VariantNames;
 
 use crate::options;
 
@@ -119,8 +119,7 @@ impl Replay {
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         // determine enabled reports
-        let defaults = ReportKind::iter().collect();
-        let (enabled, _) = self.reports.collapse(defaults)?;
+        let enabled = self.reports.replay()?;
 
         let mut replay = Replay::new().reports(enabled).pkgs(&self.options.pkgs)?;
 

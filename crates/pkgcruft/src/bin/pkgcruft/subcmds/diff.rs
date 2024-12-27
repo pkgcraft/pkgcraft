@@ -10,7 +10,6 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
-use strum::IntoEnumIterator;
 
 use crate::options;
 
@@ -141,8 +140,7 @@ impl fmt::Display for Change<'_> {
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         // determine enabled reports
-        let defaults = ReportKind::iter().collect();
-        let (enabled, _) = self.reports.collapse(defaults)?;
+        let enabled = self.reports.replay()?;
 
         let replay = Replay::new().reports(enabled).pkgs(&self.options.pkgs)?;
 
