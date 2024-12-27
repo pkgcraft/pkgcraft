@@ -301,12 +301,20 @@ macro_rules! make_pkg_check_runner {
 
             /// Finish a check for a repo.
             fn finish(&self, check: &Check, filter: &mut ReportFilter) {
-                let runner = self
-                    .pkg_checks
-                    .get(check)
-                    .unwrap_or_else(|| unreachable!("unknown check: {check}"));
                 let now = Instant::now();
-                runner.finish(&self.repo, filter);
+                if check.scope == Scope::Version {
+                    let runner = self
+                        .pkg_checks
+                        .get(check)
+                        .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+                    runner.finish(&self.repo, filter);
+                } else {
+                    let runner = self
+                        .pkg_set_checks
+                        .get(check)
+                        .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+                    runner.finish(&self.repo, filter);
+                }
                 debug!("{check}: finish: {:?}", now.elapsed());
             }
         }

@@ -177,6 +177,7 @@ pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 /// Run a check against a given ebuild package set.
 pub(crate) trait EbuildPkgSetCheck {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter);
+    fn finish(&self, _repo: &EbuildRepo, _filter: &mut ReportFilter) {}
 }
 pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 
@@ -190,6 +191,7 @@ pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 /// Run a check against a raw ebuild package set.
 pub(crate) trait EbuildRawPkgSetCheck {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], filter: &mut ReportFilter);
+    fn finish(&self, _repo: &EbuildRepo, _filter: &mut ReportFilter) {}
 }
 pub(crate) type EbuildRawPkgSetRunner = Box<dyn EbuildRawPkgSetCheck + Send + Sync>;
 
@@ -269,9 +271,7 @@ impl Check {
 
     /// Check supports post-run finalization.
     pub(crate) fn finalize(&self) -> bool {
-        self.scope == Scope::Version
-            && (self.source == SourceKind::EbuildPkg
-                || self.source == SourceKind::EbuildRawPkg)
+        self.source == SourceKind::EbuildPkg || self.source == SourceKind::EbuildRawPkg
     }
 }
 
