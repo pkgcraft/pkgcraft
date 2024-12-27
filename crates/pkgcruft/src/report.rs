@@ -159,6 +159,9 @@ pub enum ReportKind {
     /// Package manifest is invalid.
     ManifestInvalid,
 
+    /// Package manifest has matching file name with different hash.
+    ManifestConflict,
+
     /// Package manifest has a matching hash with a different file name.
     ManifestMatch,
 
@@ -311,6 +314,7 @@ impl ReportKind {
             Self::LicensesUnused => Warning,
             Self::LiveOnly => Warning,
             Self::ManifestInvalid => Error,
+            Self::ManifestConflict => Error,
             Self::ManifestMatch => Warning,
             Self::MetadataError => Critical,
             Self::MirrorsUnused => Warning,

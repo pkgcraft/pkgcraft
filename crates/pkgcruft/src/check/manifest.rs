@@ -9,7 +9,7 @@ use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
-use crate::report::ReportKind::{ManifestInvalid, ManifestMatch};
+use crate::report::ReportKind::{ManifestConflict, ManifestInvalid, ManifestMatch};
 use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
@@ -19,7 +19,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::Manifest,
     scope: Scope::Package,
     source: SourceKind::EbuildPkg,
-    reports: &[ManifestInvalid, ManifestMatch],
+    reports: &[ManifestInvalid, ManifestConflict, ManifestMatch],
     context: &[],
 };
 
@@ -27,7 +27,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
         repo: repo.clone(),
         thin_manifests: repo.metadata().config.thin_manifests,
-        used: Default::default(),
+        used_files: Default::default(),
+        used_hashes: Default::default(),
         hash: repo
             .metadata()
             .config
@@ -42,7 +43,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
 struct Check {
     repo: EbuildRepo,
     thin_manifests: bool,
-    used: DashMap<String, (Cpn, String)>,
+    used_files: DashMap<String, (Cpn, String)>,
+    used_hashes: DashMap<String, (Cpn, String)>,
     hash: HashType,
 }
 
@@ -70,10 +72,28 @@ impl EbuildPkgSetCheck for Check {
             let name = x.name();
             manifest_distfiles.insert(name);
 
-            // check for duplicate files with different names
+            // check for duplicate names with different hashes
+            if filter.enabled(ManifestConflict) {
+                if let Some(hash) = x.hashes().get(&self.hash) {
+                    if let Some(entry) = self.used_files.get(name) {
+                        let (pkg, value) = entry.value();
+                        if hash != value {
+                            ManifestConflict
+                                .package(cpn)
+                                .message(format!("{name}: {pkg}"))
+                                .report(filter);
+                        }
+                    } else {
+                        self.used_files
+                            .insert(name.to_string(), (cpn.clone(), hash.clone()));
+                    }
+                }
+            }
+
+            // check for duplicate hashes with different names
             if filter.enabled(ManifestMatch) && !self.is_go_module(pkgs) {
                 if let Some(hash) = x.hashes().get(&self.hash) {
-                    if let Some(entry) = self.used.get(hash) {
+                    if let Some(entry) = self.used_hashes.get(hash) {
                         let (pkg, file) = entry.value();
                         if name != file {
                             ManifestMatch
@@ -82,7 +102,7 @@ impl EbuildPkgSetCheck for Check {
                                 .report(filter);
                         }
                     } else {
-                        self.used
+                        self.used_hashes
                             .insert(hash.clone(), (cpn.clone(), name.to_string()));
                     }
                 }
