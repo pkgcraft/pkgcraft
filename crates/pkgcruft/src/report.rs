@@ -63,6 +63,7 @@ pub enum ReportAlias {
     Check(Check),
     Level(ReportLevel),
     Report(ReportKind),
+    Scope(Scope),
 }
 
 impl From<Check> for ReportAlias {
@@ -83,6 +84,12 @@ impl From<ReportKind> for ReportAlias {
     }
 }
 
+impl From<Scope> for ReportAlias {
+    fn from(value: Scope) -> Self {
+        Self::Scope(value)
+    }
+}
+
 impl FromStr for ReportAlias {
     type Err = Error;
 
@@ -93,6 +100,10 @@ impl FromStr for ReportAlias {
             val.parse()
                 .map(Self::Level)
                 .map_err(|_| Error::InvalidValue(format!("invalid level: {val}")))
+        } else if let Some(val) = s.strip_prefix('.') {
+            val.parse()
+                .map(Self::Scope)
+                .map_err(|_| Error::InvalidValue(format!("invalid scope: {val}")))
         } else {
             s.parse()
                 .map(Self::Report)
@@ -113,6 +124,9 @@ impl ReportAlias {
                 Box::new(defaults.iter().filter(move |r| r.level() == level).copied())
             }
             Self::Report(kind) => Box::new([kind].into_iter()),
+            Self::Scope(scope) => {
+                Box::new(defaults.iter().filter(move |r| r.scope() == scope).copied())
+            }
         }
     }
 }
