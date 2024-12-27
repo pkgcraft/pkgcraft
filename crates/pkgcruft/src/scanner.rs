@@ -67,10 +67,7 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportAlias>,
     {
-        let defaults = Check::iter_default(&self.repo)
-            .flat_map(|x| x.reports)
-            .copied()
-            .collect();
+        let defaults = ReportKind::iter_default(&self.repo).collect();
         self.reports = Arc::new(
             values
                 .into_iter()

@@ -9,7 +9,7 @@ use colored::Color;
 use indexmap::IndexSet;
 use pkgcraft::bash::Node;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::repo::Repository;
+use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
@@ -462,6 +462,11 @@ impl ReportKind {
             Self::WhitespaceInvalid => Version,
             Self::WhitespaceUnneeded => Version,
         }
+    }
+
+    /// Return an iterator of all report variants enabled by default.
+    pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Self> + '_ {
+        Check::iter_default(repo).flat_map(|x| x.reports).copied()
     }
 }
 

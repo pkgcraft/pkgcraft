@@ -135,10 +135,7 @@ mod tests {
 
         // default checks for gentoo repo
         let repo = data.ebuild_repo("gentoo").unwrap();
-        let defaults = Check::iter_default(repo)
-            .flat_map(|x| x.reports)
-            .copied()
-            .collect();
+        let defaults = ReportKind::iter_default(repo).collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults).unwrap();
         let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
@@ -147,10 +144,7 @@ mod tests {
 
         // default checks
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let defaults: IndexSet<_> = Check::iter_default(repo)
-            .flat_map(|x| x.reports)
-            .copied()
-            .collect();
+        let defaults: IndexSet<_> = ReportKind::iter_default(repo).collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
         let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
