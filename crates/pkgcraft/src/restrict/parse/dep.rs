@@ -247,8 +247,8 @@ pub(crate) fn restricts(s: &str) -> crate::Result<Vec<DepRestrict>> {
 }
 
 /// Convert a globbed dep string into a restriction.
-pub fn dep(s: &str) -> crate::Result<BaseRestrict> {
-    let restricts = restricts(s)?;
+pub fn dep<S: AsRef<str>>(s: S) -> crate::Result<BaseRestrict> {
+    let restricts = restricts(s.as_ref())?;
     if restricts.is_empty() {
         Ok(BaseRestrict::True)
     } else {
