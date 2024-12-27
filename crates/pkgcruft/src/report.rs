@@ -107,7 +107,7 @@ impl FromStr for ReportAlias {
         } else {
             s.parse()
                 .map(Self::Report)
-                .map_err(|_| Error::InvalidValue(format!("invalid report: {s}")))
+                .map_err(|_| Error::InvalidValue(format!("invalid report alias: {s}")))
         }
     }
 }
