@@ -72,9 +72,9 @@ impl EbuildPkgSetCheck for Check {
             let name = x.name();
             manifest_distfiles.insert(name);
 
-            // check for duplicate names with different hashes
-            if filter.enabled(ManifestConflict) {
+            if filter.enabled(ManifestConflict) || filter.enabled(ManifestMatch) {
                 if let Some(hash) = x.hashes().get(&self.hash) {
+                    // check for duplicate names with different hashes
                     if let Some(entry) = self.used_files.get(name) {
                         let (pkg, value) = entry.value();
                         if hash != value {
@@ -87,23 +87,21 @@ impl EbuildPkgSetCheck for Check {
                         self.used_files
                             .insert(name.to_string(), (cpn.clone(), hash.clone()));
                     }
-                }
-            }
 
-            // check for duplicate hashes with different names
-            if filter.enabled(ManifestMatch) && !self.is_go_module(pkgs) {
-                if let Some(hash) = x.hashes().get(&self.hash) {
-                    if let Some(entry) = self.used_hashes.get(hash) {
-                        let (pkg, file) = entry.value();
-                        if name != file {
-                            ManifestMatch
-                                .package(cpn)
-                                .message(format!("{name}: {file} ({pkg})"))
-                                .report(filter);
+                    // check for duplicate hashes with different names
+                    if !self.is_go_module(pkgs) {
+                        if let Some(entry) = self.used_hashes.get(hash) {
+                            let (pkg, file) = entry.value();
+                            if name != file {
+                                ManifestMatch
+                                    .package(cpn)
+                                    .message(format!("{name}: {file} ({pkg})"))
+                                    .report(filter);
+                            }
+                        } else {
+                            self.used_hashes
+                                .insert(hash.clone(), (cpn.clone(), name.to_string()));
                         }
-                    } else {
-                        self.used_hashes
-                            .insert(hash.clone(), (cpn.clone(), name.to_string()));
                     }
                 }
             }
