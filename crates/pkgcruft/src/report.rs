@@ -502,10 +502,11 @@ impl ReportBuilder {
     where
         L: Into<Location>,
     {
-        match &mut self.0.scope {
-            ReportScope::Version(_, location @ None) => *location = Some(value.into()),
-            _ => unreachable!("invalid report scope: {:?}", self.0.scope),
-        }
+        let ReportScope::Version(_, location @ None) = &mut self.0.scope else {
+            unreachable!("invalid report scope: {:?}", self.0.scope);
+        };
+
+        *location = Some(value.into());
         self
     }
 
@@ -513,11 +514,11 @@ impl ReportBuilder {
     pub(crate) fn report(self, filter: &mut ReportFilter) {
         // verify report variant scope matches generated scope
         debug_assert!(
-            self.0.kind.scope() == self.0.scope().scope(),
+            self.0.kind.scope() == self.0.scope.scope(),
             "{} scope: {} != {}",
             self.0.kind,
             self.0.kind.scope(),
-            self.0.scope().scope(),
+            self.0.scope.scope(),
         );
 
         // submit report
