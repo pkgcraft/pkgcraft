@@ -262,8 +262,32 @@ impl Iterator for ReportIterInternal {
 pub struct ReportIter(ReportIterInternal);
 
 impl ReportIter {
+    pub(crate) fn try_new<I>(
+        scope: Scope,
+        checks: I,
+        scanner: &Scanner,
+        restrict: Restrict,
+    ) -> crate::Result<Self>
+    where
+        I: IntoIterator<Item = crate::Result<Check>>,
+    {
+        let runner = SyncCheckRunner::try_new(
+            scope,
+            &scanner.repo,
+            &restrict,
+            &scanner.filters,
+            checks,
+        )?;
+
+        if scope >= Scope::Category {
+            Ok(Self::pkg(runner, scanner, restrict))
+        } else {
+            Ok(Self::version(runner, scanner, restrict))
+        }
+    }
+
     /// Create an iterator that parallelizes scanning by package.
-    pub(crate) fn pkg(runner: SyncCheckRunner, scanner: &Scanner, restrict: Restrict) -> Self {
+    fn pkg(runner: SyncCheckRunner, scanner: &Scanner, restrict: Restrict) -> Self {
         let runner = Arc::new(runner);
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
@@ -305,11 +329,7 @@ impl ReportIter {
     }
 
     /// Create an iterator that parallelizes scanning by check.
-    pub(crate) fn version(
-        runner: SyncCheckRunner,
-        scanner: &Scanner,
-        restrict: Restrict,
-    ) -> Self {
+    fn version(runner: SyncCheckRunner, scanner: &Scanner, restrict: Restrict) -> Self {
         let runner = Arc::new(runner);
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);

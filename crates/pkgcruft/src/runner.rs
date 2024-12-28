@@ -19,7 +19,7 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new<I>(
+    pub(super) fn try_new<I>(
         scope: Scope,
         repo: &EbuildRepo,
         restrict: &Restrict,

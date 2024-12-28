@@ -13,7 +13,6 @@ use crate::check::Check;
 use crate::error::Error;
 use crate::iter::ReportIter;
 use crate::report::{ReportAlias, ReportKind};
-use crate::runner::SyncCheckRunner;
 use crate::source::PkgFilter;
 
 pub struct Scanner {
@@ -23,7 +22,7 @@ pub struct Scanner {
     selected: Option<IndexSet<Check>>,
     pub(crate) reports: Arc<IndexSet<ReportKind>>,
     pub(crate) exit: Arc<IndexSet<ReportKind>>,
-    filters: IndexSet<PkgFilter>,
+    pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) failed: Arc<AtomicBool>,
     pub(crate) repo: EbuildRepo,
 }
@@ -159,14 +158,7 @@ impl Scanner {
                 true
             });
 
-        let runner =
-            SyncCheckRunner::new(scope, &self.repo, &restrict, &self.filters, checks)?;
-
-        if scope >= Scope::Category {
-            Ok(ReportIter::pkg(runner, self, restrict))
-        } else {
-            Ok(ReportIter::version(runner, self, restrict))
-        }
+        ReportIter::try_new(scope, checks, self, restrict)
     }
 }
 
