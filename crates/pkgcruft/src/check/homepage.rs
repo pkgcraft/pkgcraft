@@ -4,8 +4,8 @@ use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::restrict::Scope;
 use url::Url;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::HomepageInvalid;
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

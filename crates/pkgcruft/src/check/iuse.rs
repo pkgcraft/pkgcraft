@@ -5,8 +5,8 @@ use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::{IuseInvalid, UseGlobalUnused};
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

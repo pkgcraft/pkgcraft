@@ -4,8 +4,8 @@ use pkgcraft::pkg::Package;
 use pkgcraft::restrict::Scope;
 use pkgcraft::types::OrderedMap;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::EapiStale;
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgSetCheck};

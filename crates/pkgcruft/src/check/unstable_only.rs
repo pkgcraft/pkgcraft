@@ -7,8 +7,8 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::UnstableOnly;
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, EbuildPkgSetCheck};

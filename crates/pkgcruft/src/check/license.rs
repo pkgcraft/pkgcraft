@@ -7,8 +7,8 @@ use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildPkgCheck};

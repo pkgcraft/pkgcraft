@@ -4,8 +4,8 @@ use pkgcraft::repo::Repository;
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Contains;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::PackageOverride;
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, CpnCheck};

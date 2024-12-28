@@ -3,8 +3,8 @@ use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
 use pkgcraft::restrict::Scope;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::EclassUnused;
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckContext, CheckKind, EbuildPkgCheck};

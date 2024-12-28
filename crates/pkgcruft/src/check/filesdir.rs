@@ -14,9 +14,9 @@ use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
 
+use crate::iter::ReportFilter;
 use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 use crate::Error;
 

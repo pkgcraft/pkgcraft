@@ -9,8 +9,8 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::RubyUpdate;
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 use crate::utils::{use_expand, use_starts_with};
 

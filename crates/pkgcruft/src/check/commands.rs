@@ -7,8 +7,8 @@ use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::{Builtin, Optfeature};
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};

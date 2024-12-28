@@ -2,8 +2,8 @@ use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated};
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};

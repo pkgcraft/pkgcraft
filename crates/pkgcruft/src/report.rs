@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::check::Check;
-use crate::scanner::ReportFilter;
+use crate::iter::ReportFilter;
 use crate::Error;
 
 /// The severity of the report.

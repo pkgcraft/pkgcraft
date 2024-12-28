@@ -9,7 +9,7 @@ use pkgcraft::restrict::{Restrict, Scope};
 use tracing::{debug, warn};
 
 use crate::check::*;
-use crate::scanner::ReportFilter;
+use crate::iter::ReportFilter;
 use crate::source::*;
 
 /// Check runner for synchronous checks.

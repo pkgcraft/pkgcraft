@@ -15,8 +15,8 @@ use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
+use crate::iter::ReportFilter;
 use crate::report::ReportKind;
-use crate::scanner::ReportFilter;
 use crate::source::SourceKind;
 use crate::Error;
 
