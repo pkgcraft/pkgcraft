@@ -5,8 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use camino::Utf8PathBuf;
-use clap::builder::ArgPredicate;
-use clap::Args;
+use clap::{builder::ArgPredicate, Args};
 use futures::{stream, StreamExt};
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};

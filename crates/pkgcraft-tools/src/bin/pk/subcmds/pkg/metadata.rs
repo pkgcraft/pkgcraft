@@ -1,8 +1,7 @@
 use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
-use clap::builder::ArgPredicate;
-use clap::Args;
+use clap::{builder::ArgPredicate, Args};
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};

@@ -6,8 +6,7 @@ use std::time::Duration;
 
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
-use clap::builder::ArgPredicate;
-use clap::Args;
+use clap::{builder::ArgPredicate, Args};
 use futures::{stream, StreamExt};
 use indexmap::{IndexMap, IndexSet};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};

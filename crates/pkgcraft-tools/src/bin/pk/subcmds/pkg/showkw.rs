@@ -1,8 +1,7 @@
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use clap::builder::ArgPredicate;
-use clap::Args;
+use clap::{builder::ArgPredicate, Args};
 use itertools::Itertools;
 use pkgcraft::cli::{ebuild_pkgs, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
