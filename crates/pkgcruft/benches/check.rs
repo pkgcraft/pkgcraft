@@ -19,8 +19,8 @@ pub fn bench(c: &mut Criterion) {
         config.finalize().unwrap();
         // TODO: checkout a specific commit
 
-        // run benchmark for every check
-        for check in Check::iter() {
+        // run benchmark for every check supported by the repo
+        for check in Check::iter_supported(&repo) {
             group.bench_function(check.to_string(), |b| {
                 let scanner = Scanner::new(&repo).checks([check]);
                 b.iter(|| scanner.run(&repo).unwrap().count());

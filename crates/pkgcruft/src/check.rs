@@ -222,9 +222,15 @@ impl Check {
         CheckKind::iter().map(Into::into)
     }
 
-    /// Return an iterator of all checks enabled by default.
+    /// Return an iterator of checks enabled by default for a repo.
     pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
         let selected = IndexSet::new();
+        Check::iter().filter(move |x| x.skipped(repo, &selected).is_none())
+    }
+
+    /// Return an iterator of all checks that can be run on a repo.
+    pub fn iter_supported(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
+        let selected = Self::iter().collect();
         Check::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
