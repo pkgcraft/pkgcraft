@@ -1,7 +1,7 @@
 use criterion::Criterion;
 
 use pkgcraft::test::test_data;
-use pkgcruft::scanner::Scanner;
+use pkgcruft::scan::Scanner;
 
 pub fn bench(c: &mut Criterion) {
     let data = test_data();

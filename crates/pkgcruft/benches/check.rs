@@ -3,7 +3,7 @@ use std::env;
 use criterion::Criterion;
 use pkgcraft::config::Config;
 use pkgcruft::check::Check;
-use pkgcruft::scanner::Scanner;
+use pkgcruft::scan::Scanner;
 
 pub fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("Check");

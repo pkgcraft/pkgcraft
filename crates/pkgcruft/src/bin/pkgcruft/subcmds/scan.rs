@@ -7,7 +7,7 @@ use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcruft::report::{ReportAlias, ReportKind};
-use pkgcruft::scanner::Scanner;
+use pkgcruft::scan::Scanner;
 use pkgcruft::source::PkgFilter;
 
 use crate::options;

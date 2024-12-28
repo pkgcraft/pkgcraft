@@ -77,7 +77,7 @@ impl EbuildPkgCheck for Check {
 mod tests {
     use pkgcraft::test::*;
 
-    use crate::scanner::Scanner;
+    use crate::scan::Scanner;
     use crate::test::glob_reports;
 
     use super::*;

@@ -35,7 +35,7 @@ mod tests {
     use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
 
-    use crate::scanner::Scanner;
+    use crate::scan::Scanner;
     use crate::test::glob_reports;
 
     use super::*;
