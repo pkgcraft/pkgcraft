@@ -83,6 +83,9 @@ impl Reports {
             defaults.clone()
         };
 
+        // Expand report aliases, only adding explicitly selected check and report
+        // variants to the selection set. Set membership determines if an enabled check is
+        // skipped with a warning or errors out if it is unable to be run.
         let mut selected = IndexSet::new();
         for x in reports {
             match x {
