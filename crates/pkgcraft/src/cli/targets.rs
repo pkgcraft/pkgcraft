@@ -81,6 +81,11 @@ impl<'a> TargetRestrictions<'a> {
     /// When None is passed, the current working directory is tried.
     pub fn repo(mut self, value: Option<&str>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
+            // load system config for repo alias support
+            if !s.contains(std::path::MAIN_SEPARATOR) {
+                self.config.load()?;
+            }
+
             let path = Utf8Path::new(s);
             let repo = if let Some(repo) = self.config.repos.get(s) {
                 Ok(repo.clone())
