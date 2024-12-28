@@ -5,6 +5,7 @@ use clap::builder::ArgPredicate;
 use clap::Args;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
+use pkgcraft::repo::RepoFormat;
 use pkgcruft::report::{ReportAlias, ReportKind};
 use pkgcruft::scanner::Scanner;
 use pkgcruft::source::PkgFilter;
@@ -64,6 +65,7 @@ impl Command {
 
         // determine target restrictions
         let targets = TargetRestrictions::new(config)
+            .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?;
 
@@ -71,11 +73,7 @@ impl Command {
         let mut failed = false;
         let mut stdout = io::stdout().lock();
         for (repo_set, restrict) in targets {
-            for repo in repo_set {
-                let repo = repo
-                    .as_ebuild()
-                    .ok_or_else(|| anyhow::anyhow!("non-ebuild repo: {repo}"))?;
-
+            for repo in repo_set.ebuild() {
                 // determine enabled checks and reports
                 let defaults = ReportKind::iter_default(repo).collect();
                 let (enabled, selected) = self.reports.collapse(defaults)?;
