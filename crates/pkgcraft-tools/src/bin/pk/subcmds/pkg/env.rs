@@ -14,7 +14,7 @@ use scallop::pool::PoolIter;
 use scallop::variables::{self, ShellVariable};
 use strum::IntoEnumIterator;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Env options")]
 pub(crate) struct Command {
     /// Parallel jobs to run

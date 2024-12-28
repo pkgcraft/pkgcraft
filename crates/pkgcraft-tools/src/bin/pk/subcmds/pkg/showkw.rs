@@ -8,7 +8,7 @@ use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Target options")]
 pub(crate) struct Command {
     /// Target repo

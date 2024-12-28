@@ -12,7 +12,7 @@ mod revdeps;
 mod showkw;
 mod source;
 
-#[derive(Debug, clap::Args)]
+#[derive(clap::Args)]
 pub(crate) struct Command {
     #[command(subcommand)]
     command: Subcommand,
@@ -24,7 +24,7 @@ impl Command {
     }
 }
 
-#[derive(Debug, clap::Subcommand)]
+#[derive(clap::Subcommand)]
 enum Subcommand {
     /// Output ebuild environment
     Env(Box<env::Command>),

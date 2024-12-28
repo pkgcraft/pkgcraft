@@ -8,7 +8,7 @@ use strum::{Display, EnumIter, EnumString};
 
 use crate::format::{EnumVariable, FormatString};
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub(crate) struct Command {
     // options
     /// Output using a custom format

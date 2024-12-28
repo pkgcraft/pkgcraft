@@ -4,7 +4,7 @@ use clap::Args;
 use pkgcraft::dep::{Cpv, CpvOrDep};
 use pkgcraft::traits::Intersects;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub(crate) struct Command {
     cpv: Cpv,
     cpv_or_dep: CpvOrDep,

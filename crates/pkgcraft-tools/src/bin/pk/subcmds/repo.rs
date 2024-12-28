@@ -6,7 +6,7 @@ mod eapis;
 mod leaf;
 mod metadata;
 
-#[derive(Debug, clap::Args)]
+#[derive(clap::Args)]
 pub(crate) struct Command {
     #[command(subcommand)]
     command: Subcommand,
@@ -18,7 +18,7 @@ impl Command {
     }
 }
 
-#[derive(Debug, clap::Subcommand)]
+#[derive(clap::Subcommand)]
 enum Subcommand {
     /// Output EAPI usage rates
     Eapis(Box<eapis::Command>),

@@ -13,7 +13,7 @@ use scallop::pool::PoolIter;
 use tracing::error;
 
 /// Duration bound to apply against elapsed time values.
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 enum Bound {
     Less(Duration),
     LessOrEqual(Duration),
@@ -56,7 +56,7 @@ impl FromStr for Bound {
     }
 }
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
     /// Parallel jobs to run (default: # of physical CPUs)

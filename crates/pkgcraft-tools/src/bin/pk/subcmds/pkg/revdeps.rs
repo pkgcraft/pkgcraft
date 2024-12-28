@@ -8,7 +8,7 @@ use pkgcraft::config::Config;
 use pkgcraft::dep::{CpvOrDep, Flatten};
 use pkgcraft::traits::{Intersects, LogErrors};
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Revdeps options")]
 pub(crate) struct Command {
     /// Target repository

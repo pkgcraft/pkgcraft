@@ -10,7 +10,7 @@ use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::LogErrors;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub(crate) struct Command {
     /// Output packages for a target EAPI
     #[arg(short, long)]

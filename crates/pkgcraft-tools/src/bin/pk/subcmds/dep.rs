@@ -6,7 +6,7 @@ mod parse;
 mod set;
 mod sort;
 
-#[derive(Debug, clap::Args)]
+#[derive(clap::Args)]
 #[command(args_conflicts_with_subcommands = true)]
 pub(crate) struct Command {
     #[command(subcommand)]
@@ -19,7 +19,7 @@ impl Command {
     }
 }
 
-#[derive(Debug, clap::Subcommand)]
+#[derive(clap::Subcommand)]
 enum Subcommand {
     /// Compare two deps
     Compare(Box<compare::Command>),

@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use pkgcraft::dep::Version;
 use pkgcraft::traits::Intersects;
 
-#[derive(Debug, clap::Args)]
+#[derive(clap::Args)]
 pub(crate) struct Command {
     ver1: Version,
     ver2: Version,

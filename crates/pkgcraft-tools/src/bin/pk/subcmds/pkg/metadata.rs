@@ -8,7 +8,7 @@ use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Restrict;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Metadata options")]
 pub(crate) struct Command {
     /// Parallel jobs to run

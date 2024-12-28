@@ -9,7 +9,7 @@ use pkgcraft::dep::{Cpv, Flatten};
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::{Intersects, LogErrors};
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub(crate) struct Command {
     // positionals
     /// Target repository

@@ -6,7 +6,7 @@ use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Regen options")]
 pub(crate) struct Command {
     /// Parallel jobs to run

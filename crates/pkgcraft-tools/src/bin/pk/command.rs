@@ -9,7 +9,7 @@ use tracing_log::AsTrace;
 
 use crate::subcmds::Subcommand;
 
-#[derive(Debug, Parser)]
+#[derive(Parser)]
 #[command(version, long_about = None, disable_help_subcommand = true)]
 /// pkgcraft command-line tool
 pub(crate) struct Command {

@@ -6,7 +6,7 @@ use itertools::Itertools;
 use pkgcraft::cli::MaybeStdinVec;
 use pkgcraft::dep::Cpv;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub(crate) struct Command {
     /// Comparison expressions
     #[arg(

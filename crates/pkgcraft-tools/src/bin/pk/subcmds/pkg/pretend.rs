@@ -10,7 +10,7 @@ use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Pretend options")]
 pub(crate) struct Command {
     /// Parallel jobs to run

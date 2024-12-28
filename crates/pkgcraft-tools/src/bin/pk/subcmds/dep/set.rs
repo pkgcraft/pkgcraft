@@ -7,7 +7,7 @@ use itertools::Itertools;
 use pkgcraft::cli::MaybeStdinVec;
 use pkgcraft::dep::Dep;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub(crate) struct Command {
     values: Vec<MaybeStdinVec<String>>,
 }

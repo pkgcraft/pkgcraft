@@ -21,7 +21,7 @@ use tracing::error;
 
 use super::tokio;
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[clap(next_help_heading = "Target options")]
 pub(crate) struct Command {
     /// Concurrent downloads

@@ -8,7 +8,7 @@ mod pkg;
 mod repo;
 mod version;
 
-#[derive(Debug, clap::Subcommand)]
+#[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
     /// Cpv commands
     Cpv(cpv::Command),
