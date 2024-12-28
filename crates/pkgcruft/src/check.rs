@@ -4,6 +4,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Not;
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -11,6 +12,7 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::restrict::Scope;
+use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 
 use crate::report::ReportKind;
@@ -226,9 +228,17 @@ impl Check {
         Check::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
-    /// Return an iterator of checks that generate a given report.
-    pub fn iter_report(report: &ReportKind) -> impl Iterator<Item = Check> + '_ {
-        Check::iter().filter(|c| c.reports.contains(report))
+    /// Return an iterator of checks that generate target reports.
+    pub fn iter_report<'a, I>(reports: I) -> impl Iterator<Item = Check> + 'a
+    where
+        I: IntoIterator<Item = &'a ReportKind>,
+        <I as IntoIterator>::IntoIter: 'a,
+    {
+        reports
+            .into_iter()
+            .filter_map(|x| REPORTS.get(x))
+            .flatten()
+            .copied()
     }
 
     /// Return an iterator of checks that use a given source.
@@ -427,6 +437,13 @@ impl AsRef<Utf8Path> for Check {
     }
 }
 
+/// The mapping of all report variants to the checks that can generate them.
+static REPORTS: LazyLock<OrderedMap<ReportKind, OrderedSet<Check>>> = LazyLock::new(|| {
+    Check::iter()
+        .flat_map(|c| c.reports.iter().copied().map(move |r| (r, c)))
+        .collect()
+});
+
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
@@ -460,7 +477,7 @@ mod tests {
     fn report() {
         // verify all report variants have at least one check
         let reports: Vec<_> = ReportKind::iter()
-            .filter(|x| Check::iter_report(x).next().is_none())
+            .filter(|x| REPORTS.get(x).is_none())
             .collect();
         assert!(reports.is_empty(), "no checks for reports: {}", reports.iter().join(", "));
     }

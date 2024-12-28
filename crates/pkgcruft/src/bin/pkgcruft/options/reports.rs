@@ -149,7 +149,7 @@ mod tests {
         let defaults = ReportKind::iter_default(repo).collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults).unwrap();
-        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
+        let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         // repo specific checks enabled when scanning the matching repo
         assert!(checks.contains(&CheckKind::Header));
 
@@ -158,7 +158,7 @@ mod tests {
         let defaults: IndexSet<_> = ReportKind::iter_default(repo).collect();
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
+        let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(checks.contains(&CheckKind::Dependency));
         // optional checks aren't run by default when scanning
         assert!(!checks.contains(&CheckKind::UnstableOnly));
@@ -176,7 +176,7 @@ mod tests {
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-r", "+@UnstableOnly,+@Header"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
+        let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(checks.contains(&CheckKind::UnstableOnly));
         assert!(checks.contains(&CheckKind::Header));
         assert!(checks.len() > 2);
@@ -184,14 +184,14 @@ mod tests {
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
+        let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,+@Dependency"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
-        let checks: IndexSet<_> = enabled.iter().flat_map(Check::iter_report).collect();
+        let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 

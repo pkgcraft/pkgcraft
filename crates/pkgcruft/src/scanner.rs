@@ -79,14 +79,14 @@ impl Scanner {
         self
     }
 
-    /// Set the enabled and selected checks.
+    /// Set the enabled and selected reports.
     pub fn selected(
         mut self,
         enabled: &IndexSet<ReportKind>,
         selected: &IndexSet<ReportKind>,
     ) -> Self {
-        self.enabled = Some(enabled.iter().flat_map(Check::iter_report).collect());
-        self.selected = Some(selected.iter().flat_map(Check::iter_report).collect());
+        self.enabled = Some(Check::iter_report(enabled).collect());
+        self.selected = Some(Check::iter_report(selected).collect());
         self
     }
 
@@ -136,9 +136,7 @@ impl Scanner {
         let (enabled, selected) = match (self.enabled.as_ref(), self.selected.as_ref()) {
             (Some(x), Some(y)) => (Either::Left(x.iter().copied()), y),
             (Some(x), None) | (None, Some(x)) => (Either::Left(x.iter().copied()), x),
-            (None, None) => {
-                (Either::Right(self.default.iter().flat_map(Check::iter_report)), &empty)
-            }
+            (None, None) => (Either::Right(Check::iter_report(&self.default)), &empty),
         };
 
         // filter checks -- errors if filtered check is selected
