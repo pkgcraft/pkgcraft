@@ -1,6 +1,7 @@
 use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
+use clap::builder::ArgPredicate;
 use clap::Args;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
@@ -49,7 +50,14 @@ pub(crate) struct Command {
 
     // positionals
     /// Target packages or paths
-    #[arg(value_name = "TARGET", default_value = ".", help_heading = "Arguments")]
+    #[arg(
+        value_name = "TARGET",
+        // default to the current working directory
+        default_value = ".",
+        // default to all packages when targeting a repo
+        default_value_if("repo", ArgPredicate::IsPresent, Some("*")),
+        help_heading = "Arguments",
+    )]
     targets: Vec<MaybeStdinVec<String>>,
 }
 
