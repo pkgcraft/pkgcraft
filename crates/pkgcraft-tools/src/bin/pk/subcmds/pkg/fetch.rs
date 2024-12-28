@@ -72,6 +72,7 @@ pub(crate) struct Command {
     // positionals
     /// Target packages or paths
     #[arg(
+        value_name = "TARGET",
         // default to the current working directory
         default_value = ".",
         // default to all packages when targeting a repo
