@@ -143,18 +143,22 @@ impl Config {
         Config { path, ..Default::default() }
     }
 
-    /// Load user or system config files, if none are found revert to loading portage files. Config
-    /// file loading is skipped if the environment variable PKGCRAFT_NO_CONFIG is defined.
+    /// Load user or system config files, if none are found revert to loading portage files.
     pub fn load(&mut self) -> crate::Result<()> {
-        if !self.loaded && env::var_os("PKGCRAFT_NO_CONFIG").is_none() {
-            self.settings = Default::default();
-            self.repos = repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
+        if !self.loaded {
+            if let Ok(value) = env::var("PKGCRAFT_CONFIG") {
+                self.load_path(&value)?;
+            } else {
+                self.settings = Default::default();
+                self.repos =
+                    repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
 
-            if self.repos.is_empty() {
-                // ignore error for missing portage config
-                match self.load_portage_conf(None) {
-                    Err(Error::ConfigMissing(_)) => (),
-                    e => return e,
+                if self.repos.is_empty() {
+                    // ignore error for missing portage config
+                    match self.load_portage_conf(None) {
+                        Err(Error::ConfigMissing(_)) => (),
+                        e => return e,
+                    }
                 }
             }
         }
@@ -165,7 +169,7 @@ impl Config {
 
     /// Load config files from a given path.
     pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
-        if !self.loaded {
+        if !self.loaded && !path.is_empty() {
             if self.path.config.exists() {
                 self.repos =
                     repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
