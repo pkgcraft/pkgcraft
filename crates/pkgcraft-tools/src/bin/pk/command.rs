@@ -31,8 +31,6 @@ impl Command {
         let mut config = Config::new("pkgcraft", "");
         if let Some(path) = self.config.as_deref() {
             config.load_path(path)?;
-        } else {
-            config.load()?;
         }
         Ok(config)
     }
