@@ -225,13 +225,13 @@ impl Check {
     /// Return an iterator of checks enabled by default for a repo.
     pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
         let selected = IndexSet::new();
-        Check::iter().filter(move |x| x.skipped(repo, &selected).is_none())
+        Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
     /// Return an iterator of all checks that can be run on a repo.
     pub fn iter_supported(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
         let selected = Self::iter().collect();
-        Check::iter().filter(move |x| x.skipped(repo, &selected).is_none())
+        Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
     /// Return an iterator of checks that generate target reports.
@@ -249,7 +249,7 @@ impl Check {
 
     /// Return an iterator of checks that use a given source.
     pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> + '_ {
-        Check::iter().filter(move |c| c.source == *source)
+        Self::iter().filter(move |c| c.source == *source)
     }
 
     /// Determine if a check is skipped for a scanning run due to scan context.
