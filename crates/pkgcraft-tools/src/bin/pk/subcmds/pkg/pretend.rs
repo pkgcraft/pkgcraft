@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use clap::Args;
+use clap::{builder::ArgPredicate, Args};
 use pkgcraft::cli::{ebuild_raw_pkgs, MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
@@ -23,7 +23,14 @@ pub(crate) struct Command {
 
     // positionals
     /// Target packages or paths
-    #[arg(value_name = "TARGET", default_value = ".", help_heading = "Arguments")]
+    #[arg(
+        value_name = "TARGET",
+        // default to the current working directory
+        default_value = ".",
+        // default to all packages when targeting a repo
+        default_value_if("repo", ArgPredicate::IsPresent, Some("*")),
+        help_heading = "Arguments",
+    )]
     targets: Vec<MaybeStdinVec<String>>,
 }
 
