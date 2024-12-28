@@ -168,7 +168,7 @@ mod tests {
         // non-default reports aren't enabled when their matching level is targeted
         let report = ReportKind::HeaderInvalid;
         assert_eq!(report.level(), ReportLevel::Error);
-        let cmd = Command::try_parse_from(["cmd", "-r", "%error"]).unwrap();
+        let cmd = Command::try_parse_from(["cmd", "-r", "@error"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
         assert!(!enabled.contains(&report));
         assert!(!enabled.is_empty());
@@ -203,7 +203,7 @@ mod tests {
         // invalid check aliases in args
         for arg in ["-r=@unknown", "-r=-@unknown", "-r=+@unknown"] {
             let r = Command::try_parse_from(["cmd", arg]);
-            assert_err_re!(r, "invalid check: unknown");
+            assert_err_re!(r, "invalid report alias: unknown");
         }
     }
 

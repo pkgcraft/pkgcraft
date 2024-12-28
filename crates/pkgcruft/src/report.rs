@@ -95,19 +95,15 @@ impl FromStr for ReportAlias {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(val) = s.strip_prefix('@') {
-            val.parse().map(Self::Check)
-        } else if let Some(val) = s.strip_prefix('%') {
             val.parse()
-                .map(Self::Level)
-                .map_err(|_| Error::InvalidValue(format!("invalid level: {val}")))
-        } else if let Some(val) = s.strip_prefix('.') {
-            val.parse()
-                .map(Self::Scope)
-                .map_err(|_| Error::InvalidValue(format!("invalid scope: {val}")))
+                .map(Self::Check)
+                .or_else(|_| val.parse().map(Self::Level))
+                .or_else(|_| val.parse().map(Self::Scope))
+                .map_err(|_| Error::InvalidValue(format!("invalid report alias: {val}")))
         } else {
             s.parse()
                 .map(Self::Report)
-                .map_err(|_| Error::InvalidValue(format!("invalid report alias: {s}")))
+                .map_err(|_| Error::InvalidValue(format!("invalid report: {s}")))
         }
     }
 }

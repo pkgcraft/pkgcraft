@@ -29,7 +29,7 @@ pub(crate) struct Command {
         value_name = "ALIAS[,...]",
         value_delimiter = ',',
         num_args = 0..=1,
-        default_missing_value = "%critical,%error",
+        default_missing_value = "@critical,@error",
     )]
     exit: Vec<ReportAlias>,
 

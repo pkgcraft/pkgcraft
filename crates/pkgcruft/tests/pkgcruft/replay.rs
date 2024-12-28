@@ -124,7 +124,7 @@ fn checks() {
         .arg(file.path())
         .assert()
         .stdout("")
-        .stderr(contains("invalid check: invalid"))
+        .stderr(contains("invalid report alias: invalid"))
         .failure()
         .code(2);
 
@@ -154,23 +154,23 @@ fn levels() {
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
     // invalid
-    cmd("pkgcruft replay -r %invalid")
+    cmd("pkgcruft replay -r @invalid")
         .arg(file.path())
         .assert()
         .stdout("")
-        .stderr(contains("invalid level: invalid"))
+        .stderr(contains("invalid report alias: invalid"))
         .failure()
         .code(2);
 
     // single
-    let reports = cmd("pkgcruft replay -R json -r %warning -")
+    let reports = cmd("pkgcruft replay -R json -r @warning -")
         .write_stdin(data.as_str())
         .to_reports()
         .unwrap();
     assert_eq!(&single_expected, &reports);
 
     // multiple
-    let reports = cmd("pkgcruft replay -R json -r %warning,%error -")
+    let reports = cmd("pkgcruft replay -R json -r @warning,@error -")
         .write_stdin(data.as_str())
         .to_reports()
         .unwrap();

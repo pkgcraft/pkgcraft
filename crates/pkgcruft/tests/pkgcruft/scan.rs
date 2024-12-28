@@ -709,7 +709,7 @@ fn checks() {
         .arg(&repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid check: invalid"))
+        .stderr(contains("invalid report alias: invalid"))
         .failure()
         .code(2);
 
@@ -735,23 +735,23 @@ fn levels() {
     let multiple_expected = glob_reports!("{repo}/EapiStatus/**/reports.json");
 
     // invalid
-    cmd("pkgcruft scan -R json -r %invalid")
+    cmd("pkgcruft scan -R json -r @invalid")
         .arg(&repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid level: invalid"))
+        .stderr(contains("invalid report alias: invalid"))
         .failure()
         .code(2);
 
     // single
-    let reports = cmd("pkgcruft scan -R json -r %warning")
+    let reports = cmd("pkgcruft scan -R json -r @warning")
         .arg(repo.join("EapiStatus"))
         .to_reports()
         .unwrap();
     assert_unordered_eq!(&single_expected, &reports);
 
     // multiple
-    let reports = cmd("pkgcruft scan -R json -r %warning,%error")
+    let reports = cmd("pkgcruft scan -R json -r @warning,@error")
         .arg(repo.join("EapiStatus"))
         .to_reports()
         .unwrap();
@@ -769,7 +769,7 @@ fn reports() {
             .arg(&repo)
             .assert()
             .stdout("")
-            .stderr(contains("invalid report alias: invalid"))
+            .stderr(contains("invalid report: invalid"))
             .failure()
             .code(2);
 
@@ -789,17 +789,17 @@ fn reports() {
             // add check
             "+@Live",
             // set level
-            "%error",
+            "@error",
             // remove level
-            "-%warning",
+            "-@warning",
             // add level
-            "+%info",
+            "+@info",
             // set scope
-            ".repo",
+            "@repo",
             // remove scope
-            "-.version",
+            "-@version",
             // add scope
-            "+.package",
+            "+@package",
         ] {
             let reports = cmd("pkgcruft scan -R json")
                 .arg(format!("{opt}={target}"))
