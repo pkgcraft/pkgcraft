@@ -5,7 +5,6 @@ use clap::builder::BoolValueParser;
 use clap::Parser;
 use clap_verbosity_flag::{log::LevelFilter, Verbosity};
 use pkgcraft::cli::reset_sigpipe;
-use pkgcraft::config::Config;
 use tracing_log::AsTrace;
 
 use crate::subcmds::Subcommand;
@@ -67,10 +66,8 @@ impl Command {
             .with_writer(stderr)
             .init();
 
-        let mut config = Config::new("pkgcraft", "");
-
         let cmd = args.cmd().join(" ");
-        args.subcmd.run(&mut config).or_else(|err| {
+        args.subcmd.run().or_else(|err| {
             eprintln!("{cmd}: error: {err}");
             Ok(ExitCode::from(2))
         })

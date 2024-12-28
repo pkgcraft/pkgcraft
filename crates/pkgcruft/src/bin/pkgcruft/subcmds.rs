@@ -1,6 +1,5 @@
 use std::process::ExitCode;
 
-use pkgcraft::config::Config;
 use strum::AsRefStr;
 
 mod diff;
@@ -28,11 +27,11 @@ impl Subcommand {
 }
 
 impl Subcommand {
-    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         match self {
             Self::Diff(cmd) => cmd.run(),
             Self::Replay(cmd) => cmd.run(),
-            Self::Scan(cmd) => cmd.run(config),
+            Self::Scan(cmd) => cmd.run(),
             Self::Show(cmd) => cmd.run(),
         }
     }

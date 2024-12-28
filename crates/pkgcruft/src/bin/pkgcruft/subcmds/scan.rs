@@ -56,12 +56,14 @@ pub(crate) struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
+        let mut config = Config::new("pkgcraft", "");
+
         // determine reporter
         let mut reporter = self.reporter.collapse();
 
         // determine target restrictions
-        let targets = TargetRestrictions::new(config)
+        let targets = TargetRestrictions::new(&mut config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?;
