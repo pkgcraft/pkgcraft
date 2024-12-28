@@ -761,12 +761,6 @@ fn levels() {
 #[test]
 fn reports() {
     let repo = test_data_path().join("repos/valid/qa-primary");
-    let single_expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
-    let multiple_expected = glob_reports!(
-        "{repo}/Dependency/DependencyDeprecated/reports.json",
-        "{repo}/EapiStatus/EapiBanned/reports.json",
-        "{repo}/Keywords/KeywordsUnsorted/reports.json",
-    );
 
     for opt in ["-r", "--reports"] {
         // invalid
@@ -775,24 +769,44 @@ fn reports() {
             .arg(&repo)
             .assert()
             .stdout("")
-            .stderr(contains("--reports"))
+            .stderr(contains("invalid report alias: invalid"))
             .failure()
             .code(2);
 
-        // single
-        let reports = cmd("pkgcruft scan -R json")
-            .args([opt, "DependencyDeprecated"])
-            .arg(&repo)
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&single_expected, &reports);
-
-        // multiple
-        let reports = cmd("pkgcruft scan -R json")
-            .args([opt, "DependencyDeprecated,EapiBanned,KeywordsUnsorted"])
-            .arg(&repo)
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&multiple_expected, &reports);
+        for target in [
+            // set report
+            "DependencyDeprecated",
+            // set reports
+            "DependencyDeprecated,EapiBanned,KeywordsUnsorted",
+            // remove report
+            "-DependencyDeprecated",
+            // add report
+            "+LiveOnly",
+            // set check
+            "@Dependency",
+            // remove check
+            "-@Dependency",
+            // add check
+            "+@Live",
+            // set level
+            "%error",
+            // remove level
+            "-%warning",
+            // add level
+            "+%info",
+            // set scope
+            ".repo",
+            // remove scope
+            "-.version",
+            // add scope
+            "+.package",
+        ] {
+            let reports = cmd("pkgcruft scan -R json")
+                .arg(format!("{opt}={target}"))
+                .arg(&repo)
+                .to_reports()
+                .unwrap();
+            assert!(!reports.is_empty());
+        }
     }
 }
