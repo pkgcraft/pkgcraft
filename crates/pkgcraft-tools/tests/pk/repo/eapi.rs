@@ -78,6 +78,7 @@ fn single_repo() {
     repo.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
     repo.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
 
+    // all EAPIs
     cmd("pk repo eapi")
         .arg(&repo)
         .assert()
@@ -88,39 +89,8 @@ fn single_repo() {
         "})
         .stderr("")
         .success();
-}
 
-#[test]
-fn multiple_repos() {
-    let mut repo1 = EbuildRepoBuilder::new().name("repo1").build().unwrap();
-    repo1.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
-    repo1.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
-    repo1.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
-    let mut repo2 = EbuildRepoBuilder::new().name("repo2").build().unwrap();
-    repo2.create_ebuild("cat/pkg-1", &["EAPI=8"]).unwrap();
-
-    cmd("pk repo eapi")
-        .args([&repo1, &repo2])
-        .assert()
-        .stdout(indoc::indoc! {"
-            repo1
-              EAPI 7: 1 pkg
-              EAPI 8: 2 pkgs
-            repo2
-              EAPI 8: 1 pkg
-        "})
-        .stderr("")
-        .success();
-}
-
-#[test]
-fn selected_eapi() {
-    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
-    repo.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
-    repo.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
-    repo.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
-
-    // invalid EAPI
+    // invalid, selected EAPI
     cmd("pk repo eapi --eapi nonexistent")
         .arg(&repo)
         .assert()
@@ -145,6 +115,29 @@ fn selected_eapi() {
         .arg(&repo)
         .assert()
         .stdout("")
+        .stderr("")
+        .success();
+}
+
+#[test]
+fn multiple_repos() {
+    let mut repo1 = EbuildRepoBuilder::new().name("repo1").build().unwrap();
+    repo1.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
+    repo1.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
+    repo1.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
+    let mut repo2 = EbuildRepoBuilder::new().name("repo2").build().unwrap();
+    repo2.create_ebuild("cat/pkg-1", &["EAPI=8"]).unwrap();
+
+    cmd("pk repo eapi")
+        .args([&repo1, &repo2])
+        .assert()
+        .stdout(indoc::indoc! {"
+            repo1
+              EAPI 7: 1 pkg
+              EAPI 8: 2 pkgs
+            repo2
+              EAPI 8: 1 pkg
+        "})
         .stderr("")
         .success();
 }
