@@ -37,7 +37,7 @@ impl Command {
             let mut eapis = HashMap::<_, Vec<_>>::new();
 
             // TODO: use parallel iterator
-            let mut iter = repo.iter_raw().log_errors();
+            let mut iter = repo.iter_raw_ordered().log_errors();
             for pkg in &mut iter {
                 eapis.entry(pkg.eapi()).or_default().push(pkg.cpv().clone());
             }
