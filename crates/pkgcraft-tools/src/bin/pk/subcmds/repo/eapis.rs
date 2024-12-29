@@ -1,12 +1,12 @@
-use std::collections::HashMap;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
-use pkgcraft::eapi::{Eapi, EAPIS};
+use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::LogErrors;
 
@@ -34,7 +34,7 @@ impl Command {
         let mut failed = false;
         let mut stdout = io::stdout().lock();
         for repo in &repos {
-            let mut eapis = HashMap::<_, Vec<_>>::new();
+            let mut eapis = IndexMap::<_, Vec<_>>::new();
 
             // TODO: use parallel iterator
             let mut iter = repo.iter_raw_ordered().log_errors();
@@ -52,11 +52,11 @@ impl Command {
                 }
             } else if !eapis.is_empty() {
                 writeln!(stdout, "{repo}")?;
-                for eapi in &*EAPIS {
-                    if let Some(cpvs) = eapis.get(eapi) {
-                        let s = if cpvs.len() != 1 { "s" } else { "" };
-                        writeln!(stdout, "  EAPI {eapi}: {} pkg{s}", cpvs.len())?;
-                    }
+                eapis.sort_keys();
+                for (eapi, cpvs) in &eapis {
+                    let count = cpvs.len();
+                    let s = if count != 1 { "s" } else { "" };
+                    writeln!(stdout, "  EAPI {eapi}: {count} pkg{s}")?;
                 }
             }
         }
