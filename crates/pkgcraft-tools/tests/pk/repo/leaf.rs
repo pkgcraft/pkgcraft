@@ -24,14 +24,11 @@ fn nonexistent_repo() {
 
 #[test]
 fn multiple_repos_not_supported() {
-    let temp = EbuildRepoBuilder::new().build().unwrap();
-    let path = temp.path();
-
     cmd("pk repo leaf")
-        .args([path, path])
+        .args(["repo1", "repo2"])
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("unexpected argument 'repo2' found"))
         .failure()
         .code(2);
 }
