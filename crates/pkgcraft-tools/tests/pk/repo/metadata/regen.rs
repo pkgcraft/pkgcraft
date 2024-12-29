@@ -6,6 +6,7 @@ use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
 use predicates::prelude::*;
+use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::tempdir;
 use walkdir::WalkDir;
@@ -13,22 +14,18 @@ use walkdir::WalkDir;
 use crate::predicates::lines_contain;
 
 #[test]
-fn missing_repo_arg() {
-    cmd("pk repo metadata regen")
+fn nonexistent_repo() {
+    cmd("pk repo metadata regen path/to/nonexistent/repo")
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("unknown repo: path/to/nonexistent/repo"))
         .failure()
         .code(2);
-}
 
-#[test]
-fn nonexistent_repo() {
-    cmd("pk repo metadata regen")
-        .arg("path/to/nonexistent/repo")
+    cmd("pk repo metadata regen nonexistent-repo-alias")
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("unknown repo: nonexistent-repo-alias"))
         .failure()
         .code(2);
 }
