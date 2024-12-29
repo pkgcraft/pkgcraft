@@ -145,3 +145,17 @@ fn single_repo() {
         .stderr("")
         .success();
 }
+
+#[test]
+fn multiple_repos() {
+    let data = test_data();
+    let repo1 = data.ebuild_repo("metadata").unwrap();
+    let repo2 = data.ebuild_repo("qa-primary").unwrap();
+
+    cmd("pk repo eclass")
+        .args([&repo1, &repo2])
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+}
