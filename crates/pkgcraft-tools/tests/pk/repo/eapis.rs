@@ -92,13 +92,23 @@ fn single_repo() {
 
 #[test]
 fn multiple_repos() {
-    let data = test_data();
-    let repo1 = data.ebuild_repo("metadata").unwrap();
-    let repo2 = data.ebuild_repo("gentoo").unwrap();
+    let mut repo1 = EbuildRepoBuilder::new().id("repo1").build().unwrap();
+    repo1.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
+    repo1.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
+    repo1.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
+    let mut repo2 = EbuildRepoBuilder::new().id("repo2").build().unwrap();
+    repo2.create_ebuild("cat/pkg-1", &["EAPI=8"]).unwrap();
+
     cmd("pk repo eapis")
-        .args([repo1.path(), repo2.path()])
+        .args([&repo1, &repo2])
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(indoc::indoc! {"
+            repo1
+              EAPI 7: 1 pkg
+              EAPI 8: 2 pkgs
+            repo2
+              EAPI 8: 1 pkg
+        "})
         .stderr("")
         .success();
 }
