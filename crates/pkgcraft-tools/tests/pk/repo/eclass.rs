@@ -74,20 +74,20 @@ fn default_current_directory() {
 #[test]
 fn single_repo() {
     let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
-    let eclass = indoc::indoc! {r#"
+    let data = indoc::indoc! {r#"
         # stub eclass
     "#};
-    repo.create_eclass("e1", eclass).unwrap();
-    let eclass = indoc::indoc! {r#"
+    repo.create_eclass("e1", data).unwrap();
+    let data = indoc::indoc! {r#"
         # stub eclass
         inherit e1
     "#};
-    repo.create_eclass("e2", eclass).unwrap();
-    let eclass = indoc::indoc! {r#"
+    repo.create_eclass("e2", data).unwrap();
+    let data = indoc::indoc! {r#"
         # stub eclass
         inherit e2
     "#};
-    repo.create_eclass("e3", eclass).unwrap();
+    repo.create_eclass("e3", data).unwrap();
 
     let data = indoc::indoc! {r#"
         EAPI=8
@@ -134,6 +134,14 @@ fn single_repo() {
             cat/pkg-1
             cat/pkg-2
         "})
+        .stderr("")
+        .success();
+
+    // unused eclass
+    cmd("pk repo eclass --eclass e3")
+        .arg(&repo)
+        .assert()
+        .stdout("")
         .stderr("")
         .success();
 }
