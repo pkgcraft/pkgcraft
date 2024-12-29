@@ -114,30 +114,35 @@ fn multiple_repos() {
 }
 
 #[test]
-fn option_eapi() {
-    let data = test_data();
-    let repo = data.ebuild_repo("metadata").unwrap();
+fn selected_eapi() {
+    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    repo.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
+    repo.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
+    repo.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
 
     // invalid EAPI
     cmd("pk repo eapi --eapi nonexistent")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("unsupported EAPI: nonexistent"))
         .failure()
         .code(2);
 
     // matching packages for EAPI
     cmd("pk repo eapi --eapi 8")
-        .arg(repo)
+        .arg(&repo)
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(indoc::indoc! {"
+            cat/pkg-2
+            cat/pkg-3
+        "})
         .stderr("")
         .success();
 
     // no matching packages for custom EAPI
     cmd("pk repo eapi --eapi pkgcraft")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
