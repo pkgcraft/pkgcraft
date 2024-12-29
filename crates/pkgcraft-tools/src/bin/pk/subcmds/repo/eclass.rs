@@ -33,6 +33,17 @@ impl Command {
         let mut failed = false;
         let mut stdout = io::stdout().lock();
         for repo in &repos {
+            // fail fast for nonexistent eclass selection
+            let selected = if let Some(name) = self.eclass.as_deref() {
+                let eclass = repo
+                    .eclasses()
+                    .get(name)
+                    .ok_or_else(|| anyhow::anyhow!("unknown eclass: {name}"))?;
+                Some(eclass)
+            } else {
+                None
+            };
+
             let mut eclasses = IndexMap::<_, Vec<_>>::new();
 
             // TODO: use parallel iterator
@@ -48,14 +59,16 @@ impl Command {
             }
             failed |= iter.failed();
 
-            if let Some(name) = self.eclass.as_deref() {
-                if let Some(cpvs) = eclasses.get_mut(name) {
+            if let Some(eclass) = selected {
+                // ouput all packages using a selected eclass
+                if let Some(cpvs) = eclasses.get_mut(eclass) {
                     cpvs.sort();
                     for cpv in cpvs {
                         writeln!(stdout, "{cpv}")?;
                     }
                 }
             } else if !eclasses.is_empty() {
+                // ouput all eclasses with the number of packages that use them
                 writeln!(stdout, "{repo}")?;
                 eclasses.par_sort_by(|_k1, v1, _k2, v2| v1.len().cmp(&v2.len()));
                 for (eclass, cpvs) in &eclasses {
