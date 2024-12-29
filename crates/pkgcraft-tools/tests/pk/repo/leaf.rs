@@ -3,13 +3,21 @@ use std::env;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
+use predicates::str::contains;
 
 #[test]
 fn nonexistent_repo() {
     cmd("pk repo leaf path/to/nonexistent/repo")
         .assert()
         .stdout("")
-        .stderr(predicate::str::is_empty().not())
+        .stderr(contains("unknown repo: path/to/nonexistent/repo"))
+        .failure()
+        .code(2);
+
+    cmd("pk repo leaf nonexistent-repo-alias")
+        .assert()
+        .stdout("")
+        .stderr(contains("unknown repo: nonexistent-repo-alias"))
         .failure()
         .code(2);
 }
