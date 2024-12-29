@@ -73,7 +73,7 @@ fn default_current_directory() {
 
 #[test]
 fn single_repo() {
-    let mut repo = EbuildRepoBuilder::new().id("repo").build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
     repo.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
     repo.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
     repo.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
@@ -92,11 +92,11 @@ fn single_repo() {
 
 #[test]
 fn multiple_repos() {
-    let mut repo1 = EbuildRepoBuilder::new().id("repo1").build().unwrap();
+    let mut repo1 = EbuildRepoBuilder::new().name("repo1").build().unwrap();
     repo1.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
     repo1.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
     repo1.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
-    let mut repo2 = EbuildRepoBuilder::new().id("repo2").build().unwrap();
+    let mut repo2 = EbuildRepoBuilder::new().name("repo2").build().unwrap();
     repo2.create_ebuild("cat/pkg-1", &["EAPI=8"]).unwrap();
 
     cmd("pk repo eapis")

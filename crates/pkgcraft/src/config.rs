@@ -505,7 +505,7 @@ mod tests {
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
-        let t2 = EbuildRepoBuilder::new().id("r2").build().unwrap();
+        let t2 = EbuildRepoBuilder::new().name("r2").build().unwrap();
         let data = indoc::formatdoc! {r#"
             [b]
             location = {}
@@ -541,7 +541,7 @@ mod tests {
 
         // multiple config files in a specified directory
         let mut config = Config::new("pkgcraft", "");
-        let t3 = EbuildRepoBuilder::new().id("r3").build().unwrap();
+        let t3 = EbuildRepoBuilder::new().name("r3").build().unwrap();
         let tmpdir = tempdir().unwrap();
         let conf_dir = tmpdir.path();
         let conf_path = conf_dir.to_str().unwrap();

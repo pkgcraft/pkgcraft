@@ -16,7 +16,7 @@ use crate::Error;
 /// Temporary ebuild repo builder.
 #[derive(Debug)]
 pub struct EbuildRepoBuilder {
-    id: String,
+    name: String,
     path: Option<Utf8PathBuf>,
     priority: i32,
     eapi: Option<&'static Eapi>,
@@ -32,16 +32,16 @@ impl EbuildRepoBuilder {
     /// Create the builder.
     pub fn new() -> Self {
         Self {
-            id: "test".to_string(),
+            name: "test".to_string(),
             path: None,
             priority: 0,
             eapi: None,
         }
     }
 
-    /// Set the repo id.
-    pub fn id(mut self, value: &str) -> Self {
-        self.id = value.to_string();
+    /// Set the repo name.
+    pub fn name(mut self, value: &str) -> Self {
+        self.name = value.to_string();
         self
     }
 
@@ -65,7 +65,7 @@ impl EbuildRepoBuilder {
 
     /// Build the temporary ebuild repo.
     pub fn build(self) -> crate::Result<EbuildTempRepo> {
-        EbuildTempRepo::new(self.id, self.path.as_deref(), self.priority, self.eapi)
+        EbuildTempRepo::new(self.name, self.path.as_deref(), self.priority, self.eapi)
     }
 }
 
@@ -74,14 +74,14 @@ impl EbuildRepoBuilder {
 pub struct EbuildTempRepo {
     tempdir: TempDir,
     path: Utf8PathBuf,
-    id: String,
+    name: String,
     priority: i32,
 }
 
 impl EbuildTempRepo {
     /// Create a temporary repo at a given path or inside `env::temp_dir()`.
     fn new(
-        id: String,
+        name: String,
         path: Option<&Utf8Path>,
         priority: i32,
         eapi: Option<&Eapi>,
@@ -91,13 +91,13 @@ impl EbuildTempRepo {
             None => env::temp_dir(),
         };
         let tempdir = TempDir::new_in(path)
-            .map_err(|e| Error::RepoInit(format!("failed creating repo {id:?}: {e}")))?;
+            .map_err(|e| Error::RepoInit(format!("failed creating repo: {name}: {e}")))?;
         let path = Utf8PathBuf::from_path_buf(tempdir.path().to_path_buf())
             .map_err(|p| Error::RepoInit(format!("non-unicode temp path: {p:?}")))?;
 
         for dir in ["metadata", "profiles"] {
             fs::create_dir(path.join(dir))
-                .map_err(|e| Error::RepoInit(format!("failed creating repo: {id}: {e}")))?;
+                .map_err(|e| Error::RepoInit(format!("failed creating repo: {name}: {e}")))?;
         }
 
         let config = indoc::indoc! {"
@@ -106,16 +106,16 @@ impl EbuildTempRepo {
             thin-manifests = true
         "};
         fs::write(path.join("metadata/layout.conf"), config)
-            .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
+            .map_err(|e| Error::RepoInit(format!("failed writing repo config: {e}")))?;
 
-        fs::write(path.join("profiles/repo_name"), format!("{id}\n"))
-            .map_err(|e| Error::RepoInit(format!("failed writing repo id: {e}")))?;
+        fs::write(path.join("profiles/repo_name"), format!("{name}\n"))
+            .map_err(|e| Error::RepoInit(format!("failed writing repo name: {e}")))?;
 
         let eapi = eapi.unwrap_or(&EAPI_LATEST_OFFICIAL);
         fs::write(path.join("profiles/eapi"), format!("{eapi}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
 
-        Ok(Self { tempdir, path, id, priority })
+        Ok(Self { tempdir, path, name, priority })
     }
 
     pub fn path(&self) -> &Utf8Path {
@@ -124,7 +124,7 @@ impl EbuildTempRepo {
 
     /// Add a category into an ebuild repo's profiles/categories file.
     fn add_category(&mut self, category: &str) -> crate::Result<()> {
-        let meta = Metadata::try_new(&self.id, &self.path)?;
+        let meta = Metadata::try_new(&self.name, &self.path)?;
         let mut categories = meta.categories().clone();
         if categories.insert(category.to_string()) {
             categories.sort();
@@ -223,7 +223,7 @@ impl EbuildTempRepo {
 impl From<&EbuildTempRepo> for Repo {
     fn from(repo: &EbuildTempRepo) -> Self {
         RepoFormat::Ebuild
-            .load_from_path(&repo.id, &repo.path, repo.priority)
+            .load_from_path(&repo.name, &repo.path, repo.priority)
             .unwrap()
             .into_ebuild()
             .unwrap()

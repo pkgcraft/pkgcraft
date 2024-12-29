@@ -13,18 +13,18 @@ use crate::panic::ffi_catch_panic;
 /// Returns NULL on error.
 ///
 /// # Safety
-/// The id argument should be a valid, unicode string and the eapi parameter can optionally be
+/// The name argument should be a valid, unicode string and the eapi parameter can optionally be
 /// NULL.
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
-    id: *const c_char,
+    name: *const c_char,
     eapi: *const Eapi,
     priority: c_int,
 ) -> *mut EbuildTempRepo {
     ffi_catch_panic! {
-        let id = try_str_from_ptr!(id);
+        let name = try_str_from_ptr!(name);
         let eapi = eapi_or_default!(eapi);
-        let temp = EbuildRepoBuilder::new().id(id).priority(priority).eapi(eapi).build();
+        let temp = EbuildRepoBuilder::new().name(name).priority(priority).eapi(eapi).build();
         Box::into_raw(Box::new(unwrap_or_panic!(temp)))
     }
 }

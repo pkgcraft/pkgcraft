@@ -868,7 +868,7 @@ mod tests {
 
     #[test]
     fn traits() {
-        let temp = EbuildRepoBuilder::new().id("test").build().unwrap();
+        let temp = EbuildRepoBuilder::new().name("test").build().unwrap();
         let e_repo = Repo::from(&temp);
         let f_repo: Repo = fake::FakeRepo::new("fake", 0).into();
         assert!(e_repo != f_repo);
