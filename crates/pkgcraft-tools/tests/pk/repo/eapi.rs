@@ -8,14 +8,14 @@ use tempfile::tempdir;
 
 #[test]
 fn nonexistent_repo() {
-    cmd("pk repo eapis path/to/nonexistent/repo")
+    cmd("pk repo eapi path/to/nonexistent/repo")
         .assert()
         .stdout("")
         .stderr(contains("unknown repo: path/to/nonexistent/repo"))
         .failure()
         .code(2);
 
-    cmd("pk repo eapis nonexistent-repo-alias")
+    cmd("pk repo eapi nonexistent-repo-alias")
         .assert()
         .stdout("")
         .stderr(contains("unknown repo: nonexistent-repo-alias"))
@@ -27,7 +27,7 @@ fn nonexistent_repo() {
 fn invalid_pkgs() {
     let data = test_data();
     let repo = data.ebuild_repo("bad").unwrap();
-    cmd("pk repo eapis")
+    cmd("pk repo eapi")
         .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
@@ -40,7 +40,7 @@ fn invalid_pkgs() {
 fn empty_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("empty").unwrap();
-    cmd("pk repo eapis")
+    cmd("pk repo eapi")
         .arg(repo)
         .assert()
         .stdout("")
@@ -53,7 +53,7 @@ fn default_current_directory() {
     // non-repo working directory
     let dir = tempdir().unwrap();
     env::set_current_dir(dir.path()).unwrap();
-    cmd("pk repo eapis")
+    cmd("pk repo eapi")
         .assert()
         .stdout("")
         .stderr(contains("non-ebuild repo: ."))
@@ -64,7 +64,7 @@ fn default_current_directory() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
     env::set_current_dir(repo).unwrap();
-    cmd("pk repo eapis")
+    cmd("pk repo eapi")
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -78,7 +78,7 @@ fn single_repo() {
     repo.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
     repo.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
 
-    cmd("pk repo eapis")
+    cmd("pk repo eapi")
         .arg(&repo)
         .assert()
         .stdout(indoc::indoc! {"
@@ -99,7 +99,7 @@ fn multiple_repos() {
     let mut repo2 = EbuildRepoBuilder::new().name("repo2").build().unwrap();
     repo2.create_ebuild("cat/pkg-1", &["EAPI=8"]).unwrap();
 
-    cmd("pk repo eapis")
+    cmd("pk repo eapi")
         .args([&repo1, &repo2])
         .assert()
         .stdout(indoc::indoc! {"
@@ -119,7 +119,7 @@ fn option_eapi() {
     let repo = data.ebuild_repo("metadata").unwrap();
 
     // invalid EAPI
-    cmd("pk repo eapis --eapi nonexistent")
+    cmd("pk repo eapi --eapi nonexistent")
         .arg(repo)
         .assert()
         .stdout("")
@@ -128,7 +128,7 @@ fn option_eapi() {
         .code(2);
 
     // matching packages for EAPI
-    cmd("pk repo eapis --eapi 8")
+    cmd("pk repo eapi --eapi 8")
         .arg(repo)
         .assert()
         .stdout(predicate::str::is_empty().not())
@@ -136,7 +136,7 @@ fn option_eapi() {
         .success();
 
     // no matching packages for custom EAPI
-    cmd("pk repo eapis --eapi pkgcraft")
+    cmd("pk repo eapi --eapi pkgcraft")
         .arg(repo)
         .assert()
         .stdout("")
