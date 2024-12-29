@@ -54,7 +54,8 @@ impl Command {
                 writeln!(stdout, "{repo}")?;
                 for eapi in &*EAPIS {
                     if let Some(cpvs) = eapis.get(eapi) {
-                        writeln!(stdout, "  EAPI {eapi}: {} pkgs", cpvs.len())?;
+                        let s = if cpvs.len() != 1 { "s" } else { "" };
+                        writeln!(stdout, "  EAPI {eapi}: {} pkg{s}", cpvs.len())?;
                     }
                 }
             }
