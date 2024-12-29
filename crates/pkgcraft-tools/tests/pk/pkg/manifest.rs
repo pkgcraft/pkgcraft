@@ -39,18 +39,17 @@ fn invalid_pkgs() {
 
 #[tokio::test]
 async fn unsupported() {
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with unsupported URI"
         SRC_URI="ftp://pkgcraft.pkgcraft/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     cmd("pk pkg manifest")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(contains(
@@ -75,20 +74,19 @@ async fn timeout() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with slow URI connection"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     for opt in ["-t", "--timeout"] {
         cmd("pk pkg manifest")
             .args([opt, "0.1"])
-            .arg(repo)
+            .arg(&repo)
             .assert()
             .stdout("")
             .stderr(contains(format!("fetch failed: {uri}/file: request timed out")))
@@ -118,15 +116,14 @@ async fn concurrent() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="u1? ( {uri}/file1 ) u2? ( {uri}/file2 ) {uri}/file3"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
@@ -135,7 +132,7 @@ async fn concurrent() {
         // force nonconcurrent downloads
         cmd("pk pkg manifest")
             .args([opt, "1"])
-            .arg(repo)
+            .arg(&repo)
             .assert()
             .stdout("")
             .stderr("")
@@ -159,7 +156,7 @@ async fn incremental() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
@@ -167,12 +164,12 @@ async fn incremental() {
         SLOT=0
         IUSE="use"
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let existing = indoc::indoc! {"
         DIST file1 5 BLAKE2B c689bf21986252dab8c946042cd73c44995a205da7b8c0816c56ee33894acbace61f27ed94d9ffc2a0d3bee7539565aca834b220af95cc5abb2ceb90946606fe SHA512 b16ed7d24b3ecbd4164dcdad374e08c0ab7518aa07f9d3683f34c2b3c67a15830268cb4a56c1ff6f54c8e54a795f5b87c08668b51f82d0093f7baee7d2981181
     "};
-    env::set_current_dir(temp.path().join("cat/pkg")).unwrap();
+    env::set_current_dir(repo.path().join("cat/pkg")).unwrap();
     fs::write("Manifest", existing).unwrap();
 
     // no distfiles missing from the manifest, no nothing occurs
@@ -194,7 +191,7 @@ async fn incremental() {
         SLOT=0
         IUSE="use"
     "#};
-    temp.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
 
     // only distfiles missing from the manifest are downloaded by default
     cmd("pk pkg manifest")
@@ -211,7 +208,7 @@ async fn incremental() {
     assert_eq!(&data, expected);
 
     // removing an ebuild removes old entries
-    fs::remove_file(temp.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
+    fs::remove_file(repo.path().join("cat/pkg/pkg-2.ebuild")).unwrap();
     cmd("pk pkg manifest")
         .assert()
         .stdout("")
@@ -360,20 +357,20 @@ async fn regen() {
 
 #[test]
 fn thick_to_thin() {
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with no URIs"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
 
-    let manifest_path = temp.path().join("cat/pkg/Manifest");
+    let manifest_path = repo.path().join("cat/pkg/Manifest");
     let manifest_data = || fs::read_to_string(&manifest_path);
 
     // create thick manifest with ebuild hashes
     cmd("pk pkg manifest --thick true")
-        .arg(temp.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -386,7 +383,7 @@ fn thick_to_thin() {
 
     // thin manifest without distfiles is removed
     cmd("pk pkg manifest")
-        .arg(temp.path())
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -405,24 +402,23 @@ async fn rename() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI and rename"
         SRC_URI="{uri}/?p=pkgcraft -> pkgcraft-${{PV}}"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
-    env::set_current_dir(temp.path()).unwrap();
+    env::set_current_dir(&repo).unwrap();
 
     cmd("pk pkg manifest")
         .assert()
         .stdout("")
         .stderr("")
         .success();
-    let path = repo.join("cat/pkg/Manifest");
+    let path = repo.path().join("cat/pkg/Manifest");
     let data = fs::read_to_string(&path).unwrap();
     let expected = indoc::indoc! {"
         DIST pkgcraft-1 4 BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff
@@ -441,15 +437,14 @@ async fn resume() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     // create a partially downloaded file
     let dir = tempdir().unwrap();
@@ -458,7 +453,7 @@ async fn resume() {
 
     cmd("pk pkg manifest")
         .args(["-d", dir.path().to_str().unwrap()])
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -468,7 +463,7 @@ async fn resume() {
     assert_eq!(&data, "test resume");
     assert!(!partial_file.exists());
     // verify manifest content
-    let path = repo.join("cat/pkg/Manifest");
+    let path = repo.path().join("cat/pkg/Manifest");
     let data = fs::read_to_string(&path).unwrap();
     let expected = indoc::indoc! {"
         DIST file 11 BLAKE2B 1ca3b378d699a0106a2b3ff84f9daec7596e484e205494c6c81c643b91dadc85c3ddca3fc0f77c16b03922fbb9b38fd11cea1b046b3dc5621af1a5cf054bc1fa SHA512 bca6bd2bb722d500e9e5d9c570a7e382d17e978f4dae51ca689915333f9e8fc4d193dcbcc1adc4c26c010eb1e14ba7f518a8e01f02a4c5f0c75cdab994874c69
@@ -497,24 +492,23 @@ async fn redirect() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     cmd("pk pkg manifest")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
         .success();
     // verify manifest content
-    let path = repo.join("cat/pkg/Manifest");
+    let path = repo.path().join("cat/pkg/Manifest");
     let data = fs::read_to_string(&path).unwrap();
     let expected = indoc::indoc! {"
         DIST file 13 BLAKE2B 24855fa68b937586d7f6fdab98bd2d5208c085f9c63da71fea0625138e511ba26000fcf7ffd47a2a4b55a656c47603c5c056ca4210f792cc35e7daf4b8967b24 SHA512 06deeee1e90583d80396ce7bbd4004408a82431af818573dc2fa78d1756622f5be65cdb22c2199c4e25821337957251aea543a82b650f72731f84fd009fa935e
@@ -533,22 +527,21 @@ async fn stdout() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let expected = indoc::indoc! {"
         DIST file 4 BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff
     "};
 
     cmd("pk pkg manifest --stdout")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout(expected)
         .stderr("")
@@ -566,7 +559,7 @@ async fn stdout() {
     "};
 
     cmd("pk pkg manifest --stdout --thick true")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout(expected)
         .stderr("")
@@ -584,25 +577,24 @@ async fn invalid_manifest() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let expected = indoc::indoc! {"
         DIST file 4 BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff
     "};
 
     // invalid hash data
-    let path = repo.join("cat/pkg/Manifest");
+    let path = repo.path().join("cat/pkg/Manifest");
     fs::write(&path, "DIST file 4 BLAKE2B invalid\n").unwrap();
     cmd("pk pkg manifest")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(contains("invalid BLAKE2B hash: invalid"))
@@ -617,7 +609,7 @@ async fn invalid_manifest() {
     )
     .unwrap();
     cmd("pk pkg manifest")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(contains("unsupported hash: SHA256"))
@@ -628,7 +620,7 @@ async fn invalid_manifest() {
     // missing hash data
     fs::write(&path, "DIST file 4 BLAKE2B\n").unwrap();
     cmd("pk pkg manifest")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(contains("invalid number of manifest tokens"))
@@ -639,7 +631,7 @@ async fn invalid_manifest() {
     // hash order doesn't match repo
     fs::write(&path, "DIST file 4 SHA512 ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff BLAKE2B a71079d42853dea26e453004338670a53814b78137ffbed07603a41d76a483aa9bc33b582f77d30a65e6f29a896c0411f38312e1d66e0bf16386c86a89bea572").unwrap();
     cmd("pk pkg manifest")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -659,7 +651,7 @@ async fn restrict() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with restricted file"
@@ -667,7 +659,7 @@ async fn restrict() {
         SLOT=0
         RESTRICT="fetch"
     "#};
-    temp.create_ebuild_from_str("restricted/file-1", &data)
+    repo.create_ebuild_from_str("restricted/file-1", &data)
         .unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
@@ -676,20 +668,19 @@ async fn restrict() {
         SLOT=0
         RESTRICT="fetch"
     "#};
-    temp.create_ebuild_from_str("restricted/fetchable-1", &data)
+    repo.create_ebuild_from_str("restricted/fetchable-1", &data)
         .unwrap();
-    let repo = temp.path();
 
     // unfetched, restricted distfiles cause errors
     cmd("pk pkg manifest")
-        .arg(repo.join("restricted/file"))
+        .arg(repo.path().join("restricted/file"))
         .assert()
         .stdout("")
         .stderr(contains("restricted/file-1::test: nonexistent restricted file: file1"))
         .failure()
         .code(1);
     cmd("pk pkg manifest")
-        .arg(repo.join("restricted/fetchable"))
+        .arg(repo.path().join("restricted/fetchable"))
         .assert()
         .stdout("")
         .stderr(contains(format!(
@@ -699,7 +690,7 @@ async fn restrict() {
         .code(1);
 
     // restricted fetchables can be forcibly processed via --restrict
-    env::set_current_dir(temp.path().join("restricted/fetchable")).unwrap();
+    env::set_current_dir(repo.path().join("restricted/fetchable")).unwrap();
     cmd("pk pkg manifest --restrict")
         .assert()
         .stdout("")
@@ -712,7 +703,7 @@ async fn restrict() {
     assert_eq!(&data, expected);
 
     // restricted files must be manually fetched
-    env::set_current_dir(temp.path().join("restricted/file")).unwrap();
+    env::set_current_dir(repo.path().join("restricted/file")).unwrap();
     let dir = tempdir().unwrap();
     fs::write(dir.path().join("file1"), "file1").unwrap();
     cmd("pk pkg manifest")
@@ -749,7 +740,7 @@ async fn selective_restrict() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with selective restrictions"
@@ -757,9 +748,9 @@ async fn selective_restrict() {
         SLOT=0
         RESTRICT="fetch mirror"
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
-    env::set_current_dir(temp.path().join("cat/pkg")).unwrap();
+    env::set_current_dir(repo.path().join("cat/pkg")).unwrap();
     let dir = tempdir().unwrap();
 
     // Any restricted fetchable stops Manifest from being created but not other

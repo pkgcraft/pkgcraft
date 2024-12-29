@@ -86,14 +86,13 @@ fn default_current_directory() {
 
 #[test]
 fn single() {
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
-    temp.create_ebuild("cat/dep-1", &[]).unwrap();
-    temp.create_ebuild("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    repo.create_ebuild("cat/dep-1", &[]).unwrap();
+    repo.create_ebuild("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    let path = temp.path();
 
     cmd("pk repo leaf")
-        .arg(path)
+        .arg(&repo)
         .assert()
         .stdout("cat/leaf-1\n")
         .stderr("")
@@ -102,16 +101,15 @@ fn single() {
 
 #[test]
 fn multiple() {
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
-    temp.create_ebuild("cat/dep-1", &[]).unwrap();
-    temp.create_ebuild("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    repo.create_ebuild("cat/dep-1", &[]).unwrap();
+    repo.create_ebuild("cat/leaf-1", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    temp.create_ebuild("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
+    repo.create_ebuild("cat/leaf-2", &["DEPEND=>=cat/dep-1"])
         .unwrap();
-    let path = temp.path();
 
     cmd("pk repo leaf")
-        .arg(path)
+        .arg(&repo)
         .assert()
         .stdout("cat/leaf-1\ncat/leaf-2\n")
         .stderr("")
@@ -120,15 +118,14 @@ fn multiple() {
 
 #[test]
 fn none() {
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
-    temp.create_ebuild("cat/a-1", &["DEPEND=>=cat/b-1"])
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    repo.create_ebuild("cat/a-1", &["DEPEND=>=cat/b-1"])
         .unwrap();
-    temp.create_ebuild("cat/b-1", &["DEPEND=>=cat/a-1"])
+    repo.create_ebuild("cat/b-1", &["DEPEND=>=cat/a-1"])
         .unwrap();
-    let path = temp.path();
 
     cmd("pk repo leaf")
-        .arg(path)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")

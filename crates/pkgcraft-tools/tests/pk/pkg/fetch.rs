@@ -30,21 +30,20 @@ async fn nonexistent() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with nonexistent URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(contains(format!("fetch failed: {uri}/file: 404 Not Found")))
@@ -54,19 +53,18 @@ async fn nonexistent() {
 
 #[tokio::test]
 async fn unsupported() {
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with unsupported URI"
         SRC_URI="ftp://pkgcraft.pkgcraft/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     // FTP is not supported
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(contains(
@@ -97,15 +95,14 @@ async fn concurrent() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="u1? ( {uri}/file1 ) u2? ( {uri}/file2 ) {uri}/file3"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
@@ -114,7 +111,7 @@ async fn concurrent() {
         // force nonconcurrent downloads
         cmd("pk pkg fetch")
             .args([opt, "1"])
-            .arg(repo)
+            .arg(&repo)
             .assert()
             .stdout("")
             .stderr("")
@@ -133,21 +130,20 @@ async fn force() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -158,7 +154,7 @@ async fn force() {
 
     // re-run skips downloaded file
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -170,7 +166,7 @@ async fn force() {
     for opt in ["-f", "--force"] {
         cmd("pk pkg fetch")
             .arg(opt)
-            .arg(repo)
+            .arg(&repo)
             .assert()
             .stdout("")
             .stderr("")
@@ -188,15 +184,14 @@ async fn pretend() {
     let server = MockServer::start().await;
     let uri = server.uri();
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file1 {uri}/file2 -> ${{P}}-file2"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
@@ -204,7 +199,7 @@ async fn pretend() {
     for opt in ["-p", "--pretend"] {
         cmd("pk pkg fetch")
             .arg(opt)
-            .arg(repo)
+            .arg(&repo)
             .assert()
             .stdout(indoc::formatdoc!(
                 "
@@ -232,15 +227,14 @@ async fn timeout() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with slow URI connection"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
@@ -248,7 +242,7 @@ async fn timeout() {
     for opt in ["-t", "--timeout"] {
         cmd("pk pkg fetch")
             .args([opt, "0.1"])
-            .arg(repo)
+            .arg(&repo)
             .assert()
             .stdout("")
             .stderr(contains(format!("fetch failed: {uri}/file: request timed out")))
@@ -273,29 +267,28 @@ async fn fetch() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file1"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file2"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     // version scope
     cmd("pk pkg fetch")
-        .arg(repo.join("cat/pkg/pkg-1.ebuild"))
+        .arg(repo.path().join("cat/pkg/pkg-1.ebuild"))
         .assert()
         .stdout("")
         .stderr("")
@@ -305,7 +298,7 @@ async fn fetch() {
 
     // package scope
     cmd("pk pkg fetch")
-        .arg(repo.join("cat/pkg"))
+        .arg(repo.path().join("cat/pkg"))
         .assert()
         .stdout("")
         .stderr("")
@@ -325,16 +318,16 @@ async fn rename() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI and rename"
         SRC_URI="{uri}/?p=pkgcraft -> pkgcraft-${{PV}}"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
-    env::set_current_dir(temp.path()).unwrap();
+    env::set_current_dir(repo.path()).unwrap();
 
     cmd("pk pkg fetch").assert().stdout("").stderr("").success();
     let data = fs::read_to_string("pkgcraft-1").unwrap();
@@ -352,15 +345,14 @@ async fn resume() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
@@ -370,7 +362,7 @@ async fn resume() {
     fs::write(&partial_file, "test").unwrap();
 
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -392,22 +384,21 @@ async fn custom_mirror() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with custom mirror"
         SRC_URI="mirror://{name}/file1"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     // unknown mirrors cause failures
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr(contains("invalid fetchable: mirror unknown: mirror://mocked/file1"))
@@ -415,16 +406,16 @@ async fn custom_mirror() {
         .code(1);
 
     // register mocked mirror
-    fs::create_dir_all(repo.join("profiles")).unwrap();
+    fs::create_dir_all(repo.path().join("profiles")).unwrap();
     fs::write(
-        repo.join("profiles/thirdpartymirrors"),
+        repo.path().join("profiles/thirdpartymirrors"),
         format!("{name} {uri}/invalid1 {uri}/invalid2 {uri}"),
     )
     .unwrap();
 
     // iterate through mirrors until download succeeds
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -454,21 +445,20 @@ async fn redirect() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with mocked SRC_URI"
         SRC_URI="{uri}/file"
         SLOT=0
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -488,7 +478,7 @@ async fn restrict() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with restricted file"
@@ -496,7 +486,7 @@ async fn restrict() {
         SLOT=0
         RESTRICT="fetch"
     "#};
-    temp.create_ebuild_from_str("restricted/file-1", &data)
+    repo.create_ebuild_from_str("restricted/file-1", &data)
         .unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
@@ -505,16 +495,15 @@ async fn restrict() {
         SLOT=0
         RESTRICT="fetch"
     "#};
-    temp.create_ebuild_from_str("restricted/fetchable-1", &data)
+    repo.create_ebuild_from_str("restricted/fetchable-1", &data)
         .unwrap();
-    let repo = temp.path();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     // restricted targets are skipped by default
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -522,13 +511,13 @@ async fn restrict() {
 
     // but will be shown as warnings
     cmd("pk pkg fetch -v")
-        .arg(repo.join("restricted/file"))
+        .arg(repo.path().join("restricted/file"))
         .assert()
         .stdout("")
         .stderr(contains("skipping restricted file: file"))
         .success();
     cmd("pk pkg fetch -v")
-        .arg(repo.join("restricted/fetchable"))
+        .arg(repo.path().join("restricted/fetchable"))
         .assert()
         .stdout("")
         .stderr(contains(format!("skipping restricted fetchable: {uri}/file")))
@@ -537,7 +526,7 @@ async fn restrict() {
 
     // restricted fetchables can be forcibly processed via --restrict
     cmd("pk pkg fetch --restrict")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -567,7 +556,7 @@ async fn selective_restrict() {
         .mount(&server)
         .await;
 
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with selective restrictions"
@@ -575,14 +564,13 @@ async fn selective_restrict() {
         SLOT=0
         RESTRICT="fetch mirror"
     "#};
-    temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
-    let repo = temp.path();
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
     let dir = tempdir().unwrap();
     env::set_current_dir(&dir).unwrap();
 
     cmd("pk pkg fetch")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")
@@ -595,7 +583,7 @@ async fn selective_restrict() {
 
     // restricted fetchables can be forcibly processed via --restrict
     cmd("pk pkg fetch --restrict")
-        .arg(repo)
+        .arg(&repo)
         .assert()
         .stdout("")
         .stderr("")

@@ -144,8 +144,8 @@ fn single() {
 
 #[test]
 fn jobs() {
-    let mut temp = EbuildRepoBuilder::new().build().unwrap();
-    temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    repo.create_ebuild("cat/pkg-1", &[]).unwrap();
 
     for opt in ["-j", "--jobs"] {
         // invalid
@@ -163,7 +163,7 @@ fn jobs() {
         for val in ["0", "999999"] {
             cmd("pk repo metadata regen")
                 .args([opt, val])
-                .arg(temp.path())
+                .arg(&repo)
                 .assert()
                 .stdout("")
                 .stderr("")
