@@ -2,7 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
@@ -45,7 +45,7 @@ impl Command {
                 None
             };
 
-            let mut licenses = IndexMap::<_, Vec<_>>::new();
+            let mut licenses = IndexMap::<_, IndexSet<_>>::new();
 
             // TODO: use parallel iterator
             let mut iter = repo.iter_ordered().log_errors();
@@ -55,7 +55,7 @@ impl Command {
                     licenses
                         .entry(license.clone())
                         .or_default()
-                        .push(cpv.clone());
+                        .insert(cpv.clone());
                 }
             }
             failed |= iter.failed();
