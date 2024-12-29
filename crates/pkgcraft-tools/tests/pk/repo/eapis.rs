@@ -1,5 +1,6 @@
 use std::env;
 
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -72,12 +73,19 @@ fn default_current_directory() {
 
 #[test]
 fn single_repo() {
-    let data = test_data();
-    let repo = data.ebuild_repo("metadata").unwrap();
+    let mut repo = EbuildRepoBuilder::new().id("repo").build().unwrap();
+    repo.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
+    repo.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
+    repo.create_ebuild("cat/pkg-3", &["EAPI=8"]).unwrap();
+
     cmd("pk repo eapis")
-        .arg(repo)
+        .arg(&repo)
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(indoc::indoc! {"
+            repo
+              EAPI 7: 1 pkg
+              EAPI 8: 2 pkgs
+        "})
         .stderr("")
         .success();
 }
