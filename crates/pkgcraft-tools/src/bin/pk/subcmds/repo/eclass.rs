@@ -8,7 +8,6 @@ use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::LogErrors;
-use rayon::prelude::*;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Eclass options")]
@@ -49,7 +48,7 @@ impl Command {
             let mut eclasses = IndexMap::<_, Vec<_>>::new();
 
             // TODO: use parallel iterator
-            let mut iter = repo.iter_unordered().log_errors();
+            let mut iter = repo.iter_ordered().log_errors();
             for pkg in &mut iter {
                 let cpv = pkg.cpv();
                 for eclass in pkg.inherited() {
@@ -63,8 +62,7 @@ impl Command {
 
             if let Some(eclass) = selected {
                 // ouput all packages using a selected eclass
-                if let Some(cpvs) = eclasses.get_mut(eclass) {
-                    cpvs.par_sort();
+                if let Some(cpvs) = eclasses.get(eclass) {
                     for cpv in cpvs {
                         writeln!(stdout, "{cpv}")?;
                     }
