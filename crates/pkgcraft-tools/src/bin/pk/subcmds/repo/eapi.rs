@@ -13,7 +13,7 @@ use pkgcraft::traits::LogErrors;
 #[derive(Args)]
 pub(crate) struct Command {
     /// Output packages for a target EAPI
-    #[arg(short, long)]
+    #[arg(long)]
     eapi: Option<&'static Eapi>,
 
     // positionals
