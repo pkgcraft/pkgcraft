@@ -7,6 +7,7 @@ mod eclass;
 mod leaf;
 mod license;
 mod metadata;
+mod mirror;
 
 #[derive(clap::Args)]
 pub(crate) struct Command {
@@ -32,6 +33,8 @@ enum Subcommand {
     License(Box<license::Command>),
     /// Manipulate repo metadata
     Metadata(Box<metadata::Command>),
+    /// Output mirror statistics
+    Mirror(Box<mirror::Command>),
 }
 
 impl Subcommand {
@@ -42,6 +45,7 @@ impl Subcommand {
             Self::Leaf(cmd) => cmd.run(config),
             Self::License(cmd) => cmd.run(config),
             Self::Metadata(cmd) => cmd.run(config),
+            Self::Mirror(cmd) => cmd.run(config),
         }
     }
 }
