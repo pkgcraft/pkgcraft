@@ -22,6 +22,11 @@ use crate::Error;
 
 /// Convert a target ebuild repo arg into an ebuild repo reference.
 pub fn target_ebuild_repo(config: &mut Config, target: &str) -> crate::Result<EbuildRepo> {
+    // load system config for repo alias support
+    if !target.contains(std::path::MAIN_SEPARATOR) {
+        config.load()?;
+    }
+
     let id = if config.repos.get(target).is_some() {
         target.to_string()
     } else if let Ok(abspath) = Utf8Path::new(target).canonicalize_utf8() {
