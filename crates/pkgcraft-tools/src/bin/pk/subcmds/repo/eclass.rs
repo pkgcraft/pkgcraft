@@ -10,6 +10,7 @@ use pkgcraft::pkg::Package;
 use pkgcraft::traits::LogErrors;
 
 #[derive(Args)]
+#[clap(next_help_heading = "Eclass options")]
 pub(crate) struct Command {
     /// Output packages for a target eclass
     #[arg(long)]
@@ -17,7 +18,7 @@ pub(crate) struct Command {
 
     // positionals
     /// Target repositories
-    #[arg(value_name = "REPO", default_value = ".")]
+    #[arg(value_name = "REPO", default_value = ".", help_heading = "Arguments")]
     repos: Vec<String>,
 }
 
