@@ -1,5 +1,6 @@
-use std::env;
+use std::{env, fs};
 
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -66,6 +67,82 @@ fn default_current_directory() {
     cmd("pk repo license")
         .assert()
         .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+}
+
+#[test]
+fn single_repo() {
+    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    let dir = repo.path().join("licenses");
+    fs::create_dir(&dir).unwrap();
+    let data = indoc::indoc! {r#"
+        # stub license
+    "#};
+    fs::write(dir.join("l1"), data).unwrap();
+    let data = indoc::indoc! {r#"
+        # stub license
+    "#};
+    fs::write(dir.join("l2"), data).unwrap();
+    let data = indoc::indoc! {r#"
+        # stub license
+    "#};
+    fs::write(dir.join("l3"), data).unwrap();
+
+    let data = indoc::indoc! {r#"
+        EAPI=8
+        DESCRIPTION="testing for license usage"
+        SLOT=0
+        LICENSE="l1"
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+    let data = indoc::indoc! {r#"
+        EAPI=8
+        DESCRIPTION="testing for license usage"
+        SLOT=0
+        LICENSE="use? ( l1 ) l2"
+        IUSE="use"
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-2", data).unwrap();
+    repo.create_ebuild("cat/pkg-3", &[]).unwrap();
+
+    // all licenses
+    cmd("pk repo license")
+        .arg(&repo)
+        .assert()
+        .stdout(indoc::indoc! {"
+            repo
+              l2: 1 pkg
+              l1: 2 pkgs
+        "})
+        .stderr("")
+        .success();
+
+    // invalid, selected license
+    cmd("pk repo license --license nonexistent")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("unknown license: nonexistent"))
+        .failure()
+        .code(2);
+
+    // matching packages for license
+    cmd("pk repo license --license l1")
+        .arg(&repo)
+        .assert()
+        .stdout(indoc::indoc! {"
+            cat/pkg-1
+            cat/pkg-2
+        "})
+        .stderr("")
+        .success();
+
+    // unused license
+    cmd("pk repo license --license l3")
+        .arg(&repo)
+        .assert()
+        .stdout("")
         .stderr("")
         .success();
 }
