@@ -9,6 +9,7 @@ use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::LogErrors;
+use rayon::prelude::*;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Eapi options")]
@@ -46,7 +47,7 @@ impl Command {
 
             if let Some(eapi) = self.eapi {
                 if let Some(cpvs) = eapis.get_mut(eapi) {
-                    cpvs.sort();
+                    cpvs.par_sort();
                     for cpv in cpvs {
                         writeln!(stdout, "{cpv}")?;
                     }

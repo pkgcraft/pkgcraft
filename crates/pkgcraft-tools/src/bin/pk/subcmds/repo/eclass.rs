@@ -8,6 +8,7 @@ use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::Package;
 use pkgcraft::traits::LogErrors;
+use rayon::prelude::*;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Eclass options")]
@@ -63,7 +64,7 @@ impl Command {
             if let Some(eclass) = selected {
                 // ouput all packages using a selected eclass
                 if let Some(cpvs) = eclasses.get_mut(eclass) {
-                    cpvs.sort();
+                    cpvs.par_sort();
                     for cpv in cpvs {
                         writeln!(stdout, "{cpv}")?;
                     }
