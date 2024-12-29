@@ -1,5 +1,6 @@
 use std::env;
 
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -66,6 +67,73 @@ fn default_current_directory() {
     cmd("pk repo eclass")
         .assert()
         .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+}
+
+#[test]
+fn single_repo() {
+    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    let eclass = indoc::indoc! {r#"
+        # stub eclass
+    "#};
+    repo.create_eclass("e1", eclass).unwrap();
+    let eclass = indoc::indoc! {r#"
+        # stub eclass
+        inherit e1
+    "#};
+    repo.create_eclass("e2", eclass).unwrap();
+    let eclass = indoc::indoc! {r#"
+        # stub eclass
+        inherit e2
+    "#};
+    repo.create_eclass("e3", eclass).unwrap();
+
+    let data = indoc::indoc! {r#"
+        EAPI=8
+        inherit e1
+        DESCRIPTION="testing for eclass usage"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+    let data = indoc::indoc! {r#"
+        EAPI=8
+        inherit e2
+        DESCRIPTION="testing for eclass usage"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-2", data).unwrap();
+    repo.create_ebuild("cat/pkg-3", &[]).unwrap();
+
+    // all eclasses
+    cmd("pk repo eclass")
+        .arg(&repo)
+        .assert()
+        .stdout(indoc::indoc! {"
+            repo
+              e2: 1 pkg
+              e1: 2 pkgs
+        "})
+        .stderr("")
+        .success();
+
+    // invalid, selected eclass
+    cmd("pk repo eclass --eclass nonexistent")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr(contains("unknown eclass: nonexistent"))
+        .failure()
+        .code(2);
+
+    // matching packages for eclass
+    cmd("pk repo eclass --eclass e1")
+        .arg(&repo)
+        .assert()
+        .stdout(indoc::indoc! {"
+            cat/pkg-1
+            cat/pkg-2
+        "})
         .stderr("")
         .success();
 }
