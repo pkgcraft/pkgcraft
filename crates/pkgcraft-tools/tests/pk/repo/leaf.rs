@@ -4,6 +4,7 @@ use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
+use tempfile::tempdir;
 
 #[test]
 fn nonexistent_repo() {
@@ -62,10 +63,20 @@ fn empty_repo() {
 
 #[test]
 fn default_current_directory() {
+    // non-repo working directory
+    let dir = tempdir().unwrap();
+    env::set_current_dir(dir.path()).unwrap();
+    cmd("pk repo leaf")
+        .assert()
+        .stdout("")
+        .stderr(contains("non-ebuild repo: ."))
+        .failure()
+        .code(2);
+
+    // repo working directory
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
     env::set_current_dir(repo).unwrap();
-
     cmd("pk repo leaf")
         .assert()
         .stdout(predicate::str::is_empty().not())
