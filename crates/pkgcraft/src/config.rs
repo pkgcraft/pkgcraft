@@ -185,9 +185,10 @@ impl Config {
     /// Load portage config files from a given directory, falling back to the default locations.
     pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<()> {
         // use specified path or use fallbacks
-        let config_dirs = match path {
-            Some(p) => vec![p],
-            None => PORTAGE_CONFIG_PATHS.to_vec(),
+        let config_dirs = if let Some(value) = path {
+            &[value]
+        } else {
+            PORTAGE_CONFIG_PATHS
         };
 
         let paths = config_dirs
