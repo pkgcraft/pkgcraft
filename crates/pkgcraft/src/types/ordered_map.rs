@@ -151,6 +151,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn eq_and_ord() {
+        let m1 = OrderedMap::<&str, usize>::new();
+        let m2 = OrderedMap::<&str, usize>::new();
+        assert!(m1 >= m2);
+        assert!(m1 <= m2);
+        assert!(m1 == m2);
+
+        let m1 = OrderedMap::from([("a", 1)]);
+        let m2 = OrderedMap::from([("a", 1)]);
+        assert!(m1 >= m2);
+        assert!(m1 <= m2);
+        assert!(m1 == m2);
+
+        let m1 = OrderedMap::from([("a", 1)]);
+        let m2 = OrderedMap::from([("b", 2)]);
+        assert!(m1 < m2);
+
+        let m1 = OrderedMap::from([("a", 1), ("b", 2), ("d", 3)]);
+        let m2 = OrderedMap::from([("a", 1), ("b", 2), ("c", 3)]);
+        assert!(m1 > m2);
+    }
+
+    #[test]
     fn hash() {
         // different elements
         let m1 = OrderedMap::from([("a", 1)]);
