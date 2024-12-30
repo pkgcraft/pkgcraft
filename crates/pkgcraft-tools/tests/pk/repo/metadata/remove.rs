@@ -1,3 +1,5 @@
+use std::env;
+
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
@@ -9,7 +11,7 @@ use tempfile::tempdir;
 fn run() {
     let mut config = Config::default();
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
-    temp.create_ebuild("cat/a-1", &[]).unwrap();
+    temp.create_ebuild("cat/pkg-1", &[]).unwrap();
     let repo = config
         .add_repo(&temp, false)
         .unwrap()
@@ -26,7 +28,7 @@ fn run() {
         .success();
 
     assert!(path.exists());
-    assert!(path.join("cat/a-1").exists());
+    assert!(path.join("cat/pkg-1").exists());
 
     // remove cache
     cmd("pk repo metadata remove")
@@ -45,17 +47,62 @@ fn run() {
         .stdout("")
         .stderr("")
         .success();
+}
 
+#[test]
+fn current_dir() {
+    let mut config = Config::default();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
+    let path = repo.metadata().cache().path();
+    env::set_current_dir(&repo).unwrap();
+
+    // generate cache
+    cmd("pk repo metadata regen")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    assert!(path.exists());
+    assert!(path.join("cat/pkg-1").exists());
+
+    // remove cache
+    cmd("pk repo metadata remove")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    assert!(!path.exists());
+
+    // missing cache removal is ignored
+    cmd("pk repo metadata remove")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+}
+
+#[test]
+fn external_unsupported() {
+    let repo = EbuildRepoBuilder::new().build().unwrap();
     let dir = tempdir().unwrap();
     let cache_path = dir.path().to_str().unwrap();
 
-    // external cache removal isn't supported
-    cmd("pk repo metadata remove")
-        .args(["-p", cache_path])
-        .arg(&repo)
-        .assert()
-        .stdout("")
-        .stderr(contains(format!("removal unsupported for external cache: {cache_path}")))
-        .failure()
-        .code(2);
+    for opt in ["-p", "--path"] {
+        cmd("pk repo metadata remove")
+            .args([opt, cache_path])
+            .arg(&repo)
+            .assert()
+            .stdout("")
+            .stderr(contains(format!("removal unsupported for external cache: {cache_path}")))
+            .failure()
+            .code(2);
+    }
 }
