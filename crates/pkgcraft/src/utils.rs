@@ -170,6 +170,8 @@ mod tests {
             ("path", "/path", None),
             ("/path", "/path", Some("")),
             ("", "", Some("")),
+            ("", ".", Some("..")),
+            ("", "..", Some("..")),
             ("/", "", Some("/")),
             ("", "/", None),
             ("/", "path", Some("/")),
@@ -179,21 +181,11 @@ mod tests {
             ("/path/to/file", "/path/to", Some("file")),
             ("/path/to/file", "/path/to/", Some("file")),
         ] {
-            // utf8
-            assert_eq!(
-                relpath_utf8(path, base).map(|x| x.to_string()).as_deref(),
-                expected,
-                "relpath failed: path {path:?}, base {base:?}"
-            );
-
-            // non-utf8
-            assert_eq!(
-                relpath(path, base)
-                    .map(|x| x.to_str().unwrap().to_string())
-                    .as_deref(),
-                expected,
-                "relpath failed: path {path:?}, base {base:?}"
-            );
+            let relpath_utf8 = relpath_utf8(path, base).map(|x| x.to_string());
+            let relpath = relpath(path, base).map(|x| x.to_str().unwrap().to_string());
+            for value in [relpath_utf8, relpath] {
+                assert_eq!(value.as_deref(), expected, "path {path:?}, base {base:?}");
+            }
         }
     }
 }
