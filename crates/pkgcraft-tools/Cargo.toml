@@ -1,6 +1,6 @@
 [package]
 name = "pkgcraft-tools"
-version = "0.0.20"
+version = "0.0.21"
 description = "CLI tools based on pkgcraft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools"
@@ -45,10 +45,10 @@ indicatif = "0.17.9"
 indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.20" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.21" }
 rayon = "1.10.0"
 reqwest = { version = "0.12.11", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
-scallop = { path = "../scallop", version = "0.0.19" }
+scallop = { path = "../scallop", version = "0.0.20" }
 strum = { version = "0.26.3", features = ["derive"] }
 tempfile = "3.14.0"
 tokio = { version = "1.42.0", features = ["full"] }
