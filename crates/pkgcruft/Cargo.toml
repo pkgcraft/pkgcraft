@@ -57,7 +57,7 @@ pkgcraft = { path = "../pkgcraft", version = "0.0.20" }
 rayon = "1.10.0"
 regex = "1.11.1"
 scallop = { path = "../scallop", version = "0.0.19" }
-serde = { version = "1.0.216", features = ["derive"] }
+serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.134"
 strfmt = "0.2.4"
 strum = { version = "0.26.3", features = ["derive"] }
@@ -65,13 +65,13 @@ thiserror = "2.0.9"
 tracing = "0.1.41"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.19"
-tree-sitter = "0.24.5"
+tree-sitter = "0.24.6"
 url = "2.5.4"
 walkdir = "2.5.0"
 
 # exported test support deps
 assert_cmd = { version = "2.0.16", optional = true }
-glob = { version = "0.3.1", optional = true }
+glob = { version = "0.3.2", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"
