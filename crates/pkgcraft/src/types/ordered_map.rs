@@ -145,3 +145,35 @@ where
         IndexMap::deserialize(deserializer).map(OrderedMap)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hash() {
+        // different elements
+        let m1 = OrderedMap::from([("a", 1)]);
+        let m2 = OrderedMap::from([("b", 2)]);
+        assert_ne!(&m1, &m2);
+        assert_eq!(OrderedSet::from([m1, m2]).len(), 2);
+
+        // different ordering
+        let m1 = OrderedMap::from([("a", 1), ("b", 2)]);
+        let m2 = OrderedMap::from([("b", 2), ("a", 1)]);
+        assert_ne!(&m1, &m2);
+        assert_eq!(OrderedSet::from([m1, m2]).len(), 2);
+
+        // similar ordering
+        let m1 = OrderedMap::from([("a", 1), ("b", 2)]);
+        let m2 = OrderedMap::from([("a", 1), ("b", 2)]);
+        assert_eq!(&m1, &m2);
+        assert_eq!(OrderedSet::from([m1, m2]).len(), 1);
+
+        // matching elements
+        let m1 = OrderedMap::from([("a", 1), ("b", 2), ("a", 1)]);
+        let m2 = OrderedMap::from([("a", 1), ("b", 2), ("b", 2)]);
+        assert_eq!(&m1, &m2);
+        assert_eq!(OrderedSet::from([m1, m2]).len(), 1);
+    }
+}
