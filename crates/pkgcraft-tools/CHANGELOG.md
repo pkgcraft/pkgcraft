@@ -1,3 +1,21 @@
+# 0.0.21 (2024-12-30)
+
+## Added
+- `pk repo eclass`: add repo eclass usage stats support
+- `pk pkg env`: add --repo support
+- `pk pkg fetch`: add -m/--mirrors to try fetching from default mirrors
+- `pk pkg fetch`: add -p/--pretend to output targets instead of fetching
+- `pk repo license`: add repo license usage stats support
+- `pk pkg manifest`: add -m/--mirrors support to try fetching from default mirrors
+- `pk repo mirror`: add repo mirror usage stats support
+- `pk pkg pretend`: add --repo support
+- `pk pkg source`: add --repo support
+
+## Changed
+- `pk pkg metadata`: use current working directory for repo by default
+- Lazily load the system config for subcommands that may use it.
+- `pk repo eapi`: subcommand rename from `eapis`
+
 # 0.0.20 (2024-12-18)
 
 ## Added
