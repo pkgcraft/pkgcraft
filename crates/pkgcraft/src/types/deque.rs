@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone)]
-pub struct Deque<T>(pub(crate) VecDeque<T>);
+pub struct Deque<T>(VecDeque<T>);
 
 impl<T> Default for Deque<T> {
     fn default() -> Self {
