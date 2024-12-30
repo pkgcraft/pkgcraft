@@ -94,7 +94,7 @@ where
                 (None, None) => break,
                 (Some(a), None) => {
                     comps.push(a);
-                    comps.extend(ita.by_ref());
+                    comps.extend(ita);
                     break;
                 }
                 (None, _) => comps.push(Component::ParentDir),
@@ -103,11 +103,9 @@ where
                 (Some(_), Some(Component::ParentDir)) => return None,
                 (Some(a), Some(_)) => {
                     comps.push(Component::ParentDir);
-                    for _ in itb {
-                        comps.push(Component::ParentDir);
-                    }
+                    comps.extend(itb.map(|_| Component::ParentDir));
                     comps.push(a);
-                    comps.extend(ita.by_ref());
+                    comps.extend(ita);
                     break;
                 }
             }
@@ -140,7 +138,7 @@ where
                 (None, None) => break,
                 (Some(a), None) => {
                     comps.push(a);
-                    comps.extend(ita.by_ref());
+                    comps.extend(ita);
                     break;
                 }
                 (None, _) => comps.push(Utf8Component::ParentDir),
@@ -149,11 +147,9 @@ where
                 (Some(_), Some(Utf8Component::ParentDir)) => return None,
                 (Some(a), Some(_)) => {
                     comps.push(Utf8Component::ParentDir);
-                    for _ in itb {
-                        comps.push(Utf8Component::ParentDir);
-                    }
+                    comps.extend(itb.map(|_| Utf8Component::ParentDir));
                     comps.push(a);
-                    comps.extend(ita.by_ref());
+                    comps.extend(ita);
                     break;
                 }
             }
