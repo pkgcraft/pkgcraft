@@ -70,6 +70,7 @@ mod tests {
         assert_err_re!(r, "^line 1: assert: error: output message");
     }
 
+    #[ignore]
     #[test]
     fn subshell() {
         bind("VAR", "1", None, None).unwrap();

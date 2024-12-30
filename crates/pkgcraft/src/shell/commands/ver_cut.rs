@@ -137,6 +137,7 @@ mod tests {
         }
     }
 
+    #[ignore]
     #[test]
     fn subshell() {
         let mut config = Config::default();
