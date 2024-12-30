@@ -2,7 +2,7 @@ use std::env;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{is_separator, Component, Path, PathBuf};
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use digest::Digest;
 
 use crate::Error;
@@ -105,6 +105,52 @@ where
                     comps.push(Component::ParentDir);
                     for _ in itb {
                         comps.push(Component::ParentDir);
+                    }
+                    comps.push(a);
+                    comps.extend(ita.by_ref());
+                    break;
+                }
+            }
+        }
+        Some(comps.iter().collect())
+    }
+}
+
+/// Construct a relative utf8 path from a base directory to the specified path.
+pub fn relpath_utf8<P, B>(path: P, base: B) -> Option<Utf8PathBuf>
+where
+    P: AsRef<Utf8Path>,
+    B: AsRef<Utf8Path>,
+{
+    let path = path.as_ref();
+    let base = base.as_ref();
+
+    if path.is_absolute() != base.is_absolute() {
+        if path.is_absolute() {
+            Some(Utf8PathBuf::from(path))
+        } else {
+            None
+        }
+    } else {
+        let mut ita = path.components();
+        let mut itb = base.components();
+        let mut comps: Vec<Utf8Component> = vec![];
+        loop {
+            match (ita.next(), itb.next()) {
+                (None, None) => break,
+                (Some(a), None) => {
+                    comps.push(a);
+                    comps.extend(ita.by_ref());
+                    break;
+                }
+                (None, _) => comps.push(Utf8Component::ParentDir),
+                (Some(a), Some(b)) if comps.is_empty() && a == b => (),
+                (Some(a), Some(Utf8Component::CurDir)) => comps.push(a),
+                (Some(_), Some(Utf8Component::ParentDir)) => return None,
+                (Some(a), Some(_)) => {
+                    comps.push(Utf8Component::ParentDir);
+                    for _ in itb {
+                        comps.push(Utf8Component::ParentDir);
                     }
                     comps.push(a);
                     comps.extend(ita.by_ref());
