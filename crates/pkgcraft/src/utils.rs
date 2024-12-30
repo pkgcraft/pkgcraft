@@ -173,22 +173,24 @@ mod tests {
             ("/", "", Some("/")),
             ("", "/", None),
             ("/", "path", Some("/")),
+            ("path/file", "./path", Some("path/../file")),
+            ("path/file", "path/../file", None),
             ("path", "/", None),
             ("/path/to/file", "/path/to", Some("file")),
             ("/path/to/file", "/path/to/", Some("file")),
         ] {
+            // utf8
             assert_eq!(
-                // non-utf8
-                relpath(path, base)
-                    .map(|x| x.to_str().unwrap().to_string())
-                    .as_deref(),
+                relpath_utf8(path, base).map(|x| x.to_string()).as_deref(),
                 expected,
                 "relpath failed: path {path:?}, base {base:?}"
             );
 
-            // utf8
+            // non-utf8
             assert_eq!(
-                relpath_utf8(path, base).map(|x| x.to_string()).as_deref(),
+                relpath(path, base)
+                    .map(|x| x.to_str().unwrap().to_string())
+                    .as_deref(),
                 expected,
                 "relpath failed: path {path:?}, base {base:?}"
             );
