@@ -16,6 +16,7 @@ impl<T> Deque<T> {
         Self::default()
     }
 
+    /// Prepends all elements to the deque.
     pub fn extend_left<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>,
