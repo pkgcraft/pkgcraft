@@ -2,9 +2,8 @@ use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::cmd;
+use predicates::str::contains;
 use tempfile::tempdir;
-
-use crate::predicates::lines_contain;
 
 #[test]
 fn run() {
@@ -56,7 +55,7 @@ fn run() {
         .arg(&repo)
         .assert()
         .stdout("")
-        .stderr(lines_contain([format!("external cache: {cache_path}")]))
+        .stderr(contains(format!("removal unsupported for external cache: {cache_path}")))
         .failure()
         .code(2);
 }
