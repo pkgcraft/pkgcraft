@@ -842,12 +842,16 @@ impl Metadata {
             })
             .collect::<Vec<_>>();
 
-        data.par_sort();
-        let data = data
-            .iter()
-            .map(|(cpn, name, desc)| format!("{cpn}:{name} - {desc}\n"))
-            .join("");
-        atomic_write_file(self.path.join("profiles/use.local.desc"), data)
+        if !data.is_empty() {
+            data.par_sort();
+            let data = data
+                .iter()
+                .map(|(cpn, name, desc)| format!("{cpn}:{name} - {desc}\n"))
+                .join("");
+            atomic_write_file(self.path.join("profiles/use.local.desc"), data)
+        } else {
+            Ok(())
+        }
     }
 }
 
