@@ -157,3 +157,41 @@ where
         Some(comps.iter().collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn relpaths() {
+        for (path, base, expected) in [
+            ("path", "path", Some("")),
+            ("/path", "path", Some("/path")),
+            ("path", "/path", None),
+            ("/path", "/path", Some("")),
+            ("", "", Some("")),
+            ("/", "", Some("/")),
+            ("", "/", None),
+            ("/", "path", Some("/")),
+            ("path", "/", None),
+            ("/path/to/file", "/path/to", Some("file")),
+            ("/path/to/file", "/path/to/", Some("file")),
+        ] {
+            assert_eq!(
+                // non-utf8
+                relpath(path, base)
+                    .map(|x| x.to_str().unwrap().to_string())
+                    .as_deref(),
+                expected,
+                "relpath failed: path {path:?}, base {base:?}"
+            );
+
+            // utf8
+            assert_eq!(
+                relpath_utf8(path, base).map(|x| x.to_string()).as_deref(),
+                expected,
+                "relpath failed: path {path:?}, base {base:?}"
+            );
+        }
+    }
+}
