@@ -306,3 +306,43 @@ fn data_content() {
         }
     }
 }
+
+#[test]
+fn use_local() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    let path = repo.path().join("profiles/use.local.desc");
+
+    // no local USE data
+    cmd("pk repo metadata regen --use-local")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    assert!(!path.exists());
+
+    repo.create_ebuild("cat/pkg-1", &[]).unwrap();
+
+    let data = indoc::indoc! {r#"
+        <pkgmetadata>
+            <use>
+                <flag name="use1">desc1</flag>
+                <flag name="use2">desc2</flag>
+            </use>
+        </pkgmetadata>
+    "#};
+    fs::write(repo.path().join("cat/pkg/metadata.xml"), data).unwrap();
+
+    cmd("pk repo metadata regen --use-local")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string(&path).unwrap();
+    let expected = indoc::indoc! {"
+        cat/pkg:use1 - desc1
+        cat/pkg:use2 - desc2
+    "};
+    assert_eq!(&data, expected);
+}
