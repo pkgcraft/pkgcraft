@@ -10,7 +10,7 @@ use super::{Ordered, OrderedSet};
 
 /// Ordered map that implements Ord and Hash.
 #[derive(Debug, Clone)]
-pub struct OrderedMap<K: Ordered, V: Ordered>(pub(crate) IndexMap<K, V>);
+pub struct OrderedMap<K: Ordered, V: Ordered>(IndexMap<K, V>);
 
 impl<K: Ordered, V: Ordered> Default for OrderedMap<K, V> {
     fn default() -> Self {
