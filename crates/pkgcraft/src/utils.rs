@@ -59,7 +59,7 @@ pub(crate) fn is_single_component<S: AsRef<str>>(path: S) -> bool {
     !path.as_ref().contains(is_separator)
 }
 
-// Construct a relative path from a base directory to the specified path.
+/// Construct a relative path from a base directory to the specified path.
 //
 // Adapted from rustc's old path_relative_from()
 // https://github.com/rust-lang/rust/blob/e1d0de82cc40b666b88d4a6d2c9dcbc81d7ed27f/src/librustc_back/rpath.rs#L116-L158
@@ -112,6 +112,6 @@ where
                 }
             }
         }
-        Some(comps.iter().map(|c| c.as_os_str()).collect())
+        Some(comps.iter().collect())
     }
 }
