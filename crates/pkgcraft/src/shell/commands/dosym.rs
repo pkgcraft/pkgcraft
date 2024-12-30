@@ -1,19 +1,18 @@
 use std::os::unix::fs::symlink;
-use std::path::PathBuf;
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::DosymRelative;
 use crate::shell::get_build_mut;
-use crate::utils::relpath;
+use crate::utils::relpath_utf8;
 
 use super::make_builtin;
 
 const LONG_DOC: &str = "Create symbolic links.";
 
 /// Convert link target from an absolute path to a path relative to its name.
-fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<PathBuf> {
+fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<Utf8PathBuf> {
     let target = target.as_ref();
     let name = name.as_ref();
 
@@ -22,7 +21,7 @@ fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<Pat
     }
 
     let parent = name.parent().map(|x| x.as_str()).unwrap_or("/");
-    relpath(target, parent)
+    relpath_utf8(target, parent)
         .ok_or_else(|| Error::Base(format!("invalid relative path: {target} -> {name}")))
 }
 
@@ -33,14 +32,14 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         ["-r", target, name] if eapi.has(DosymRelative) => {
             (convert_target(target, name)?, name)
         }
-        [target, name] => (PathBuf::from(target), name),
+        [target, name] => (Utf8PathBuf::from(target), name),
         _ => return Err(Error::Base(format!("requires 2 args, got {}", args.len()))),
     };
 
     // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
     let name_path = Utf8Path::new(name);
     if name.ends_with('/') || (name_path.is_dir() && !name_path.is_symlink()) {
-        return Err(Error::Base(format!("missing filename target: {target:?}")));
+        return Err(Error::Base(format!("missing filename target: {target}")));
     }
 
     get_build_mut()
