@@ -131,11 +131,11 @@ impl From<FancyReporter> for Reporter {
 
 impl FancyReporter {
     fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
-        let key = match report.scope() {
-            ReportScope::Version(cpv, _) => cpv.cpn().to_string(),
-            ReportScope::Package(cpn) => cpn.to_string(),
-            ReportScope::Category(cat) => cat.to_string(),
-            ReportScope::Repo(repo) => repo.to_string(),
+        let scope = report.scope();
+        let key = if let ReportScope::Version(cpv, _) = scope {
+            cpv.cpn().to_string()
+        } else {
+            scope.to_string()
         };
 
         if !self
@@ -153,7 +153,7 @@ impl FancyReporter {
 
         write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
 
-        if let ReportScope::Version(cpv, location) = report.scope() {
+        if let ReportScope::Version(cpv, location) = scope {
             write!(output, ": version {}", cpv.version())?;
             if let Some(value) = location {
                 write!(output, ", {value}")?;
@@ -290,8 +290,8 @@ mod tests {
             cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
             cat/pkg-1-r2, line 3, column 28: WhitespaceInvalid: character '\u{2001}'
             cat/pkg: UnstableOnly: arch
-            cat1: RepoCategoryEmpty
-            cat2: RepoCategoryEmpty
+            cat1/*: RepoCategoryEmpty
+            cat2/*: RepoCategoryEmpty
             repo1: LicensesUnused: unused
         "#};
 
@@ -337,10 +337,10 @@ mod tests {
               WhitespaceInvalid: version 1-r2, line 3, column 28: character '\u{2001}'
               UnstableOnly: arch
 
-            cat1
+            cat1/*
               RepoCategoryEmpty
 
-            cat2
+            cat2/*
               RepoCategoryEmpty
 
             repo1

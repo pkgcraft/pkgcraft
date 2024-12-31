@@ -627,7 +627,7 @@ impl fmt::Display for ReportScope {
             Self::Version(cpv, Some(location)) => write!(f, "{cpv}, {location}"),
             Self::Version(cpv, None) => write!(f, "{cpv}"),
             Self::Package(cpn) => write!(f, "{cpn}"),
-            Self::Category(cat) => write!(f, "{cat}"),
+            Self::Category(cat) => write!(f, "{cat}/*"),
             Self::Repo(repo) => write!(f, "{repo}"),
         }
     }
@@ -879,7 +879,6 @@ mod tests {
             // debug output
             let s = format!("{report:?}");
             assert!(s.contains(&kind));
-            assert!(s.contains(&scope));
         }
     }
 }
