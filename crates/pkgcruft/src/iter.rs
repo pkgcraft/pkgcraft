@@ -345,7 +345,8 @@ impl ReportIter {
         let wg = WaitGroup::new();
         let filter = ReportFilter::new(scope, scanner, reports_tx);
 
-        let runner = Arc::new(SyncCheckRunner::try_new(scope, scanner, &restrict, checks)?);
+        let runner =
+            Arc::new(SyncCheckRunner::try_new(scope, scanner, &restrict, checks, &filter)?);
 
         Ok(Self(ReportIterInternal::Pkg(IterPkg {
             rx: reports_rx,
@@ -388,7 +389,8 @@ impl ReportIter {
         let wg = WaitGroup::new();
         let filter = ReportFilter::new(scope, scanner, reports_tx);
 
-        let runner = Arc::new(SyncCheckRunner::try_new(scope, scanner, &restrict, checks)?);
+        let runner =
+            Arc::new(SyncCheckRunner::try_new(scope, scanner, &restrict, checks, &filter)?);
 
         Ok(Self(ReportIterInternal::Version(IterVersion {
             rx: reports_rx,

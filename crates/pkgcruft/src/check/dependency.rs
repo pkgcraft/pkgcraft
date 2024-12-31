@@ -29,11 +29,14 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
-    Check {
-        repo: repo.clone(),
-        unused: repo.metadata().pkg_deprecated().iter().cloned().collect(),
-    }
+pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
+    let unused = if filter.finalize(PackageDeprecatedUnused) {
+        repo.metadata().pkg_deprecated().iter().cloned().collect()
+    } else {
+        Default::default()
+    };
+
+    Check { repo: repo.clone(), unused }
 }
 
 struct Check {

@@ -20,10 +20,14 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
-    Check {
-        unused: repo.metadata().mirrors().keys().cloned().collect(),
-    }
+pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
+    let unused = if filter.finalize(MirrorsUnused) {
+        repo.metadata().mirrors().keys().cloned().collect()
+    } else {
+        Default::default()
+    };
+
+    Check { unused }
 }
 
 struct Check {

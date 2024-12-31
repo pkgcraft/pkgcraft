@@ -19,15 +19,20 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
-    Check {
-        use_expand: ["cpu_flags_"].into_iter().map(Into::into).collect(),
-        unused: repo
-            .metadata()
+pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
+    let unused = if filter.finalize(UseGlobalUnused) {
+        repo.metadata()
             .use_global()
             .keys()
             .map(Into::into)
-            .collect(),
+            .collect()
+    } else {
+        Default::default()
+    };
+
+    Check {
+        use_expand: ["cpu_flags_"].into_iter().map(Into::into).collect(),
+        unused,
     }
 }
 

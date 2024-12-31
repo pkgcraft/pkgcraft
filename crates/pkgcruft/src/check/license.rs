@@ -21,7 +21,13 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
+    let unused = if filter.finalize(LicensesUnused) {
+        repo.metadata().licenses().iter().map(Into::into).collect()
+    } else {
+        Default::default()
+    };
+
     Check {
         deprecated: repo
             .license_groups()
@@ -32,7 +38,7 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
             .iter()
             .map(|x| x.to_string())
             .collect(),
-        unused: repo.metadata().licenses().iter().map(Into::into).collect(),
+        unused,
         repo: repo.clone(),
     }
 }

@@ -293,34 +293,34 @@ impl Check {
 
 /// Create a check runner from a given check.
 pub(crate) trait ToRunner<T> {
-    fn to_runner(&self, repo: &EbuildRepo) -> T;
+    fn to_runner(&self, repo: &EbuildRepo, filter: &ReportFilter) -> T;
 }
 
 impl ToRunner<EbuildPkgRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo) -> EbuildPkgRunner {
+    fn to_runner(&self, repo: &EbuildRepo, filter: &ReportFilter) -> EbuildPkgRunner {
         match &self.kind {
-            CheckKind::Dependency => Box::new(dependency::create(repo)),
+            CheckKind::Dependency => Box::new(dependency::create(repo, filter)),
             CheckKind::DependencySlotMissing => {
                 Box::new(dependency_slot_missing::create(repo))
             }
             CheckKind::Homepage => Box::new(homepage::create()),
-            CheckKind::Iuse => Box::new(iuse::create(repo)),
-            CheckKind::Keywords => Box::new(keywords::create(repo)),
-            CheckKind::License => Box::new(license::create(repo)),
+            CheckKind::Iuse => Box::new(iuse::create(repo, filter)),
+            CheckKind::Keywords => Box::new(keywords::create(repo, filter)),
+            CheckKind::License => Box::new(license::create(repo, filter)),
             CheckKind::Overlay => Box::new(overlay::create(repo)),
             CheckKind::Properties => Box::new(properties::create(repo)),
             CheckKind::PythonUpdate => Box::new(python_update::create(repo)),
             CheckKind::Restrict => Box::new(restrict::create(repo)),
             CheckKind::RestrictTestMissing => Box::new(restrict_test_missing::create()),
             CheckKind::RubyUpdate => Box::new(ruby_update::create(repo)),
-            CheckKind::SrcUri => Box::new(src_uri::create(repo)),
+            CheckKind::SrcUri => Box::new(src_uri::create(repo, filter)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
 }
 
 impl ToRunner<EbuildPkgSetRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo) -> EbuildPkgSetRunner {
+    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> EbuildPkgSetRunner {
         match &self.kind {
             CheckKind::Filesdir => Box::new(filesdir::create(repo)),
             CheckKind::EapiStale => Box::new(eapi_stale::create()),
@@ -335,7 +335,7 @@ impl ToRunner<EbuildPkgSetRunner> for Check {
 }
 
 impl ToRunner<EbuildRawPkgRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo) -> EbuildRawPkgRunner {
+    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> EbuildRawPkgRunner {
         match &self.kind {
             CheckKind::Commands => Box::new(commands::create()),
             CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
@@ -348,13 +348,13 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
 }
 
 impl ToRunner<EbuildRawPkgSetRunner> for Check {
-    fn to_runner(&self, _repo: &EbuildRepo) -> EbuildRawPkgSetRunner {
+    fn to_runner(&self, _repo: &EbuildRepo, _filter: &ReportFilter) -> EbuildRawPkgSetRunner {
         unreachable!("unsupported check: {self}")
     }
 }
 
 impl ToRunner<CpnRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo) -> CpnRunner {
+    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> CpnRunner {
         match &self.kind {
             CheckKind::EbuildName => Box::new(ebuild_name::create(repo)),
             CheckKind::Duplicates => Box::new(duplicates::create(repo)),
@@ -364,7 +364,7 @@ impl ToRunner<CpnRunner> for Check {
 }
 
 impl ToRunner<CpvRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo) -> CpvRunner {
+    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> CpvRunner {
         match &self.kind {
             CheckKind::Metadata => Box::new(metadata::create(repo)),
             _ => unreachable!("unsupported check: {self}"),
@@ -373,7 +373,7 @@ impl ToRunner<CpvRunner> for Check {
 }
 
 impl ToRunner<RepoRunner> for Check {
-    fn to_runner(&self, _repo: &EbuildRepo) -> RepoRunner {
+    fn to_runner(&self, _repo: &EbuildRepo, _filter: &ReportFilter) -> RepoRunner {
         match &self.kind {
             CheckKind::RepoLayout => Box::new(repo_layout::create()),
             _ => unreachable!("unsupported check: {self}"),

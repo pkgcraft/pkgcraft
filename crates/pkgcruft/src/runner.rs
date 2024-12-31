@@ -24,6 +24,7 @@ impl SyncCheckRunner {
         scanner: &Scanner,
         restrict: &Restrict,
         checks: I,
+        filter: &ReportFilter,
     ) -> crate::Result<Self>
     where
         I: IntoIterator<Item = crate::Result<Check>>,
@@ -43,7 +44,7 @@ impl SyncCheckRunner {
                         &scanner.filters,
                     )
                 })
-                .add_check(check)
+                .add_check(check, filter)
         }
 
         Ok(Self { runners })
@@ -128,13 +129,13 @@ impl CheckRunner {
     }
 
     /// Add a check to the runner.
-    fn add_check(&mut self, check: Check) {
+    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
         match self {
-            Self::EbuildPkg(r) => r.add_check(check),
-            Self::EbuildRawPkg(r) => r.add_check(check),
-            Self::Cpn(r) => r.add_check(check),
-            Self::Cpv(r) => r.add_check(check),
-            Self::Repo(r) => r.add_check(check),
+            Self::EbuildPkg(r) => r.add_check(check, filter),
+            Self::EbuildRawPkg(r) => r.add_check(check, filter),
+            Self::Cpn(r) => r.add_check(check, filter),
+            Self::Cpv(r) => r.add_check(check, filter),
+            Self::Repo(r) => r.add_check(check, filter),
         }
     }
 
@@ -206,12 +207,13 @@ macro_rules! make_pkg_check_runner {
             }
 
             /// Add a check to the runner.
-            fn add_check(&mut self, check: Check) {
+            fn add_check(&mut self, check: Check, filter: &ReportFilter) {
                 if check.scope == Scope::Version {
-                    self.pkg_checks.insert(check, check.to_runner(&self.repo));
+                    self.pkg_checks
+                        .insert(check, check.to_runner(&self.repo, filter));
                 } else {
                     self.pkg_set_checks
-                        .insert(check, check.to_runner(&self.repo));
+                        .insert(check, check.to_runner(&self.repo, filter));
                 }
             }
 
@@ -351,8 +353,9 @@ impl CpnCheckRunner {
     }
 
     /// Add a check to the runner.
-    fn add_check(&mut self, check: Check) {
-        self.checks.insert(check, check.to_runner(&self.repo));
+    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
+        self.checks
+            .insert(check, check.to_runner(&self.repo, filter));
     }
 
     /// Return the iterator of registered checks.
@@ -396,8 +399,9 @@ impl CpvCheckRunner {
     }
 
     /// Add a check to the runner.
-    fn add_check(&mut self, check: Check) {
-        self.checks.insert(check, check.to_runner(&self.repo));
+    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
+        self.checks
+            .insert(check, check.to_runner(&self.repo, filter));
     }
 
     /// Return the iterator of registered checks.
@@ -443,8 +447,9 @@ impl RepoCheckRunner {
     }
 
     /// Add a check to the runner.
-    fn add_check(&mut self, check: Check) {
-        self.checks.insert(check, check.to_runner(&self.repo));
+    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
+        self.checks
+            .insert(check, check.to_runner(&self.repo, filter));
     }
 
     /// Return the iterator of registered checks.
