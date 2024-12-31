@@ -76,9 +76,11 @@ impl PhaseKind {
     }
 
     /// Return the phase name, e.g. src_compile -> compile.
-    pub(crate) fn name(&self) -> &str {
-        let s = self.as_ref();
-        s.split_once('_').map_or(s, |x| x.1)
+    fn name(&self) -> &str {
+        self.as_ref()
+            .split_once('_')
+            .unwrap_or_else(|| panic!("invalid phase name: {self}"))
+            .1
     }
 }
 
