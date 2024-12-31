@@ -795,18 +795,18 @@ fn reports() {
             // add level
             "+@info",
             // set scope
-            "@repo",
+            "@category",
             // remove scope
-            "-@version",
+            "-@package",
             // add scope
-            "+@package",
+            "+@version",
         ] {
             let reports = cmd("pkgcruft scan -R json")
                 .arg(format!("{opt}={target}"))
                 .arg(&repo)
                 .to_reports()
                 .unwrap();
-            assert!(!reports.is_empty());
+            assert!(!reports.is_empty(), "failed target: {target}");
         }
     }
 }
