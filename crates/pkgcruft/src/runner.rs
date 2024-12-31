@@ -43,7 +43,7 @@ impl SyncCheckRunner {
 
         Ok(Self {
             runners,
-            finalize: scope == Scope::Repo && filters.is_empty(),
+            finalize: filters.is_empty(),
         })
     }
 

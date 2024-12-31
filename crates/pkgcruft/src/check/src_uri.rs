@@ -53,7 +53,7 @@ impl EbuildPkgCheck for Check {
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if !self.unused.is_empty() {
+        if filter.finalize(MirrorsUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()

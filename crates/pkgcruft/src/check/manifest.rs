@@ -75,7 +75,7 @@ impl EbuildPkgSetCheck for Check {
 
             if let Some(hash) = x.hashes().get(&self.hash) {
                 // track duplicate names with different hashes
-                if filter.enabled(ManifestConflict) {
+                if filter.finalize(ManifestConflict) {
                     self.conflicting
                         .entry(name.to_string())
                         .or_default()
@@ -83,7 +83,7 @@ impl EbuildPkgSetCheck for Check {
                 }
 
                 // track duplicate hashes with different names
-                if filter.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
+                if filter.finalize(ManifestCollide) && !self.is_go_module(pkgs) {
                     self.colliding
                         .entry(hash.clone())
                         .or_default()
@@ -134,33 +134,37 @@ impl EbuildPkgSetCheck for Check {
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
-            let (name, map) = entry.pair();
-            let pkgs = map.values().sorted().join(", ");
-            ManifestConflict
-                .repo(repo)
-                .message(format!("{name}: {pkgs}"))
-                .report(filter);
+        if filter.finalize(ManifestConflict) {
+            for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
+                let (name, map) = entry.pair();
+                let pkgs = map.values().sorted().join(", ");
+                ManifestConflict
+                    .repo(repo)
+                    .message(format!("{name}: {pkgs}"))
+                    .report(filter);
+            }
         }
 
-        for entry in self.colliding.iter().filter(|x| x.len() > 1) {
-            // sort colliding entries by Cpn
-            let mut map = IndexMap::<_, Vec<_>>::new();
-            for (file, cpns) in entry.iter() {
-                for cpn in cpns {
-                    map.entry(cpn).or_default().push(file);
+        if filter.finalize(ManifestCollide) {
+            for entry in self.colliding.iter().filter(|x| x.len() > 1) {
+                // sort colliding entries by Cpn
+                let mut map = IndexMap::<_, Vec<_>>::new();
+                for (file, cpns) in entry.iter() {
+                    for cpn in cpns {
+                        map.entry(cpn).or_default().push(file);
+                    }
                 }
-            }
-            map.sort_keys();
+                map.sort_keys();
 
-            let values = map
-                .iter()
-                .map(|(cpn, files)| {
-                    let files = files.iter().sorted().join(", ");
-                    format!("({cpn}: {files})")
-                })
-                .join(", ");
-            ManifestCollide.repo(repo).message(values).report(filter);
+                let values = map
+                    .iter()
+                    .map(|(cpn, files)| {
+                        let files = files.iter().sorted().join(", ");
+                        format!("({cpn}: {files})")
+                    })
+                    .join(", ");
+                ManifestCollide.repo(repo).message(values).report(filter);
+            }
         }
     }
 }

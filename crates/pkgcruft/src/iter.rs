@@ -18,6 +18,7 @@ use crate::source::Target;
 
 #[derive(Clone)]
 pub(crate) struct ReportFilter {
+    scope: Scope,
     reports: Vec<Report>,
     filter: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
@@ -60,7 +61,7 @@ impl ReportFilter {
 
     /// Return true if post-run finalization should be performed for a report variant.
     pub(crate) fn finalize(&self, kind: ReportKind) -> bool {
-        self.finalize && self.enabled(kind)
+        self.finalize && self.enabled(kind) && self.scope >= kind.scope()
     }
 }
 
@@ -175,8 +176,10 @@ impl Iterator for IterPkg {
 fn version_producer(
     repo: EbuildRepo,
     runner: Arc<SyncCheckRunner>,
+    wg: WaitGroup,
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
+    finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in repo.iter_cpv_restrict(&restrict) {
@@ -190,14 +193,30 @@ fn version_producer(
                 tx.send((check, Target::Cpn(cpn.clone()))).ok();
             }
         }
+
+        // return if scanning run doesn't support check finalization
+        if !runner.finalize() {
+            return;
+        }
+
+        // wait for all parallelized checks to finish
+        drop(tx);
+        wg.wait();
+
+        // finalize checks in parallel
+        for check in runner.checks().filter(|c| c.finalize()) {
+            finish_tx.send(check).ok();
+        }
     })
 }
 
 /// Create worker thread that parallelizes check running at a version level.
 fn version_worker(
     runner: Arc<SyncCheckRunner>,
+    wg: WaitGroup,
     mut filter: ReportFilter,
     rx: Receiver<(Check, Target)>,
+    finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
@@ -212,6 +231,15 @@ fn version_worker(
 
         for (check, target) in rx {
             runner.run_check(check, target, &mut filter);
+        }
+
+        // signal the wait group
+        drop(wg);
+
+        // finalize checks
+        for check in finish_rx {
+            runner.finish(check, &mut filter);
+            filter.process();
         }
     })
 }
@@ -280,20 +308,26 @@ impl ReportIter {
         )?;
 
         if scope >= Scope::Category {
-            Ok(Self::pkg(runner, scanner, restrict))
+            Ok(Self::pkg(scope, runner, scanner, restrict))
         } else {
-            Ok(Self::version(runner, scanner, restrict))
+            Ok(Self::version(scope, runner, scanner, restrict))
         }
     }
 
     /// Create an iterator that parallelizes scanning by package.
-    fn pkg(runner: SyncCheckRunner, scanner: &Scanner, restrict: Restrict) -> Self {
+    fn pkg(
+        scope: Scope,
+        runner: SyncCheckRunner,
+        scanner: &Scanner,
+        restrict: Restrict,
+    ) -> Self {
         let runner = Arc::new(runner);
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
         let filter = ReportFilter {
+            scope,
             reports: Default::default(),
             filter: scanner.reports.clone(),
             exit: scanner.exit.clone(),
@@ -329,11 +363,19 @@ impl ReportIter {
     }
 
     /// Create an iterator that parallelizes scanning by check.
-    fn version(runner: SyncCheckRunner, scanner: &Scanner, restrict: Restrict) -> Self {
+    fn version(
+        scope: Scope,
+        runner: SyncCheckRunner,
+        scanner: &Scanner,
+        restrict: Restrict,
+    ) -> Self {
         let runner = Arc::new(runner);
         let (targets_tx, targets_rx) = bounded(scanner.jobs);
+        let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
+        let wg = WaitGroup::new();
         let filter = ReportFilter {
+            scope,
             reports: Default::default(),
             filter: scanner.reports.clone(),
             exit: scanner.exit.clone(),
@@ -346,13 +388,23 @@ impl ReportIter {
         Self(ReportIterInternal::Version(IterVersion {
             rx: reports_rx,
             _workers: (0..scanner.jobs)
-                .map(|_| version_worker(runner.clone(), filter.clone(), targets_rx.clone()))
+                .map(|_| {
+                    version_worker(
+                        runner.clone(),
+                        wg.clone(),
+                        filter.clone(),
+                        targets_rx.clone(),
+                        finish_rx.clone(),
+                    )
+                })
                 .collect(),
             _producer: version_producer(
                 scanner.repo.clone(),
                 runner.clone(),
+                wg,
                 restrict,
                 targets_tx,
+                finish_tx,
             ),
             reports: Default::default(),
         }))
