@@ -239,7 +239,6 @@ fn version_worker(
         // finalize checks
         for check in finish_rx {
             runner.finish(check, &mut filter);
-            filter.process();
         }
     })
 }
