@@ -1010,35 +1010,32 @@ impl IterCpn {
             ([Equal(cat)], _) => {
                 let cat = mem::take(cat);
                 let pkg_restrict = Restrict::and(pkg_restricts);
-                Box::new(
-                    repo.packages(&cat)
-                        .into_iter()
-                        .filter(move |pn| pkg_restrict.matches(pn.as_str()))
-                        .map(move |pn| Cpn {
+                Box::new(repo.packages(&cat).into_iter().filter_map(move |pn| {
+                    if pkg_restrict.matches(pn.as_str()) {
+                        Some(Cpn {
                             category: cat.clone(),
                             package: pn,
-                        }),
-                )
+                        })
+                    } else {
+                        None
+                    }
+                }))
             }
             (_, [Equal(pn)]) => {
                 let pn = mem::take(pn);
                 let cat_restrict = Restrict::and(cat_restricts);
-                Box::new(
-                    repo.categories()
-                        .into_iter()
-                        .filter(move |cat| cat_restrict.matches(cat.as_str()))
-                        .flat_map(move |cat| {
-                            let cpn = Cpn {
-                                category: cat,
-                                package: pn.to_string(),
-                            };
-                            if repo.contains(&cpn) {
-                                vec![cpn]
-                            } else {
-                                vec![]
-                            }
-                        }),
-                )
+                Box::new(repo.categories().into_iter().filter_map(move |cat| {
+                    if cat_restrict.matches(cat.as_str()) {
+                        let cpn = Cpn {
+                            category: cat,
+                            package: pn.clone(),
+                        };
+                        if repo.contains(&cpn) {
+                            return Some(cpn);
+                        }
+                    }
+                    None
+                }))
             }
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
