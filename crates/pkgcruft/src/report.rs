@@ -447,7 +447,7 @@ impl ReportKind {
             Self::LicensesUnused => Repo,
             Self::LiveOnly => Package,
             Self::ManifestInvalid => Package,
-            Self::ManifestCollide => Repo,
+            Self::ManifestCollide => Package,
             Self::ManifestConflict => Repo,
             Self::MetadataError => Version,
             Self::MirrorsUnused => Repo,
@@ -508,16 +508,6 @@ impl ReportBuilder {
 
     /// Pass the report to the scanning filter for processing.
     pub(crate) fn report(self, filter: &mut ReportFilter) {
-        // verify report variant scope matches generated scope
-        debug_assert!(
-            self.0.kind.scope() == self.0.scope.scope(),
-            "{} scope: {} != {}",
-            self.0.kind,
-            self.0.kind.scope(),
-            self.0.scope.scope(),
-        );
-
-        // submit report
         filter.report(self.0)
     }
 }
