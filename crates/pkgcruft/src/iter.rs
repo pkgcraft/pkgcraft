@@ -22,6 +22,18 @@ enum ReportSender {
     Version(Sender<Report>),
 }
 
+impl From<Sender<Vec<Report>>> for ReportSender {
+    fn from(value: Sender<Vec<Report>>) -> Self {
+        Self::Pkg(value)
+    }
+}
+
+impl From<Sender<Report>> for ReportSender {
+    fn from(value: Sender<Report>) -> Self {
+        Self::Version(value)
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct ReportFilter {
     scope: Scope,
@@ -34,6 +46,23 @@ pub(crate) struct ReportFilter {
 }
 
 impl ReportFilter {
+    fn new<S: Into<ReportSender>>(
+        scope: Scope,
+        scanner: &Scanner,
+        runner: &SyncCheckRunner,
+        tx: S,
+    ) -> Self {
+        Self {
+            scope,
+            reports: Default::default(),
+            filter: scanner.reports.clone(),
+            exit: scanner.exit.clone(),
+            failed: scanner.failed.clone(),
+            tx: tx.into(),
+            finalize: runner.finalize(),
+        }
+    }
+
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&mut self, report: Report) {
         if self.filter.contains(report.kind()) {
@@ -330,15 +359,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = ReportFilter {
-            scope,
-            reports: Default::default(),
-            filter: scanner.reports.clone(),
-            exit: scanner.exit.clone(),
-            failed: scanner.failed.clone(),
-            tx: ReportSender::Pkg(reports_tx),
-            finalize: runner.finalize(),
-        };
+        let filter = ReportFilter::new(scope, scanner, &runner, reports_tx);
 
         Self(ReportIterInternal::Pkg(IterPkg {
             rx: reports_rx,
@@ -377,15 +398,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = ReportFilter {
-            scope,
-            reports: Default::default(),
-            filter: scanner.reports.clone(),
-            exit: scanner.exit.clone(),
-            failed: scanner.failed.clone(),
-            tx: ReportSender::Version(reports_tx),
-            finalize: runner.finalize(),
-        };
+        let filter = ReportFilter::new(scope, scanner, &runner, reports_tx);
 
         Self(ReportIterInternal::Version(IterVersion {
             rx: reports_rx,
