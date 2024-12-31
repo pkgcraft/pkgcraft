@@ -416,6 +416,9 @@ impl ReportKind {
     }
 
     /// Return the scope of the report variant.
+    ///
+    /// This is the minimum scope at which the report is handled. For example, a variant
+    /// with package scope isn't processed when targeting a single ebuild version.
     pub fn scope(&self) -> Scope {
         use Scope::*;
         match self {
@@ -448,7 +451,7 @@ impl ReportKind {
             Self::LiveOnly => Package,
             Self::ManifestInvalid => Package,
             Self::ManifestCollide => Package,
-            Self::ManifestConflict => Repo,
+            Self::ManifestConflict => Category,
             Self::MetadataError => Version,
             Self::MirrorsUnused => Repo,
             Self::Optfeature => Version,
