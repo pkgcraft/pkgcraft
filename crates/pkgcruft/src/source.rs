@@ -4,7 +4,7 @@ use std::str::FromStr;
 use colored::{Color, Colorize};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
-use pkgcraft::dep::{Cpn, Cpv};
+use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus, EbuildPkg, EbuildRawPkg};
 use pkgcraft::pkg::Package;
@@ -199,13 +199,6 @@ impl PkgFilters {
 
         iter
     }
-}
-
-#[derive(Debug)]
-pub(crate) enum Target {
-    Cpv(Cpv),
-    Cpn(Cpn),
-    Repo,
 }
 
 pub(crate) trait Source: fmt::Display {

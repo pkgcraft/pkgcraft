@@ -12,9 +12,8 @@ use pkgcraft::restrict::{Restrict, Scope};
 
 use crate::check::Check;
 use crate::report::{Report, ReportKind};
-use crate::runner::SyncCheckRunner;
+use crate::runner::{SyncCheckRunner, Target};
 use crate::scan::Scanner;
-use crate::source::Target;
 
 #[derive(Clone)]
 enum ReportSender {

@@ -13,6 +13,14 @@ use crate::iter::ReportFilter;
 use crate::scan::Scanner;
 use crate::source::*;
 
+/// Target to run checks against.
+#[derive(Debug)]
+pub(super) enum Target {
+    Cpv(Cpv),
+    Cpn(Cpn),
+    Repo,
+}
+
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, CheckRunner>,
