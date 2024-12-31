@@ -12,8 +12,12 @@ Highly experimental tooling ecosystem for Gentoo comprised of the following:
 - [pkgcruft]: QA library and tools
 - [arcanist]: package-building daemon
 
+Compatibility with the official [package management specification][pmspec] is
+aimed for, but not always adhered to. See the list of known [deviations] for
+details.
+
 More information about the project can be found on its [FAQ] and
-[development blog][website].
+[development blog][blog].
 
 ## Development
 
@@ -31,10 +35,12 @@ For bugs or other requests use [issues].
 For general support or questions use [discussions].
 
 [faq]: <https://pkgcraft.github.io/about/>
-[website]: <https://pkgcraft.github.io/>
+[blog]: <https://pkgcraft.github.io/>
 [cargo-nextest]: <https://nexte.st/>
 [issues]: <https://github.com/pkgcraft/pkgcraft/issues>
 [discussions]: <https://github.com/pkgcraft/pkgcraft/discussions>
+[pmspec]: https://wiki.gentoo.org/wiki/Project:Package_Manager_Specification
+[deviations]: https://github.com/orgs/pkgcraft/discussions/134
 
 [scallop]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop>
 [pkgcraft]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft>
