@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use dashmap::DashMap;
 use indexmap::IndexMap;
@@ -28,10 +28,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
         repo: repo.clone(),
         thin_manifests: repo.metadata().config.thin_manifests,
-        used_files: Default::default(),
-        conflicting: Default::default(),
-        used_hashes: Default::default(),
         colliding: Default::default(),
+        conflicting: Default::default(),
         hash: repo
             .metadata()
             .config
@@ -46,10 +44,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
 struct Check {
     repo: EbuildRepo,
     thin_manifests: bool,
-    used_files: DashMap<String, (Cpn, String)>,
-    conflicting: DashMap<String, HashSet<Cpn>>,
-    used_hashes: DashMap<String, (Cpn, String)>,
-    colliding: DashMap<String, IndexMap<Cpn, HashSet<String>>>,
+    colliding: DashMap<String, HashMap<String, HashSet<Cpn>>>,
+    conflicting: DashMap<String, HashMap<String, Cpn>>,
     hash: HashType,
 }
 
@@ -79,38 +75,20 @@ impl EbuildPkgSetCheck for Check {
 
             if filter.enabled(ManifestConflict) || filter.enabled(ManifestCollide) {
                 if let Some(hash) = x.hashes().get(&self.hash) {
-                    // check for duplicate names with different hashes
-                    if let Some(entry) = self.used_files.get(name) {
-                        let (pkg, value) = entry.value();
-                        if hash != value {
-                            self.conflicting
-                                .entry(name.to_string())
-                                .or_default()
-                                .extend([pkg.clone(), cpn.clone()]);
-                        }
-                    } else {
-                        self.used_files
-                            .insert(name.to_string(), (cpn.clone(), hash.clone()));
-                    }
+                    // track duplicate names with different hashes
+                    self.conflicting
+                        .entry(name.to_string())
+                        .or_default()
+                        .insert(hash.clone(), cpn.clone());
 
-                    // check for duplicate hashes with different names
+                    // track duplicate hashes with different names
                     if !self.is_go_module(pkgs) {
-                        if let Some(entry) = self.used_hashes.get(hash) {
-                            let (pkg, file) = entry.value();
-                            if name != file {
-                                for (pkg, name) in [(pkg, file.as_str()), (cpn, name)] {
-                                    self.colliding
-                                        .entry(hash.clone())
-                                        .or_default()
-                                        .entry(pkg.clone())
-                                        .or_default()
-                                        .insert(name.to_string());
-                                }
-                            }
-                        } else {
-                            self.used_hashes
-                                .insert(hash.clone(), (cpn.clone(), name.to_string()));
-                        }
+                        self.colliding
+                            .entry(hash.clone())
+                            .or_default()
+                            .entry(name.to_string())
+                            .or_default()
+                            .insert(cpn.clone());
                     }
                 }
             }
@@ -156,18 +134,26 @@ impl EbuildPkgSetCheck for Check {
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        for entry in &self.conflicting {
-            let (name, pkgs) = entry.pair();
-            let pkgs = pkgs.iter().sorted().join(", ");
+        for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
+            let (name, map) = entry.pair();
+            let pkgs = map.values().sorted().join(", ");
             ManifestConflict
                 .repo(repo)
                 .message(format!("{name}: {pkgs}"))
                 .report(filter);
         }
 
-        for mut entry in self.colliding.iter_mut() {
-            entry.sort_keys();
-            let values = entry
+        for entry in self.colliding.iter().filter(|x| x.len() > 1) {
+            // sort colliding entries by Cpn
+            let mut map = IndexMap::<_, Vec<_>>::new();
+            for (file, cpns) in entry.iter() {
+                for cpn in cpns {
+                    map.entry(cpn).or_default().push(file);
+                }
+            }
+            map.sort_keys();
+
+            let values = map
                 .iter()
                 .map(|(cpn, files)| {
                     let files = files.iter().sorted().join(", ");
