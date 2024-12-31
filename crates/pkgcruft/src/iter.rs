@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::{mem, thread};
@@ -42,16 +42,11 @@ pub(crate) struct ReportFilter {
     exit: Arc<IndexSet<ReportKind>>,
     failed: Arc<AtomicBool>,
     tx: ReportSender,
-    finalize: bool,
+    finalize: HashSet<ReportKind>,
 }
 
 impl ReportFilter {
-    fn new<S: Into<ReportSender>>(
-        scope: Scope,
-        scanner: &Scanner,
-        runner: &SyncCheckRunner,
-        tx: S,
-    ) -> Self {
+    fn new<S: Into<ReportSender>>(scope: Scope, scanner: &Scanner, tx: S) -> Self {
         Self {
             scope,
             reports: Default::default(),
@@ -59,7 +54,12 @@ impl ReportFilter {
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
             tx: tx.into(),
-            finalize: runner.finalize(),
+            finalize: scanner
+                .reports
+                .iter()
+                .filter(|r| scanner.filters.is_empty() && scope >= r.scope())
+                .copied()
+                .collect(),
         }
     }
 
@@ -95,7 +95,7 @@ impl ReportFilter {
 
     /// Return true if post-run finalization should be performed for a report variant.
     pub(crate) fn finalize(&self, kind: ReportKind) -> bool {
-        self.finalize && self.enabled(kind) && self.scope >= kind.scope()
+        self.finalize.contains(&kind)
     }
 }
 
@@ -122,11 +122,6 @@ fn pkg_producer(
         // parallelize running checks per package
         for cpn in repo.iter_cpn_restrict(&restrict) {
             tx.send((None, Target::Cpn(cpn))).ok();
-        }
-
-        // return if scanning run doesn't support check finalization
-        if !runner.finalize() {
-            return;
         }
 
         // wait for all parallelized checks to finish
@@ -226,11 +221,6 @@ fn version_producer(
             for check in runner.checks().filter(|c| c.scope == Scope::Package) {
                 tx.send((check, Target::Cpn(cpn.clone()))).ok();
             }
-        }
-
-        // return if scanning run doesn't support check finalization
-        if !runner.finalize() {
-            return;
         }
 
         // wait for all parallelized checks to finish
@@ -359,7 +349,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = ReportFilter::new(scope, scanner, &runner, reports_tx);
+        let filter = ReportFilter::new(scope, scanner, reports_tx);
 
         Self(ReportIterInternal::Pkg(IterPkg {
             rx: reports_rx,
@@ -398,7 +388,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = ReportFilter::new(scope, scanner, &runner, reports_tx);
+        let filter = ReportFilter::new(scope, scanner, reports_tx);
 
         Self(ReportIterInternal::Version(IterVersion {
             rx: reports_rx,
