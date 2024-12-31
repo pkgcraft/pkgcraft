@@ -83,6 +83,15 @@ pub trait Restriction<T>: fmt::Debug {
     fn matches(&self, object: T) -> bool;
 }
 
+impl Restriction<&String> for Restrict {
+    fn matches(&self, s: &String) -> bool {
+        restrict_match! {self, s,
+            Self::Dep(r) => r.matches(s.as_str()),
+            Self::Str(r) => r.matches(s.as_str()),
+        }
+    }
+}
+
 impl Restriction<&str> for Restrict {
     fn matches(&self, s: &str) -> bool {
         restrict_match! {self, s,

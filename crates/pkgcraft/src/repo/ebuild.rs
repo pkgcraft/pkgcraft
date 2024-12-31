@@ -1011,7 +1011,7 @@ impl IterCpn {
                 let cat = mem::take(cat);
                 let pkg_restrict = Restrict::and(pkg_restricts);
                 Box::new(repo.packages(&cat).into_iter().filter_map(move |pn| {
-                    if pkg_restrict.matches(pn.as_str()) {
+                    if pkg_restrict.matches(&pn) {
                         Some(Cpn {
                             category: cat.clone(),
                             package: pn,
@@ -1025,7 +1025,7 @@ impl IterCpn {
                 let pn = mem::take(pn);
                 let cat_restrict = Restrict::and(cat_restricts);
                 Box::new(repo.categories().into_iter().filter_map(move |cat| {
-                    if cat_restrict.matches(cat.as_str()) {
+                    if cat_restrict.matches(&cat) {
                         let cpn = Cpn {
                             category: cat,
                             package: pn.clone(),
@@ -1043,11 +1043,11 @@ impl IterCpn {
                 Box::new(
                     repo.categories()
                         .into_iter()
-                        .filter(move |cat| cat_restrict.matches(cat.as_str()))
+                        .filter(move |cat| cat_restrict.matches(cat))
                         .flat_map(move |cat| {
                             repo.packages(&cat)
                                 .into_iter()
-                                .filter(|pn| pkg_restrict.matches(pn.as_str()))
+                                .filter(|pn| pkg_restrict.matches(pn))
                                 .map(|pn| Cpn {
                                     category: cat.clone(),
                                     package: pn,
@@ -1145,7 +1145,7 @@ impl IterCpv {
                 Box::new(
                     repo.categories()
                         .into_iter()
-                        .filter(move |s| cat_restrict.matches(s.as_str()))
+                        .filter(move |s| cat_restrict.matches(s))
                         .flat_map(move |s| repo.cpvs_from_category(&s))
                         .filter(move |cpv| pkg_restrict.matches(cpv))
                         .filter(move |cpv| ver_restrict.matches(cpv)),
