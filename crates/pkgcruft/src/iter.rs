@@ -17,14 +17,19 @@ use crate::scan::Scanner;
 use crate::source::Target;
 
 #[derive(Clone)]
+enum ReportSender {
+    Pkg(Sender<Vec<Report>>),
+    Version(Sender<Report>),
+}
+
+#[derive(Clone)]
 pub(crate) struct ReportFilter {
     scope: Scope,
     reports: Vec<Report>,
     filter: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
     failed: Arc<AtomicBool>,
-    pkg_tx: Option<Sender<Vec<Report>>>,
-    version_tx: Option<Sender<Report>>,
+    tx: ReportSender,
     finalize: bool,
 }
 
@@ -36,7 +41,7 @@ impl ReportFilter {
                 self.failed.store(true, Ordering::Relaxed);
             }
 
-            if let Some(tx) = &self.version_tx {
+            if let ReportSender::Version(tx) = &self.tx {
                 tx.send(report).ok();
             } else {
                 self.reports.push(report);
@@ -47,7 +52,7 @@ impl ReportFilter {
     /// Sort existing reports and send them to the iterator.
     fn process(&mut self) {
         if !self.reports.is_empty() {
-            if let Some(tx) = &self.pkg_tx {
+            if let ReportSender::Pkg(tx) = &self.tx {
                 self.reports.sort();
                 tx.send(mem::take(&mut self.reports)).ok();
             }
@@ -331,8 +336,7 @@ impl ReportIter {
             filter: scanner.reports.clone(),
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
-            pkg_tx: Some(reports_tx),
-            version_tx: None,
+            tx: ReportSender::Pkg(reports_tx),
             finalize: runner.finalize(),
         };
 
@@ -379,8 +383,7 @@ impl ReportIter {
             filter: scanner.reports.clone(),
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
-            pkg_tx: None,
-            version_tx: Some(reports_tx),
+            tx: ReportSender::Version(reports_tx),
             finalize: runner.finalize(),
         };
 
