@@ -10,6 +10,7 @@ use tracing::{debug, warn};
 
 use crate::check::*;
 use crate::iter::ReportFilter;
+use crate::scan::Scanner;
 use crate::source::*;
 
 /// Check runner for synchronous checks.
@@ -20,9 +21,8 @@ pub(super) struct SyncCheckRunner {
 impl SyncCheckRunner {
     pub(super) fn try_new<I>(
         scope: Scope,
-        repo: &EbuildRepo,
+        scanner: &Scanner,
         restrict: &Restrict,
-        filters: &IndexSet<PkgFilter>,
         checks: I,
     ) -> crate::Result<Self>
     where
@@ -35,7 +35,13 @@ impl SyncCheckRunner {
             runners
                 .entry(check.source)
                 .or_insert_with(|| {
-                    CheckRunner::new(scope, restrict, check.source, repo.clone(), filters)
+                    CheckRunner::new(
+                        scope,
+                        restrict,
+                        check.source,
+                        scanner.repo.clone(),
+                        &scanner.filters,
+                    )
                 })
                 .add_check(check)
         }
