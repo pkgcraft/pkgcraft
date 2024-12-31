@@ -73,23 +73,23 @@ impl EbuildPkgSetCheck for Check {
             let name = x.name();
             manifest_distfiles.insert(name);
 
-            if filter.enabled(ManifestConflict) || filter.enabled(ManifestCollide) {
-                if let Some(hash) = x.hashes().get(&self.hash) {
-                    // track duplicate names with different hashes
+            if let Some(hash) = x.hashes().get(&self.hash) {
+                // track duplicate names with different hashes
+                if filter.enabled(ManifestConflict) {
                     self.conflicting
                         .entry(name.to_string())
                         .or_default()
                         .insert(hash.clone(), cpn.clone());
+                }
 
-                    // track duplicate hashes with different names
-                    if !self.is_go_module(pkgs) {
-                        self.colliding
-                            .entry(hash.clone())
-                            .or_default()
-                            .entry(name.to_string())
-                            .or_default()
-                            .insert(cpn.clone());
-                    }
+                // track duplicate hashes with different names
+                if filter.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
+                    self.colliding
+                        .entry(hash.clone())
+                        .or_default()
+                        .entry(name.to_string())
+                        .or_default()
+                        .insert(cpn.clone());
                 }
             }
         }
