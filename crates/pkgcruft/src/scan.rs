@@ -177,49 +177,55 @@ mod tests {
     use super::*;
 
     #[test]
-    fn run() {
+    fn targets() {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let repo_path = repo.path();
+        let path = repo.path();
 
-        // repo target
+        // repo
         let scanner = Scanner::new(repo);
-        let expected = glob_reports!("{repo_path}/**/reports.json");
+        let expected = glob_reports!("{path}/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
-        // category target
-        let expected = glob_reports!("{repo_path}/Keywords/**/reports.json");
+        // category
+        let expected = glob_reports!("{path}/Keywords/**/reports.json");
         let restrict = repo.restrict_from_path("Keywords").unwrap();
         let reports = scanner.run(restrict).unwrap();
         assert_unordered_eq!(reports, expected);
 
-        // package target
-        let expected = glob_reports!("{repo_path}/Dependency/DependencyInvalid/reports.json");
+        // package
+        let expected = glob_reports!("{path}/Dependency/DependencyInvalid/reports.json");
         let restrict = repo
             .restrict_from_path("Dependency/DependencyInvalid")
             .unwrap();
         let reports = scanner.run(restrict).unwrap();
         assert_ordered_eq!(reports, expected);
 
-        // version target
-        let expected = glob_reports!("{repo_path}/Whitespace/WhitespaceInvalid/reports.json");
+        // version
+        let expected = glob_reports!("{path}/Whitespace/WhitespaceInvalid/reports.json");
         let restrict = repo
             .restrict_from_path("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild")
             .unwrap();
         let reports = scanner.run(restrict).unwrap();
         assert_ordered_eq!(reports, expected);
 
+        // non-matching restriction doesn't raise error
+        let scanner = Scanner::new(repo);
+        let dep = Dep::try_new("nonexistent/pkg").unwrap();
+        let reports = scanner.run(&dep).unwrap();
+        assert_unordered_eq!(reports, []);
+    }
+
+    #[test]
+    fn checks() {
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let path = repo.path();
+
         // specific checks
         let scanner = Scanner::new(repo).checks([CheckKind::Dependency]);
-        let expected = glob_reports!("{repo_path}/Dependency/**/reports.json");
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, expected);
-
-        // specific reports
-        let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
-        let expected =
-            glob_reports!("{repo_path}/Dependency/DependencyDeprecated/reports.json");
+        let expected = glob_reports!("{path}/Dependency/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
@@ -228,30 +234,36 @@ mod tests {
         let scanner = Scanner::new(repo).checks(checks);
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
+    }
+
+    #[test]
+    fn reports() {
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let path = repo.path();
+
+        // specific reports
+        let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
+        let expected = glob_reports!("{path}/Dependency/DependencyDeprecated/reports.json");
+        let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, expected);
 
         // no reports
         let kinds: [ReportKind; 0] = [];
         let scanner = Scanner::new(repo).reports(kinds);
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
+    }
 
-        // non-matching filter
-        let filter = "cat/pkg".parse().unwrap();
-        let scanner = Scanner::new(repo).filters([filter]);
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, []);
-
-        // non-matching restriction doesn't raise error
-        let scanner = Scanner::new(repo);
-        let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports = scanner.run(&dep).unwrap();
-        assert_unordered_eq!(reports, []);
+    #[test]
+    fn repos() {
+        let data = test_data();
 
         // repo with bad metadata
         let repo = data.ebuild_repo("bad").unwrap();
-        let repo_path = repo.path();
+        let path = repo.path();
         let scanner = Scanner::new(repo);
-        let expected = glob_reports!("{repo_path}/**/reports.json");
+        let expected = glob_reports!("{path}/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
@@ -262,14 +274,15 @@ mod tests {
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
         // no failure with specific target
+        let dep = Dep::try_new("nonexistent/pkg").unwrap();
         let reports = scanner.run(&dep).unwrap();
         assert_unordered_eq!(reports, []);
 
         // overlay repo -- dependent repo is auto-loaded
         let repo = data.ebuild_repo("qa-secondary").unwrap();
-        let repo_path = repo.path();
+        let path = repo.path();
         let scanner = Scanner::new(repo);
-        let expected = glob_reports!("{repo_path}/**/reports.json");
+        let expected = glob_reports!("{path}/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
     }
@@ -279,19 +292,28 @@ mod tests {
     fn skip_check() {
         let data = test_data();
         let repo = data.ebuild_repo("bad").unwrap();
-        let repo_path = repo.path();
+        let path = repo.path();
         let restrict = repo
             .restrict_from_path("eapi/invalid/invalid-9999.ebuild")
             .unwrap();
         let scanner = Scanner::new(repo);
         let reports = scanner.run(restrict).unwrap();
-        let expected = glob_reports!("{repo_path}/eapi/invalid/reports.json");
+        let expected = glob_reports!("{path}/eapi/invalid/reports.json");
         assert_ordered_eq!(reports, expected);
         assert_logs_re!(format!(".+: skipping due to invalid pkg: eapi/invalid-9999"));
     }
 
     #[test]
     fn filters() {
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+
+        // non-matching filter
+        let filter = "cat/pkg".parse().unwrap();
+        let scanner = Scanner::new(repo).filters([filter]);
+        let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, []);
+
         let data = test_data();
         let repo = data.ebuild_repo("gentoo").unwrap();
         let pkgdir = repo.path().join("Header/HeaderInvalid");
