@@ -27,20 +27,19 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn try_new<I>(
+    pub(super) fn new<I>(
         scope: Scope,
         scanner: &Scanner,
         restrict: &Restrict,
         checks: I,
         filter: &ReportFilter,
-    ) -> crate::Result<Self>
+    ) -> Self
     where
-        I: IntoIterator<Item = crate::Result<Check>>,
+        I: IntoIterator<Item = Check>,
     {
         let mut runners = IndexMap::new();
 
         for check in checks {
-            let check = check?;
             runners
                 .entry(check.source)
                 .or_insert_with(|| {
@@ -55,7 +54,7 @@ impl SyncCheckRunner {
                 .add_check(check, filter)
         }
 
-        Ok(Self { runners })
+        Self { runners }
     }
 
     /// Return an iterator of all the runner's checks.

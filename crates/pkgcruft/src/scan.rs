@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use indexmap::IndexSet;
-use itertools::Either;
+use itertools::{Either, Itertools};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::utils::bounded_jobs;
@@ -136,7 +136,7 @@ impl Scanner {
         };
 
         // filter checks -- errors if filtered check is selected
-        let checks = enabled
+        let checks: Vec<_> = enabled
             .map(|check| {
                 if !self.filters.is_empty() && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
@@ -156,9 +156,10 @@ impl Scanner {
                     }
                 }
                 true
-            });
+            })
+            .try_collect()?;
 
-        ReportIter::try_new(scope, checks, self, restrict)
+        Ok(ReportIter::new(scope, checks, self, restrict))
     }
 }
 
