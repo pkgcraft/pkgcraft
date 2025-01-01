@@ -1,6 +1,8 @@
+use std::env;
+
 use itertools::Itertools;
-use pkgcraft::test::cmd;
 use pkgcraft::restrict::Scope;
+use pkgcraft::test::{cmd, test_data};
 use pkgcruft::check::CheckKind;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use predicates::prelude::*;
@@ -52,4 +54,25 @@ fn aliases() {
                 .success();
         }
     }
+}
+
+#[test]
+fn repo() {
+    let data = test_data();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
+
+    cmd("pkgcruft show reports --repo")
+        .arg(repo)
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // current working directory
+    env::set_current_dir(repo).unwrap();
+    cmd("pkgcruft show reports --repo")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
 }
