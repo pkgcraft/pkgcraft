@@ -23,18 +23,18 @@ pub(super) struct Subcommand {
 
 impl Subcommand {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let reports = match (self.reports.is_empty(), self.repo.as_deref()) {
-            (true, None) => ReportKind::iter().collect(),
-            (false, None) => self.reports.replay().unwrap_or_default(),
+        let reports = match (!self.reports.is_empty(), self.repo.as_deref()) {
+            (false, None) => ReportKind::iter().collect(),
+            (true, None) => self.reports.replay().unwrap_or_default(),
             (selected, Some(repo)) => {
                 let mut config = Config::new("pkgcraft", "");
                 let repo = target_ebuild_repo(&mut config, repo)?;
                 let defaults = ReportKind::defaults(&repo);
                 if selected {
-                    defaults
-                } else {
                     let (enabled, _) = self.reports.collapse(defaults)?;
                     enabled
+                } else {
+                    defaults
                 }
             }
         };

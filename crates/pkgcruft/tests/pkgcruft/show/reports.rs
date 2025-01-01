@@ -6,6 +6,7 @@ use pkgcraft::test::{cmd, test_data};
 use pkgcruft::check::CheckKind;
 use pkgcruft::report::{ReportKind, ReportLevel};
 use predicates::prelude::*;
+use predicates::str::contains;
 use strum::IntoEnumIterator;
 
 #[test]
@@ -22,6 +23,16 @@ fn all() {
 #[test]
 fn aliases() {
     for opt in ["-r", "--reports"] {
+        // invalid
+        cmd("pkgcruft show reports")
+            .args([opt, "invalid"])
+            .assert()
+            .stdout("")
+            .stderr(contains("invalid report: invalid"))
+            .failure()
+            .code(2);
+
+        // checks
         for check in CheckKind::iter() {
             cmd(format!("pkgcruft show reports {opt} @{check}"))
                 .assert()
@@ -30,6 +41,7 @@ fn aliases() {
                 .success();
         }
 
+        // report levels
         for level in ReportLevel::iter() {
             cmd(format!("pkgcruft show reports {opt} @{level}"))
                 .assert()
@@ -38,6 +50,7 @@ fn aliases() {
                 .success();
         }
 
+        // reports
         for report in ReportKind::iter() {
             cmd(format!("pkgcruft show reports {opt} {report}"))
                 .assert()
@@ -46,6 +59,7 @@ fn aliases() {
                 .success();
         }
 
+        // report scopes
         for scope in Scope::iter() {
             cmd(format!("pkgcruft show reports {opt} @{scope}"))
                 .assert()
@@ -61,8 +75,26 @@ fn repo() {
     let data = test_data();
     let repo = data.ebuild_repo("qa-primary").unwrap();
 
-    cmd("pkgcruft show reports --repo")
-        .arg(repo)
+    // nonexistent
+    cmd("pkgcruft show reports --repo nonexistent")
+        .assert()
+        .stdout("")
+        .stderr(contains("unknown repo: nonexistent"))
+        .failure()
+        .code(2);
+
+    // specific path
+    cmd("pkgcruft show reports")
+        .args(["--repo", repo.as_ref()])
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // specific path with report alias
+    cmd("pkgcruft show reports")
+        .args(["--repo", repo.as_ref()])
+        .args(["-r", "@Dependency"])
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
