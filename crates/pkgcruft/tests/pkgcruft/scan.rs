@@ -147,7 +147,7 @@ fn current_dir_targets() {
 
     // category dir
     env::set_current_dir(primary_repo.join("Dependency")).unwrap();
-    let expected = glob_reports!("{primary_repo}/Dependency/**/reports.json");
+    let expected = glob_reports!("{primary_repo}/Dependency/*/reports.json");
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 
@@ -222,7 +222,7 @@ fn path_targets() {
     // TODO: test overlay dir
 
     // category dir
-    let expected = glob_reports!("{repo}/Dependency/**/reports.json");
+    let expected = glob_reports!("{repo}/Dependency/*/reports.json");
     let reports = cmd("pkgcruft scan -R json")
         .arg(repo.join("Dependency"))
         .to_reports()
@@ -246,9 +246,9 @@ fn path_targets() {
 
     // multiple absolute paths in the same repo
     let expected = glob_reports!(
-        "{repo}/Dependency/**/reports.json",
-        "{repo}/EapiStatus/**/reports.json",
-        "{repo}/Keywords/**/reports.json",
+        "{repo}/Dependency/*/reports.json",
+        "{repo}/EapiStatus/*/reports.json",
+        "{repo}/Keywords/*/reports.json",
     );
 
     let reports = cmd("pkgcruft scan -R json")
@@ -344,7 +344,7 @@ fn repo() {
             .arg("Dependency/*")
             .to_reports()
             .unwrap();
-        let expected = glob_reports!("{repo}/Dependency/**/reports.json");
+        let expected = glob_reports!("{repo}/Dependency/*/reports.json");
         assert_unordered_eq!(&expected, &reports);
 
         // package target
