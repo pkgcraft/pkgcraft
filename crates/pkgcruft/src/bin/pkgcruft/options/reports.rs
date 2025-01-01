@@ -112,6 +112,8 @@ impl Reports {
         if enabled.is_empty() {
             Err(Error::InvalidValue("no reports enabled".to_string()))
         } else {
+            enabled.sort();
+            selected.sort();
             Ok((enabled, selected))
         }
     }
