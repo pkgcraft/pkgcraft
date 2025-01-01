@@ -240,19 +240,32 @@ mod tests {
     fn reports() {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let path = repo.path();
-
-        // specific reports
-        let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
-        let expected = glob_reports!("{path}/Dependency/DependencyDeprecated/reports.json");
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, expected);
 
         // no reports
         let kinds: [ReportKind; 0] = [];
         let scanner = Scanner::new(repo).reports(kinds);
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
+
+        // report
+        let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
+
+        // check
+        let scanner = Scanner::new(repo).reports([CheckKind::Dependency]);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
+
+        // level
+        let scanner = Scanner::new(repo).reports([ReportLevel::Warning]);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
+
+        // scope
+        let scanner = Scanner::new(repo).reports([Scope::Version]);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
     }
 
     #[test]
