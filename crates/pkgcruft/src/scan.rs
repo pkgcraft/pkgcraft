@@ -171,6 +171,7 @@ mod tests {
     use tracing_test::traced_test;
 
     use crate::check::CheckKind;
+    use crate::report::ReportLevel;
     use crate::test::glob_reports;
 
     use super::*;
@@ -357,6 +358,16 @@ mod tests {
 
         // fail on specified report variant
         let scanner = scanner.exit([ReportKind::DependencyDeprecated]);
+        scanner.run(repo).unwrap().count();
+        assert!(scanner.failed());
+
+        // fail on specified check variant
+        let scanner = scanner.exit([CheckKind::Dependency]);
+        scanner.run(repo).unwrap().count();
+        assert!(scanner.failed());
+
+        // fail on specified report level
+        let scanner = scanner.exit([ReportLevel::Warning]);
         scanner.run(repo).unwrap().count();
         assert!(scanner.failed());
     }
