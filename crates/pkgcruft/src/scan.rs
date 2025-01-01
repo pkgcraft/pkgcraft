@@ -136,7 +136,7 @@ impl Scanner {
         };
 
         // filter checks -- errors if filtered check is selected
-        let mut checks: Vec<_> = enabled
+        let mut checks: IndexSet<_> = enabled
             .map(|check| {
                 if !self.filters.is_empty() && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
