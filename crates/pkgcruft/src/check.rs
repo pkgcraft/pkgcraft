@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Not;
-use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::Utf8Path;
@@ -18,7 +17,6 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNa
 use crate::iter::ReportFilter;
 use crate::report::ReportKind;
 use crate::source::SourceKind;
-use crate::Error;
 
 mod commands;
 mod dependency;
@@ -397,18 +395,6 @@ impl fmt::Debug for Check {
 impl fmt::Display for Check {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.kind)
-    }
-}
-
-impl FromStr for Check {
-    type Err = Error;
-
-    fn from_str(s: &str) -> crate::Result<Self> {
-        let kind: CheckKind = s
-            .parse()
-            .map_err(|_| Error::InvalidValue(format!("invalid check: {s}")))?;
-
-        Ok(kind.into())
     }
 }
 
