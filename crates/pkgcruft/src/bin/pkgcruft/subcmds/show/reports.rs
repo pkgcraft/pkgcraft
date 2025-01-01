@@ -23,7 +23,7 @@ pub(super) struct Subcommand {
 
 impl Subcommand {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let reports = match (self.reports.is_empty(), self.repo.as_ref()) {
+        let reports = match (self.reports.is_empty(), self.repo.as_deref()) {
             (true, None) => ReportKind::iter().collect(),
             (false, None) => self.reports.replay().unwrap_or_default(),
             (selected, Some(repo)) => {
