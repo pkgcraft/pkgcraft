@@ -191,7 +191,7 @@ mod tests {
         assert_unordered_eq!(reports, expected);
 
         // category
-        let expected = glob_reports!("{path}/Keywords/**/reports.json");
+        let expected = glob_reports!("{path}/Keywords/*/reports.json");
         let restrict = repo.restrict_from_path("Keywords").unwrap();
         let reports = scanner.run(restrict).unwrap();
         assert_unordered_eq!(reports, expected);
