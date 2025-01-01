@@ -35,7 +35,6 @@ impl From<Sender<Report>> for ReportSender {
 
 #[derive(Clone)]
 pub(crate) struct ReportFilter {
-    scope: Scope,
     reports: Vec<Report>,
     filter: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
@@ -47,7 +46,6 @@ pub(crate) struct ReportFilter {
 impl ReportFilter {
     fn new<S: Into<ReportSender>>(scope: Scope, scanner: &Scanner, tx: S) -> Self {
         Self {
-            scope,
             reports: Default::default(),
             filter: scanner.reports.clone(),
             exit: scanner.exit.clone(),
