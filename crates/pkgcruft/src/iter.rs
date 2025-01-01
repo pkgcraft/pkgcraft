@@ -17,13 +17,37 @@ use crate::scan::Scanner;
 
 #[derive(Clone)]
 enum ReportSender {
-    Pkg(Sender<Vec<Report>>),
+    Pkg(Vec<Report>, Sender<Vec<Report>>),
     Version(Sender<Report>),
+}
+
+impl ReportSender {
+    /// Process a single report.
+    fn report(&mut self, report: Report) {
+        match self {
+            Self::Version(tx) => {
+                tx.send(report).ok();
+            }
+            Self::Pkg(reports, _) => {
+                reports.push(report);
+            }
+        }
+    }
+
+    /// Process all reports for a package.
+    fn process(&mut self) {
+        if let Self::Pkg(reports, tx) = self {
+            if !reports.is_empty() {
+                reports.sort();
+                tx.send(mem::take(reports)).ok();
+            }
+        }
+    }
 }
 
 impl From<Sender<Vec<Report>>> for ReportSender {
     fn from(value: Sender<Vec<Report>>) -> Self {
-        Self::Pkg(value)
+        Self::Pkg(Default::default(), value)
     }
 }
 
@@ -35,22 +59,20 @@ impl From<Sender<Report>> for ReportSender {
 
 #[derive(Clone)]
 pub(crate) struct ReportFilter {
-    reports: Vec<Report>,
     filter: Arc<IndexSet<ReportKind>>,
     exit: Arc<IndexSet<ReportKind>>,
     failed: Arc<AtomicBool>,
-    tx: ReportSender,
+    sender: ReportSender,
     finalize: HashSet<ReportKind>,
 }
 
 impl ReportFilter {
     fn new<S: Into<ReportSender>>(scope: Scope, scanner: &Scanner, tx: S) -> Self {
         Self {
-            reports: Default::default(),
             filter: scanner.reports.clone(),
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
-            tx: tx.into(),
+            sender: tx.into(),
             finalize: scanner
                 .reports
                 .iter()
@@ -67,21 +89,7 @@ impl ReportFilter {
                 self.failed.store(true, Ordering::Relaxed);
             }
 
-            if let ReportSender::Version(tx) = &self.tx {
-                tx.send(report).ok();
-            } else {
-                self.reports.push(report);
-            }
-        }
-    }
-
-    /// Sort existing reports and send them to the iterator.
-    fn process(&mut self) {
-        if !self.reports.is_empty() {
-            if let ReportSender::Pkg(tx) = &self.tx {
-                self.reports.sort();
-                tx.send(mem::take(&mut self.reports)).ok();
-            }
+            self.sender.report(report);
         }
     }
 
@@ -158,7 +166,7 @@ fn pkg_worker(
             } else {
                 runner.run_checks(target, &mut filter);
             }
-            filter.process();
+            filter.sender.process();
         }
 
         // signal the wait group
@@ -167,7 +175,7 @@ fn pkg_worker(
         // finalize checks
         for check in finish_rx {
             runner.finish(check, &mut filter);
-            filter.process();
+            filter.sender.process();
         }
     })
 }
