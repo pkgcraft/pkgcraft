@@ -32,7 +32,7 @@ impl Scanner {
     pub fn new(repo: &EbuildRepo) -> Self {
         Self {
             jobs: bounded_jobs(0),
-            default: ReportKind::iter_default(repo).collect(),
+            default: ReportKind::defaults(repo),
             enabled: Default::default(),
             selected: Default::default(),
             reports: Arc::new(ReportKind::iter().collect()),

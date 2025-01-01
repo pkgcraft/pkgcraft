@@ -74,7 +74,7 @@ impl Command {
         for (repo_set, restrict) in targets {
             for repo in repo_set.ebuild() {
                 // determine enabled checks and reports
-                let defaults = ReportKind::iter_default(repo).collect();
+                let defaults = ReportKind::defaults(repo);
                 let (enabled, selected) = self.reports.collapse(defaults)?;
 
                 // create report scanner

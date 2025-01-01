@@ -151,7 +151,7 @@ mod tests {
 
         // default checks for gentoo repo
         let repo = data.ebuild_repo("gentoo").unwrap();
-        let defaults = ReportKind::iter_default(repo).collect();
+        let defaults = ReportKind::defaults(repo);
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults).unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
@@ -160,7 +160,7 @@ mod tests {
 
         // default checks
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let defaults: IndexSet<_> = ReportKind::iter_default(repo).collect();
+        let defaults = ReportKind::defaults(repo);
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();

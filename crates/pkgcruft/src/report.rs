@@ -477,9 +477,14 @@ impl ReportKind {
         }
     }
 
-    /// Return an iterator of all report variants enabled by default.
-    pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Self> + '_ {
-        Check::iter_default(repo).flat_map(|x| x.reports).copied()
+    /// Return the sorted set of reports enabled by default for an ebuild repo.
+    pub fn defaults(repo: &EbuildRepo) -> IndexSet<Self> {
+        let mut set: IndexSet<_> = Check::iter_default(repo)
+            .flat_map(|x| x.reports)
+            .copied()
+            .collect();
+        set.sort();
+        set
     }
 }
 
