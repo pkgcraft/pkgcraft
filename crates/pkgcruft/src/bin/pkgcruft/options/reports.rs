@@ -61,7 +61,7 @@ impl<T: FromStr> FromStr for TriState<T> {
 }
 
 #[derive(Debug, Args)]
-#[clap(next_help_heading = Some("Report selection"))]
+#[clap(next_help_heading = Some("Report options"))]
 pub(crate) struct Reports {
     /// Restrict by tri-state report aliases
     #[arg(short, long, value_name = "ALIAS[,...]", value_delimiter = ',')]
