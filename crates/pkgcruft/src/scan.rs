@@ -136,7 +136,7 @@ impl Scanner {
         };
 
         // filter checks -- errors if filtered check is selected
-        let checks: Vec<_> = enabled
+        let mut checks: Vec<_> = enabled
             .map(|check| {
                 if !self.filters.is_empty() && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
@@ -159,6 +159,7 @@ impl Scanner {
             })
             .try_collect()?;
 
+        checks.sort();
         Ok(ReportIter::new(scope, checks, self, restrict))
     }
 }
