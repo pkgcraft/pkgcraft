@@ -14,7 +14,7 @@ use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
-use crate::check::Check;
+use crate::check::{Check, CheckKind};
 use crate::iter::ReportFilter;
 use crate::Error;
 
@@ -60,14 +60,14 @@ impl From<ReportLevel> for Color {
 /// Supports @Check, %ReportLevel, and Report variants.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ReportAlias {
-    Check(Check),
+    Check(CheckKind),
     Level(ReportLevel),
     Report(ReportKind),
     Scope(Scope),
 }
 
-impl From<Check> for ReportAlias {
-    fn from(value: Check) -> Self {
+impl From<CheckKind> for ReportAlias {
+    fn from(value: CheckKind) -> Self {
         Self::Check(value)
     }
 }
@@ -115,7 +115,7 @@ impl ReportAlias {
         defaults: &IndexSet<ReportKind>,
     ) -> Box<dyn Iterator<Item = ReportKind> + '_> {
         match self {
-            Self::Check(check) => Box::new(check.reports.iter().copied()),
+            Self::Check(check) => Box::new(check.reports().iter().copied()),
             Self::Level(level) => {
                 Box::new(defaults.iter().filter(move |r| r.level() == level).copied())
             }
