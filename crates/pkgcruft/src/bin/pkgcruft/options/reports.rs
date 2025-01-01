@@ -116,6 +116,11 @@ impl Reports {
         }
     }
 
+    /// Return true if no reports are selected.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.reports.is_empty()
+    }
+
     /// Return the set of report variants enabled for replaying.
     pub(crate) fn replay(&self) -> pkgcruft::Result<IndexSet<ReportKind>> {
         let defaults = ReportKind::iter().collect();
