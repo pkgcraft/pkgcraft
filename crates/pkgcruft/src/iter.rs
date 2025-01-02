@@ -5,7 +5,6 @@ use std::{mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use crossbeam_utils::sync::WaitGroup;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
@@ -59,8 +58,8 @@ impl From<Sender<Report>> for ReportSender {
 
 #[derive(Clone)]
 pub(crate) struct ReportFilter {
-    filter: Arc<IndexSet<ReportKind>>,
-    exit: Arc<IndexSet<ReportKind>>,
+    filter: Arc<HashSet<ReportKind>>,
+    exit: Arc<HashSet<ReportKind>>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
     finalize: HashSet<ReportKind>,

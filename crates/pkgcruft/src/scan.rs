@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -20,8 +21,8 @@ pub struct Scanner {
     default: IndexSet<ReportKind>,
     enabled: Option<IndexSet<Check>>,
     selected: Option<IndexSet<Check>>,
-    pub(crate) reports: Arc<IndexSet<ReportKind>>,
-    pub(crate) exit: Arc<IndexSet<ReportKind>>,
+    pub(crate) reports: Arc<HashSet<ReportKind>>,
+    pub(crate) exit: Arc<HashSet<ReportKind>>,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) failed: Arc<AtomicBool>,
     pub(crate) repo: EbuildRepo,
