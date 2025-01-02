@@ -28,15 +28,12 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
 
 struct Check {
     repo: EbuildRepo,
-    dep_slots: DashMap<Restrict, Option<IndexSet<String>>>,
+    dep_slots: DashMap<Restrict, Option<String>>,
 }
 
 impl Check {
     /// Get the package slots matching a given dependency.
-    fn get_dep_slots<R: Into<Restrict>>(
-        &self,
-        dep: R,
-    ) -> Ref<Restrict, Option<IndexSet<String>>> {
+    fn get_dep_slots<R: Into<Restrict>>(&self, dep: R) -> Ref<Restrict, Option<String>> {
         let restrict = dep.into();
         self.dep_slots
             .entry(restrict.clone())
@@ -48,7 +45,7 @@ impl Check {
                     .map(|pkg| pkg.slot().to_string())
                     .collect::<IndexSet<_>>();
                 if slots.len() > 1 {
-                    Some(slots)
+                    Some(slots.iter().join(", "))
                 } else {
                     None
                 }
@@ -66,7 +63,6 @@ impl EbuildPkgCheck for Check {
             .filter(|x| x.blocker().is_none() && x.slot_dep().is_none())
         {
             if let Some(slots) = self.get_dep_slots(dep.no_use_deps()).as_ref() {
-                let slots = slots.iter().join(", ");
                 DependencySlotMissing
                     .version(pkg)
                     .message(format!("{dep} matches multiple slots: {slots}"))
