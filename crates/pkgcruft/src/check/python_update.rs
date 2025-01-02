@@ -1,14 +1,16 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use dashmap::{mapref::one::Ref, DashMap};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
-use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::ebuild::{iuse::Iuse, EbuildPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::Scope;
+use pkgcraft::restrict::{Restrict, Scope};
+use pkgcraft::types::OrderedSet;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::iter::ReportFilter;
@@ -80,9 +82,10 @@ fn deprefix<S: AsRef<str>>(s: &str, prefixes: &[S]) -> Option<String> {
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         repo: repo.clone(),
-        targets: OnceLock::new(),
-        keys: OnceLock::new(),
-        prefixes: OnceLock::new(),
+        targets: Default::default(),
+        keys: Default::default(),
+        prefixes: Default::default(),
+        dep_iuse: Default::default(),
     }
 }
 
@@ -91,6 +94,7 @@ struct Check {
     targets: OnceLock<IndexMap<Eclass, IndexSet<String>>>,
     keys: OnceLock<IndexMap<Eclass, Vec<Key>>>,
     prefixes: OnceLock<IndexMap<Eclass, Vec<&'static str>>>,
+    dep_iuse: DashMap<Restrict, Option<OrderedSet<Iuse>>>,
 }
 
 impl Check {
@@ -115,6 +119,24 @@ impl Check {
             .get_or_init(|| Eclass::iter().map(|e| (e, e.prefixes())).collect())
             .get(eclass)
             .unwrap_or_else(|| unreachable!("missing eclass prefixes: {eclass}"))
+    }
+
+    /// Get the package IUSE matching a given dependency.
+    fn get_dep_iuse<R: Into<Restrict>>(
+        &self,
+        dep: R,
+    ) -> Ref<Restrict, Option<OrderedSet<Iuse>>> {
+        let restrict = dep.into();
+        self.dep_iuse
+            .entry(restrict.clone())
+            .or_insert_with(|| {
+                self.repo
+                    .iter_restrict(restrict)
+                    .filter_map(Result::ok)
+                    .last()
+                    .map(|pkg| pkg.iuse().clone())
+            })
+            .downgrade()
     }
 }
 
@@ -157,25 +179,20 @@ impl EbuildPkgCheck for Check {
         }
 
         // drop targets with missing dependencies
-        for pkg in deps
+        for dep in deps
             .iter()
             .filter(|x| use_starts_with(x, self.prefixes(&eclass)))
-            .filter_map(|x| {
-                self.repo
-                    .iter_restrict(x.no_use_deps())
-                    .filter_map(Result::ok)
-                    .last()
-            })
         {
-            let iuse = pkg
-                .iuse()
-                .iter()
-                .filter_map(|x| deprefix(x.flag(), self.prefixes(&eclass)))
-                .collect::<HashSet<_>>();
-            targets.retain(|x| iuse.contains(x.as_str()));
-            if targets.is_empty() {
-                // no updates available
-                return;
+            if let Some(iuse) = self.get_dep_iuse(dep.no_use_deps()).as_ref() {
+                let iuse = iuse
+                    .iter()
+                    .filter_map(|x| deprefix(x.flag(), self.prefixes(&eclass)))
+                    .collect::<HashSet<_>>();
+                targets.retain(|x| iuse.contains(x.as_str()));
+                if targets.is_empty() {
+                    // no updates available
+                    return;
+                }
             }
         }
 
