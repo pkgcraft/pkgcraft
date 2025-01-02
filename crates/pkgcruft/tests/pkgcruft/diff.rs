@@ -79,6 +79,7 @@ fn output() {
         {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
         {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
         {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
+        {"kind":"UnstableOnly","scope":{"Package":"a/b"},"message":"arch"}
     "#};
     let new = indoc::indoc! {r#"
         {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
@@ -93,6 +94,7 @@ fn output() {
 
     let expected = indoc::indoc! {"
         -cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
+        -a/b: UnstableOnly: arch
         +cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
     "};
     let expected: Vec<_> = expected.lines().collect();
@@ -108,7 +110,25 @@ fn output() {
     assert_eq!(&output, &expected);
 
     let expected = indoc::indoc! {"
+        -a/b: UnstableOnly: arch
+        -cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
+        +cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
+    "};
+    let expected: Vec<_> = expected.lines().collect();
+
+    // sorted
+    let output = cmd("pkgcruft diff --sort")
+        .args([old_file.path(), new_file.path()])
+        .output()
+        .unwrap()
+        .stdout;
+    let output = String::from_utf8(output).unwrap();
+    let output: Vec<_> = output.lines().collect();
+    assert_eq!(&output, &expected);
+
+    let expected = indoc::indoc! {"
         \u{1b}[31m-cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated\u{1b}[0m
+        \u{1b}[31m-a/b: UnstableOnly: arch\u{1b}[0m
         \u{1b}[32m+cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line\u{1b}[0m
     "};
     let expected: Vec<_> = expected.lines().collect();
