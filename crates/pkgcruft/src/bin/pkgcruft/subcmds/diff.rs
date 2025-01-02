@@ -90,31 +90,50 @@ impl Replay {
     }
 }
 
-/// Wrapper for report differences.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-enum Change<'a> {
-    Removed(&'a Report),
-    Added(&'a Report),
+/// Report difference variants.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+enum ChangeKind {
+    Removed,
+    Added,
 }
 
-impl Change<'_> {
-    fn report(&self) -> &Report {
+impl fmt::Display for ChangeKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Removed(report) => report,
-            Self::Added(report) => report,
+            Self::Removed => write!(f, "-"),
+            Self::Added => write!(f, "+"),
+        }
+    }
+}
+
+/// Wrapper for report differences.
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+struct Change<'a> {
+    kind: ChangeKind,
+    report: &'a Report,
+}
+
+impl<'a> Change<'a> {
+    fn removed(report: &'a Report) -> Self {
+        Self {
+            kind: ChangeKind::Removed,
+            report,
+        }
+    }
+
+    fn added(report: &'a Report) -> Self {
+        Self {
+            kind: ChangeKind::Added,
+            report,
         }
     }
 }
 
 impl Ord for Change<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.report()
-            .cmp(other.report())
-            .then_with(|| match (self, other) {
-                (Self::Removed(_), Self::Added(_)) => Ordering::Less,
-                (Self::Added(_), Self::Removed(_)) => Ordering::Greater,
-                _ => Ordering::Equal,
-            })
+        self.report
+            .cmp(other.report)
+            .then_with(|| self.kind.cmp(&other.kind))
     }
 }
 
@@ -126,14 +145,14 @@ impl PartialOrd for Change<'_> {
 
 impl fmt::Display for Change<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Removed(report) => {
-                write!(f, "{}", format!("-{report}").color(Color::Red))
-            }
-            Self::Added(report) => {
-                write!(f, "{}", format!("+{report}").color(Color::Green))
-            }
-        }
+        let color = match self.kind {
+            ChangeKind::Removed => Color::Red,
+            ChangeKind::Added => Color::Green,
+        };
+
+        let kind = &self.kind;
+        let report = &self.report;
+        write!(f, "{}", format!("{kind}{report}").color(color))
     }
 }
 
@@ -146,8 +165,8 @@ impl Command {
 
         let old: IndexSet<_> = replay.run(&self.old)?.try_collect()?;
         let new: IndexSet<_> = replay.run(&self.new)?.try_collect()?;
-        let removed = old.difference(&new).map(Change::Removed);
-        let added = new.difference(&old).map(Change::Added);
+        let removed = old.difference(&new).map(Change::removed);
+        let added = new.difference(&old).map(Change::added);
         let mut changes: Vec<_> = removed.chain(added).collect();
 
         if self.options.sort {
