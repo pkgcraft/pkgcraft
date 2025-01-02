@@ -92,14 +92,13 @@ fn output() {
     let mut new_file = NamedTempFile::new().unwrap();
     new_file.write_all(new.as_bytes()).unwrap();
 
+    // color disabled
     let expected = indoc::indoc! {"
         -cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
         -a/b: UnstableOnly: arch
         +cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
     "};
     let expected: Vec<_> = expected.lines().collect();
-
-    // color disabled
     let output = cmd("pkgcruft diff")
         .args([old_file.path(), new_file.path()])
         .output()
@@ -109,14 +108,13 @@ fn output() {
     let output: Vec<_> = output.lines().collect();
     assert_eq!(&output, &expected);
 
+    // sorted
     let expected = indoc::indoc! {"
         -a/b: UnstableOnly: arch
         -cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
         +cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
     "};
     let expected: Vec<_> = expected.lines().collect();
-
-    // sorted
     let output = cmd("pkgcruft diff --sort")
         .args([old_file.path(), new_file.path()])
         .output()
@@ -126,14 +124,47 @@ fn output() {
     let output: Vec<_> = output.lines().collect();
     assert_eq!(&output, &expected);
 
+    // filtered reports
+    let expected = indoc::indoc! {"
+        -cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated
+    "};
+    let expected: Vec<_> = expected.lines().collect();
+    for opt in ["-r", "--reports"] {
+        let output = cmd("pkgcruft diff")
+            .args([opt, "DependencyDeprecated"])
+            .args([old_file.path(), new_file.path()])
+            .output()
+            .unwrap()
+            .stdout;
+        let output = String::from_utf8(output).unwrap();
+        let output: Vec<_> = output.lines().collect();
+        assert_eq!(&output, &expected);
+    }
+
+    // filtered pkgs
+    let expected = indoc::indoc! {"
+        -a/b: UnstableOnly: arch
+    "};
+    let expected: Vec<_> = expected.lines().collect();
+    for opt in ["-p", "--pkgs"] {
+        let output = cmd("pkgcruft diff")
+            .args([opt, "a/b"])
+            .args([old_file.path(), new_file.path()])
+            .output()
+            .unwrap()
+            .stdout;
+        let output = String::from_utf8(output).unwrap();
+        let output: Vec<_> = output.lines().collect();
+        assert_eq!(&output, &expected);
+    }
+
+    // color enabled
     let expected = indoc::indoc! {"
         \u{1b}[31m-cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated\u{1b}[0m
         \u{1b}[31m-a/b: UnstableOnly: arch\u{1b}[0m
         \u{1b}[32m+cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line\u{1b}[0m
     "};
     let expected: Vec<_> = expected.lines().collect();
-
-    // color enabled
     let output = cmd("pkgcruft diff --color true")
         .args([old_file.path(), new_file.path()])
         .output()
