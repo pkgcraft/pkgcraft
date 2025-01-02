@@ -1,8 +1,9 @@
+use dashmap::{mapref::one::Ref, DashMap};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
-use pkgcraft::restrict::Scope;
+use pkgcraft::restrict::{Restrict, Scope};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::DependencySlotMissing;
@@ -19,11 +20,32 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
-    Check { repo: repo.clone() }
+    Check {
+        repo: repo.clone(),
+        dep_slots: Default::default(),
+    }
 }
 
 struct Check {
     repo: EbuildRepo,
+    dep_slots: DashMap<Restrict, IndexSet<String>>,
+}
+
+impl Check {
+    /// Get the package slots matching a given dependency.
+    fn get_dep_slots<R: Into<Restrict>>(&self, dep: R) -> Ref<Restrict, IndexSet<String>> {
+        let restrict = dep.into();
+        self.dep_slots
+            .entry(restrict.clone())
+            .or_insert_with(|| {
+                self.repo
+                    .iter_restrict(restrict)
+                    .filter_map(Result::ok)
+                    .map(|pkg| pkg.slot().to_string())
+                    .collect::<IndexSet<_>>()
+            })
+            .downgrade()
+    }
 }
 
 impl EbuildPkgCheck for Check {
@@ -34,13 +56,7 @@ impl EbuildPkgCheck for Check {
             .flat_map(|x| x.iter_flatten())
             .filter(|x| x.blocker().is_none() && x.slot_dep().is_none())
         {
-            // TODO: use cached lookup instead of searching for each dep
-            let slots = self
-                .repo
-                .iter_restrict(dep.no_use_deps())
-                .filter_map(Result::ok)
-                .map(|pkg| pkg.slot().to_string())
-                .collect::<IndexSet<_>>();
+            let slots = self.get_dep_slots(dep.no_use_deps());
             if slots.len() > 1 {
                 let slots = slots.iter().join(", ");
                 DependencySlotMissing
