@@ -306,6 +306,7 @@ impl MetadataCacheRegen<'_> {
             .metadata_task(repo)
             .cache(self.cache)
             .force(self.force)
+            .output(self.output)
             .verify(self.verify);
         let errors = cpvs
             .into_par_iter()
