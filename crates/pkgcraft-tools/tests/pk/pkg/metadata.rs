@@ -3,7 +3,8 @@ use std::env;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::cmd;
+use pkgcraft::test::{cmd, test_data};
+use predicates::prelude::*;
 
 super::cmd_arg_tests!("pk pkg metadata");
 
@@ -155,5 +156,33 @@ fn remove() {
             let path = repo.metadata().cache().path().join(cpv);
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
+    }
+}
+
+#[test]
+fn verify() {
+    let data = test_data();
+
+    for opt in ["-V", "--verify"] {
+        // invalid data
+        let repo = data.ebuild_repo("bad").unwrap();
+        cmd("pk pkg metadata")
+            .arg(opt)
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
+        // valid data
+        let repo = data.ebuild_repo("metadata").unwrap();
+        cmd("pk pkg metadata")
+            .arg(opt)
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
     }
 }
