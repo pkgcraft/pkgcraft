@@ -1,3 +1,4 @@
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use indexmap::IndexMap;
@@ -262,37 +263,41 @@ fn pkg_with_invalid_dep() {
     assert!(path.join("cat/b-1").exists());
 }
 
+/// Determine metadata file content for a given directory path.
+fn metadata_content<P>(path: P) -> IndexMap<PathBuf, String>
+where
+    P: AsRef<Path> + Copy,
+{
+    WalkDir::new(path)
+        .sort_by_file_name()
+        .min_depth(2)
+        .max_depth(2)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .map(|e| {
+            let short_path = e.path().strip_prefix(path).unwrap();
+            let data = fs::read_to_string(e.path()).unwrap();
+            (short_path.to_path_buf(), data)
+        })
+        .collect()
+}
+
 #[test]
 fn data_content() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
 
-    // determine metadata file content
-    let metadata_content = |cache_path: &str| {
-        WalkDir::new(cache_path)
-            .sort_by_file_name()
-            .min_depth(2)
-            .max_depth(2)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .map(|e| {
-                let short_path = e.path().strip_prefix(cache_path).unwrap();
-                let data = fs::read_to_string(e.path()).unwrap();
-                (short_path.to_path_buf(), data)
-            })
-            .collect()
-    };
-
     // record expected metadata file content
-    let expected: IndexMap<_, _> = metadata_content(repo.metadata().cache().path().as_str());
+    let expected = metadata_content(repo.metadata().cache().path());
 
     // regenerate metadata
     for opt in ["-p", "--path"] {
         let dir = tempdir().unwrap();
-        let cache_path = dir.path().to_str().unwrap();
+        let path = dir.path();
 
         cmd("pk repo metadata regen")
-            .args([opt, cache_path])
+            .arg(opt)
+            .arg(path)
             .arg(repo)
             .assert()
             .stdout("")
@@ -300,7 +305,7 @@ fn data_content() {
             .success();
 
         // verify new data matches original
-        let new: IndexMap<_, _> = metadata_content(cache_path);
+        let new = metadata_content(path);
         for (cpv, data) in new {
             assert_unordered_eq!(expected.get(&cpv).unwrap().lines(), data.lines());
         }
