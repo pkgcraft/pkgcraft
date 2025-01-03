@@ -301,13 +301,17 @@ impl MetadataCacheRegen<'_> {
 
         // run cache verification in a thread pool that runs blocking metadata tasks
         // in build pool processes as necessary
-        let pool = repo.pool();
-        let regen = |cpv| pool.metadata(repo, cpv, self.cache, self.force, self.verify);
+        let regen = repo
+            .pool()
+            .metadata_task(repo)
+            .cache(self.cache)
+            .force(self.force)
+            .verify(self.verify);
         let errors = cpvs
             .into_par_iter()
             .filter_map(|cpv| {
                 self.progress.inc(1);
-                regen(cpv).err()
+                regen.run(cpv).err()
             })
             .inspect(|err| {
                 // hack to force log capturing for tests to work in threads

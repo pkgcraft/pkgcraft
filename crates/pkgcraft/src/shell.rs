@@ -27,7 +27,7 @@ mod install;
 mod metadata;
 pub(crate) mod operations;
 pub(crate) mod phase;
-mod pool;
+pub mod pool;
 pub use pool::BuildPool;
 pub mod scope;
 pub(crate) mod test;

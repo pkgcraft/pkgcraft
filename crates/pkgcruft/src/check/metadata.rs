@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
-use pkgcraft::shell::BuildPool;
+use pkgcraft::shell::pool::MetadataTaskBuilder;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::MetadataError;
@@ -22,22 +20,17 @@ pub(super) static CHECK: super::Check = super::Check {
 
 pub(super) fn create(repo: &EbuildRepo) -> impl CpvCheck {
     Check {
-        repo: repo.clone(),
-        pool: repo.pool(),
+        regen: repo.pool().metadata_task(repo),
     }
 }
 
 struct Check {
-    repo: EbuildRepo,
-    pool: Arc<BuildPool>,
+    regen: MetadataTaskBuilder,
 }
 
 impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
-        match self
-            .pool
-            .metadata(&self.repo, cpv, self.repo.metadata().cache(), false, false)
-        {
+        match self.regen.run(cpv) {
             Err(InvalidPkg { err, .. }) => {
                 MetadataError.version(cpv).message(err).report(filter)
             }

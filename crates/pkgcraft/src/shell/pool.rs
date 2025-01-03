@@ -54,6 +54,80 @@ impl MetadataTask {
     }
 }
 
+/// Task builder for ebuild package metadata cache generation.
+#[derive(Debug)]
+pub struct MetadataTaskBuilder {
+    tx: IpcSender<Command>,
+    repo: EbuildRepo,
+    cache: Option<MetadataCache>,
+    force: bool,
+    verify: bool,
+}
+
+// needed due to IpcSender lacking Sync
+unsafe impl Sync for MetadataTaskBuilder {}
+
+impl MetadataTaskBuilder {
+    pub fn new(pool: &BuildPool, repo: &EbuildRepo) -> Self {
+        Self {
+            tx: pool.tx.clone(),
+            repo: repo.clone(),
+            cache: None,
+            force: false,
+            verify: false,
+        }
+    }
+
+    /// Use a custom metadata cache.
+    pub fn cache(mut self, value: &MetadataCache) -> Self {
+        self.cache = Some(value.clone());
+        self
+    }
+
+    /// Force the package's metadata to be regenerated.
+    pub fn force(mut self, value: bool) -> Self {
+        self.force = value;
+        self
+    }
+
+    /// Verify the package's metadata.
+    pub fn verify(mut self, value: bool) -> Self {
+        self.verify = value;
+        self
+    }
+
+    /// Run the task for a target [`Cpv`].
+    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<()> {
+        let cpv = cpv.into();
+        let cache = self
+            .cache
+            .as_ref()
+            .unwrap_or_else(|| self.repo.metadata().cache());
+
+        if !self.force {
+            let pkg = EbuildRawPkg::try_new(cpv.clone(), &self.repo)?;
+            if let Some(result) = cache.get(&pkg) {
+                if self.verify {
+                    // perform deserialization, returning any occurring error
+                    return result.and_then(|e| e.to_metadata(&pkg)).map(|_| ());
+                } else if result.is_ok() {
+                    // skip deserialization, assuming existing cache entry is valid
+                    return Ok(());
+                }
+            }
+        }
+        let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.verify);
+        let (tx, rx) = ipc::channel()
+            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
+        let task = Task::Metadata(meta, tx);
+        self.tx
+            .send(Command::Task(task))
+            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
+        rx.recv()
+            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
+    }
+}
+
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
@@ -86,6 +160,7 @@ pub struct BuildPool {
     running: OnceLock<bool>,
 }
 
+// needed due to IpcSender lacking Sync
 unsafe impl Sync for BuildPool {}
 
 impl Default for BuildPool {
@@ -152,37 +227,9 @@ impl BuildPool {
         }
     }
 
-    /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
-    pub fn metadata<T: Into<Cpv>>(
-        &self,
-        repo: &EbuildRepo,
-        cpv: T,
-        cache: &MetadataCache,
-        force: bool,
-        verify: bool,
-    ) -> crate::Result<()> {
-        let cpv = cpv.into();
-        if !force {
-            let pkg = EbuildRawPkg::try_new(cpv.clone(), repo)?;
-            if let Some(result) = cache.get(&pkg) {
-                if verify {
-                    // perform deserialization, returning any occurring error
-                    return result.and_then(|e| e.to_metadata(&pkg)).map(|_| ());
-                } else if result.is_ok() {
-                    // skip deserialization, assuming existing cache entry is valid
-                    return Ok(());
-                }
-            }
-        }
-        let meta = MetadataTask::new(repo, cpv, cache.clone(), verify);
-        let (tx, rx) = ipc::channel()
-            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
-        let task = Task::Metadata(meta, tx);
-        self.tx
-            .send(Command::Task(task))
-            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
-        rx.recv()
-            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
+    /// Create an ebuild package metadata regeneration task builder.
+    pub fn metadata_task(&self, repo: &EbuildRepo) -> MetadataTaskBuilder {
+        MetadataTaskBuilder::new(self, repo)
     }
 }
 
