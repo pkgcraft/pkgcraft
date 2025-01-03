@@ -184,5 +184,24 @@ fn verify() {
             .stdout("")
             .stderr("")
             .success();
+
+        // verifying doesn't generate files
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        cmd("pk pkg metadata cat/pkg-1")
+            .args(["--repo", repo.as_ref()])
+            .arg(opt)
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+        let path = repo.metadata().cache().path().join("cat/pkg-1");
+        assert!(!path.exists());
     }
 }
