@@ -140,7 +140,7 @@ impl From<CheckKind> for Check {
 }
 
 /// Check contexts.
-#[derive(Display, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub(crate) enum CheckContext {
     /// Check only runs by default in the gentoo repo.

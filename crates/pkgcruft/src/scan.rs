@@ -19,6 +19,7 @@ use crate::source::PkgFilter;
 pub struct Scanner {
     pub(crate) jobs: usize,
     default: IndexSet<ReportKind>,
+    supported: IndexSet<ReportKind>,
     enabled: Option<IndexSet<Check>>,
     selected: Option<IndexSet<Check>>,
     pub(crate) reports: Arc<HashSet<ReportKind>>,
@@ -34,6 +35,7 @@ impl Scanner {
         Self {
             jobs: bounded_jobs(0),
             default: ReportKind::defaults(repo),
+            supported: ReportKind::supported(repo),
             enabled: Default::default(),
             selected: Default::default(),
             reports: Arc::new(ReportKind::iter().collect()),
@@ -70,7 +72,7 @@ impl Scanner {
             values
                 .into_iter()
                 .map(Into::into)
-                .flat_map(|x| x.expand(&self.default))
+                .flat_map(|x| x.expand(&self.default, &self.supported))
                 .collect(),
         );
         self
@@ -97,7 +99,7 @@ impl Scanner {
             values
                 .into_iter()
                 .map(Into::into)
-                .flat_map(|x| x.expand(&self.default))
+                .flat_map(|x| x.expand(&self.default, &self.supported))
                 .collect(),
         );
         self

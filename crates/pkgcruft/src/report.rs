@@ -56,10 +56,9 @@ impl From<ReportLevel> for Color {
 }
 
 /// Report aliases that may related to one or more report variants.
-///
-/// Supports @Check, %ReportLevel, and Report variants.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ReportAlias {
+    Supported,
     Check(CheckKind),
     Level(ReportLevel),
     Report(ReportKind),
@@ -95,11 +94,15 @@ impl FromStr for ReportAlias {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(val) = s.strip_prefix('@') {
-            val.parse()
-                .map(Self::Check)
-                .or_else(|_| val.parse().map(Self::Level))
-                .or_else(|_| val.parse().map(Self::Scope))
-                .map_err(|_| Error::InvalidValue(format!("invalid report alias: {val}")))
+            if val == "supported" {
+                Ok(Self::Supported)
+            } else {
+                val.parse()
+                    .map(Self::Check)
+                    .or_else(|_| val.parse().map(Self::Level))
+                    .or_else(|_| val.parse().map(Self::Scope))
+                    .map_err(|_| Error::InvalidValue(format!("invalid report alias: {val}")))
+            }
         } else {
             s.parse()
                 .map(Self::Report)
@@ -109,12 +112,19 @@ impl FromStr for ReportAlias {
 }
 
 impl ReportAlias {
+    /// Return true if the related reports should be added to the selected set.
+    pub fn selected(&self) -> bool {
+        matches!(self, Self::Supported | Self::Check(_) | Self::Report(_))
+    }
+
     /// Expand a report alias into an iterator of its variants.
-    pub fn expand(
+    pub fn expand<'a>(
         self,
-        defaults: &IndexSet<ReportKind>,
-    ) -> Box<dyn Iterator<Item = ReportKind> + '_> {
+        defaults: &'a IndexSet<ReportKind>,
+        supported: &'a IndexSet<ReportKind>,
+    ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
+            Self::Supported => Box::new(supported.iter().copied()),
             Self::Check(check) => Box::new(check.reports().iter().copied()),
             Self::Level(level) => {
                 Box::new(defaults.iter().filter(move |r| r.level() == level).copied())
@@ -480,6 +490,16 @@ impl ReportKind {
     /// Return the sorted set of reports enabled by default for an ebuild repo.
     pub fn defaults(repo: &EbuildRepo) -> IndexSet<Self> {
         let mut set: IndexSet<_> = Check::iter_default(repo)
+            .flat_map(|x| x.reports)
+            .copied()
+            .collect();
+        set.sort();
+        set
+    }
+
+    /// Return the sorted set of supported reports for an ebuild repo.
+    pub fn supported(repo: &EbuildRepo) -> IndexSet<Self> {
+        let mut set: IndexSet<_> = Check::iter_supported(repo)
             .flat_map(|x| x.reports)
             .copied()
             .collect();

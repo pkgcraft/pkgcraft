@@ -72,6 +72,7 @@ impl Reports {
     pub(crate) fn collapse(
         &self,
         defaults: IndexSet<ReportKind>,
+        supported: IndexSet<ReportKind>,
     ) -> pkgcruft::Result<(IndexSet<ReportKind>, IndexSet<ReportKind>)> {
         // sort by variant
         let reports: Vec<_> = self.reports.iter().copied().sorted().collect();
@@ -90,19 +91,19 @@ impl Reports {
         for x in reports {
             match x {
                 TriState::Set(val) => {
-                    enabled.extend(val.expand(&defaults));
-                    if matches!(val, ReportAlias::Check(_) | ReportAlias::Report(_)) {
-                        selected.extend(val.expand(&defaults));
+                    enabled.extend(val.expand(&defaults, &supported));
+                    if val.selected() {
+                        selected.extend(val.expand(&defaults, &supported));
                     }
                 }
                 TriState::Add(val) => {
-                    enabled.extend(val.expand(&defaults));
-                    if matches!(val, ReportAlias::Check(_) | ReportAlias::Report(_)) {
-                        selected.extend(val.expand(&defaults));
+                    enabled.extend(val.expand(&defaults, &supported));
+                    if val.selected() {
+                        selected.extend(val.expand(&defaults, &supported));
                     }
                 }
                 TriState::Remove(val) => {
-                    for x in val.expand(&defaults) {
+                    for x in val.expand(&defaults, &supported) {
                         enabled.swap_remove(&x);
                     }
                 }
@@ -125,8 +126,8 @@ impl Reports {
 
     /// Return the set of report variants enabled for replaying.
     pub(crate) fn replay(&self) -> pkgcruft::Result<IndexSet<ReportKind>> {
-        let defaults = ReportKind::iter().collect();
-        let (enabled, _) = self.collapse(defaults)?;
+        let defaults: IndexSet<_> = ReportKind::iter().collect();
+        let (enabled, _) = self.collapse(defaults.clone(), defaults)?;
         Ok(enabled)
     }
 }
@@ -154,8 +155,9 @@ mod tests {
         // default checks for gentoo repo
         let repo = data.ebuild_repo("gentoo").unwrap();
         let defaults = ReportKind::defaults(repo);
+        let supported = ReportKind::supported(repo);
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let (enabled, _) = cmd.reports.collapse(defaults).unwrap();
+        let (enabled, _) = cmd.reports.collapse(defaults, supported).unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         // repo specific checks enabled when scanning the matching repo
         assert!(checks.contains(&CheckKind::Header));
@@ -163,8 +165,12 @@ mod tests {
         // default checks
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let defaults = ReportKind::defaults(repo);
+        let supported = ReportKind::supported(repo);
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
-        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let (enabled, _) = cmd
+            .reports
+            .collapse(defaults.clone(), supported.clone())
+            .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(checks.contains(&CheckKind::Dependency));
         // optional checks aren't run by default when scanning
@@ -176,13 +182,19 @@ mod tests {
         let report = ReportKind::HeaderInvalid;
         assert_eq!(report.level(), ReportLevel::Error);
         let cmd = Command::try_parse_from(["cmd", "-r", "@error"]).unwrap();
-        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let (enabled, _) = cmd
+            .reports
+            .collapse(defaults.clone(), supported.clone())
+            .unwrap();
         assert!(!enabled.contains(&report));
         assert!(!enabled.is_empty());
 
         // enable optional checks in addition to default checks
         let cmd = Command::try_parse_from(["cmd", "-r", "+@UnstableOnly,+@Header"]).unwrap();
-        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let (enabled, _) = cmd
+            .reports
+            .collapse(defaults.clone(), supported.clone())
+            .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(checks.contains(&CheckKind::UnstableOnly));
         assert!(checks.contains(&CheckKind::Header));
@@ -190,21 +202,27 @@ mod tests {
 
         // disable checks
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency"]).unwrap();
-        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let (enabled, _) = cmd
+            .reports
+            .collapse(defaults.clone(), supported.clone())
+            .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,+@Dependency"]).unwrap();
-        let (enabled, _) = cmd.reports.collapse(defaults.clone()).unwrap();
+        let (enabled, _) = cmd
+            .reports
+            .collapse(defaults.clone(), supported.clone())
+            .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(!checks.contains(&CheckKind::Dependency));
         assert!(checks.len() > 1);
 
         // error when args cancel out
         let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,@Dependency"]).unwrap();
-        let r = cmd.reports.collapse(defaults.clone());
+        let r = cmd.reports.collapse(defaults.clone(), supported.clone());
         assert_err_re!(r, "no reports enabled");
 
         // invalid check aliases in args

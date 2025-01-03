@@ -30,8 +30,9 @@ impl Subcommand {
                 let mut config = Config::new("pkgcraft", "");
                 let repo = target_ebuild_repo(&mut config, repo)?;
                 let defaults = ReportKind::defaults(&repo);
+                let supported = ReportKind::supported(&repo);
                 if selected {
-                    let (enabled, _) = self.reports.collapse(defaults)?;
+                    let (enabled, _) = self.reports.collapse(defaults, supported)?;
                     enabled
                 } else {
                     defaults
