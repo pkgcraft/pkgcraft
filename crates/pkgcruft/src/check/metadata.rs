@@ -34,7 +34,10 @@ struct Check {
 
 impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
-        match self.pool.metadata(&self.repo, cpv, false, false) {
+        match self
+            .pool
+            .metadata(&self.repo, cpv, self.repo.metadata().cache(), false, false)
+        {
             Err(InvalidPkg { err, .. }) => {
                 MetadataError.version(cpv).message(err).report(filter)
             }

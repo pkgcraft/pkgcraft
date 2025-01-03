@@ -6,6 +6,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 use crate::dep::Cpv;
@@ -199,7 +200,7 @@ impl From<&Metadata> for Md5DictEntry {
 }
 
 /// The md5-dict metadata cache.
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Md5Dict {
     path: Utf8PathBuf,
 }

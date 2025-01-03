@@ -2,6 +2,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use tracing::error;
 
@@ -88,7 +89,7 @@ impl CacheEntry for MetadataCacheEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MetadataCache {
     Md5Dict(md5_dict::Md5Dict),
 }
@@ -151,6 +152,45 @@ impl Cache for MetadataCache {
         match self {
             Self::Md5Dict(cache) => cache.clean(collection),
         }
+    }
+}
+
+impl<T> Cache for &T
+where
+    T: Cache,
+{
+    type Entry = T::Entry;
+
+    fn chksum<S: AsRef<[u8]>>(&self, data: S) -> String {
+        (*self).chksum(data)
+    }
+
+    fn format(&self) -> CacheFormat {
+        (*self).format()
+    }
+
+    fn path(&self) -> &Utf8Path {
+        (*self).path()
+    }
+
+    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>> {
+        (*self).get(pkg)
+    }
+
+    fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()> {
+        (*self).update(pkg, meta)
+    }
+
+    fn remove(&self, repo: &EbuildRepo) -> crate::Result<()> {
+        (*self).remove(repo)
+    }
+
+    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
+        (*self).remove_entry(cpv)
+    }
+
+    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
+        (*self).clean(collection)
     }
 }
 
@@ -266,7 +306,8 @@ impl MetadataCacheRegen<'_> {
             .into_par_iter()
             .filter_map(|cpv| {
                 self.progress.inc(1);
-                pool.metadata(repo, &cpv, self.force, self.verify).err()
+                pool.metadata(repo, &cpv, self.cache, self.force, self.verify)
+                    .err()
             })
             .inspect(|err| {
                 // hack to force log capturing for tests to work in threads

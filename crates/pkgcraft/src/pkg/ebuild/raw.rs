@@ -129,7 +129,13 @@ impl EbuildRawPkg {
 
         get_metadata().or_else(|e| {
             if regen_on_failure {
-                repo.pool().metadata(repo, &self.0.cpv, true, false)?;
+                repo.pool().metadata(
+                    repo,
+                    &self.0.cpv,
+                    repo.metadata().cache(),
+                    true,
+                    false,
+                )?;
                 get_metadata()
             } else {
                 Err(e)

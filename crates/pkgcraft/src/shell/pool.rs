@@ -11,7 +11,7 @@ use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata as PkgMetadata;
 use crate::pkg::ebuild::EbuildRawPkg;
-use crate::repo::ebuild::cache::{Cache, CacheEntry};
+use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 use crate::repo::ebuild::EbuildRepo;
 use crate::repo::Repository;
 
@@ -29,14 +29,16 @@ fn get_ebuild_repo(config: &Config, repo: String) -> crate::Result<&EbuildRepo> 
 struct Metadata {
     repo: String,
     cpv: Cpv,
+    cache: MetadataCache,
     verify: bool,
 }
 
 impl Metadata {
-    fn new(repo: &EbuildRepo, cpv: &Cpv, verify: bool) -> Self {
+    fn new(repo: &EbuildRepo, cpv: &Cpv, cache: &MetadataCache, verify: bool) -> Self {
         Self {
             repo: repo.id().to_string(),
             cpv: cpv.clone(),
+            cache: cache.clone(),
             verify,
         }
     }
@@ -46,7 +48,7 @@ impl Metadata {
         let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
         let meta = PkgMetadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
         if !self.verify {
-            repo.metadata().cache().update(&pkg, &meta)?;
+            self.cache.update(&pkg, &meta)?;
         }
         Ok(())
     }
@@ -155,12 +157,13 @@ impl BuildPool {
         &self,
         repo: &EbuildRepo,
         cpv: &Cpv,
+        cache: &MetadataCache,
         force: bool,
         verify: bool,
     ) -> crate::Result<()> {
         if !force {
             let pkg = EbuildRawPkg::try_new(cpv.clone(), repo)?;
-            if let Some(result) = repo.metadata().cache().get(&pkg) {
+            if let Some(result) = cache.get(&pkg) {
                 if verify {
                     // perform deserialization, returning any occurring error
                     return result.and_then(|e| e.to_metadata(&pkg)).map(|_| ());
@@ -170,7 +173,7 @@ impl BuildPool {
                 }
             }
         }
-        let meta = Metadata::new(repo, cpv, verify);
+        let meta = Metadata::new(repo, cpv, cache, verify);
         let (tx, rx) = ipc::channel()
             .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::Metadata(meta, tx);
