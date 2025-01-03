@@ -34,11 +34,11 @@ struct MetadataTask {
 }
 
 impl MetadataTask {
-    fn new(repo: &EbuildRepo, cpv: &Cpv, cache: &MetadataCache, verify: bool) -> Self {
+    fn new(repo: &EbuildRepo, cpv: Cpv, cache: MetadataCache, verify: bool) -> Self {
         Self {
             repo: repo.id().to_string(),
-            cpv: cpv.clone(),
-            cache: cache.clone(),
+            cpv,
+            cache,
             verify,
         }
     }
@@ -153,14 +153,15 @@ impl BuildPool {
     }
 
     /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
-    pub fn metadata(
+    pub fn metadata<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
-        cpv: &Cpv,
+        cpv: T,
         cache: &MetadataCache,
         force: bool,
         verify: bool,
     ) -> crate::Result<()> {
+        let cpv = cpv.into();
         if !force {
             let pkg = EbuildRawPkg::try_new(cpv.clone(), repo)?;
             if let Some(result) = cache.get(&pkg) {
@@ -173,7 +174,7 @@ impl BuildPool {
                 }
             }
         }
-        let meta = MetadataTask::new(repo, cpv, cache, verify);
+        let meta = MetadataTask::new(repo, cpv, cache.clone(), verify);
         let (tx, rx) = ipc::channel()
             .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::Metadata(meta, tx);
