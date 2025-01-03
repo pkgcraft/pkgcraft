@@ -5,6 +5,7 @@ use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
+use tempfile::tempdir;
 
 super::cmd_arg_tests!("pk pkg metadata");
 
@@ -156,6 +157,35 @@ fn remove() {
             let path = repo.metadata().cache().path().join(cpv);
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
+    }
+}
+
+#[test]
+fn custom_path() {
+    let dir = tempdir().unwrap();
+    let path = dir.path();
+
+    for opt in ["-p", "--path"] {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        cmd("pk pkg metadata cat/pkg-1")
+            .args(["--repo", repo.as_ref()])
+            .arg(opt)
+            .arg(path)
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+        // metadata files are created in the specified dir
+        let metadata_path = repo.metadata().cache().path().join("cat/pkg-1");
+        assert!(!metadata_path.exists());
+        assert!(path.join("cat/pkg-1").exists());
     }
 }
 
