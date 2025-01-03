@@ -14,7 +14,7 @@ use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
-use crate::check::{Check, CheckKind};
+use crate::check::{Check, CheckContext, CheckKind};
 use crate::iter::ReportFilter;
 use crate::Error;
 
@@ -60,6 +60,7 @@ impl From<ReportLevel> for Color {
 pub enum ReportAlias {
     Supported,
     Check(CheckKind),
+    Context(CheckContext),
     Level(ReportLevel),
     Report(ReportKind),
     Scope(Scope),
@@ -68,6 +69,12 @@ pub enum ReportAlias {
 impl From<CheckKind> for ReportAlias {
     fn from(value: CheckKind) -> Self {
         Self::Check(value)
+    }
+}
+
+impl From<CheckContext> for ReportAlias {
+    fn from(value: CheckContext) -> Self {
+        Self::Context(value)
     }
 }
 
@@ -99,6 +106,7 @@ impl FromStr for ReportAlias {
             } else {
                 val.parse()
                     .map(Self::Check)
+                    .or_else(|_| val.parse().map(Self::Context))
                     .or_else(|_| val.parse().map(Self::Level))
                     .or_else(|_| val.parse().map(Self::Scope))
                     .map_err(|_| Error::InvalidValue(format!("invalid report alias: {val}")))
@@ -114,7 +122,7 @@ impl FromStr for ReportAlias {
 impl ReportAlias {
     /// Return true if the related reports should be added to the selected set.
     pub fn selected(&self) -> bool {
-        matches!(self, Self::Supported | Self::Check(_) | Self::Report(_))
+        matches!(self, Self::Supported | Self::Check(_) | Self::Context(_) | Self::Report(_))
     }
 
     /// Expand a report alias into an iterator of its variants.
@@ -126,6 +134,12 @@ impl ReportAlias {
         match self {
             Self::Supported => Box::new(supported.iter().copied()),
             Self::Check(check) => Box::new(check.reports().iter().copied()),
+            Self::Context(context) => Box::new(
+                Check::iter()
+                    .filter(move |x| x.context.contains(&context))
+                    .flat_map(|x| x.reports)
+                    .copied(),
+            ),
             Self::Level(level) => {
                 Box::new(defaults.iter().filter(move |r| r.level() == level).copied())
             }

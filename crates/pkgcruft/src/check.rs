@@ -140,9 +140,11 @@ impl From<CheckKind> for Check {
 }
 
 /// Check contexts.
-#[derive(Debug, Display, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(
+    Debug, Display, EnumIter, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
+)]
 #[strum(serialize_all = "kebab-case")]
-pub(crate) enum CheckContext {
+pub enum CheckContext {
     /// Check only runs by default in the gentoo repo.
     Gentoo,
 
@@ -218,7 +220,7 @@ pub struct Check {
     pub(crate) reports: &'static [ReportKind],
 
     /// Check variant contexts.
-    context: &'static [CheckContext],
+    pub(crate) context: &'static [CheckContext],
 }
 
 impl Check {
