@@ -68,7 +68,8 @@ pub struct MetadataTaskBuilder {
 unsafe impl Sync for MetadataTaskBuilder {}
 
 impl MetadataTaskBuilder {
-    pub fn new(pool: &BuildPool, repo: &EbuildRepo) -> Self {
+    /// Create a new ebuild package metadata cache task builder.
+    fn new(pool: &BuildPool, repo: &EbuildRepo) -> Self {
         Self {
             tx: pool.tx.clone(),
             repo: repo.clone(),
