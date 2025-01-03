@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::Config;
 use crate::dep::Cpv;
 use crate::error::Error;
-use crate::pkg::ebuild::metadata::Metadata as PkgMetadata;
+use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 use crate::repo::ebuild::EbuildRepo;
@@ -26,14 +26,14 @@ fn get_ebuild_repo(config: &Config, repo: String) -> crate::Result<&EbuildRepo> 
 
 /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
 #[derive(Debug, Serialize, Deserialize)]
-struct Metadata {
+struct MetadataTask {
     repo: String,
     cpv: Cpv,
     cache: MetadataCache,
     verify: bool,
 }
 
-impl Metadata {
+impl MetadataTask {
     fn new(repo: &EbuildRepo, cpv: &Cpv, cache: &MetadataCache, verify: bool) -> Self {
         Self {
             repo: repo.id().to_string(),
@@ -46,7 +46,7 @@ impl Metadata {
     fn run(self, config: &Config) -> crate::Result<()> {
         let repo = get_ebuild_repo(config, self.repo)?;
         let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
-        let meta = PkgMetadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
+        let meta = Metadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
         if !self.verify {
             self.cache.update(&pkg, &meta)?;
         }
@@ -57,7 +57,7 @@ impl Metadata {
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
-    Metadata(Metadata, IpcSender<crate::Result<()>>),
+    Metadata(MetadataTask, IpcSender<crate::Result<()>>),
 }
 
 impl Task {
@@ -173,7 +173,7 @@ impl BuildPool {
                 }
             }
         }
-        let meta = Metadata::new(repo, cpv, cache, verify);
+        let meta = MetadataTask::new(repo, cpv, cache, verify);
         let (tx, rx) = ipc::channel()
             .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::Metadata(meta, tx);
