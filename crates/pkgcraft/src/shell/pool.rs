@@ -171,12 +171,14 @@ impl BuildPool {
             }
         }
         let meta = Metadata::new(repo, cpv, verify);
-        let (tx, rx) = ipc::channel().expect("failed creating IPC task channel");
+        let (tx, rx) = ipc::channel()
+            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::Metadata(meta, tx);
         self.tx
             .send(Command::Task(task))
-            .expect("failed queuing task");
-        rx.recv().expect("failed receiving task status")
+            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
+        rx.recv()
+            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
     }
 }
 
