@@ -122,7 +122,7 @@ impl FromStr for ReportAlias {
 impl ReportAlias {
     /// Return true if the related reports should be added to the selected set.
     pub fn selected(&self) -> bool {
-        matches!(self, Self::All | Self::Check(_) | Self::Context(_) | Self::Report(_))
+        !matches!(self, Self::Level(_) | Self::Scope(_))
     }
 
     /// Expand a report alias into an iterator of its variants.
