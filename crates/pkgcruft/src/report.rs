@@ -58,7 +58,7 @@ impl From<ReportLevel> for Color {
 /// Report aliases that may related to one or more report variants.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ReportAlias {
-    Supported,
+    All,
     Check(CheckKind),
     Context(CheckContext),
     Level(ReportLevel),
@@ -101,8 +101,8 @@ impl FromStr for ReportAlias {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(val) = s.strip_prefix('@') {
-            if val == "supported" {
-                Ok(Self::Supported)
+            if val == "all" {
+                Ok(Self::All)
             } else {
                 val.parse()
                     .map(Self::Check)
@@ -122,7 +122,7 @@ impl FromStr for ReportAlias {
 impl ReportAlias {
     /// Return true if the related reports should be added to the selected set.
     pub fn selected(&self) -> bool {
-        matches!(self, Self::Supported | Self::Check(_) | Self::Context(_) | Self::Report(_))
+        matches!(self, Self::All | Self::Check(_) | Self::Context(_) | Self::Report(_))
     }
 
     /// Expand a report alias into an iterator of its variants.
@@ -132,7 +132,7 @@ impl ReportAlias {
         supported: &'a IndexSet<ReportKind>,
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
-            Self::Supported => Box::new(supported.iter().copied()),
+            Self::All => Box::new(supported.iter().copied()),
             Self::Check(check) => Box::new(check.reports().iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter()
