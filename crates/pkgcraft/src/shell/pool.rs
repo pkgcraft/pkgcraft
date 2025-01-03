@@ -1,9 +1,12 @@
+use std::fs::File;
+use std::io::{stderr, stdout};
+use std::os::fd::{AsRawFd, RawFd};
 use std::sync::OnceLock;
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use nix::sys::{prctl, signal::Signal};
-use nix::unistd::{fork, ForkResult};
-use scallop::pool::{suppress_output, SharedSemaphore};
+use nix::unistd::{dup2, fork, ForkResult};
+use scallop::pool::SharedSemaphore;
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
@@ -61,6 +64,7 @@ pub struct MetadataTaskBuilder {
     repo: EbuildRepo,
     cache: Option<MetadataCache>,
     force: bool,
+    output: Pipes,
     verify: bool,
 }
 
@@ -73,9 +77,10 @@ impl MetadataTaskBuilder {
         Self {
             tx: pool.tx.clone(),
             repo: repo.clone(),
-            cache: None,
-            force: false,
-            verify: false,
+            cache: Default::default(),
+            force: Default::default(),
+            output: Default::default(),
+            verify: Default::default(),
         }
     }
 
@@ -88,6 +93,14 @@ impl MetadataTaskBuilder {
     /// Force the package's metadata to be regenerated.
     pub fn force(mut self, value: bool) -> Self {
         self.force = value;
+        self
+    }
+
+    /// Pass through output to stderr and stdout.
+    pub fn output(mut self, value: bool) -> Self {
+        if value {
+            self.output = Pipes::all();
+        }
         self
     }
 
@@ -122,7 +135,7 @@ impl MetadataTaskBuilder {
             .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::Metadata(meta, tx);
         self.tx
-            .send(Command::Task(task))
+            .send(Command::Task(task, self.output))
             .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
         rx.recv()
             .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
@@ -136,20 +149,55 @@ enum Task {
 }
 
 impl Task {
-    fn run(self, config: &Config) {
+    fn run(self, config: &Config, pipes: Pipes) {
+        // redirect output
+        let mut result = pipes.redirect();
+
+        // run the task
         match self {
             Self::Metadata(task, tx) => {
-                let result = task.run(config);
+                result = result.and_then(|_| task.run(config));
                 tx.send(result).unwrap();
             }
         }
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+struct Pipes {
+    stdout: Option<RawFd>,
+    stderr: Option<RawFd>,
+}
+
+impl Pipes {
+    /// Redirect stdout and stderr for the current process.
+    fn all() -> Self {
+        Self {
+            stdout: Some(stdout().as_raw_fd()),
+            stderr: Some(stderr().as_raw_fd()),
+        }
+    }
+
+    /// Redirect stdout and stderr to the specified fds, if any.
+    fn redirect(&self) -> crate::Result<()> {
+        let null = File::options().write(true).open("/dev/null")?;
+        let nullfd = null.as_raw_fd();
+
+        dup2(self.stdout.unwrap_or(nullfd), 1)
+            .map_err(|e| Error::InvalidValue(format!("failed redirecting stdout: {e}")))?;
+
+        dup2(self.stderr.unwrap_or(nullfd), 2)
+            .map_err(|e| Error::InvalidValue(format!("failed redirecting stderr: {e}")))?;
+
+        Ok(())
+    }
+}
+
 /// Build pool command.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize)]
 enum Command {
-    Task(Task),
+    Task(Task, Pipes),
     Stop,
 }
 
@@ -202,17 +250,14 @@ impl BuildPool {
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
 
-                // suppress stdout and stderr in forked processes
-                suppress_output().unwrap();
-
-                while let Ok(Command::Task(task)) = self.rx.recv() {
+                while let Ok(Command::Task(task, pipes)) = self.rx.recv() {
                     // wait on bounded semaphore for pool space
                     sem.acquire().unwrap();
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
                             scallop::shell::fork_init();
-                            task.run(config);
+                            task.run(config, pipes);
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }
