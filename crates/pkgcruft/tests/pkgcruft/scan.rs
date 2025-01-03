@@ -141,8 +141,10 @@ fn current_dir_targets() {
     assert_unordered_eq!(&expected, &reports);
 
     env::set_current_dir(&secondary_repo).unwrap();
-    let expected = glob_reports!("{secondary_repo}/**/reports.json");
-    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    let expected = glob_reports!("{secondary_repo}/**/*.json");
+    let reports = cmd("pkgcruft scan -r @Overlay -R json")
+        .to_reports()
+        .unwrap();
     assert_unordered_eq!(&expected, &reports);
 
     // category dir
@@ -152,8 +154,10 @@ fn current_dir_targets() {
     assert_unordered_eq!(&expected, &reports);
 
     env::set_current_dir(secondary_repo.join("Overlay")).unwrap();
-    let expected = glob_reports!("{secondary_repo}/Overlay/**/reports.json");
-    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    let expected = glob_reports!("{secondary_repo}/Overlay/**/*.json");
+    let reports = cmd("pkgcruft scan -r @Overlay -R json")
+        .to_reports()
+        .unwrap();
     assert_unordered_eq!(&expected, &reports);
 
     // package dir
@@ -164,8 +168,10 @@ fn current_dir_targets() {
     assert_unordered_eq!(&expected, &reports);
 
     env::set_current_dir(secondary_repo.join("Overlay/EclassUnused")).unwrap();
-    let expected = glob_reports!("{secondary_repo}/Overlay/EclassUnused/reports.json");
-    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    let expected = glob_reports!("{secondary_repo}/Overlay/EclassUnused/*.json");
+    let reports = cmd("pkgcruft scan -r @Overlay -R json")
+        .to_reports()
+        .unwrap();
     assert_unordered_eq!(&expected, &reports);
 }
 

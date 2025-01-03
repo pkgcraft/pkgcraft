@@ -298,11 +298,9 @@ mod tests {
 
         // overlay repo -- dependent repo is auto-loaded
         let repo = data.ebuild_repo("qa-secondary").unwrap();
-        let path = repo.path();
         let scanner = Scanner::new(repo);
-        let expected = glob_reports!("{path}/**/reports.json");
         let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_eq!(reports, []);
     }
 
     #[traced_test]

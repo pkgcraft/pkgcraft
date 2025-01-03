@@ -14,7 +14,8 @@ pub(super) static CHECK: super::Check = super::Check {
     scope: Scope::Version,
     source: SourceKind::EbuildPkg,
     reports: &[EclassUnused],
-    context: &[CheckContext::Overlay],
+    // TODO: remove optional once eclass deprecation flags are used
+    context: &[CheckContext::Overlay, CheckContext::Optional],
 };
 
 // TODO: use eclass deprecation flags instead
@@ -59,7 +60,7 @@ mod tests {
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new(repo).checks([CHECK]);
-        let expected = glob_reports!("{dir}/*/reports.json");
+        let expected = glob_reports!("{dir}/*/optional.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
     }
