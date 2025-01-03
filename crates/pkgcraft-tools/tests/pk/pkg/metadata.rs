@@ -235,3 +235,34 @@ fn verify() {
         assert!(!path.exists());
     }
 }
+
+#[test]
+fn output() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with output during metadata generation"
+        SLOT=0
+        echo stdout
+        echo stderr >&2
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+
+    // output is suppressed by default
+    cmd("pk pkg metadata")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    for opt in ["-o", "--output"] {
+        cmd("pk pkg metadata -f")
+            .arg(opt)
+            .arg(&repo)
+            .assert()
+            .stdout("stdout\n")
+            .stderr("stderr\n")
+            .success();
+    }
+}

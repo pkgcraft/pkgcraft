@@ -35,7 +35,7 @@ pub(crate) struct Command {
     #[arg(short, long)]
     no_progress: bool,
 
-    /// Allow output to stderr and stdout (suppressed by default)
+    /// Allow output to stderr and stdout
     #[arg(short, long)]
     output: bool,
 
