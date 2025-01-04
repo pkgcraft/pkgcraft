@@ -21,7 +21,7 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.finalize(MirrorsUnused) {
+    let unused = if filter.enabled(MirrorsUnused) {
         repo.metadata().mirrors().keys().cloned().collect()
     } else {
         Default::default()
@@ -43,7 +43,7 @@ impl EbuildPkgCheck for Check {
                 Ok(f) => {
                     if let Some(mirror) = f.mirrors().first() {
                         // mangle values for post-run finalization
-                        if filter.finalize(MirrorsUnused) {
+                        if filter.enabled(MirrorsUnused) {
                             self.unused.remove(mirror.name());
                         }
                     }
@@ -59,7 +59,7 @@ impl EbuildPkgCheck for Check {
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if filter.finalize(MirrorsUnused) && !self.unused.is_empty() {
+        if filter.enabled(MirrorsUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()

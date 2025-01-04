@@ -22,7 +22,7 @@ pub struct Scanner {
     supported: IndexSet<ReportKind>,
     enabled: Option<IndexSet<Check>>,
     selected: Option<IndexSet<Check>>,
-    pub(crate) reports: Arc<HashSet<ReportKind>>,
+    pub(crate) reports: HashSet<ReportKind>,
     pub(crate) exit: Arc<HashSet<ReportKind>>,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) failed: Arc<AtomicBool>,
@@ -38,7 +38,7 @@ impl Scanner {
             supported: ReportKind::supported(repo, Scope::Repo),
             enabled: Default::default(),
             selected: Default::default(),
-            reports: Arc::new(ReportKind::iter().collect()),
+            reports: ReportKind::iter().collect(),
             exit: Default::default(),
             filters: Default::default(),
             failed: Default::default(),
@@ -68,13 +68,11 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportAlias>,
     {
-        self.reports = Arc::new(
-            values
-                .into_iter()
-                .map(Into::into)
-                .flat_map(|x| x.expand(&self.default, &self.supported))
-                .collect(),
-        );
+        self.reports = values
+            .into_iter()
+            .map(Into::into)
+            .flat_map(|x| x.expand(&self.default, &self.supported))
+            .collect();
         self
     }
 

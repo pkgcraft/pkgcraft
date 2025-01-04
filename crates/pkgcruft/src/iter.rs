@@ -62,22 +62,25 @@ pub(crate) struct ReportFilter {
     exit: Arc<HashSet<ReportKind>>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
-    finalize: HashSet<ReportKind>,
 }
 
 impl ReportFilter {
     fn new<S: Into<ReportSender>>(scope: Scope, scanner: &Scanner, tx: S) -> Self {
         Self {
-            filter: scanner.reports.clone(),
+            // TODO: move report filtering into Scanner::run()
+            filter: Arc::new(
+                scanner
+                    .reports
+                    .iter()
+                    .filter(|r| {
+                        !r.finalize() || (scanner.filters.is_empty() && scope >= r.scope())
+                    })
+                    .copied()
+                    .collect(),
+            ),
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
             sender: tx.into(),
-            finalize: scanner
-                .reports
-                .iter()
-                .filter(|r| r.finalize() && scanner.filters.is_empty() && scope >= r.scope())
-                .copied()
-                .collect(),
         }
     }
 
@@ -95,11 +98,6 @@ impl ReportFilter {
     /// Return true if the filter has a report variant enabled.
     pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
         self.filter.contains(&kind)
-    }
-
-    /// Return true if post-run finalization should be performed for a report variant.
-    pub(crate) fn finalize(&self, kind: ReportKind) -> bool {
-        self.finalize.contains(&kind)
     }
 }
 

@@ -77,7 +77,7 @@ impl EbuildPkgSetCheck for Check {
 
             if let Some(hash) = x.hashes().get(&self.hash) {
                 // track duplicate names with different hashes
-                if filter.finalize(ManifestConflict) {
+                if filter.enabled(ManifestConflict) {
                     self.conflicting
                         .entry(name.to_string())
                         .or_default()
@@ -85,7 +85,7 @@ impl EbuildPkgSetCheck for Check {
                 }
 
                 // track duplicate hashes with different names
-                if filter.finalize(ManifestCollide) && !self.is_go_module(pkgs) {
+                if filter.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
                     self.colliding
                         .entry(hash.clone())
                         .or_default()
@@ -136,7 +136,7 @@ impl EbuildPkgSetCheck for Check {
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if filter.finalize(ManifestConflict) {
+        if filter.enabled(ManifestConflict) {
             for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
                 let (name, map) = entry.pair();
                 let pkgs = map.values().sorted().join(", ");
@@ -147,7 +147,7 @@ impl EbuildPkgSetCheck for Check {
             }
         }
 
-        if filter.finalize(ManifestCollide) {
+        if filter.enabled(ManifestCollide) {
             for entry in self.colliding.iter().filter(|x| x.len() > 1) {
                 // sort colliding entries by Cpn
                 let mut map = IndexMap::<_, Vec<_>>::new();

@@ -29,7 +29,7 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.finalize(ArchesUnused) {
+    let unused = if filter.enabled(ArchesUnused) {
         repo.metadata()
             .arches()
             .iter()
@@ -61,7 +61,7 @@ impl EbuildPkgCheck for Check {
         let mut keywords_map = IndexMap::<_, IndexSet<_>>::new();
         for k in pkg.keywords() {
             // mangle values for post-run finalization
-            if filter.finalize(ArchesUnused) {
+            if filter.enabled(ArchesUnused) {
                 self.unused.remove(k.arch().as_ref());
             }
 
@@ -110,7 +110,7 @@ impl EbuildPkgCheck for Check {
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if filter.finalize(ArchesUnused) && !self.unused.is_empty() {
+        if filter.enabled(ArchesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()

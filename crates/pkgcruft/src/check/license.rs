@@ -22,7 +22,7 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.finalize(LicensesUnused) {
+    let unused = if filter.enabled(LicensesUnused) {
         repo.metadata().licenses().iter().map(Into::into).collect()
     } else {
         Default::default()
@@ -87,14 +87,14 @@ impl EbuildPkgCheck for Check {
             }
 
             // mangle values for post-run finalization
-            if filter.finalize(LicensesUnused) {
+            if filter.enabled(LicensesUnused) {
                 self.unused.remove(&license);
             }
         }
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if filter.finalize(LicensesUnused) && !self.unused.is_empty() {
+        if filter.enabled(LicensesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()

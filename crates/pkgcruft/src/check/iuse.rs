@@ -20,7 +20,7 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.finalize(UseGlobalUnused) {
+    let unused = if filter.enabled(UseGlobalUnused) {
         repo.metadata()
             .use_global()
             .keys()
@@ -61,14 +61,14 @@ impl EbuildPkgCheck for Check {
             }
 
             // mangle values for post-run finalization
-            if filter.finalize(UseGlobalUnused) {
+            if filter.enabled(UseGlobalUnused) {
                 self.unused.remove(x.flag());
             }
         }
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if filter.finalize(UseGlobalUnused) && !self.unused.is_empty() {
+        if filter.enabled(UseGlobalUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()

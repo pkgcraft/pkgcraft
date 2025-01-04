@@ -30,7 +30,7 @@ pub(super) static CHECK: super::Check = super::Check {
 };
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.finalize(PackageDeprecatedUnused) {
+    let unused = if filter.enabled(PackageDeprecatedUnused) {
         repo.metadata().pkg_deprecated().iter().cloned().collect()
     } else {
         Default::default()
@@ -74,7 +74,7 @@ impl EbuildPkgCheck for Check {
                         .report(filter);
 
                     // mangle values for post-run finalization
-                    if filter.finalize(PackageDeprecatedUnused) {
+                    if filter.enabled(PackageDeprecatedUnused) {
                         self.unused.remove(entry);
                     }
                 }
@@ -135,7 +135,7 @@ impl EbuildPkgCheck for Check {
     }
 
     fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        if filter.finalize(PackageDeprecatedUnused) && !self.unused.is_empty() {
+        if filter.enabled(PackageDeprecatedUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()
