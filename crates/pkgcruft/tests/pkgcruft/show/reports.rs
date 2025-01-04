@@ -3,7 +3,7 @@ use std::env;
 use itertools::Itertools;
 use pkgcraft::restrict::Scope;
 use pkgcraft::test::{cmd, test_data};
-use pkgcruft::check::CheckKind;
+use pkgcruft::check::{CheckContext, CheckKind};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -32,9 +32,25 @@ fn aliases() {
             .failure()
             .code(2);
 
+        // all supported
+        cmd(format!("pkgcruft show reports {opt} @all"))
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+
         // checks
         for check in CheckKind::iter() {
             cmd(format!("pkgcruft show reports {opt} @{check}"))
+                .assert()
+                .stdout(predicate::str::is_empty().not())
+                .stderr("")
+                .success();
+        }
+
+        // check contexts
+        for context in CheckContext::iter() {
+            cmd(format!("pkgcruft show reports {opt} @{context}"))
                 .assert()
                 .stdout(predicate::str::is_empty().not())
                 .stderr("")
