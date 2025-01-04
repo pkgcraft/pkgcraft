@@ -18,6 +18,18 @@ fn all() {
 }
 
 #[test]
+fn info() {
+    for opt in ["-i", "--info"] {
+        cmd("pkgcruft show checks")
+            .arg(opt)
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+    }
+}
+
+#[test]
 fn repo() {
     let data = test_data();
     let repo = data.ebuild_repo("qa-primary").unwrap();
