@@ -81,8 +81,7 @@ impl Command {
                 // create report scanner
                 let scanner = Scanner::new(repo)
                     .jobs(self.jobs.unwrap_or_default())
-                    .selected(&enabled, &selected)
-                    .reports(enabled)
+                    .selected(enabled, selected)
                     .filters(self.filters.iter().cloned())
                     .exit(self.exit.iter().copied());
 

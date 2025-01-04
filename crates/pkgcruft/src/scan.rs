@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use indexmap::IndexSet;
-use itertools::{Either, Itertools};
+use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::utils::bounded_jobs;
@@ -20,8 +20,8 @@ pub struct Scanner {
     pub(crate) jobs: usize,
     default: IndexSet<ReportKind>,
     supported: IndexSet<ReportKind>,
-    enabled: Option<IndexSet<Check>>,
-    selected: Option<IndexSet<Check>>,
+    enabled: Option<IndexSet<ReportKind>>,
+    selected: Option<IndexSet<ReportKind>>,
     pub(crate) reports: HashSet<ReportKind>,
     pub(crate) exit: Arc<HashSet<ReportKind>>,
     pub(crate) filters: IndexSet<PkgFilter>,
@@ -58,7 +58,14 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<Check>,
     {
-        self.enabled = Some(values.into_iter().map(Into::into).collect());
+        self.reports = values
+            .into_iter()
+            .map(Into::into)
+            .flat_map(|c| c.reports)
+            .copied()
+            .collect();
+        self.enabled = Some(self.reports.iter().copied().collect());
+        self.selected = self.enabled.clone();
         self
     }
 
@@ -79,11 +86,12 @@ impl Scanner {
     /// Set the enabled and selected reports.
     pub fn selected(
         mut self,
-        enabled: &IndexSet<ReportKind>,
-        selected: &IndexSet<ReportKind>,
+        enabled: IndexSet<ReportKind>,
+        selected: IndexSet<ReportKind>,
     ) -> Self {
-        self.enabled = Some(Check::iter_report(enabled).collect());
-        self.selected = Some(Check::iter_report(selected).collect());
+        self.reports = enabled.iter().copied().collect();
+        self.enabled = Some(enabled);
+        self.selected = Some(selected);
         self
     }
 
@@ -128,20 +136,18 @@ impl Scanner {
         info!("scope: {scope}");
         info!("target: {restrict:?}");
 
-        // determine enabled and selected checks
+        // determine enabled and selected reports
         let empty = Default::default();
-        let (enabled, selected) = match (self.enabled.as_ref(), self.selected.as_ref()) {
-            (Some(x), Some(y)) => (Either::Left(x.iter().copied()), y),
-            (Some(x), None) | (None, Some(x)) => (Either::Left(x.iter().copied()), x),
-            (None, None) => (Either::Right(Check::iter_report(&self.default)), &empty),
-        };
+        let enabled = self.enabled.as_ref().unwrap_or(&self.default);
+        let selected = self.selected.as_ref().unwrap_or(&empty);
 
-        // filter checks -- errors if filtered check is selected
-        let mut checks: IndexSet<_> = enabled
+        // determine enabled checks -- errors if incompatible check is selected
+        let selected: IndexSet<_> = Check::iter_report(selected).collect();
+        let mut checks: IndexSet<_> = Check::iter_report(enabled)
             .map(|check| {
                 if !self.filters.is_empty() && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
-                } else if let Some(context) = check.skipped(&self.repo, selected) {
+                } else if let Some(context) = check.skipped(&self.repo, &selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
                 } else if let Some(scope) = check.scoped(scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))
