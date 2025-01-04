@@ -32,12 +32,8 @@ super::register!(Check);
 
 impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
-        match self.regen.run(cpv) {
-            Err(InvalidPkg { err, .. }) => {
-                MetadataError.version(cpv).message(err).report(filter)
-            }
-            Err(e) => unreachable!("{cpv}: unhandled metadata error: {e}"),
-            Ok(_) => (),
+        if let Err(InvalidPkg { err, .. }) = self.regen.run(cpv) {
+            MetadataError.version(cpv).message(err).report(filter)
         }
     }
 }
