@@ -75,7 +75,7 @@ impl ReportFilter {
             finalize: scanner
                 .reports
                 .iter()
-                .filter(|r| scanner.filters.is_empty() && scope >= r.scope())
+                .filter(|r| r.finalize() && scanner.filters.is_empty() && scope >= r.scope())
                 .copied()
                 .collect(),
         }

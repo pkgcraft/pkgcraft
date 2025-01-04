@@ -501,6 +501,21 @@ impl ReportKind {
         }
     }
 
+    /// Return true if the report requires post-run finalization.
+    pub(crate) fn finalize(&self) -> bool {
+        matches!(
+            self,
+            Self::ArchesUnused
+                | Self::EclassUnused
+                | Self::LicensesUnused
+                | Self::ManifestCollide
+                | Self::ManifestConflict
+                | Self::MirrorsUnused
+                | Self::PackageDeprecatedUnused
+                | Self::UseGlobalUnused
+        )
+    }
+
     /// Return the sorted set of reports enabled by default for an ebuild repo.
     pub fn defaults(repo: &EbuildRepo) -> IndexSet<Self> {
         let mut set: IndexSet<_> = Check::iter_default(repo)

@@ -317,9 +317,9 @@ impl Check {
         }
     }
 
-    /// Check supports post-run finalization.
+    /// Check requires post-run finalization.
     pub(crate) fn finalize(&self) -> bool {
-        self.source == SourceKind::EbuildPkg || self.source == SourceKind::EbuildRawPkg
+        self.reports.iter().any(|r| r.finalize())
     }
 }
 
