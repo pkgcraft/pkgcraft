@@ -30,6 +30,8 @@ struct Check {
     repo: EbuildRepo,
 }
 
+super::register!(Check);
+
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         let metadata = self.repo.metadata().pkg_metadata(cpn);

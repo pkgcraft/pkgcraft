@@ -35,6 +35,8 @@ struct Check {
     iuse: Iuse,
 }
 
+super::register!(Check);
+
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if pkg.iuse().contains(&self.iuse)

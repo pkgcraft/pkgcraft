@@ -39,6 +39,8 @@ struct Check {
     targets: OnceLock<IndexSet<String>>,
 }
 
+super::register!(Check);
+
 impl Check {
     fn targets(&self) -> &IndexSet<String> {
         self.targets

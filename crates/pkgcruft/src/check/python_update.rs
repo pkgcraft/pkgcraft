@@ -97,6 +97,8 @@ struct Check {
     dep_iuse: DashMap<Restrict, Option<OrderedSet<Iuse>>>,
 }
 
+super::register!(Check);
+
 impl Check {
     fn targets(&self, eclass: &Eclass) -> &IndexSet<String> {
         self.targets

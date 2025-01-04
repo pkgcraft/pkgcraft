@@ -34,6 +34,8 @@ struct Check {
     unused: DashSet<String>,
 }
 
+super::register!(Check);
+
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for uri in pkg.src_uri().iter_flatten() {

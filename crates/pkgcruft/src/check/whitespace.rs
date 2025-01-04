@@ -30,6 +30,8 @@ struct Check {
     allowed_leading_whitespace: HashSet<String>,
 }
 
+super::register!(Check);
+
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let mut prev_line: Option<&str> = None;

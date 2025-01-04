@@ -24,6 +24,8 @@ pub(super) fn create() -> impl EbuildPkgSetCheck {
 
 struct Check;
 
+super::register!(Check);
+
 impl EbuildPkgSetCheck for Check {
     fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
         pkgs.iter()

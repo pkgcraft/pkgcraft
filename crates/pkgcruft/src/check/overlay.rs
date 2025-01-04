@@ -36,6 +36,8 @@ struct Check {
     eclasses: IndexSet<Eclass>,
 }
 
+super::register!(Check);
+
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         for eclass in self.eclasses.intersection(pkg.inherited()) {

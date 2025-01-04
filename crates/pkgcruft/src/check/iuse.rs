@@ -41,6 +41,8 @@ struct Check {
     unused: DashSet<String>,
 }
 
+super::register!(Check);
+
 impl Check {
     /// Return true if an IUSE flag starts with any from a set.
     fn use_expand(&self, iuse: &str) -> bool {

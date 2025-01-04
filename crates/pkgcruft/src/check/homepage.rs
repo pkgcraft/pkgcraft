@@ -33,6 +33,8 @@ struct Check {
     missing_categories: HashSet<String>,
 }
 
+super::register!(Check);
+
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         let allowed_missing = self.missing_categories.contains(pkg.category());

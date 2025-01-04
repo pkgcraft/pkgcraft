@@ -21,6 +21,8 @@ pub(super) fn create() -> impl RepoCheck {
 
 struct Check;
 
+super::register!(Check);
+
 impl RepoCheck for Check {
     fn run(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
         for category in repo.categories() {

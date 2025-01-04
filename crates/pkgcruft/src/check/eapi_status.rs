@@ -24,6 +24,8 @@ struct Check {
     repo: EbuildRepo,
 }
 
+super::register!(Check);
+
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let eapi = pkg.eapi().as_str();

@@ -44,6 +44,8 @@ struct Check {
     commands: HashMap<String, CommandFn>,
 }
 
+super::register!(Check);
+
 /// Flag builtins used as external commands.
 fn builtins<'a>(
     cmd: &str,

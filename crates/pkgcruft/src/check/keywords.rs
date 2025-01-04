@@ -47,6 +47,8 @@ struct Check {
     unused: DashSet<String>,
 }
 
+super::register!(Check);
+
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
         if !pkg.keywords().is_empty() && pkg.live() {

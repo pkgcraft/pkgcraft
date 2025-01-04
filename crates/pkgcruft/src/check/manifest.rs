@@ -49,6 +49,8 @@ struct Check {
     hash: HashType,
 }
 
+super::register!(Check);
+
 impl Check {
     // TODO: Drop this once ignore file support is added?
     /// Ignore ManifestMatch for go modules since go.mod files are designed to collide.

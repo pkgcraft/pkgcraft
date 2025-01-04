@@ -28,6 +28,8 @@ struct Check {
     regen: MetadataTaskBuilder,
 }
 
+super::register!(Check);
+
 impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
         match self.regen.run(cpv) {

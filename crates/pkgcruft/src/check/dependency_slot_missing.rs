@@ -31,6 +31,8 @@ struct Check {
     dep_slots: DashMap<Restrict, Option<String>>,
 }
 
+super::register!(Check);
+
 impl Check {
     /// Get the package slots matching a given dependency.
     fn get_dep_slots<R: Into<Restrict>>(&self, dep: R) -> Ref<Restrict, Option<String>> {

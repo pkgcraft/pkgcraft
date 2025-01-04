@@ -33,6 +33,8 @@ struct Check {
     copyright_re: Regex,
 }
 
+super::register!(Check);
+
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
         let lines: Vec<_> = pkg

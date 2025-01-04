@@ -55,6 +55,8 @@ struct Check {
     eclasses: HashSet<Eclass>,
 }
 
+super::register!(Check);
+
 /// Expand a variable into its actual value.
 fn expand_var<'a>(
     pkg: &'a EbuildPkg,
