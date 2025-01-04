@@ -142,8 +142,10 @@ impl Scanner {
         let selected = self.selected.as_ref().unwrap_or(&empty);
 
         // determine enabled checks -- errors if incompatible check is selected
+        let enabled: IndexSet<_> = Check::iter_report(enabled).collect();
         let selected: IndexSet<_> = Check::iter_report(selected).collect();
-        let mut checks: IndexSet<_> = Check::iter_report(enabled)
+        let mut checks: IndexSet<_> = enabled
+            .into_iter()
             .map(|check| {
                 if !self.filters.is_empty() && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
