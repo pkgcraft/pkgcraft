@@ -72,9 +72,7 @@ impl ReportFilter {
                 scanner
                     .reports
                     .iter()
-                    .filter(|r| {
-                        !r.finalize() || (scanner.filters.is_empty() && scope >= r.scope())
-                    })
+                    .filter(|r| !r.finalize(scope) || scanner.filters.is_empty())
                     .copied()
                     .collect(),
             ),
@@ -106,6 +104,7 @@ fn pkg_producer(
     repo: EbuildRepo,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
+    scope: Scope,
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
@@ -131,7 +130,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize()) {
+        for check in runner.checks().filter(|c| c.finalize(scope)) {
             finish_tx.send(check).ok();
         }
     })
@@ -208,6 +207,7 @@ fn version_producer(
     repo: EbuildRepo,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
+    scope: Scope,
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<Check>,
@@ -230,7 +230,7 @@ fn version_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize()) {
+        for check in runner.checks().filter(|c| c.finalize(scope)) {
             finish_tx.send(check).ok();
         }
     })
@@ -362,6 +362,7 @@ impl ReportIter {
                 scanner.repo.clone(),
                 runner.clone(),
                 wg,
+                scope,
                 restrict,
                 targets_tx,
                 finish_tx,
@@ -401,6 +402,7 @@ impl ReportIter {
                 scanner.repo.clone(),
                 runner.clone(),
                 wg,
+                scope,
                 restrict,
                 targets_tx,
                 finish_tx,
