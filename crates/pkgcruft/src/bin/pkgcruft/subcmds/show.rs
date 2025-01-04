@@ -19,9 +19,9 @@ impl Command {
 
 #[derive(Debug, clap::Subcommand)]
 enum Subcommand {
-    /// Show available checks
+    /// Show checks
     Checks(checks::Subcommand),
-    /// Show available reports
+    /// Show reports
     Reports(reports::Subcommand),
 }
 
