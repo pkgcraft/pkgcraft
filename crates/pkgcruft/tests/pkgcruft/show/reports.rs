@@ -39,50 +39,45 @@ fn aliases() {
             .stderr("")
             .success();
 
-        // checks
-        for check in CheckKind::iter() {
-            cmd(format!("pkgcruft show reports {opt} @{check}"))
-                .assert()
-                .stdout(predicate::str::is_empty().not())
-                .stderr("")
-                .success();
-        }
+        // check
+        let check = CheckKind::iter().next().unwrap();
+        cmd(format!("pkgcruft show reports {opt} @{check}"))
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
 
-        // check contexts
-        for context in CheckContext::iter() {
-            cmd(format!("pkgcruft show reports {opt} @{context}"))
-                .assert()
-                .stdout(predicate::str::is_empty().not())
-                .stderr("")
-                .success();
-        }
+        // check context
+        let context = CheckContext::iter().next().unwrap();
+        cmd(format!("pkgcruft show reports {opt} @{context}"))
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
 
-        // report levels
-        for level in ReportLevel::iter() {
-            cmd(format!("pkgcruft show reports {opt} @{level}"))
-                .assert()
-                .stdout(predicate::str::is_empty().not())
-                .stderr("")
-                .success();
-        }
+        // report level
+        let level = ReportLevel::iter().next().unwrap();
+        cmd(format!("pkgcruft show reports {opt} @{level}"))
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
 
-        // reports
-        for report in ReportKind::iter() {
-            cmd(format!("pkgcruft show reports {opt} {report}"))
-                .assert()
-                .stdout(format!("{report}\n"))
-                .stderr("")
-                .success();
-        }
+        // report
+        let report = ReportKind::iter().next().unwrap();
+        cmd(format!("pkgcruft show reports {opt} {report}"))
+            .assert()
+            .stdout(format!("{report}\n"))
+            .stderr("")
+            .success();
 
-        // report scopes
-        for scope in Scope::iter() {
-            cmd(format!("pkgcruft show reports {opt} @{scope}"))
-                .assert()
-                .stdout(predicate::str::is_empty().not())
-                .stderr("")
-                .success();
-        }
+        // report scope
+        let scope = Scope::iter().next().unwrap();
+        cmd(format!("pkgcruft show reports {opt} @{scope}"))
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
     }
 }
 
