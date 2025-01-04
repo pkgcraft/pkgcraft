@@ -135,6 +135,7 @@ impl Reports {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
+    use pkgcraft::restrict::Scope;
     use pkgcraft::test::*;
 
     use pkgcruft::check::{Check, CheckKind};
@@ -155,7 +156,7 @@ mod tests {
         // default checks for gentoo repo
         let repo = data.ebuild_repo("gentoo").unwrap();
         let defaults = ReportKind::defaults(repo);
-        let supported = ReportKind::supported(repo);
+        let supported = ReportKind::supported(repo, Scope::Repo);
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd.reports.collapse(defaults, supported).unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
@@ -165,7 +166,7 @@ mod tests {
         // default checks
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let defaults = ReportKind::defaults(repo);
-        let supported = ReportKind::supported(repo);
+        let supported = ReportKind::supported(repo, Scope::Repo);
         let cmd = Command::try_parse_from(["cmd"]).unwrap();
         let (enabled, _) = cmd
             .reports

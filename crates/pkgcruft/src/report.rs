@@ -512,8 +512,8 @@ impl ReportKind {
     }
 
     /// Return the sorted set of supported reports for an ebuild repo.
-    pub fn supported(repo: &EbuildRepo) -> IndexSet<Self> {
-        let mut set: IndexSet<_> = Check::iter_supported(repo)
+    pub fn supported<T: Into<Scope>>(repo: &EbuildRepo, scope: T) -> IndexSet<Self> {
+        let mut set: IndexSet<_> = Check::iter_supported(repo, scope)
             .flat_map(|x| x.reports)
             .copied()
             .collect();

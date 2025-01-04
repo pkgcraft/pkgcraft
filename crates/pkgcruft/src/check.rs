@@ -235,10 +235,15 @@ impl Check {
         Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
-    /// Return an iterator of all checks that can be run on a repo.
-    pub fn iter_supported(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
+    /// Return an iterator of all checks that can be run on a repo at an optional scope.
+    pub fn iter_supported<T: Into<Scope>>(
+        repo: &EbuildRepo,
+        scope: T,
+    ) -> impl Iterator<Item = Check> + '_ {
+        let scope = scope.into();
         let selected = Self::iter().collect();
-        Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
+        Self::iter()
+            .filter(move |x| x.skipped(repo, &selected).is_none() && x.scoped(scope).is_none())
     }
 
     /// Return an iterator of checks that generate target reports.

@@ -4,6 +4,7 @@ use std::process::ExitCode;
 use clap::Args;
 use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
+use pkgcraft::restrict::Scope;
 use pkgcruft::check::Check;
 
 #[derive(Debug, Args)]
@@ -19,7 +20,7 @@ impl Subcommand {
         let checks: Vec<_> = if let Some(value) = self.repo.as_deref() {
             let mut config = Config::new("pkgcraft", "");
             let repo = target_ebuild_repo(&mut config, value)?;
-            Check::iter_supported(&repo).collect()
+            Check::iter_supported(&repo, Scope::Repo).collect()
         } else {
             Check::iter().collect()
         };

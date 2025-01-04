@@ -2,6 +2,7 @@ use std::env;
 
 use criterion::Criterion;
 use pkgcraft::config::Config;
+use pkgcraft::restrict::Scope;
 use pkgcruft::check::Check;
 use pkgcruft::scan::Scanner;
 
@@ -20,7 +21,7 @@ pub fn bench(c: &mut Criterion) {
         // TODO: checkout a specific commit
 
         // run benchmark for every check supported by the repo
-        for check in Check::iter_supported(&repo) {
+        for check in Check::iter_supported(&repo, Scope::Repo) {
             group.bench_function(check.to_string(), |b| {
                 let scanner = Scanner::new(&repo).checks([check]);
                 b.iter(|| scanner.run(&repo).unwrap().count());

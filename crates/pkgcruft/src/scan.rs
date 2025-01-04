@@ -35,7 +35,7 @@ impl Scanner {
         Self {
             jobs: bounded_jobs(0),
             default: ReportKind::defaults(repo),
-            supported: ReportKind::supported(repo),
+            supported: ReportKind::supported(repo, Scope::Repo),
             enabled: Default::default(),
             selected: Default::default(),
             reports: Arc::new(ReportKind::iter().collect()),

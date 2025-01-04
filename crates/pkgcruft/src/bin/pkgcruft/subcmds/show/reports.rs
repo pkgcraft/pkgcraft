@@ -5,6 +5,7 @@ use clap::Args;
 use colored::Colorize;
 use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
+use pkgcraft::restrict::Scope;
 use pkgcruft::report::ReportKind;
 use strum::IntoEnumIterator;
 
@@ -30,7 +31,7 @@ impl Subcommand {
                 let mut config = Config::new("pkgcraft", "");
                 let repo = target_ebuild_repo(&mut config, repo)?;
                 let defaults = ReportKind::defaults(&repo);
-                let supported = ReportKind::supported(&repo);
+                let supported = ReportKind::supported(&repo, Scope::Repo);
                 if selected {
                     let (enabled, _) = self.reports.collapse(defaults, supported)?;
                     enabled
