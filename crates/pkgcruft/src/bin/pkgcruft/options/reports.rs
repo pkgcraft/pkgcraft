@@ -36,9 +36,9 @@ impl<T: Ord + Copy + Hash> TriState<T> {
 
         for x in selected {
             match x {
-                TriState::Set(val) => enabled.insert(val),
-                TriState::Add(val) => enabled.insert(val),
-                TriState::Remove(val) => enabled.swap_remove(&val),
+                TriState::Set(value) => enabled.insert(value),
+                TriState::Add(value) => enabled.insert(value),
+                TriState::Remove(value) => enabled.swap_remove(&value),
             };
         }
 
@@ -50,10 +50,10 @@ impl<T: FromStr> FromStr for TriState<T> {
     type Err = <T as FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(val) = s.strip_prefix('+') {
-            val.parse().map(Self::Add)
-        } else if let Some(val) = s.strip_prefix('-') {
-            val.parse().map(Self::Remove)
+        if let Some(value) = s.strip_prefix('+') {
+            value.parse().map(Self::Add)
+        } else if let Some(value) = s.strip_prefix('-') {
+            value.parse().map(Self::Remove)
         } else {
             s.parse().map(Self::Set)
         }
@@ -90,18 +90,18 @@ impl Reports {
         let mut selected = IndexSet::new();
         for x in reports {
             match x {
-                TriState::Set(val) | TriState::Add(val) => {
-                    for r in val.expand(&defaults, &supported) {
+                TriState::Set(alias) | TriState::Add(alias) => {
+                    for r in alias.expand(&defaults, &supported) {
                         enabled.insert(r);
                         // track explicitly selected or supported variants
-                        if val.selected() || supported.contains(&r) {
+                        if alias.selected() || supported.contains(&r) {
                             selected.insert(r);
                         }
                     }
                 }
-                TriState::Remove(val) => {
-                    for x in val.expand(&defaults, &supported) {
-                        enabled.swap_remove(&x);
+                TriState::Remove(alias) => {
+                    for r in alias.expand(&defaults, &supported) {
+                        enabled.swap_remove(&r);
                     }
                 }
             };
