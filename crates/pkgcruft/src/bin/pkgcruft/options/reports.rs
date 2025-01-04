@@ -90,16 +90,13 @@ impl Reports {
         let mut selected = IndexSet::new();
         for x in reports {
             match x {
-                TriState::Set(val) => {
-                    enabled.extend(val.expand(&defaults, &supported));
-                    if val.selected() {
-                        selected.extend(val.expand(&defaults, &supported));
-                    }
-                }
-                TriState::Add(val) => {
-                    enabled.extend(val.expand(&defaults, &supported));
-                    if val.selected() {
-                        selected.extend(val.expand(&defaults, &supported));
+                TriState::Set(val) | TriState::Add(val) => {
+                    for r in val.expand(&defaults, &supported) {
+                        enabled.insert(r);
+                        // track explicitly selected or supported variants
+                        if val.selected() || supported.contains(&r) {
+                            selected.insert(r);
+                        }
                     }
                 }
                 TriState::Remove(val) => {
