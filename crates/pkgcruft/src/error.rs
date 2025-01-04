@@ -8,7 +8,7 @@ pub enum Error {
     Pkgcraft(String),
     #[error("{0}")]
     InvalidValue(String),
-    #[error("{0}: {1}")]
+    #[error("{0}: check {1}")]
     CheckInit(Check, String),
     #[error("{0}")]
     IO(String),
