@@ -50,16 +50,6 @@ pub enum RepoFormat {
 }
 
 impl RepoFormat {
-    /// Create an empty [`RepoConfig`] for the repo format.
-    pub(crate) fn config(self) -> RepoConfig {
-        RepoConfig {
-            location: Default::default(),
-            format: self,
-            priority: Default::default(),
-            sync: Default::default(),
-        }
-    }
-
     /// Try to load a specific repo type from a given path.
     pub fn load_from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
         self,

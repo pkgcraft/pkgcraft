@@ -26,6 +26,17 @@ pub(crate) struct RepoConfig {
     pub(crate) sync: Option<Syncer>,
 }
 
+impl From<RepoFormat> for RepoConfig {
+    fn from(format: RepoFormat) -> Self {
+        Self {
+            location: Default::default(),
+            format,
+            priority: Default::default(),
+            sync: Default::default(),
+        }
+    }
+}
+
 impl RepoConfig {
     fn try_new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
         let path = path.as_ref();
@@ -142,7 +153,7 @@ impl Config {
             location: self.repo_dir.join(name),
             priority,
             sync: Some(uri.parse()?),
-            ..RepoFormat::Ebuild.config()
+            ..RepoFormat::Ebuild.into()
         };
         config.sync()?;
 

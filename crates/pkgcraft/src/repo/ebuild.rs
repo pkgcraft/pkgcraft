@@ -105,7 +105,7 @@ impl EbuildRepo {
         let config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
-            ..RepoFormat::Ebuild.config()
+            ..RepoFormat::Ebuild.into()
         };
 
         Ok(Self(Arc::new(InternalEbuildRepo {

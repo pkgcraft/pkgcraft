@@ -39,7 +39,7 @@ impl EmptyRepo {
     pub(crate) fn new(id: &str, priority: i32) -> Self {
         let repo_config = RepoConfig {
             priority,
-            ..RepoFormat::Empty.config()
+            ..RepoFormat::Empty.into()
         };
 
         Self {

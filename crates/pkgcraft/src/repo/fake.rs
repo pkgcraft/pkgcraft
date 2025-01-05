@@ -53,7 +53,7 @@ impl FakeRepo {
             id: id.to_string(),
             repo_config: RepoConfig {
                 priority,
-                ..RepoFormat::Fake.config()
+                ..RepoFormat::Fake.into()
             },
             pkgmap: Default::default(),
             cpvs: Default::default(),
@@ -85,7 +85,7 @@ impl FakeRepo {
         let repo_config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
-            ..RepoFormat::Fake.config()
+            ..RepoFormat::Fake.into()
         };
         let mut repo = Self(Arc::new(InternalFakeRepo {
             id: id.to_string(),
