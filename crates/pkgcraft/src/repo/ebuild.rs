@@ -40,6 +40,12 @@ pub use temp::{EbuildRepoBuilder, EbuildTempRepo};
 struct InternalEbuildRepo {
     metadata: Metadata,
     config: RepoConfig,
+    data: LazyMetadata,
+}
+
+/// Ebuild repo metadata that is lazily loaded.
+#[derive(Debug, Default)]
+struct LazyMetadata {
     masters: OnceLock<Vec<EbuildRepo>>,
     pool: OnceLock<Weak<BuildPool>>,
     arches: OnceLock<IndexSet<Arch>>,
@@ -105,22 +111,14 @@ impl EbuildRepo {
         Ok(Self(Arc::new(InternalEbuildRepo {
             metadata,
             config,
-            masters: Default::default(),
-            pool: Default::default(),
-            arches: Default::default(),
-            licenses: Default::default(),
-            license_groups: Default::default(),
-            mirrors: Default::default(),
-            eclasses: Default::default(),
-            use_expand: Default::default(),
-            categories_xml: Default::default(),
+            data: Default::default(),
         })))
     }
 
     /// Finalize the repo, resolving repo dependencies into Repo objects.
     pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
         // check if the repo has already been initialized
-        if self.0.masters.get().is_some() {
+        if self.0.data.masters.get().is_some() {
             return Ok(());
         }
 
@@ -137,11 +135,13 @@ impl EbuildRepo {
         }
 
         self.0
+            .data
             .masters
             .set(masters)
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         self.0
+            .data
             .pool
             .set(Arc::downgrade(config.pool()))
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
@@ -169,6 +169,7 @@ impl EbuildRepo {
     /// Return the build pool for the repo.
     pub fn pool(&self) -> Arc<BuildPool> {
         self.0
+            .data
             .pool
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
@@ -188,6 +189,7 @@ impl EbuildRepo {
     /// Return the repo inheritance sequence.
     pub fn masters(&self) -> &[Self] {
         self.0
+            .data
             .masters
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
@@ -200,7 +202,7 @@ impl EbuildRepo {
 
     /// Return the ordered map of inherited eclasses.
     pub fn eclasses(&self) -> &IndexSet<Eclass> {
-        self.0.eclasses.get_or_init(|| {
+        self.0.data.eclasses.get_or_init(|| {
             let mut eclasses: IndexSet<_> = self
                 .trees()
                 .rev()
@@ -213,7 +215,7 @@ impl EbuildRepo {
 
     /// Return the ordered map of inherited USE_EXPAND flags.
     pub fn use_expand(&self) -> &IndexMap<String, IndexMap<String, String>> {
-        self.0.use_expand.get_or_init(|| {
+        self.0.data.use_expand.get_or_init(|| {
             let mut use_expand: IndexMap<_, _> = self
                 .trees()
                 .rev()
@@ -242,7 +244,7 @@ impl EbuildRepo {
                 })
         };
 
-        self.0.categories_xml.get_or_init(|| {
+        self.0.data.categories_xml.get_or_init(|| {
             self.categories()
                 .iter()
                 .filter_map(|cat| {
@@ -295,7 +297,7 @@ impl EbuildRepo {
 
     /// Return the set of inherited architectures sorted by name.
     pub fn arches(&self) -> &IndexSet<Arch> {
-        self.0.arches.get_or_init(|| {
+        self.0.data.arches.get_or_init(|| {
             let mut arches: IndexSet<_> = self
                 .trees()
                 .rev()
@@ -308,7 +310,7 @@ impl EbuildRepo {
 
     /// Return the set of inherited licenses sorted by name.
     pub fn licenses(&self) -> &IndexSet<String> {
-        self.0.licenses.get_or_init(|| {
+        self.0.data.licenses.get_or_init(|| {
             let mut licenses: IndexSet<_> = self
                 .trees()
                 .rev()
@@ -321,7 +323,7 @@ impl EbuildRepo {
 
     /// Return the mapping of license groups merged via inheritance.
     pub fn license_groups(&self) -> &IndexMap<String, IndexSet<String>> {
-        self.0.license_groups.get_or_init(|| {
+        self.0.data.license_groups.get_or_init(|| {
             let mut license_groups: IndexMap<_, _> = self
                 .trees()
                 .rev()
@@ -334,7 +336,7 @@ impl EbuildRepo {
 
     /// Return the set of mirrors merged via inheritance.
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<Mirror>> {
-        self.0.mirrors.get_or_init(|| {
+        self.0.data.mirrors.get_or_init(|| {
             let mut mirrors: IndexMap<_, _> = self
                 .trees()
                 .rev()
