@@ -690,17 +690,12 @@ impl fmt::Display for ReportScope {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Report {
-    kind: ReportKind,
+    pub kind: ReportKind,
     scope: ReportScope,
     message: Option<String>,
 }
 
 impl Report {
-    /// The report variant.
-    pub fn kind(&self) -> &ReportKind {
-        &self.kind
-    }
-
     /// The scope the report relates to, e.g. a specific package version or package name.
     pub fn scope(&self) -> &ReportScope {
         &self.scope
@@ -814,7 +809,7 @@ impl<'a, R: BufRead> Iter<'a, R> {
     fn filtered(&self, report: &Report) -> bool {
         // skip excluded report variants
         if let Some(reports) = self.reports {
-            if !reports.contains(report.kind()) {
+            if !reports.contains(&report.kind) {
                 return true;
             }
         }
@@ -923,7 +918,7 @@ mod tests {
     #[test]
     fn display_and_debug() {
         for report in REPORTS.lines().filter_map(|s| Report::from_json(s).ok()) {
-            let kind = report.kind().to_string();
+            let kind = report.kind.to_string();
             let scope = report.scope().to_string();
 
             // regular output

@@ -84,8 +84,8 @@ impl ReportFilter {
 
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&mut self, report: Report) {
-        if self.filter.contains(report.kind()) {
-            if self.exit.contains(report.kind()) {
+        if self.filter.contains(&report.kind) {
+            if self.exit.contains(&report.kind) {
                 self.failed.store(true, Ordering::Relaxed);
             }
 

@@ -81,7 +81,7 @@ impl From<StatsReporter> for Reporter {
 
 impl StatsReporter {
     fn report<W: Write>(&mut self, report: &Report, _output: &mut W) -> crate::Result<()> {
-        *self.cache.entry(*report.kind()).or_default() += 1;
+        *self.cache.entry(report.kind).or_default() += 1;
         Ok(())
     }
 
@@ -151,7 +151,7 @@ impl FancyReporter {
             self.prev_key = Some(key);
         }
 
-        write!(output, "  {}", report.kind().as_ref().color(report.level()))?;
+        write!(output, "  {}", report.kind.as_ref().color(report.level()))?;
 
         if let ReportScope::Version(cpv, location) = scope {
             write!(output, ": version {}", cpv.version())?;
@@ -198,7 +198,7 @@ impl From<FormatReporter> for Reporter {
 
 impl FormatReporter {
     fn report<W: Write>(&self, report: &Report, output: &mut W) -> crate::Result<()> {
-        let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind().to_string())]
+        let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind.to_string())]
             .into_iter()
             .collect();
 
@@ -237,7 +237,7 @@ impl FormatReporter {
             let supported = attrs.keys().sorted().join(", ");
             Error::InvalidValue(format!(
                 "{}: invalid output format: {e}\n  [possible attributes: {supported}]",
-                report.kind()
+                report.kind
             ))
         })?;
         if !s.is_empty() {
