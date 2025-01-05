@@ -47,7 +47,7 @@ pub fn target_ebuild_repo(config: &mut Config, target: &str) -> crate::Result<Eb
 pub struct TargetRestrictions<'a> {
     config: &'a mut Config,
     repo_set: RepoSet,
-    repo_format: RepoFormat,
+    repo_format: Option<RepoFormat>,
     scopes: Option<HashSet<Scope>>,
 }
 
@@ -64,8 +64,7 @@ impl<'a> TargetRestrictions<'a> {
 
     /// Set the allowed repo format.
     pub fn repo_format(mut self, value: RepoFormat) -> Self {
-        self.repo_format = value;
-        self.repo_set = self.config.repos.set(Some(value));
+        self.repo_format = Some(value);
         self
     }
 
@@ -108,13 +107,20 @@ impl<'a> TargetRestrictions<'a> {
 
     fn repo_from_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
         let path = path.as_ref();
-        self.config
-            .add_format_repo_path(path, path, 0, true, self.repo_format)
+        if let Some(format) = self.repo_format {
+            self.config
+                .add_format_repo_path(path, path, 0, true, format)
+        } else {
+            self.config.add_repo_path(path, path, 0, true)
+        }
     }
 
     fn repo_from_nested_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
-        self.config
-            .add_format_repo_nested_path(path, 0, self.repo_format)
+        if let Some(format) = self.repo_format {
+            self.config.add_format_repo_nested_path(path, 0, format)
+        } else {
+            self.config.add_nested_repo_path(path, 0)
+        }
     }
 
     fn dep_restriction(&mut self, restrict: Restrict) -> crate::Result<(RepoSet, Restrict)> {
