@@ -17,7 +17,7 @@ use crate::sync::Syncer;
 use crate::Error;
 
 #[serde_as]
-#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct RepoConfig {
     pub(crate) location: Utf8PathBuf,
     #[serde_as(as = "DisplayFromStr")]
@@ -142,7 +142,7 @@ impl Config {
             location: self.repo_dir.join(name),
             priority,
             sync: Some(uri.parse()?),
-            ..Default::default()
+            ..RepoFormat::Ebuild.config()
         };
         config.sync()?;
 

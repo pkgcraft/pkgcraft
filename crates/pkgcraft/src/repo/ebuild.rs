@@ -36,7 +36,7 @@ pub use metadata::{Metadata, Mirror};
 mod temp;
 pub use temp::{EbuildRepoBuilder, EbuildTempRepo};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct InternalEbuildRepo {
     metadata: Metadata,
     config: RepoConfig,
@@ -99,13 +99,21 @@ impl EbuildRepo {
         let config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority,
-            ..Default::default()
+            ..RepoFormat::Ebuild.config()
         };
 
         Ok(Self(Arc::new(InternalEbuildRepo {
             metadata,
             config,
-            ..Default::default()
+            masters: Default::default(),
+            pool: Default::default(),
+            arches: Default::default(),
+            licenses: Default::default(),
+            license_groups: Default::default(),
+            mirrors: Default::default(),
+            eclasses: Default::default(),
+            use_expand: Default::default(),
+            categories_xml: Default::default(),
         })))
     }
 
