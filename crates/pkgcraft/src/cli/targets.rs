@@ -105,6 +105,14 @@ impl<'a> TargetRestrictions<'a> {
         Ok(self)
     }
 
+    fn repo_set(&mut self) -> crate::Result<&RepoSet> {
+        if self.repo_set.repos.is_empty() {
+            self.config.load()?;
+            self.repo_set = self.config.repos.set(self.repo_format);
+        }
+        Ok(&self.repo_set)
+    }
+
     fn repo_from_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
         let path = path.as_ref();
         if let Some(format) = self.repo_format {
@@ -145,7 +153,7 @@ impl<'a> TargetRestrictions<'a> {
 
                     // add external repo to the config if it doesn't exist
                     let repo = if let Some(repo) =
-                        self.repo_set.repos.iter().find(|r| r.path() == path)
+                        self.repo_set()?.repos.iter().find(|r| r.path() == path)
                     {
                         repo.clone()
                     } else {
@@ -154,14 +162,14 @@ impl<'a> TargetRestrictions<'a> {
 
                     return Ok((repo.into(), Restrict::and(restricts)));
                 }
-                [id] if !self.repo_set.repos.iter().any(|r| r.id() == id) => {
+                [id] if !self.repo_set()?.repos.iter().any(|r| r.id() == id) => {
                     return Err(Error::InvalidValue(format!("unknown repo: {id}")));
                 }
                 _ => (),
             }
         }
 
-        Ok(self.repo_set.clone().filter(restrict))
+        Ok(self.repo_set()?.clone().filter(restrict))
     }
 
     /// Convert a target into a path or dep restriction.
