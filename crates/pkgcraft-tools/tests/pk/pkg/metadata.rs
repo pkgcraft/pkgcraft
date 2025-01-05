@@ -94,7 +94,7 @@ fn remove() {
 
     env::set_current_dir(&repo).unwrap();
 
-    for opt in ["-r", "--remove"] {
+    for opt in ["-R", "--remove"] {
         // generate metadata
         cmd("pk pkg metadata")
             .assert()

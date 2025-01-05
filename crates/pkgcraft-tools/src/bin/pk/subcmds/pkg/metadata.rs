@@ -24,7 +24,7 @@ pub(crate) struct Command {
     verify: bool,
 
     /// Remove cache entries
-    #[arg(short, long)]
+    #[arg(short = 'R', long)]
     remove: bool,
 
     /// Custom cache path
