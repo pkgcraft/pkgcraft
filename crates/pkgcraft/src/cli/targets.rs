@@ -222,14 +222,12 @@ impl<'a> TargetRestrictions<'a> {
         I::Item: std::fmt::Display,
     {
         // convert targets into restrictions, initializing repos as necessary
-        let targets: Vec<_> = values
-            .into_iter()
-            .map(|target| {
-                let target = target.to_string();
-                self.target_restriction(&target)
-                    .map(|value| (target, value))
-            })
-            .try_collect()?;
+        let mut targets = vec![];
+        for target in values {
+            let target = target.to_string();
+            let (set, restrict) = self.target_restriction(&target)?;
+            targets.push((target, set, restrict));
+        }
 
         // finalize the config after loading repos to start the build pool
         self.config.finalize()?;
@@ -237,7 +235,7 @@ impl<'a> TargetRestrictions<'a> {
         // verify matches exist
         targets
             .into_iter()
-            .map(|(target, (set, restrict))| {
+            .map(|(target, set, restrict)| {
                 if set.contains(&restrict) {
                     Ok((set, restrict))
                 } else {
