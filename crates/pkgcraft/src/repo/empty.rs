@@ -14,28 +14,28 @@ use crate::Error;
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
 #[derive(Debug)]
-pub struct Repo {
+pub struct EmptyRepo {
     id: String,
     repo_config: RepoConfig,
 }
 
-impl PartialEq for Repo {
+impl PartialEq for EmptyRepo {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl Eq for Repo {}
+impl Eq for EmptyRepo {}
 
-impl Hash for Repo {
+impl Hash for EmptyRepo {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
 
-make_repo_traits!(Repo);
+make_repo_traits!(EmptyRepo);
 
-impl Repo {
+impl EmptyRepo {
     pub(crate) fn new(id: &str, priority: i32) -> Self {
         let repo_config = RepoConfig {
             priority,
@@ -71,13 +71,13 @@ impl Repo {
     }
 }
 
-impl fmt::Display for Repo {
+impl fmt::Display for EmptyRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.id)
     }
 }
 
-impl PkgRepository for Repo {
+impl PkgRepository for EmptyRepo {
     type Pkg = Pkg;
     type IterCpn = iter::Empty<Cpn>;
     type IterCpnRestrict = iter::Empty<Cpn>;
@@ -127,25 +127,25 @@ impl PkgRepository for Repo {
     }
 }
 
-impl Contains<&Cpn> for Repo {
+impl Contains<&Cpn> for EmptyRepo {
     fn contains(&self, _: &Cpn) -> bool {
         false
     }
 }
 
-impl Contains<&Cpv> for Repo {
+impl Contains<&Cpv> for EmptyRepo {
     fn contains(&self, _: &Cpv) -> bool {
         false
     }
 }
 
-impl Contains<&Dep> for Repo {
+impl Contains<&Dep> for EmptyRepo {
     fn contains(&self, _: &Dep) -> bool {
         false
     }
 }
 
-impl Repository for Repo {
+impl Repository for EmptyRepo {
     fn format(&self) -> RepoFormat {
         self.repo_config.format
     }
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn contains() {
-        let repo = Repo::new("empty", 0);
+        let repo = EmptyRepo::new("empty", 0);
 
         // path
         assert!(!repo.contains("cat/pkg"));
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn iter() {
-        let repo = Repo::new("empty", 0);
+        let repo = EmptyRepo::new("empty", 0);
         assert!(repo.iter().next().is_none());
     }
 }

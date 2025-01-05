@@ -17,8 +17,11 @@ use crate::traits::Contains;
 use crate::Error;
 
 pub mod ebuild;
+use ebuild::EbuildRepo;
 pub(crate) mod empty;
+use empty::EmptyRepo;
 pub mod fake;
+use fake::FakeRepo;
 pub mod set;
 
 /// Supported repo formats
@@ -77,9 +80,9 @@ impl RepoFormat {
         }
 
         match self {
-            Self::Ebuild => Ok(ebuild::EbuildRepo::from_path(id, priority, &abspath)?.into()),
-            Self::Fake => Ok(fake::FakeRepo::from_path(id, priority, &abspath)?.into()),
-            Self::Empty => Ok(empty::Repo::from_path(id, priority, &abspath)?.into()),
+            Self::Ebuild => Ok(EbuildRepo::from_path(id, priority, &abspath)?.into()),
+            Self::Fake => Ok(FakeRepo::from_path(id, priority, &abspath)?.into()),
+            Self::Empty => Ok(EmptyRepo::from_path(id, priority, &abspath)?.into()),
             _ => Err(Error::LoadRepo { kind: self, id: id.to_string() }),
         }
     }
@@ -116,9 +119,9 @@ impl RepoFormat {
 #[derive(EnumAsInner, Debug, Clone)]
 pub enum Repo {
     Configured(ebuild::configured::ConfiguredRepo),
-    Ebuild(ebuild::EbuildRepo),
-    Fake(fake::FakeRepo),
-    Unsynced(Arc<empty::Repo>),
+    Ebuild(EbuildRepo),
+    Fake(FakeRepo),
+    Unsynced(Arc<EmptyRepo>),
 }
 
 impl From<&Repo> for Repo {
@@ -127,8 +130,8 @@ impl From<&Repo> for Repo {
     }
 }
 
-impl From<ebuild::EbuildRepo> for Repo {
-    fn from(repo: ebuild::EbuildRepo) -> Self {
+impl From<EbuildRepo> for Repo {
+    fn from(repo: EbuildRepo) -> Self {
         Self::Ebuild(repo)
     }
 }
@@ -139,14 +142,14 @@ impl From<ebuild::configured::ConfiguredRepo> for Repo {
     }
 }
 
-impl From<fake::FakeRepo> for Repo {
-    fn from(repo: fake::FakeRepo) -> Self {
+impl From<FakeRepo> for Repo {
+    fn from(repo: FakeRepo) -> Self {
         Self::Fake(repo)
     }
 }
 
-impl From<empty::Repo> for Repo {
-    fn from(repo: empty::Repo) -> Self {
+impl From<EmptyRepo> for Repo {
+    fn from(repo: EmptyRepo) -> Self {
         Self::Unsynced(Arc::new(repo))
     }
 }
@@ -871,14 +874,14 @@ mod tests {
     fn traits() {
         let temp = EbuildRepoBuilder::new().name("test").build().unwrap();
         let e_repo = Repo::from(&temp);
-        let f_repo: Repo = fake::FakeRepo::new("fake", 0).into();
+        let f_repo: Repo = FakeRepo::new("fake", 0).into();
         assert!(e_repo != f_repo);
         assert!(e_repo > f_repo);
 
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
 
-        let f_repo: Repo = fake::FakeRepo::new("test", 0).into();
+        let f_repo: Repo = FakeRepo::new("test", 0).into();
         assert!(e_repo != f_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
