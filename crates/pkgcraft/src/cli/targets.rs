@@ -105,6 +105,9 @@ impl<'a> TargetRestrictions<'a> {
         Ok(self)
     }
 
+    /// Return the target repo set.
+    ///
+    /// Note that the system config is loaded if no repos are currently targeted.
     fn repo_set(&mut self) -> crate::Result<&RepoSet> {
         if self.repo_set.repos.is_empty() {
             self.config.load()?;
@@ -113,6 +116,7 @@ impl<'a> TargetRestrictions<'a> {
         Ok(&self.repo_set)
     }
 
+    /// Load a repo from a path.
     fn repo_from_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
         let path = path.as_ref();
         if let Some(format) = self.repo_format {
@@ -123,6 +127,7 @@ impl<'a> TargetRestrictions<'a> {
         }
     }
 
+    /// Load a repo from a nested path.
     fn repo_from_nested_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
         if let Some(format) = self.repo_format {
             self.config.add_format_repo_nested_path(path, 0, format)
@@ -131,6 +136,7 @@ impl<'a> TargetRestrictions<'a> {
         }
     }
 
+    /// Parse a dep restriction.
     fn dep_restriction(&mut self, restrict: Restrict) -> crate::Result<(RepoSet, Restrict)> {
         let repo_set = self.repo_set()?;
 
@@ -154,13 +160,12 @@ impl<'a> TargetRestrictions<'a> {
                     })?;
 
                     // add external repo to the config if it doesn't exist
-                    let repo = if let Some(repo) =
-                        repo_set.repos.iter().find(|r| r.path() == path)
-                    {
-                        repo.clone()
-                    } else {
-                        self.repo_from_path(&path)?
-                    };
+                    let repo =
+                        if let Some(repo) = repo_set.repos.iter().find(|r| r.path() == path) {
+                            repo.clone()
+                        } else {
+                            self.repo_from_path(&path)?
+                        };
 
                     return Ok((repo.into(), Restrict::and(restricts)));
                 }
