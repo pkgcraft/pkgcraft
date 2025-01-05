@@ -132,6 +132,8 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     fn dep_restriction(&mut self, restrict: Restrict) -> crate::Result<(RepoSet, Restrict)> {
+        let repo_set = self.repo_set()?;
+
         // support external repo path restrictions
         if let Restrict::And(vals) = &restrict {
             use DepRestrict::Repo;
@@ -153,7 +155,7 @@ impl<'a> TargetRestrictions<'a> {
 
                     // add external repo to the config if it doesn't exist
                     let repo = if let Some(repo) =
-                        self.repo_set()?.repos.iter().find(|r| r.path() == path)
+                        repo_set.repos.iter().find(|r| r.path() == path)
                     {
                         repo.clone()
                     } else {
@@ -162,14 +164,14 @@ impl<'a> TargetRestrictions<'a> {
 
                     return Ok((repo.into(), Restrict::and(restricts)));
                 }
-                [id] if !self.repo_set()?.repos.iter().any(|r| r.id() == id) => {
+                [id] if !repo_set.repos.iter().any(|r| r.id() == id) => {
                     return Err(Error::InvalidValue(format!("unknown repo: {id}")));
                 }
                 _ => (),
             }
         }
 
-        Ok(self.repo_set()?.clone().filter(restrict))
+        Ok(repo_set.clone().filter(restrict))
     }
 
     /// Convert a target into a path or dep restriction.
