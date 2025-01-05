@@ -59,7 +59,7 @@ impl RepoFormat {
 
     /// Try to load a specific repo type from a given path.
     pub fn load_from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
-        &self,
+        self,
         id: S,
         path: P,
         priority: i32,
@@ -76,19 +76,12 @@ impl RepoFormat {
             id = abspath.as_str();
         }
 
-        let repo: Repo = match self {
-            Self::Ebuild => ebuild::EbuildRepo::from_path(id, priority, &abspath)?.into(),
-            Self::Fake => fake::FakeRepo::from_path(id, priority, &abspath)?.into(),
-            Self::Empty => empty::Repo::from_path(id, priority, &abspath)?.into(),
-            _ => {
-                return Err(Error::LoadRepo {
-                    kind: *self,
-                    id: id.to_string(),
-                })
-            }
-        };
-
-        Ok(repo)
+        match self {
+            Self::Ebuild => Ok(ebuild::EbuildRepo::from_path(id, priority, &abspath)?.into()),
+            Self::Fake => Ok(fake::FakeRepo::from_path(id, priority, &abspath)?.into()),
+            Self::Empty => Ok(empty::Repo::from_path(id, priority, &abspath)?.into()),
+            _ => Err(Error::LoadRepo { kind: self, id: id.to_string() }),
+        }
     }
 
     /// Try to load a specific repo type from a given path, traversing parents.
