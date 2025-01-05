@@ -715,7 +715,7 @@ fn checks() {
         .arg(&repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid report alias: invalid"))
+        .stderr(contains("invalid report set: invalid"))
         .failure()
         .code(2);
 
@@ -745,7 +745,7 @@ fn levels() {
         .arg(&repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid report alias: invalid"))
+        .stderr(contains("invalid report set: invalid"))
         .failure()
         .code(2);
 

@@ -55,9 +55,9 @@ impl From<ReportLevel> for Color {
     }
 }
 
-/// Report aliases that may related to one or more report variants.
+/// Report sets that relate to one or more variants.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-pub enum ReportAlias {
+pub enum ReportSet {
     All,
     Check(CheckKind),
     Context(CheckContext),
@@ -66,37 +66,37 @@ pub enum ReportAlias {
     Scope(Scope),
 }
 
-impl From<CheckKind> for ReportAlias {
+impl From<CheckKind> for ReportSet {
     fn from(value: CheckKind) -> Self {
         Self::Check(value)
     }
 }
 
-impl From<CheckContext> for ReportAlias {
+impl From<CheckContext> for ReportSet {
     fn from(value: CheckContext) -> Self {
         Self::Context(value)
     }
 }
 
-impl From<ReportLevel> for ReportAlias {
+impl From<ReportLevel> for ReportSet {
     fn from(value: ReportLevel) -> Self {
         Self::Level(value)
     }
 }
 
-impl From<ReportKind> for ReportAlias {
+impl From<ReportKind> for ReportSet {
     fn from(value: ReportKind) -> Self {
         Self::Report(value)
     }
 }
 
-impl From<Scope> for ReportAlias {
+impl From<Scope> for ReportSet {
     fn from(value: Scope) -> Self {
         Self::Scope(value)
     }
 }
 
-impl FromStr for ReportAlias {
+impl FromStr for ReportSet {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -109,7 +109,7 @@ impl FromStr for ReportAlias {
                     .or_else(|_| val.parse().map(Self::Context))
                     .or_else(|_| val.parse().map(Self::Level))
                     .or_else(|_| val.parse().map(Self::Scope))
-                    .map_err(|_| Error::InvalidValue(format!("invalid report alias: {val}")))
+                    .map_err(|_| Error::InvalidValue(format!("invalid report set: {val}")))
             }
         } else {
             s.parse()
@@ -119,13 +119,13 @@ impl FromStr for ReportAlias {
     }
 }
 
-impl ReportAlias {
+impl ReportSet {
     /// Return true if the related reports should be added to the selected set.
     pub fn selected(&self) -> bool {
         matches!(self, Self::Report(_) | Self::Check(_))
     }
 
-    /// Expand a report alias into an iterator of its variants.
+    /// Expand a report set into an iterator of its variants.
     pub fn expand<'a>(
         self,
         defaults: &'a IndexSet<ReportKind>,

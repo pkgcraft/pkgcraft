@@ -124,7 +124,7 @@ fn checks() {
         .arg(file.path())
         .assert()
         .stdout("")
-        .stderr(contains("invalid report alias: invalid"))
+        .stderr(contains("invalid report set: invalid"))
         .failure()
         .code(2);
 
@@ -158,7 +158,7 @@ fn levels() {
         .arg(file.path())
         .assert()
         .stdout("")
-        .stderr(contains("invalid report alias: invalid"))
+        .stderr(contains("invalid report set: invalid"))
         .failure()
         .code(2);
 

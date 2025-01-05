@@ -21,7 +21,7 @@ fn all() {
 }
 
 #[test]
-fn aliases() {
+fn sets() {
     for opt in ["-r", "--reports"] {
         // invalid
         cmd("pkgcruft show reports")
@@ -102,7 +102,7 @@ fn repo() {
         .stderr("")
         .success();
 
-    // specific path with report alias
+    // specific path with check set
     cmd("pkgcruft show reports")
         .args(["--repo", repo.as_ref()])
         .args(["-r", "@Dependency"])

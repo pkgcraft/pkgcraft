@@ -13,7 +13,7 @@ use tracing::{info, warn};
 use crate::check::Check;
 use crate::error::Error;
 use crate::iter::ReportIter;
-use crate::report::{ReportAlias, ReportKind};
+use crate::report::{ReportKind, ReportSet};
 use crate::source::PkgFilter;
 
 pub struct Scanner {
@@ -73,7 +73,7 @@ impl Scanner {
     pub fn reports<I>(mut self, values: I) -> Self
     where
         I: IntoIterator,
-        I::Item: Into<ReportAlias>,
+        I::Item: Into<ReportSet>,
     {
         self.reports = values
             .into_iter()
@@ -99,7 +99,7 @@ impl Scanner {
     pub fn exit<I>(mut self, values: I) -> Self
     where
         I: IntoIterator,
-        I::Item: Into<ReportAlias>,
+        I::Item: Into<ReportSet>,
     {
         self.exit = Arc::new(
             values

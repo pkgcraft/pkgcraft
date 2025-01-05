@@ -6,7 +6,7 @@ use clap::Args;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
-use pkgcruft::report::{ReportAlias, ReportKind};
+use pkgcruft::report::{ReportKind, ReportSet};
 use pkgcruft::scan::Scanner;
 use pkgcruft::source::PkgFilter;
 
@@ -26,12 +26,12 @@ pub(crate) struct Command {
     /// Exit status triggers
     #[arg(
         long,
-        value_name = "ALIAS[,...]",
+        value_name = "SET[,...]",
         value_delimiter = ',',
         num_args = 0..=1,
         default_missing_value = "@critical,@error",
     )]
-    exit: Vec<ReportAlias>,
+    exit: Vec<ReportSet>,
 
     /// Package filters
     #[arg(short, long, value_name = "FILTER[,...]")]

@@ -4,7 +4,7 @@ use std::str::FromStr;
 use clap::Args;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcruft::report::{ReportAlias, ReportKind};
+use pkgcruft::report::{ReportKind, ReportSet};
 use pkgcruft::Error;
 use strum::IntoEnumIterator;
 
@@ -63,9 +63,9 @@ impl<T: FromStr> FromStr for TriState<T> {
 #[derive(Debug, Args)]
 #[clap(next_help_heading = Some("Report options"))]
 pub(crate) struct Reports {
-    /// Restrict by tri-state report aliases
-    #[arg(short, long, value_name = "ALIAS[,...]", value_delimiter = ',')]
-    reports: Vec<TriState<ReportAlias>>,
+    /// Restrict by report set
+    #[arg(short, long, value_name = "SET[,...]", value_delimiter = ',')]
+    reports: Vec<TriState<ReportSet>>,
 }
 
 impl Reports {
@@ -84,23 +84,23 @@ impl Reports {
             defaults.clone()
         };
 
-        // Expand report aliases, only adding explicitly selected check and report
-        // variants to the selection set. Set membership determines if an enabled check is
-        // skipped with a warning or errors out if it is unable to be run.
+        // Expand report sets, only adding explicitly selected check and report variants
+        // to the selection set. Set membership determines if an enabled check is skipped
+        // with a warning or errors out if it is unable to be run.
         let mut selected = IndexSet::new();
         for x in reports {
             match x {
-                TriState::Set(alias) | TriState::Add(alias) => {
-                    for r in alias.expand(&defaults, &supported) {
+                TriState::Set(set) | TriState::Add(set) => {
+                    for r in set.expand(&defaults, &supported) {
                         enabled.insert(r);
                         // track explicitly selected or supported variants
-                        if alias.selected() || supported.contains(&r) {
+                        if set.selected() || supported.contains(&r) {
                             selected.insert(r);
                         }
                     }
                 }
-                TriState::Remove(alias) => {
-                    for r in alias.expand(&defaults, &supported) {
+                TriState::Remove(set) => {
+                    for r in set.expand(&defaults, &supported) {
                         enabled.swap_remove(&r);
                     }
                 }
@@ -223,10 +223,10 @@ mod tests {
         let r = cmd.reports.collapse(defaults.clone(), supported.clone());
         assert_err_re!(r, "no reports enabled");
 
-        // invalid check aliases in args
+        // invalid sets
         for arg in ["-r=@unknown", "-r=-@unknown", "-r=+@unknown"] {
             let r = Command::try_parse_from(["cmd", arg]);
-            assert_err_re!(r, "invalid report alias: unknown");
+            assert_err_re!(r, "invalid report set: unknown");
         }
     }
 
