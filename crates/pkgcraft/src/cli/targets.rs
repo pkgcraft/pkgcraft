@@ -54,10 +54,9 @@ pub struct TargetRestrictions<'a> {
 impl<'a> TargetRestrictions<'a> {
     /// Create a target restrictions parser.
     pub fn new(config: &'a mut Config) -> Self {
-        let repo_set = config.repos.set(None);
         Self {
             config,
-            repo_set,
+            repo_set: Default::default(),
             repo_format: Default::default(),
             scopes: Default::default(),
         }
