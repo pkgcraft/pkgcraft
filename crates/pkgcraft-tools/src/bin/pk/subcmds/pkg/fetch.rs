@@ -61,7 +61,7 @@ pub(crate) struct Command {
     timeout: f64,
 
     /// Target repo
-    #[arg(long)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     /// Process fetch-restricted URLS

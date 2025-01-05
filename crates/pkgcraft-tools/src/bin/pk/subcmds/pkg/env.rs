@@ -26,7 +26,7 @@ pub(crate) struct Command {
     filter: Vec<String>,
 
     /// Target repo
-    #[arg(long)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     // positionals

@@ -89,7 +89,7 @@ pub(crate) struct Command {
     stdout: bool,
 
     /// Target repo
-    #[arg(long)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     /// Process fetch-restricted URLS

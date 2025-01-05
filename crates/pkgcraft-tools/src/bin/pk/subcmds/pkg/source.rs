@@ -72,7 +72,7 @@ pub(crate) struct Command {
     bound: Vec<Bound>,
 
     /// Target repo
-    #[arg(long)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     /// Sort output in ascending order for elapsed time

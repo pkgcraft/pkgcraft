@@ -18,7 +18,7 @@ pub(crate) struct Command {
     jobs: Option<usize>,
 
     /// Target repo
-    #[arg(long)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     // positionals

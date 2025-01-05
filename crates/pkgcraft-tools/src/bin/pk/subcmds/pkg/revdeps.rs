@@ -12,7 +12,7 @@ use pkgcraft::traits::{Intersects, LogErrors};
 #[clap(next_help_heading = "Revdeps options")]
 pub(crate) struct Command {
     /// Target repository
-    #[arg(short, long, value_name = "REPO", default_value = ".")]
+    #[arg(short, long, default_value = ".")]
     repo: String,
 
     // positionals

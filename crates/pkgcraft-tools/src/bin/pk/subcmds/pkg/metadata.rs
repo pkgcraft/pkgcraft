@@ -44,7 +44,7 @@ pub(crate) struct Command {
     format: Option<CacheFormat>,
 
     /// Target repo
-    #[arg(long)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     // positionals

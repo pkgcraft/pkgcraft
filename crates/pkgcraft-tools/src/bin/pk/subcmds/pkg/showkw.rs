@@ -12,7 +12,7 @@ use pkgcraft::traits::LogErrors;
 #[clap(next_help_heading = "Target options")]
 pub(crate) struct Command {
     /// Target repo
-    #[arg(long)]
+    #[arg(short, long)]
     repo: Option<String>,
 
     // positionals
