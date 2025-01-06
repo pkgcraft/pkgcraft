@@ -2,7 +2,7 @@ use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
-use crate::report::ReportKind::{RepoCategoryEmpty, RepoPackageEmpty};
+use crate::report::ReportKind::{RepoCategoryEmpty, RepoCategoryUnused, RepoPackageEmpty};
 use crate::source::SourceKind;
 
 use super::{CheckKind, RepoCheck};
@@ -11,7 +11,7 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::RepoLayout,
     scope: Scope::Repo,
     source: SourceKind::Repo,
-    reports: &[RepoCategoryEmpty, RepoPackageEmpty],
+    reports: &[RepoCategoryEmpty, RepoCategoryUnused, RepoPackageEmpty],
     context: &[],
 };
 
@@ -25,17 +25,22 @@ super::register!(Check);
 
 impl RepoCheck for Check {
     fn run(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
-        for category in repo.categories() {
-            let mut pkgs = vec![];
-            for pkg in repo.packages(&category) {
-                if repo.versions(&category, &pkg).is_empty() {
-                    RepoPackageEmpty.package((&category, &pkg)).report(filter);
-                } else {
-                    pkgs.push(pkg);
+        for category in repo.metadata().categories() {
+            let path = repo.path().join(category);
+            if path.is_dir() {
+                let mut pkgs = vec![];
+                for pkg in repo.packages(category) {
+                    if repo.versions(category, &pkg).is_empty() {
+                        RepoPackageEmpty.package((category, &pkg)).report(filter);
+                    } else {
+                        pkgs.push(pkg);
+                    }
                 }
-            }
-            if pkgs.is_empty() {
-                RepoCategoryEmpty.category(&category).report(filter);
+                if pkgs.is_empty() {
+                    RepoCategoryEmpty.category(category).report(filter);
+                }
+            } else {
+                RepoCategoryUnused.category(category).report(filter);
             }
         }
     }

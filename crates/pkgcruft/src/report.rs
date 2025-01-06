@@ -274,7 +274,7 @@ pub enum ReportKind {
     /// See the optfeature eclass for usage examples.
     Optfeature,
 
-    /// Repo has unused profiles/package.deprecated entries.
+    /// Repo has unused profiles/package.deprecated entry.
     PackageDeprecatedUnused,
 
     /// Overlay package matches the name of a package from a parent repo.
@@ -288,6 +288,9 @@ pub enum ReportKind {
 
     /// Empty category directory in a repository.
     RepoCategoryEmpty,
+
+    /// Repo has unused profiles/categories entry.
+    RepoCategoryUnused,
 
     /// Empty package directory in a repository.
     RepoPackageEmpty,
@@ -422,6 +425,7 @@ impl ReportKind {
             Self::PropertiesInvalid => Error,
             Self::PythonUpdate => Info,
             Self::RepoCategoryEmpty => Warning,
+            Self::RepoCategoryUnused => Warning,
             Self::RepoPackageEmpty => Warning,
             Self::RestrictInvalid => Error,
             Self::RestrictMissing => Warning,
@@ -484,6 +488,7 @@ impl ReportKind {
             Self::PropertiesInvalid => Version,
             Self::PythonUpdate => Version,
             Self::RepoCategoryEmpty => Category,
+            Self::RepoCategoryUnused => Repo,
             Self::RepoPackageEmpty => Package,
             Self::RestrictInvalid => Version,
             Self::RestrictMissing => Version,
