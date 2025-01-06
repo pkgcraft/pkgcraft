@@ -1,4 +1,7 @@
+use camino::Utf8Path;
 use itertools::Itertools;
+use pkgcraft::files::is_ebuild;
+use pkgcraft::macros::build_path;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Scope;
 
@@ -24,13 +27,21 @@ struct Check;
 
 super::register!(Check);
 
+/// Determine if an ebuild file exists in a directory path.
+fn find_ebuild(path: &Utf8Path) -> bool {
+    path.read_dir_utf8()
+        .map(|entries| entries.filter_map(Result::ok).any(|e| is_ebuild(&e)))
+        .unwrap_or(false)
+}
+
 impl RepoCheck for Check {
     fn run(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
         // verify inherited categories
         for category in repo.categories() {
             let mut pkgs = vec![];
             for pkg in repo.packages(&category) {
-                if repo.versions(&category, &pkg).is_empty() {
+                let path = build_path!(repo, &category, &pkg);
+                if !find_ebuild(&path) {
                     RepoPackageEmpty.package((&category, &pkg)).report(filter);
                 } else {
                     pkgs.push(pkg);
