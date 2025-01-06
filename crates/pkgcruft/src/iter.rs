@@ -212,16 +212,15 @@ impl Iterator for IterPkg {
             } else if let Ok(value) = self.rx.recv() {
                 match value {
                     ReportOrProcess::Report(report) => {
-                        match (report.scope(), report.kind.scope()) {
-                            (ReportScope::Version(cpv, _), scope)
-                                if scope <= Scope::Package =>
-                            {
+                        let cached = report.kind.scope() <= Scope::Package;
+                        match report.scope() {
+                            ReportScope::Version(cpv, _) if cached => {
                                 self.cache
                                     .entry(cpv.cpn().clone())
                                     .or_default()
                                     .push(report);
                             }
-                            (ReportScope::Package(cpn), scope) if scope <= Scope::Package => {
+                            ReportScope::Package(cpn) if cached => {
                                 self.cache.entry(cpn.clone()).or_default().push(report);
                             }
                             _ => self.reports.push_back(report),
