@@ -6,7 +6,6 @@ use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
-use pkgcraft::restrict::Restrict;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Metadata options")]
@@ -83,21 +82,15 @@ impl Command {
                         cache.remove_entry(&cpv)?;
                     }
                 } else {
-                    let mut regen = cache
+                    cache
                         .regen(repo)
                         .jobs(self.jobs.unwrap_or_default())
                         .force(self.force)
                         .progress(stdout().is_terminal() && !self.no_progress && !self.output)
                         .output(self.output)
-                        .verify(self.verify);
-
-                    // TODO: use parallel Cpv restriction iterator
-                    // skip repo level targets that needlessly slow down regen
-                    if restrict != Restrict::True {
-                        regen = regen.targets(repo.iter_cpv_restrict(&restrict));
-                    }
-
-                    regen.run()?;
+                        .verify(self.verify)
+                        .targets(restrict.clone())
+                        .run()?;
                 }
             }
         }

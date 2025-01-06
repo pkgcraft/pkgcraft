@@ -11,6 +11,7 @@ use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::PkgRepository;
+use crate::restrict::Restrict;
 use crate::shell::pool::MetadataTaskBuilder;
 use crate::traits::Contains;
 use crate::utils::bounded_jobs;
@@ -205,11 +206,8 @@ impl MetadataCache {
             clean: true,
             verify: false,
             regen: repo.pool().metadata_task(repo).cache(self),
-            targets: repo
-                .categories()
-                .into_par_iter()
-                .flat_map(|s| repo.cpvs_from_category(&s))
-                .collect(),
+            repo: repo.clone(),
+            targets: None,
         }
     }
 }
@@ -222,7 +220,8 @@ pub struct MetadataCacheRegen<'a> {
     clean: bool,
     verify: bool,
     regen: MetadataTaskBuilder,
-    targets: IndexSet<Cpv>,
+    repo: EbuildRepo,
+    targets: Option<IndexSet<Cpv>>,
 }
 
 impl MetadataCacheRegen<'_> {
@@ -264,24 +263,34 @@ impl MetadataCacheRegen<'_> {
     }
 
     /// Specify package targets for cache regeneration.
-    pub fn targets<I>(mut self, values: I) -> Self
-    where
-        I: IntoIterator<Item = Cpv>,
-    {
+    pub fn targets(mut self, restrict: Restrict) -> Self {
         self.clean = false;
-        self.targets = values.into_iter().collect();
+        // TODO: use parallel Cpv restriction iterator
+        // skip repo level targets that needlessly slow down regen
+        if restrict != Restrict::True {
+            self.targets = Some(self.repo.iter_cpv_restrict(restrict).collect());
+        }
         self
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
     pub fn run(self) -> crate::Result<()> {
+        let cpvs = self.targets.unwrap_or_else(|| {
+            // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
+            // pull all package Cpvs from the repo
+            self.repo
+                .categories()
+                .into_par_iter()
+                .flat_map(|s| self.repo.cpvs_from_category(&s))
+                .collect()
+        });
+
         // set progression length encompassing all targets
-        self.progress
-            .set_length(self.targets.len().try_into().unwrap());
+        self.progress.set_length(cpvs.len().try_into().unwrap());
 
         // remove outdated cache entries
         if self.clean {
-            self.cache.clean(&self.targets)?;
+            self.cache.clean(&cpvs)?;
         }
 
         if self.verify {
@@ -297,8 +306,7 @@ impl MetadataCacheRegen<'_> {
 
         // run cache verification in a thread pool that runs blocking metadata tasks
         // in build pool processes as necessary
-        let errors = self
-            .targets
+        let errors = cpvs
             .into_par_iter()
             .filter_map(|cpv| {
                 self.progress.inc(1);
