@@ -59,7 +59,7 @@ impl From<ReportLevel> for Color {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ReportSet {
     All,
-    Check(CheckKind),
+    Check(Check),
     Context(CheckContext),
     Level(ReportLevel),
     Report(ReportKind),
@@ -68,7 +68,7 @@ pub enum ReportSet {
 
 impl From<CheckKind> for ReportSet {
     fn from(value: CheckKind) -> Self {
-        Self::Check(value)
+        Self::Check(value.into())
     }
 }
 
@@ -133,7 +133,7 @@ impl ReportSet {
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
             Self::All => Box::new(supported.iter().copied()),
-            Self::Check(check) => Box::new(check.reports().iter().copied()),
+            Self::Check(check) => Box::new(check.reports.iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter()
                     .filter(move |x| x.context.contains(&context))
