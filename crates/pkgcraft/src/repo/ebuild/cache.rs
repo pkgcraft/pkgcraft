@@ -204,7 +204,6 @@ impl MetadataCache {
             jobs: num_cpus::get(),
             progress: ProgressBar::hidden(),
             clean: true,
-            verify: false,
             regen: repo.pool().metadata_task(repo).cache(self),
             repo: repo.clone(),
             targets: None,
@@ -218,7 +217,6 @@ pub struct MetadataCacheRegen<'a> {
     jobs: usize,
     progress: ProgressBar,
     clean: bool,
-    verify: bool,
     regen: MetadataTaskBuilder,
     repo: EbuildRepo,
     targets: Option<IndexSet<Cpv>>,
@@ -257,19 +255,18 @@ impl MetadataCacheRegen<'_> {
     /// Perform metadata verification without writing to the cache.
     pub fn verify(mut self, value: bool) -> Self {
         self.regen = self.regen.verify(value);
-        self.verify = value;
         self.clean = false;
         self
     }
 
     /// Specify package targets for cache regeneration.
     pub fn targets(mut self, restrict: Restrict) -> Self {
-        self.clean = false;
         // TODO: use parallel Cpv restriction iterator
         // skip repo level targets that needlessly slow down regen
         if restrict != Restrict::True {
             self.targets = Some(self.repo.iter_cpv_restrict(restrict).collect());
         }
+        self.clean = false;
         self
     }
 
@@ -291,12 +288,6 @@ impl MetadataCacheRegen<'_> {
         // remove outdated cache entries
         if self.clean {
             self.cache.clean(&cpvs)?;
-        }
-
-        if self.verify {
-            self.progress.set_message("verifying metadata:");
-        } else {
-            self.progress.set_message("generating metadata:");
         }
 
         // hack to force log capturing for tests to work in threads
