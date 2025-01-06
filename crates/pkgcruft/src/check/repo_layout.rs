@@ -41,12 +41,12 @@ impl RepoCheck for Check {
             }
         }
 
-        // verify uninherited categories
+        // verify metadata categories
         let unused = repo
             .metadata()
             .categories()
             .iter()
-            .filter(|x| !repo.path().join(x).exists())
+            .filter(|x| !repo.path().join(x).is_dir())
             .join(", ");
         if !unused.is_empty() {
             RepoCategoriesUnused
