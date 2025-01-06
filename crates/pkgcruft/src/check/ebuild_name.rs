@@ -57,6 +57,9 @@ impl CpnCheck for Check {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
+    use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
 
     use crate::scan::Scanner;
@@ -73,6 +76,14 @@ mod tests {
         let scanner = Scanner::new(repo).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, expected);
+
+        // verify scanning in a package with only invalid names
+        let dir = dir.join("EbuildNameInvalid");
+        env::set_current_dir(&dir).unwrap();
+        let expected = glob_reports!("{dir}/reports.json");
+        let restrict = repo.restrict_from_path(&dir).unwrap();
+        let reports = scanner.run(restrict).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // primary fixed
