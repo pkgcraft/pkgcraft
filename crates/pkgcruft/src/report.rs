@@ -286,11 +286,11 @@ pub enum ReportKind {
     /// Ebuild can support newer python version(s).
     PythonUpdate,
 
+    /// Repo has unused profiles/categories entry.
+    RepoCategoriesUnused,
+
     /// Empty category directory in a repository.
     RepoCategoryEmpty,
-
-    /// Repo has unused profiles/categories entry.
-    RepoCategoryUnused,
 
     /// Empty package directory in a repository.
     RepoPackageEmpty,
@@ -424,8 +424,8 @@ impl ReportKind {
             Self::PackageOverride => Warning,
             Self::PropertiesInvalid => Error,
             Self::PythonUpdate => Info,
+            Self::RepoCategoriesUnused => Warning,
             Self::RepoCategoryEmpty => Warning,
-            Self::RepoCategoryUnused => Warning,
             Self::RepoPackageEmpty => Warning,
             Self::RestrictInvalid => Error,
             Self::RestrictMissing => Warning,
@@ -487,8 +487,8 @@ impl ReportKind {
             Self::PackageOverride => Package,
             Self::PropertiesInvalid => Version,
             Self::PythonUpdate => Version,
+            Self::RepoCategoriesUnused => Repo,
             Self::RepoCategoryEmpty => Category,
-            Self::RepoCategoryUnused => Repo,
             Self::RepoPackageEmpty => Package,
             Self::RestrictInvalid => Version,
             Self::RestrictMissing => Version,
