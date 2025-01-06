@@ -63,19 +63,19 @@ impl SyncCheckRunner {
     }
 
     /// Run all checks in order of priority.
-    pub(super) fn run_checks(&self, target: Target, filter: &mut ReportFilter) {
+    pub(super) fn run_checks(&self, target: &Target, filter: &mut ReportFilter) {
         for runner in self.runners.values() {
-            runner.run_checks(&target, filter);
+            runner.run_checks(target, filter);
         }
     }
 
     /// Run a specific check.
-    pub(super) fn run_check(&self, check: Check, target: Target, filter: &mut ReportFilter) {
+    pub(super) fn run_check(&self, check: Check, target: &Target, filter: &mut ReportFilter) {
         let runner = self
             .runners
             .get(&check.source)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        runner.run_check(&check, &target, filter);
+        runner.run_check(&check, target, filter);
     }
 
     /// Run finalization for a specific check.

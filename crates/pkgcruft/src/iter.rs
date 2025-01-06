@@ -158,9 +158,9 @@ fn pkg_worker(
         // run checks across packages in parallel
         for (check, target) in rx {
             if let Some(check) = check {
-                runner.run_check(check, target, &mut filter);
+                runner.run_check(check, &target, &mut filter);
             } else {
-                runner.run_checks(target, &mut filter);
+                runner.run_checks(&target, &mut filter);
             }
             filter.sender.process();
         }
@@ -256,7 +256,7 @@ fn version_worker(
         let _entered = thread_span.clone().entered();
 
         for (check, target) in rx {
-            runner.run_check(check, target, &mut filter);
+            runner.run_check(check, &target, &mut filter);
         }
 
         // signal the wait group
