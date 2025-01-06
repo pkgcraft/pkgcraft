@@ -98,13 +98,6 @@ pub enum CheckKind {
     Whitespace,
 }
 
-impl CheckKind {
-    /// Return the report variants for a check.
-    pub fn reports(&self) -> &'static [ReportKind] {
-        Check::from(*self).reports
-    }
-}
-
 impl From<CheckKind> for Check {
     fn from(value: CheckKind) -> Self {
         match value {
