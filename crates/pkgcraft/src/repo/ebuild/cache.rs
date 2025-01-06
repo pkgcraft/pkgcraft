@@ -11,6 +11,7 @@ use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::repo::PkgRepository;
+use crate::shell::pool::MetadataTaskBuilder;
 use crate::traits::Contains;
 use crate::utils::bounded_jobs;
 
@@ -196,16 +197,19 @@ where
 
 impl MetadataCache {
     /// Create a regeneration builder for the cache.
-    pub fn regen(&self) -> MetadataCacheRegen {
+    pub fn regen(&self, repo: &EbuildRepo) -> MetadataCacheRegen {
         MetadataCacheRegen {
             cache: self,
             jobs: num_cpus::get(),
-            force: false,
             progress: ProgressBar::hidden(),
-            output: false,
             clean: true,
             verify: false,
-            targets: None,
+            regen: repo.pool().metadata_task(repo).cache(self),
+            targets: repo
+                .categories()
+                .into_par_iter()
+                .flat_map(|s| repo.cpvs_from_category(&s))
+                .collect(),
         }
     }
 }
@@ -214,12 +218,11 @@ impl MetadataCache {
 pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
     jobs: usize,
-    force: bool,
     progress: ProgressBar,
-    output: bool,
     clean: bool,
     verify: bool,
-    targets: Option<IndexSet<Cpv>>,
+    regen: MetadataTaskBuilder,
+    targets: IndexSet<Cpv>,
 }
 
 impl MetadataCacheRegen<'_> {
@@ -231,7 +234,7 @@ impl MetadataCacheRegen<'_> {
 
     /// Force metadata regeneration across all packages.
     pub fn force(mut self, value: bool) -> Self {
-        self.force = value;
+        self.regen = self.regen.force(value);
         self
     }
 
@@ -248,12 +251,13 @@ impl MetadataCacheRegen<'_> {
 
     /// Allow output from stdout and stderr during cache regeneration.
     pub fn output(mut self, value: bool) -> Self {
-        self.output = value;
+        self.regen = self.regen.output(value);
         self
     }
 
     /// Perform metadata verification without writing to the cache.
     pub fn verify(mut self, value: bool) -> Self {
+        self.regen = self.regen.verify(value);
         self.verify = value;
         self.clean = false;
         self
@@ -265,27 +269,19 @@ impl MetadataCacheRegen<'_> {
         I: IntoIterator<Item = Cpv>,
     {
         self.clean = false;
-        self.targets = Some(values.into_iter().collect());
+        self.targets = values.into_iter().collect();
         self
     }
 
     /// Regenerate the package metadata cache, returning the number of errors that occurred.
-    pub fn run(self, repo: &EbuildRepo) -> crate::Result<()> {
-        let cpvs = self.targets.unwrap_or_else(|| {
-            // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
-            // pull all package Cpvs from the repo
-            repo.categories()
-                .into_par_iter()
-                .flat_map(|s| repo.cpvs_from_category(&s))
-                .collect()
-        });
-
+    pub fn run(self) -> crate::Result<()> {
         // set progression length encompassing all targets
-        self.progress.set_length(cpvs.len().try_into().unwrap());
+        self.progress
+            .set_length(self.targets.len().try_into().unwrap());
 
         // remove outdated cache entries
         if self.clean {
-            self.cache.clean(&cpvs)?;
+            self.cache.clean(&self.targets)?;
         }
 
         if self.verify {
@@ -301,18 +297,12 @@ impl MetadataCacheRegen<'_> {
 
         // run cache verification in a thread pool that runs blocking metadata tasks
         // in build pool processes as necessary
-        let regen = repo
-            .pool()
-            .metadata_task(repo)
-            .cache(self.cache)
-            .force(self.force)
-            .output(self.output)
-            .verify(self.verify);
-        let errors = cpvs
+        let errors = self
+            .targets
             .into_par_iter()
             .filter_map(|cpv| {
                 self.progress.inc(1);
-                regen.run(cpv).err()
+                self.regen.run(cpv).err()
             })
             .inspect(|err| {
                 // hack to force log capturing for tests to work in threads
@@ -369,7 +359,7 @@ mod tests {
         }
 
         // run regen asserting that errors occurred
-        let r = repo.metadata().cache().regen().run(&repo);
+        let r = repo.metadata().cache().regen(&repo).run();
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors

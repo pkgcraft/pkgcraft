@@ -47,13 +47,13 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {
-            let _ = repo.metadata().cache().regen().force(true).run(repo);
+            let _ = repo.metadata().cache().regen(repo).force(true).run();
         });
     });
 
     c.bench_function("repo-ebuild-metadata-regen-verify", |b| {
         b.iter(|| {
-            let _ = repo.metadata().cache().regen().run(repo);
+            let _ = repo.metadata().cache().regen(repo).run();
         });
     });
 }

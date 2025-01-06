@@ -84,7 +84,7 @@ impl Command {
                     }
                 } else {
                     let mut regen = cache
-                        .regen()
+                        .regen(repo)
                         .jobs(self.jobs.unwrap_or_default())
                         .force(self.force)
                         .progress(stdout().is_terminal() && !self.no_progress && !self.output)
@@ -97,7 +97,7 @@ impl Command {
                         regen = regen.targets(repo.iter_cpv_restrict(&restrict));
                     }
 
-                    regen.run(repo)?;
+                    regen.run()?;
                 }
             }
         }

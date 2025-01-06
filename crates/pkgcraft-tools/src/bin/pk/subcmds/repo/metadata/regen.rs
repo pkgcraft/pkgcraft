@@ -52,11 +52,11 @@ impl Command {
         };
 
         cache
-            .regen()
+            .regen(&repo)
             .jobs(self.jobs.unwrap_or_default())
             .force(self.force)
             .progress(stdout().is_terminal() && !self.no_progress)
-            .run(&repo)?;
+            .run()?;
 
         if self.use_local {
             repo.metadata().use_local_update(&repo)?;
