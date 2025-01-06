@@ -220,21 +220,6 @@ impl<'a> TargetRestrictions<'a> {
         })
     }
 
-    /// Determine target restrictions.
-    pub fn targets<I>(
-        mut self,
-        values: I,
-    ) -> impl Iterator<Item = crate::Result<(RepoSet, Restrict)>> + 'a
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-        <I as IntoIterator>::IntoIter: 'a,
-    {
-        values
-            .into_iter()
-            .map(move |s| self.target_restriction(s.as_ref()))
-    }
-
     /// Determine target restrictions and finalize the config.
     pub fn finalize_targets<I>(mut self, values: I) -> crate::Result<Vec<(RepoSet, Restrict)>>
     where
