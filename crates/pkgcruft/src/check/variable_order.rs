@@ -43,7 +43,7 @@ struct Check;
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter) {
         let mut variables = vec![];
         for node in pkg
             .tree()

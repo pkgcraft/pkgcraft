@@ -35,7 +35,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         if !self.allowed.is_empty() {
             let vals = pkg
                 .properties()

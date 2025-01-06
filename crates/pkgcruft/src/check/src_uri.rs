@@ -37,7 +37,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         for uri in pkg.src_uri().iter_flatten() {
             match Fetchable::from_uri(uri, pkg, false) {
                 Ok(f) => {
@@ -58,7 +58,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(MirrorsUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused

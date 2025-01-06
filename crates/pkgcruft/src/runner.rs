@@ -63,14 +63,14 @@ impl SyncCheckRunner {
     }
 
     /// Run all checks in order of priority.
-    pub(super) fn run_checks(&self, target: &Target, filter: &mut ReportFilter) {
+    pub(super) fn run_checks(&self, target: &Target, filter: &ReportFilter) {
         for runner in self.runners.values() {
             runner.run_checks(target, filter);
         }
     }
 
     /// Run a specific check.
-    pub(super) fn run_check(&self, check: Check, target: &Target, filter: &mut ReportFilter) {
+    pub(super) fn run_check(&self, check: Check, target: &Target, filter: &ReportFilter) {
         let runner = self
             .runners
             .get(&check.source)
@@ -79,7 +79,7 @@ impl SyncCheckRunner {
     }
 
     /// Run finalization for a specific check.
-    pub(super) fn finish(&self, check: Check, filter: &mut ReportFilter) {
+    pub(super) fn finish(&self, check: Check, filter: &ReportFilter) {
         let runner = self
             .runners
             .get(&check.source)
@@ -147,7 +147,7 @@ impl CheckRunner {
     }
 
     /// Run all check runners in order of priority.
-    fn run_checks(&self, target: &Target, filter: &mut ReportFilter) {
+    fn run_checks(&self, target: &Target, filter: &ReportFilter) {
         match (self, target) {
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
@@ -159,7 +159,7 @@ impl CheckRunner {
     }
 
     /// Run a specific check.
-    fn run_check(&self, check: &Check, target: &Target, filter: &mut ReportFilter) {
+    fn run_check(&self, check: &Check, target: &Target, filter: &ReportFilter) {
         match (self, target) {
             (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, filter),
@@ -173,7 +173,7 @@ impl CheckRunner {
     }
 
     /// Run finalization for a specific check.
-    fn finish(&self, check: &Check, filter: &mut ReportFilter) {
+    fn finish(&self, check: &Check, filter: &ReportFilter) {
         match self {
             Self::EbuildPkg(r) => r.finish(check, filter),
             Self::EbuildRawPkg(r) => r.finish(check, filter),
@@ -233,7 +233,7 @@ macro_rules! make_pkg_check_runner {
             }
 
             /// Run all checks for a [`Cpn`].
-            fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+            fn run_checks(&self, cpn: &Cpn, filter: &ReportFilter) {
                 let source = &self.source;
                 let mut pkgs = Ok(vec![]);
 
@@ -271,7 +271,7 @@ macro_rules! make_pkg_check_runner {
             }
 
             /// Run a check for a [`Cpn`].
-            fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
+            fn run_pkg_set(&self, check: &Check, cpn: &Cpn, filter: &ReportFilter) {
                 match self.cache.get_pkgs() {
                     Ok(pkgs) => {
                         if !pkgs.is_empty() {
@@ -289,7 +289,7 @@ macro_rules! make_pkg_check_runner {
             }
 
             /// Run a check for a [`Cpv`].
-            fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+            fn run_check(&self, check: &Check, cpv: &Cpv, filter: &ReportFilter) {
                 match self.cache.get_pkg(cpv) {
                     Some(Ok(pkg)) => {
                         let runner = self
@@ -306,7 +306,7 @@ macro_rules! make_pkg_check_runner {
             }
 
             /// Finish a check for a repo.
-            fn finish(&self, check: &Check, filter: &mut ReportFilter) {
+            fn finish(&self, check: &Check, filter: &ReportFilter) {
                 let now = Instant::now();
                 if check.scope == Scope::Version {
                     let runner = self
@@ -371,7 +371,7 @@ impl CpnCheckRunner {
     }
 
     /// Run all checks for a [`Cpn`].
-    fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+    fn run_checks(&self, cpn: &Cpn, filter: &ReportFilter) {
         for (check, runner) in &self.checks {
             let now = Instant::now();
             runner.run(cpn, filter);
@@ -380,7 +380,7 @@ impl CpnCheckRunner {
     }
 
     /// Run a check for a [`Cpn`].
-    fn run_check(&self, check: &Check, cpn: &Cpn, filter: &mut ReportFilter) {
+    fn run_check(&self, check: &Check, cpn: &Cpn, filter: &ReportFilter) {
         let runner = self
             .checks
             .get(check)
@@ -417,7 +417,7 @@ impl CpvCheckRunner {
     }
 
     /// Run all checks for a [`Cpn`].
-    fn run_checks(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+    fn run_checks(&self, cpn: &Cpn, filter: &ReportFilter) {
         for cpv in self.repo.iter_cpv_restrict(cpn) {
             for (check, runner) in &self.checks {
                 let now = Instant::now();
@@ -428,7 +428,7 @@ impl CpvCheckRunner {
     }
 
     /// Run a check for a [`Cpv`].
-    fn run_check(&self, check: &Check, cpv: &Cpv, filter: &mut ReportFilter) {
+    fn run_check(&self, check: &Check, cpv: &Cpv, filter: &ReportFilter) {
         let runner = self
             .checks
             .get(check)
@@ -465,7 +465,7 @@ impl RepoCheckRunner {
     }
 
     /// Run all checks for a repo.
-    fn run_checks(&self, filter: &mut ReportFilter) {
+    fn run_checks(&self, filter: &ReportFilter) {
         for (check, runner) in &self.checks {
             let now = Instant::now();
             runner.run(&self.repo, filter);
@@ -474,7 +474,7 @@ impl RepoCheckRunner {
     }
 
     /// Run a check for a repo.
-    fn run_check(&self, check: &Check, filter: &mut ReportFilter) {
+    fn run_check(&self, check: &Check, filter: &ReportFilter) {
         let runner = self
             .checks
             .get(check)

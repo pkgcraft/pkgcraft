@@ -31,7 +31,7 @@ struct Check {
 super::register!(Check);
 
 impl CpvCheck for Check {
-    fn run(&self, cpv: &Cpv, filter: &mut ReportFilter) {
+    fn run(&self, cpv: &Cpv, filter: &ReportFilter) {
         if let Err(InvalidPkg { err, .. }) = self.regen.run(cpv) {
             MetadataError.version(cpv).message(err).report(filter)
         }

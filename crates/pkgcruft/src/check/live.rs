@@ -25,7 +25,7 @@ struct Check;
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
         if pkgs.iter().all(|pkg| pkg.live()) {
             LiveOnly.package(cpn).report(filter);
         }

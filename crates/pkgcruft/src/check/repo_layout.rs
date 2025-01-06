@@ -35,7 +35,7 @@ fn find_ebuild(path: &Utf8Path) -> bool {
 }
 
 impl RepoCheck for Check {
-    fn run(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn run(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         // verify inherited categories
         for category in repo.categories() {
             let mut pkgs = vec![];

@@ -32,7 +32,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
+    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
         let mut seen = HashSet::new();
         let mut previous = HashSet::new();
         let mut changes = HashMap::<_, _>::new();

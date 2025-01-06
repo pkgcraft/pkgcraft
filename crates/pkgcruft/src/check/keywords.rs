@@ -50,7 +50,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         if !pkg.keywords().is_empty() && pkg.live() {
             KeywordsLive
                 .version(pkg)
@@ -109,7 +109,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(ArchesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused

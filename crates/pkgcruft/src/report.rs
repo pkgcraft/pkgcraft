@@ -489,7 +489,7 @@ impl ReportKind {
             Self::PythonUpdate => Version,
             Self::RepoCategoriesUnused => Repo,
             Self::RepoCategoryEmpty => Category,
-            Self::RepoPackageEmpty => Package,
+            Self::RepoPackageEmpty => Category,
             Self::RestrictInvalid => Version,
             Self::RestrictMissing => Version,
             Self::RubyUpdate => Version,
@@ -570,7 +570,7 @@ impl ReportBuilder {
     }
 
     /// Pass the report to the scanning filter for processing.
-    pub(crate) fn report(self, filter: &mut ReportFilter) {
+    pub(crate) fn report(self, filter: &ReportFilter) {
         filter.report(self.0)
     }
 }

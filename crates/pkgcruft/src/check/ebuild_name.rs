@@ -30,7 +30,7 @@ struct Check {
 super::register!(Check);
 
 impl CpnCheck for Check {
-    fn run(&self, cpn: &Cpn, filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, filter: &ReportFilter) {
         let mut cpvs = HashMap::<Cpv, Vec<_>>::new();
 
         for result in self.repo.cpvs_from_package(cpn.category(), cpn.package()) {

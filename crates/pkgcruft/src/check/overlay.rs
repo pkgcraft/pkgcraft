@@ -39,7 +39,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         for eclass in self.eclasses.intersection(pkg.inherited()) {
             EclassUnused.version(pkg).message(eclass).report(filter);
         }

@@ -36,7 +36,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         let allowed_missing = self.missing_categories.contains(pkg.category());
         if pkg.homepage().is_empty() {
             if !allowed_missing {

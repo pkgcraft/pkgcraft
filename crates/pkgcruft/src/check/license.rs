@@ -53,7 +53,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().cloned().collect();
         let allowed_missing = self.missing_categories.contains(pkg.category());
         if licenses.is_empty() {
@@ -93,7 +93,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(LicensesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused

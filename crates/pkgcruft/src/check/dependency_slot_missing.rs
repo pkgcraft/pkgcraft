@@ -57,7 +57,7 @@ impl Check {
 }
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         for dep in pkg
             .rdepend()
             .intersection(pkg.depend())

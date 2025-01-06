@@ -47,7 +47,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         for key in pkg.eapi().dep_keys().iter().copied() {
             let deps = pkg.dependencies([key]);
             for dep in deps.iter_flatten().unique() {
@@ -134,7 +134,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(PackageDeprecatedUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused

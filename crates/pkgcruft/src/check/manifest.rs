@@ -60,7 +60,7 @@ impl Check {
 }
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &mut ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
         let manifest = match self.repo.metadata().pkg_manifest_parse(cpn) {
             Ok(value) => value,
             Err(UnversionedPkg { err, .. }) => {
@@ -135,7 +135,7 @@ impl EbuildPkgSetCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(ManifestConflict) {
             for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
                 let (name, map) = entry.pair();

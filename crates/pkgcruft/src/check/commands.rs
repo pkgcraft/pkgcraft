@@ -22,7 +22,7 @@ pub(crate) static CHECK: super::Check = super::Check {
 };
 
 type CommandFn =
-    for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &mut ReportFilter);
+    for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ReportFilter);
 
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     let mut check = Check { commands: Default::default() };
@@ -52,7 +52,7 @@ fn builtins<'a>(
     node: &Node<'a>,
     cursor: &mut TreeCursor<'a>,
     pkg: &EbuildRawPkg,
-    filter: &mut ReportFilter,
+    filter: &ReportFilter,
 ) {
     for x in node.children(cursor).filter(|x| x.kind() == "word") {
         if let Some(builtin) = pkg.eapi().commands().get(x.as_str()) {
@@ -72,7 +72,7 @@ fn optfeature<'a>(
     node: &Node<'a>,
     cursor: &mut TreeCursor<'a>,
     pkg: &EbuildRawPkg,
-    filter: &mut ReportFilter,
+    filter: &ReportFilter,
 ) {
     for x in node.children(cursor).skip(2).filter(|x| x.kind() == "word") {
         match Dep::try_new(x) {
@@ -97,7 +97,7 @@ fn optfeature<'a>(
 }
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter) {
         let mut cursor = pkg.tree().walk();
         // TODO: use parse tree query
         for (cmd, node, func) in pkg

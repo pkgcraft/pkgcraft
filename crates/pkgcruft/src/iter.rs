@@ -1,52 +1,67 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::{mem, thread};
+use std::thread;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use crossbeam_utils::sync::WaitGroup;
 use itertools::Itertools;
+use pkgcraft::dep::Cpn;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 
 use crate::check::Check;
-use crate::report::{Report, ReportKind};
+use crate::report::{Report, ReportKind, ReportScope};
 use crate::runner::{SyncCheckRunner, Target};
 use crate::scan::Scanner;
 
+enum ReportOrProcess {
+    Report(Report),
+    Process(Cpn),
+}
+
+impl From<Report> for ReportOrProcess {
+    fn from(value: Report) -> Self {
+        Self::Report(value)
+    }
+}
+
+impl From<Cpn> for ReportOrProcess {
+    fn from(value: Cpn) -> Self {
+        Self::Process(value)
+    }
+}
+
 #[derive(Clone)]
 enum ReportSender {
-    Pkg(Vec<Report>, Sender<Vec<Report>>),
+    Pkg(Sender<ReportOrProcess>),
     Version(Sender<Report>),
 }
 
 impl ReportSender {
     /// Process a single report.
-    fn report(&mut self, report: Report) {
+    fn report(&self, report: Report) {
         match self {
             Self::Version(tx) => {
                 tx.send(report).ok();
             }
-            Self::Pkg(reports, _) => {
-                reports.push(report);
+            Self::Pkg(tx) => {
+                tx.send(report.into()).ok();
             }
         }
     }
 
     /// Process all reports for a package.
-    fn process(&mut self) {
-        if let Self::Pkg(reports, tx) = self {
-            if !reports.is_empty() {
-                reports.sort();
-                tx.send(mem::take(reports)).ok();
-            }
+    fn process(&self, cpn: Cpn) {
+        if let Self::Pkg(tx) = self {
+            tx.send(cpn.into()).ok();
         }
     }
 }
 
-impl From<Sender<Vec<Report>>> for ReportSender {
-    fn from(value: Sender<Vec<Report>>) -> Self {
-        Self::Pkg(Default::default(), value)
+impl From<Sender<ReportOrProcess>> for ReportSender {
+    fn from(value: Sender<ReportOrProcess>) -> Self {
+        Self::Pkg(value)
     }
 }
 
@@ -83,7 +98,7 @@ impl ReportFilter {
     }
 
     /// Conditionally add a report based on filter inclusion.
-    pub(crate) fn report(&mut self, report: Report) {
+    pub(crate) fn report(&self, report: Report) {
         if self.filter.contains(&report.kind) {
             if self.exit.contains(&report.kind) {
                 self.failed.store(true, Ordering::Relaxed);
@@ -140,7 +155,7 @@ fn pkg_producer(
 fn pkg_worker(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    mut filter: ReportFilter,
+    filter: ReportFilter,
     rx: Receiver<(Option<Check>, Target)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
@@ -158,11 +173,13 @@ fn pkg_worker(
         // run checks across packages in parallel
         for (check, target) in rx {
             if let Some(check) = check {
-                runner.run_check(check, &target, &mut filter);
+                runner.run_check(check, &target, &filter);
             } else {
-                runner.run_checks(&target, &mut filter);
+                runner.run_checks(&target, &filter);
             }
-            filter.sender.process();
+            if let Target::Cpn(cpn) = target {
+                filter.sender.process(cpn);
+            }
         }
 
         // signal the wait group
@@ -170,8 +187,7 @@ fn pkg_worker(
 
         // finalize checks
         for check in finish_rx {
-            runner.finish(check, &mut filter);
-            filter.sender.process();
+            runner.finish(check, &filter);
         }
     })
 }
@@ -179,9 +195,10 @@ fn pkg_worker(
 /// Iterator that parallelizes by package, running in category and repo scope.
 #[derive(Debug)]
 struct IterPkg {
-    rx: Receiver<Vec<Report>>,
+    rx: Receiver<ReportOrProcess>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
+    cache: HashMap<Cpn, Vec<Report>>,
     reports: VecDeque<Report>,
 }
 
@@ -192,9 +209,31 @@ impl Iterator for IterPkg {
         loop {
             if let Some(report) = self.reports.pop_front() {
                 return Some(report);
-            } else if let Ok(reports) = self.rx.recv() {
-                debug_assert!(!reports.is_empty());
-                self.reports.extend(reports);
+            } else if let Ok(value) = self.rx.recv() {
+                match value {
+                    ReportOrProcess::Report(report) => {
+                        match (report.scope(), report.kind.scope()) {
+                            (ReportScope::Version(cpv, _), scope)
+                                if scope <= Scope::Package =>
+                            {
+                                self.cache
+                                    .entry(cpv.cpn().clone())
+                                    .or_default()
+                                    .push(report);
+                            }
+                            (ReportScope::Package(cpn), scope) if scope <= Scope::Package => {
+                                self.cache.entry(cpn.clone()).or_default().push(report);
+                            }
+                            _ => self.reports.push_back(report),
+                        }
+                    }
+                    ReportOrProcess::Process(cpn) => {
+                        if let Some(mut reports) = self.cache.remove(&cpn) {
+                            reports.sort();
+                            self.reports.extend(reports);
+                        }
+                    }
+                }
             } else {
                 return None;
             }
@@ -240,7 +279,7 @@ fn version_producer(
 fn version_worker(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    mut filter: ReportFilter,
+    filter: ReportFilter,
     rx: Receiver<(Check, Target)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
@@ -256,7 +295,7 @@ fn version_worker(
         let _entered = thread_span.clone().entered();
 
         for (check, target) in rx {
-            runner.run_check(check, &target, &mut filter);
+            runner.run_check(check, &target, &filter);
         }
 
         // signal the wait group
@@ -264,7 +303,7 @@ fn version_worker(
 
         // finalize checks
         for check in finish_rx {
-            runner.finish(check, &mut filter);
+            runner.finish(check, &filter);
         }
     })
 }
@@ -367,6 +406,7 @@ impl ReportIter {
                 targets_tx,
                 finish_tx,
             ),
+            cache: Default::default(),
             reports: Default::default(),
         }))
     }

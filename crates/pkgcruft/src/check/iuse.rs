@@ -51,7 +51,7 @@ impl Check {
 }
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &mut ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         for x in pkg.iuse() {
             if x.is_disabled() || (x.is_enabled() && self.use_expand(x.flag())) {
                 IuseInvalid
@@ -67,7 +67,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &mut ReportFilter) {
+    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(UseGlobalUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
