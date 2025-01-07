@@ -92,7 +92,7 @@ impl Iterator for IgnorePaths<'_> {
     type Item = (Scope, Utf8PathBuf);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(scope) = self.scope {
+        self.scope.map(|scope| {
             // construct the relative path to check for ignore files
             let relpath = match (scope, self.report.scope()) {
                 (Scope::Category, ReportScope::Category(category)) => category.into(),
@@ -112,10 +112,8 @@ impl Iterator for IgnorePaths<'_> {
                 Scope::Version => None,
             };
 
-            Some((scope, relpath))
-        } else {
-            None
-        }
+            (scope, relpath)
+        })
     }
 }
 
