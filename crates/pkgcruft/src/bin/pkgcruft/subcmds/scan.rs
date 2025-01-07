@@ -15,13 +15,17 @@ use crate::options;
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Scan options")]
 pub(crate) struct Command {
+    /// Enable package filtering
+    #[arg(short, long, value_name = "FILTER[,...]")]
+    filters: Vec<PkgFilter>,
+
+    /// Disregard ignore settings
+    #[arg(short = 'F', long)]
+    force: bool,
+
     /// Parallel jobs to run
     #[arg(short, long)]
     jobs: Option<usize>,
-
-    /// Target repo
-    #[arg(long)]
-    repo: Option<String>,
 
     /// Exit status triggers
     #[arg(
@@ -33,9 +37,9 @@ pub(crate) struct Command {
     )]
     exit: Vec<ReportSet>,
 
-    /// Package filters
-    #[arg(short, long, value_name = "FILTER[,...]")]
-    filters: Vec<PkgFilter>,
+    /// Target repo
+    #[arg(long)]
+    repo: Option<String>,
 
     #[clap(flatten)]
     reporter: options::reporter::ReporterOptions,
@@ -83,6 +87,7 @@ impl Command {
                     .jobs(self.jobs.unwrap_or_default())
                     .selected(enabled, selected)
                     .filters(self.filters.iter().cloned())
+                    .force(self.force)
                     .exit(self.exit.iter().copied());
 
                 // output reports

@@ -22,6 +22,7 @@ pub struct Scanner {
     supported: IndexSet<ReportKind>,
     enabled: Option<IndexSet<ReportKind>>,
     selected: Option<IndexSet<ReportKind>>,
+    pub(crate) force: bool,
     pub(crate) reports: HashSet<ReportKind>,
     pub(crate) exit: HashSet<ReportKind>,
     pub(crate) filters: IndexSet<PkgFilter>,
@@ -38,6 +39,7 @@ impl Scanner {
             supported: ReportKind::supported(repo, Scope::Repo),
             enabled: Default::default(),
             selected: Default::default(),
+            force: Default::default(),
             reports: ReportKind::iter().collect(),
             exit: Default::default(),
             filters: Default::default(),
@@ -66,6 +68,12 @@ impl Scanner {
             .collect();
         self.enabled = Some(self.reports.iter().copied().collect());
         self.selected = self.enabled.clone();
+        self
+    }
+
+    /// Configure if ignore settings are respected.
+    pub fn force(mut self, value: bool) -> Self {
+        self.force = value;
         self
     }
 

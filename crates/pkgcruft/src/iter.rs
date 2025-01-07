@@ -122,7 +122,7 @@ pub(crate) struct ReportFilter {
     exit: HashSet<ReportKind>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
-    ignore: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
+    ignore: Option<DashMap<Utf8PathBuf, IndexSet<ReportKind>>>,
     repo: EbuildRepo,
 }
 
@@ -139,43 +139,56 @@ impl ReportFilter {
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
             sender: tx.into(),
-            ignore: Default::default(),
+            ignore: if !scanner.force {
+                Some(Default::default())
+            } else {
+                None
+            },
             repo: scanner.repo.clone(),
         }
     }
 
     /// Determine if a report is ignored via any relevant ignore files.
     fn ignored(&self, report: &Report) -> bool {
-        IgnorePaths::new(report).any(|(scope, relpath)| {
-            self.ignore
-                .entry(relpath.clone())
-                .or_insert_with(|| {
-                    let path = self.repo.path().join(relpath);
-                    if scope == Scope::Version {
-                        // TODO: use BufRead to avoid loading the entire ebuild file?
-                        let mut ignore = IndexSet::new();
-                        for line in fs::read_to_string(path).unwrap_or_default().lines() {
-                            let line = line.trim();
-                            if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
-                                ignore.extend(
-                                    data.split_whitespace()
-                                        .filter_map(|x| x.parse::<ReportKind>().ok()),
-                                )
-                            } else if !line.is_empty() && !line.starts_with("#") {
-                                break;
+        self.ignore
+            .as_ref()
+            .map(|cache| {
+                IgnorePaths::new(report).any(|(scope, relpath)| {
+                    cache
+                        .entry(relpath.clone())
+                        .or_insert_with(|| {
+                            let path = self.repo.path().join(relpath);
+                            if scope == Scope::Version {
+                                // TODO: use BufRead to avoid loading the entire ebuild file?
+                                let mut ignore = IndexSet::new();
+                                for line in
+                                    fs::read_to_string(path).unwrap_or_default().lines()
+                                {
+                                    let line = line.trim();
+                                    if let Some(data) =
+                                        line.strip_prefix("# pkgcruft-ignore: ")
+                                    {
+                                        ignore.extend(
+                                            data.split_whitespace()
+                                                .filter_map(|x| x.parse::<ReportKind>().ok()),
+                                        )
+                                    } else if !line.is_empty() && !line.starts_with("#") {
+                                        break;
+                                    }
+                                }
+                                ignore
+                            } else {
+                                fs::read_to_string(path.join(".pkgcruft-ignore"))
+                                    .unwrap_or_default()
+                                    .lines()
+                                    .filter_map(|x| x.parse().ok())
+                                    .collect()
                             }
-                        }
-                        ignore
-                    } else {
-                        fs::read_to_string(path.join(".pkgcruft-ignore"))
-                            .unwrap_or_default()
-                            .lines()
-                            .filter_map(|x| x.parse().ok())
-                            .collect()
-                    }
+                        })
+                        .contains(&report.kind)
                 })
-                .contains(&report.kind)
-        })
+            })
+            .unwrap_or(false)
     }
 
     /// Conditionally add a report based on filter inclusion.
