@@ -118,12 +118,6 @@ impl Borrow<str> for Builtin {
     }
 }
 
-impl Borrow<str> for &Builtin {
-    fn borrow(&self) -> &str {
-        self.name
-    }
-}
-
 impl From<&Builtin> for Builtin {
     fn from(b: &Builtin) -> Self {
         *b
