@@ -508,18 +508,17 @@ impl ReportKind {
 
     /// Return true if the report supports post-run finalization for a scope.
     pub(crate) fn finalize(&self, scope: Scope) -> bool {
-        scope >= self.scope()
-            && matches!(
-                self,
-                Self::ArchesUnused
-                    | Self::EclassUnused
-                    | Self::LicensesUnused
-                    | Self::ManifestCollide
-                    | Self::ManifestConflict
-                    | Self::MirrorsUnused
-                    | Self::PackageDeprecatedUnused
-                    | Self::UseGlobalUnused
-            )
+        matches!(
+            self,
+            Self::ArchesUnused
+                | Self::EclassUnused
+                | Self::LicensesUnused
+                | Self::ManifestCollide
+                | Self::ManifestConflict
+                | Self::MirrorsUnused
+                | Self::PackageDeprecatedUnused
+                | Self::UseGlobalUnused
+        ) && scope >= self.scope()
     }
 
     /// Return the sorted set of reports enabled by default for an ebuild repo.
