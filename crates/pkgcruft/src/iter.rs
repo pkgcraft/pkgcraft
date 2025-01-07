@@ -210,27 +210,24 @@ impl Iterator for IterPkg {
             if let Some(report) = self.reports.pop_front() {
                 return Some(report);
             } else if let Ok(value) = self.rx.recv() {
-                match value {
-                    ReportOrProcess::Report(report) => {
-                        let cached = report.kind.scope() <= Scope::Package;
-                        match report.scope() {
-                            ReportScope::Version(cpv, _) if cached => {
-                                self.cache
-                                    .entry(cpv.cpn().clone())
-                                    .or_default()
-                                    .push(report);
-                            }
-                            ReportScope::Package(cpn) if cached => {
-                                self.cache.entry(cpn.clone()).or_default().push(report);
-                            }
-                            _ => self.reports.push_back(report),
+                if let ReportOrProcess::Report(report) = value {
+                    let cached = report.kind.scope() <= Scope::Package;
+                    match report.scope() {
+                        ReportScope::Version(cpv, _) if cached => {
+                            self.cache
+                                .entry(cpv.cpn().clone())
+                                .or_default()
+                                .push(report);
                         }
+                        ReportScope::Package(cpn) if cached => {
+                            self.cache.entry(cpn.clone()).or_default().push(report);
+                        }
+                        _ => self.reports.push_back(report),
                     }
-                    ReportOrProcess::Process(cpn) => {
-                        if let Some(mut reports) = self.cache.remove(&cpn) {
-                            reports.sort();
-                            self.reports.extend(reports);
-                        }
+                } else if let ReportOrProcess::Process(cpn) = value {
+                    if let Some(mut reports) = self.cache.remove(&cpn) {
+                        reports.sort();
+                        self.reports.extend(reports);
                     }
                 }
             } else {
