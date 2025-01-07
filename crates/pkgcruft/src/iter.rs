@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use crossbeam_utils::sync::WaitGroup;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
@@ -202,6 +202,35 @@ struct IterPkg {
     reports: VecDeque<Report>,
 }
 
+impl IterPkg {
+    /// Process items from the reports channel.
+    fn receive(&mut self) -> Result<(), RecvError> {
+        self.rx.recv().map(|value| match value {
+            ReportOrProcess::Report(report) => {
+                let cached = report.kind.scope() <= Scope::Package;
+                match report.scope() {
+                    ReportScope::Version(cpv, _) if cached => {
+                        self.cache
+                            .entry(cpv.cpn().clone())
+                            .or_default()
+                            .push(report);
+                    }
+                    ReportScope::Package(cpn) if cached => {
+                        self.cache.entry(cpn.clone()).or_default().push(report);
+                    }
+                    _ => self.reports.push_back(report),
+                }
+            }
+            ReportOrProcess::Process(cpn) => {
+                if let Some(mut reports) = self.cache.remove(&cpn) {
+                    reports.sort();
+                    self.reports.extend(reports);
+                }
+            }
+        })
+    }
+}
+
 impl Iterator for IterPkg {
     type Item = Report;
 
@@ -209,28 +238,7 @@ impl Iterator for IterPkg {
         loop {
             if let Some(report) = self.reports.pop_front() {
                 return Some(report);
-            } else if let Ok(value) = self.rx.recv() {
-                if let ReportOrProcess::Report(report) = value {
-                    let cached = report.kind.scope() <= Scope::Package;
-                    match report.scope() {
-                        ReportScope::Version(cpv, _) if cached => {
-                            self.cache
-                                .entry(cpv.cpn().clone())
-                                .or_default()
-                                .push(report);
-                        }
-                        ReportScope::Package(cpn) if cached => {
-                            self.cache.entry(cpn.clone()).or_default().push(report);
-                        }
-                        _ => self.reports.push_back(report),
-                    }
-                } else if let ReportOrProcess::Process(cpn) = value {
-                    if let Some(mut reports) = self.cache.remove(&cpn) {
-                        reports.sort();
-                        self.reports.extend(reports);
-                    }
-                }
-            } else {
+            } else if self.receive().is_err() {
                 return None;
             }
         }
