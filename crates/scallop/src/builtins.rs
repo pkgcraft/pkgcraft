@@ -134,12 +134,6 @@ impl Deref for Builtin {
     }
 }
 
-impl Builtin {
-    pub fn run(&self, args: &[&str]) -> crate::Result<ExecStatus> {
-        (self.func)(args)
-    }
-}
-
 /// Convert a Builtin to its C equivalent.
 impl From<Builtin> for bash::Builtin {
     fn from(builtin: Builtin) -> bash::Builtin {
