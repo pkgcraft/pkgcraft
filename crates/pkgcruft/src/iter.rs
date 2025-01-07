@@ -168,13 +168,13 @@ fn pkg_worker(
         #[cfg(test)]
         let _entered = thread_span.clone().entered();
 
-        // run checks across packages in parallel
         for (check, target) in rx {
-            if let Some(check) = check {
-                runner.run_check(check, &target, &filter);
-            } else {
-                runner.run_checks(&target, &filter);
+            match check {
+                Some(check) => runner.run_check(check, &target, &filter),
+                None => runner.run_checks(&target, &filter),
             }
+
+            // signal iterator to process results for target package
             if let Target::Cpn(cpn) = target {
                 filter.sender.process(cpn);
             }
