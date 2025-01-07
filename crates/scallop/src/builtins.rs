@@ -160,13 +160,6 @@ impl From<Builtin> for bash::Builtin {
     }
 }
 
-/// Convert a Builtin to its C equivalent.
-impl From<&Builtin> for bash::Builtin {
-    fn from(builtin: &Builtin) -> bash::Builtin {
-        (*builtin).into()
-    }
-}
-
 // Enable or disable function overriding for an iterable of builtins.
 pub fn override_funcs<I>(builtins: I, enable: bool) -> crate::Result<()>
 where
