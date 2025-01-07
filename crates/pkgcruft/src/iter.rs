@@ -1,10 +1,14 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
+use camino::Utf8PathBuf;
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use crossbeam_utils::sync::WaitGroup;
+use dashmap::DashMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
@@ -70,11 +74,69 @@ impl From<Sender<Report>> for ReportSender {
     }
 }
 
+struct IgnorePaths<'a> {
+    path: Utf8PathBuf,
+    report: &'a Report,
+    scope: Scope,
+}
+
+impl<'a> IgnorePaths<'a> {
+    fn new(repo: &'a EbuildRepo, report: &'a Report) -> Self {
+        Self {
+            path: repo.path().into(),
+            report,
+            scope: Scope::Repo,
+        }
+    }
+}
+
+impl Iterator for IgnorePaths<'_> {
+    type Item = Utf8PathBuf;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.scope >= Scope::Package {
+            // construct the path to check for ignore files
+            match (self.scope, self.report.scope()) {
+                (Scope::Category, ReportScope::Category(category)) => {
+                    self.path = self.path.join(category);
+                }
+                (Scope::Category, ReportScope::Package(cpn)) => {
+                    self.path = self.path.join(cpn.category());
+                }
+                (Scope::Category, ReportScope::Version(cpv, _)) => {
+                    self.path = self.path.join(cpv.category());
+                }
+                (Scope::Package, ReportScope::Package(cpn)) => {
+                    self.path = self.path.join(cpn.package());
+                }
+                (Scope::Package, ReportScope::Version(cpv, _)) => {
+                    self.path = self.path.join(cpv.package());
+                }
+                _ => (),
+            }
+
+            // set the scope to the next lower level
+            self.scope = match self.scope {
+                Scope::Repo => Scope::Category,
+                Scope::Category => Scope::Package,
+                Scope::Package => Scope::Version,
+                Scope::Version => Scope::Version,
+            };
+
+            Some(self.path.clone())
+        } else {
+            None
+        }
+    }
+}
+
 pub(crate) struct ReportFilter {
     filter: HashSet<ReportKind>,
     exit: HashSet<ReportKind>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
+    ignore: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
+    repo: EbuildRepo,
 }
 
 impl ReportFilter {
@@ -90,12 +152,30 @@ impl ReportFilter {
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
             sender: tx.into(),
+            ignore: Default::default(),
+            repo: scanner.repo.clone(),
         }
+    }
+
+    /// Determine if a report is ignored via any relevant ignore files.
+    fn ignored(&self, report: &Report) -> bool {
+        IgnorePaths::new(&self.repo, report).any(|path| {
+            self.ignore
+                .entry(path.clone())
+                .or_insert_with(|| {
+                    fs::read_to_string(path.join(".pkgcruft-ignore"))
+                        .unwrap_or_default()
+                        .lines()
+                        .filter_map(|x| x.parse().ok())
+                        .collect()
+                })
+                .contains(&report.kind)
+        })
     }
 
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&self, report: Report) {
-        if self.filter.contains(&report.kind) {
+        if self.filter.contains(&report.kind) && !self.ignored(&report) {
             if self.exit.contains(&report.kind) {
                 self.failed.store(true, Ordering::Relaxed);
             }
