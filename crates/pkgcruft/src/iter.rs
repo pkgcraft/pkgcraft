@@ -130,6 +130,7 @@ pub(crate) struct ReportFilter {
 }
 
 impl ReportFilter {
+    #[allow(clippy::nonminimal_bool)]
     fn new<S: Into<ReportSender>>(
         scope: Scope,
         filtered: bool,
@@ -141,7 +142,12 @@ impl ReportFilter {
             filter: scanner
                 .reports
                 .iter()
-                .filter(|r| !r.finalize(scope) || !filtered)
+                .filter(|r| {
+                    let finalized = r.finalize(scope);
+                    (finalized && !filtered)
+                        || (filtered && r.scope() <= Scope::Package)
+                        || (!finalized && !filtered && scope >= r.scope())
+                })
                 .copied()
                 .collect(),
             exit: scanner.exit.clone(),

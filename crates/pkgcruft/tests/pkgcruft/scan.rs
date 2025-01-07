@@ -91,9 +91,8 @@ fn dep_restrict_targets() {
             .success();
     }
 
-    // multiple matching restricts output the same reports
+    // multiple restricts are combined
     let reports = indoc::indoc! {r#"
-        KeywordsDropped/KeywordsDropped-2: KeywordsDropped: x86
         KeywordsDropped/KeywordsDropped-2: KeywordsDropped: x86
     "#};
     let expected: Vec<_> = reports.lines().collect();
