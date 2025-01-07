@@ -336,15 +336,6 @@ mod tests {
     #[test]
     fn filters() {
         let data = test_data();
-        let repo = data.ebuild_repo("qa-primary").unwrap();
-
-        // non-matching filter
-        let filter = "cat/pkg".parse().unwrap();
-        let scanner = Scanner::new(repo).filters([filter]);
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, []);
-
-        let data = test_data();
         let repo = data.ebuild_repo("gentoo").unwrap();
         let pkgdir = repo.path().join("Header/HeaderInvalid");
         let expected = glob_reports!("{pkgdir}/reports.json");

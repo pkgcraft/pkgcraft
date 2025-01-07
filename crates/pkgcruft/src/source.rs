@@ -133,11 +133,6 @@ impl FromStr for PkgFilter {
                 Ok(restrict::parse::pkg(s).map(|r| Self::Restrict(inverted, r))?)
             }
             s => {
-                // support dep restrictions
-                if let Ok(r) = restrict::parse::dep(s) {
-                    return Ok(Self::Restrict(inverted, r));
-                }
-
                 let possible = Self::iter()
                     .filter(|r| !matches!(r, Self::Restrict(_, _)))
                     .map(|r| r.as_ref().color(Color::Green))
@@ -145,11 +140,6 @@ impl FromStr for PkgFilter {
                 let message = indoc::formatdoc! {r#"
                     invalid filter: {s}
                       [possible values: {possible}]
-
-                    Dep restrictions are supported, for example the following will scan
-                    all packages in the sys-devel category:
-
-                    pkgcruft scan -f 'sys-devel/*'
 
                     Custom restrictions are supported, for example to target all packages
                     maintained by the python project use the following command:
