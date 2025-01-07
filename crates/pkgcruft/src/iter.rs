@@ -153,20 +153,21 @@ impl ReportFilter {
                     let path = self.repo.path().join(relpath);
                     if scope == Scope::Version {
                         // TODO: use BufRead to avoid loading the entire ebuild file?
+                        let mut ignore = IndexSet::new();
                         for line in fs::read_to_string(path).unwrap_or_default().lines() {
                             let line = line.trim();
                             if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
-                                return data
-                                    .split_whitespace()
-                                    .filter_map(|x| x.parse().ok())
-                                    .collect();
+                                ignore.extend(
+                                    data.split_whitespace()
+                                        .filter_map(|x| x.parse::<ReportKind>().ok()),
+                                )
                             } else if line.is_empty() || line.starts_with("#") {
                                 continue;
                             } else {
                                 break;
                             }
                         }
-                        Default::default()
+                        ignore
                     } else {
                         fs::read_to_string(path.join(".pkgcruft-ignore"))
                             .unwrap_or_default()
