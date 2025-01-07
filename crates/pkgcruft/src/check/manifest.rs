@@ -51,14 +51,6 @@ struct Check {
 
 super::register!(Check);
 
-impl Check {
-    // TODO: Drop this once ignore file support is added?
-    /// Ignore ManifestMatch for go modules since go.mod files are designed to collide.
-    fn is_go_module(&self, pkgs: &[EbuildPkg]) -> bool {
-        pkgs.iter().any(|x| x.inherit().contains("go-module"))
-    }
-}
-
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
         let manifest = match self.repo.metadata().pkg_manifest_parse(cpn) {
@@ -85,7 +77,7 @@ impl EbuildPkgSetCheck for Check {
                 }
 
                 // track duplicate hashes with different names
-                if filter.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
+                if filter.enabled(ManifestCollide) {
                     self.colliding
                         .entry(hash.clone())
                         .or_default()
