@@ -73,8 +73,8 @@ impl From<Sender<Report>> for ReportSender {
 
 #[derive(Clone)]
 pub(crate) struct ReportFilter {
-    filter: Arc<HashSet<ReportKind>>,
-    exit: Arc<HashSet<ReportKind>>,
+    filter: HashSet<ReportKind>,
+    exit: HashSet<ReportKind>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
 }
@@ -83,14 +83,12 @@ impl ReportFilter {
     fn new<S: Into<ReportSender>>(scope: Scope, scanner: &Scanner, tx: S) -> Self {
         Self {
             // TODO: move report filtering into Scanner::run()
-            filter: Arc::new(
-                scanner
-                    .reports
-                    .iter()
-                    .filter(|r| !r.finalize(scope) || scanner.filters.is_empty())
-                    .copied()
-                    .collect(),
-            ),
+            filter: scanner
+                .reports
+                .iter()
+                .filter(|r| !r.finalize(scope) || scanner.filters.is_empty())
+                .copied()
+                .collect(),
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
             sender: tx.into(),
@@ -155,7 +153,7 @@ fn pkg_producer(
 fn pkg_worker(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    filter: ReportFilter,
+    filter: Arc<ReportFilter>,
     rx: Receiver<(Option<Check>, Target)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
@@ -283,7 +281,7 @@ fn version_producer(
 fn version_worker(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    filter: ReportFilter,
+    filter: Arc<ReportFilter>,
     rx: Receiver<(Check, Target)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
@@ -383,7 +381,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = ReportFilter::new(scope, scanner, reports_tx);
+        let filter = Arc::new(ReportFilter::new(scope, scanner, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
@@ -424,7 +422,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = ReportFilter::new(scope, scanner, reports_tx);
+        let filter = Arc::new(ReportFilter::new(scope, scanner, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));

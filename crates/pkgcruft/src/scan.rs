@@ -23,7 +23,7 @@ pub struct Scanner {
     enabled: Option<IndexSet<ReportKind>>,
     selected: Option<IndexSet<ReportKind>>,
     pub(crate) reports: HashSet<ReportKind>,
-    pub(crate) exit: Arc<HashSet<ReportKind>>,
+    pub(crate) exit: HashSet<ReportKind>,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) failed: Arc<AtomicBool>,
     pub(crate) repo: EbuildRepo,
@@ -101,13 +101,11 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportSet>,
     {
-        self.exit = Arc::new(
-            values
-                .into_iter()
-                .map(Into::into)
-                .flat_map(|x| x.expand(&self.default, &self.supported))
-                .collect(),
-        );
+        self.exit = values
+            .into_iter()
+            .map(Into::into)
+            .flat_map(|x| x.expand(&self.default, &self.supported))
+            .collect();
         self
     }
 
