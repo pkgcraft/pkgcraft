@@ -16,6 +16,9 @@ Compatibility with the official [package management specification][pmspec] is
 aimed for, but not always adhered to. See the list of known [deviations] for
 details.
 
+Overlays using custom profile-formats extensions are not supported, see the
+[related issue][profile-formats] for details.
+
 More information about the project can be found on its [FAQ] and
 [development blog][blog].
 
@@ -41,6 +44,7 @@ For general support or questions use [discussions].
 [discussions]: <https://github.com/pkgcraft/pkgcraft/discussions>
 [pmspec]: https://wiki.gentoo.org/wiki/Project:Package_Manager_Specification
 [deviations]: https://github.com/orgs/pkgcraft/discussions/134
+[profile-formats]: https://github.com/pkgcraft/pkgcraft/issues/251
 
 [scallop]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop>
 [pkgcraft]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft>
