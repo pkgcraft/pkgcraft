@@ -28,7 +28,7 @@ pub(crate) struct ReporterOptions {
         hide_possible_values = true,
         value_parser = ["name", "count"],
     )]
-    stats: Option<String>,
+    sort: Option<String>,
 }
 
 impl ReporterOptions {
@@ -40,7 +40,7 @@ impl ReporterOptions {
         }
 
         if let Reporter::Stats(r) = &mut reporter {
-            r.sort_by = self.stats.clone().unwrap_or_default();
+            r.sort_by = self.sort.clone().unwrap_or_default();
         }
 
         reporter
