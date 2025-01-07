@@ -181,43 +181,43 @@ impl<'a> TargetRestrictions<'a> {
 
     /// Convert a target into a path or dep restriction.
     fn target_restriction(&mut self, target: &str) -> crate::Result<(RepoSet, Restrict)> {
-        let path_target = Utf8Path::new(target)
-            .canonicalize_utf8()
-            .map_err(|e| Error::InvalidValue(format!("invalid path target: {target}: {e}")));
-        let repo_target = path_target
-            .as_ref()
-            .ok()
-            .map(|_| self.repo_from_nested_path(target));
-
         // avoid treating `cat/pkg/` as path restriction
         let s = target.trim_end_matches('/');
 
-        match (restrict::parse::dep(s), path_target, repo_target) {
-            // prefer dep restrictions for valid cat/pkg paths
-            (Ok(restrict), Ok(_), _) if s.contains('/') => self.dep_restriction(restrict),
-            (_, Ok(path), Some(Ok(repo))) => repo
-                .restrict_from_path(&path)
-                .ok_or_else(|| {
-                    Error::InvalidValue(format!("{repo} doesn't contain path: {path}"))
-                })
-                .map(|restrict| (repo.into(), restrict)),
-            (Ok(restrict), _, _) => self.dep_restriction(restrict),
-            (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
-            (_, Err(e), _) if s.contains('/') => Err(e),
-            (Err(e), _, _) => Err(e),
-        }
-        // verify restriction matches required scopes, if any exist
-        .and_then(|(set, restrict)| {
-            if let Some(values) = self.scopes.as_ref() {
-                let scope = Scope::from(&restrict);
-                if !values.contains(&scope) {
-                    return Err(Error::InvalidValue(format!(
-                        "invalid {scope} scope: {target}"
-                    )));
-                }
+        let (set, restrict) = if let Ok(cpn) = Cpn::try_new(s) {
+            Ok((self.repo_set()?.clone(), cpn.into()))
+        } else {
+            let path_target = Utf8Path::new(target).canonicalize_utf8().map_err(|e| {
+                Error::InvalidValue(format!("invalid path target: {target}: {e}"))
+            });
+            let repo_target = path_target
+                .as_ref()
+                .ok()
+                .map(|_| self.repo_from_nested_path(target));
+
+            match (restrict::parse::dep(s), path_target, repo_target) {
+                (_, Ok(path), Some(Ok(repo))) => repo
+                    .restrict_from_path(&path)
+                    .ok_or_else(|| {
+                        Error::InvalidValue(format!("{repo} doesn't contain path: {path}"))
+                    })
+                    .map(|restrict| (repo.into(), restrict)),
+                (Ok(restrict), _, _) => self.dep_restriction(restrict),
+                (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
+                (_, Err(e), _) if s.contains('/') => Err(e),
+                (Err(e), _, _) => Err(e),
             }
-            Ok((set, restrict))
-        })
+        }?;
+
+        // verify restriction matches required scopes, if any exist
+        if let Some(values) = self.scopes.as_ref() {
+            let scope = Scope::from(&restrict);
+            if !values.contains(&scope) {
+                return Err(Error::InvalidValue(format!("invalid {scope} scope: {target}")));
+            }
+        }
+
+        Ok((set, restrict))
     }
 
     /// Determine target restrictions and finalize the config.
