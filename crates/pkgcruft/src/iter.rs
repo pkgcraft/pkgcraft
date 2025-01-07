@@ -77,7 +77,7 @@ impl From<Sender<Report>> for ReportSender {
 struct IgnorePaths<'a> {
     path: Utf8PathBuf,
     report: &'a Report,
-    scope: Scope,
+    scope: Option<Scope>,
 }
 
 impl<'a> IgnorePaths<'a> {
@@ -85,7 +85,7 @@ impl<'a> IgnorePaths<'a> {
         Self {
             path: repo.path().into(),
             report,
-            scope: Scope::Repo,
+            scope: Some(Scope::Repo),
         }
     }
 }
@@ -94,9 +94,9 @@ impl Iterator for IgnorePaths<'_> {
     type Item = Utf8PathBuf;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.scope >= Scope::Package {
+        if let Some(scope) = self.scope.as_ref() {
             // construct the path to check for ignore files
-            match (self.scope, self.report.scope()) {
+            match (scope, self.report.scope()) {
                 (Scope::Category, ReportScope::Category(category)) => {
                     self.path = self.path.join(category);
                 }
@@ -116,11 +116,11 @@ impl Iterator for IgnorePaths<'_> {
             }
 
             // set the scope to the next lower level
-            self.scope = match self.scope {
-                Scope::Repo => Scope::Category,
-                Scope::Category => Scope::Package,
-                Scope::Package => Scope::Version,
-                Scope::Version => Scope::Version,
+            self.scope = match scope {
+                Scope::Repo => Some(Scope::Category),
+                Scope::Category => Some(Scope::Package),
+                Scope::Package => None,
+                Scope::Version => None,
             };
 
             Some(self.path.clone())
