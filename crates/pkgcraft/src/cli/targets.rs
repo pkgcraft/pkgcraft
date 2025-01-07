@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::ops::Deref;
 
 use camino::Utf8Path;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 
@@ -250,7 +250,8 @@ impl<'a> TargetRestrictions<'a> {
             };
 
             if values.len() > 1 {
-                let restricts: Vec<_> = values.into_iter().map(check_matches).try_collect()?;
+                let restricts: IndexSet<_> =
+                    values.into_iter().map(check_matches).try_collect()?;
                 collapsed_targets.push((set, Restrict::or(restricts)));
             } else {
                 let restrict = check_matches(values.pop().unwrap())?;
