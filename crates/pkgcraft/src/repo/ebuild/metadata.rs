@@ -129,6 +129,11 @@ impl Config {
         let path = repo_path.join("metadata/layout.conf");
         let ini = Ini::load(&path)?;
 
+        // bail if profile-formats is defined
+        if ini.iter("profile-formats").next().is_some() {
+            return Err(Error::InvalidValue("unsupported profile-formats".to_string()));
+        }
+
         Ok(Self {
             path,
             cache_formats: parse_iter!(ini, "cache-formats")?,
@@ -896,6 +901,18 @@ mod tests {
         assert!(metadata.config.properties_allowed.is_empty());
         assert!(metadata.config.restrict_allowed.is_empty());
         assert!(metadata.config.thin_manifests);
+
+        // custom profile-formats
+        let data = indoc::indoc! {r#"
+            masters =
+            profile-formats = custom
+        "#};
+        fs::write(repo.path().join("metadata/layout.conf"), data).unwrap();
+        let r = Metadata::try_new("test", repo.path());
+        assert_err_re!(
+            r,
+            "^invalid repo: test: metadata/layout.conf: unsupported profile-formats"
+        );
 
         // existing
         let data = indoc::indoc! {r#"
