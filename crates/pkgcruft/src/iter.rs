@@ -122,7 +122,8 @@ pub(crate) struct ReportFilter {
     exit: HashSet<ReportKind>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
-    ignore: Option<DashMap<Utf8PathBuf, IndexSet<ReportKind>>>,
+    force: bool,
+    ignore: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
     default: IndexSet<ReportKind>,
     supported: IndexSet<ReportKind>,
     repo: EbuildRepo,
@@ -141,11 +142,8 @@ impl ReportFilter {
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
             sender: tx.into(),
-            ignore: if !scanner.force {
-                Some(Default::default())
-            } else {
-                None
-            },
+            force: scanner.force,
+            ignore: Default::default(),
             default: scanner.default.clone(),
             supported: scanner.supported.clone(),
             repo: scanner.repo.clone(),
@@ -154,54 +152,45 @@ impl ReportFilter {
 
     /// Determine if a report is ignored via any relevant ignore files.
     fn ignored(&self, report: &Report) -> bool {
-        self.ignore
-            .as_ref()
-            .map(|cache| {
-                IgnorePaths::new(report).any(|(scope, relpath)| {
-                    cache
-                        .entry(relpath.clone())
-                        .or_insert_with(|| {
-                            let path = self.repo.path().join(relpath);
-                            if scope == Scope::Version {
-                                // TODO: use BufRead to avoid loading the entire ebuild file?
-                                let mut ignore = IndexSet::new();
-                                for line in
-                                    fs::read_to_string(path).unwrap_or_default().lines()
-                                {
-                                    let line = line.trim();
-                                    if let Some(data) =
-                                        line.strip_prefix("# pkgcruft-ignore: ")
-                                    {
-                                        ignore.extend(
-                                            data.split_whitespace()
-                                                .filter_map(|x| x.parse::<ReportSet>().ok())
-                                                .flat_map(|x| {
-                                                    x.expand(&self.default, &self.supported)
-                                                }),
-                                        )
-                                    } else if !line.is_empty() && !line.starts_with("#") {
-                                        break;
-                                    }
-                                }
-                                ignore
-                            } else {
-                                fs::read_to_string(path.join(".pkgcruft-ignore"))
-                                    .unwrap_or_default()
-                                    .lines()
-                                    .filter_map(|x| x.parse::<ReportSet>().ok())
-                                    .flat_map(|x| x.expand(&self.default, &self.supported))
-                                    .collect()
+        IgnorePaths::new(report).any(|(scope, relpath)| {
+            self.ignore
+                .entry(relpath.clone())
+                .or_insert_with(|| {
+                    let path = self.repo.path().join(relpath);
+                    if scope == Scope::Version {
+                        // TODO: use BufRead to avoid loading the entire ebuild file?
+                        let mut ignore = IndexSet::new();
+                        for line in fs::read_to_string(path).unwrap_or_default().lines() {
+                            let line = line.trim();
+                            if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
+                                ignore.extend(
+                                    data.split_whitespace()
+                                        .filter_map(|x| x.parse::<ReportSet>().ok())
+                                        .flat_map(|x| {
+                                            x.expand(&self.default, &self.supported)
+                                        }),
+                                )
+                            } else if !line.is_empty() && !line.starts_with("#") {
+                                break;
                             }
-                        })
-                        .contains(&report.kind)
+                        }
+                        ignore
+                    } else {
+                        fs::read_to_string(path.join(".pkgcruft-ignore"))
+                            .unwrap_or_default()
+                            .lines()
+                            .filter_map(|x| x.parse::<ReportSet>().ok())
+                            .flat_map(|x| x.expand(&self.default, &self.supported))
+                            .collect()
+                    }
                 })
-            })
-            .unwrap_or(false)
+                .contains(&report.kind)
+        })
     }
 
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&self, report: Report) {
-        if self.filter.contains(&report.kind) && !self.ignored(&report) {
+        if self.filter.contains(&report.kind) && (self.force || !self.ignored(&report)) {
             if self.exit.contains(&report.kind) {
                 self.failed.store(true, Ordering::Relaxed);
             }
