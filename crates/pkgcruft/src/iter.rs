@@ -119,13 +119,13 @@ impl Iterator for IgnorePaths<'_> {
 
 pub(crate) struct ReportFilter {
     filter: HashSet<ReportKind>,
-    exit: HashSet<ReportKind>,
+    exit: Arc<HashSet<ReportKind>>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
     force: bool,
     ignore: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
-    default: IndexSet<ReportKind>,
-    supported: IndexSet<ReportKind>,
+    default: Arc<IndexSet<ReportKind>>,
+    supported: Arc<IndexSet<ReportKind>>,
     repo: EbuildRepo,
 }
 

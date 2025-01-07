@@ -18,13 +18,13 @@ use crate::source::PkgFilter;
 
 pub struct Scanner {
     pub(crate) jobs: usize,
-    pub(crate) default: IndexSet<ReportKind>,
-    pub(crate) supported: IndexSet<ReportKind>,
+    pub(crate) default: Arc<IndexSet<ReportKind>>,
+    pub(crate) supported: Arc<IndexSet<ReportKind>>,
     enabled: Option<IndexSet<ReportKind>>,
     selected: Option<IndexSet<ReportKind>>,
     pub(crate) force: bool,
     pub(crate) reports: HashSet<ReportKind>,
-    pub(crate) exit: HashSet<ReportKind>,
+    pub(crate) exit: Arc<HashSet<ReportKind>>,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) failed: Arc<AtomicBool>,
     pub(crate) repo: EbuildRepo,
@@ -35,8 +35,8 @@ impl Scanner {
     pub fn new(repo: &EbuildRepo) -> Self {
         Self {
             jobs: bounded_jobs(0),
-            default: ReportKind::defaults(repo),
-            supported: ReportKind::supported(repo, Scope::Repo),
+            default: Arc::new(ReportKind::defaults(repo)),
+            supported: Arc::new(ReportKind::supported(repo, Scope::Repo)),
             enabled: Default::default(),
             selected: Default::default(),
             force: Default::default(),
@@ -109,11 +109,13 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportSet>,
     {
-        self.exit = values
-            .into_iter()
-            .map(Into::into)
-            .flat_map(|x| x.expand(&self.default, &self.supported))
-            .collect();
+        self.exit = Arc::new(
+            values
+                .into_iter()
+                .map(Into::into)
+                .flat_map(|x| x.expand(&self.default, &self.supported))
+                .collect(),
+        );
         self
     }
 
