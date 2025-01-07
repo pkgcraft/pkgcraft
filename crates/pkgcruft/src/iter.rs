@@ -32,7 +32,6 @@ impl From<Cpn> for ReportOrProcess {
     }
 }
 
-#[derive(Clone)]
 enum ReportSender {
     Pkg(Sender<ReportOrProcess>),
     Version(Sender<Report>),
@@ -71,7 +70,6 @@ impl From<Sender<Report>> for ReportSender {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct ReportFilter {
     filter: HashSet<ReportKind>,
     exit: HashSet<ReportKind>,
