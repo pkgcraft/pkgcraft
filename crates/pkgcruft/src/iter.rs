@@ -160,7 +160,7 @@ impl ReportFilter {
                                     .split_whitespace()
                                     .filter_map(|x| x.parse().ok())
                                     .collect();
-                            } else if line.starts_with("#") {
+                            } else if line.is_empty() || line.starts_with("#") {
                                 continue;
                             } else {
                                 break;
