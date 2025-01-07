@@ -161,9 +161,7 @@ impl ReportFilter {
                                     data.split_whitespace()
                                         .filter_map(|x| x.parse::<ReportKind>().ok()),
                                 )
-                            } else if line.is_empty() || line.starts_with("#") {
-                                continue;
-                            } else {
+                            } else if !line.is_empty() && !line.starts_with("#") {
                                 break;
                             }
                         }
