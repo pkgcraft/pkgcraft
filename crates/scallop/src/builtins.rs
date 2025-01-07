@@ -282,36 +282,6 @@ where
     }
 }
 
-#[derive(Debug)]
-pub struct ScopedBuiltins {
-    enabled: Vec<String>,
-    disabled: Vec<String>,
-}
-
-/// Enable/disable builtins, automatically reverting their status when leaving scope.
-impl ScopedBuiltins {
-    pub fn new<S: AsRef<str>>(builtins: (&[S], &[S])) -> crate::Result<Self> {
-        let (add, sub) = builtins;
-        enable(add)?;
-        disable(sub)?;
-        Ok(ScopedBuiltins {
-            enabled: add.iter().map(|s| s.as_ref().to_string()).collect(),
-            disabled: sub.iter().map(|s| s.as_ref().to_string()).collect(),
-        })
-    }
-}
-
-impl Drop for ScopedBuiltins {
-    fn drop(&mut self) {
-        if !self.enabled.is_empty() {
-            disable(&self.enabled).unwrap_or_else(|_| panic!("failed disabling builtins"));
-        }
-        if !self.disabled.is_empty() {
-            enable(&self.disabled).unwrap_or_else(|_| panic!("failed enabling builtins"));
-        }
-    }
-}
-
 /// Toggle shell options, automatically reverting their status when leaving scope.
 #[derive(Debug, Default)]
 pub struct ScopedOptions {
