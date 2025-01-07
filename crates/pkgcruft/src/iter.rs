@@ -75,15 +75,13 @@ impl From<Sender<Report>> for ReportSender {
 }
 
 struct IgnorePaths<'a> {
-    path: Utf8PathBuf,
     report: &'a Report,
     scope: Option<Scope>,
 }
 
 impl<'a> IgnorePaths<'a> {
-    fn new(repo: &'a EbuildRepo, report: &'a Report) -> Self {
+    fn new(report: &'a Report) -> Self {
         Self {
-            path: repo.path().into(),
             report,
             scope: Some(Scope::Repo),
         }
@@ -91,39 +89,30 @@ impl<'a> IgnorePaths<'a> {
 }
 
 impl Iterator for IgnorePaths<'_> {
-    type Item = Utf8PathBuf;
+    type Item = (Scope, Utf8PathBuf);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(scope) = self.scope.as_ref() {
-            // construct the path to check for ignore files
-            match (scope, self.report.scope()) {
-                (Scope::Category, ReportScope::Category(category)) => {
-                    self.path = self.path.join(category);
-                }
-                (Scope::Category, ReportScope::Package(cpn)) => {
-                    self.path = self.path.join(cpn.category());
-                }
-                (Scope::Category, ReportScope::Version(cpv, _)) => {
-                    self.path = self.path.join(cpv.category());
-                }
-                (Scope::Package, ReportScope::Package(cpn)) => {
-                    self.path = self.path.join(cpn.package());
-                }
-                (Scope::Package, ReportScope::Version(cpv, _)) => {
-                    self.path = self.path.join(cpv.package());
-                }
-                _ => (),
-            }
+        if let Some(scope) = self.scope {
+            // construct the relative path to check for ignore files
+            let relpath = match (scope, self.report.scope()) {
+                (Scope::Category, ReportScope::Category(category)) => category.into(),
+                (Scope::Category, ReportScope::Package(cpn)) => cpn.category().into(),
+                (Scope::Category, ReportScope::Version(cpv, _)) => cpv.category().into(),
+                (Scope::Package, ReportScope::Package(cpn)) => cpn.to_string().into(),
+                (Scope::Package, ReportScope::Version(cpv, _)) => cpv.cpn().to_string().into(),
+                (Scope::Version, ReportScope::Version(cpv, _)) => cpv.relpath(),
+                _ => Default::default(),
+            };
 
             // set the scope to the next lower level
             self.scope = match scope {
                 Scope::Repo => Some(Scope::Category),
                 Scope::Category => Some(Scope::Package),
-                Scope::Package => None,
+                Scope::Package => Some(Scope::Version),
                 Scope::Version => None,
             };
 
-            Some(self.path.clone())
+            Some((scope, relpath))
         } else {
             None
         }
@@ -159,15 +148,34 @@ impl ReportFilter {
 
     /// Determine if a report is ignored via any relevant ignore files.
     fn ignored(&self, report: &Report) -> bool {
-        IgnorePaths::new(&self.repo, report).any(|path| {
+        IgnorePaths::new(report).any(|(scope, relpath)| {
             self.ignore
-                .entry(path.clone())
+                .entry(relpath.clone())
                 .or_insert_with(|| {
-                    fs::read_to_string(path.join(".pkgcruft-ignore"))
-                        .unwrap_or_default()
-                        .lines()
-                        .filter_map(|x| x.parse().ok())
-                        .collect()
+                    let path = self.repo.path().join(relpath);
+                    if scope == Scope::Version {
+                        // TODO: use BufRead to avoid loading the entire ebuild file?
+                        for line in fs::read_to_string(path).unwrap_or_default().lines() {
+                            let line = line.trim();
+                            if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
+                                return data
+                                    .split_whitespace()
+                                    .filter_map(|x| x.parse().ok())
+                                    .collect();
+                            } else if line.starts_with("#") {
+                                continue;
+                            } else {
+                                break;
+                            }
+                        }
+                        Default::default()
+                    } else {
+                        fs::read_to_string(path.join(".pkgcruft-ignore"))
+                            .unwrap_or_default()
+                            .lines()
+                            .filter_map(|x| x.parse().ok())
+                            .collect()
+                    }
                 })
                 .contains(&report.kind)
         })
