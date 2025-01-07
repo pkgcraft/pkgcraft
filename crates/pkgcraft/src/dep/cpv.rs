@@ -181,7 +181,7 @@ impl Cpv {
     }
 
     /// Return the relative ebuild file path.
-    pub(crate) fn relpath(&self) -> Utf8PathBuf {
+    pub fn relpath(&self) -> Utf8PathBuf {
         Utf8PathBuf::from(format!("{}/{}.ebuild", self.cpn(), self.pf()))
     }
 }
