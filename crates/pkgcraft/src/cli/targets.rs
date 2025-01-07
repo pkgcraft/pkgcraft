@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::ops::Deref;
 
 use camino::Utf8Path;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 
@@ -227,27 +228,37 @@ impl<'a> TargetRestrictions<'a> {
         I::Item: std::fmt::Display,
     {
         // convert targets into restrictions, initializing repos as necessary
-        let mut targets = vec![];
+        let mut targets = IndexMap::<_, Vec<_>>::new();
         for target in values {
             let target = target.to_string();
             let (set, restrict) = self.target_restriction(&target)?;
-            targets.push((target, set, restrict));
+            targets.entry(set).or_default().push((target, restrict));
         }
 
         // finalize the config after loading repos to start the build pool
         self.config.finalize()?;
 
-        // verify matches exist
-        targets
-            .into_iter()
-            .map(|(target, set, restrict)| {
+        // verify matches exist and collapse targets
+        let mut collapsed_targets = vec![];
+        for (set, mut values) in targets {
+            let check_matches = |(target, restrict)| {
                 if set.contains(&restrict) {
-                    Ok((set, restrict))
+                    Ok(restrict)
                 } else {
                     Err(Error::NoMatches(target))
                 }
-            })
-            .try_collect()
+            };
+
+            if values.len() > 1 {
+                let restricts: Vec<_> = values.into_iter().map(check_matches).try_collect()?;
+                collapsed_targets.push((set, Restrict::or(restricts)));
+            } else {
+                let restrict = check_matches(values.pop().unwrap())?;
+                collapsed_targets.push((set, restrict));
+            }
+        }
+
+        Ok(collapsed_targets)
     }
 }
 
