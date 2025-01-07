@@ -18,8 +18,8 @@ use crate::source::PkgFilter;
 
 pub struct Scanner {
     pub(crate) jobs: usize,
-    default: IndexSet<ReportKind>,
-    supported: IndexSet<ReportKind>,
+    pub(crate) default: IndexSet<ReportKind>,
+    pub(crate) supported: IndexSet<ReportKind>,
     enabled: Option<IndexSet<ReportKind>>,
     selected: Option<IndexSet<ReportKind>>,
     pub(crate) force: bool,

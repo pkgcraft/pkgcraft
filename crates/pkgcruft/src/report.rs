@@ -128,7 +128,7 @@ impl ReportSet {
     /// Expand a report set into an iterator of its variants.
     pub fn expand<'a>(
         self,
-        defaults: &'a IndexSet<ReportKind>,
+        default: &'a IndexSet<ReportKind>,
         supported: &'a IndexSet<ReportKind>,
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
@@ -141,11 +141,11 @@ impl ReportSet {
                     .copied(),
             ),
             Self::Level(level) => {
-                Box::new(defaults.iter().filter(move |r| r.level() == level).copied())
+                Box::new(default.iter().filter(move |r| r.level() == level).copied())
             }
             Self::Report(kind) => Box::new([kind].into_iter()),
             Self::Scope(scope) => {
-                Box::new(defaults.iter().filter(move |r| r.scope() == scope).copied())
+                Box::new(default.iter().filter(move |r| r.scope() == scope).copied())
             }
         }
     }

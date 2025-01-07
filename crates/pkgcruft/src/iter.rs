@@ -15,7 +15,7 @@ use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 
 use crate::check::Check;
-use crate::report::{Report, ReportKind, ReportScope};
+use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 use crate::runner::{SyncCheckRunner, Target};
 use crate::scan::Scanner;
 
@@ -123,6 +123,8 @@ pub(crate) struct ReportFilter {
     failed: Arc<AtomicBool>,
     sender: ReportSender,
     ignore: Option<DashMap<Utf8PathBuf, IndexSet<ReportKind>>>,
+    default: IndexSet<ReportKind>,
+    supported: IndexSet<ReportKind>,
     repo: EbuildRepo,
 }
 
@@ -144,6 +146,8 @@ impl ReportFilter {
             } else {
                 None
             },
+            default: scanner.default.clone(),
+            supported: scanner.supported.clone(),
             repo: scanner.repo.clone(),
         }
     }
@@ -170,7 +174,10 @@ impl ReportFilter {
                                     {
                                         ignore.extend(
                                             data.split_whitespace()
-                                                .filter_map(|x| x.parse::<ReportKind>().ok()),
+                                                .filter_map(|x| x.parse::<ReportSet>().ok())
+                                                .flat_map(|x| {
+                                                    x.expand(&self.default, &self.supported)
+                                                }),
                                         )
                                     } else if !line.is_empty() && !line.starts_with("#") {
                                         break;
@@ -181,7 +188,8 @@ impl ReportFilter {
                                 fs::read_to_string(path.join(".pkgcruft-ignore"))
                                     .unwrap_or_default()
                                     .lines()
-                                    .filter_map(|x| x.parse().ok())
+                                    .filter_map(|x| x.parse::<ReportSet>().ok())
+                                    .flat_map(|x| x.expand(&self.default, &self.supported))
                                     .collect()
                             }
                         })
