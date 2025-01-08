@@ -4,6 +4,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
 
 use crate::pkg::Restrict as PkgRestrict;
 use crate::restrict::dep::Restrict as DepRestrict;
+use crate::types::Deque;
 
 pub(crate) mod boolean;
 pub mod dep;
@@ -35,6 +36,32 @@ impl Default for Restrict {
 impl From<&Restrict> for Restrict {
     fn from(r: &Restrict) -> Self {
         r.clone()
+    }
+}
+
+impl Restrict {
+    /// Flatten a restriction, returning an iterator of its component restrictions.
+    pub fn iter_flatten(&self) -> IterFlatten {
+        IterFlatten([self].into_iter().collect())
+    }
+}
+
+#[derive(Debug)]
+pub struct IterFlatten<'a>(Deque<&'a Restrict>);
+
+impl<'a> Iterator for IterFlatten<'a> {
+    type Item = &'a Restrict;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(restrict) = self.0.pop_front() {
+            match restrict {
+                Restrict::And(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                Restrict::Or(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                Restrict::Xor(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                _ => return Some(restrict),
+            }
+        }
+        None
     }
 }
 
