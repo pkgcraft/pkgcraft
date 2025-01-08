@@ -661,7 +661,7 @@ fn reporter() {
             .code(2);
 
         // valid
-        for reporter in ["simple", "fancy", "json"] {
+        for reporter in ["count", "fancy", "json", "simple"] {
             cmd("pkgcruft scan")
                 .args([opt, reporter])
                 .assert()
@@ -669,34 +669,41 @@ fn reporter() {
                 .stderr("")
                 .success();
         }
+    }
 
-        // missing format string
-        cmd("pkgcruft scan")
-            .args([opt, "format"])
-            .assert()
-            .stdout("")
-            .stderr(contains("--format"))
-            .failure()
-            .code(2);
-
-        // invalid format string
-        cmd("pkgcruft scan")
-            .args([opt, "format"])
-            .args(["--format", "{format}"])
-            .assert()
-            .stdout("")
-            .stderr(contains("invalid output format"))
-            .failure();
-
-        // valid format string
-        cmd("pkgcruft scan")
-            .args([opt, "format"])
-            .args(["--format", "{name}"])
+    // stats sorting
+    for sort in ["count", "name"] {
+        cmd("pkgcruft scan -R stats")
+            .args(["--stats", sort])
             .assert()
             .stdout(predicate::str::is_empty().not())
             .stderr("")
             .success();
     }
+
+    // missing format string
+    cmd("pkgcruft scan -R format")
+        .assert()
+        .stdout("")
+        .stderr(contains("--format"))
+        .failure()
+        .code(2);
+
+    // invalid format string
+    cmd("pkgcruft scan -R format")
+        .args(["--format", "{format}"])
+        .assert()
+        .stdout("")
+        .stderr(contains("invalid output format"))
+        .failure();
+
+    // valid format string
+    cmd("pkgcruft scan -R format")
+        .args(["--format", "{name}"])
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
 }
 
 #[test]
