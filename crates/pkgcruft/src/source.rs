@@ -12,26 +12,12 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict, Restriction, Scope};
 use pkgcraft::types::OrderedMap;
-use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
+use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::error::Error;
 
 /// All check runner source variants.
-#[derive(
-    AsRefStr,
-    Display,
-    EnumIter,
-    EnumString,
-    VariantNames,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Copy,
-    Clone,
-)]
+#[derive(Display, EnumIter, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SourceKind {
     EbuildPkg,
