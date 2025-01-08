@@ -6,6 +6,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
+use pkgcraft::traits::FilterLines;
 use rayon::prelude::*;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
@@ -32,6 +33,13 @@ impl Ignore {
         }
     }
 
+    /// Parse the ignore data from a line.
+    fn parse_line<'a>(&'a self, data: &'a str) -> impl Iterator<Item = ReportKind> + 'a {
+        data.split_whitespace()
+            .filter_map(|x| x.parse::<ReportSet>().ok())
+            .flat_map(move |x| x.expand(&self.default, &self.supported))
+    }
+
     /// Load ignore data from ebuild lines or files.
     fn load_data(&self, scope: Scope, relpath: Utf8PathBuf) -> IndexSet<ReportKind> {
         let path = self.repo.path().join(relpath);
@@ -41,11 +49,7 @@ impl Ignore {
             for line in fs::read_to_string(path).unwrap_or_default().lines() {
                 let line = line.trim();
                 if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
-                    ignore.extend(
-                        data.split_whitespace()
-                            .filter_map(|x| x.parse::<ReportSet>().ok())
-                            .flat_map(|x| x.expand(&self.default, &self.supported)),
-                    )
+                    ignore.extend(self.parse_line(data));
                 } else if !line.is_empty() && !line.starts_with("#") {
                     break;
                 }
@@ -54,9 +58,8 @@ impl Ignore {
         } else {
             fs::read_to_string(path.join(".pkgcruft-ignore"))
                 .unwrap_or_default()
-                .lines()
-                .filter_map(|x| x.parse::<ReportSet>().ok())
-                .flat_map(|x| x.expand(&self.default, &self.supported))
+                .filter_lines()
+                .flat_map(|(_, data)| self.parse_line(data))
                 .collect()
         }
     }
