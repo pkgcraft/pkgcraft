@@ -34,9 +34,11 @@ impl Ignore {
     }
 
     /// Parse the ignore data from a line.
+    ///
+    /// This supports comma-separated values with optional whitespace.
     fn parse_line<'a>(&'a self, data: &'a str) -> impl Iterator<Item = ReportKind> + 'a {
-        data.split_whitespace()
-            .filter_map(|x| x.parse::<ReportSet>().ok())
+        data.split(',')
+            .filter_map(|x| x.trim().parse::<ReportSet>().ok())
             .flat_map(move |x| x.expand(&self.default, &self.supported))
     }
 
