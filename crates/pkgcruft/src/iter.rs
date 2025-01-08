@@ -216,7 +216,6 @@ fn pkg_producer(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     scope: Scope,
-    filtered: bool,
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
@@ -242,7 +241,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
+        for check in runner.checks().filter(|c| c.finalize(scope)) {
             finish_tx.send(check).ok();
         }
     })
@@ -348,7 +347,6 @@ fn version_producer(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     scope: Scope,
-    filtered: bool,
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<Check>,
@@ -371,7 +369,7 @@ fn version_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
+        for check in runner.checks().filter(|c| c.finalize(scope)) {
             finish_tx.send(check).ok();
         }
     })
@@ -513,7 +511,6 @@ impl ReportIter {
                 runner.clone(),
                 wg,
                 scope,
-                filtered,
                 restrict,
                 targets_tx,
                 finish_tx,
@@ -561,7 +558,6 @@ impl ReportIter {
                 runner.clone(),
                 wg,
                 scope,
-                filtered,
                 restrict,
                 targets_tx,
                 finish_tx,
