@@ -6,6 +6,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
+use rayon::prelude::*;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 
@@ -68,12 +69,11 @@ impl Ignore {
 
 impl fmt::Display for Ignore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut entries = vec![];
-        for entry in &self.cache {
-            if !entry.value().is_empty() {
-                entries.push(entry);
-            }
-        }
+        let mut entries: Vec<_> = self
+            .cache
+            .par_iter()
+            .filter(|entry| !entry.value().is_empty())
+            .collect();
 
         entries.sort_by(|a, b| a.key().cmp(b.key()));
         for entry in entries {
