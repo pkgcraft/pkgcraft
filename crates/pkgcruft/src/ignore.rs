@@ -2,7 +2,7 @@ use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use dashmap::DashMap;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
@@ -68,15 +68,16 @@ impl Ignore {
 
 impl fmt::Display for Ignore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut values = IndexMap::new();
-        for (path, kinds) in self.cache.clone() {
-            if !kinds.is_empty() {
-                values.insert(path, kinds);
+        let mut entries = vec![];
+        for entry in &self.cache {
+            if !entry.value().is_empty() {
+                entries.push(entry);
             }
         }
 
-        values.sort_keys();
-        for (path, kinds) in values {
+        entries.sort_by(|a, b| a.key().cmp(b.key()));
+        for entry in entries {
+            let (path, kinds) = entry.pair();
             let path = if path == "" { "repo" } else { path.as_str() };
             let kinds = kinds.iter().join(", ");
             writeln!(f, "{path}: {kinds}")?;
