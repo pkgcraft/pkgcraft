@@ -1,22 +1,18 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-use camino::Utf8PathBuf;
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use crossbeam_utils::sync::WaitGroup;
-use dashmap::DashMap;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 
 use crate::check::Check;
-use crate::ignore::IgnorePaths;
-use crate::report::{Report, ReportKind, ReportScope, ReportSet};
+use crate::ignore::Ignore;
+use crate::report::{Report, ReportKind, ReportScope};
 use crate::runner::{SyncCheckRunner, Target};
 use crate::scan::Scanner;
 
@@ -81,10 +77,7 @@ pub(crate) struct ReportFilter {
     failed: Arc<AtomicBool>,
     sender: ReportSender,
     force: bool,
-    ignore: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
-    default: Arc<IndexSet<ReportKind>>,
-    supported: Arc<IndexSet<ReportKind>>,
-    repo: EbuildRepo,
+    ignore: Ignore,
 }
 
 impl ReportFilter {
@@ -101,55 +94,15 @@ impl ReportFilter {
             failed: scanner.failed.clone(),
             sender: tx.into(),
             force: scanner.force,
-            ignore: Default::default(),
-            default: scanner.default.clone(),
-            supported: scanner.supported.clone(),
-            repo: scanner.repo.clone(),
+            ignore: Ignore::new(scanner.repo.clone()),
         }
-    }
-
-    /// Determine if a report is ignored via any relevant ignore files.
-    fn ignored(&self, report: &Report) -> bool {
-        IgnorePaths::new(report.scope()).any(|(scope, relpath)| {
-            self.ignore
-                .entry(relpath.clone())
-                .or_insert_with(|| {
-                    let path = self.repo.path().join(relpath);
-                    if scope == Scope::Version {
-                        // TODO: use BufRead to avoid loading the entire ebuild file?
-                        let mut ignore = IndexSet::new();
-                        for line in fs::read_to_string(path).unwrap_or_default().lines() {
-                            let line = line.trim();
-                            if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
-                                ignore.extend(
-                                    data.split_whitespace()
-                                        .filter_map(|x| x.parse::<ReportSet>().ok())
-                                        .flat_map(|x| {
-                                            x.expand(&self.default, &self.supported)
-                                        }),
-                                )
-                            } else if !line.is_empty() && !line.starts_with("#") {
-                                break;
-                            }
-                        }
-                        ignore
-                    } else {
-                        fs::read_to_string(path.join(".pkgcruft-ignore"))
-                            .unwrap_or_default()
-                            .lines()
-                            .filter_map(|x| x.parse::<ReportSet>().ok())
-                            .flat_map(|x| x.expand(&self.default, &self.supported))
-                            .collect()
-                    }
-                })
-                .contains(&report.kind)
-        })
     }
 
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&self, report: Report) {
-        if self.filter.contains(&report.kind) && (self.force || !self.ignored(&report)) {
-            if self.exit.contains(&report.kind) {
+        let kind = &report.kind;
+        if self.filter.contains(kind) && (self.force || !self.ignore.ignored(&report)) {
+            if self.exit.contains(kind) {
                 self.failed.store(true, Ordering::Relaxed);
             }
 

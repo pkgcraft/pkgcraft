@@ -1,15 +1,77 @@
+use std::fs;
+
 use camino::Utf8PathBuf;
+use dashmap::DashMap;
+use indexmap::IndexSet;
+use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
-use crate::report::ReportScope;
+use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 
-pub struct IgnorePaths<'a> {
+pub struct Ignore {
+    cache: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
+    default: IndexSet<ReportKind>,
+    supported: IndexSet<ReportKind>,
+    repo: EbuildRepo,
+}
+
+impl Ignore {
+    /// Create a new ignore cache for a repo.
+    pub fn new(repo: EbuildRepo) -> Self {
+        Self {
+            default: ReportKind::defaults(&repo),
+            supported: ReportKind::supported(&repo, Scope::Repo),
+            cache: Default::default(),
+            repo,
+        }
+    }
+
+    /// Determine if a report is ignored via any relevant ignore files.
+    pub fn ignored(&self, report: &Report) -> bool {
+        IgnorePaths::new(report.scope()).any(|(scope, relpath)| {
+            self.cache
+                .entry(relpath.clone())
+                .or_insert_with(|| {
+                    let path = self.repo.path().join(relpath);
+                    if scope == Scope::Version {
+                        // TODO: use BufRead to avoid loading the entire ebuild file?
+                        let mut ignore = IndexSet::new();
+                        for line in fs::read_to_string(path).unwrap_or_default().lines() {
+                            let line = line.trim();
+                            if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
+                                ignore.extend(
+                                    data.split_whitespace()
+                                        .filter_map(|x| x.parse::<ReportSet>().ok())
+                                        .flat_map(|x| {
+                                            x.expand(&self.default, &self.supported)
+                                        }),
+                                )
+                            } else if !line.is_empty() && !line.starts_with("#") {
+                                break;
+                            }
+                        }
+                        ignore
+                    } else {
+                        fs::read_to_string(path.join(".pkgcruft-ignore"))
+                            .unwrap_or_default()
+                            .lines()
+                            .filter_map(|x| x.parse::<ReportSet>().ok())
+                            .flat_map(|x| x.expand(&self.default, &self.supported))
+                            .collect()
+                    }
+                })
+                .contains(&report.kind)
+        })
+    }
+}
+
+struct IgnorePaths<'a> {
     target: &'a ReportScope,
     scope: Option<Scope>,
 }
 
 impl<'a> IgnorePaths<'a> {
-    pub fn new(target: &'a ReportScope) -> Self {
+    fn new(target: &'a ReportScope) -> Self {
         Self {
             target,
             scope: Some(Scope::Repo),
