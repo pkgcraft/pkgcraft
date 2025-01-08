@@ -7,7 +7,7 @@ use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcruft::ignore::Ignore;
-use pkgcruft::report::ReportKind;
+use pkgcruft::report::ReportScope;
 use rayon::prelude::*;
 
 #[derive(Debug, Args)]
@@ -49,8 +49,8 @@ impl Command {
                     .collect::<Vec<_>>()
                     .into_par_iter()
                     .for_each(|cpv| {
-                        let report = ReportKind::Builtin.version(cpv).into_inner();
-                        ignore.ignored(&report);
+                        let scope = ReportScope::Version(cpv, None);
+                        ignore.generate(&scope).count();
                     });
 
                 write!(stdout, "{ignore}")?;

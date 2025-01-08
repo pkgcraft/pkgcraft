@@ -1,7 +1,7 @@
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
-use dashmap::DashMap;
+use dashmap::{mapref::one::Ref, DashMap};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -28,9 +28,12 @@ impl Ignore {
         }
     }
 
-    /// Determine if a report is ignored via any relevant ignore files.
-    pub fn ignored(&self, report: &Report) -> bool {
-        IgnorePaths::new(report.scope()).any(|(scope, relpath)| {
+    /// Return an iterator of ignore cache entries for a scope.
+    pub fn generate<'a, 'b>(
+        &'a self,
+        scope: &'b ReportScope,
+    ) -> impl Iterator<Item = Ref<'a, Utf8PathBuf, IndexSet<ReportKind>>> + use<'a, 'b> {
+        IgnorePaths::new(scope).map(move |(scope, relpath)| {
             self.cache
                 .entry(relpath.clone())
                 .or_insert_with(|| {
@@ -62,8 +65,14 @@ impl Ignore {
                             .collect()
                     }
                 })
-                .contains(&report.kind)
+                .downgrade()
         })
+    }
+
+    /// Determine if a report is ignored via any relevant ignore settings.
+    pub fn ignored(&self, report: &Report) -> bool {
+        self.generate(report.scope())
+            .any(|x| x.contains(&report.kind))
     }
 }
 
