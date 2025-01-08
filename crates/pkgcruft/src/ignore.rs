@@ -10,6 +10,10 @@ use rayon::prelude::*;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 
+/// The cache of ignore data for an ebuild repo.
+///
+/// This is lazily and concurrently populated during scanning runs as reports are
+/// generated.
 pub struct Ignore {
     repo: EbuildRepo,
     cache: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
@@ -58,6 +62,11 @@ impl Ignore {
     }
 
     /// Return an iterator of ignore cache entries for a scope.
+    ///
+    /// This populates the cache in order of precedence for the scope, returning
+    /// references to the generated entries. Note that all iterations generate their
+    /// respective cache entry even ones lacking data so future matching lookups hit the
+    /// cache rather than regenerating the data.
     pub fn generate<'a, 'b>(
         &'a self,
         scope: &'b ReportScope,
@@ -71,6 +80,9 @@ impl Ignore {
     }
 
     /// Determine if a report is ignored via any relevant ignore settings.
+    ///
+    /// For example, a version scope report will check for repo, category, package, and
+    /// ebuild ignore data stopping at the first match.
     pub fn ignored(&self, report: &Report) -> bool {
         self.generate(report.scope())
             .any(|x| x.contains(&report.kind))
@@ -97,6 +109,7 @@ impl fmt::Display for Ignore {
     }
 }
 
+/// Iterator over relative paths for ignore data in a repo targeting a scope.
 struct IgnorePaths<'a> {
     target: &'a ReportScope,
     scope: Option<Scope>,
