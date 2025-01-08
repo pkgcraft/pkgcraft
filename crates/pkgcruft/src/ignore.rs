@@ -1,28 +1,29 @@
-use std::fs;
+use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use dashmap::DashMap;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 
 pub struct Ignore {
+    repo: EbuildRepo,
     cache: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
     default: IndexSet<ReportKind>,
     supported: IndexSet<ReportKind>,
-    repo: EbuildRepo,
 }
 
 impl Ignore {
     /// Create a new ignore cache for a repo.
-    pub fn new(repo: EbuildRepo) -> Self {
+    pub fn new(repo: &EbuildRepo) -> Self {
         Self {
-            default: ReportKind::defaults(&repo),
-            supported: ReportKind::supported(&repo, Scope::Repo),
+            repo: repo.clone(),
             cache: Default::default(),
-            repo,
+            default: ReportKind::defaults(repo),
+            supported: ReportKind::supported(repo, Scope::Repo),
         }
     }
 
@@ -62,6 +63,26 @@ impl Ignore {
                 })
                 .contains(&report.kind)
         })
+    }
+}
+
+impl fmt::Display for Ignore {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut values = IndexMap::new();
+        for (path, kinds) in self.cache.clone() {
+            if !kinds.is_empty() {
+                values.insert(path, kinds);
+            }
+        }
+
+        values.sort_keys();
+        for (path, kinds) in values {
+            let path = if path == "" { "repo" } else { path.as_str() };
+            let kinds = kinds.iter().join(", ");
+            writeln!(f, "{path}: {kinds}")?;
+        }
+
+        Ok(())
     }
 }
 

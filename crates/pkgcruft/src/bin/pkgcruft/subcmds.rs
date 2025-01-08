@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use strum::AsRefStr;
 
 mod diff;
+mod ignore;
 mod replay;
 mod scan;
 mod show;
@@ -12,6 +13,8 @@ mod show;
 pub(crate) enum Subcommand {
     /// Compare reports
     Diff(diff::Command),
+    /// Show ignore information
+    Ignore(ignore::Command),
     /// Replay reports
     Replay(replay::Command),
     /// Scan for QA issues
@@ -30,6 +33,7 @@ impl Subcommand {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         match self {
             Self::Diff(cmd) => cmd.run(),
+            Self::Ignore(cmd) => cmd.run(),
             Self::Replay(cmd) => cmd.run(),
             Self::Scan(cmd) => cmd.run(),
             Self::Show(cmd) => cmd.run(),

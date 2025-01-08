@@ -94,7 +94,7 @@ impl ReportFilter {
             failed: scanner.failed.clone(),
             sender: tx.into(),
             force: scanner.force,
-            ignore: Ignore::new(scanner.repo.clone()),
+            ignore: Ignore::new(&scanner.repo),
         }
     }
 
