@@ -522,10 +522,8 @@ impl ReportKind {
     }
 
     /// Return true if the report is enabled for a scanning run.
-    pub(crate) fn enabled(&self, scope: Scope, filtered: bool) -> bool {
-        self.finalize(scope)
-            || (filtered && self.scope() <= Scope::Package)
-            || (!filtered && scope >= self.scope())
+    pub(crate) fn enabled(&self, scope: Scope) -> bool {
+        self.finalize(scope) || scope >= self.scope()
     }
 
     /// Return the sorted set of reports enabled by default for an ebuild repo.
