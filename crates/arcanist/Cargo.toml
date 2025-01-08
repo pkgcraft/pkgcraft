@@ -14,7 +14,7 @@ rust-version.workspace = true
 [dependencies]
 anyhow = "1.0.95"
 async-stream = "0.3.6"
-clap = { version = "4.5.23", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.5.24", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.15.4", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 hyper-util = "0.1.10"
@@ -39,7 +39,7 @@ tonic-build = "0.12.3"
 [dev-dependencies]
 assert_cmd = "2.0.16"
 regex = "1.11.1"
-tempfile = "3.14.0"
+tempfile = "3.15.0"
 
 [lib]
 name = "arcanist"
