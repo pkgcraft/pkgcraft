@@ -341,14 +341,10 @@ impl<T: Package + Clone> PkgCache<T> {
         // create pkg cache when running in pkg or version scope
         if scope <= Scope::Package {
             for result in source.iter_restrict_ordered(restrict) {
-                match &result {
-                    Ok(pkg) => {
-                        cache.insert(pkg.cpv().clone(), result);
-                    }
-                    Err(InvalidPkg { cpv, .. }) => {
-                        cache.insert(*cpv.clone(), result);
-                    }
-                    Err(e) => unreachable!("unhandled metadata error: {e}"),
+                if let Ok(pkg) = &result {
+                    cache.insert(pkg.cpv().clone(), result);
+                } else if let Err(InvalidPkg { cpv, .. }) = &result {
+                    cache.insert(*cpv.clone(), result);
                 }
             }
         }
