@@ -130,7 +130,6 @@ pub(crate) struct ReportFilter {
 }
 
 impl ReportFilter {
-    #[allow(clippy::nonminimal_bool)]
     fn new<S: Into<ReportSender>>(
         scope: Scope,
         filtered: bool,
@@ -142,12 +141,7 @@ impl ReportFilter {
             filter: scanner
                 .reports
                 .iter()
-                .filter(|r| {
-                    let finalized = r.finalize(scope);
-                    (finalized && !filtered)
-                        || (filtered && r.scope() <= Scope::Package)
-                        || (!finalized && !filtered && scope >= r.scope())
-                })
+                .filter(|r| r.enabled(scope, filtered))
                 .copied()
                 .collect(),
             exit: scanner.exit.clone(),
@@ -222,6 +216,7 @@ fn pkg_producer(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     scope: Scope,
+    filtered: bool,
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
@@ -247,7 +242,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope)) {
+        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
             finish_tx.send(check).ok();
         }
     })
@@ -353,6 +348,7 @@ fn version_producer(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     scope: Scope,
+    filtered: bool,
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<Check>,
@@ -375,7 +371,7 @@ fn version_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope)) {
+        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
             finish_tx.send(check).ok();
         }
     })
@@ -517,6 +513,7 @@ impl ReportIter {
                 runner.clone(),
                 wg,
                 scope,
+                filtered,
                 restrict,
                 targets_tx,
                 finish_tx,
@@ -564,6 +561,7 @@ impl ReportIter {
                 runner.clone(),
                 wg,
                 scope,
+                filtered,
                 restrict,
                 targets_tx,
                 finish_tx,

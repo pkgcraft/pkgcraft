@@ -313,8 +313,8 @@ impl Check {
     }
 
     /// Check requires post-run finalization for a scope.
-    pub(crate) fn finalize(&self, scope: Scope) -> bool {
-        self.reports.iter().any(|r| r.finalize(scope))
+    pub(crate) fn finalize(&self, scope: Scope, filtered: bool) -> bool {
+        self.reports.iter().any(|r| r.finalize(scope, filtered))
     }
 }
 
