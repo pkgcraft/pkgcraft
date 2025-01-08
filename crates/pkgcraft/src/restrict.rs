@@ -163,14 +163,14 @@ impl From<&Restrict> for Scope {
         };
 
         match value {
-            Restrict::And(vals) => vals
-                .iter()
-                .map(|x| restrict_scope(x))
+            Restrict::And(_) => value
+                .iter_flatten()
+                .map(restrict_scope)
                 .min()
                 .unwrap_or(Scope::Repo),
-            Restrict::Or(vals) => vals
-                .iter()
-                .map(|x| restrict_scope(x))
+            Restrict::Or(_) => value
+                .iter_flatten()
+                .map(restrict_scope)
                 .max()
                 .unwrap_or(Scope::Repo),
             _ => restrict_scope(value),
