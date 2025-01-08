@@ -58,3 +58,22 @@ macro_rules! glob_reports {
     }};
 }
 pub use glob_reports;
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::test::*;
+
+    use super::*;
+
+    #[test]
+    fn to_reports() {
+        // invalid option
+        assert!(cmd("pkgcruft scan --invalid").to_reports().is_err());
+
+        // empty repo
+        let data = test_data();
+        let repo = data.ebuild_repo("empty").unwrap();
+        let reports = cmd("pkgcruft scan").arg(repo).to_reports().unwrap();
+        assert!(reports.is_empty());
+    }
+}
