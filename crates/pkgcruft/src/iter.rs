@@ -75,14 +75,14 @@ impl From<Sender<Report>> for ReportSender {
 }
 
 struct IgnorePaths<'a> {
-    report: &'a Report,
+    target: &'a ReportScope,
     scope: Option<Scope>,
 }
 
 impl<'a> IgnorePaths<'a> {
-    fn new(report: &'a Report) -> Self {
+    fn new(target: &'a ReportScope) -> Self {
         Self {
-            report,
+            target,
             scope: Some(Scope::Repo),
         }
     }
@@ -94,7 +94,7 @@ impl Iterator for IgnorePaths<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         self.scope.map(|scope| {
             // construct the relative path to check for ignore files
-            let relpath = match (scope, self.report.scope()) {
+            let relpath = match (scope, self.target) {
                 (Scope::Category, ReportScope::Category(category)) => category.into(),
                 (Scope::Category, ReportScope::Package(cpn)) => cpn.category().into(),
                 (Scope::Category, ReportScope::Version(cpv, _)) => cpv.category().into(),
@@ -157,7 +157,7 @@ impl ReportFilter {
 
     /// Determine if a report is ignored via any relevant ignore files.
     fn ignored(&self, report: &Report) -> bool {
-        IgnorePaths::new(report).any(|(scope, relpath)| {
+        IgnorePaths::new(report.scope()).any(|(scope, relpath)| {
             self.ignore
                 .entry(relpath.clone())
                 .or_insert_with(|| {
