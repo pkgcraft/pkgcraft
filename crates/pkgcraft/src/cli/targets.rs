@@ -183,18 +183,22 @@ impl<'a> TargetRestrictions<'a> {
     /// Convert a target into a path or dep restriction.
     fn target_restriction(&mut self, target: &str) -> crate::Result<(RepoSet, Restrict)> {
         // avoid treating `cat/pkg/` as path restriction
-        let s = target.trim_end_matches('/');
+        let mut s = target.trim_end_matches('/');
 
         let (set, restrict) = if let Ok(cpn) = Cpn::try_new(s) {
             Ok((self.repo_set()?.clone(), cpn.into()))
         } else {
-            let path_target = Utf8Path::new(target).canonicalize_utf8().map_err(|e| {
+            // convert glob to current path restriction
+            s = if s == "*" { "." } else { s };
+
+            // try creating path and repo targets
+            let path_target = Utf8Path::new(s).canonicalize_utf8().map_err(|e| {
                 Error::InvalidValue(format!("invalid path target: {target}: {e}"))
             });
             let repo_target = path_target
                 .as_ref()
                 .ok()
-                .map(|_| self.repo_from_nested_path(target));
+                .map(|_| self.repo_from_nested_path(s));
 
             match (restrict::parse::dep(s), path_target, repo_target) {
                 (_, Ok(path), Some(Ok(repo))) => repo
