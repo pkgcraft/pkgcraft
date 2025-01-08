@@ -28,6 +28,35 @@ impl Ignore {
         }
     }
 
+    /// Load ignore data from ebuild lines or files.
+    fn load_data(&self, scope: Scope, relpath: Utf8PathBuf) -> IndexSet<ReportKind> {
+        let path = self.repo.path().join(relpath);
+        if scope == Scope::Version {
+            // TODO: use BufRead to avoid loading the entire ebuild file?
+            let mut ignore = IndexSet::new();
+            for line in fs::read_to_string(path).unwrap_or_default().lines() {
+                let line = line.trim();
+                if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
+                    ignore.extend(
+                        data.split_whitespace()
+                            .filter_map(|x| x.parse::<ReportSet>().ok())
+                            .flat_map(|x| x.expand(&self.default, &self.supported)),
+                    )
+                } else if !line.is_empty() && !line.starts_with("#") {
+                    break;
+                }
+            }
+            ignore
+        } else {
+            fs::read_to_string(path.join(".pkgcruft-ignore"))
+                .unwrap_or_default()
+                .lines()
+                .filter_map(|x| x.parse::<ReportSet>().ok())
+                .flat_map(|x| x.expand(&self.default, &self.supported))
+                .collect()
+        }
+    }
+
     /// Return an iterator of ignore cache entries for a scope.
     pub fn generate<'a, 'b>(
         &'a self,
@@ -36,35 +65,7 @@ impl Ignore {
         IgnorePaths::new(scope).map(move |(scope, relpath)| {
             self.cache
                 .entry(relpath.clone())
-                .or_insert_with(|| {
-                    let path = self.repo.path().join(relpath);
-                    if scope == Scope::Version {
-                        // TODO: use BufRead to avoid loading the entire ebuild file?
-                        let mut ignore = IndexSet::new();
-                        for line in fs::read_to_string(path).unwrap_or_default().lines() {
-                            let line = line.trim();
-                            if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
-                                ignore.extend(
-                                    data.split_whitespace()
-                                        .filter_map(|x| x.parse::<ReportSet>().ok())
-                                        .flat_map(|x| {
-                                            x.expand(&self.default, &self.supported)
-                                        }),
-                                )
-                            } else if !line.is_empty() && !line.starts_with("#") {
-                                break;
-                            }
-                        }
-                        ignore
-                    } else {
-                        fs::read_to_string(path.join(".pkgcruft-ignore"))
-                            .unwrap_or_default()
-                            .lines()
-                            .filter_map(|x| x.parse::<ReportSet>().ok())
-                            .flat_map(|x| x.expand(&self.default, &self.supported))
-                            .collect()
-                    }
-                })
+                .or_insert_with(|| self.load_data(scope, relpath))
                 .downgrade()
         })
     }
