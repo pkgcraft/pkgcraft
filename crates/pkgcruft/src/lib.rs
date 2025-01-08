@@ -1,5 +1,6 @@
 pub mod check;
 pub mod error;
+pub mod ignore;
 pub mod iter;
 pub mod report;
 pub mod reporter;
