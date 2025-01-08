@@ -240,23 +240,18 @@ impl<'a> TargetRestrictions<'a> {
 
         // verify matches exist and collapse targets
         let mut collapsed_targets = vec![];
-        for (set, mut values) in targets {
-            let check_matches = |(target, restrict)| {
-                if set.contains(&restrict) {
-                    Ok(restrict)
-                } else {
-                    Err(Error::NoMatches(target))
-                }
-            };
-
-            if values.len() > 1 {
-                let restricts: IndexSet<_> =
-                    values.into_iter().map(check_matches).try_collect()?;
-                collapsed_targets.push((set, Restrict::or(restricts)));
-            } else {
-                let restrict = check_matches(values.pop().unwrap())?;
-                collapsed_targets.push((set, restrict));
-            }
+        for (set, values) in targets {
+            let restricts: IndexSet<_> = values
+                .into_iter()
+                .map(|(target, restrict)| {
+                    if set.contains(&restrict) {
+                        Ok(restrict)
+                    } else {
+                        Err(Error::NoMatches(target))
+                    }
+                })
+                .try_collect()?;
+            collapsed_targets.push((set, Restrict::or(restricts)));
         }
 
         Ok(collapsed_targets)
