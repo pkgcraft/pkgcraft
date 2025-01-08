@@ -53,7 +53,12 @@ macro_rules! restrict_impl_boolean {
                     _ => restricts.push(Box::new(r)),
                 }
             }
-            Self::And(restricts)
+
+            if restricts.len() == 1 {
+                *restricts.pop().unwrap()
+            } else {
+                Self::And(restricts)
+            }
         }
 
         pub fn or<I>(iter: I) -> Self
@@ -68,7 +73,12 @@ macro_rules! restrict_impl_boolean {
                     _ => restricts.push(Box::new(r)),
                 }
             }
-            Self::Or(restricts)
+
+            if restricts.len() == 1 {
+                *restricts.pop().unwrap()
+            } else {
+                Self::Or(restricts)
+            }
         }
 
         pub fn xor<I>(iter: I) -> Self
@@ -83,7 +93,12 @@ macro_rules! restrict_impl_boolean {
                     _ => restricts.push(Box::new(r)),
                 }
             }
-            Self::Xor(restricts)
+
+            if restricts.len() == 1 {
+                *restricts.pop().unwrap()
+            } else {
+                Self::Xor(restricts)
+            }
         }
 
         pub fn not<T>(obj: T) -> Self
