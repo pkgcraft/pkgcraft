@@ -136,9 +136,9 @@ impl Scanner {
         T: Into<Restrict>,
     {
         let restrict = restrict.into();
-        let scope = Scope::from(&restrict);
+        let scan_scope = Scope::from(&restrict);
         info!("repo: {}", self.repo);
-        info!("scope: {scope}");
+        info!("scope: {scan_scope}");
         info!("target: {restrict:?}");
 
         // determine if any package filtering is enabled
@@ -148,9 +148,27 @@ impl Scanner {
         let enabled: HashSet<_> = self
             .enabled
             .iter()
-            .filter(|r| r.enabled(scope, filtered))
             .copied()
-            .collect();
+            .map(|report| {
+                let scope = report.scope();
+                if scan_scope < scope {
+                    Err(Error::ReportInit(report, format!("requires {scope} scope")))
+                } else if filtered && report.finalize() {
+                    Err(Error::ReportInit(report, "requires no filters".to_string()))
+                } else {
+                    Ok(report)
+                }
+            })
+            .filter(|result| {
+                if let Err(Error::ReportInit(report, msg)) = &result {
+                    if !self.selected.contains(report) {
+                        warn!("skipping {report} report: {msg}");
+                        return false;
+                    }
+                }
+                true
+            })
+            .try_collect()?;
 
         // determine enabled checks -- errors if incompatible check is selected
         let selected = Check::iter_report(&self.selected).collect();
@@ -162,7 +180,7 @@ impl Scanner {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
                 } else if let Some(context) = check.skipped(&self.repo, &selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
-                } else if let Some(scope) = check.scoped(scope) {
+                } else if let Some(scope) = check.scoped(scan_scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))
                 } else {
                     Ok(check)
@@ -179,7 +197,7 @@ impl Scanner {
             })
             .try_collect()?;
 
-        Ok(ReportIter::new(enabled, filtered, scope, checks, self, restrict))
+        Ok(ReportIter::new(enabled, scan_scope, checks, self, restrict))
     }
 }
 

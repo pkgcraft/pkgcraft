@@ -119,11 +119,9 @@ fn pkg_producer(
     repo: EbuildRepo,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    scope: Scope,
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
-    filtered: bool,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
@@ -146,7 +144,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
+        for check in runner.checks().filter(|c| c.finalize()) {
             finish_tx.send(check).ok();
         }
     })
@@ -251,11 +249,9 @@ fn version_producer(
     repo: EbuildRepo,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    scope: Scope,
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<Check>,
-    filtered: bool,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in repo.iter_cpv_restrict(&restrict) {
@@ -275,7 +271,7 @@ fn version_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
+        for check in runner.checks().filter(|c| c.finalize()) {
             finish_tx.send(check).ok();
         }
     })
@@ -362,7 +358,6 @@ pub struct ReportIter(ReportIterInternal);
 impl ReportIter {
     pub(crate) fn new<I>(
         enabled: HashSet<ReportKind>,
-        filtered: bool,
         scope: Scope,
         checks: I,
         scanner: &Scanner,
@@ -372,9 +367,9 @@ impl ReportIter {
         I: IntoIterator<Item = Check>,
     {
         if scope >= Scope::Category {
-            Self::pkg(enabled, scope, checks, scanner, restrict, filtered)
+            Self::pkg(enabled, scope, checks, scanner, restrict)
         } else {
-            Self::version(enabled, scope, checks, scanner, restrict, filtered)
+            Self::version(enabled, scope, checks, scanner, restrict)
         }
     }
 
@@ -385,7 +380,6 @@ impl ReportIter {
         checks: I,
         scanner: &Scanner,
         restrict: Restrict,
-        filtered: bool,
     ) -> Self
     where
         I: IntoIterator<Item = Check>,
@@ -416,11 +410,9 @@ impl ReportIter {
                 scanner.repo.clone(),
                 runner.clone(),
                 wg,
-                scope,
                 restrict,
                 targets_tx,
                 finish_tx,
-                filtered,
             ),
             cache: Default::default(),
             reports: Default::default(),
@@ -434,7 +426,6 @@ impl ReportIter {
         checks: I,
         scanner: &Scanner,
         restrict: Restrict,
-        filtered: bool,
     ) -> Self
     where
         I: IntoIterator<Item = Check>,
@@ -465,11 +456,9 @@ impl ReportIter {
                 scanner.repo.clone(),
                 runner.clone(),
                 wg,
-                scope,
                 restrict,
                 targets_tx,
                 finish_tx,
-                filtered,
             ),
             reports: Default::default(),
         }))

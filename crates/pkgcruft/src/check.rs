@@ -253,9 +253,9 @@ impl Check {
     /// Return an iterator of all checks that can be run on a repo at an optional scope.
     pub fn iter_supported<T: Into<Scope>>(
         repo: &EbuildRepo,
-        scope: T,
+        value: T,
     ) -> impl Iterator<Item = Check> + '_ {
-        let scope = scope.into();
+        let scope = value.into();
         let selected = Self::iter().collect();
         Self::iter()
             .filter(move |x| x.skipped(repo, &selected).is_none() && x.scoped(scope).is_none())
@@ -313,8 +313,8 @@ impl Check {
     }
 
     /// Check requires post-run finalization for a scope.
-    pub(crate) fn finalize(&self, scope: Scope, filtered: bool) -> bool {
-        self.reports.iter().any(|r| r.finalize(scope, filtered))
+    pub(crate) fn finalize(&self) -> bool {
+        self.reports.iter().any(|r| r.finalize())
     }
 }
 

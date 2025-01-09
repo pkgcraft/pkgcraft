@@ -191,6 +191,7 @@ mod tests {
         env::set_current_dir(&dir).unwrap();
         let expected = glob_reports!("{dir}/reports.json");
         let restrict = repo.restrict_from_path(&dir).unwrap();
+        let scanner = Scanner::new(repo).reports([ManifestCollide]);
         let reports = scanner.run(restrict).unwrap();
         assert_unordered_eq!(reports, expected);
 

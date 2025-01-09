@@ -134,12 +134,7 @@ impl ReportSet {
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
             Self::All => Box::new(supported.iter().copied()),
-            Self::Finalize => Box::new(
-                supported
-                    .iter()
-                    .filter(|r| r.finalize(Scope::Repo, false))
-                    .copied(),
-            ),
+            Self::Finalize => Box::new(supported.iter().filter(|r| r.finalize()).copied()),
             Self::Check(check) => Box::new(check.reports.iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter()
@@ -513,8 +508,8 @@ impl ReportKind {
         }
     }
 
-    /// Return true if the report supports post-run finalization for a scope.
-    pub(crate) fn finalize(&self, scope: Scope, filtered: bool) -> bool {
+    /// Return true if the report supports post-run finalization.
+    pub(crate) fn finalize(&self) -> bool {
         matches!(
             self,
             Self::ArchesUnused
@@ -525,13 +520,7 @@ impl ReportKind {
                 | Self::MirrorsUnused
                 | Self::PackageDeprecatedUnused
                 | Self::UseGlobalUnused
-        ) && scope >= self.scope()
-            && !filtered
-    }
-
-    /// Return true if the report is enabled for a scanning run.
-    pub(crate) fn enabled(&self, scope: Scope, filtered: bool) -> bool {
-        self.finalize(scope, filtered) || scope >= self.scope()
+        )
     }
 
     /// Return the sorted set of reports enabled by default for an ebuild repo.
@@ -545,9 +534,11 @@ impl ReportKind {
     }
 
     /// Return the sorted set of supported reports for an ebuild repo.
-    pub fn supported<T: Into<Scope>>(repo: &EbuildRepo, scope: T) -> IndexSet<Self> {
+    pub fn supported<T: Into<Scope>>(repo: &EbuildRepo, value: T) -> IndexSet<Self> {
+        let scope = value.into();
         let mut set: IndexSet<_> = Check::iter_supported(repo, scope)
-            .flat_map(|x| x.reports)
+            .flat_map(|c| c.reports)
+            .filter(|r| scope >= r.scope())
             .copied()
             .collect();
         set.sort();
