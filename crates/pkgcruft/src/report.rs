@@ -20,7 +20,6 @@ use crate::Error;
 
 /// The severity of the report.
 #[derive(
-    AsRefStr,
     Display,
     EnumIter,
     EnumString,
