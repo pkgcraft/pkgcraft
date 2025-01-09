@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Not;
@@ -7,7 +8,6 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
@@ -246,7 +246,7 @@ impl Check {
 
     /// Return an iterator of checks enabled by default for a repo.
     pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
-        let selected = IndexSet::new();
+        let selected = Default::default();
         Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
@@ -283,7 +283,7 @@ impl Check {
     pub(crate) fn skipped(
         &self,
         repo: &EbuildRepo,
-        selected: &IndexSet<Self>,
+        selected: &HashSet<Self>,
     ) -> Option<CheckContext> {
         self.context.iter().copied().find(|context| {
             match context {
