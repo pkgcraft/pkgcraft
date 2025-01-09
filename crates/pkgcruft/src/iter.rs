@@ -81,13 +81,18 @@ pub(crate) struct ReportFilter {
 }
 
 impl ReportFilter {
-    fn new<S: Into<ReportSender>>(scope: Scope, scanner: &Scanner, tx: S) -> Self {
+    fn new<S: Into<ReportSender>>(
+        scope: Scope,
+        scanner: &Scanner,
+        filtered: bool,
+        tx: S,
+    ) -> Self {
         Self {
             // TODO: move report filtering into Scanner::run()
             filter: scanner
                 .reports
                 .iter()
-                .filter(|r| r.enabled(scope))
+                .filter(|r| r.enabled(scope, filtered))
                 .copied()
                 .collect(),
             exit: scanner.exit.clone(),
@@ -125,6 +130,7 @@ fn pkg_producer(
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
+    filtered: bool,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
@@ -147,7 +153,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope)) {
+        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
             finish_tx.send(check).ok();
         }
     })
@@ -256,6 +262,7 @@ fn version_producer(
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<Check>,
+    filtered: bool,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in repo.iter_cpv_restrict(&restrict) {
@@ -275,7 +282,7 @@ fn version_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(scope)) {
+        for check in runner.checks().filter(|c| c.finalize(scope, filtered)) {
             finish_tx.send(check).ok();
         }
     })
@@ -369,15 +376,24 @@ impl ReportIter {
     where
         I: IntoIterator<Item = Check>,
     {
+        // determine if any package filtering is enabled
+        let filtered = !scanner.filters.is_empty();
+
         if scope >= Scope::Category {
-            Self::pkg(scope, checks, scanner, restrict)
+            Self::pkg(scope, checks, scanner, restrict, filtered)
         } else {
-            Self::version(scope, checks, scanner, restrict)
+            Self::version(scope, checks, scanner, restrict, filtered)
         }
     }
 
     /// Create an iterator that parallelizes scanning by package.
-    fn pkg<I>(scope: Scope, checks: I, scanner: &Scanner, restrict: Restrict) -> Self
+    fn pkg<I>(
+        scope: Scope,
+        checks: I,
+        scanner: &Scanner,
+        restrict: Restrict,
+        filtered: bool,
+    ) -> Self
     where
         I: IntoIterator<Item = Check>,
     {
@@ -385,7 +401,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(scope, scanner, reports_tx));
+        let filter = Arc::new(ReportFilter::new(scope, scanner, filtered, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
@@ -411,6 +427,7 @@ impl ReportIter {
                 restrict,
                 targets_tx,
                 finish_tx,
+                filtered,
             ),
             cache: Default::default(),
             reports: Default::default(),
@@ -418,7 +435,13 @@ impl ReportIter {
     }
 
     /// Create an iterator that parallelizes scanning by check.
-    fn version<I>(scope: Scope, checks: I, scanner: &Scanner, restrict: Restrict) -> Self
+    fn version<I>(
+        scope: Scope,
+        checks: I,
+        scanner: &Scanner,
+        restrict: Restrict,
+        filtered: bool,
+    ) -> Self
     where
         I: IntoIterator<Item = Check>,
     {
@@ -426,7 +449,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(scope, scanner, reports_tx));
+        let filter = Arc::new(ReportFilter::new(scope, scanner, filtered, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
@@ -452,6 +475,7 @@ impl ReportIter {
                 restrict,
                 targets_tx,
                 finish_tx,
+                filtered,
             ),
             reports: Default::default(),
         }))

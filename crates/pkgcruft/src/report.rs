@@ -506,7 +506,7 @@ impl ReportKind {
     }
 
     /// Return true if the report supports post-run finalization for a scope.
-    pub(crate) fn finalize(&self, scope: Scope) -> bool {
+    pub(crate) fn finalize(&self, scope: Scope, filtered: bool) -> bool {
         matches!(
             self,
             Self::ArchesUnused
@@ -518,11 +518,12 @@ impl ReportKind {
                 | Self::PackageDeprecatedUnused
                 | Self::UseGlobalUnused
         ) && scope >= self.scope()
+            && !filtered
     }
 
     /// Return true if the report is enabled for a scanning run.
-    pub(crate) fn enabled(&self, scope: Scope) -> bool {
-        self.finalize(scope) || scope >= self.scope()
+    pub(crate) fn enabled(&self, scope: Scope, filtered: bool) -> bool {
+        self.finalize(scope, filtered) || scope >= self.scope()
     }
 
     /// Return the sorted set of reports enabled by default for an ebuild repo.
