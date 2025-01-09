@@ -77,7 +77,8 @@ fn optfeature<'a>(
     for x in node.children(cursor).skip(2).filter(|x| x.kind() == "word") {
         match Dep::try_new(x) {
             Ok(dep) => {
-                if !pkg.repo().contains(dep.cpn()) {
+                // TODO: move inherited repo search to pkgcraft
+                if !pkg.repo().trees().rev().any(|r| r.contains(dep.cpn())) {
                     Optfeature
                         .version(pkg)
                         .message(format!("nonexistent dep: {x}"))
