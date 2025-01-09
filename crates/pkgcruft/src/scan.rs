@@ -7,7 +7,6 @@ use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::utils::bounded_jobs;
-use strum::IntoEnumIterator;
 use tracing::{info, warn};
 
 use crate::check::Check;
@@ -23,7 +22,6 @@ pub struct Scanner {
     enabled: Option<IndexSet<ReportKind>>,
     selected: Option<IndexSet<ReportKind>>,
     pub(crate) force: bool,
-    pub(crate) reports: HashSet<ReportKind>,
     pub(crate) exit: Arc<HashSet<ReportKind>>,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) failed: Arc<AtomicBool>,
@@ -40,7 +38,6 @@ impl Scanner {
             enabled: Default::default(),
             selected: Default::default(),
             force: Default::default(),
-            reports: ReportKind::iter().collect(),
             exit: Default::default(),
             filters: Default::default(),
             failed: Default::default(),
@@ -60,13 +57,14 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<Check>,
     {
-        self.reports = values
-            .into_iter()
-            .map(Into::into)
-            .flat_map(|c| c.reports)
-            .copied()
-            .collect();
-        self.enabled = Some(self.reports.iter().copied().collect());
+        self.enabled = Some(
+            values
+                .into_iter()
+                .map(Into::into)
+                .flat_map(|c| c.reports)
+                .copied()
+                .collect(),
+        );
         self.selected = self.enabled.clone();
         self
     }
@@ -83,11 +81,14 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportSet>,
     {
-        self.reports = values
-            .into_iter()
-            .map(Into::into)
-            .flat_map(|x| x.expand(&self.default, &self.supported))
-            .collect();
+        self.enabled = Some(
+            values
+                .into_iter()
+                .map(Into::into)
+                .flat_map(|x| x.expand(&self.default, &self.supported))
+                .collect(),
+        );
+        self.selected = self.enabled.clone();
         self
     }
 
@@ -97,7 +98,6 @@ impl Scanner {
         enabled: IndexSet<ReportKind>,
         selected: IndexSet<ReportKind>,
     ) -> Self {
-        self.reports = enabled.iter().copied().collect();
         self.enabled = Some(enabled);
         self.selected = Some(selected);
         self
@@ -144,14 +144,24 @@ impl Scanner {
         info!("scope: {scope}");
         info!("target: {restrict:?}");
 
+        // determine if any package filtering is enabled
+        let filtered = !self.filters.is_empty();
+
         // determine enabled and selected reports
         let empty = Default::default();
-        let enabled = self.enabled.as_ref().unwrap_or(&self.default);
         let selected = self.selected.as_ref().unwrap_or(&empty);
+        let enabled: HashSet<_> = self
+            .enabled
+            .as_ref()
+            .unwrap_or(&self.default)
+            .iter()
+            .filter(|r| r.enabled(scope, filtered))
+            .copied()
+            .collect();
 
         // determine enabled checks -- errors if incompatible check is selected
         let selected = Check::iter_report(selected).collect();
-        let checks: IndexSet<_> = Check::iter_report(enabled)
+        let checks: IndexSet<_> = Check::iter_report(&enabled)
             .unique()
             .sorted()
             .map(|check| {
@@ -176,7 +186,7 @@ impl Scanner {
             })
             .try_collect()?;
 
-        Ok(ReportIter::new(scope, checks, self, restrict))
+        Ok(ReportIter::new(enabled, filtered, scope, checks, self, restrict))
     }
 }
 

@@ -72,7 +72,7 @@ impl From<Sender<Report>> for ReportSender {
 }
 
 pub(crate) struct ReportFilter {
-    filter: HashSet<ReportKind>,
+    enabled: HashSet<ReportKind>,
     exit: Arc<HashSet<ReportKind>>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
@@ -82,19 +82,12 @@ pub(crate) struct ReportFilter {
 
 impl ReportFilter {
     fn new<S: Into<ReportSender>>(
-        scope: Scope,
+        enabled: HashSet<ReportKind>,
         scanner: &Scanner,
-        filtered: bool,
         tx: S,
     ) -> Self {
         Self {
-            // TODO: move report filtering into Scanner::run()
-            filter: scanner
-                .reports
-                .iter()
-                .filter(|r| r.enabled(scope, filtered))
-                .copied()
-                .collect(),
+            enabled,
             exit: scanner.exit.clone(),
             failed: scanner.failed.clone(),
             sender: tx.into(),
@@ -117,7 +110,7 @@ impl ReportFilter {
 
     /// Return true if the filter has a report variant enabled.
     pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
-        self.filter.contains(&kind)
+        self.enabled.contains(&kind)
     }
 }
 
@@ -368,6 +361,8 @@ pub struct ReportIter(ReportIterInternal);
 
 impl ReportIter {
     pub(crate) fn new<I>(
+        enabled: HashSet<ReportKind>,
+        filtered: bool,
         scope: Scope,
         checks: I,
         scanner: &Scanner,
@@ -376,18 +371,16 @@ impl ReportIter {
     where
         I: IntoIterator<Item = Check>,
     {
-        // determine if any package filtering is enabled
-        let filtered = !scanner.filters.is_empty();
-
         if scope >= Scope::Category {
-            Self::pkg(scope, checks, scanner, restrict, filtered)
+            Self::pkg(enabled, scope, checks, scanner, restrict, filtered)
         } else {
-            Self::version(scope, checks, scanner, restrict, filtered)
+            Self::version(enabled, scope, checks, scanner, restrict, filtered)
         }
     }
 
     /// Create an iterator that parallelizes scanning by package.
     fn pkg<I>(
+        enabled: HashSet<ReportKind>,
         scope: Scope,
         checks: I,
         scanner: &Scanner,
@@ -401,7 +394,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(scope, scanner, filtered, reports_tx));
+        let filter = Arc::new(ReportFilter::new(enabled, scanner, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
@@ -436,6 +429,7 @@ impl ReportIter {
 
     /// Create an iterator that parallelizes scanning by check.
     fn version<I>(
+        enabled: HashSet<ReportKind>,
         scope: Scope,
         checks: I,
         scanner: &Scanner,
@@ -449,7 +443,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(scope, scanner, filtered, reports_tx));
+        let filter = Arc::new(ReportFilter::new(enabled, scanner, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
