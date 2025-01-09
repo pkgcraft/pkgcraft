@@ -100,9 +100,9 @@ impl ReportFilter {
 
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&self, report: Report) {
-        let kind = &report.kind;
-        if self.filter.contains(kind) && (self.force || !self.ignore.ignored(&report)) {
-            if self.exit.contains(kind) {
+        let kind = report.kind;
+        if self.enabled(kind) && (self.force || !self.ignore.ignored(&report)) {
+            if self.exit.contains(&kind) {
                 self.failed.store(true, Ordering::Relaxed);
             }
 
