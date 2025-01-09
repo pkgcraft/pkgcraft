@@ -1,5 +1,6 @@
-use std::env;
+use std::{env, fs};
 
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::*;
 use pkgcruft::test::*;
 use predicates::prelude::*;
@@ -311,6 +312,35 @@ fn color() {
         let data = String::from_utf8(output).unwrap();
         let data: Vec<_> = data.lines().collect();
         assert_eq!(&expected, &data);
+    }
+}
+
+#[test]
+fn force() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with report generating issues"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    fs::write(repo.path().join(".pkgcruft-ignore"), "@all").unwrap();
+
+    // repo level directive suppresses all reports by default
+    let reports = cmd("pkgcruft scan -R json")
+        .arg(&repo)
+        .to_reports()
+        .unwrap();
+    assert!(reports.is_empty());
+
+    // -F/--force option disregards all ignore directives
+    for opt in ["-F", "--force"] {
+        let reports = cmd("pkgcruft scan -R json")
+            .arg(opt)
+            .arg(&repo)
+            .to_reports()
+            .unwrap();
+        assert!(!reports.is_empty());
     }
 }
 
