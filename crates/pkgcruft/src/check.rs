@@ -27,6 +27,7 @@ mod duplicates;
 mod eapi_stale;
 mod eapi_status;
 mod ebuild_name;
+mod eclass;
 mod filesdir;
 mod header;
 mod homepage;
@@ -37,7 +38,6 @@ mod license;
 mod live;
 mod manifest;
 mod metadata;
-mod overlay;
 mod properties;
 mod python_update;
 mod repo_layout;
@@ -74,6 +74,7 @@ pub enum CheckKind {
     EapiStale,
     EapiStatus,
     EbuildName,
+    Eclass,
     Filesdir,
     Header,
     Homepage,
@@ -84,7 +85,6 @@ pub enum CheckKind {
     Live,
     Manifest,
     Metadata,
-    Overlay,
     Properties,
     PythonUpdate,
     RepoLayout,
@@ -109,6 +109,7 @@ impl From<CheckKind> for Check {
             CheckKind::EapiStatus => eapi_status::CHECK,
             CheckKind::Filesdir => filesdir::CHECK,
             CheckKind::EbuildName => ebuild_name::CHECK,
+            CheckKind::Eclass => eclass::CHECK,
             CheckKind::Header => header::CHECK,
             CheckKind::Homepage => homepage::CHECK,
             CheckKind::Iuse => iuse::CHECK,
@@ -117,7 +118,6 @@ impl From<CheckKind> for Check {
             CheckKind::License => license::CHECK,
             CheckKind::Live => live::CHECK,
             CheckKind::Manifest => manifest::CHECK,
-            CheckKind::Overlay => overlay::CHECK,
             CheckKind::Metadata => metadata::CHECK,
             CheckKind::Properties => properties::CHECK,
             CheckKind::PythonUpdate => python_update::CHECK,
@@ -332,11 +332,11 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::DependencySlotMissing => {
                 Box::new(dependency_slot_missing::create(repo))
             }
+            CheckKind::Eclass => Box::new(eclass::create(repo)),
             CheckKind::Homepage => Box::new(homepage::create()),
             CheckKind::Iuse => Box::new(iuse::create(repo, filter)),
             CheckKind::Keywords => Box::new(keywords::create(repo, filter)),
             CheckKind::License => Box::new(license::create(repo, filter)),
-            CheckKind::Overlay => Box::new(overlay::create(repo)),
             CheckKind::Properties => Box::new(properties::create(repo)),
             CheckKind::PythonUpdate => Box::new(python_update::create(repo)),
             CheckKind::Restrict => Box::new(restrict::create(repo)),

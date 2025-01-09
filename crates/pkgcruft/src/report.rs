@@ -465,7 +465,7 @@ impl ReportKind {
             Self::EapiUnstable => Version,
             Self::EbuildNameInvalid => Package,
             Self::EbuildVersionsEqual => Package,
-            Self::EclassUnused => Version,
+            Self::EclassUnused => Repo,
             Self::FileUnknown => Version,
             Self::FilesUnused => Package,
             Self::HeaderInvalid => Version,

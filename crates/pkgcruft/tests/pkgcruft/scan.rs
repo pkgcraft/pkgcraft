@@ -121,7 +121,7 @@ fn dep_restrict_targets() {
 #[test]
 fn current_dir_targets() {
     let primary_repo = test_data_path().join("repos/valid/qa-primary");
-    let secondary_repo = test_data_path().join("repos/valid/qa-secondary");
+    //let secondary_repo = test_data_path().join("repos/valid/qa-secondary");
 
     // empty dir
     let tmpdir = tempdir().unwrap();
@@ -140,12 +140,13 @@ fn current_dir_targets() {
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 
-    env::set_current_dir(&secondary_repo).unwrap();
-    let expected = glob_reports!("{secondary_repo}/**/*.json");
-    let reports = cmd("pkgcruft scan -r @Overlay -R json")
-        .to_reports()
-        .unwrap();
-    assert_unordered_eq!(&expected, &reports);
+    // TODO: re-enable when Overlay test is rewritten
+    // env::set_current_dir(&secondary_repo).unwrap();
+    // let expected = glob_reports!("{secondary_repo}/**/*.json");
+    // let reports = cmd("pkgcruft scan -r @Overlay -R json")
+    //    .to_reports()
+    //    .unwrap();
+    // assert_unordered_eq!(&expected, &reports);
 
     // category dir
     env::set_current_dir(primary_repo.join("Dependency")).unwrap();
@@ -153,12 +154,13 @@ fn current_dir_targets() {
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 
-    env::set_current_dir(secondary_repo.join("Overlay")).unwrap();
-    let expected = glob_reports!("{secondary_repo}/Overlay/**/*.json");
-    let reports = cmd("pkgcruft scan -r @Overlay -R json")
-        .to_reports()
-        .unwrap();
-    assert_unordered_eq!(&expected, &reports);
+    // TODO: re-enable when Overlay test is rewritten
+    // env::set_current_dir(secondary_repo.join("Overlay")).unwrap();
+    // let expected = glob_reports!("{secondary_repo}/Overlay/**/*.json");
+    // let reports = cmd("pkgcruft scan -r @Overlay -R json")
+    //    .to_reports()
+    //    .unwrap();
+    //assert_unordered_eq!(&expected, &reports);
 
     // package dir
     env::set_current_dir(primary_repo.join("Dependency/DependencyDeprecated")).unwrap();
@@ -167,12 +169,13 @@ fn current_dir_targets() {
     let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
     assert_unordered_eq!(&expected, &reports);
 
-    env::set_current_dir(secondary_repo.join("Overlay/EclassUnused")).unwrap();
-    let expected = glob_reports!("{secondary_repo}/Overlay/EclassUnused/*.json");
-    let reports = cmd("pkgcruft scan -r @Overlay -R json")
-        .to_reports()
-        .unwrap();
-    assert_unordered_eq!(&expected, &reports);
+    // TODO: re-enable when Overlay test is rewritten
+    // env::set_current_dir(secondary_repo.join("Overlay/EclassUnused")).unwrap();
+    // let expected = glob_reports!("{secondary_repo}/Overlay/EclassUnused/*.json");
+    // let reports = cmd("pkgcruft scan -r @Overlay -R json")
+    //    .to_reports()
+    //    .unwrap();
+    //assert_unordered_eq!(&expected, &reports);
 }
 
 #[test]
