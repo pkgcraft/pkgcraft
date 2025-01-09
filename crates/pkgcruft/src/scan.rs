@@ -334,6 +334,16 @@ mod tests {
     #[test]
     fn filters() {
         let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+
+        // verify finalized reports aren't triggered with filters
+        let reports: Vec<_> = Scanner::new(repo)
+            .filters(["live", "!live"].iter().map(|x| x.parse().unwrap()))
+            .run(repo)
+            .unwrap()
+            .collect();
+        assert_unordered_eq!(&reports, &[]);
+
         let repo = data.ebuild_repo("gentoo").unwrap();
         let pkgdir = repo.path().join("Header/HeaderInvalid");
         let expected = glob_reports!("{pkgdir}/reports.json");
