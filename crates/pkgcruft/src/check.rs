@@ -313,8 +313,10 @@ impl Check {
     }
 
     /// Check requires post-run finalization for a scope.
-    pub(crate) fn finalize(&self) -> bool {
-        self.reports.iter().any(|r| r.finalize())
+    pub(crate) fn finalize(&self, enabled: &HashSet<ReportKind>) -> bool {
+        self.reports
+            .iter()
+            .any(|r| r.finalize() && enabled.contains(r))
     }
 }
 

@@ -122,6 +122,7 @@ fn pkg_producer(
     restrict: Restrict,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
+    filter: Arc<ReportFilter>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
@@ -144,7 +145,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize()) {
+        for check in runner.checks().filter(|c| c.finalize(&filter.enabled)) {
             finish_tx.send(check).ok();
         }
     })
@@ -252,6 +253,7 @@ fn version_producer(
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<Check>,
+    filter: Arc<ReportFilter>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in repo.iter_cpv_restrict(&restrict) {
@@ -271,7 +273,7 @@ fn version_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize()) {
+        for check in runner.checks().filter(|c| c.finalize(&filter.enabled)) {
             finish_tx.send(check).ok();
         }
     })
@@ -413,6 +415,7 @@ impl ReportIter {
                 restrict,
                 targets_tx,
                 finish_tx,
+                filter.clone(),
             ),
             cache: Default::default(),
             reports: Default::default(),
@@ -459,6 +462,7 @@ impl ReportIter {
                 restrict,
                 targets_tx,
                 finish_tx,
+                filter.clone(),
             ),
             reports: Default::default(),
         }))
