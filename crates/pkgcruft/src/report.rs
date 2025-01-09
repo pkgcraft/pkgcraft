@@ -339,7 +339,7 @@ pub enum ReportKind {
 
 impl ReportKind {
     /// Create a version scope report.
-    pub fn version<T: Into<Cpv>>(self, value: T) -> ReportBuilder {
+    pub(crate) fn version<T: Into<Cpv>>(self, value: T) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
             scope: ReportScope::Version(value.into(), None),
@@ -348,7 +348,7 @@ impl ReportKind {
     }
 
     /// Create a package scope report.
-    pub fn package<T>(self, value: T) -> ReportBuilder
+    pub(crate) fn package<T>(self, value: T) -> ReportBuilder
     where
         T: TryInto<Cpn>,
         <T as TryInto<Cpn>>::Error: fmt::Display,
@@ -365,7 +365,7 @@ impl ReportKind {
     }
 
     /// Create a category scope report.
-    pub fn category<S: fmt::Display>(self, value: S) -> ReportBuilder {
+    pub(crate) fn category<S: fmt::Display>(self, value: S) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
             scope: ReportScope::Category(value.to_string()),
@@ -374,7 +374,7 @@ impl ReportKind {
     }
 
     /// Create a repo scope report.
-    pub fn repo<R: Repository>(self, repo: R) -> ReportBuilder {
+    pub(crate) fn repo<R: Repository>(self, repo: R) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
             scope: ReportScope::Repo(repo.name().to_string()),
@@ -547,11 +547,11 @@ impl ReportKind {
 }
 
 /// Builder for reports.
-pub struct ReportBuilder(Report);
+pub(crate) struct ReportBuilder(Report);
 
 impl ReportBuilder {
     /// Add a report message.
-    pub fn message<S>(mut self, value: S) -> Self
+    pub(crate) fn message<S>(mut self, value: S) -> Self
     where
         S: fmt::Display,
     {
@@ -560,7 +560,7 @@ impl ReportBuilder {
     }
 
     /// Add a location reference.
-    pub fn location<L>(mut self, value: L) -> Self
+    pub(crate) fn location<L>(mut self, value: L) -> Self
     where
         L: Into<Location>,
     {
@@ -571,11 +571,6 @@ impl ReportBuilder {
         }
 
         self
-    }
-
-    /// Convert the builder into the wrapped [`Report`].
-    pub fn into_inner(self) -> Report {
-        self.0
     }
 
     /// Pass the report to the scanning filter for processing.
@@ -951,7 +946,7 @@ mod tests {
         // location is only valid for version scope reports
         let result = std::panic::catch_unwind(|| {
             let cpv = Cpv::try_new("cat/pkg-1").unwrap();
-            ReportKind::Builtin.version(cpv).location(1).into_inner()
+            ReportKind::Builtin.version(cpv).location(1)
         });
         assert!(result.is_ok());
         let result = std::panic::catch_unwind(|| {
