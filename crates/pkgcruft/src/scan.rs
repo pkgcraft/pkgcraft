@@ -176,7 +176,7 @@ impl Scanner {
             .unique()
             .sorted()
             .map(|check| {
-                if !self.filters.is_empty() && check.filtered() {
+                if filtered && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
                 } else if let Some(context) = check.skipped(&self.repo, &selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
