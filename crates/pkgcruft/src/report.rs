@@ -565,11 +565,12 @@ impl ReportBuilder {
     where
         L: Into<Location>,
     {
-        let ReportScope::Version(_, location @ None) = &mut self.0.scope else {
-            unreachable!("invalid report scope: {:?}", self.0.scope);
-        };
+        if let ReportScope::Version(_, location @ None) = &mut self.0.scope {
+            *location = Some(value.into());
+        } else {
+            panic!("invalid report scope: {:?}", self.0.scope);
+        }
 
-        *location = Some(value.into());
         self
     }
 
@@ -944,5 +945,20 @@ mod tests {
             let s = format!("{report:?}");
             assert!(s.contains(&kind));
         }
+    }
+
+    #[test]
+    fn builder() {
+        // location is only valid for version scope reports
+        let result = std::panic::catch_unwind(|| {
+            let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+            ReportKind::Builtin.version(cpv).location(1).into_inner()
+        });
+        assert!(result.is_ok());
+        let result = std::panic::catch_unwind(|| {
+            let cpn = Cpn::try_new("cat/pkg").unwrap();
+            ReportKind::LiveOnly.package(cpn).location(1)
+        });
+        assert!(result.is_err());
     }
 }
