@@ -150,10 +150,10 @@ impl Scanner {
         let selected = self.selected.as_ref().unwrap_or(&empty);
 
         // determine enabled checks -- errors if incompatible check is selected
-        let enabled: IndexSet<_> = Check::iter_report(enabled).collect();
         let selected = Check::iter_report(selected).collect();
-        let mut checks: IndexSet<_> = enabled
-            .into_iter()
+        let checks: IndexSet<_> = Check::iter_report(enabled)
+            .unique()
+            .sorted()
             .map(|check| {
                 if !self.filters.is_empty() && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
@@ -176,14 +176,12 @@ impl Scanner {
             })
             .try_collect()?;
 
-        checks.sort();
         Ok(ReportIter::new(scope, checks, self, restrict))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use itertools::Itertools;
     use pkgcraft::dep::Dep;
     use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
