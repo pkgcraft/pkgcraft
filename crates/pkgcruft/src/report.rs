@@ -58,6 +58,7 @@ impl From<ReportLevel> for Color {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum ReportSet {
     All,
+    Finalize,
     Check(Check),
     Context(CheckContext),
     Level(ReportLevel),
@@ -100,15 +101,16 @@ impl FromStr for ReportSet {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(val) = s.strip_prefix('@') {
-            if val == "all" {
-                Ok(Self::All)
-            } else {
-                val.parse()
+            match val {
+                "all" => Ok(Self::All),
+                "finalize" => Ok(Self::Finalize),
+                _ => val
+                    .parse()
                     .map(Self::Check)
                     .or_else(|_| val.parse().map(Self::Context))
                     .or_else(|_| val.parse().map(Self::Level))
                     .or_else(|_| val.parse().map(Self::Scope))
-                    .map_err(|_| Error::InvalidValue(format!("invalid report set: {val}")))
+                    .map_err(|_| Error::InvalidValue(format!("invalid report set: {val}"))),
             }
         } else {
             s.parse()
@@ -132,6 +134,12 @@ impl ReportSet {
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
             Self::All => Box::new(supported.iter().copied()),
+            Self::Finalize => Box::new(
+                supported
+                    .iter()
+                    .filter(|r| r.finalize(Scope::Repo, false))
+                    .copied(),
+            ),
             Self::Check(check) => Box::new(check.reports.iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter()
