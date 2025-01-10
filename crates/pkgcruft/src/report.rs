@@ -137,7 +137,7 @@ impl ReportSet {
             Self::Finalize => Box::new(supported.iter().filter(|r| r.finalize()).copied()),
             Self::Check(check) => Box::new(check.reports.iter().copied()),
             Self::Context(context) => Box::new(
-                Check::iter()
+                Check::iter_report(supported)
                     .filter(move |x| x.context.contains(&context))
                     .flat_map(|x| x.reports)
                     .copied(),
