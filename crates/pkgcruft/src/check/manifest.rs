@@ -70,6 +70,8 @@ impl EbuildPkgSetCheck for Check {
             return;
         };
 
+        // determine distfiles for pkgs and manifest
+        let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
         let mut manifest_distfiles = HashSet::new();
         for x in manifest.distfiles() {
             let name = x.name();
@@ -95,8 +97,8 @@ impl EbuildPkgSetCheck for Check {
                 }
             }
         }
-        let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
 
+        // flag manifest entries that don't match pkg distfiles
         let unknown = manifest_distfiles
             .difference(&pkg_distfiles)
             .sorted()
@@ -108,6 +110,7 @@ impl EbuildPkgSetCheck for Check {
                 .report(filter);
         }
 
+        // flag pkg distfiles that don't have manifest entries
         let missing = pkg_distfiles
             .difference(&manifest_distfiles)
             .sorted()
@@ -119,6 +122,7 @@ impl EbuildPkgSetCheck for Check {
                 .report(filter);
         }
 
+        // flag non-distfile manifest entries for thin manifests
         if self.thin_manifests {
             let files: HashSet<_> = manifest
                 .iter()
