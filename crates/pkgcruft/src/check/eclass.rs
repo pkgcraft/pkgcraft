@@ -18,10 +18,14 @@ pub(super) static CHECK: super::Check = super::Check {
     context: &[],
 };
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
-    Check {
-        unused: repo.metadata().eclasses().iter().cloned().collect(),
-    }
+pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
+    let unused = if filter.enabled(EclassUnused) {
+        repo.metadata().eclasses().iter().cloned().collect()
+    } else {
+        Default::default()
+    };
+
+    Check { unused }
 }
 
 struct Check {

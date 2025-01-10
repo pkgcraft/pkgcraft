@@ -332,7 +332,7 @@ impl ToRunner<EbuildPkgRunner> for Check {
             CheckKind::DependencySlotMissing => {
                 Box::new(dependency_slot_missing::create(repo))
             }
-            CheckKind::Eclass => Box::new(eclass::create(repo)),
+            CheckKind::Eclass => Box::new(eclass::create(repo, filter)),
             CheckKind::Homepage => Box::new(homepage::create()),
             CheckKind::Iuse => Box::new(iuse::create(repo, filter)),
             CheckKind::Keywords => Box::new(keywords::create(repo, filter)),
