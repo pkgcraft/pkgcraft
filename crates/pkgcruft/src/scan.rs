@@ -298,9 +298,7 @@ mod tests {
         let restrict = repo
             .restrict_from_path("Filesdir/FilesUnused/FilesUnused-0.ebuild")
             .unwrap();
-        let scanner = Scanner::new(repo)
-            .checks([CheckKind::Filesdir])
-            .checks([CheckKind::Filesdir]);
+        let scanner = Scanner::new(repo).checks([CheckKind::Filesdir]);
         let result = scanner.run(restrict);
         assert_err_re!(result, "Filesdir: check requires package scope");
     }
