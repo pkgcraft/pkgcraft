@@ -216,7 +216,7 @@ mod tests {
     use pkgcraft::test::*;
     use tracing_test::traced_test;
 
-    use crate::check::CheckKind;
+    use crate::check::{CheckContext, CheckKind};
     use crate::report::ReportLevel;
     use crate::test::glob_reports;
 
@@ -314,8 +314,13 @@ mod tests {
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
 
-        // report
-        let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
+        // all
+        let scanner = Scanner::new(repo).reports([ReportSet::All]);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
+
+        // finalized
+        let scanner = Scanner::new(repo).reports([ReportSet::Finalize]);
         let reports = scanner.run(repo).unwrap().count();
         assert!(reports > 0);
 
@@ -324,8 +329,18 @@ mod tests {
         let reports = scanner.run(repo).unwrap().count();
         assert!(reports > 0);
 
+        // context
+        let scanner = Scanner::new(repo).reports([CheckContext::Optional]);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
+
         // level
         let scanner = Scanner::new(repo).reports([ReportLevel::Warning]);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
+
+        // report
+        let scanner = Scanner::new(repo).reports([ReportKind::DependencyDeprecated]);
         let reports = scanner.run(repo).unwrap().count();
         assert!(reports > 0);
 
