@@ -20,11 +20,24 @@ use crate::error::Error;
 #[derive(Display, EnumIter, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SourceKind {
-    EbuildPkg,
-    EbuildRawPkg,
     Cpn,
     Cpv,
+    EbuildPkg,
+    EbuildRawPkg,
     Repo,
+}
+
+impl SourceKind {
+    /// Return the source scope.
+    pub(crate) fn scope(&self) -> Scope {
+        match self {
+            Self::Cpn => Scope::Package,
+            Self::Cpv => Scope::Version,
+            Self::EbuildPkg => Scope::Version,
+            Self::EbuildRawPkg => Scope::Version,
+            Self::Repo => Scope::Repo,
+        }
+    }
 }
 
 /// Package filtering variants.

@@ -21,6 +21,17 @@ pub(super) enum Target {
     Repo,
 }
 
+impl Target {
+    /// Return the target scope.
+    fn scope(&self) -> Scope {
+        match self {
+            Self::Cpv(_) => Scope::Version,
+            Self::Cpn(_) => Scope::Package,
+            Self::Repo => Scope::Repo,
+        }
+    }
+}
+
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, CheckRunner>,
@@ -62,13 +73,14 @@ impl SyncCheckRunner {
         self.runners.values().flat_map(|r| r.iter())
     }
 
-    /// Run all checks in order of priority.
+    /// Run all checks that work with the target's scope.
     pub(super) fn run_checks(&self, target: &Target, filter: &ReportFilter) {
-        for (source, runner) in &self.runners {
-            // TODO: filter runners by comparing the target scope with the source scope
-            if !matches!(runner, CheckRunner::Repo(_)) {
-                runner.run_checks(target, filter, source);
-            }
+        for (source, runner) in self
+            .runners
+            .iter()
+            .filter(|(source, _)| target.scope() >= source.scope())
+        {
+            runner.run_checks(target, filter, source);
         }
     }
 
