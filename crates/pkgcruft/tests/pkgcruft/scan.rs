@@ -819,31 +819,29 @@ fn reports() {
             .code(2);
 
         for target in [
-            // set report
+            // aliases
+            "@all",
+            "@finalize",
+            // reports
             "DependencyDeprecated",
-            // set reports
             "DependencyDeprecated,EapiBanned,KeywordsUnsorted",
-            // remove report
             "-DependencyDeprecated",
-            // add report
             "+LiveOnly",
-            // set check
+            // checks
             "@Dependency",
-            // remove check
             "-@Dependency",
-            // add check
             "+@Live",
-            // set level
+            // contexts
+            "@gentoo",
+            "-@gentoo",
+            "+@optional",
+            // levels
             "@error",
-            // remove level
             "-@warning",
-            // add level
             "+@info",
-            // set scope
+            // scopes
             "@category",
-            // remove scope
             "-@package",
-            // add scope
             "+@version",
         ] {
             let reports = cmd("pkgcruft scan -R json")
