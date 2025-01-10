@@ -280,6 +280,29 @@ mod tests {
         let scanner = Scanner::new(repo).checks(checks);
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
+
+        // filter failure
+        let latest = "latest".parse().unwrap();
+        let scanner = Scanner::new(repo)
+            .checks([CheckKind::Filesdir])
+            .filters([latest]);
+        let result = scanner.run(repo);
+        assert_err_re!(result, "Filesdir: check requires no filters");
+
+        // context failure
+        let scanner = Scanner::new(repo).checks([CheckKind::PythonUpdate]);
+        let result = scanner.run(repo);
+        assert_err_re!(result, "PythonUpdate: check requires gentoo-inherited context");
+
+        // scope failure
+        let restrict = repo
+            .restrict_from_path("Filesdir/FilesUnused/FilesUnused-0.ebuild")
+            .unwrap();
+        let scanner = Scanner::new(repo)
+            .checks([CheckKind::Filesdir])
+            .checks([CheckKind::Filesdir]);
+        let result = scanner.run(restrict);
+        assert_err_re!(result, "Filesdir: check requires package scope");
     }
 
     #[test]
