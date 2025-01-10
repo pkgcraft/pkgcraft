@@ -208,6 +208,9 @@ pub enum ReportKind {
     /// Package has stable keywords with an unstable EAPI.
     EapiUnstable,
 
+    /// EAPIs that are unused by ebuilds in the repo.
+    EapiUnused,
+
     /// Ebuild file has a mismatched package name or invalid version.
     EbuildNameInvalid,
 
@@ -400,6 +403,7 @@ impl ReportKind {
             Self::EapiFormat => Style,
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
+            Self::EapiUnused => Warning,
             Self::EbuildNameInvalid => Error,
             Self::EbuildVersionsEqual => Error,
             Self::EclassUnused => Warning,
@@ -463,6 +467,7 @@ impl ReportKind {
             Self::EapiFormat => Version,
             Self::EapiStale => Version,
             Self::EapiUnstable => Version,
+            Self::EapiUnused => Repo,
             Self::EbuildNameInvalid => Package,
             Self::EbuildVersionsEqual => Package,
             Self::EclassUnused => Repo,
@@ -510,17 +515,64 @@ impl ReportKind {
 
     /// Return true if the report supports post-run finalization.
     pub(crate) fn finalize(&self) -> bool {
-        matches!(
-            self,
-            Self::ArchesUnused
-                | Self::EclassUnused
-                | Self::LicensesUnused
-                | Self::ManifestCollide
-                | Self::ManifestConflict
-                | Self::MirrorsUnused
-                | Self::PackageDeprecatedUnused
-                | Self::UseGlobalUnused
-        )
+        // all variants are explicitly listed so new entries must be manually verified
+        match self {
+            Self::ArchesUnused => true,
+            Self::EapiUnused => true,
+            Self::EclassUnused => true,
+            Self::LicensesUnused => true,
+            Self::ManifestCollide => true,
+            Self::ManifestConflict => true,
+            Self::MirrorsUnused => true,
+            Self::PackageDeprecatedUnused => true,
+            Self::UseGlobalUnused => true,
+
+            Self::Builtin => false,
+            Self::DependencyDeprecated => false,
+            Self::DependencyInvalid => false,
+            Self::DependencyRevisionMissing => false,
+            Self::DependencySlotMissing => false,
+            Self::EapiBanned => false,
+            Self::EapiDeprecated => false,
+            Self::EapiFormat => false,
+            Self::EapiStale => false,
+            Self::EapiUnstable => false,
+            Self::EbuildNameInvalid => false,
+            Self::EbuildVersionsEqual => false,
+            Self::FileUnknown => false,
+            Self::FilesUnused => false,
+            Self::HeaderInvalid => false,
+            Self::HomepageInvalid => false,
+            Self::IuseInvalid => false,
+            Self::KeywordsDropped => false,
+            Self::KeywordsLive => false,
+            Self::KeywordsOverlapping => false,
+            Self::KeywordsUnsorted => false,
+            Self::LicenseDeprecated => false,
+            Self::LicenseInvalid => false,
+            Self::LiveOnly => false,
+            Self::ManifestInvalid => false,
+            Self::MetadataError => false,
+            Self::Optfeature => false,
+            Self::PackageOverride => false,
+            Self::PropertiesInvalid => false,
+            Self::PythonUpdate => false,
+            Self::RepoCategoriesUnused => false,
+            Self::RepoCategoryEmpty => false,
+            Self::RepoPackageEmpty => false,
+            Self::RestrictInvalid => false,
+            Self::RestrictMissing => false,
+            Self::RubyUpdate => false,
+            Self::UnstableOnly => false,
+            Self::UriInvalid => false,
+            Self::UseLocalDescMissing => false,
+            Self::UseLocalGlobal => false,
+            Self::UseLocalUnsorted => false,
+            Self::UseLocalUnused => false,
+            Self::VariableOrder => false,
+            Self::WhitespaceInvalid => false,
+            Self::WhitespaceUnneeded => false,
+        }
     }
 
     /// Return the sorted set of reports enabled by default for an ebuild repo.

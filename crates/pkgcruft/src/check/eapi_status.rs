@@ -1,9 +1,12 @@
+use dashmap::DashSet;
+use itertools::Itertools;
+use pkgcraft::eapi::{EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
-use crate::report::ReportKind::{EapiBanned, EapiDeprecated};
+use crate::report::ReportKind::{EapiBanned, EapiDeprecated, EapiUnused};
 use crate::source::SourceKind;
 
 use super::{CheckKind, EbuildRawPkgCheck};
@@ -12,16 +15,29 @@ pub(super) static CHECK: super::Check = super::Check {
     kind: CheckKind::EapiStatus,
     scope: Scope::Version,
     source: SourceKind::EbuildRawPkg,
-    reports: &[EapiBanned, EapiDeprecated],
+    reports: &[EapiBanned, EapiDeprecated, EapiUnused],
     context: &[],
 };
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildRawPkgCheck {
-    Check { repo: repo.clone() }
+pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildRawPkgCheck {
+    let banned = &repo.metadata().config.eapis_banned;
+    let unused = if filter.enabled(EapiUnused) && !banned.is_empty() {
+        EAPIS_OFFICIAL
+            .iter()
+            .filter(|x| !banned.contains(x.as_str()))
+            .filter(|&x| x != &*EAPI_LATEST_OFFICIAL)
+            .map(|x| x.to_string())
+            .collect()
+    } else {
+        Default::default()
+    };
+
+    Check { repo: repo.clone(), unused }
 }
 
 struct Check {
     repo: EbuildRepo,
+    unused: DashSet<String>,
 }
 
 super::register!(Check);
@@ -34,13 +50,34 @@ impl EbuildRawPkgCheck for Check {
         } else if self.repo.metadata().config.eapis_banned.contains(eapi) {
             EapiBanned.version(pkg).message(eapi).report(filter);
         }
+
+        if filter.enabled(EapiUnused) {
+            self.unused.remove(eapi);
+        }
+    }
+
+    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+        if filter.enabled(EapiUnused) && !self.unused.is_empty() {
+            let unused = self
+                .unused
+                .iter()
+                .map(|x| x.to_string())
+                .sorted()
+                .join(", ");
+            EapiUnused.repo(repo).message(unused).report(filter);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use pkgcraft::config::Config;
+    use pkgcraft::repo::ebuild::EbuildRepoBuilder;
     use pkgcraft::test::*;
 
+    use crate::report::Report;
     use crate::scan::Scanner;
     use crate::test::glob_reports;
 
@@ -55,6 +92,29 @@ mod tests {
         let scanner = Scanner::new(repo).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, expected);
+
+        // TODO: move this to shared test data
+        // repo with unused EAPI
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let layout = indoc::indoc! {"
+            eapis-banned = 0 1 2 3 4 5 6
+        "};
+        fs::write(temp.path().join("metadata/layout.conf"), layout).unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let mut config = Config::new("pkgcraft", "");
+        let repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        config.finalize().unwrap();
+        let scanner = Scanner::new(&repo).checks([CHECK]);
+        let reports = scanner.run(&repo).unwrap();
+        let expected = vec![Report::from_json(
+            r#"{"kind":"EapiUnused","scope":{"Repo":"test"},"message":"7"}"#,
+        )
+        .unwrap()];
         assert_unordered_eq!(reports, expected);
 
         // secondary with no banned or deprecated EAPIs set

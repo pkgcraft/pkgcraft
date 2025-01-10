@@ -364,10 +364,10 @@ impl ToRunner<EbuildPkgSetRunner> for Check {
 }
 
 impl ToRunner<EbuildRawPkgRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> EbuildRawPkgRunner {
+    fn to_runner(&self, repo: &EbuildRepo, filter: &ReportFilter) -> EbuildRawPkgRunner {
         match &self.kind {
             CheckKind::Commands => Box::new(commands::create()),
-            CheckKind::EapiStatus => Box::new(eapi_status::create(repo)),
+            CheckKind::EapiStatus => Box::new(eapi_status::create(repo, filter)),
             CheckKind::Header => Box::new(header::create()),
             CheckKind::VariableOrder => Box::new(variable_order::create()),
             CheckKind::Whitespace => Box::new(whitespace::create()),
