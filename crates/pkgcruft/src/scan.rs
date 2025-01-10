@@ -18,6 +18,7 @@ use crate::source::PkgFilter;
 pub struct Scanner {
     enabled: IndexSet<ReportKind>,
     selected: IndexSet<ReportKind>,
+    selected_checks: IndexSet<Check>,
     pub(crate) default: IndexSet<ReportKind>,
     pub(crate) supported: IndexSet<ReportKind>,
     pub(crate) jobs: usize,
@@ -35,6 +36,7 @@ impl Scanner {
         Self {
             enabled: default.clone(),
             selected: Default::default(),
+            selected_checks: Default::default(),
             default,
             supported: ReportKind::supported(repo, Scope::Repo),
             jobs: bounded_jobs(0),
@@ -58,13 +60,13 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<Check>,
     {
-        self.enabled = values
-            .into_iter()
-            .map(Into::into)
+        self.selected_checks = values.into_iter().map(Into::into).collect();
+        self.enabled = self
+            .selected_checks
+            .iter()
             .flat_map(|c| c.reports)
             .copied()
             .collect();
-        self.selected = self.enabled.clone();
         self
     }
 
@@ -86,6 +88,9 @@ impl Scanner {
             .flat_map(|x| x.expand(&self.default, &self.supported))
             .collect();
         self.selected = self.enabled.clone();
+        if self.selected_checks.is_empty() {
+            self.selected_checks = Check::iter_report(&self.selected).collect();
+        }
         self
     }
 
@@ -97,6 +102,9 @@ impl Scanner {
     ) -> Self {
         self.enabled = enabled;
         self.selected = selected;
+        if self.selected_checks.is_empty() {
+            self.selected_checks = Check::iter_report(&self.selected).collect();
+        }
         self
     }
 
@@ -171,14 +179,14 @@ impl Scanner {
             .try_collect()?;
 
         // determine enabled checks -- errors if incompatible check is selected
-        let selected = Check::iter_report(&self.selected).collect();
+        let selected = &self.selected_checks;
         let checks: IndexSet<_> = Check::iter_report(&enabled)
             .unique()
             .sorted()
             .map(|check| {
                 if filtered && check.filtered() {
                     Err(Error::CheckInit(check, "requires no filters".to_string()))
-                } else if let Some(context) = check.skipped(&self.repo, &selected) {
+                } else if let Some(context) = check.skipped(&self.repo, selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
                 } else if let Some(scope) = check.scoped(scan_scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))

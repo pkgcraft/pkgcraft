@@ -8,6 +8,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::Utf8Path;
+use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
@@ -283,7 +284,7 @@ impl Check {
     pub(crate) fn skipped(
         &self,
         repo: &EbuildRepo,
-        selected: &HashSet<Self>,
+        selected: &IndexSet<Self>,
     ) -> Option<CheckContext> {
         self.context.iter().copied().find(|context| {
             match context {
