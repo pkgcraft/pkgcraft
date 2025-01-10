@@ -64,8 +64,8 @@ impl SyncCheckRunner {
 
     /// Run all checks in order of priority.
     pub(super) fn run_checks(&self, target: &Target, filter: &ReportFilter) {
-        for runner in self.runners.values() {
-            runner.run_checks(target, filter);
+        for (source, runner) in &self.runners {
+            runner.run_checks(target, filter, source);
         }
     }
 
@@ -147,14 +147,15 @@ impl CheckRunner {
     }
 
     /// Run all check runners in order of priority.
-    fn run_checks(&self, target: &Target, filter: &ReportFilter) {
+    fn run_checks(&self, target: &Target, filter: &ReportFilter, source: &SourceKind) {
         match (self, target) {
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
             (Self::Cpv(r), Target::Cpn(cpn)) => r.run_checks(cpn, filter),
             (Self::Repo(r), Target::Repo) => r.run_checks(filter),
-            _ => (),
+            (Self::Repo(_), Target::Cpn(_)) => (),
+            _ => unreachable!("incompatible target {target:?} for source: {source}"),
         }
     }
 
