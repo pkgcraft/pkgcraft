@@ -61,13 +61,13 @@ impl Check {
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
-        let manifest = match self.repo.metadata().pkg_manifest_parse(cpn) {
-            Ok(value) => value,
-            Err(UnversionedPkg { err, .. }) => {
+        // parse manifest
+        let result = self.repo.metadata().pkg_manifest_parse(cpn);
+        let Ok(manifest) = result else {
+            if let Err(UnversionedPkg { err, .. }) = result {
                 ManifestInvalid.package(cpn).message(err).report(filter);
-                return;
             }
-            Err(e) => unreachable!("{cpn}: unhandled manifest error: {e}"),
+            return;
         };
 
         let mut manifest_distfiles = HashSet::new();
