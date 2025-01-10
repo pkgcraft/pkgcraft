@@ -86,9 +86,11 @@ impl SyncCheckRunner {
 
     /// Run a specific check.
     pub(super) fn run_check(&self, check: Check, target: &Target, filter: &ReportFilter) {
+        let source = check.source;
+        assert!(target.scope() >= source.scope());
         let runner = self
             .runners
-            .get(&check.source)
+            .get(&source)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         runner.run_check(&check, target, filter);
     }
