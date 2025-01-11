@@ -193,6 +193,7 @@ impl CheckRunner {
         match self {
             Self::EbuildPkg(r) => r.finish(check, filter),
             Self::EbuildRawPkg(r) => r.finish(check, filter),
+            Self::Repo(r) => r.finish(check, filter),
             _ => unreachable!("unsupported check finalization: {check}"),
         }
     }
@@ -489,5 +490,16 @@ impl RepoCheckRunner {
         let now = Instant::now();
         runner.run(&self.repo, filter);
         debug!("{check}: {} {:?}", self.repo, now.elapsed());
+    }
+
+    /// Finish a check for a repo.
+    fn finish(&self, check: &Check, filter: &ReportFilter) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.finish(&self.repo, filter);
+        debug!("{check}: finish: {:?}", now.elapsed());
     }
 }

@@ -27,6 +27,7 @@ mod eclass;
 mod filesdir;
 mod header;
 mod homepage;
+mod ignore;
 mod iuse;
 mod keywords;
 mod keywords_dropped;
@@ -73,6 +74,7 @@ pub enum Check {
     Filesdir,
     Header,
     Homepage,
+    Ignore,
     Iuse,
     Keywords,
     KeywordsDropped,
@@ -114,6 +116,7 @@ impl Check {
             Self::Eclass => &[EclassUnused],
             Self::Header => &[HeaderInvalid],
             Self::Homepage => &[HomepageInvalid],
+            Self::Ignore => &[IgnoreUnused],
             Self::Iuse => &[IuseInvalid, UseGlobalUnused],
             Self::Keywords => &[
                 EapiUnstable,
@@ -157,6 +160,7 @@ impl Check {
             Self::Eclass => Scope::Version,
             Self::Header => Scope::Version,
             Self::Homepage => Scope::Version,
+            Self::Ignore => Scope::Repo,
             Self::Iuse => Scope::Version,
             Self::Keywords => Scope::Version,
             Self::KeywordsDropped => Scope::Package,
@@ -192,6 +196,7 @@ impl Check {
             Self::Eclass => SourceKind::EbuildPkg,
             Self::Header => SourceKind::EbuildRawPkg,
             Self::Homepage => SourceKind::EbuildPkg,
+            Self::Ignore => SourceKind::Repo,
             Self::Iuse => SourceKind::EbuildPkg,
             Self::Keywords => SourceKind::EbuildPkg,
             Self::KeywordsDropped => SourceKind::EbuildPkg,
@@ -219,6 +224,7 @@ impl Check {
         match self {
             Self::Duplicates => &[Optional, Overlay],
             Self::Header => &[Gentoo],
+            Self::Ignore => &[Optional],
             Self::Live => &[Gentoo],
             Self::PythonUpdate => &[GentooInherited],
             Self::RubyUpdate => &[GentooInherited],
@@ -343,6 +349,9 @@ use register;
 /// Run a check against a repo.
 pub(crate) trait RepoCheck: fmt::Display {
     fn run(&self, repo: &EbuildRepo, filter: &ReportFilter);
+    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish")
+    }
 }
 pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 
@@ -476,6 +485,7 @@ impl ToRunner<CpvRunner> for Check {
 impl ToRunner<RepoRunner> for Check {
     fn to_runner(&self, _repo: &EbuildRepo, _filter: &ReportFilter) -> RepoRunner {
         match self {
+            Self::Ignore => Box::new(ignore::create()),
             Self::RepoLayout => Box::new(repo_layout::create()),
             _ => unreachable!("unsupported check: {self}"),
         }

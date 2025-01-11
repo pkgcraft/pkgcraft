@@ -1,10 +1,10 @@
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
-use dashmap::{mapref::one::Ref, DashMap};
-use indexmap::IndexSet;
+use dashmap::{mapref::one::RefMut, DashMap};
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::FilterLines;
 use rayon::prelude::*;
@@ -17,7 +17,7 @@ use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 /// generated.
 pub struct Ignore {
     repo: EbuildRepo,
-    cache: DashMap<Utf8PathBuf, IndexSet<ReportKind>>,
+    cache: DashMap<Utf8PathBuf, IndexMap<ReportKind, (ReportSet, bool)>>,
     default: IndexSet<ReportKind>,
     supported: IndexSet<ReportKind>,
 }
@@ -36,18 +36,28 @@ impl Ignore {
     /// Parse the ignore data from a line.
     ///
     /// This supports comma-separated values with optional whitespace.
-    fn parse_line<'a>(&'a self, data: &'a str) -> impl Iterator<Item = ReportKind> + 'a {
+    fn parse_line<'a>(
+        &'a self,
+        data: &'a str,
+    ) -> impl Iterator<Item = (ReportKind, (ReportSet, bool))> + 'a {
         data.split(',')
             .filter_map(|x| x.trim().parse::<ReportSet>().ok())
-            .flat_map(move |x| x.expand(&self.default, &self.supported))
+            .flat_map(move |set| {
+                set.expand(&self.default, &self.supported)
+                    .map(move |kind| (kind, (set, false)))
+            })
     }
 
     /// Load ignore data from ebuild lines or files.
-    fn load_data(&self, scope: Scope, relpath: Utf8PathBuf) -> IndexSet<ReportKind> {
+    fn load_data(
+        &self,
+        scope: Scope,
+        relpath: Utf8PathBuf,
+    ) -> IndexMap<ReportKind, (ReportSet, bool)> {
         let path = self.repo.path().join(relpath);
         if scope == Scope::Version {
             // TODO: use BufRead to avoid loading the entire ebuild file?
-            let mut ignore = IndexSet::new();
+            let mut ignore = IndexMap::new();
             for line in fs::read_to_string(path).unwrap_or_default().lines() {
                 let line = line.trim();
                 if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
@@ -75,12 +85,12 @@ impl Ignore {
     pub fn generate<'a, 'b>(
         &'a self,
         scope: &'b ReportScope,
-    ) -> impl Iterator<Item = Ref<'a, Utf8PathBuf, IndexSet<ReportKind>>> + use<'a, 'b> {
+    ) -> impl Iterator<Item = RefMut<'a, Utf8PathBuf, IndexMap<ReportKind, (ReportSet, bool)>>>
+           + use<'a, 'b> {
         IgnorePaths::new(scope).map(move |(scope, relpath)| {
             self.cache
                 .entry(relpath.clone())
                 .or_insert_with(|| self.load_data(scope, relpath))
-                .downgrade()
         })
     }
 
@@ -89,8 +99,48 @@ impl Ignore {
     /// For example, a version scope report will check for repo, category, package, and
     /// ebuild ignore data stopping at the first match.
     pub fn ignored(&self, report: &Report) -> bool {
-        self.generate(report.scope())
-            .any(|x| x.contains(&report.kind))
+        self.generate(report.scope()).any(|mut entry| {
+            if let Some((_, used)) = entry.get_mut(&report.kind) {
+                *used = true;
+                true
+            } else {
+                false
+            }
+        })
+    }
+
+    /// Return the mapping of unused ignore directives in the repo.
+    pub fn unused(&self) -> IndexMap<Utf8PathBuf, IndexSet<ReportSet>> {
+        // TODO: replace with parallel Cpv iterator
+        // make sure the cache is fully populated
+        self.repo
+            .iter_cpv()
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .for_each(|cpv| {
+                let scope = ReportScope::Version(cpv, None);
+                self.generate(&scope).count();
+            });
+
+        // find unused entries
+        let mut unused = IndexMap::new();
+        for entry in &self.cache {
+            let (path, map) = entry.pair();
+            let values: IndexSet<_> = map
+                .values()
+                .filter_map(|(set, used)| if !used { Some(*set) } else { None })
+                .collect();
+            if !values.is_empty() {
+                let path = if path.extension().is_some() {
+                    path.clone()
+                } else {
+                    path.join(".pkgcruft-ignore")
+                };
+                unused.insert(path, values);
+            }
+        }
+        unused.sort_keys();
+        unused
     }
 }
 
@@ -104,9 +154,9 @@ impl fmt::Display for Ignore {
 
         entries.sort_by(|a, b| a.key().cmp(b.key()));
         for entry in entries {
-            let (path, kinds) = entry.pair();
+            let (path, map) = entry.pair();
             let path = if path == "" { "repo" } else { path.as_str() };
-            let kinds = kinds.iter().join(", ");
+            let kinds = map.keys().join(", ");
             writeln!(f, "{path}: {kinds}")?;
         }
 

@@ -149,8 +149,9 @@ impl Scanner {
         info!("scope: {scan_scope}");
         info!("target: {restrict:?}");
 
-        // determine if any package filtering is enabled
-        let filtered = !self.filters.is_empty();
+        // determine if any filtering is enabled
+        let pkg_filtering = !self.filters.is_empty();
+        let report_filtering = self.enabled != self.supported;
 
         // determine enabled and selected reports
         let enabled: HashSet<_> = self
@@ -161,15 +162,17 @@ impl Scanner {
                 let scope = report.scope();
                 if scan_scope < scope {
                     Err(Error::ReportInit(report, format!("requires {scope} scope")))
-                } else if filtered && report.finalize() {
-                    Err(Error::ReportInit(report, "requires no filters".to_string()))
+                } else if pkg_filtering && report.finalize() {
+                    Err(Error::ReportInit(report, "requires no package filtering".to_string()))
+                } else if report_filtering && report == ReportKind::IgnoreUnused {
+                    Err(Error::ReportInit(report, "requires no report filtering".to_string()))
                 } else {
                     Ok(report)
                 }
             })
             .filter(|result| {
                 if let Err(Error::ReportInit(report, msg)) = &result {
-                    if !self.selected.contains(report) {
+                    if !self.selected.contains(report) || report == &ReportKind::IgnoreUnused {
                         warn!("skipping {report} report: {msg}");
                         return false;
                     }
@@ -184,8 +187,8 @@ impl Scanner {
             .unique()
             .sorted()
             .map(|check| {
-                if filtered && check.filtered() {
-                    Err(Error::CheckInit(check, "requires no filters".to_string()))
+                if pkg_filtering && check.filtered() {
+                    Err(Error::CheckInit(check, "requires no package filtering".to_string()))
                 } else if let Some(context) = check.skipped(&self.repo, selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
                 } else if let Some(scope) = check.scoped(scan_scope) {
@@ -287,7 +290,7 @@ mod tests {
             .checks([Check::Filesdir])
             .filters([latest]);
         let result = scanner.run(repo);
-        assert_err_re!(result, "Filesdir: check requires no filters");
+        assert_err_re!(result, "Filesdir: check requires no package filtering");
 
         // context failure
         let scanner = Scanner::new(repo).checks([Check::PythonUpdate]);

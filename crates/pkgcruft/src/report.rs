@@ -109,6 +109,20 @@ impl FromStr for ReportSet {
     }
 }
 
+impl fmt::Display for ReportSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::All => write!(f, "@all"),
+            Self::Finalize => write!(f, "@finalize"),
+            Self::Check(check) => write!(f, "@{check}"),
+            Self::Context(context) => write!(f, "@{context}"),
+            Self::Level(level) => write!(f, "@{level}"),
+            Self::Report(report) => write!(f, "{report}"),
+            Self::Scope(scope) => write!(f, "@{scope}"),
+        }
+    }
+}
+
 impl ReportSet {
     /// Return true if the related reports should be added to the selected set.
     pub fn selected(&self) -> bool {
@@ -219,6 +233,9 @@ pub enum ReportKind {
 
     /// Ebuild has an invalid homepage.
     HomepageInvalid,
+
+    /// Repo has unused pkgcruft ignore directives.
+    IgnoreUnused,
 
     /// Ebuild has an invalid USE flag.
     IuseInvalid,
@@ -399,6 +416,7 @@ impl ReportKind {
             Self::FilesUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::HomepageInvalid => Error,
+            Self::IgnoreUnused => Warning,
             Self::IuseInvalid => Error,
             Self::KeywordsDropped => Warning,
             Self::KeywordsLive => Warning,
@@ -463,6 +481,7 @@ impl ReportKind {
             Self::FilesUnused => Package,
             Self::HeaderInvalid => Version,
             Self::HomepageInvalid => Version,
+            Self::IgnoreUnused => Repo,
             Self::IuseInvalid => Version,
             Self::KeywordsDropped => Version,
             Self::KeywordsLive => Version,
@@ -509,6 +528,7 @@ impl ReportKind {
             Self::EapiUnused => true,
             Self::EclassUnused => true,
             Self::LicensesUnused => true,
+            Self::IgnoreUnused => true,
             Self::ManifestCollide => true,
             Self::ManifestConflict => true,
             Self::MirrorsUnused => true,

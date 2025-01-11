@@ -77,7 +77,7 @@ pub(crate) struct ReportFilter {
     failed: Arc<AtomicBool>,
     sender: ReportSender,
     force: bool,
-    ignore: Ignore,
+    pub(crate) ignore: Ignore,
 }
 
 impl ReportFilter {
@@ -130,14 +130,11 @@ fn pkg_producer(
             tx.send((Some(check), Target::Repo)).ok();
         }
 
-        // return if no package checks are selected
-        if !runner.checks().any(|c| c.scope() <= Scope::Package) {
-            return;
-        }
-
         // parallelize running checks per package
-        for cpn in repo.iter_cpn_restrict(&restrict) {
-            tx.send((None, Target::Cpn(cpn))).ok();
+        if runner.checks().any(|c| c.scope() <= Scope::Package) {
+            for cpn in repo.iter_cpn_restrict(&restrict) {
+                tx.send((None, Target::Cpn(cpn))).ok();
+            }
         }
 
         // wait for all parallelized checks to finish
