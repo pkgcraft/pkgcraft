@@ -14,7 +14,7 @@ use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
-use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::error::Error;
 use crate::iter::ReportFilter;
@@ -57,7 +57,6 @@ mod whitespace;
     Display,
     EnumIter,
     EnumString,
-    VariantNames,
     Debug,
     PartialEq,
     Eq,

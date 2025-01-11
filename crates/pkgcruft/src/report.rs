@@ -12,7 +12,7 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
 use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
+use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::check::{Check, CheckContext, CheckKind};
 use crate::iter::ReportFilter;
@@ -20,18 +20,7 @@ use crate::Error;
 
 /// The severity of the report.
 #[derive(
-    Display,
-    EnumIter,
-    EnumString,
-    VariantNames,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Copy,
-    Clone,
+    Display, EnumIter, EnumString, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum ReportLevel {
@@ -161,7 +150,6 @@ impl ReportSet {
     Display,
     EnumIter,
     EnumString,
-    VariantNames,
     Debug,
     PartialEq,
     Eq,
