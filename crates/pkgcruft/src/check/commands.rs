@@ -3,23 +3,13 @@ use std::collections::HashMap;
 use pkgcraft::bash::Node;
 use pkgcraft::dep::Dep;
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage};
-use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{Builtin, Optfeature};
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildRawPkgCheck};
-
-pub(crate) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Commands,
-    scope: Scope::Version,
-    source: SourceKind::EbuildRawPkg,
-    reports: &[Builtin, Optfeature],
-    context: &[],
-};
+use super::EbuildRawPkgCheck;
 
 type CommandFn =
     for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ReportFilter);
@@ -39,6 +29,8 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
 
     check
 }
+
+static CHECK: super::Check = super::Check::Commands;
 
 struct Check {
     commands: HashMap<String, CommandFn>,

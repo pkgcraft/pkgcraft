@@ -3,21 +3,11 @@ use std::collections::HashSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::RestrictInvalid;
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Restrict,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[RestrictInvalid],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
@@ -27,6 +17,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
             .collect(),
     }
 }
+
+static CHECK: super::Check = super::Check::Restrict;
 
 struct Check {
     allowed: HashSet<String>,

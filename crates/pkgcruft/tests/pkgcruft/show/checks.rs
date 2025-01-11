@@ -2,7 +2,7 @@ use std::env;
 
 use itertools::Itertools;
 use pkgcraft::test::{cmd, test_data};
-use pkgcruft::check::CheckKind;
+use pkgcruft::check::Check;
 use predicates::prelude::*;
 use strum::IntoEnumIterator;
 
@@ -12,7 +12,7 @@ fn all() {
         .assert()
         .stdout(indoc::formatdoc! {"
             {}
-        ", CheckKind::iter().join("\n")})
+        ", Check::iter().join("\n")})
         .stderr("")
         .success();
 }

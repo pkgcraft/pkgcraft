@@ -64,7 +64,7 @@ impl Scanner {
         self.enabled = self
             .selected_checks
             .iter()
-            .flat_map(|c| c.reports)
+            .flat_map(|c| c.reports())
             .copied()
             .collect();
         self
@@ -216,7 +216,7 @@ mod tests {
     use pkgcraft::test::*;
     use tracing_test::traced_test;
 
-    use crate::check::{CheckContext, CheckKind};
+    use crate::check::{Check, CheckContext};
     use crate::report::ReportLevel;
     use crate::test::glob_reports;
 
@@ -270,7 +270,7 @@ mod tests {
         let path = repo.path();
 
         // specific checks
-        let scanner = Scanner::new(repo).checks([CheckKind::Dependency]);
+        let scanner = Scanner::new(repo).checks([Check::Dependency]);
         let expected = glob_reports!("{path}/Dependency/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
@@ -284,13 +284,13 @@ mod tests {
         // filter failure
         let latest = "latest".parse().unwrap();
         let scanner = Scanner::new(repo)
-            .checks([CheckKind::Filesdir])
+            .checks([Check::Filesdir])
             .filters([latest]);
         let result = scanner.run(repo);
         assert_err_re!(result, "Filesdir: check requires no filters");
 
         // context failure
-        let scanner = Scanner::new(repo).checks([CheckKind::PythonUpdate]);
+        let scanner = Scanner::new(repo).checks([Check::PythonUpdate]);
         let result = scanner.run(repo);
         assert_err_re!(result, "PythonUpdate: check requires gentoo-inherited context");
 
@@ -298,7 +298,7 @@ mod tests {
         let restrict = repo
             .restrict_from_path("Filesdir/FilesUnused/FilesUnused-0.ebuild")
             .unwrap();
-        let scanner = Scanner::new(repo).checks([CheckKind::Filesdir]);
+        let scanner = Scanner::new(repo).checks([Check::Filesdir]);
         let result = scanner.run(restrict);
         assert_err_re!(result, "Filesdir: check requires package scope");
     }
@@ -325,7 +325,7 @@ mod tests {
         assert!(reports > 0);
 
         // check
-        let scanner = Scanner::new(repo).reports([CheckKind::Dependency]);
+        let scanner = Scanner::new(repo).reports([Check::Dependency]);
         let reports = scanner.run(repo).unwrap().count();
         assert!(reports > 0);
 
@@ -478,7 +478,7 @@ mod tests {
         assert!(scanner.failed());
 
         // fail on specified check variant
-        let scanner = scanner.exit([CheckKind::Dependency]);
+        let scanner = scanner.exit([Check::Dependency]);
         scanner.run(repo).unwrap().count();
         assert!(scanner.failed());
 

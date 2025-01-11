@@ -7,22 +7,12 @@ use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::RubyUpdate;
-use crate::source::SourceKind;
 use crate::utils::{use_expand, use_starts_with};
 
-use super::{CheckContext, CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::RubyUpdate,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[RubyUpdate],
-    context: &[CheckContext::GentooInherited],
-};
+use super::EbuildPkgCheck;
 
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
@@ -33,6 +23,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
         targets: OnceLock::new(),
     }
 }
+
+static CHECK: super::Check = super::Check::RubyUpdate;
 
 struct Check {
     repo: EbuildRepo,

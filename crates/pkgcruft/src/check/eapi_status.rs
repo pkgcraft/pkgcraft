@@ -3,21 +3,11 @@ use itertools::Itertools;
 use pkgcraft::eapi::{EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated, EapiUnused};
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildRawPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::EapiStatus,
-    scope: Scope::Version,
-    source: SourceKind::EbuildRawPkg,
-    reports: &[EapiBanned, EapiDeprecated, EapiUnused],
-    context: &[],
-};
+use super::EbuildRawPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildRawPkgCheck {
     let banned = &repo.metadata().config.eapis_banned;
@@ -34,6 +24,8 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildRaw
 
     Check { repo: repo.clone(), unused }
 }
+
+static CHECK: super::Check = super::Check::EapiStatus;
 
 struct Check {
     repo: EbuildRepo,

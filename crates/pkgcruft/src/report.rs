@@ -14,7 +14,7 @@ use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
-use crate::check::{Check, CheckContext, CheckKind};
+use crate::check::{Check, CheckContext};
 use crate::iter::ReportFilter;
 use crate::Error;
 
@@ -55,9 +55,9 @@ pub enum ReportSet {
     Scope(Scope),
 }
 
-impl From<CheckKind> for ReportSet {
-    fn from(value: CheckKind) -> Self {
-        Self::Check(value.into())
+impl From<Check> for ReportSet {
+    fn from(value: Check) -> Self {
+        Self::Check(value)
     }
 }
 
@@ -124,11 +124,11 @@ impl ReportSet {
         match self {
             Self::All => Box::new(supported.iter().copied()),
             Self::Finalize => Box::new(supported.iter().filter(|r| r.finalize()).copied()),
-            Self::Check(check) => Box::new(check.reports.iter().copied()),
+            Self::Check(check) => Box::new(check.reports().iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter_report(supported)
-                    .filter(move |x| x.context.contains(&context))
-                    .flat_map(|x| x.reports)
+                    .filter(move |x| x.context().contains(&context))
+                    .flat_map(|x| x.reports())
                     .copied(),
             ),
             Self::Level(level) => {
@@ -566,7 +566,7 @@ impl ReportKind {
     /// Return the sorted set of reports enabled by default for an ebuild repo.
     pub fn defaults(repo: &EbuildRepo) -> IndexSet<Self> {
         let mut set: IndexSet<_> = Check::iter_default(repo)
-            .flat_map(|x| x.reports)
+            .flat_map(|x| x.reports())
             .copied()
             .collect();
         set.sort();
@@ -577,7 +577,7 @@ impl ReportKind {
     pub fn supported<T: Into<Scope>>(repo: &EbuildRepo, value: T) -> IndexSet<Self> {
         let scope = value.into();
         let mut set: IndexSet<_> = Check::iter_supported(repo, scope)
-            .flat_map(|c| c.reports)
+            .flat_map(|c| c.reports())
             .filter(|r| scope >= r.scope())
             .copied()
             .collect();

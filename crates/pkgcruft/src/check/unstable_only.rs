@@ -4,22 +4,12 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::UnstableOnly;
-use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, EbuildPkgSetCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::UnstableOnly,
-    scope: Scope::Package,
-    source: SourceKind::EbuildPkg,
-    reports: &[UnstableOnly],
-    context: &[CheckContext::Optional],
-};
+use super::EbuildPkgSetCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
@@ -31,6 +21,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
             .unwrap_or_default(),
     }
 }
+
+static CHECK: super::Check = super::Check::UnstableOnly;
 
 struct Check {
     stable: IndexSet<Arch>,

@@ -1,21 +1,11 @@
 use std::collections::HashSet;
 
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildRawPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Whitespace,
-    scope: Scope::Version,
-    source: SourceKind::EbuildRawPkg,
-    reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
-    context: &[],
-};
+use super::EbuildRawPkgCheck;
 
 pub(super) fn create() -> impl EbuildRawPkgCheck {
     Check {
@@ -25,6 +15,8 @@ pub(super) fn create() -> impl EbuildRawPkgCheck {
             .collect(),
     }
 }
+
+static CHECK: super::Check = super::Check::Whitespace;
 
 struct Check {
     allowed_leading_whitespace: HashSet<String>,

@@ -1,26 +1,18 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::Package;
-use pkgcraft::restrict::Scope;
 use pkgcraft::types::OrderedMap;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::EapiStale;
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgSetCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::EapiStale,
-    scope: Scope::Package,
-    source: SourceKind::EbuildPkg,
-    reports: &[EapiStale],
-    context: &[],
-};
+use super::EbuildPkgSetCheck;
 
 pub(super) fn create() -> impl EbuildPkgSetCheck {
     Check
 }
+
+static CHECK: super::Check = super::Check::EapiStale;
 
 struct Check;
 

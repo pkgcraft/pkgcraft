@@ -52,12 +52,12 @@ impl SyncCheckRunner {
 
         for check in checks {
             runners
-                .entry(check.source)
+                .entry(check.source())
                 .or_insert_with(|| {
                     CheckRunner::new(
                         scope,
                         restrict,
-                        check.source,
+                        check.source(),
                         scanner.repo.clone(),
                         &scanner.filters,
                     )
@@ -86,7 +86,7 @@ impl SyncCheckRunner {
 
     /// Run a specific check.
     pub(super) fn run_check(&self, check: Check, target: &Target, filter: &ReportFilter) {
-        let source = check.source;
+        let source = check.source();
         assert!(target.scope() >= source.scope());
         let runner = self
             .runners
@@ -99,7 +99,7 @@ impl SyncCheckRunner {
     pub(super) fn finish(&self, check: Check, filter: &ReportFilter) {
         let runner = self
             .runners
-            .get(&check.source)
+            .get(&check.source())
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         runner.finish(&check, filter);
     }
@@ -231,7 +231,7 @@ macro_rules! make_pkg_check_runner {
 
             /// Add a check to the runner.
             fn add_check(&mut self, check: Check, filter: &ReportFilter) {
-                if check.scope == Scope::Version {
+                if check.scope() == Scope::Version {
                     self.pkg_checks
                         .insert(check, check.to_runner(&self.repo, filter));
                 } else {
@@ -324,7 +324,7 @@ macro_rules! make_pkg_check_runner {
             /// Finish a check for a repo.
             fn finish(&self, check: &Check, filter: &ReportFilter) {
                 let now = Instant::now();
-                if check.scope == Scope::Version {
+                if check.scope() == Scope::Version {
                     let runner = self
                         .pkg_checks
                         .get(check)

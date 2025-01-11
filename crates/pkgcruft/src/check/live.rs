@@ -1,24 +1,16 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::LiveOnly;
-use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, EbuildPkgSetCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Live,
-    scope: Scope::Package,
-    source: SourceKind::EbuildPkg,
-    reports: &[LiveOnly],
-    context: &[CheckContext::Gentoo],
-};
+use super::EbuildPkgSetCheck;
 
 pub(super) fn create() -> impl EbuildPkgSetCheck {
     Check
 }
+
+static CHECK: super::Check = super::Check::Live;
 
 struct Check;
 

@@ -1,21 +1,11 @@
 use pkgcraft::dep::{Dependency, DependencySet};
 use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::RestrictMissing;
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::RestrictTestMissing,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[RestrictMissing],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create() -> impl EbuildPkgCheck {
     Check {
@@ -29,6 +19,8 @@ pub(super) fn create() -> impl EbuildPkgCheck {
         iuse: Iuse::try_new("test").unwrap(),
     }
 }
+
+static CHECK: super::Check = super::Check::RestrictTestMissing;
 
 struct Check {
     restricts: DependencySet<String>,

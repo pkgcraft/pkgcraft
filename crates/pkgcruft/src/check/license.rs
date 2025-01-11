@@ -5,21 +5,11 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::License,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[LicenseDeprecated, LicensesUnused, LicenseInvalid],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
     let unused = if filter.enabled(LicensesUnused) {
@@ -42,6 +32,8 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkg
         repo: repo.clone(),
     }
 }
+
+static CHECK: super::Check = super::Check::License;
 
 struct Check {
     deprecated: IndexSet<String>,

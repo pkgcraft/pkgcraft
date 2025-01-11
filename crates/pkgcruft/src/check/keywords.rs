@@ -4,29 +4,13 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus::Stable, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{
     ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
 };
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Keywords,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[
-        EapiUnstable,
-        KeywordsLive,
-        KeywordsOverlapping,
-        KeywordsUnsorted,
-        ArchesUnused,
-    ],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
     let unused = if filter.enabled(ArchesUnused) {
@@ -41,6 +25,8 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkg
 
     Check { repo: repo.clone(), unused }
 }
+
+static CHECK: super::Check = super::Check::Keywords;
 
 struct Check {
     repo: EbuildRepo,

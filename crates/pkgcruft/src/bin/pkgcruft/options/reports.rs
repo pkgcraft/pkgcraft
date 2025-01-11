@@ -135,7 +135,7 @@ mod tests {
     use pkgcraft::restrict::Scope;
     use pkgcraft::test::*;
 
-    use pkgcruft::check::{Check, CheckKind};
+    use pkgcruft::check::Check;
     use pkgcruft::report::ReportLevel;
 
     use super::*;
@@ -158,7 +158,7 @@ mod tests {
         let (enabled, _) = cmd.reports.collapse(defaults, supported).unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         // repo specific checks enabled when scanning the matching repo
-        assert!(checks.contains(&CheckKind::Header));
+        assert!(checks.contains(&Check::Header));
 
         // default checks
         let repo = data.ebuild_repo("qa-primary").unwrap();
@@ -170,11 +170,11 @@ mod tests {
             .collapse(defaults.clone(), supported.clone())
             .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
-        assert!(checks.contains(&CheckKind::Dependency));
+        assert!(checks.contains(&Check::Dependency));
         // optional checks aren't run by default when scanning
-        assert!(!checks.contains(&CheckKind::UnstableOnly));
+        assert!(!checks.contains(&Check::UnstableOnly));
         // repo specific checks aren't run by default when scanning non-matching repo
-        assert!(!checks.contains(&CheckKind::Header));
+        assert!(!checks.contains(&Check::Header));
 
         // non-default reports aren't enabled when their matching level is targeted
         let report = ReportKind::HeaderInvalid;
@@ -194,8 +194,8 @@ mod tests {
             .collapse(defaults.clone(), supported.clone())
             .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
-        assert!(checks.contains(&CheckKind::UnstableOnly));
-        assert!(checks.contains(&CheckKind::Header));
+        assert!(checks.contains(&Check::UnstableOnly));
+        assert!(checks.contains(&Check::Header));
         assert!(checks.len() > 2);
 
         // disable checks
@@ -205,7 +205,7 @@ mod tests {
             .collapse(defaults.clone(), supported.clone())
             .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
-        assert!(!checks.contains(&CheckKind::Dependency));
+        assert!(!checks.contains(&Check::Dependency));
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
@@ -215,7 +215,7 @@ mod tests {
             .collapse(defaults.clone(), supported.clone())
             .unwrap();
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
-        assert!(!checks.contains(&CheckKind::Dependency));
+        assert!(!checks.contains(&Check::Dependency));
         assert!(checks.len() > 1);
 
         // error when args cancel out

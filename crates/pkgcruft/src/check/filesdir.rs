@@ -9,7 +9,6 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
-use pkgcraft::restrict::Scope;
 use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
@@ -17,18 +16,9 @@ use walkdir::WalkDir;
 use crate::iter::ReportFilter;
 use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
-use crate::source::SourceKind;
 use crate::Error;
 
-use super::{CheckKind, EbuildPkgSetCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Filesdir,
-    scope: Scope::Package,
-    source: SourceKind::EbuildPkg,
-    reports: &[FileUnknown, FilesUnused],
-    context: &[],
-};
+use super::EbuildPkgSetCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     let eclasses = repo
@@ -49,6 +39,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
         .collect();
     Check { repo: repo.clone(), eclasses }
 }
+
+static CHECK: super::Check = super::Check::Filesdir;
 
 struct Check {
     repo: EbuildRepo,

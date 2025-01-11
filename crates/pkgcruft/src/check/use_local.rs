@@ -4,27 +4,19 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{
     UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
 };
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgSetCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::UseLocal,
-    scope: Scope::Package,
-    source: SourceKind::EbuildPkg,
-    reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted],
-    context: &[],
-};
+use super::EbuildPkgSetCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check { repo: repo.clone() }
 }
+
+static CHECK: super::Check = super::Check::UseLocal;
 
 struct Check {
     repo: EbuildRepo,

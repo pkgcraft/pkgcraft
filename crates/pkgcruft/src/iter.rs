@@ -126,12 +126,12 @@ fn pkg_producer(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
-        for check in runner.checks().filter(|c| c.scope > Scope::Package) {
+        for check in runner.checks().filter(|c| c.scope() > Scope::Package) {
             tx.send((Some(check), Target::Repo)).ok();
         }
 
         // return if no package checks are selected
-        if !runner.checks().any(|c| c.scope <= Scope::Package) {
+        if !runner.checks().any(|c| c.scope() <= Scope::Package) {
             return;
         }
 
@@ -257,13 +257,13 @@ fn version_producer(
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in repo.iter_cpv_restrict(&restrict) {
-            for check in runner.checks().filter(|c| c.scope == Scope::Version) {
+            for check in runner.checks().filter(|c| c.scope() == Scope::Version) {
                 tx.send((check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 
         for cpn in repo.iter_cpn_restrict(&restrict) {
-            for check in runner.checks().filter(|c| c.scope == Scope::Package) {
+            for check in runner.checks().filter(|c| c.scope() == Scope::Package) {
                 tx.send((check, Target::Cpn(cpn.clone()))).ok();
             }
         }

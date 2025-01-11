@@ -1,22 +1,12 @@
 use std::collections::HashSet;
 
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
-use pkgcraft::restrict::Scope;
 use url::Url;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::HomepageInvalid;
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Homepage,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[HomepageInvalid],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create() -> impl EbuildPkgCheck {
     Check {
@@ -27,6 +17,8 @@ pub(super) fn create() -> impl EbuildPkgCheck {
             .collect(),
     }
 }
+
+static CHECK: super::Check = super::Check::Homepage;
 
 struct Check {
     allowed_protocols: HashSet<String>,

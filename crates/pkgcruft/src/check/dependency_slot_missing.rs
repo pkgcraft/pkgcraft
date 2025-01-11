@@ -3,21 +3,12 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
-use pkgcraft::restrict::{Restrict, Scope};
+use pkgcraft::restrict::Restrict;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::DependencySlotMissing;
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::DependencySlotMissing,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[DependencySlotMissing],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
@@ -25,6 +16,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
         dep_slots: Default::default(),
     }
 }
+
+static CHECK: super::Check = super::Check::DependencySlotMissing;
 
 struct Check {
     repo: EbuildRepo,

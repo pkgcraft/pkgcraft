@@ -3,7 +3,7 @@ use std::env;
 use itertools::Itertools;
 use pkgcraft::restrict::Scope;
 use pkgcraft::test::{cmd, test_data};
-use pkgcruft::check::{CheckContext, CheckKind};
+use pkgcruft::check::{Check, CheckContext};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -40,7 +40,7 @@ fn sets() {
             .success();
 
         // check
-        let check = CheckKind::iter().next().unwrap();
+        let check = Check::iter().next().unwrap();
         cmd(format!("pkgcruft show reports {opt} @{check}"))
             .assert()
             .stdout(predicate::str::is_empty().not())

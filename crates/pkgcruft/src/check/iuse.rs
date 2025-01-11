@@ -3,21 +3,11 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{IuseInvalid, UseGlobalUnused};
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Iuse,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[IuseInvalid, UseGlobalUnused],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
     let unused = if filter.enabled(UseGlobalUnused) {
@@ -35,6 +25,8 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkg
         unused,
     }
 }
+
+static CHECK: super::Check = super::Check::Iuse;
 
 struct Check {
     use_expand: IndexSet<String>,

@@ -1,26 +1,18 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repository;
-use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Contains;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::PackageOverride;
-use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, CpnCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Duplicates,
-    scope: Scope::Package,
-    source: SourceKind::Cpn,
-    reports: &[PackageOverride],
-    context: &[CheckContext::Optional, CheckContext::Overlay],
-};
+use super::CpnCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl CpnCheck {
     Check { repo: repo.clone() }
 }
+
+static CHECK: super::Check = super::Check::Duplicates;
 
 struct Check {
     repo: EbuildRepo,

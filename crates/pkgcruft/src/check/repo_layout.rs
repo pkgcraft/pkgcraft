@@ -3,25 +3,17 @@ use itertools::Itertools;
 use pkgcraft::files::is_ebuild;
 use pkgcraft::macros::build_path;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{RepoCategoriesUnused, RepoCategoryEmpty, RepoPackageEmpty};
-use crate::source::SourceKind;
 
-use super::{CheckKind, RepoCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::RepoLayout,
-    scope: Scope::Repo,
-    source: SourceKind::Repo,
-    reports: &[RepoCategoryEmpty, RepoCategoriesUnused, RepoPackageEmpty],
-    context: &[],
-};
+use super::RepoCheck;
 
 pub(super) fn create() -> impl RepoCheck {
     Check
 }
+
+static CHECK: super::Check = super::Check::RepoLayout;
 
 struct Check;
 

@@ -1,28 +1,20 @@
 use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 use pkgcraft::shell::pool::MetadataTaskBuilder;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::MetadataError;
-use crate::source::SourceKind;
 
-use super::{CheckKind, CpvCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Metadata,
-    scope: Scope::Version,
-    source: SourceKind::Cpv,
-    reports: &[MetadataError],
-    context: &[],
-};
+use super::CpvCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl CpvCheck {
     Check {
         regen: repo.pool().metadata_task(repo),
     }
 }
+
+static CHECK: super::Check = super::Check::Metadata;
 
 struct Check {
     regen: MetadataTaskBuilder,

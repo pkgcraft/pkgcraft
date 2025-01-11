@@ -1,21 +1,11 @@
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
-use pkgcraft::restrict::Scope;
 use regex::Regex;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::HeaderInvalid;
-use crate::source::SourceKind;
 
-use super::{CheckContext, CheckKind, EbuildRawPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Header,
-    scope: Scope::Version,
-    source: SourceKind::EbuildRawPkg,
-    reports: &[HeaderInvalid],
-    context: &[CheckContext::Gentoo],
-};
+use super::EbuildRawPkgCheck;
 
 static GENTOO_LICENSE_HEADER: &str =
     "# Distributed under the terms of the GNU General Public License v2";
@@ -28,6 +18,8 @@ pub(super) fn create() -> impl EbuildRawPkgCheck {
         .unwrap(),
     }
 }
+
+static CHECK: super::Check = super::Check::Header;
 
 struct Check {
     copyright_re: Regex,

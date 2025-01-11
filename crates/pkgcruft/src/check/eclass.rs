@@ -2,21 +2,11 @@ use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::EclassUnused;
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Eclass,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[EclassUnused],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
     let unused = if filter.enabled(EclassUnused) {
@@ -27,6 +17,8 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkg
 
     Check { unused }
 }
+
+static CHECK: super::Check = super::Check::Eclass;
 
 struct Check {
     unused: DashSet<Eclass>,

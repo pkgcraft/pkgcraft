@@ -3,25 +3,17 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{EbuildNameInvalid, EbuildVersionsEqual};
-use crate::source::SourceKind;
 
-use super::{CheckKind, CpnCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::EbuildName,
-    scope: Scope::Package,
-    source: SourceKind::Cpn,
-    reports: &[EbuildNameInvalid, EbuildVersionsEqual],
-    context: &[],
-};
+use super::CpnCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl CpnCheck {
     Check { repo: repo.clone() }
 }
+
+static CHECK: super::Check = super::Check::EbuildName;
 
 struct Check {
     repo: EbuildRepo,

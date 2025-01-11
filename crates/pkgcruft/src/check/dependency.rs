@@ -4,7 +4,6 @@ use pkgcraft::dep::{Dep, Dependency, Operator, SlotOperator, UseDepKind};
 use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Intersects;
 
 use crate::iter::ReportFilter;
@@ -12,22 +11,8 @@ use crate::report::ReportKind::{
     DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing,
     PackageDeprecatedUnused,
 };
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Dependency,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[
-        DependencyDeprecated,
-        DependencyInvalid,
-        DependencyRevisionMissing,
-        PackageDeprecatedUnused,
-    ],
-    context: &[],
-};
+use super::EbuildPkgCheck;
 
 pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
     let unused = if filter.enabled(PackageDeprecatedUnused) {
@@ -38,6 +23,8 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkg
 
     Check { repo: repo.clone(), unused }
 }
+
+static CHECK: super::Check = super::Check::Dependency;
 
 struct Check {
     repo: EbuildRepo,

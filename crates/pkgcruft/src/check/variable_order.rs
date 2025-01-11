@@ -1,21 +1,11 @@
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
-use pkgcraft::restrict::Scope;
 use strum::{Display, EnumString};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::VariableOrder;
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildRawPkgCheck};
-
-pub(crate) static CHECK: super::Check = super::Check {
-    kind: CheckKind::VariableOrder,
-    scope: Scope::Version,
-    source: SourceKind::EbuildRawPkg,
-    reports: &[VariableOrder],
-    context: &[],
-};
+use super::EbuildRawPkgCheck;
 
 #[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
@@ -37,6 +27,8 @@ enum Variable {
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     Check
 }
+
+static CHECK: super::Check = super::Check::VariableOrder;
 
 struct Check;
 

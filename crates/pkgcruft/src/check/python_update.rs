@@ -9,24 +9,15 @@ use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::{iuse::Iuse, EbuildPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::{Restrict, Scope};
+use pkgcraft::restrict::Restrict;
 use pkgcraft::types::OrderedSet;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::PythonUpdate;
-use crate::source::SourceKind;
 use crate::utils::{use_expand, use_starts_with};
 
-use super::{CheckContext, CheckKind, EbuildPkgCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::PythonUpdate,
-    scope: Scope::Version,
-    source: SourceKind::EbuildPkg,
-    reports: &[PythonUpdate],
-    context: &[CheckContext::GentooInherited],
-};
+use super::EbuildPkgCheck;
 
 static IUSE_PREFIX: &str = "python_targets_";
 static IUSE_PREFIX_S: &str = "python_single_target_";
@@ -88,6 +79,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
         dep_iuse: Default::default(),
     }
 }
+
+static CHECK: super::Check = super::Check::PythonUpdate;
 
 struct Check {
     repo: EbuildRepo,

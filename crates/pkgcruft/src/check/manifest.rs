@@ -8,21 +8,11 @@ use pkgcraft::error::Error::UnversionedPkg;
 use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::Scope;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
-use crate::source::SourceKind;
 
-use super::{CheckKind, EbuildPkgSetCheck};
-
-pub(super) static CHECK: super::Check = super::Check {
-    kind: CheckKind::Manifest,
-    scope: Scope::Package,
-    source: SourceKind::EbuildPkg,
-    reports: &[ManifestInvalid, ManifestConflict, ManifestCollide],
-    context: &[],
-};
+use super::EbuildPkgSetCheck;
 
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
     Check {
@@ -40,6 +30,8 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
             .unwrap_or(HashType::Blake2b),
     }
 }
+
+static CHECK: super::Check = super::Check::Manifest;
 
 struct Check {
     repo: EbuildRepo,
