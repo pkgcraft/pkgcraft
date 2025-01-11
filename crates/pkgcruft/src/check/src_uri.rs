@@ -39,21 +39,19 @@ super::register!(Check);
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
         for uri in pkg.src_uri().iter_flatten() {
-            match Fetchable::from_uri(uri, pkg, false) {
-                Ok(f) => {
-                    if let Some(mirror) = f.mirrors().first() {
-                        // mangle values for post-run finalization
-                        if filter.enabled(MirrorsUnused) {
-                            self.unused.remove(mirror.name());
-                        }
-                    }
-                }
-                Err(Error::InvalidFetchable(err)) => {
+            let result = Fetchable::from_uri(uri, pkg, false);
+            let Ok(fetchable) = result else {
+                if let Err(Error::InvalidFetchable(err)) = result {
                     UriInvalid.version(pkg).message(err).report(filter);
                 }
-                Err(Error::RestrictedFetchable(_)) => (),
-                Err(Error::RestrictedFile(_)) => (),
-                Err(e) => unreachable!("{pkg}: unhandled fetchable error: {e}"),
+                continue;
+            };
+
+            if let Some(mirror) = fetchable.mirrors().first() {
+                // mangle values for post-run finalization
+                if filter.enabled(MirrorsUnused) {
+                    self.unused.remove(mirror.name());
+                }
             }
         }
     }
