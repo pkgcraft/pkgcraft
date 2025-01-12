@@ -205,7 +205,7 @@ mod tests {
         assert!(checks.len() > 2);
 
         // disable checks
-        let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency"]).unwrap();
+        let cmd = Command::try_parse_from(["cmd", "-r", "-@Dependency"]).unwrap();
         let (enabled, _) = cmd
             .reports
             .collapse(defaults.clone(), supported.clone())
@@ -215,7 +215,7 @@ mod tests {
         assert!(checks.len() > 1);
 
         // disable option overrides enable option
-        let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,+@Dependency"]).unwrap();
+        let cmd = Command::try_parse_from(["cmd", "-r", "-@Dependency,+@Dependency"]).unwrap();
         let (enabled, _) = cmd
             .reports
             .collapse(defaults.clone(), supported.clone())
@@ -225,13 +225,13 @@ mod tests {
         assert!(checks.len() > 1);
 
         // error when args cancel out
-        let cmd = Command::try_parse_from(["cmd", "-r=-@Dependency,@Dependency"]).unwrap();
+        let cmd = Command::try_parse_from(["cmd", "-r", "-@Dependency,@Dependency"]).unwrap();
         let r = cmd.reports.collapse(defaults.clone(), supported.clone());
         assert_err_re!(r, "no reports enabled");
 
         // invalid sets
-        for arg in ["-r=@unknown", "-r=-@unknown", "-r=+@unknown"] {
-            let r = Command::try_parse_from(["cmd", arg]);
+        for value in ["@unknown", "-@unknown", "+@unknown"] {
+            let r = Command::try_parse_from(["cmd", "-r", value]);
             assert_err_re!(r, "invalid report set: unknown");
         }
     }
