@@ -459,7 +459,7 @@ impl ReportKind {
     ///
     /// This is the minimum scope at which the report is handled. For example, a variant
     /// with package scope isn't processed when targeting a single ebuild version.
-    pub fn scope(&self) -> Scope {
+    pub(crate) fn scope(&self) -> Scope {
         match self {
             Self::ArchesUnused => Scope::Repo,
             Self::Builtin => Scope::Version,
