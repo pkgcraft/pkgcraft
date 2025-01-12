@@ -160,7 +160,7 @@ impl Scanner {
         let pkg_filtering = !self.filters.is_empty();
         let report_filtering = self.enabled != self.supported;
 
-        // determine enabled and selected reports
+        // determine enabled reports -- errors if incompatible report is selected
         let enabled: HashSet<_> = self
             .enabled
             .iter()
