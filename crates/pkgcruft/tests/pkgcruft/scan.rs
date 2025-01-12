@@ -845,7 +845,7 @@ fn reports() {
             "+@version",
         ] {
             let reports = cmd("pkgcruft scan -R json")
-                .arg(format!("{opt}={target}"))
+                .args([opt, target])
                 .arg(&repo)
                 .to_reports()
                 .unwrap();

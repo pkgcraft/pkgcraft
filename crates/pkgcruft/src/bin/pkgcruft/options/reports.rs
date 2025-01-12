@@ -64,7 +64,13 @@ impl<T: FromStr> FromStr for TriState<T> {
 #[clap(next_help_heading = Some("Report options"))]
 pub(crate) struct Reports {
     /// Restrict by report set
-    #[arg(short, long, value_name = "SET[,...]", value_delimiter = ',')]
+    #[arg(
+        short,
+        long,
+        value_name = "SET[,...]",
+        value_delimiter = ',',
+        allow_hyphen_values = true
+    )]
     reports: Vec<TriState<ReportSet>>,
 }
 
