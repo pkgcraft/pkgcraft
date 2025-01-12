@@ -82,12 +82,19 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportSet>,
     {
-        self.enabled = values
-            .into_iter()
-            .map(Into::into)
-            .flat_map(|x| x.expand(&self.default, &self.supported))
-            .collect();
-        self.selected = self.enabled.clone();
+        self.enabled.clear();
+        self.selected.clear();
+        for set in values.into_iter().map(Into::into) {
+            for r in set.expand(&self.default, &self.supported) {
+                self.enabled.insert(r);
+                // track explicitly selected or supported variants
+                if set.selected()
+                    || (self.supported.contains(&r) && r != ReportKind::IgnoreUnused)
+                {
+                    self.selected.insert(r);
+                }
+            }
+        }
         if self.selected_checks.is_empty() {
             self.selected_checks = Check::iter_report(&self.selected).collect();
         }
@@ -172,7 +179,7 @@ impl Scanner {
             })
             .filter(|result| {
                 if let Err(Error::ReportInit(report, msg)) = &result {
-                    if !self.selected.contains(report) || report == &ReportKind::IgnoreUnused {
+                    if !self.selected.contains(report) {
                         warn!("skipping {report} report: {msg}");
                         return false;
                     }

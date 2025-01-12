@@ -100,7 +100,9 @@ impl Reports {
                     for r in set.expand(&defaults, &supported) {
                         enabled.insert(r);
                         // track explicitly selected or supported variants
-                        if set.selected() || supported.contains(&r) {
+                        if set.selected()
+                            || (supported.contains(&r) && r != ReportKind::IgnoreUnused)
+                        {
                             selected.insert(r);
                         }
                     }
