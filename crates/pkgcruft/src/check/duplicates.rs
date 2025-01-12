@@ -50,10 +50,16 @@ mod tests {
         let r = scanner.run(repo);
         assert_err_re!(r, "requires overlay context");
 
+        // optional check isn't run by default
+        let repo = data.ebuild_repo("qa-secondary").unwrap();
+        let scanner = Scanner::new(repo);
+        let mut reports = scanner.run(repo).unwrap();
+        assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
+
         // secondary
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         let scanner = Scanner::new(repo).checks([CHECK]);
-        let reports: Vec<_> = scanner.run(repo).unwrap().collect();
-        assert!(!reports.is_empty());
+        let mut reports = scanner.run(repo).unwrap();
+        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
     }
 }
