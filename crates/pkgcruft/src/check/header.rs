@@ -86,8 +86,19 @@ mod tests {
 
     #[test]
     fn check() {
-        // gentoo unfixed
+        // check isn't run by default in non-gentoo repo
         let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let scanner = Scanner::new(repo);
+        let mut reports = scanner.run(repo).unwrap();
+        assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
+
+        // check explicitly run in non-gentoo repo
+        let scanner = Scanner::new(repo).checks([CHECK]);
+        let mut reports = scanner.run(repo).unwrap();
+        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+
+        // gentoo unfixed
         let repo = data.ebuild_repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new(repo).checks([CHECK]);
