@@ -26,7 +26,7 @@ pub(crate) struct ReporterOptions {
         long,
         default_value = "name",
         hide_possible_values = true,
-        value_parser = ["name", "count"],
+        value_parser = ["name", "count", "level"],
     )]
     stats: Option<String>,
 }

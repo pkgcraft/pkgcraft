@@ -90,6 +90,9 @@ impl StatsReporter {
             "count" => self
                 .cache
                 .sort_by(|k1, v1, k2, v2| v1.cmp(v2).then_with(|| k1.cmp(k2))),
+            "level" => self
+                .cache
+                .sort_by(|k1, _, k2, _| k1.level().cmp(&k2.level()).then_with(|| k1.cmp(k2))),
             _ => self.cache.sort_keys(),
         }
 
@@ -324,7 +327,20 @@ mod tests {
             RepoCategoryEmpty: 2
         "#};
         reporter.sort_by = "count".to_string();
-        let output = report(reporter);
+        let output = report(reporter.clone());
+        assert_eq!(expected, &output);
+
+        // sort by level
+        let expected = indoc::indoc! {r#"
+            DependencyDeprecated: 1
+            LicensesUnused: 1
+            RepoCategoryEmpty: 2
+            WhitespaceInvalid: 1
+            WhitespaceUnneeded: 1
+            UnstableOnly: 1
+        "#};
+        reporter.sort_by = "level".to_string();
+        let output = report(reporter.clone());
         assert_eq!(expected, &output);
     }
 
