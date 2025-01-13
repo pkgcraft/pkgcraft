@@ -85,9 +85,8 @@ impl Hash for EbuildRepo {
 }
 
 impl From<&EbuildRepo> for Restrict {
-    fn from(repo: &EbuildRepo) -> Self {
-        repo.restrict_from_path(repo)
-            .unwrap_or_else(|| panic!("ebuild repo path restrict failed: {repo}"))
+    fn from(_repo: &EbuildRepo) -> Self {
+        Self::True
     }
 }
 
