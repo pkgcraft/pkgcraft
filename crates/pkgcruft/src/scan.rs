@@ -258,8 +258,7 @@ mod tests {
 
         // version
         let expected = glob_reports!("{path}/Whitespace/WhitespaceInvalid/reports.json");
-        let path = Utf8Path::new("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild");
-        let reports = scanner.run(path).unwrap();
+        let reports = scanner.run("Whitespace/WhitespaceInvalid-0").unwrap();
         assert_ordered_eq!(reports, expected);
 
         // non-matching restriction doesn't raise error
@@ -302,8 +301,7 @@ mod tests {
 
         // scope failure
         let scanner = Scanner::new(repo).checks([Check::Filesdir]);
-        let path = Utf8Path::new("Filesdir/FilesUnused/FilesUnused-0.ebuild");
-        let result = scanner.run(path);
+        let result = scanner.run("Filesdir/FilesUnused-0");
         assert_err_re!(result, "Filesdir: check requires package scope");
     }
 
@@ -373,8 +371,7 @@ mod tests {
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
         // no failure with specific target
-        let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports = scanner.run(&dep).unwrap();
+        let reports = scanner.run("nonexistent/pkg").unwrap();
         assert_unordered_eq!(reports, []);
 
         // overlay repo -- dependent repo is auto-loaded
@@ -391,9 +388,7 @@ mod tests {
         let repo = data.ebuild_repo("bad").unwrap();
         let path = repo.path();
         let scanner = Scanner::new(repo);
-        let reports = scanner
-            .run(Utf8Path::new("eapi/invalid/invalid-9999.ebuild"))
-            .unwrap();
+        let reports = scanner.run("eapi/invalid-9999").unwrap();
         let expected = glob_reports!("{path}/eapi/invalid/reports.json");
         assert_ordered_eq!(reports, expected);
         assert_logs_re!(format!(".+: skipping due to invalid pkg: eapi/invalid-9999"));

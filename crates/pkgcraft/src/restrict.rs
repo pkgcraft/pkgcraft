@@ -55,6 +55,12 @@ macro_rules! make_try_into_restrict {
 
 make_try_into_restrict!(&crate::dep::Dep, Restrict);
 
+impl<C> TryIntoRestrict<C> for &str {
+    fn try_into_restrict(self, _context: &C) -> crate::Result<Restrict> {
+        parse::dep(self)
+    }
+}
+
 impl Restrict {
     /// Flatten a restriction, returning an iterator of its component restrictions.
     pub fn iter_flatten(&self) -> IterFlatten {
