@@ -171,7 +171,6 @@ impl EbuildPkgSetCheck for Check {
 mod tests {
     use std::env;
 
-    use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
 
     use crate::scan::Scanner;
@@ -194,9 +193,8 @@ mod tests {
         let dir = dir.join("ManifestCollide");
         env::set_current_dir(&dir).unwrap();
         let expected = glob_reports!("{dir}/reports.json");
-        let restrict = repo.restrict_from_path(&dir).unwrap();
         let scanner = Scanner::new(repo).reports([ManifestCollide]);
-        let reports = scanner.run(restrict).unwrap();
+        let reports = scanner.run(&dir).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // primary fixed

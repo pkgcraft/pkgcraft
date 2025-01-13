@@ -91,7 +91,7 @@ impl Command {
                     .exit(self.exit.iter().copied());
 
                 // output reports
-                for report in scanner.run(&restrict)? {
+                for report in scanner.run(restrict.clone())? {
                     reporter.report(&report, &mut stdout)?;
                 }
 

@@ -811,6 +811,27 @@ macro_rules! make_repo_traits {
             }
         }
 
+        impl $crate::restrict::TryIntoRestrict<$x> for &camino::Utf8Path {
+            fn try_into_restrict(self, repo: &$x) -> crate::Result<$crate::restrict::Restrict> {
+                repo.restrict_from_path(self)
+                    .ok_or_else(|| $crate::Error::InvalidValue(format!("{repo} repo doesn't contain path: {self}")))
+            }
+        }
+
+        impl $crate::restrict::TryIntoRestrict<$x> for &camino::Utf8PathBuf {
+            fn try_into_restrict(self, repo: &$x) -> crate::Result<$crate::restrict::Restrict> {
+                let path: &Utf8Path = self.as_ref();
+                path.try_into_restrict(repo)
+            }
+        }
+
+        impl $crate::restrict::TryIntoRestrict<$x> for &$x {
+            fn try_into_restrict(self, repo: &$x) -> crate::Result<$crate::restrict::Restrict> {
+                let path: &Utf8Path = self.as_ref();
+                path.try_into_restrict(repo)
+            }
+        }
+
         impl Contains<&crate::restrict::Restrict> for $x {
             fn contains(&self, value: &crate::restrict::Restrict) -> bool {
                 value == &Restrict::True

@@ -51,7 +51,6 @@ impl CpnCheck for Check {
 mod tests {
     use std::env;
 
-    use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
 
     use crate::scan::Scanner;
@@ -74,8 +73,7 @@ mod tests {
         let dir = dir.join("EbuildNameInvalid");
         env::set_current_dir(&dir).unwrap();
         let expected = glob_reports!("{dir}/reports.json");
-        let restrict = repo.restrict_from_path(&dir).unwrap();
-        let reports = scanner.run(restrict).unwrap();
+        let reports = scanner.run(&dir).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // primary fixed

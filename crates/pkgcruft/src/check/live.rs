@@ -26,7 +26,6 @@ impl EbuildPkgSetCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
 
     use crate::scan::Scanner;
@@ -40,33 +39,30 @@ mod tests {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
-        let restrict = repo.restrict_from_path(&dir).unwrap();
         let scanner = Scanner::new(repo);
-        let reports = scanner.run(&restrict).unwrap();
+        let reports = scanner.run(&dir).unwrap();
         assert_unordered_eq!(reports, []);
 
         // primary unfixed
         let scanner = Scanner::new(repo).checks([CHECK]);
         let expected = glob_reports!("{dir}/*/optional.json");
-        let reports = scanner.run(&restrict).unwrap();
+        let reports = scanner.run(&dir).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // gentoo unfixed
         let repo = data.ebuild_repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
-        let restrict = repo.restrict_from_path(&dir).unwrap();
         let scanner = Scanner::new(repo);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(&restrict).unwrap();
+        let reports = scanner.run(&dir).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // primary fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
-        let restrict = repo.restrict_from_path(&dir).unwrap();
         let scanner = Scanner::new(repo).checks([CHECK]);
-        let reports = scanner.run(restrict).unwrap();
+        let reports = scanner.run(&dir).unwrap();
         assert_unordered_eq!(reports, []);
 
         // gentoo fixed

@@ -5,7 +5,7 @@ use std::sync::Arc;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::{Restrict, Scope};
+use pkgcraft::restrict::{Scope, TryIntoRestrict};
 use pkgcraft::utils::bounded_jobs;
 use tracing::{info, warn};
 
@@ -146,11 +146,11 @@ impl Scanner {
     }
 
     /// Run the scanner returning an iterator of reports.
-    pub fn run<T>(&self, restrict: T) -> crate::Result<ReportIter>
+    pub fn run<T>(&self, value: T) -> crate::Result<ReportIter>
     where
-        T: Into<Restrict>,
+        T: TryIntoRestrict<EbuildRepo>,
     {
-        let restrict = restrict.into();
+        let restrict = value.try_into_restrict(&self.repo)?;
         let scan_scope = Scope::from(&restrict);
         info!("repo: {}", self.repo);
         info!("scope: {scan_scope}");
@@ -221,8 +221,8 @@ impl Scanner {
 
 #[cfg(test)]
 mod tests {
+    use camino::Utf8Path;
     use pkgcraft::dep::Dep;
-    use pkgcraft::repo::Repository;
     use pkgcraft::test::*;
     use tracing_test::traced_test;
 
@@ -246,24 +246,20 @@ mod tests {
 
         // category
         let expected = glob_reports!("{path}/Keywords/*/reports.json");
-        let restrict = repo.restrict_from_path("Keywords").unwrap();
-        let reports = scanner.run(restrict).unwrap();
+        let reports = scanner.run(Utf8Path::new("Keywords")).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // package
         let expected = glob_reports!("{path}/Dependency/DependencyInvalid/reports.json");
-        let restrict = repo
-            .restrict_from_path("Dependency/DependencyInvalid")
+        let reports = scanner
+            .run(Utf8Path::new("Dependency/DependencyInvalid"))
             .unwrap();
-        let reports = scanner.run(restrict).unwrap();
         assert_ordered_eq!(reports, expected);
 
         // version
         let expected = glob_reports!("{path}/Whitespace/WhitespaceInvalid/reports.json");
-        let restrict = repo
-            .restrict_from_path("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild")
-            .unwrap();
-        let reports = scanner.run(restrict).unwrap();
+        let path = Utf8Path::new("Whitespace/WhitespaceInvalid/WhitespaceInvalid-0.ebuild");
+        let reports = scanner.run(path).unwrap();
         assert_ordered_eq!(reports, expected);
 
         // non-matching restriction doesn't raise error
@@ -305,11 +301,9 @@ mod tests {
         assert_err_re!(result, "PythonUpdate: check requires gentoo-inherited context");
 
         // scope failure
-        let restrict = repo
-            .restrict_from_path("Filesdir/FilesUnused/FilesUnused-0.ebuild")
-            .unwrap();
         let scanner = Scanner::new(repo).checks([Check::Filesdir]);
-        let result = scanner.run(restrict);
+        let path = Utf8Path::new("Filesdir/FilesUnused/FilesUnused-0.ebuild");
+        let result = scanner.run(path);
         assert_err_re!(result, "Filesdir: check requires package scope");
     }
 
@@ -396,11 +390,10 @@ mod tests {
         let data = test_data();
         let repo = data.ebuild_repo("bad").unwrap();
         let path = repo.path();
-        let restrict = repo
-            .restrict_from_path("eapi/invalid/invalid-9999.ebuild")
-            .unwrap();
         let scanner = Scanner::new(repo);
-        let reports = scanner.run(restrict).unwrap();
+        let reports = scanner
+            .run(Utf8Path::new("eapi/invalid/invalid-9999.ebuild"))
+            .unwrap();
         let expected = glob_reports!("{path}/eapi/invalid/reports.json");
         assert_ordered_eq!(reports, expected);
         assert_logs_re!(format!(".+: skipping due to invalid pkg: eapi/invalid-9999"));
@@ -457,8 +450,7 @@ mod tests {
             );
 
             // run scanner in package scope
-            let restrict = repo.restrict_from_path(&pkgdir).unwrap();
-            let reports: Vec<_> = scanner.run(restrict).unwrap().collect();
+            let reports: Vec<_> = scanner.run(pkgdir.as_path()).unwrap().collect();
             assert_unordered_eq!(
                 &reports,
                 expected,
