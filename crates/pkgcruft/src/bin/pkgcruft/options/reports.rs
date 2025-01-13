@@ -1,64 +1,10 @@
-use std::hash::Hash;
-use std::str::FromStr;
-
 use clap::Args;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use pkgcraft::cli::TriState;
 use pkgcruft::report::{ReportKind, ReportSet};
 use pkgcruft::Error;
 use strum::IntoEnumIterator;
-
-/// Tri-state value support for command-line arguments.
-///
-/// This supports arguments of the form: `set`, `+add`, and `-remove` that relate to their
-/// matching variants.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-enum TriState<T> {
-    Set(T),
-    Add(T),
-    Remove(T),
-}
-
-impl<T: Ord + Copy + Hash> TriState<T> {
-    /// Modify the given, enabled set given an iterator of TriState values.
-    fn enabled<'a, I>(enabled: &mut IndexSet<T>, selected: I)
-    where
-        I: IntoIterator<Item = &'a TriState<T>>,
-        T: 'a,
-    {
-        // sort by variant
-        let selected: Vec<_> = selected.into_iter().copied().sorted().collect();
-
-        // don't use default if neutral options exist
-        if let Some(TriState::Set(_)) = selected.first() {
-            std::mem::take(enabled);
-        }
-
-        for x in selected {
-            match x {
-                TriState::Set(value) => enabled.insert(value),
-                TriState::Add(value) => enabled.insert(value),
-                TriState::Remove(value) => enabled.swap_remove(&value),
-            };
-        }
-
-        enabled.sort();
-    }
-}
-
-impl<T: FromStr> FromStr for TriState<T> {
-    type Err = <T as FromStr>::Err;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(value) = s.strip_prefix('+') {
-            value.parse().map(Self::Add)
-        } else if let Some(value) = s.strip_prefix('-') {
-            value.parse().map(Self::Remove)
-        } else {
-            s.parse().map(Self::Set)
-        }
-    }
-}
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = Some("Report options"))]

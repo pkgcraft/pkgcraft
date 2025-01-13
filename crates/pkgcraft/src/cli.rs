@@ -2,6 +2,8 @@ mod maybe_stdin;
 pub use maybe_stdin::*;
 mod targets;
 pub use targets::*;
+mod tristate;
+pub use tristate::*;
 
 /// Return true if a given file descriptor is a terminal/tty, otherwise false.
 ///
