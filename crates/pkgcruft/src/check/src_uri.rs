@@ -72,12 +72,19 @@ mod tests {
 
     #[test]
     fn check() {
+        // MirrorsUnused requires repo scope
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let scanner = Scanner::new(repo).reports([MirrorsUnused]);
+        let r = scanner.run("SrcUri");
+        assert_err_re!(r, "MirrorsUnused: report requires repo scope");
+
         // primary unfixed
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new(repo).reports([CHECK]);
-        let expected = glob_reports!("{dir}/*/reports.json");
+        let expected = glob_reports!("{dir}/**/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
