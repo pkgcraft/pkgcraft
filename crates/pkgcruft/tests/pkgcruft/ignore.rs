@@ -74,12 +74,18 @@ fn current_dir_targets() {
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
-            repo: UriInvalid
-            cat-a: RubyUpdate
-            cat-a/pkg-a: UnstableOnly
-            cat-a/pkg-a/pkg-a-1.ebuild: PythonUpdate
-            cat-a/pkg-b/pkg-b-1.ebuild: PythonUpdate
-            cat-b/pkg-c/pkg-c-1.ebuild: PythonUpdate
+            test
+              UriInvalid
+            cat-a/*
+              RubyUpdate
+            cat-a/pkg-a/*
+              UnstableOnly
+            cat-a/pkg-a/pkg-a-1.ebuild
+              PythonUpdate
+            cat-a/pkg-b/pkg-b-1.ebuild
+              PythonUpdate
+            cat-b/pkg-c/pkg-c-1.ebuild
+              PythonUpdate
         "})
         .stderr("")
         .success();
@@ -89,11 +95,16 @@ fn current_dir_targets() {
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
-            repo: UriInvalid
-            cat-a: RubyUpdate
-            cat-a/pkg-a: UnstableOnly
-            cat-a/pkg-a/pkg-a-1.ebuild: PythonUpdate
-            cat-a/pkg-b/pkg-b-1.ebuild: PythonUpdate
+            test
+              UriInvalid
+            cat-a/*
+              RubyUpdate
+            cat-a/pkg-a/*
+              UnstableOnly
+            cat-a/pkg-a/pkg-a-1.ebuild
+              PythonUpdate
+            cat-a/pkg-b/pkg-b-1.ebuild
+              PythonUpdate
         "})
         .stderr("")
         .success();
@@ -103,10 +114,14 @@ fn current_dir_targets() {
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
-            repo: UriInvalid
-            cat-a: RubyUpdate
-            cat-a/pkg-a: UnstableOnly
-            cat-a/pkg-a/pkg-a-1.ebuild: PythonUpdate
+            test
+              UriInvalid
+            cat-a/*
+              RubyUpdate
+            cat-a/pkg-a/*
+              UnstableOnly
+            cat-a/pkg-a/pkg-a-1.ebuild
+              PythonUpdate
         "})
         .stderr("")
         .success();

@@ -7,6 +7,7 @@ use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::FilterLines;
+use pkgcraft::types::{OrderedMap, OrderedSet};
 use rayon::prelude::*;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
@@ -155,9 +156,28 @@ impl fmt::Display for Ignore {
         entries.sort_by(|a, b| a.key().cmp(b.key()));
         for entry in entries {
             let (path, map) = entry.pair();
-            let path = if path == "" { "repo" } else { path.as_str() };
-            let kinds = map.keys().join(", ");
-            writeln!(f, "{path}: {kinds}")?;
+
+            // output path context
+            if path == "" {
+                writeln!(f, "{}", self.repo)?;
+            } else if path.extension().is_some() {
+                writeln!(f, "{path}")?;
+            } else {
+                writeln!(f, "{path}/*")?;
+            }
+
+            // output report sets
+            let sets: OrderedMap<_, OrderedSet<_>> =
+                map.iter().map(|(kind, (set, _))| (set, kind)).collect();
+            for (set, kinds) in sets {
+                match set {
+                    ReportSet::Report(kind) => writeln!(f, "  {kind}")?,
+                    _ => {
+                        let kinds = kinds.iter().sorted().join(", ");
+                        writeln!(f, "  {set}: {kinds}")?;
+                    }
+                }
+            }
         }
 
         Ok(())
