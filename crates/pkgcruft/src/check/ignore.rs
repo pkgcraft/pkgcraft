@@ -30,3 +30,33 @@ impl RepoCheck for Check {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::test::*;
+
+    use crate::report::ReportSet;
+    use crate::scan::Scanner;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        // requires running in non-filtered context
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let scanner = Scanner::new(repo).reports([CHECK]);
+        let r = scanner.run(repo);
+        assert_err_re!(r, "IgnoreUnused: report requires no report filtering");
+
+        // check isn't run by default
+        let scanner = Scanner::new(repo);
+        let mut reports = scanner.run(repo).unwrap();
+        assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
+
+        // check run when all supported reports targeted
+        let scanner = Scanner::new(repo).reports([ReportSet::All]);
+        let mut reports = scanner.run(repo).unwrap();
+        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+    }
+}
