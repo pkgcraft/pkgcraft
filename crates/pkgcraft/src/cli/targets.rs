@@ -226,7 +226,7 @@ impl<'a> TargetRestrictions<'a> {
     }
 
     /// Determine target restrictions and finalize the config.
-    pub fn finalize_targets<I>(mut self, values: I) -> crate::Result<Vec<(RepoSet, Restrict)>>
+    pub fn finalize_targets<I>(mut self, values: I) -> crate::Result<Targets>
     where
         I: IntoIterator,
         I::Item: std::fmt::Display,
@@ -258,62 +258,60 @@ impl<'a> TargetRestrictions<'a> {
             collapsed_targets.push((set, Restrict::or(restricts)));
         }
 
-        Ok(collapsed_targets)
+        Ok(Targets(collapsed_targets))
     }
 }
 
-/// Convert target restrictions to packages.
-pub fn pkgs<I>(values: I) -> impl Iterator<Item = crate::Result<Pkg>>
-where
-    I: IntoIterator<Item = (RepoSet, Restrict)>,
-{
-    values
-        .into_iter()
-        .flat_map(|(set, restrict)| set.iter_restrict(restrict))
+pub struct Targets(Vec<(RepoSet, Restrict)>);
+
+impl IntoIterator for Targets {
+    type Item = (RepoSet, Restrict);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
 }
 
-/// Convert target restrictions to ebuild packages.
-pub fn ebuild_pkgs<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildPkg>>
-where
-    I: IntoIterator<Item = (RepoSet, Restrict)>,
-{
-    values.into_iter().flat_map(|(set, restrict)| {
-        set.into_iter()
-            .filter_map(|r| r.into_ebuild().ok())
-            .flat_map(move |r| r.iter_restrict_ordered(&restrict))
-    })
-}
+impl Targets {
+    /// Convert target restrictions to packages.
+    pub fn pkgs(self) -> impl Iterator<Item = crate::Result<Pkg>> {
+        self.into_iter()
+            .flat_map(|(set, restrict)| set.iter_restrict(restrict))
+    }
 
-/// Convert target restrictions into expanded ebuild package data.
-///
-/// This is useful to create pkg sets while still being able to log or ignore errors.
-pub fn ebuild_pkgs_expand<I>(
-    values: I,
-) -> impl Iterator<Item = crate::Result<((EbuildRepo, Cpn), EbuildPkg)>>
-where
-    I: IntoIterator<Item = (RepoSet, Restrict)>,
-{
-    ebuild_pkgs(values).map(|result| result.map(|pkg| ((pkg.repo(), pkg.cpn().clone()), pkg)))
-}
+    /// Convert target restrictions to ebuild packages.
+    pub fn ebuild_pkgs(self) -> impl Iterator<Item = crate::Result<EbuildPkg>> {
+        self.into_iter().flat_map(|(set, restrict)| {
+            set.into_iter()
+                .filter_map(|r| r.into_ebuild().ok())
+                .flat_map(move |r| r.iter_restrict_ordered(&restrict))
+        })
+    }
 
-/// Convert target restrictions into ebuild package sets.
-pub fn ebuild_pkg_sets<I>(
-    values: I,
-) -> crate::Result<OrderedMap<(EbuildRepo, Cpn), Vec<EbuildPkg>>>
-where
-    I: IntoIterator<Item = (RepoSet, Restrict)>,
-{
-    ebuild_pkgs_expand(values).try_collect()
-}
+    /// Convert target restrictions into expanded ebuild package data.
+    ///
+    /// This is useful to create pkg sets while still being able to log or ignore errors.
+    pub fn ebuild_pkgs_expand(
+        self,
+    ) -> impl Iterator<Item = crate::Result<((EbuildRepo, Cpn), EbuildPkg)>> {
+        self.ebuild_pkgs()
+            .map(|result| result.map(|pkg| ((pkg.repo(), pkg.cpn().clone()), pkg)))
+    }
 
-/// Convert target restrictions to raw ebuild packages.
-pub fn ebuild_raw_pkgs<I>(values: I) -> impl Iterator<Item = crate::Result<EbuildRawPkg>>
-where
-    I: IntoIterator<Item = (RepoSet, Restrict)>,
-{
-    values.into_iter().flat_map(|(set, restrict)| {
-        set.into_iter()
-            .filter_map(|r| r.into_ebuild().ok())
-            .flat_map(move |r| r.iter_raw_restrict(&restrict))
-    })
+    /// Convert target restrictions into ebuild package sets.
+    pub fn ebuild_pkg_sets(
+        self,
+    ) -> crate::Result<OrderedMap<(EbuildRepo, Cpn), Vec<EbuildPkg>>> {
+        self.ebuild_pkgs_expand().try_collect()
+    }
+
+    /// Convert target restrictions to raw ebuild packages.
+    pub fn ebuild_raw_pkgs(self) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> {
+        self.into_iter().flat_map(|(set, restrict)| {
+            set.into_iter()
+                .filter_map(|r| r.into_ebuild().ok())
+                .flat_map(move |r| r.iter_raw_restrict(&restrict))
+        })
+    }
 }

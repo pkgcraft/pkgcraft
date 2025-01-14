@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{builder::ArgPredicate, Args};
-use pkgcraft::cli::{ebuild_raw_pkgs, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
@@ -103,14 +103,12 @@ impl Command {
         let jobs = bounded_jobs(self.jobs.unwrap_or_default());
         let mut failed = false;
 
-        // convert targets to restrictions
-        let targets = TargetRestrictions::new(config)
+        // convert targets to pkgs
+        let pkgs = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?;
-
-        // convert restrictions to pkgs
-        let pkgs = ebuild_raw_pkgs(targets);
+            .finalize_targets(self.targets.iter().flatten())?
+            .ebuild_raw_pkgs();
 
         // source ebuilds and output ebuild-specific environment variables
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());

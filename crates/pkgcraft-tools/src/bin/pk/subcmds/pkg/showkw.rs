@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::{builder::ArgPredicate, Args};
 use itertools::Itertools;
-use pkgcraft::cli::{ebuild_pkgs, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
@@ -29,15 +29,15 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // convert targets to restrictions
-        let targets = TargetRestrictions::new(config)
+        // convert targets to pkgs
+        let mut iter = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?;
+            .finalize_targets(self.targets.iter().flatten())?
+            .ebuild_pkgs()
+            .log_errors();
 
         let mut stdout = io::stdout().lock();
-        // convert restrictions to pkgs
-        let mut iter = ebuild_pkgs(targets).log_errors();
         for pkg in &mut iter {
             writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
         }

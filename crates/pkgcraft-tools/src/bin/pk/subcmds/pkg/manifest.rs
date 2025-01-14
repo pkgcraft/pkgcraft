@@ -10,7 +10,7 @@ use clap::{builder::ArgPredicate, Args};
 use futures::{stream, StreamExt};
 use indexmap::{IndexMap, IndexSet};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use pkgcraft::cli::{ebuild_pkg_sets, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::{Fetchable, Fetcher};
@@ -126,15 +126,13 @@ impl Command {
         let dir = PathOrTempdir::new(self.dir.as_deref())?;
         let dir = dir.as_path()?;
 
-        // convert targets to restrictions
-        let targets = TargetRestrictions::new(config)
+        // convert targets to pkg sets
+        let pkg_sets = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .scope(|x| *x >= Scope::Package)
-            .finalize_targets(self.targets.iter().flatten())?;
-
-        // convert restrictions to pkg sets
-        let pkg_sets = ebuild_pkg_sets(targets)?;
+            .finalize_targets(self.targets.iter().flatten())?
+            .ebuild_pkg_sets()?;
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();

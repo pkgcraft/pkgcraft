@@ -9,7 +9,7 @@ use clap::{builder::ArgPredicate, Args};
 use futures::{stream, StreamExt};
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use pkgcraft::cli::{ebuild_pkgs, MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetcher;
@@ -92,14 +92,13 @@ impl Command {
         // TODO: pull DISTDIR from config for the default
         fs::create_dir_all(&self.dir)?;
 
-        // convert targets to restrictions
-        let targets = TargetRestrictions::new(config)
+        // convert targets to pkgs
+        let mut iter = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?;
-
-        // convert restrictions to pkgs
-        let mut iter = ebuild_pkgs(targets).log_errors();
+            .finalize_targets(self.targets.iter().flatten())?
+            .ebuild_pkgs()
+            .log_errors();
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();
