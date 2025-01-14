@@ -224,7 +224,7 @@ impl Check {
         match self {
             Self::Duplicates => &[Optional, Overlay],
             Self::Header => &[Gentoo],
-            Self::Ignore => &[Optional],
+            Self::Ignore => &[Unfiltered],
             Self::Live => &[Gentoo],
             Self::PythonUpdate => &[GentooInherited],
             Self::RubyUpdate => &[GentooInherited],
@@ -246,8 +246,11 @@ impl Check {
     ) -> impl Iterator<Item = Check> + '_ {
         let scope = value.into();
         let selected = Self::iter().collect();
-        Self::iter()
-            .filter(move |x| x.skipped(repo, &selected).is_none() && x.scoped(scope).is_none())
+        Self::iter().filter(move |x| {
+            (x.context().contains(&CheckContext::Unfiltered)
+                || x.skipped(repo, &selected).is_none())
+                && x.scoped(scope).is_none()
+        })
     }
 
     /// Return an iterator of checks that generate target reports.
@@ -276,6 +279,9 @@ impl Check {
     ) -> Option<CheckContext> {
         self.context().iter().copied().find(|context| {
             match context {
+                CheckContext::Unfiltered => {
+                    Self::iter_supported(repo, Scope::Repo).all(|x| selected.contains(&x))
+                }
                 CheckContext::Gentoo => repo.name() == "gentoo" || selected.contains(self),
                 CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
                 CheckContext::Optional => selected.contains(self),
@@ -333,6 +339,9 @@ pub enum CheckContext {
 
     /// Check only runs in overlay repos.
     Overlay,
+
+    /// Check requires no report filtering.
+    Unfiltered,
 }
 
 macro_rules! register {

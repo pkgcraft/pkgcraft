@@ -46,10 +46,7 @@ impl Reports {
                     for r in set.expand(&defaults, &supported) {
                         enabled.insert(r);
                         // track explicitly selected or supported variants
-                        if set.selected()
-                            || (supported.contains(&r)
-                                && (r != ReportKind::IgnoreUnused || set == ReportSet::All))
-                        {
+                        if set.selected() || supported.contains(&r) {
                             selected.insert(r);
                         }
                     }

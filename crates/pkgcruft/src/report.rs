@@ -137,7 +137,7 @@ impl ReportSet {
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
             Self::All => Box::new(supported.iter().copied()),
-            Self::Finalize => Box::new(supported.iter().filter(|r| r.finalize()).copied()),
+            Self::Finalize => Box::new(default.iter().filter(|r| r.finalize()).copied()),
             Self::Check(check) => Box::new(check.reports().iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter_report(supported)

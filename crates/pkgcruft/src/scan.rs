@@ -72,10 +72,7 @@ impl Scanner {
             for r in set.expand(&self.default, &self.supported) {
                 self.enabled.insert(r);
                 // track explicitly selected or supported variants
-                if set.selected()
-                    || (self.supported.contains(&r)
-                        && (r != ReportKind::IgnoreUnused || set == ReportSet::All))
-                {
+                if set.selected() || self.supported.contains(&r) {
                     self.selected.insert(r);
                 }
             }
@@ -143,7 +140,6 @@ impl Scanner {
 
         // determine if any filtering is enabled
         let pkg_filtering = !self.filters.is_empty();
-        let report_filtering = self.enabled != self.supported;
 
         // determine enabled reports -- errors if incompatible report is selected
         let enabled: HashSet<_> = self
@@ -156,8 +152,6 @@ impl Scanner {
                     Err(Error::ReportInit(report, format!("requires {scope} scope")))
                 } else if pkg_filtering && report.finalize() {
                     Err(Error::ReportInit(report, "requires no package filtering".to_string()))
-                } else if report_filtering && report == ReportKind::IgnoreUnused {
-                    Err(Error::ReportInit(report, "requires no report filtering".to_string()))
                 } else {
                     Ok(report)
                 }

@@ -47,7 +47,7 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let scanner = Scanner::new(repo).reports([CHECK]);
         let r = scanner.run(repo);
-        assert_err_re!(r, "IgnoreUnused: report requires no report filtering");
+        assert_err_re!(r, "Ignore: check requires unfiltered context");
 
         // check isn't run by default
         let scanner = Scanner::new(repo);
