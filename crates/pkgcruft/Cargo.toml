@@ -1,6 +1,6 @@
 [package]
 name = "pkgcruft"
-version = "0.0.8"
+version = "0.0.9"
 description = "QA library and tools based on pkgcraft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
@@ -53,10 +53,10 @@ indexmap = { version = "2.7.0", features = ["rayon", "serde"] }
 indoc = "2.0.5"
 itertools = "0.13.0"
 num_cpus = "1.16.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.21" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.22" }
 rayon = "1.10.0"
 regex = "1.11.1"
-scallop = { path = "../scallop", version = "0.0.20" }
+scallop = { path = "../scallop", version = "0.0.21" }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.135"
 strfmt = "0.2.4"
