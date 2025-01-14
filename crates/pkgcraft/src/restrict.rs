@@ -53,7 +53,7 @@ macro_rules! make_try_into_restrict {
     )+};
 }
 
-make_try_into_restrict!(&crate::dep::Dep, Restrict);
+make_try_into_restrict!(&crate::dep::Dep, Restrict, &Restrict);
 
 impl<C> TryIntoRestrict<C> for &str {
     fn try_into_restrict(self, _context: &C) -> crate::Result<Restrict> {

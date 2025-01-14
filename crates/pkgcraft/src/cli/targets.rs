@@ -283,6 +283,12 @@ impl IntoIterator for Targets {
 }
 
 impl Targets {
+    /// Convert target restrictions into borrowed ebuild repo and restriction tuples.
+    pub fn ebuild_repo_restricts(&self) -> impl Iterator<Item = (&EbuildRepo, &Restrict)> {
+        self.into_iter()
+            .flat_map(|(set, restrict)| set.ebuild().map(move |repo| (repo, restrict)))
+    }
+
     /// Convert target restrictions to packages.
     pub fn pkgs(self) -> impl Iterator<Item = crate::Result<Pkg>> {
         self.into_iter()

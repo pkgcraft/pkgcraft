@@ -75,29 +75,27 @@ impl Command {
         // run scanner for all targets
         let mut failed = false;
         let mut stdout = io::stdout().lock();
-        for (repo_set, restrict) in targets {
-            for repo in repo_set.ebuild() {
-                // determine enabled checks and reports
-                let defaults = ReportKind::defaults(repo);
-                let supported = ReportKind::supported(repo, &restrict);
-                let (enabled, selected) = self.reports.collapse(defaults, supported)?;
+        for (repo, restrict) in targets.ebuild_repo_restricts() {
+            // determine enabled checks and reports
+            let defaults = ReportKind::defaults(repo);
+            let supported = ReportKind::supported(repo, restrict);
+            let (enabled, selected) = self.reports.collapse(defaults, supported)?;
 
-                // create report scanner
-                let scanner = Scanner::new(repo)
-                    .jobs(self.jobs.unwrap_or_default())
-                    .selected(enabled, selected)
-                    .filters(self.filters.iter().cloned())
-                    .force(self.force)
-                    .exit(self.exit.iter().copied());
+            // create report scanner
+            let scanner = Scanner::new(repo)
+                .jobs(self.jobs.unwrap_or_default())
+                .selected(enabled, selected)
+                .filters(self.filters.iter().cloned())
+                .force(self.force)
+                .exit(self.exit.iter().copied());
 
-                // output reports
-                for report in scanner.run(restrict.clone())? {
-                    reporter.report(&report, &mut stdout)?;
-                }
-
-                // track failure status
-                failed |= scanner.failed();
+            // output reports
+            for report in scanner.run(restrict)? {
+                reporter.report(&report, &mut stdout)?;
             }
+
+            // track failure status
+            failed |= scanner.failed();
         }
 
         reporter.finish(&mut stdout)?;
