@@ -24,7 +24,9 @@ pub fn bench(c: &mut Criterion) {
         for check in Check::iter_supported(&repo, Scope::Repo) {
             group.bench_function(check.to_string(), |b| {
                 let scanner = Scanner::new(&repo).reports([check]);
-                b.iter(|| scanner.run(&repo).unwrap().count());
+                if scanner.run(&repo).is_ok() {
+                    b.iter(|| scanner.run(&repo).unwrap().count());
+                }
             });
         }
     } else {
