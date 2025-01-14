@@ -3,11 +3,9 @@ use std::{fmt, fs};
 use camino::Utf8PathBuf;
 use dashmap::{mapref::one::RefMut, DashMap};
 use indexmap::{IndexMap, IndexSet};
-use itertools::Itertools;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::FilterLines;
-use pkgcraft::types::{OrderedMap, OrderedSet};
 use rayon::prelude::*;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
@@ -167,16 +165,9 @@ impl fmt::Display for Ignore {
             }
 
             // output report sets
-            let sets: OrderedMap<_, OrderedSet<_>> =
-                map.iter().map(|(kind, (set, _))| (set, kind)).collect();
-            for (set, kinds) in sets {
-                match set {
-                    ReportSet::Report(kind) => writeln!(f, "  {kind}")?,
-                    _ => {
-                        let kinds = kinds.iter().sorted().join(", ");
-                        writeln!(f, "  {set}: {kinds}")?;
-                    }
-                }
+            let sets: IndexSet<_> = map.values().map(|(set, _)| set).collect();
+            for set in sets {
+                writeln!(f, "  {set}")?;
             }
         }
 

@@ -54,13 +54,13 @@ fn current_dir_targets() {
     repo.create_ebuild_from_str("cat-b/pkg-c-1", &data).unwrap();
 
     let data = indoc::indoc! {"
-        # ignore UriInvalid at repo level
-        UriInvalid
+        # ignore style reports at repo level
+        @style
     "};
     fs::write(repo.path().join(".pkgcruft-ignore"), data).unwrap();
     let data = indoc::indoc! {"
-        # ignore RubyUpdate at category level
-        RubyUpdate
+        # ignore Manifest check reports at category level
+        @Manifest
     "};
     fs::write(repo.path().join("cat-a/.pkgcruft-ignore"), data).unwrap();
     let data = indoc::indoc! {"
@@ -75,9 +75,9 @@ fn current_dir_targets() {
         .assert()
         .stdout(indoc::indoc! {"
             test
-              UriInvalid
+              @style
             cat-a/*
-              RubyUpdate
+              @Manifest
             cat-a/pkg-a/*
               UnstableOnly
             cat-a/pkg-a/pkg-a-1.ebuild
@@ -96,9 +96,9 @@ fn current_dir_targets() {
         .assert()
         .stdout(indoc::indoc! {"
             test
-              UriInvalid
+              @style
             cat-a/*
-              RubyUpdate
+              @Manifest
             cat-a/pkg-a/*
               UnstableOnly
             cat-a/pkg-a/pkg-a-1.ebuild
@@ -115,9 +115,9 @@ fn current_dir_targets() {
         .assert()
         .stdout(indoc::indoc! {"
             test
-              UriInvalid
+              @style
             cat-a/*
-              RubyUpdate
+              @Manifest
             cat-a/pkg-a/*
               UnstableOnly
             cat-a/pkg-a/pkg-a-1.ebuild
