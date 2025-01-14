@@ -47,7 +47,8 @@ impl Reports {
                         enabled.insert(r);
                         // track explicitly selected or supported variants
                         if set.selected()
-                            || (supported.contains(&r) && r != ReportKind::IgnoreUnused)
+                            || (supported.contains(&r)
+                                && (r != ReportKind::IgnoreUnused || set == ReportSet::All))
                         {
                             selected.insert(r);
                         }

@@ -73,7 +73,8 @@ impl Scanner {
                 self.enabled.insert(r);
                 // track explicitly selected or supported variants
                 if set.selected()
-                    || (self.supported.contains(&r) && r != ReportKind::IgnoreUnused)
+                    || (self.supported.contains(&r)
+                        && (r != ReportKind::IgnoreUnused || set == ReportSet::All))
                 {
                     self.selected.insert(r);
                 }
