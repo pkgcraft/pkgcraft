@@ -264,6 +264,15 @@ impl<'a> TargetRestrictions<'a> {
 
 pub struct Targets(Vec<(RepoSet, Restrict)>);
 
+impl<'a> IntoIterator for &'a Targets {
+    type Item = &'a (RepoSet, Restrict);
+    type IntoIter = std::slice::Iter<'a, (RepoSet, Restrict)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
 impl IntoIterator for Targets {
     type Item = (RepoSet, Restrict);
     type IntoIter = std::vec::IntoIter<Self::Item>;
