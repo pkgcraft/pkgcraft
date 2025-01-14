@@ -72,7 +72,7 @@ mod tests {
         assert_unordered_eq!(reports, []);
 
         // primary unfixed
-        let scanner = Scanner::new(repo).checks([CHECK]);
+        let scanner = Scanner::new(repo).reports([CHECK]);
         let expected = glob_reports!("{dir}/*/optional.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
@@ -80,7 +80,7 @@ mod tests {
         // primary fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let scanner = Scanner::new(repo).checks([CHECK]);
+        let scanner = Scanner::new(repo).reports([CHECK]);
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
     }

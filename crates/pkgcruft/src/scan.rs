@@ -54,29 +54,13 @@ impl Scanner {
         self
     }
 
-    /// Set the enabled checks.
-    pub fn checks<I>(mut self, values: I) -> Self
-    where
-        I: IntoIterator,
-        I::Item: Into<Check>,
-    {
-        self.selected_checks = values.into_iter().map(Into::into).collect();
-        self.enabled = self
-            .selected_checks
-            .iter()
-            .flat_map(|c| c.reports())
-            .copied()
-            .collect();
-        self
-    }
-
     /// Configure if ignore settings are respected.
     pub fn force(mut self, value: bool) -> Self {
         self.force = value;
         self
     }
 
-    /// Set enabled report variants.
+    /// Set the enabled report sets.
     pub fn reports<I>(mut self, values: I) -> Self
     where
         I: IntoIterator,
@@ -269,46 +253,10 @@ mod tests {
     }
 
     #[test]
-    fn checks() {
-        let data = test_data();
-        let repo = data.ebuild_repo("qa-primary").unwrap();
-        let path = repo.path();
-
-        // specific checks
-        let scanner = Scanner::new(repo).checks([Check::Dependency]);
-        let expected = glob_reports!("{path}/Dependency/**/reports.json");
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, expected);
-
-        // no checks
-        let checks: [Check; 0] = [];
-        let scanner = Scanner::new(repo).checks(checks);
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, []);
-
-        // filter failure
-        let latest = "latest".parse().unwrap();
-        let scanner = Scanner::new(repo)
-            .checks([Check::Filesdir])
-            .filters([latest]);
-        let result = scanner.run(repo);
-        assert_err_re!(result, "Filesdir: check requires no package filtering");
-
-        // context failure
-        let scanner = Scanner::new(repo).checks([Check::PythonUpdate]);
-        let result = scanner.run(repo);
-        assert_err_re!(result, "PythonUpdate: check requires gentoo-inherited context");
-
-        // scope failure
-        let scanner = Scanner::new(repo).checks([Check::Filesdir]);
-        let result = scanner.run("Filesdir/FilesUnused-0");
-        assert_err_re!(result, "Filesdir: check requires package scope");
-    }
-
-    #[test]
     fn reports() {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
+        let path = repo.path();
 
         // no reports
         let kinds: [ReportKind; 0] = [];
@@ -328,8 +276,27 @@ mod tests {
 
         // check
         let scanner = Scanner::new(repo).reports([Check::Dependency]);
-        let reports = scanner.run(repo).unwrap().count();
-        assert!(reports > 0);
+        let expected = glob_reports!("{path}/Dependency/**/reports.json");
+        let reports = scanner.run(repo).unwrap();
+        assert_unordered_eq!(reports, expected);
+
+        // filter failure
+        let latest = "latest".parse().unwrap();
+        let scanner = Scanner::new(repo)
+            .reports([Check::Filesdir])
+            .filters([latest]);
+        let result = scanner.run(repo);
+        assert_err_re!(result, "Filesdir: check requires no package filtering");
+
+        // context failure
+        let scanner = Scanner::new(repo).reports([Check::PythonUpdate]);
+        let result = scanner.run(repo);
+        assert_err_re!(result, "PythonUpdate: check requires gentoo-inherited context");
+
+        // scope failure
+        let scanner = Scanner::new(repo).reports([Check::Filesdir]);
+        let result = scanner.run("Filesdir/FilesUnused-0");
+        assert_err_re!(result, "FilesUnused: report requires package scope");
 
         // context
         let scanner = Scanner::new(repo).reports([CheckContext::Optional]);

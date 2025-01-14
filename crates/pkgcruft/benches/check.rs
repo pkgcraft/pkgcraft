@@ -23,7 +23,7 @@ pub fn bench(c: &mut Criterion) {
         // run benchmark for every check supported by the repo
         for check in Check::iter_supported(&repo, Scope::Repo) {
             group.bench_function(check.to_string(), |b| {
-                let scanner = Scanner::new(&repo).checks([check]);
+                let scanner = Scanner::new(&repo).reports([check]);
                 b.iter(|| scanner.run(&repo).unwrap().count());
             });
         }

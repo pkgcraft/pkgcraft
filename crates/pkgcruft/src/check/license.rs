@@ -114,7 +114,7 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
         let unneeded = repo.path().join("virtual/LicenseInvalid");
-        let scanner = Scanner::new(repo).checks([CHECK]);
+        let scanner = Scanner::new(repo).reports([CHECK]);
         let expected = glob_reports!("{dir}/**/reports.json", "{unneeded}/reports.json");
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, expected);
@@ -122,7 +122,7 @@ mod tests {
         // primary fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let scanner = Scanner::new(repo).checks([CHECK]);
+        let scanner = Scanner::new(repo).reports([CHECK]);
         let reports = scanner.run(repo).unwrap();
         assert_unordered_eq!(reports, []);
     }

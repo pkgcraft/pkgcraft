@@ -46,7 +46,7 @@ mod tests {
         // primary
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let scanner = Scanner::new(repo).checks([CHECK]);
+        let scanner = Scanner::new(repo).reports([CHECK]);
         let r = scanner.run(repo);
         assert_err_re!(r, "requires overlay context");
 
@@ -58,7 +58,7 @@ mod tests {
 
         // secondary
         let repo = data.ebuild_repo("qa-secondary").unwrap();
-        let scanner = Scanner::new(repo).checks([CHECK]);
+        let scanner = Scanner::new(repo).reports([CHECK]);
         let mut reports = scanner.run(repo).unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
     }
