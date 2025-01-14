@@ -1,3 +1,16 @@
+# 0.0.22 (2025-01-13)
+
+## Added
+- `pk pkg`: add short option -r/--repo for all subcommands
+
+## Changed
+- `pk pkg metadata`: change -r/--remove to -R/--remove
+- Bail on ebuild repo initialization if custom profile-formats are used (#251).
+- Respect custom cache location when generating metadata.
+
+## Fixed
+- `pk pkg metadata`: fix -o/--output handling with global task queue
+
 # 0.0.21 (2024-12-30)
 
 ## Added
