@@ -77,7 +77,7 @@ impl Ignore {
     /// references to the generated entries. Note that all iterations generate their
     /// respective cache entry even ones lacking data so future matching lookups hit the
     /// cache rather than regenerating the data.
-    pub fn generate<'a, 'b>(
+    pub(crate) fn generate<'a, 'b>(
         &'a self,
         scope: &'b ReportScope,
     ) -> impl Iterator<Item = RefMut<'a, ReportScope, IndexMap<ReportKind, (ReportSet, bool)>>>
