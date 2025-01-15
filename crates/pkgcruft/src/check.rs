@@ -182,39 +182,39 @@ impl Check {
         }
     }
 
-    /// The source of the values the check runs against.
-    pub(crate) fn source(&self) -> SourceKind {
+    /// The sources of values a check can run against.
+    pub(crate) fn sources(&self) -> &[SourceKind] {
         match self {
-            Self::Commands => SourceKind::EbuildRawPkg,
-            Self::Dependency => SourceKind::EbuildPkg,
-            Self::DependencySlotMissing => SourceKind::EbuildPkg,
-            Self::Duplicates => SourceKind::Cpn,
-            Self::EapiStale => SourceKind::EbuildPkg,
-            Self::EapiStatus => SourceKind::EbuildRawPkg,
-            Self::Filesdir => SourceKind::EbuildPkg,
-            Self::EbuildName => SourceKind::Cpn,
-            Self::Eclass => SourceKind::EbuildPkg,
-            Self::Header => SourceKind::EbuildRawPkg,
-            Self::Homepage => SourceKind::EbuildPkg,
-            Self::Ignore => SourceKind::Repo,
-            Self::Iuse => SourceKind::EbuildPkg,
-            Self::Keywords => SourceKind::EbuildPkg,
-            Self::KeywordsDropped => SourceKind::EbuildPkg,
-            Self::License => SourceKind::EbuildPkg,
-            Self::Live => SourceKind::EbuildPkg,
-            Self::Manifest => SourceKind::EbuildPkg,
-            Self::Metadata => SourceKind::Cpv,
-            Self::Properties => SourceKind::EbuildPkg,
-            Self::PythonUpdate => SourceKind::EbuildPkg,
-            Self::RepoLayout => SourceKind::Repo,
-            Self::Restrict => SourceKind::EbuildPkg,
-            Self::RestrictTestMissing => SourceKind::EbuildPkg,
-            Self::RubyUpdate => SourceKind::EbuildPkg,
-            Self::SrcUri => SourceKind::EbuildPkg,
-            Self::UnstableOnly => SourceKind::EbuildPkg,
-            Self::UseLocal => SourceKind::EbuildPkg,
-            Self::VariableOrder => SourceKind::EbuildRawPkg,
-            Self::Whitespace => SourceKind::EbuildRawPkg,
+            Self::Commands => &[SourceKind::EbuildRawPkg],
+            Self::Dependency => &[SourceKind::EbuildPkg],
+            Self::DependencySlotMissing => &[SourceKind::EbuildPkg],
+            Self::Duplicates => &[SourceKind::Cpn],
+            Self::EapiStale => &[SourceKind::EbuildPkg],
+            Self::EapiStatus => &[SourceKind::EbuildRawPkg],
+            Self::Filesdir => &[SourceKind::EbuildPkg],
+            Self::EbuildName => &[SourceKind::Cpn],
+            Self::Eclass => &[SourceKind::EbuildPkg],
+            Self::Header => &[SourceKind::EbuildRawPkg],
+            Self::Homepage => &[SourceKind::EbuildPkg],
+            Self::Ignore => &[SourceKind::Repo],
+            Self::Iuse => &[SourceKind::EbuildPkg],
+            Self::Keywords => &[SourceKind::EbuildPkg],
+            Self::KeywordsDropped => &[SourceKind::EbuildPkg],
+            Self::License => &[SourceKind::EbuildPkg],
+            Self::Live => &[SourceKind::EbuildPkg],
+            Self::Manifest => &[SourceKind::EbuildPkg],
+            Self::Metadata => &[SourceKind::Cpv],
+            Self::Properties => &[SourceKind::EbuildPkg],
+            Self::PythonUpdate => &[SourceKind::EbuildPkg],
+            Self::RepoLayout => &[SourceKind::Repo],
+            Self::Restrict => &[SourceKind::EbuildPkg],
+            Self::RestrictTestMissing => &[SourceKind::EbuildPkg],
+            Self::RubyUpdate => &[SourceKind::EbuildPkg],
+            Self::SrcUri => &[SourceKind::EbuildPkg],
+            Self::UnstableOnly => &[SourceKind::EbuildPkg],
+            Self::UseLocal => &[SourceKind::EbuildPkg],
+            Self::VariableOrder => &[SourceKind::EbuildRawPkg],
+            Self::Whitespace => &[SourceKind::EbuildRawPkg],
         }
     }
 
@@ -268,7 +268,7 @@ impl Check {
 
     /// Return an iterator of checks that use a given source.
     pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> + '_ {
-        Self::iter().filter(move |c| c.source() == *source)
+        Self::iter().filter(move |c| c.sources().contains(source))
     }
 
     /// Determine if a check is skipped for a scanning run due to scan context.
@@ -295,8 +295,8 @@ impl Check {
     /// Determine if a check is disabled for a scanning run due to package filtering.
     pub(crate) fn filtered(&self) -> bool {
         self.scope() != Scope::Version
-            || (self.source() != SourceKind::EbuildPkg
-                && self.source() != SourceKind::EbuildRawPkg)
+            || (!self.sources().contains(&SourceKind::EbuildPkg)
+                && !self.sources().contains(&SourceKind::EbuildRawPkg))
     }
 
     /// Determine if a check is disabled for a scanning run due to scan scope.

@@ -51,18 +51,20 @@ impl SyncCheckRunner {
         let mut runners = IndexMap::new();
 
         for check in checks {
-            runners
-                .entry(check.source())
-                .or_insert_with(|| {
-                    CheckRunner::new(
-                        scope,
-                        restrict,
-                        check.source(),
-                        scanner.repo.clone(),
-                        &scanner.filters,
-                    )
-                })
-                .add_check(check, filter)
+            for source in check.sources().iter().copied() {
+                runners
+                    .entry(source)
+                    .or_insert_with(|| {
+                        CheckRunner::new(
+                            scope,
+                            restrict,
+                            source,
+                            scanner.repo.clone(),
+                            &scanner.filters,
+                        )
+                    })
+                    .add_check(check, filter)
+            }
         }
 
         Self { runners }
@@ -86,22 +88,16 @@ impl SyncCheckRunner {
 
     /// Run a specific check.
     pub(super) fn run_check(&self, check: Check, target: &Target, filter: &ReportFilter) {
-        let source = check.source();
-        assert!(target.scope() >= source.scope());
-        let runner = self
-            .runners
-            .get(&source)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        runner.run_check(&check, target, filter);
+        for runner in check.sources().iter().filter_map(|x| self.runners.get(x)) {
+            runner.run_check(&check, target, filter);
+        }
     }
 
     /// Run finalization for a specific check.
     pub(super) fn finish(&self, check: Check, filter: &ReportFilter) {
-        let runner = self
-            .runners
-            .get(&check.source())
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        runner.finish(&check, filter);
+        for runner in check.sources().iter().filter_map(|x| self.runners.get(x)) {
+            runner.finish(&check, filter);
+        }
     }
 }
 
