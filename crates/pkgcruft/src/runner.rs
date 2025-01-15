@@ -91,17 +91,29 @@ impl SyncCheckRunner {
         }
     }
 
-    /// Run a specific check.
+    /// Run a check.
     pub(super) fn run_check(&self, check: Check, target: &Target, filter: &ReportFilter) {
         for runner in check.sources().iter().filter_map(|x| self.runners.get(x)) {
             runner.run_check(&check, target, filter);
         }
     }
 
-    /// Run finalization for a specific check.
-    pub(super) fn finish(&self, check: Check, filter: &ReportFilter) {
+    /// Run finalization for a target.
+    pub(super) fn finish_target(&self, check: Check, target: &Target, filter: &ReportFilter) {
+        for runner in check
+            .sources()
+            .iter()
+            .filter(|x| target.scope() >= x.scope())
+            .filter_map(|x| self.runners.get(x))
+        {
+            runner.finish_target(&check, target, filter);
+        }
+    }
+
+    /// Run finalization for a check.
+    pub(super) fn finish_check(&self, check: Check, filter: &ReportFilter) {
         for runner in check.sources().iter().filter_map(|x| self.runners.get(x)) {
-            runner.finish(&check, filter);
+            runner.finish_check(&check, filter);
         }
     }
 }
@@ -175,7 +187,7 @@ impl CheckRunner {
         }
     }
 
-    /// Run a specific check.
+    /// Run a check.
     fn run_check(&self, check: &Check, target: &Target, filter: &ReportFilter) {
         match (self, target) {
             (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
@@ -189,14 +201,24 @@ impl CheckRunner {
         }
     }
 
-    /// Run finalization for a specific check.
-    fn finish(&self, check: &Check, filter: &ReportFilter) {
+    /// Run finalization for a target.
+    fn finish_target(&self, check: &Check, target: &Target, filter: &ReportFilter) {
+        match (self, target) {
+            (Self::Cpn(r), Target::Cpn(cpn)) => r.finish_target(check, cpn, filter),
+            (Self::Cpv(r), Target::Cpv(cpv)) => r.finish_target(check, cpv, filter),
+            // TODO: revert to panicking when finish_target() filters by scope
+            _ => (),
+        }
+    }
+
+    /// Run finalization for a check.
+    fn finish_check(&self, check: &Check, filter: &ReportFilter) {
         match self {
-            Self::EbuildPkg(r) => r.finish(check, filter),
-            Self::EbuildRawPkg(r) => r.finish(check, filter),
-            Self::Cpn(r) => r.finish(check, filter),
-            Self::Cpv(r) => r.finish(check, filter),
-            Self::Repo(r) => r.finish(check, filter),
+            Self::EbuildPkg(r) => r.finish_check(check, filter),
+            Self::EbuildRawPkg(r) => r.finish_check(check, filter),
+            Self::Repo(r) => r.finish_check(check, filter),
+            // TODO: revert to panicking when finish_check() filters by scope
+            _ => (),
         }
     }
 }
@@ -325,20 +347,20 @@ macro_rules! make_pkg_check_runner {
             }
 
             /// Finish a check.
-            fn finish(&self, check: &Check, filter: &ReportFilter) {
+            fn finish_check(&self, check: &Check, filter: &ReportFilter) {
                 let now = Instant::now();
                 if check.scope() == Scope::Version {
                     let runner = self
                         .pkg_checks
                         .get(check)
                         .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                    runner.finish(&self.repo, filter);
+                    runner.finish_check(&self.repo, filter);
                 } else {
                     let runner = self
                         .pkg_set_checks
                         .get(check)
                         .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                    runner.finish(&self.repo, filter);
+                    runner.finish_check(&self.repo, filter);
                 }
                 debug!("{check}: finish: {:?}", now.elapsed());
             }
@@ -395,6 +417,11 @@ impl CpnCheckRunner {
             let now = Instant::now();
             runner.run(cpn, filter);
             debug!("{check}: {cpn}: {:?}", now.elapsed());
+
+            // run finalize methods for a target
+            if check.finish_target() {
+                self.finish_target(check, cpn, filter);
+            }
         }
     }
 
@@ -409,15 +436,15 @@ impl CpnCheckRunner {
         debug!("{check}: {cpn}: {:?}", now.elapsed());
     }
 
-    /// Finish a check.
-    fn finish(&self, check: &Check, filter: &ReportFilter) {
+    /// Finish a target.
+    fn finish_target(&self, check: &Check, cpn: &Cpn, filter: &ReportFilter) {
         let runner = self
             .checks
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.finish(&self.repo, filter);
-        debug!("{check}: finish: {:?}", now.elapsed());
+        runner.finish_target(cpn, filter);
+        debug!("{check}: {cpn}: finish target: {:?}", now.elapsed());
     }
 }
 
@@ -453,6 +480,11 @@ impl CpvCheckRunner {
                 let now = Instant::now();
                 runner.run(&cpv, filter);
                 debug!("{check}: {cpv}: {:?}", now.elapsed());
+
+                // run finalize methods for a target
+                if check.finish_target() {
+                    self.finish_target(check, &cpv, filter);
+                }
             }
         }
     }
@@ -468,15 +500,15 @@ impl CpvCheckRunner {
         debug!("{check}: {cpv}: {:?}", now.elapsed());
     }
 
-    /// Finish a check.
-    fn finish(&self, check: &Check, filter: &ReportFilter) {
+    /// Finish a target.
+    fn finish_target(&self, check: &Check, cpv: &Cpv, filter: &ReportFilter) {
         let runner = self
             .checks
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.finish(&self.repo, filter);
-        debug!("{check}: finish: {:?}", now.elapsed());
+        runner.finish_target(cpv, filter);
+        debug!("{check}: {cpv}: finish target: {:?}", now.elapsed());
     }
 }
 
@@ -517,13 +549,13 @@ impl RepoCheckRunner {
     }
 
     /// Finish a check.
-    fn finish(&self, check: &Check, filter: &ReportFilter) {
+    fn finish_check(&self, check: &Check, filter: &ReportFilter) {
         let runner = self
             .checks
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.finish(&self.repo, filter);
+        runner.finish_check(&self.repo, filter);
         debug!("{check}: finish: {:?}", now.elapsed());
     }
 }

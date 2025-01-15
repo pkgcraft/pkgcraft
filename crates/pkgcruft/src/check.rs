@@ -306,11 +306,16 @@ impl Check {
         }
     }
 
-    /// Check requires post-run finalization for a scope.
-    pub(crate) fn finalize(&self, enabled: &HashSet<ReportKind>) -> bool {
+    /// Check requires post-run finalization.
+    pub(crate) fn finish_check(&self, enabled: &HashSet<ReportKind>) -> bool {
         self.reports()
             .iter()
-            .any(|r| r.finalize() && enabled.contains(r))
+            .any(|r| r.finish_check() && enabled.contains(r))
+    }
+
+    /// Check requires post-run target finalization.
+    pub(crate) fn finish_target(&self) -> bool {
+        self.reports().iter().any(|r| r.finish_target())
     }
 }
 
@@ -353,8 +358,8 @@ use register;
 /// Run a check against a repo.
 pub(crate) trait RepoCheck: fmt::Display {
     fn run(&self, repo: &EbuildRepo, filter: &ReportFilter);
-    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
-        unimplemented!("{self} finish")
+    fn finish_check(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish check")
     }
 }
 pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
@@ -362,8 +367,8 @@ pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 /// Run a check against a Cpv.
 pub(crate) trait CpvCheck: fmt::Display {
     fn run(&self, cpv: &Cpv, filter: &ReportFilter);
-    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
-        unimplemented!("{self} finish")
+    fn finish_target(&self, _cpv: &Cpv, _filter: &ReportFilter) {
+        unimplemented!("{self} finish target")
     }
 }
 pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
@@ -371,8 +376,8 @@ pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
 /// Run a check against a Cpn.
 pub(crate) trait CpnCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, filter: &ReportFilter);
-    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
-        unimplemented!("{self} finish")
+    fn finish_target(&self, _cpn: &Cpn, _filter: &ReportFilter) {
+        unimplemented!("{self} finish target")
     }
 }
 pub(crate) type CpnRunner = Box<dyn CpnCheck + Send + Sync>;
@@ -380,8 +385,8 @@ pub(crate) type CpnRunner = Box<dyn CpnCheck + Send + Sync>;
 /// Run a check against a given ebuild package version.
 pub(crate) trait EbuildPkgCheck: fmt::Display {
     fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter);
-    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
-        unimplemented!("{self} finish")
+    fn finish_check(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish check")
     }
 }
 pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
@@ -389,8 +394,8 @@ pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 /// Run a check against a given ebuild package set.
 pub(crate) trait EbuildPkgSetCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter);
-    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
-        unimplemented!("{self} finish")
+    fn finish_check(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish check")
     }
 }
 pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
@@ -398,8 +403,8 @@ pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 /// Run a check against a given raw ebuild package version.
 pub(crate) trait EbuildRawPkgCheck: fmt::Display {
     fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter);
-    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
-        unimplemented!("{self} finish")
+    fn finish_check(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish check")
     }
 }
 pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
@@ -407,8 +412,8 @@ pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 /// Run a check against a raw ebuild package set.
 pub(crate) trait EbuildRawPkgSetCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], filter: &ReportFilter);
-    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
-        unimplemented!("{self} finish")
+    fn finish_check(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish check")
     }
 }
 pub(crate) type EbuildRawPkgSetRunner = Box<dyn EbuildRawPkgSetCheck + Send + Sync>;

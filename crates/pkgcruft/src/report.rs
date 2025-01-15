@@ -141,7 +141,7 @@ impl ReportSet {
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
             Self::All => Box::new(supported.iter().copied()),
-            Self::Finalize => Box::new(default.iter().filter(|r| r.finalize()).copied()),
+            Self::Finalize => Box::new(default.iter().filter(|r| r.finish_check()).copied()),
             Self::Check(check) => Box::new(check.reports().iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter_report(supported)
@@ -533,7 +533,7 @@ impl ReportKind {
     }
 
     /// Return true if the report supports post-run finalization.
-    pub(crate) fn finalize(&self) -> bool {
+    pub(crate) fn finish_check(&self) -> bool {
         // all variants are explicitly listed so new entries must be manually verified
         match self {
             Self::ArchesUnused => true,
@@ -593,6 +593,11 @@ impl ReportKind {
             Self::WhitespaceInvalid => false,
             Self::WhitespaceUnneeded => false,
         }
+    }
+
+    /// Return true if the report supports post-run finalization for a target.
+    pub(crate) fn finish_target(&self) -> bool {
+        matches!(self, Self::IgnoreUnused)
     }
 
     /// Return the sorted set of reports enabled by default for an ebuild repo.

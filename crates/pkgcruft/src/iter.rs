@@ -144,7 +144,7 @@ fn pkg_producer(
         // finalize checks in parallel
         for check in runner
             .checks()
-            .filter(|c| c.finalize(&filter.enabled))
+            .filter(|c| c.finish_check(&filter.enabled))
             .unique()
         {
             finish_tx.send(check).ok();
@@ -188,7 +188,7 @@ fn pkg_worker(
 
         // finalize checks
         for check in finish_rx {
-            runner.finish(check, &filter);
+            runner.finish_check(check, &filter);
         }
     })
 }
@@ -253,7 +253,7 @@ fn version_producer(
     wg: WaitGroup,
     restrict: Restrict,
     tx: Sender<(Check, Target)>,
-    finish_tx: Sender<Check>,
+    finish_tx: Sender<(Check, Option<Target>)>,
     filter: Arc<ReportFilter>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
@@ -273,13 +273,24 @@ fn version_producer(
         drop(tx);
         wg.wait();
 
-        // finalize checks in parallel
+        for cpv in repo.iter_cpv_restrict(&restrict) {
+            for check in runner.checks().filter(|c| c.finish_target()).unique() {
+                finish_tx.send((check, Some(Target::Cpv(cpv.clone())))).ok();
+            }
+        }
+
+        for cpn in repo.iter_cpn_restrict(&restrict) {
+            for check in runner.checks().filter(|c| c.finish_target()).unique() {
+                finish_tx.send((check, Some(Target::Cpn(cpn.clone())))).ok();
+            }
+        }
+
         for check in runner
             .checks()
-            .filter(|c| c.finalize(&filter.enabled))
+            .filter(|c| c.finish_check(&filter.enabled))
             .unique()
         {
-            finish_tx.send(check).ok();
+            finish_tx.send((check, None)).ok();
         }
     })
 }
@@ -290,7 +301,7 @@ fn version_worker(
     wg: WaitGroup,
     filter: Arc<ReportFilter>,
     rx: Receiver<(Check, Target)>,
-    finish_rx: Receiver<Check>,
+    finish_rx: Receiver<(Check, Option<Target>)>,
 ) -> thread::JoinHandle<()> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
@@ -310,9 +321,13 @@ fn version_worker(
         // signal the wait group
         drop(wg);
 
-        // finalize checks
-        for check in finish_rx {
-            runner.finish(check, &filter);
+        // run finalize methods for targets
+        for (check, target) in finish_rx {
+            if let Some(target) = target {
+                runner.finish_target(check, &target, &filter);
+            } else {
+                runner.finish_check(check, &filter);
+            }
         }
     })
 }

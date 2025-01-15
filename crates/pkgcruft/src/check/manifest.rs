@@ -131,7 +131,7 @@ impl EbuildPkgSetCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(ManifestConflict) {
             for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
                 let (name, map) = entry.pair();

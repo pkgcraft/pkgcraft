@@ -118,20 +118,19 @@ impl Ignore {
     }
 
     /// Return the mapping of unused ignore directives in the repo.
-    pub fn unused(&self) -> IndexMap<ReportScope, IndexSet<ReportSet>> {
-        let mut unused = IndexMap::new();
-        for entry in &self.cache {
-            let (scope, map) = entry.pair();
-            let values: IndexSet<_> = map
+    pub fn unused(&self, scope: &ReportScope) -> Option<IndexSet<ReportSet>> {
+        self.cache.get(scope).and_then(|entry| {
+            let map = entry.value();
+            let sets: IndexSet<_> = map
                 .values()
                 .filter_map(|(set, used)| if !used { Some(*set) } else { None })
                 .collect();
-            if !values.is_empty() {
-                unused.insert(scope.clone(), values);
+            if !sets.is_empty() {
+                Some(sets)
+            } else {
+                None
             }
-        }
-        unused.sort_keys();
-        unused
+        })
     }
 }
 

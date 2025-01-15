@@ -59,7 +59,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(UseGlobalUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused

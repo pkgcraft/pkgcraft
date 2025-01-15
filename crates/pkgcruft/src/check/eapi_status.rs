@@ -48,7 +48,7 @@ impl EbuildRawPkgCheck for Check {
         }
     }
 
-    fn finish(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
         if filter.enabled(EapiUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
