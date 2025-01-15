@@ -117,7 +117,7 @@ impl Ignore {
             });
     }
 
-    /// Return the mapping of unused ignore directives in the repo.
+    /// Return the set of unused ignore directives for a scope if it exists.
     pub fn unused(&self, scope: &ReportScope) -> Option<IndexSet<ReportSet>> {
         self.cache.get(scope).and_then(|entry| {
             let map = entry.value();
@@ -157,6 +157,7 @@ impl fmt::Display for Ignore {
     }
 }
 
+/// Convert scope to ignore file path.
 fn scope_to_path(scope: &ReportScope) -> Utf8PathBuf {
     match scope {
         ReportScope::Version(cpv, _) => cpv.relpath(),
