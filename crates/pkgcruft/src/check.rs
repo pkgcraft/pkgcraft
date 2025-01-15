@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fmt;
 use std::ops::Not;
 use std::sync::LazyLock;
@@ -307,10 +306,8 @@ impl Check {
     }
 
     /// Check requires post-run finalization.
-    pub(crate) fn finish_check(&self, enabled: &HashSet<ReportKind>) -> bool {
-        self.reports()
-            .iter()
-            .any(|r| r.finish_check() && enabled.contains(r))
+    pub(crate) fn finish_check(&self) -> bool {
+        self.reports().iter().any(|r| r.finish_check())
     }
 
     /// Check requires post-run target finalization.
