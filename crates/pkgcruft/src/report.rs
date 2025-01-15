@@ -523,6 +523,15 @@ impl ReportKind {
         }
     }
 
+    /// Determine if a report is disabled for a scanning run due to scan scope.
+    pub(crate) fn scoped(&self, scope: Scope) -> Option<Scope> {
+        if self.scope() > scope {
+            Some(self.scope())
+        } else {
+            None
+        }
+    }
+
     /// Return true if the report supports post-run finalization.
     pub(crate) fn finalize(&self) -> bool {
         // all variants are explicitly listed so new entries must be manually verified

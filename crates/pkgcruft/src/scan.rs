@@ -147,8 +147,7 @@ impl Scanner {
             .iter()
             .copied()
             .map(|report| {
-                let scope = report.scope();
-                if scan_scope < scope {
+                if let Some(scope) = report.scoped(scan_scope) {
                     Err(Error::ReportInit(report, format!("requires {scope} scope")))
                 } else if pkg_filtering && report.finalize() {
                     Err(Error::ReportInit(report, "requires no package filtering".to_string()))
