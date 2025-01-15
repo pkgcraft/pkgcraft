@@ -109,7 +109,7 @@ impl SyncCheckRunner {
         for runner in check
             .sources()
             .iter()
-            .filter(|x| target.scope() >= x.scope())
+            .filter(|x| target.scope() == x.scope())
             .filter_map(|x| self.runners.get(x))
         {
             runner.finish_target(&check, target, filter);
@@ -212,8 +212,7 @@ impl CheckRunner {
         match (self, target) {
             (Self::Cpn(r), Target::Cpn(cpn)) => r.finish_target(check, cpn, filter),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.finish_target(check, cpv, filter),
-            // TODO: revert to panicking when finish_target() filters by scope
-            _ => (),
+            _ => unreachable!("incompatible target {target:?} for check: {check}"),
         }
     }
 
@@ -223,7 +222,7 @@ impl CheckRunner {
             Self::EbuildPkg(r) => r.finish_check(check, filter),
             Self::EbuildRawPkg(r) => r.finish_check(check, filter),
             Self::Repo(r) => r.finish_check(check, filter),
-            // TODO: revert to panicking when finish_check() filters by scope
+            // TODO: revert to panicking when finish_check() filters runners
             _ => (),
         }
     }
