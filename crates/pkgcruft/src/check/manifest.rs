@@ -65,6 +65,7 @@ impl EbuildPkgSetCheck for Check {
         // determine distfiles for pkgs and manifest
         let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
         let mut manifest_distfiles = HashSet::new();
+        let mut colliding = HashMap::<_, HashSet<_>>::new();
         for x in manifest.distfiles() {
             let name = x.name();
             manifest_distfiles.insert(name);
@@ -80,13 +81,27 @@ impl EbuildPkgSetCheck for Check {
 
                 // track duplicate hashes with different names
                 if filter.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
-                    self.colliding
+                    colliding
                         .entry(hash.clone())
                         .or_default()
-                        .entry(name.to_string())
-                        .or_default()
-                        .insert(cpn.clone());
+                        .insert(name.to_string());
                 }
+            }
+        }
+
+        for (hash, files) in colliding {
+            if files.len() > 1 {
+                let files = files.iter().sorted().join(", ");
+                ManifestCollide.package(cpn).message(files).report(filter);
+            }
+
+            for file in files {
+                self.colliding
+                    .entry(hash.clone())
+                    .or_default()
+                    .entry(file)
+                    .or_default()
+                    .insert(cpn.clone());
             }
         }
 
@@ -152,16 +167,19 @@ impl EbuildPkgSetCheck for Check {
                         map.entry(cpn).or_default().push(file);
                     }
                 }
-                map.sort_keys();
 
-                let values = map
-                    .iter()
-                    .map(|(cpn, files)| {
-                        let files = files.iter().sorted().join(", ");
-                        format!("({cpn}: {files})")
-                    })
-                    .join(", ");
-                ManifestCollide.repo(repo).message(values).report(filter);
+                // skip single package variants that are reported when running
+                if map.len() > 1 {
+                    map.sort_keys();
+                    let values = map
+                        .iter()
+                        .map(|(cpn, files)| {
+                            let files = files.iter().sorted().join(", ");
+                            format!("({cpn}: {files})")
+                        })
+                        .join(", ");
+                    ManifestCollide.repo(repo).message(values).report(filter);
+                }
             }
         }
     }
