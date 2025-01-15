@@ -50,9 +50,14 @@ mod tests {
 
     #[test]
     fn check() {
-        // primary unfixed
+        // check requires package scope
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
+        let scanner = Scanner::new(repo).reports([EapiStale]);
+        let r = scanner.run("EapiStale/EapiStale-9999");
+        assert_err_re!(r, "EapiStale: check requires package scope");
+
+        // primary unfixed
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new(repo).reports([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
