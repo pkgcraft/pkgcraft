@@ -249,7 +249,7 @@ impl Check {
         Self::iter().filter(move |x| {
             (x.context().contains(&CheckContext::Unfiltered)
                 || x.skipped(repo, &selected).is_none())
-                && x.scoped(scope).is_none()
+                && scope >= x.scope()
         })
     }
 
@@ -296,15 +296,6 @@ impl Check {
         self.scope() != Scope::Version
             || (self.source() != SourceKind::EbuildPkg
                 && self.source() != SourceKind::EbuildRawPkg)
-    }
-
-    /// Determine if a check is disabled for a scanning run due to scan scope.
-    pub(crate) fn scoped(&self, scope: Scope) -> Option<Scope> {
-        if self.scope() > scope {
-            Some(self.scope())
-        } else {
-            None
-        }
     }
 
     /// Check requires post-run finalization for a scope.
