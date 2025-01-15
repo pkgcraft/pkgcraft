@@ -94,7 +94,12 @@ impl SyncCheckRunner {
 
     /// Run a check.
     pub(super) fn run_check(&self, check: Check, target: &Target, filter: &ReportFilter) {
-        for runner in check.sources().iter().filter_map(|x| self.runners.get(x)) {
+        for runner in check
+            .sources()
+            .iter()
+            .filter(|x| target.scope() >= x.scope())
+            .filter_map(|x| self.runners.get(x))
+        {
             runner.run_check(&check, target, filter);
         }
     }
@@ -198,7 +203,7 @@ impl CheckRunner {
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, filter),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::Repo(r), Target::Repo) => r.run_check(check, filter),
-            _ => (),
+            _ => unreachable!("incompatible target {target:?} for check: {check}"),
         }
     }
 
