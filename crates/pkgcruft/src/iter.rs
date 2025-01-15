@@ -142,7 +142,11 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(&filter.enabled)) {
+        for check in runner
+            .checks()
+            .filter(|c| c.finalize(&filter.enabled))
+            .unique()
+        {
             finish_tx.send(check).ok();
         }
     })
@@ -270,7 +274,11 @@ fn version_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finalize(&filter.enabled)) {
+        for check in runner
+            .checks()
+            .filter(|c| c.finalize(&filter.enabled))
+            .unique()
+        {
             finish_tx.send(check).ok();
         }
     })

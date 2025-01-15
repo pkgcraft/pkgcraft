@@ -174,7 +174,7 @@ impl Scanner {
             .map(|check| {
                 if pkg_filtering && check.filtered() {
                     Err(Error::CheckInit(check, "requires no package filtering".to_string()))
-                } else if let Some(context) = check.skipped(&self.repo, selected, scan_scope) {
+                } else if let Some(context) = check.skipped(&self.repo, selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
                 } else if let Some(scope) = check.scoped(scan_scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))

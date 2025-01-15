@@ -16,7 +16,7 @@ use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 /// generated.
 pub struct Ignore {
     repo: EbuildRepo,
-    cache: DashMap<Utf8PathBuf, IndexMap<ReportKind, (ReportSet, bool)>>,
+    cache: DashMap<ReportScope, IndexMap<ReportKind, (ReportSet, bool)>>,
     default: IndexSet<ReportKind>,
     supported: IndexSet<ReportKind>,
 }
@@ -48,13 +48,9 @@ impl Ignore {
     }
 
     /// Load ignore data from ebuild lines or files.
-    fn load_data(
-        &self,
-        scope: Scope,
-        relpath: Utf8PathBuf,
-    ) -> IndexMap<ReportKind, (ReportSet, bool)> {
-        let path = self.repo.path().join(relpath);
-        if scope == Scope::Version {
+    fn load_data(&self, scope: ReportScope) -> IndexMap<ReportKind, (ReportSet, bool)> {
+        let path = self.repo.path().join(scope_to_path(&scope));
+        if matches!(scope, ReportScope::Version(..)) {
             // TODO: use BufRead to avoid loading the entire ebuild file?
             let mut ignore = IndexMap::new();
             for line in fs::read_to_string(path).unwrap_or_default().lines() {
@@ -84,12 +80,12 @@ impl Ignore {
     pub fn generate<'a, 'b>(
         &'a self,
         scope: &'b ReportScope,
-    ) -> impl Iterator<Item = RefMut<'a, Utf8PathBuf, IndexMap<ReportKind, (ReportSet, bool)>>>
+    ) -> impl Iterator<Item = RefMut<'a, ReportScope, IndexMap<ReportKind, (ReportSet, bool)>>>
            + use<'a, 'b> {
-        IgnorePaths::new(scope).map(move |(scope, relpath)| {
+        IgnoreScopes::new(&self.repo, scope).map(move |scope| {
             self.cache
-                .entry(relpath.clone())
-                .or_insert_with(|| self.load_data(scope, relpath))
+                .entry(scope.clone())
+                .or_insert_with(|| self.load_data(scope))
         })
     }
 
@@ -122,21 +118,16 @@ impl Ignore {
     }
 
     /// Return the mapping of unused ignore directives in the repo.
-    pub fn unused(&self) -> IndexMap<Utf8PathBuf, IndexSet<ReportSet>> {
+    pub fn unused(&self) -> IndexMap<ReportScope, IndexSet<ReportSet>> {
         let mut unused = IndexMap::new();
         for entry in &self.cache {
-            let (path, map) = entry.pair();
+            let (scope, map) = entry.pair();
             let values: IndexSet<_> = map
                 .values()
                 .filter_map(|(set, used)| if !used { Some(*set) } else { None })
                 .collect();
             if !values.is_empty() {
-                let path = if path.extension().is_some() {
-                    path.clone()
-                } else {
-                    path.join(".pkgcruft-ignore")
-                };
-                unused.insert(path, values);
+                unused.insert(scope.clone(), values);
             }
         }
         unused.sort_keys();
@@ -154,17 +145,8 @@ impl fmt::Display for Ignore {
 
         entries.sort_by(|a, b| a.key().cmp(b.key()));
         for entry in entries {
-            let (path, map) = entry.pair();
-
-            // output path context
-            if path == "" {
-                writeln!(f, "{}", self.repo)?;
-            } else if path.extension().is_some() {
-                writeln!(f, "{path}")?;
-            } else {
-                writeln!(f, "{path}/*")?;
-            }
-
+            let (scope, map) = entry.pair();
+            writeln!(f, "{scope}")?;
             // output report sets
             let sets: IndexSet<_> = map.values().map(|(set, _)| set).collect();
             for set in sets {
@@ -176,35 +158,52 @@ impl fmt::Display for Ignore {
     }
 }
 
-/// Iterator over relative paths for ignore data in a repo targeting a scope.
-struct IgnorePaths<'a> {
-    target: &'a ReportScope,
+fn scope_to_path(scope: &ReportScope) -> Utf8PathBuf {
+    match scope {
+        ReportScope::Version(cpv, _) => cpv.relpath(),
+        ReportScope::Package(cpn) => cpn.to_string().into(),
+        ReportScope::Category(category) => category.into(),
+        ReportScope::Repo(_) => Default::default(),
+    }
+}
+
+/// Iterator over relevant scopes for ignore data in a repo targeting a scope.
+struct IgnoreScopes<'a, 'b> {
+    repo: &'a EbuildRepo,
+    target: &'b ReportScope,
     scope: Option<Scope>,
 }
 
-impl<'a> IgnorePaths<'a> {
-    fn new(target: &'a ReportScope) -> Self {
+impl<'a, 'b> IgnoreScopes<'a, 'b> {
+    fn new(repo: &'a EbuildRepo, target: &'b ReportScope) -> Self {
         Self {
+            repo,
             target,
             scope: Some(Scope::Repo),
         }
     }
 }
 
-impl Iterator for IgnorePaths<'_> {
-    type Item = (Scope, Utf8PathBuf);
+impl Iterator for IgnoreScopes<'_, '_> {
+    type Item = ReportScope;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.scope.map(|scope| {
             // construct the relative path to check for ignore files
-            let relpath = match (scope, self.target) {
-                (Scope::Category, ReportScope::Category(category)) => category.into(),
-                (Scope::Category, ReportScope::Package(cpn)) => cpn.category().into(),
-                (Scope::Category, ReportScope::Version(cpv, _)) => cpv.category().into(),
-                (Scope::Package, ReportScope::Package(cpn)) => cpn.to_string().into(),
-                (Scope::Package, ReportScope::Version(cpv, _)) => cpv.cpn().to_string().into(),
-                (Scope::Version, ReportScope::Version(cpv, _)) => cpv.relpath(),
-                _ => Default::default(),
+            let entry_scope = match (scope, self.target) {
+                (Scope::Version, ReportScope::Version(..)) => self.target.clone(),
+                (Scope::Package, ReportScope::Version(cpv, _)) => {
+                    ReportScope::Package(cpv.cpn().clone())
+                }
+                (Scope::Package, ReportScope::Package(_)) => self.target.clone(),
+                (Scope::Category, ReportScope::Category(_)) => self.target.clone(),
+                (Scope::Category, ReportScope::Package(cpn)) => {
+                    ReportScope::Category(cpn.category().into())
+                }
+                (Scope::Category, ReportScope::Version(cpv, _)) => {
+                    ReportScope::Category(cpv.category().into())
+                }
+                _ => ReportScope::Repo(self.repo.to_string()),
             };
 
             // set the scope to the next lower level
@@ -215,7 +214,7 @@ impl Iterator for IgnorePaths<'_> {
                 Scope::Version => None,
             };
 
-            (scope, relpath)
+            entry_scope
         })
     }
 }

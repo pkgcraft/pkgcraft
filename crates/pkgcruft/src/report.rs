@@ -484,7 +484,7 @@ impl ReportKind {
             Self::FilesUnused => Scope::Package,
             Self::HeaderInvalid => Scope::Version,
             Self::HomepageInvalid => Scope::Version,
-            Self::IgnoreUnused => Scope::Repo,
+            Self::IgnoreUnused => Scope::Version,
             Self::IuseInvalid => Scope::Version,
             Self::KeywordsDropped => Scope::Version,
             Self::KeywordsLive => Scope::Version,

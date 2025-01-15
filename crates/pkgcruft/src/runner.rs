@@ -51,7 +51,12 @@ impl SyncCheckRunner {
         let mut runners = IndexMap::new();
 
         for check in checks {
-            for source in check.sources().iter().copied() {
+            for source in check
+                .sources()
+                .iter()
+                .filter(|x| x.scope() <= scope)
+                .copied()
+            {
                 runners
                     .entry(source)
                     .or_insert_with(|| {
@@ -180,7 +185,7 @@ impl CheckRunner {
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, filter),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, filter),
             (Self::Repo(r), Target::Repo) => r.run_check(check, filter),
-            _ => unreachable!("incompatible target {target:?} for check: {check}"),
+            _ => (),
         }
     }
 
@@ -189,8 +194,9 @@ impl CheckRunner {
         match self {
             Self::EbuildPkg(r) => r.finish(check, filter),
             Self::EbuildRawPkg(r) => r.finish(check, filter),
+            Self::Cpn(r) => r.finish(check, filter),
+            Self::Cpv(r) => r.finish(check, filter),
             Self::Repo(r) => r.finish(check, filter),
-            _ => unreachable!("unsupported check finalization: {check}"),
         }
     }
 }
@@ -318,7 +324,7 @@ macro_rules! make_pkg_check_runner {
                 }
             }
 
-            /// Finish a check for a repo.
+            /// Finish a check.
             fn finish(&self, check: &Check, filter: &ReportFilter) {
                 let now = Instant::now();
                 if check.scope() == Scope::Version {
@@ -402,6 +408,17 @@ impl CpnCheckRunner {
         runner.run(cpn, filter);
         debug!("{check}: {cpn}: {:?}", now.elapsed());
     }
+
+    /// Finish a check.
+    fn finish(&self, check: &Check, filter: &ReportFilter) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.finish(&self.repo, filter);
+        debug!("{check}: finish: {:?}", now.elapsed());
+    }
 }
 
 /// Check runner for [`Cpv`] objects.
@@ -450,6 +467,17 @@ impl CpvCheckRunner {
         runner.run(cpv, filter);
         debug!("{check}: {cpv}: {:?}", now.elapsed());
     }
+
+    /// Finish a check.
+    fn finish(&self, check: &Check, filter: &ReportFilter) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.finish(&self.repo, filter);
+        debug!("{check}: finish: {:?}", now.elapsed());
+    }
 }
 
 /// Check runner for Repo objects.
@@ -477,7 +505,7 @@ impl RepoCheckRunner {
         self.checks.keys().cloned()
     }
 
-    /// Run a check for a repo.
+    /// Run a check.
     fn run_check(&self, check: &Check, filter: &ReportFilter) {
         let runner = self
             .checks
@@ -488,7 +516,7 @@ impl RepoCheckRunner {
         debug!("{check}: {} {:?}", self.repo, now.elapsed());
     }
 
-    /// Finish a check for a repo.
+    /// Finish a check.
     fn finish(&self, check: &Check, filter: &ReportFilter) {
         let runner = self
             .checks

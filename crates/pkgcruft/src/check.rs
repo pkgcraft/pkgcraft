@@ -151,7 +151,7 @@ impl Check {
         }
     }
 
-    /// The scope the check runs in.
+    /// The minimum scope the check can run in.
     pub(crate) fn scope(&self) -> Scope {
         match self {
             Self::Commands => Scope::Version,
@@ -165,7 +165,7 @@ impl Check {
             Self::Eclass => Scope::Version,
             Self::Header => Scope::Version,
             Self::Homepage => Scope::Version,
-            Self::Ignore => Scope::Repo,
+            Self::Ignore => Scope::Version,
             Self::Iuse => Scope::Version,
             Self::Keywords => Scope::Version,
             Self::KeywordsDropped => Scope::Package,
@@ -201,7 +201,7 @@ impl Check {
             Self::Eclass => &[SourceKind::EbuildPkg],
             Self::Header => &[SourceKind::EbuildRawPkg],
             Self::Homepage => &[SourceKind::EbuildPkg],
-            Self::Ignore => &[SourceKind::Repo],
+            Self::Ignore => &[SourceKind::Cpv, SourceKind::Cpn, SourceKind::Repo],
             Self::Iuse => &[SourceKind::EbuildPkg],
             Self::Keywords => &[SourceKind::EbuildPkg],
             Self::KeywordsDropped => &[SourceKind::EbuildPkg],
@@ -229,7 +229,7 @@ impl Check {
         match self {
             Self::Duplicates => &[Optional, Overlay],
             Self::Header => &[Gentoo],
-            Self::Ignore => &[Unfiltered],
+            Self::Ignore => &[Optional],
             Self::Live => &[Gentoo],
             Self::PythonUpdate => &[GentooInherited],
             Self::RubyUpdate => &[GentooInherited],
@@ -241,7 +241,7 @@ impl Check {
     /// Return an iterator of checks enabled by default for a full repo scan.
     pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
         let selected = Default::default();
-        Self::iter().filter(move |x| x.skipped(repo, &selected, Scope::Repo).is_none())
+        Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
 
     /// Return an iterator of all checks that can be run on a repo at an optional scope.
@@ -251,11 +251,8 @@ impl Check {
     ) -> impl Iterator<Item = Check> + '_ {
         let scope = value.into();
         let selected = Self::iter().collect();
-        Self::iter().filter(move |x| {
-            (x.context().contains(&CheckContext::Unfiltered)
-                || x.skipped(repo, &selected, scope).is_none())
-                && scope >= x.scope()
-        })
+        Self::iter()
+            .filter(move |x| x.skipped(repo, &selected).is_none() && scope >= x.scope())
     }
 
     /// Return an iterator of checks that generate target reports.
@@ -277,17 +274,13 @@ impl Check {
     }
 
     /// Determine if a check is skipped for a scanning run due to scan context.
-    pub(crate) fn skipped<T: Into<Scope> + Copy>(
+    pub(crate) fn skipped(
         &self,
         repo: &EbuildRepo,
         selected: &IndexSet<Self>,
-        value: T,
     ) -> Option<CheckContext> {
         self.context().iter().copied().find(|context| {
             match context {
-                CheckContext::Unfiltered => {
-                    Self::iter_supported(repo, value).all(|x| selected.contains(&x))
-                }
                 CheckContext::Gentoo => repo.name() == "gentoo" || selected.contains(self),
                 CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
                 CheckContext::Optional => selected.contains(self),
@@ -344,9 +337,6 @@ pub enum CheckContext {
 
     /// Check only runs in overlay repos.
     Overlay,
-
-    /// Check requires no report filtering.
-    Unfiltered,
 }
 
 macro_rules! register {
@@ -372,12 +362,18 @@ pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 /// Run a check against a Cpv.
 pub(crate) trait CpvCheck: fmt::Display {
     fn run(&self, cpv: &Cpv, filter: &ReportFilter);
+    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish")
+    }
 }
 pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
 
 /// Run a check against a Cpn.
 pub(crate) trait CpnCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, filter: &ReportFilter);
+    fn finish(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {
+        unimplemented!("{self} finish")
+    }
 }
 pub(crate) type CpnRunner = Box<dyn CpnCheck + Send + Sync>;
 
@@ -482,6 +478,7 @@ impl ToRunner<CpnRunner> for Check {
         match self {
             Self::EbuildName => Box::new(ebuild_name::create(repo)),
             Self::Duplicates => Box::new(duplicates::create(repo)),
+            Self::Ignore => Box::new(ignore::Check),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -491,6 +488,7 @@ impl ToRunner<CpvRunner> for Check {
     fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> CpvRunner {
         match self {
             Self::Metadata => Box::new(metadata::create(repo)),
+            Self::Ignore => Box::new(ignore::Check),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -499,7 +497,7 @@ impl ToRunner<CpvRunner> for Check {
 impl ToRunner<RepoRunner> for Check {
     fn to_runner(&self, _repo: &EbuildRepo, _filter: &ReportFilter) -> RepoRunner {
         match self {
-            Self::Ignore => Box::new(ignore::create()),
+            Self::Ignore => Box::new(ignore::Check),
             Self::RepoLayout => Box::new(repo_layout::create()),
             _ => unreachable!("unsupported check: {self}"),
         }

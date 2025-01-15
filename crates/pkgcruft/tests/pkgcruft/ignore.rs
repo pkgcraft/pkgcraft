@@ -74,18 +74,18 @@ fn current_dir_targets() {
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
-            test
-              @style
+            cat-a/pkg-a-1
+              PythonUpdate
+            cat-a/pkg-a
+              UnstableOnly
+            cat-a/pkg-b-1
+              PythonUpdate
+            cat-b/pkg-c-1
+              PythonUpdate
             cat-a/*
               @Manifest
-            cat-a/pkg-a/*
-              UnstableOnly
-            cat-a/pkg-a/pkg-a-1.ebuild
-              PythonUpdate
-            cat-a/pkg-b/pkg-b-1.ebuild
-              PythonUpdate
-            cat-b/pkg-c/pkg-c-1.ebuild
-              PythonUpdate
+            test
+              @style
         "})
         .stderr("")
         .success();
@@ -95,16 +95,16 @@ fn current_dir_targets() {
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
-            test
-              @style
+            cat-a/pkg-a-1
+              PythonUpdate
+            cat-a/pkg-a
+              UnstableOnly
+            cat-a/pkg-b-1
+              PythonUpdate
             cat-a/*
               @Manifest
-            cat-a/pkg-a/*
-              UnstableOnly
-            cat-a/pkg-a/pkg-a-1.ebuild
-              PythonUpdate
-            cat-a/pkg-b/pkg-b-1.ebuild
-              PythonUpdate
+            test
+              @style
         "})
         .stderr("")
         .success();
@@ -114,14 +114,14 @@ fn current_dir_targets() {
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
-            test
-              @style
+            cat-a/pkg-a-1
+              PythonUpdate
+            cat-a/pkg-a
+              UnstableOnly
             cat-a/*
               @Manifest
-            cat-a/pkg-a/*
-              UnstableOnly
-            cat-a/pkg-a/pkg-a-1.ebuild
-              PythonUpdate
+            test
+              @style
         "})
         .stderr("")
         .success();
