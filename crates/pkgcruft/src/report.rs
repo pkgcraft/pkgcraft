@@ -126,7 +126,11 @@ impl fmt::Display for ReportSet {
 impl ReportSet {
     /// Return true if the related reports should be added to the selected set.
     pub fn selected(&self) -> bool {
-        matches!(self, Self::Report(_) | Self::Check(_))
+        match self {
+            Self::Report(_) => true,
+            Self::Check(check) => check.reports().len() == 1,
+            _ => false,
+        }
     }
 
     /// Expand a report set into an iterator of its variants.

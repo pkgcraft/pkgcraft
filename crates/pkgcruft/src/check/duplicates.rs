@@ -48,7 +48,7 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let scanner = Scanner::new(repo).reports([CHECK]);
         let r = scanner.run(repo);
-        assert_err_re!(r, "requires overlay context");
+        assert_err_re!(r, "Duplicates: check requires overlay context");
 
         // optional check isn't run by default
         let repo = data.ebuild_repo("qa-secondary").unwrap();
