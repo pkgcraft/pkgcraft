@@ -305,9 +305,9 @@ impl Check {
         }
     }
 
-    /// Check requires post-run finalization.
-    pub(crate) fn finish_check(&self) -> bool {
-        self.reports().iter().any(|r| r.finish_check())
+    /// Check requires post-run finalization for a scope.
+    pub(crate) fn finish_check(&self, scope: Scope) -> bool {
+        self.reports().iter().any(|r| r.finish_check(scope))
     }
 
     /// Check requires post-run target finalization.

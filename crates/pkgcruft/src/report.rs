@@ -141,7 +141,12 @@ impl ReportSet {
     ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
         match self {
             Self::All => Box::new(supported.iter().copied()),
-            Self::Finalize => Box::new(default.iter().filter(|r| r.finish_check()).copied()),
+            Self::Finalize => Box::new(
+                default
+                    .iter()
+                    .filter(|r| r.finish_check(Scope::Repo))
+                    .copied(),
+            ),
             Self::Check(check) => Box::new(check.reports().iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter_report(supported)
@@ -532,66 +537,20 @@ impl ReportKind {
         }
     }
 
-    /// Return true if the report supports post-run finalization.
-    pub(crate) fn finish_check(&self) -> bool {
-        // all variants are explicitly listed so new entries must be manually verified
+    /// Return true if the report supports post-run finalization for a scope.
+    pub(crate) fn finish_check(&self, scope: Scope) -> bool {
         match self {
-            Self::ArchesUnused => true,
-            Self::EapiUnused => true,
-            Self::EclassUnused => true,
-            Self::LicensesUnused => true,
-            Self::IgnoreUnused => true,
-            Self::ManifestCollide => true,
-            Self::ManifestConflict => true,
-            Self::MirrorsUnused => true,
-            Self::PackageDeprecatedUnused => true,
-            Self::UseGlobalUnused => true,
-
-            Self::Builtin => false,
-            Self::DependencyDeprecated => false,
-            Self::DependencyInvalid => false,
-            Self::DependencyRevisionMissing => false,
-            Self::DependencySlotMissing => false,
-            Self::EapiBanned => false,
-            Self::EapiDeprecated => false,
-            Self::EapiFormat => false,
-            Self::EapiStale => false,
-            Self::EapiUnstable => false,
-            Self::EbuildNameInvalid => false,
-            Self::EbuildVersionsEqual => false,
-            Self::FileUnknown => false,
-            Self::FilesUnused => false,
-            Self::HeaderInvalid => false,
-            Self::HomepageInvalid => false,
-            Self::IuseInvalid => false,
-            Self::KeywordsDropped => false,
-            Self::KeywordsLive => false,
-            Self::KeywordsOverlapping => false,
-            Self::KeywordsUnsorted => false,
-            Self::LicenseDeprecated => false,
-            Self::LicenseInvalid => false,
-            Self::LiveOnly => false,
-            Self::ManifestInvalid => false,
-            Self::MetadataError => false,
-            Self::Optfeature => false,
-            Self::PackageOverride => false,
-            Self::PropertiesInvalid => false,
-            Self::PythonUpdate => false,
-            Self::RepoCategoriesUnused => false,
-            Self::RepoCategoryEmpty => false,
-            Self::RepoPackageEmpty => false,
-            Self::RestrictInvalid => false,
-            Self::RestrictMissing => false,
-            Self::RubyUpdate => false,
-            Self::UnstableOnly => false,
-            Self::UriInvalid => false,
-            Self::UseLocalDescMissing => false,
-            Self::UseLocalGlobal => false,
-            Self::UseLocalUnsorted => false,
-            Self::UseLocalUnused => false,
-            Self::VariableOrder => false,
-            Self::WhitespaceInvalid => false,
-            Self::WhitespaceUnneeded => false,
+            Self::ArchesUnused => scope == Scope::Repo,
+            Self::EapiUnused => scope == Scope::Repo,
+            Self::EclassUnused => scope == Scope::Repo,
+            Self::LicensesUnused => scope == Scope::Repo,
+            Self::IgnoreUnused => scope == Scope::Repo,
+            Self::ManifestCollide => scope == Scope::Repo,
+            Self::ManifestConflict => scope == Scope::Repo,
+            Self::MirrorsUnused => scope == Scope::Repo,
+            Self::PackageDeprecatedUnused => scope == Scope::Repo,
+            Self::UseGlobalUnused => scope == Scope::Repo,
+            _ => false,
         }
     }
 
