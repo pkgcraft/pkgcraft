@@ -233,10 +233,10 @@ impl Check {
         }
     }
 
-    /// Return an iterator of checks enabled by default for a repo.
+    /// Return an iterator of checks enabled by default for a full repo scan.
     pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
         let selected = Default::default();
-        Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
+        Self::iter().filter(move |x| x.skipped(repo, &selected, Scope::Repo).is_none())
     }
 
     /// Return an iterator of all checks that can be run on a repo at an optional scope.
@@ -248,7 +248,7 @@ impl Check {
         let selected = Self::iter().collect();
         Self::iter().filter(move |x| {
             (x.context().contains(&CheckContext::Unfiltered)
-                || x.skipped(repo, &selected).is_none())
+                || x.skipped(repo, &selected, scope).is_none())
                 && scope >= x.scope()
         })
     }
@@ -272,15 +272,16 @@ impl Check {
     }
 
     /// Determine if a check is skipped for a scanning run due to scan context.
-    pub(crate) fn skipped(
+    pub(crate) fn skipped<T: Into<Scope> + Copy>(
         &self,
         repo: &EbuildRepo,
         selected: &IndexSet<Self>,
+        value: T,
     ) -> Option<CheckContext> {
         self.context().iter().copied().find(|context| {
             match context {
                 CheckContext::Unfiltered => {
-                    Self::iter_supported(repo, Scope::Repo).all(|x| selected.contains(&x))
+                    Self::iter_supported(repo, value).all(|x| selected.contains(&x))
                 }
                 CheckContext::Gentoo => repo.name() == "gentoo" || selected.contains(self),
                 CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
