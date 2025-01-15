@@ -201,7 +201,6 @@ impl Scanner {
 #[cfg(test)]
 mod tests {
     use camino::Utf8Path;
-    use pkgcraft::dep::Dep;
     use pkgcraft::test::*;
     use tracing_test::traced_test;
 
@@ -242,8 +241,7 @@ mod tests {
 
         // non-matching restriction doesn't raise error
         let scanner = Scanner::new(repo);
-        let dep = Dep::try_new("nonexistent/pkg").unwrap();
-        let reports = scanner.run(&dep).unwrap();
+        let reports = scanner.run("nonexistent/pkg").unwrap();
         assert_unordered_eq!(reports, []);
     }
 
