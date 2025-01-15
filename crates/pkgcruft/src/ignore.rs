@@ -4,7 +4,7 @@ use camino::Utf8PathBuf;
 use dashmap::{mapref::one::RefMut, DashMap};
 use indexmap::{IndexMap, IndexSet};
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
-use pkgcraft::restrict::Scope;
+use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::traits::FilterLines;
 use rayon::prelude::*;
 
@@ -108,20 +108,21 @@ impl Ignore {
         })
     }
 
-    /// Return the mapping of unused ignore directives in the repo.
-    pub fn unused(&self) -> IndexMap<Utf8PathBuf, IndexSet<ReportSet>> {
+    /// Fully populate the cache for a restriction.
+    pub fn populate(&self, restrict: &Restrict) {
         // TODO: replace with parallel Cpv iterator
-        // make sure the cache is fully populated
         self.repo
-            .iter_cpv()
+            .iter_cpv_restrict(restrict)
             .collect::<Vec<_>>()
             .into_par_iter()
             .for_each(|cpv| {
                 let scope = ReportScope::Version(cpv, None);
                 self.generate(&scope).count();
             });
+    }
 
-        // find unused entries
+    /// Return the mapping of unused ignore directives in the repo.
+    pub fn unused(&self) -> IndexMap<Utf8PathBuf, IndexSet<ReportSet>> {
         let mut unused = IndexMap::new();
         for entry in &self.cache {
             let (path, map) = entry.pair();
