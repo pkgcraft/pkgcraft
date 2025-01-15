@@ -141,7 +141,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finish_check()).unique() {
+        for check in runner.checks().filter(|c| c.finish_check()) {
             finish_tx.send(check).ok();
         }
     })
@@ -268,18 +268,18 @@ fn version_producer(
         wg.wait();
 
         for cpv in repo.iter_cpv_restrict(&restrict) {
-            for check in runner.checks().filter(|c| c.finish_target()).unique() {
+            for check in runner.checks().filter(|c| c.finish_target()) {
                 finish_tx.send((check, Some(Target::Cpv(cpv.clone())))).ok();
             }
         }
 
         for cpn in repo.iter_cpn_restrict(&restrict) {
-            for check in runner.checks().filter(|c| c.finish_target()).unique() {
+            for check in runner.checks().filter(|c| c.finish_target()) {
                 finish_tx.send((check, Some(Target::Cpn(cpn.clone())))).ok();
             }
         }
 
-        for check in runner.checks().filter(|c| c.finish_check()).unique() {
+        for check in runner.checks().filter(|c| c.finish_check()) {
             finish_tx.send((check, None)).ok();
         }
     })

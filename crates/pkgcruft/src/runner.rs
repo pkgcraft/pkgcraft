@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
@@ -77,7 +78,7 @@ impl SyncCheckRunner {
 
     /// Return an iterator of all the runner's checks.
     pub(super) fn checks(&self) -> impl Iterator<Item = Check> + '_ {
-        self.runners.values().flat_map(|r| r.iter())
+        self.runners.values().flat_map(|r| r.iter()).unique()
     }
 
     /// Run all checks that work with the target's scope.
