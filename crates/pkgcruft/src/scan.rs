@@ -239,7 +239,7 @@ mod tests {
         let reports = scanner.run("Whitespace/WhitespaceInvalid-0").unwrap();
         assert_ordered_eq!(reports, expected);
 
-        // non-matching restriction doesn't raise error
+        // non-matching restriction doesn't raise error unlike `pkgcruft scan`
         let scanner = Scanner::new(repo);
         let reports = scanner.run("nonexistent/pkg").unwrap();
         assert_unordered_eq!(reports, []);
