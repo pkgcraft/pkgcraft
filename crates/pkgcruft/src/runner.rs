@@ -42,6 +42,7 @@ impl SyncCheckRunner {
     pub(super) fn new<I>(
         scope: Scope,
         scanner: &Scanner,
+        repo: &EbuildRepo,
         restrict: &Restrict,
         checks: I,
         filter: &ReportFilter,
@@ -65,7 +66,7 @@ impl SyncCheckRunner {
                             scope,
                             restrict,
                             source,
-                            scanner.repo.clone(),
+                            repo.clone(),
                             &scanner.filters,
                         )
                     })

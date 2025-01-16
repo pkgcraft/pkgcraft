@@ -210,26 +210,22 @@ mod tests {
 
     #[test]
     fn check() {
+        let filter: PkgFilter = "category != 'stub'".parse().unwrap();
+        let scanner = Scanner::new().reports([CHECK]).filters([filter]);
+
         // gentoo unfixed
         let data = test_data();
         let repo = data.ebuild_repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
         // ignore stub/* ebuilds
-        let filter: PkgFilter = "category != 'stub'".parse().unwrap();
-        let scanner = Scanner::new(repo)
-            .reports([CHECK])
-            .filters([filter.clone()]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo).unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("gentoo").unwrap();
-        let scanner = Scanner::new(repo)
-            .reports([CHECK])
-            .filters([filter.clone()]);
-        let reports = scanner.run(repo).unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }

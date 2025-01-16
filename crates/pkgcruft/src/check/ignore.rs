@@ -79,21 +79,21 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
 
         // check isn't run by default
-        let scanner = Scanner::new(repo);
-        let mut reports = scanner.run(repo).unwrap();
+        let scanner = Scanner::new();
+        let mut reports = scanner.run(repo, repo).unwrap();
         assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
 
         // check run when all supported reports targeted
-        let scanner = Scanner::new(repo).reports([ReportSet::All]);
-        let mut reports = scanner.run(repo).unwrap();
+        let scanner = Scanner::new().reports([ReportSet::All]);
+        let mut reports = scanner.run(repo, repo).unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
 
         // verify reports in version scope
-        let mut reports = scanner.run("Ignore/IgnoreUnused-0").unwrap();
+        let mut reports = scanner.run(repo, "Ignore/IgnoreUnused-0").unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
 
         // verify reports in package scope
-        let mut reports = scanner.run("Ignore/IgnoreUnused").unwrap();
+        let mut reports = scanner.run(repo, "Ignore/IgnoreUnused").unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
     }
 }

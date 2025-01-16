@@ -72,20 +72,20 @@ impl Command {
             .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?;
 
+        // create report scanner
+        let scanner = Scanner::new()
+            .jobs(self.jobs)
+            .reports(self.reports.iter().copied())
+            .filters(self.filters.iter().cloned())
+            .force(self.force)
+            .exit(self.exit.iter().copied());
+
         // run scanner for all targets
         let mut failed = false;
         let mut stdout = io::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {
-            // create report scanner
-            let scanner = Scanner::new(repo)
-                .jobs(self.jobs)
-                .reports(self.reports.iter().copied())
-                .filters(self.filters.iter().cloned())
-                .force(self.force)
-                .exit(self.exit.iter().copied());
-
             // output reports
-            for report in scanner.run(restrict)? {
+            for report in scanner.run(repo, restrict)? {
                 reporter.report(&report, &mut stdout)?;
             }
 

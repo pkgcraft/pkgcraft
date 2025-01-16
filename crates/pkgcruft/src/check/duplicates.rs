@@ -43,23 +43,23 @@ mod tests {
 
     #[test]
     fn check() {
-        // primary
-        let data = test_data();
-        let repo = data.ebuild_repo("qa-primary").unwrap();
-        let scanner = Scanner::new(repo).reports([CHECK]);
-        let r = scanner.run(repo);
-        assert_err_re!(r, "Duplicates: check requires overlay context");
-
         // optional check isn't run by default
+        let data = test_data();
         let repo = data.ebuild_repo("qa-secondary").unwrap();
-        let scanner = Scanner::new(repo);
-        let mut reports = scanner.run(repo).unwrap();
+        let scanner = Scanner::new();
+        let mut reports = scanner.run(repo, repo).unwrap();
         assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
+
+        let scanner = Scanner::new().reports([CHECK]);
+
+        // primary
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let r = scanner.run(repo, repo);
+        assert_err_re!(r, "Duplicates: check requires overlay context");
 
         // secondary
         let repo = data.ebuild_repo("qa-secondary").unwrap();
-        let scanner = Scanner::new(repo).reports([CHECK]);
-        let mut reports = scanner.run(repo).unwrap();
+        let mut reports = scanner.run(repo, repo).unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
     }
 }

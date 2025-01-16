@@ -9,6 +9,7 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
+use pkgcraft::utils::bounded_jobs;
 
 use crate::check::Check;
 use crate::ignore::Ignore;
@@ -85,6 +86,7 @@ impl ReportFilter {
         enabled: HashSet<ReportKind>,
         exit: HashSet<ReportKind>,
         scanner: &Scanner,
+        repo: &EbuildRepo,
         tx: S,
     ) -> Self {
         Self {
@@ -93,7 +95,7 @@ impl ReportFilter {
             failed: scanner.failed.clone(),
             sender: tx.into(),
             force: scanner.force,
-            ignore: Ignore::new(&scanner.repo),
+            ignore: Ignore::new(repo),
         }
     }
 
@@ -368,15 +370,18 @@ impl ReportIter {
         scope: Scope,
         checks: I,
         scanner: &Scanner,
+        jobs: usize,
+        repo: &EbuildRepo,
         restrict: Restrict,
     ) -> Self
     where
         I: IntoIterator<Item = Check>,
     {
+        let jobs = bounded_jobs(jobs);
         if scope >= Scope::Category {
-            Self::pkg(enabled, exit, scope, checks, scanner, restrict)
+            Self::pkg(enabled, exit, scope, checks, scanner, jobs, repo, restrict)
         } else {
-            Self::version(enabled, exit, scope, checks, scanner, restrict)
+            Self::version(enabled, exit, scope, checks, scanner, jobs, repo, restrict)
         }
     }
 
@@ -387,23 +392,25 @@ impl ReportIter {
         scope: Scope,
         checks: I,
         scanner: &Scanner,
+        jobs: usize,
+        repo: &EbuildRepo,
         restrict: Restrict,
     ) -> Self
     where
         I: IntoIterator<Item = Check>,
     {
-        let (targets_tx, targets_rx) = bounded(scanner.jobs);
-        let (finish_tx, finish_rx) = bounded(scanner.jobs);
-        let (reports_tx, reports_rx) = bounded(scanner.jobs);
+        let (targets_tx, targets_rx) = bounded(jobs);
+        let (finish_tx, finish_rx) = bounded(jobs);
+        let (reports_tx, reports_rx) = bounded(jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, reports_tx));
+        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, repo, reports_tx));
 
         let runner =
-            Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
+            Arc::new(SyncCheckRunner::new(scope, scanner, repo, &restrict, checks, &filter));
 
         Self(ReportIterInternal::Pkg(IterPkg {
             rx: reports_rx,
-            _workers: (0..scanner.jobs)
+            _workers: (0..jobs)
                 .map(|_| {
                     pkg_worker(
                         runner.clone(),
@@ -415,7 +422,7 @@ impl ReportIter {
                 })
                 .collect(),
             _producer: pkg_producer(
-                scanner.repo.clone(),
+                repo.clone(),
                 runner.clone(),
                 wg,
                 restrict,
@@ -435,23 +442,25 @@ impl ReportIter {
         scope: Scope,
         checks: I,
         scanner: &Scanner,
+        jobs: usize,
+        repo: &EbuildRepo,
         restrict: Restrict,
     ) -> Self
     where
         I: IntoIterator<Item = Check>,
     {
-        let (targets_tx, targets_rx) = bounded(scanner.jobs);
-        let (finish_tx, finish_rx) = bounded(scanner.jobs);
-        let (reports_tx, reports_rx) = bounded(scanner.jobs);
+        let (targets_tx, targets_rx) = bounded(jobs);
+        let (finish_tx, finish_rx) = bounded(jobs);
+        let (reports_tx, reports_rx) = bounded(jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, reports_tx));
+        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, repo, reports_tx));
 
         let runner =
-            Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
+            Arc::new(SyncCheckRunner::new(scope, scanner, repo, &restrict, checks, &filter));
 
         Self(ReportIterInternal::Version(IterVersion {
             rx: reports_rx,
-            _workers: (0..scanner.jobs)
+            _workers: (0..jobs)
                 .map(|_| {
                     version_worker(
                         runner.clone(),
@@ -463,7 +472,7 @@ impl ReportIter {
                 })
                 .collect(),
             _producer: version_producer(
-                scanner.repo.clone(),
+                repo.clone(),
                 runner.clone(),
                 wg,
                 restrict,

@@ -8,10 +8,10 @@ pub fn bench(c: &mut Criterion) {
     let repo = data.ebuild_repo("qa-primary").unwrap();
 
     c.bench_function("scan", |b| {
-        let scanner = Scanner::new(repo);
+        let scanner = Scanner::new();
         let mut count = 0;
         b.iter(|| {
-            count = scanner.run(repo).unwrap().count();
+            count = scanner.run(repo, repo).unwrap().count();
         });
         assert!(count > 0);
     });

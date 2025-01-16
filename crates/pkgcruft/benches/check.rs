@@ -21,13 +21,13 @@ pub fn bench(c: &mut Criterion) {
         // TODO: checkout a specific commit
 
         // run benchmark for every check supported by the repo
-        let mut scanner = Scanner::new(&repo);
+        let mut scanner = Scanner::new();
         for check in Check::iter_supported(&repo, Scope::Repo) {
             scanner = scanner.reports([check]);
-            match scanner.run(&repo) {
+            match scanner.run(&repo, &repo) {
                 Ok(_) => {
                     group.bench_function(check.to_string(), |b| {
-                        b.iter(|| scanner.run(&repo).unwrap().count());
+                        b.iter(|| scanner.run(&repo, &repo).unwrap().count());
                     });
                 }
                 Err(e) => eprintln!("skipping {check} check: {e}"),

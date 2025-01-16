@@ -89,28 +89,27 @@ mod tests {
         // check isn't run by default in non-gentoo repo
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let scanner = Scanner::new(repo);
-        let mut reports = scanner.run(repo).unwrap();
+        let scanner = Scanner::new();
+        let mut reports = scanner.run(repo, repo).unwrap();
         assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
 
+        let scanner = Scanner::new().reports([CHECK]);
+
         // check explicitly run in non-gentoo repo
-        let scanner = Scanner::new(repo).reports([CHECK]);
-        let mut reports = scanner.run(repo).unwrap();
+        let mut reports = scanner.run(repo, repo).unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
 
         // gentoo unfixed
         let repo = data.ebuild_repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
-        let scanner = Scanner::new(repo).reports([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo).unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // gentoo fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("gentoo").unwrap();
-        let scanner = Scanner::new(repo).reports([CHECK]);
-        let reports = scanner.run(repo).unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }

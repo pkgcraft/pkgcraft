@@ -77,13 +77,14 @@ mod tests {
 
     #[test]
     fn check() {
+        let scanner = Scanner::new().reports([CHECK]);
+
         // primary unfixed
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
-        let scanner = Scanner::new(repo).reports([CHECK]);
         let expected = glob_reports!("{dir}/*/reports.json");
-        let reports = scanner.run(repo).unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
         // TODO: move this to shared test data
@@ -101,8 +102,7 @@ mod tests {
             .into_ebuild()
             .unwrap();
         config.finalize().unwrap();
-        let scanner = Scanner::new(&repo).reports([CHECK]);
-        let reports = scanner.run(&repo).unwrap();
+        let reports = scanner.run(&repo, &repo).unwrap();
         let expected = vec![Report::from_json(
             r#"{"kind":"EapiUnused","scope":{"Repo":"test"},"message":"7"}"#,
         )
@@ -112,15 +112,13 @@ mod tests {
         // secondary with no banned or deprecated EAPIs set
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         assert!(repo.path().join(CHECK).exists());
-        let scanner = Scanner::new(repo).reports([CHECK]);
-        let reports = scanner.run(repo).unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
 
         // primary fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let scanner = Scanner::new(repo).reports([CHECK]);
-        let reports = scanner.run(repo).unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, []);
     }
 }
