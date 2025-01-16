@@ -24,8 +24,8 @@ pub(crate) struct Command {
     force: bool,
 
     /// Parallel jobs to run
-    #[arg(short, long)]
-    jobs: Option<usize>,
+    #[arg(short, long, default_value_t = num_cpus::get())]
+    jobs: usize,
 
     /// Exit status triggers
     #[arg(
@@ -83,7 +83,7 @@ impl Command {
 
             // create report scanner
             let scanner = Scanner::new(repo)
-                .jobs(self.jobs.unwrap_or_default())
+                .jobs(self.jobs)
                 .selected(enabled, selected)
                 .filters(self.filters.iter().cloned())
                 .force(self.force)
