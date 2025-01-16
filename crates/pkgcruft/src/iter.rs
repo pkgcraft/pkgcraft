@@ -157,7 +157,7 @@ fn pkg_worker(
 
         for (check, target) in rx {
             match check {
-                Some(check) => runner.run_check(check, &target, &filter),
+                Some(check) => runner.run_check(&check, &target, &filter),
                 None => runner.run_checks(&target, &filter),
             }
 
@@ -289,7 +289,7 @@ fn version_worker(
         let _entered = thread_span.clone().entered();
 
         for (check, target) in rx {
-            runner.run_check(check, &target, &filter);
+            runner.run_check(&check, &target, &filter);
         }
 
         // signal the wait group

@@ -84,14 +84,14 @@ impl SyncCheckRunner {
     }
 
     /// Run a check.
-    pub(super) fn run_check(&self, check: Check, target: &Target, filter: &ReportFilter) {
+    pub(super) fn run_check(&self, check: &Check, target: &Target, filter: &ReportFilter) {
         for runner in check
             .sources()
             .iter()
             .filter(|x| target.scope() >= x.scope())
             .filter_map(|x| self.runners.get(x))
         {
-            runner.run_check(&check, target, filter);
+            runner.run_check(check, target, filter);
         }
     }
 
