@@ -15,6 +15,7 @@ use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::error::Error;
+use crate::scan::ScannerRun;
 
 /// All check runner source variants.
 #[derive(Display, EnumIter, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -218,10 +219,10 @@ pub(crate) struct EbuildPkgSource {
 }
 
 impl EbuildPkgSource {
-    pub(crate) fn new(repo: EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
+    pub(crate) fn new(run: &ScannerRun) -> Self {
         Self {
-            repo,
-            filters: PkgFilters(filters),
+            repo: run.repo.clone(),
+            filters: PkgFilters(run.filters.clone()),
         }
     }
 }
@@ -280,10 +281,10 @@ pub(crate) struct EbuildRawPkgSource {
 }
 
 impl EbuildRawPkgSource {
-    pub(crate) fn new(repo: EbuildRepo, filters: IndexSet<PkgFilter>) -> Self {
+    pub(crate) fn new(run: &ScannerRun) -> Self {
         Self {
-            repo,
-            filters: PkgFilters(filters),
+            repo: run.repo.clone(),
+            filters: PkgFilters(run.filters.clone()),
         }
     }
 }
@@ -345,15 +346,15 @@ pub(crate) struct PkgCache<T> {
 
 impl<T: Package + Clone> PkgCache<T> {
     /// Create a new package cache from a source and restriction.
-    pub(crate) fn new<S>(source: &S, scope: Scope, restrict: &Restrict) -> Self
+    pub(crate) fn new<S>(source: &S, run: &ScannerRun) -> Self
     where
         S: Source<Item = pkgcraft::Result<T>>,
     {
         let mut cache = IndexMap::new();
 
         // create pkg cache when running in pkg or version scope
-        if scope <= Scope::Package {
-            for result in source.iter_restrict_ordered(restrict) {
+        if run.scope <= Scope::Package {
+            for result in source.iter_restrict_ordered(&run.restrict) {
                 if let Ok(pkg) = &result {
                     cache.insert(pkg.cpv().clone(), result);
                 } else if let Err(InvalidPkg { cpv, .. }) = &result {
@@ -363,7 +364,7 @@ impl<T: Package + Clone> PkgCache<T> {
         }
 
         // only collect set in unfiltered package scope, in all other scopes it's not used
-        let pkgs = if scope == Scope::Package && !source.is_filtered() {
+        let pkgs = if run.scope == Scope::Package && !source.is_filtered() {
             cache.values().cloned().try_collect()
         } else {
             Ok(Default::default())

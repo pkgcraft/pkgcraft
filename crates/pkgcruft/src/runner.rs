@@ -1,12 +1,12 @@
 use std::time::Instant;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::{Restrict, Scope};
+use pkgcraft::restrict::Scope;
 use tracing::{debug, warn};
 
 use crate::check::*;
@@ -51,15 +51,7 @@ impl SyncCheckRunner {
             {
                 runners
                     .entry(source)
-                    .or_insert_with(|| {
-                        CheckRunner::new(
-                            run.scope,
-                            &run.restrict,
-                            source,
-                            run.repo.clone(),
-                            &run.filters,
-                        )
-                    })
+                    .or_insert_with(|| CheckRunner::new(source, run))
                     .add_check(*check, filter)
             }
         }
@@ -125,29 +117,13 @@ enum CheckRunner {
 }
 
 impl CheckRunner {
-    fn new(
-        scope: Scope,
-        restrict: &Restrict,
-        source: SourceKind,
-        repo: EbuildRepo,
-        filters: &IndexSet<PkgFilter>,
-    ) -> Self {
+    fn new(source: SourceKind, run: &ScannerRun) -> Self {
         match source {
-            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(
-                repo,
-                scope,
-                restrict,
-                filters.clone(),
-            )),
-            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(
-                repo,
-                scope,
-                restrict,
-                filters.clone(),
-            )),
-            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(repo)),
-            SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(repo)),
-            SourceKind::Repo => Self::Repo(RepoCheckRunner::new(repo)),
+            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(run)),
+            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(run)),
+            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(run)),
+            SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(run)),
+            SourceKind::Repo => Self::Repo(RepoCheckRunner::new(run)),
         }
     }
 
@@ -232,21 +208,16 @@ macro_rules! make_pkg_check_runner {
         }
 
         impl $pkg_check_runner {
-            fn new(
-                repo: EbuildRepo,
-                scope: Scope,
-                restrict: &Restrict,
-                filters: IndexSet<PkgFilter>,
-            ) -> Self {
-                let source = <$source>::new(repo.clone(), filters);
-                let cache = PkgCache::new(&source, scope, restrict);
+            fn new(run: &ScannerRun) -> Self {
+                let source = <$source>::new(run);
+                let cache = PkgCache::new(&source, run);
 
                 Self {
                     pkg_checks: Default::default(),
                     pkg_set_checks: Default::default(),
                     source,
                     cache,
-                    repo,
+                    repo: run.repo.clone(),
                 }
             }
 
@@ -389,10 +360,10 @@ struct CpnCheckRunner {
 }
 
 impl CpnCheckRunner {
-    fn new(repo: EbuildRepo) -> Self {
+    fn new(run: &ScannerRun) -> Self {
         Self {
             checks: Default::default(),
-            repo,
+            repo: run.repo.clone(),
         }
     }
 
@@ -451,10 +422,10 @@ struct CpvCheckRunner {
 }
 
 impl CpvCheckRunner {
-    fn new(repo: EbuildRepo) -> Self {
+    fn new(run: &ScannerRun) -> Self {
         Self {
             checks: Default::default(),
-            repo,
+            repo: run.repo.clone(),
         }
     }
 
@@ -515,10 +486,10 @@ struct RepoCheckRunner {
 }
 
 impl RepoCheckRunner {
-    fn new(repo: EbuildRepo) -> Self {
+    fn new(run: &ScannerRun) -> Self {
         Self {
             checks: Default::default(),
-            repo,
+            repo: run.repo.clone(),
         }
     }
 
