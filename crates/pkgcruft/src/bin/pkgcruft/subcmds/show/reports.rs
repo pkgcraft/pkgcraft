@@ -6,7 +6,7 @@ use colored::Colorize;
 use pkgcraft::cli::target_ebuild_repo;
 use pkgcraft::config::Config;
 use pkgcraft::restrict::Scope;
-use pkgcruft::report::ReportKind;
+use pkgcruft::report::{ReportKind, ReportTarget};
 use strum::IntoEnumIterator;
 
 use crate::options;
@@ -33,7 +33,8 @@ impl Subcommand {
                 let defaults = ReportKind::defaults(&repo);
                 let supported = ReportKind::supported(&repo, Scope::Repo);
                 if selected {
-                    let (enabled, _) = self.reports.collapse(defaults, supported)?;
+                    let (enabled, _) =
+                        ReportTarget::collapse(&self.reports, &defaults, &supported)?;
                     enabled
                 } else {
                     defaults

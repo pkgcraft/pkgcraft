@@ -12,18 +12,14 @@ use tracing::{info, warn};
 use crate::check::Check;
 use crate::error::Error;
 use crate::iter::ReportIter;
-use crate::report::{ReportKind, ReportSet};
+use crate::report::{ReportKind, ReportSet, ReportTarget};
 use crate::source::PkgFilter;
 
 pub struct Scanner {
-    enabled: IndexSet<ReportKind>,
-    selected: IndexSet<ReportKind>,
-    selected_checks: IndexSet<Check>,
-    pub(crate) default: IndexSet<ReportKind>,
-    pub(crate) supported: IndexSet<ReportKind>,
     pub(crate) jobs: usize,
     pub(crate) force: bool,
-    pub(crate) exit: Arc<HashSet<ReportKind>>,
+    reports: IndexSet<ReportTarget>,
+    pub(crate) exit: IndexSet<ReportSet>,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) failed: Arc<AtomicBool>,
     pub(crate) repo: EbuildRepo,
@@ -32,15 +28,10 @@ pub struct Scanner {
 impl Scanner {
     /// Create a new scanner.
     pub fn new(repo: &EbuildRepo) -> Self {
-        let default = ReportKind::defaults(repo);
         Self {
-            enabled: default.clone(),
-            selected: Default::default(),
-            selected_checks: Default::default(),
-            default,
-            supported: ReportKind::supported(repo, Scope::Repo),
             jobs: bounded_jobs(0),
             force: Default::default(),
+            reports: Default::default(),
             exit: Default::default(),
             filters: Default::default(),
             failed: Default::default(),
@@ -60,40 +51,13 @@ impl Scanner {
         self
     }
 
-    /// Set the enabled report sets.
+    /// Set the report set targets.
     pub fn reports<I>(mut self, values: I) -> Self
     where
         I: IntoIterator,
-        I::Item: Into<ReportSet>,
+        I::Item: Into<ReportTarget>,
     {
-        self.enabled.clear();
-        self.selected.clear();
-        for set in values.into_iter().map(Into::into) {
-            for r in set.expand(&self.default, &self.supported) {
-                self.enabled.insert(r);
-                // track explicitly selected or supported variants
-                if set.selected() || self.supported.contains(&r) {
-                    self.selected.insert(r);
-                }
-            }
-        }
-        if self.selected_checks.is_empty() {
-            self.selected_checks = Check::iter_report(&self.selected).collect();
-        }
-        self
-    }
-
-    /// Set the enabled and selected reports.
-    pub fn selected(
-        mut self,
-        enabled: IndexSet<ReportKind>,
-        selected: IndexSet<ReportKind>,
-    ) -> Self {
-        self.enabled = enabled;
-        self.selected = selected;
-        if self.selected_checks.is_empty() {
-            self.selected_checks = Check::iter_report(&self.selected).collect();
-        }
+        self.reports = values.into_iter().map(Into::into).collect();
         self
     }
 
@@ -103,13 +67,7 @@ impl Scanner {
         I: IntoIterator,
         I::Item: Into<ReportSet>,
     {
-        self.exit = Arc::new(
-            values
-                .into_iter()
-                .map(Into::into)
-                .flat_map(|x| x.expand(&self.default, &self.supported))
-                .collect(),
-        );
+        self.exit = values.into_iter().map(Into::into).collect();
         self
     }
 
@@ -138,12 +96,27 @@ impl Scanner {
         info!("scope: {scan_scope}");
         info!("target: {restrict:?}");
 
+        // expand report sets into enabled and selected reports
+        let defaults = ReportKind::defaults(&self.repo);
+        let supported = ReportKind::supported(&self.repo, scan_scope);
+        let (enabled, selected) = if self.reports.is_empty() {
+            (defaults.clone(), Default::default())
+        } else {
+            ReportTarget::collapse(&self.reports, &defaults, &supported)?
+        };
+
+        // expand exit sets
+        let exit = self
+            .exit
+            .iter()
+            .flat_map(|x| x.expand(&defaults, &supported))
+            .collect();
+
         // determine if any filtering is enabled
         let pkg_filtering = !self.filters.is_empty();
 
         // determine enabled reports -- errors if incompatible report is selected
-        let enabled: HashSet<_> = self
-            .enabled
+        let enabled: HashSet<_> = enabled
             .iter()
             .copied()
             .map(|report| {
@@ -157,7 +130,7 @@ impl Scanner {
             })
             .filter(|result| {
                 if let Err(Error::ReportInit(report, msg)) = &result {
-                    if !self.selected.contains(report) {
+                    if !selected.contains(report) {
                         warn!("skipping {report} report: {msg}");
                         return false;
                     }
@@ -167,14 +140,14 @@ impl Scanner {
             .try_collect()?;
 
         // determine enabled checks -- errors if incompatible check is selected
-        let selected = &self.selected_checks;
+        let selected = Check::iter_report(&selected).collect();
         let checks: IndexSet<_> = Check::iter_report(&enabled)
             .unique()
             .sorted()
             .map(|check| {
                 if pkg_filtering && check.filtered() {
                     Err(Error::CheckInit(check, "requires no package filtering".to_string()))
-                } else if let Some(context) = check.skipped(&self.repo, selected) {
+                } else if let Some(context) = check.skipped(&self.repo, &selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
                 } else if let Some(scope) = check.scoped(scan_scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))
@@ -193,7 +166,7 @@ impl Scanner {
             })
             .try_collect()?;
 
-        Ok(ReportIter::new(enabled, scan_scope, checks, self, restrict))
+        Ok(ReportIter::new(enabled, exit, scan_scope, checks, self, restrict))
     }
 }
 
@@ -250,11 +223,10 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let path = repo.path();
 
-        // no reports
-        let kinds: [ReportKind; 0] = [];
-        let scanner = Scanner::new(repo).reports(kinds);
-        let reports = scanner.run(repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        // no explicit reports uses default set
+        let scanner = Scanner::new(repo);
+        let reports = scanner.run(repo).unwrap().count();
+        assert!(reports > 0);
 
         // all
         let scanner = Scanner::new(repo).reports([ReportSet::All]);

@@ -73,7 +73,7 @@ impl From<Sender<Report>> for ReportSender {
 
 pub(crate) struct ReportFilter {
     enabled: HashSet<ReportKind>,
-    exit: Arc<HashSet<ReportKind>>,
+    exit: HashSet<ReportKind>,
     failed: Arc<AtomicBool>,
     sender: ReportSender,
     force: bool,
@@ -83,12 +83,13 @@ pub(crate) struct ReportFilter {
 impl ReportFilter {
     fn new<S: Into<ReportSender>>(
         enabled: HashSet<ReportKind>,
+        exit: HashSet<ReportKind>,
         scanner: &Scanner,
         tx: S,
     ) -> Self {
         Self {
             enabled,
-            exit: scanner.exit.clone(),
+            exit,
             failed: scanner.failed.clone(),
             sender: tx.into(),
             force: scanner.force,
@@ -363,6 +364,7 @@ pub struct ReportIter(ReportIterInternal);
 impl ReportIter {
     pub(crate) fn new<I>(
         enabled: HashSet<ReportKind>,
+        exit: HashSet<ReportKind>,
         scope: Scope,
         checks: I,
         scanner: &Scanner,
@@ -372,15 +374,16 @@ impl ReportIter {
         I: IntoIterator<Item = Check>,
     {
         if scope >= Scope::Category {
-            Self::pkg(enabled, scope, checks, scanner, restrict)
+            Self::pkg(enabled, exit, scope, checks, scanner, restrict)
         } else {
-            Self::version(enabled, scope, checks, scanner, restrict)
+            Self::version(enabled, exit, scope, checks, scanner, restrict)
         }
     }
 
     /// Create an iterator that parallelizes scanning by package.
     fn pkg<I>(
         enabled: HashSet<ReportKind>,
+        exit: HashSet<ReportKind>,
         scope: Scope,
         checks: I,
         scanner: &Scanner,
@@ -393,7 +396,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(enabled, scanner, reports_tx));
+        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));
@@ -428,6 +431,7 @@ impl ReportIter {
     /// Create an iterator that parallelizes scanning by check.
     fn version<I>(
         enabled: HashSet<ReportKind>,
+        exit: HashSet<ReportKind>,
         scope: Scope,
         checks: I,
         scanner: &Scanner,
@@ -440,7 +444,7 @@ impl ReportIter {
         let (finish_tx, finish_rx) = bounded(scanner.jobs);
         let (reports_tx, reports_rx) = bounded(scanner.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(enabled, scanner, reports_tx));
+        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, reports_tx));
 
         let runner =
             Arc::new(SyncCheckRunner::new(scope, scanner, &restrict, checks, &filter));

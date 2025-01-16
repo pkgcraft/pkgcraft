@@ -6,7 +6,7 @@ use clap::Args;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
-use pkgcruft::report::{ReportKind, ReportSet};
+use pkgcruft::report::ReportSet;
 use pkgcruft::scan::Scanner;
 use pkgcruft::source::PkgFilter;
 
@@ -76,15 +76,10 @@ impl Command {
         let mut failed = false;
         let mut stdout = io::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {
-            // determine enabled checks and reports
-            let defaults = ReportKind::defaults(repo);
-            let supported = ReportKind::supported(repo, restrict);
-            let (enabled, selected) = self.reports.collapse(defaults, supported)?;
-
             // create report scanner
             let scanner = Scanner::new(repo)
                 .jobs(self.jobs)
-                .selected(enabled, selected)
+                .reports(self.reports.iter().copied())
                 .filters(self.filters.iter().cloned())
                 .force(self.force)
                 .exit(self.exit.iter().copied());
