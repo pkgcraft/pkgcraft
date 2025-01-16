@@ -75,7 +75,7 @@ impl Command {
         // create report scanner
         let scanner = Scanner::new()
             .jobs(self.jobs)
-            .reports(self.reports.iter().copied())
+            .reports(self.reports.into_iter().copied())
             .filters(self.filters.iter().cloned())
             .force(self.force)
             .exit(self.exit.iter().copied());

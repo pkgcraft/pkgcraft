@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use clap::Args;
 use indexmap::IndexSet;
 use pkgcruft::report::{ReportKind, ReportTarget};
@@ -18,20 +20,10 @@ pub(crate) struct Reports {
 }
 
 impl Reports {
-    /// Return an iterator over the selected report targets.
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &ReportTarget> {
-        self.reports.iter()
-    }
-
-    /// Return true if no reports are selected.
-    pub(crate) fn is_empty(&self) -> bool {
-        self.reports.is_empty()
-    }
-
     /// Return the set of report variants enabled for replaying.
     pub(crate) fn replay(&self) -> pkgcruft::Result<IndexSet<ReportKind>> {
         let defaults: IndexSet<_> = ReportKind::iter().collect();
-        let (enabled, _) = ReportTarget::collapse(&self.reports, &defaults, &defaults)?;
+        let (enabled, _) = ReportTarget::collapse(self, &defaults, &defaults)?;
         Ok(enabled)
     }
 }
@@ -42,5 +34,13 @@ impl<'a> IntoIterator for &'a Reports {
 
     fn into_iter(self) -> Self::IntoIter {
         self.reports.iter()
+    }
+}
+
+impl Deref for Reports {
+    type Target = [ReportTarget];
+
+    fn deref(&self) -> &Self::Target {
+        &self.reports
     }
 }
