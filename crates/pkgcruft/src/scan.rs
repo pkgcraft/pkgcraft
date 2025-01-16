@@ -160,7 +160,7 @@ impl Scanner {
             .try_collect()?;
 
         // create scanning run conglomeration
-        let run = Arc::new(ScanRun {
+        let run = Arc::new(ScannerRun {
             repo: repo.clone(),
             jobs: bounded_jobs(self.jobs),
             force: self.force,
@@ -179,7 +179,7 @@ impl Scanner {
 
 /// Conglomeration of scanning run data.
 #[derive(Debug)]
-pub(crate) struct ScanRun {
+pub(crate) struct ScannerRun {
     pub(crate) repo: EbuildRepo,
     pub(crate) jobs: usize,
     pub(crate) force: bool,

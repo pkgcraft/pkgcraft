@@ -14,7 +14,7 @@ use crate::check::Check;
 use crate::ignore::Ignore;
 use crate::report::{Report, ReportKind, ReportScope};
 use crate::runner::{SyncCheckRunner, Target};
-use crate::scan::ScanRun;
+use crate::scan::ScannerRun;
 
 enum ReportOrProcess {
     Report(Report),
@@ -74,11 +74,11 @@ impl From<Sender<Report>> for ReportSender {
 pub(crate) struct ReportFilter {
     sender: ReportSender,
     pub(crate) ignore: Ignore,
-    run: Arc<ScanRun>,
+    run: Arc<ScannerRun>,
 }
 
 impl ReportFilter {
-    fn new<S: Into<ReportSender>>(run: Arc<ScanRun>, tx: S) -> Self {
+    fn new<S: Into<ReportSender>>(run: Arc<ScannerRun>, tx: S) -> Self {
         Self {
             sender: tx.into(),
             ignore: Ignore::new(&run.repo),
@@ -106,7 +106,7 @@ impl ReportFilter {
 
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
-    run: Arc<ScanRun>,
+    run: Arc<ScannerRun>,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     tx: Sender<(Option<Check>, Target)>,
@@ -232,7 +232,7 @@ impl Iterator for IterPkg {
 
 /// Create a producer thread that sends checks with targets over a channel to workers.
 fn version_producer(
-    run: Arc<ScanRun>,
+    run: Arc<ScannerRun>,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     tx: Sender<(Check, Target)>,
@@ -348,7 +348,7 @@ impl Iterator for ReportIterInternal {
 pub struct ReportIter(ReportIterInternal);
 
 impl ReportIter {
-    pub(crate) fn new(run: Arc<ScanRun>) -> Self {
+    pub(crate) fn new(run: Arc<ScannerRun>) -> Self {
         if run.scope >= Scope::Category {
             Self::pkg(run)
         } else {
@@ -357,7 +357,7 @@ impl ReportIter {
     }
 
     /// Create an iterator that parallelizes scanning by package.
-    fn pkg(run: Arc<ScanRun>) -> Self {
+    fn pkg(run: Arc<ScannerRun>) -> Self {
         let (targets_tx, targets_rx) = bounded(run.jobs);
         let (finish_tx, finish_rx) = bounded(run.jobs);
         let (reports_tx, reports_rx) = bounded(run.jobs);
@@ -386,7 +386,7 @@ impl ReportIter {
     }
 
     /// Create an iterator that parallelizes scanning by check.
-    fn version(run: Arc<ScanRun>) -> Self {
+    fn version(run: Arc<ScannerRun>) -> Self {
         let (targets_tx, targets_rx) = bounded(run.jobs);
         let (finish_tx, finish_rx) = bounded(run.jobs);
         let (reports_tx, reports_rx) = bounded(run.jobs);

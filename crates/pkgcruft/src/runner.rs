@@ -11,7 +11,7 @@ use tracing::{debug, warn};
 
 use crate::check::*;
 use crate::iter::ReportFilter;
-use crate::scan::ScanRun;
+use crate::scan::ScannerRun;
 use crate::source::*;
 
 /// Target to run checks against.
@@ -39,7 +39,7 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(run: &ScanRun, filter: &ReportFilter) -> Self {
+    pub(super) fn new(run: &ScannerRun, filter: &ReportFilter) -> Self {
         let mut runners = IndexMap::new();
 
         for check in &run.checks {
