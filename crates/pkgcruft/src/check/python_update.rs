@@ -43,11 +43,11 @@ impl Eclass {
     }
 
     /// Dependency variants to pull for matching, with empty lists pulling all deps.
-    fn keys(&self) -> Vec<Key> {
+    fn keys(&self) -> impl Iterator<Item = Key> {
         match self {
-            Self::PythonR1 => vec![],
-            Self::PythonSingleR1 => vec![],
-            Self::PythonAnyR1 => vec![DEPEND, BDEPEND],
+            Self::PythonR1 => [].iter().copied(),
+            Self::PythonSingleR1 => [].iter().copied(),
+            Self::PythonAnyR1 => [DEPEND, BDEPEND].iter().copied(),
         }
     }
 
@@ -74,7 +74,6 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         repo: repo.clone(),
         targets: Default::default(),
-        keys: Default::default(),
         prefixes: Default::default(),
         dep_iuse: Default::default(),
     }
@@ -85,7 +84,6 @@ static CHECK: super::Check = super::Check::PythonUpdate;
 struct Check {
     repo: EbuildRepo,
     targets: OnceLock<IndexMap<Eclass, IndexSet<String>>>,
-    keys: OnceLock<IndexMap<Eclass, Vec<Key>>>,
     prefixes: OnceLock<IndexMap<Eclass, Vec<&'static str>>>,
     dep_iuse: DashMap<Restrict, Option<OrderedSet<Iuse>>>,
 }
@@ -98,15 +96,6 @@ impl Check {
             .get_or_init(|| Eclass::iter().map(|e| (e, e.targets(&self.repo))).collect())
             .get(eclass)
             .unwrap_or_else(|| unreachable!("missing eclass targets: {eclass}"))
-    }
-
-    fn keys(&self, eclass: &Eclass) -> impl Iterator<Item = Key> + '_ {
-        self.keys
-            .get_or_init(|| Eclass::iter().map(|e| (e, e.keys())).collect())
-            .get(eclass)
-            .unwrap_or_else(|| unreachable!("missing eclass keys: {eclass}"))
-            .iter()
-            .copied()
     }
 
     fn prefixes(&self, eclass: &Eclass) -> &[&'static str] {
@@ -143,7 +132,7 @@ impl EbuildPkgCheck for Check {
         };
 
         let deps = pkg
-            .dependencies(self.keys(&eclass))
+            .dependencies(eclass.keys())
             .into_iter_flatten()
             .filter(|x| x.blocker().is_none())
             .collect::<IndexSet<_>>();
