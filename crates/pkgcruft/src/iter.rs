@@ -297,7 +297,7 @@ fn version_worker(
 
         // run finalize methods for targets
         for (check, target) in finish_rx {
-            runner.finish_target(check, &target, &filter);
+            runner.finish_target(&check, &target, &filter);
         }
     })
 }

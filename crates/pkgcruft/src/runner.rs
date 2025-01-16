@@ -96,14 +96,14 @@ impl SyncCheckRunner {
     }
 
     /// Run finalization for a target.
-    pub(super) fn finish_target(&self, check: Check, target: &Target, filter: &ReportFilter) {
+    pub(super) fn finish_target(&self, check: &Check, target: &Target, filter: &ReportFilter) {
         for runner in check
             .sources()
             .iter()
             .filter(|x| target.scope() == x.scope())
             .filter_map(|x| self.runners.get(x))
         {
-            runner.finish_target(&check, target, filter);
+            runner.finish_target(check, target, filter);
         }
     }
 
