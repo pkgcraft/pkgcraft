@@ -248,9 +248,8 @@ fn version_producer(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     restrict: Restrict,
-    scope: Scope,
     tx: Sender<(Check, Target)>,
-    finish_tx: Sender<(Check, Option<Target>)>,
+    finish_tx: Sender<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in repo.iter_cpv_restrict(&restrict) {
@@ -271,18 +270,14 @@ fn version_producer(
 
         for cpv in repo.iter_cpv_restrict(&restrict) {
             for check in runner.checks().filter(|c| c.finish_target()) {
-                finish_tx.send((check, Some(Target::Cpv(cpv.clone())))).ok();
+                finish_tx.send((check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 
         for cpn in repo.iter_cpn_restrict(&restrict) {
             for check in runner.checks().filter(|c| c.finish_target()) {
-                finish_tx.send((check, Some(Target::Cpn(cpn.clone())))).ok();
+                finish_tx.send((check, Target::Cpn(cpn.clone()))).ok();
             }
-        }
-
-        for check in runner.checks().filter(|c| c.finish_check(scope)) {
-            finish_tx.send((check, None)).ok();
         }
     })
 }
@@ -293,7 +288,7 @@ fn version_worker(
     wg: WaitGroup,
     filter: Arc<ReportFilter>,
     rx: Receiver<(Check, Target)>,
-    finish_rx: Receiver<(Check, Option<Target>)>,
+    finish_rx: Receiver<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
@@ -315,11 +310,7 @@ fn version_worker(
 
         // run finalize methods for targets
         for (check, target) in finish_rx {
-            if let Some(target) = target {
-                runner.finish_target(check, &target, &filter);
-            } else {
-                runner.finish_check(check, &filter);
-            }
+            runner.finish_target(check, &target, &filter);
         }
     })
 }
@@ -472,7 +463,6 @@ impl ReportIter {
                 runner.clone(),
                 wg,
                 restrict,
-                scope,
                 targets_tx,
                 finish_tx,
             ),
