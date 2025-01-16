@@ -5,7 +5,8 @@ use std::sync::Arc;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::ebuild::EbuildRepo;
-use pkgcraft::restrict::{Scope, TryIntoRestrict};
+use pkgcraft::restrict::{Restrict, Scope, TryIntoRestrict};
+use pkgcraft::utils::bounded_jobs;
 use tracing::{info, warn};
 
 use crate::check::Check;
@@ -14,14 +15,15 @@ use crate::iter::ReportIter;
 use crate::report::{ReportKind, ReportSet, ReportTarget};
 use crate::source::PkgFilter;
 
+/// Scanner builder.
 #[derive(Debug, Default)]
 pub struct Scanner {
-    pub(crate) jobs: usize,
-    pub(crate) force: bool,
+    jobs: usize,
+    force: bool,
     reports: IndexSet<ReportTarget>,
-    pub(crate) exit: IndexSet<ReportSet>,
-    pub(crate) filters: IndexSet<PkgFilter>,
-    pub(crate) failed: Arc<AtomicBool>,
+    exit: IndexSet<ReportSet>,
+    filters: IndexSet<PkgFilter>,
+    failed: Arc<AtomicBool>,
 }
 
 impl Scanner {
@@ -82,14 +84,14 @@ impl Scanner {
         T: TryIntoRestrict<EbuildRepo>,
     {
         let restrict = value.try_into_restrict(repo)?;
-        let scan_scope = Scope::from(&restrict);
+        let scope = Scope::from(&restrict);
         info!("repo: {repo}");
-        info!("scope: {scan_scope}");
+        info!("scope: {scope}");
         info!("target: {restrict:?}");
 
         // expand report sets into enabled and selected reports
         let defaults = ReportKind::defaults(repo);
-        let supported = ReportKind::supported(repo, scan_scope);
+        let supported = ReportKind::supported(repo, scope);
         let (enabled, selected) = if self.reports.is_empty() {
             (defaults.clone(), Default::default())
         } else {
@@ -111,9 +113,9 @@ impl Scanner {
             .iter()
             .copied()
             .map(|report| {
-                if let Some(scope) = report.scoped(scan_scope) {
+                if let Some(scope) = report.scoped(scope) {
                     Err(Error::ReportInit(report, format!("requires {scope} scope")))
-                } else if pkg_filtering && report.finish_check(scan_scope) {
+                } else if pkg_filtering && report.finish_check(scope) {
                     Err(Error::ReportInit(report, "requires no package filtering".to_string()))
                 } else {
                     Ok(report)
@@ -140,7 +142,7 @@ impl Scanner {
                     Err(Error::CheckInit(check, "requires no package filtering".to_string()))
                 } else if let Some(context) = check.skipped(repo, &selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
-                } else if let Some(scope) = check.scoped(scan_scope) {
+                } else if let Some(scope) = check.scoped(scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))
                 } else {
                     Ok(check)
@@ -157,10 +159,37 @@ impl Scanner {
             })
             .try_collect()?;
 
-        Ok(ReportIter::new(
-            enabled, exit, scan_scope, checks, self, self.jobs, repo, restrict,
-        ))
+        // create scanning run conglomeration
+        let run = Arc::new(ScanRun {
+            repo: repo.clone(),
+            jobs: bounded_jobs(self.jobs),
+            force: self.force,
+            restrict,
+            scope,
+            failed: self.failed.clone(),
+            filters: self.filters.clone(),
+            checks,
+            enabled,
+            exit,
+        });
+
+        Ok(ReportIter::new(run))
     }
+}
+
+/// Conglomeration of scanning run data.
+#[derive(Debug)]
+pub(crate) struct ScanRun {
+    pub(crate) repo: EbuildRepo,
+    pub(crate) jobs: usize,
+    pub(crate) force: bool,
+    pub(crate) restrict: Restrict,
+    pub(crate) scope: Scope,
+    pub(crate) failed: Arc<AtomicBool>,
+    pub(crate) filters: IndexSet<PkgFilter>,
+    pub(crate) checks: IndexSet<Check>,
+    pub(crate) enabled: HashSet<ReportKind>,
+    pub(crate) exit: HashSet<ReportKind>,
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
 
@@ -7,15 +7,14 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use crossbeam_utils::sync::WaitGroup;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
-use pkgcraft::restrict::{Restrict, Scope};
-use pkgcraft::utils::bounded_jobs;
+use pkgcraft::repo::PkgRepository;
+use pkgcraft::restrict::Scope;
 
 use crate::check::Check;
 use crate::ignore::Ignore;
 use crate::report::{Report, ReportKind, ReportScope};
 use crate::runner::{SyncCheckRunner, Target};
-use crate::scan::Scanner;
+use crate::scan::ScanRun;
 
 enum ReportOrProcess {
     Report(Report),
@@ -73,38 +72,26 @@ impl From<Sender<Report>> for ReportSender {
 }
 
 pub(crate) struct ReportFilter {
-    enabled: HashSet<ReportKind>,
-    exit: HashSet<ReportKind>,
-    failed: Arc<AtomicBool>,
     sender: ReportSender,
-    force: bool,
     pub(crate) ignore: Ignore,
+    run: Arc<ScanRun>,
 }
 
 impl ReportFilter {
-    fn new<S: Into<ReportSender>>(
-        enabled: HashSet<ReportKind>,
-        exit: HashSet<ReportKind>,
-        scanner: &Scanner,
-        repo: &EbuildRepo,
-        tx: S,
-    ) -> Self {
+    fn new<S: Into<ReportSender>>(run: Arc<ScanRun>, tx: S) -> Self {
         Self {
-            enabled,
-            exit,
-            failed: scanner.failed.clone(),
             sender: tx.into(),
-            force: scanner.force,
-            ignore: Ignore::new(repo),
+            ignore: Ignore::new(&run.repo),
+            run,
         }
     }
 
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&self, report: Report) {
         let kind = report.kind;
-        if self.enabled(kind) && (self.force || !self.ignore.ignored(&report)) {
-            if self.exit.contains(&kind) {
-                self.failed.store(true, Ordering::Relaxed);
+        if self.enabled(kind) && (self.run.force || !self.ignore.ignored(&report)) {
+            if self.run.exit.contains(&kind) {
+                self.run.failed.store(true, Ordering::Relaxed);
             }
 
             self.sender.report(report);
@@ -113,17 +100,15 @@ impl ReportFilter {
 
     /// Return true if the filter has a report variant enabled.
     pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
-        self.enabled.contains(&kind)
+        self.run.enabled.contains(&kind)
     }
 }
 
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
-    repo: EbuildRepo,
+    run: Arc<ScanRun>,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    restrict: Restrict,
-    scope: Scope,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
@@ -135,7 +120,7 @@ fn pkg_producer(
 
         // parallelize running checks per package
         if runner.checks().any(|c| c.scope() <= Scope::Package) {
-            for cpn in repo.iter_cpn_restrict(&restrict) {
+            for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
                 tx.send((None, Target::Cpn(cpn))).ok();
             }
         }
@@ -145,7 +130,7 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finish_check(scope)) {
+        for check in runner.checks().filter(|c| c.finish_check(run.scope)) {
             finish_tx.send(check).ok();
         }
     })
@@ -247,21 +232,20 @@ impl Iterator for IterPkg {
 
 /// Create a producer thread that sends checks with targets over a channel to workers.
 fn version_producer(
-    repo: EbuildRepo,
+    run: Arc<ScanRun>,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    restrict: Restrict,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        for cpv in repo.iter_cpv_restrict(&restrict) {
+        for cpv in run.repo.iter_cpv_restrict(&run.restrict) {
             for check in runner.checks().filter(|c| c.scope() == Scope::Version) {
                 tx.send((check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 
-        for cpn in repo.iter_cpn_restrict(&restrict) {
+        for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
             for check in runner.checks().filter(|c| c.scope() == Scope::Package) {
                 tx.send((check, Target::Cpn(cpn.clone()))).ok();
             }
@@ -271,13 +255,13 @@ fn version_producer(
         drop(tx);
         wg.wait();
 
-        for cpv in repo.iter_cpv_restrict(&restrict) {
+        for cpv in run.repo.iter_cpv_restrict(&run.restrict) {
             for check in runner.checks().filter(|c| c.finish_target()) {
                 finish_tx.send((check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 
-        for cpn in repo.iter_cpn_restrict(&restrict) {
+        for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
             for check in runner.checks().filter(|c| c.finish_target()) {
                 finish_tx.send((check, Target::Cpn(cpn.clone()))).ok();
             }
@@ -364,53 +348,27 @@ impl Iterator for ReportIterInternal {
 pub struct ReportIter(ReportIterInternal);
 
 impl ReportIter {
-    pub(crate) fn new<I>(
-        enabled: HashSet<ReportKind>,
-        exit: HashSet<ReportKind>,
-        scope: Scope,
-        checks: I,
-        scanner: &Scanner,
-        jobs: usize,
-        repo: &EbuildRepo,
-        restrict: Restrict,
-    ) -> Self
-    where
-        I: IntoIterator<Item = Check>,
-    {
-        let jobs = bounded_jobs(jobs);
-        if scope >= Scope::Category {
-            Self::pkg(enabled, exit, scope, checks, scanner, jobs, repo, restrict)
+    pub(crate) fn new(run: Arc<ScanRun>) -> Self {
+        if run.scope >= Scope::Category {
+            Self::pkg(run)
         } else {
-            Self::version(enabled, exit, scope, checks, scanner, jobs, repo, restrict)
+            Self::version(run)
         }
     }
 
     /// Create an iterator that parallelizes scanning by package.
-    fn pkg<I>(
-        enabled: HashSet<ReportKind>,
-        exit: HashSet<ReportKind>,
-        scope: Scope,
-        checks: I,
-        scanner: &Scanner,
-        jobs: usize,
-        repo: &EbuildRepo,
-        restrict: Restrict,
-    ) -> Self
-    where
-        I: IntoIterator<Item = Check>,
-    {
-        let (targets_tx, targets_rx) = bounded(jobs);
-        let (finish_tx, finish_rx) = bounded(jobs);
-        let (reports_tx, reports_rx) = bounded(jobs);
+    fn pkg(run: Arc<ScanRun>) -> Self {
+        let (targets_tx, targets_rx) = bounded(run.jobs);
+        let (finish_tx, finish_rx) = bounded(run.jobs);
+        let (reports_tx, reports_rx) = bounded(run.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, repo, reports_tx));
+        let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
 
-        let runner =
-            Arc::new(SyncCheckRunner::new(scope, scanner, repo, &restrict, checks, &filter));
+        let runner = Arc::new(SyncCheckRunner::new(&run, &filter));
 
         Self(ReportIterInternal::Pkg(IterPkg {
             rx: reports_rx,
-            _workers: (0..jobs)
+            _workers: (0..run.jobs)
                 .map(|_| {
                     pkg_worker(
                         runner.clone(),
@@ -421,46 +379,25 @@ impl ReportIter {
                     )
                 })
                 .collect(),
-            _producer: pkg_producer(
-                repo.clone(),
-                runner.clone(),
-                wg,
-                restrict,
-                scope,
-                targets_tx,
-                finish_tx,
-            ),
+            _producer: pkg_producer(run.clone(), runner.clone(), wg, targets_tx, finish_tx),
             cache: Default::default(),
             reports: Default::default(),
         }))
     }
 
     /// Create an iterator that parallelizes scanning by check.
-    fn version<I>(
-        enabled: HashSet<ReportKind>,
-        exit: HashSet<ReportKind>,
-        scope: Scope,
-        checks: I,
-        scanner: &Scanner,
-        jobs: usize,
-        repo: &EbuildRepo,
-        restrict: Restrict,
-    ) -> Self
-    where
-        I: IntoIterator<Item = Check>,
-    {
-        let (targets_tx, targets_rx) = bounded(jobs);
-        let (finish_tx, finish_rx) = bounded(jobs);
-        let (reports_tx, reports_rx) = bounded(jobs);
+    fn version(run: Arc<ScanRun>) -> Self {
+        let (targets_tx, targets_rx) = bounded(run.jobs);
+        let (finish_tx, finish_rx) = bounded(run.jobs);
+        let (reports_tx, reports_rx) = bounded(run.jobs);
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(enabled, exit, scanner, repo, reports_tx));
+        let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
 
-        let runner =
-            Arc::new(SyncCheckRunner::new(scope, scanner, repo, &restrict, checks, &filter));
+        let runner = Arc::new(SyncCheckRunner::new(&run, &filter));
 
         Self(ReportIterInternal::Version(IterVersion {
             rx: reports_rx,
-            _workers: (0..jobs)
+            _workers: (0..run.jobs)
                 .map(|_| {
                     version_worker(
                         runner.clone(),
@@ -472,10 +409,9 @@ impl ReportIter {
                 })
                 .collect(),
             _producer: version_producer(
-                repo.clone(),
+                run.clone(),
                 runner.clone(),
                 wg,
-                restrict,
                 targets_tx,
                 finish_tx,
             ),

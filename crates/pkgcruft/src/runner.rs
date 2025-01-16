@@ -11,7 +11,7 @@ use tracing::{debug, warn};
 
 use crate::check::*;
 use crate::iter::ReportFilter;
-use crate::scan::Scanner;
+use crate::scan::ScanRun;
 use crate::source::*;
 
 /// Target to run checks against.
@@ -39,38 +39,28 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new<I>(
-        scope: Scope,
-        scanner: &Scanner,
-        repo: &EbuildRepo,
-        restrict: &Restrict,
-        checks: I,
-        filter: &ReportFilter,
-    ) -> Self
-    where
-        I: IntoIterator<Item = Check>,
-    {
+    pub(super) fn new(run: &ScanRun, filter: &ReportFilter) -> Self {
         let mut runners = IndexMap::new();
 
-        for check in checks {
+        for check in &run.checks {
             for source in check
                 .sources()
                 .iter()
-                .filter(|x| x.scope() <= scope)
+                .filter(|x| x.scope() <= run.scope)
                 .copied()
             {
                 runners
                     .entry(source)
                     .or_insert_with(|| {
                         CheckRunner::new(
-                            scope,
-                            restrict,
+                            run.scope,
+                            &run.restrict,
                             source,
-                            repo.clone(),
-                            &scanner.filters,
+                            run.repo.clone(),
+                            &run.filters,
                         )
                     })
-                    .add_check(check, filter)
+                    .add_check(*check, filter)
             }
         }
 
