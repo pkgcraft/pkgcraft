@@ -13,6 +13,7 @@ use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
 use crate::repo::{ebuild::EbuildRepo, Repo, Repository};
 use crate::types::SortedSet;
+use crate::utils::relpath;
 use crate::Error;
 
 /// Construct a Command from a given string.
@@ -263,31 +264,31 @@ pub fn test_data_patched() -> TestDataPatched {
                 let src = Utf8Path::from_path(entry.path()).unwrap();
                 let dest = new_path.join(src.strip_prefix(old_path).unwrap());
 
-                // create directories and copy files
+                // create directories and copy files skipping patches
                 if src.is_dir() {
                     fs::create_dir(&dest)
                         .unwrap_or_else(|e| panic!("failed creating dir {dest}: {e}"));
-                } else if src.is_file() {
+                } else if src.is_file() && !is_patch(&entry) {
                     fs::copy(src, &dest)
                         .unwrap_or_else(|e| panic!("failed copying {src} to {dest}: {e}"));
                 }
             }
 
-            // apply and remove patches
-            for entry in WalkDir::new(&new_path) {
+            // apply patches to new repo
+            for entry in WalkDir::new(old_path) {
                 let entry = entry.unwrap();
                 let path = entry.path();
                 if is_patch(&entry) {
+                    let relpath = relpath(path.parent().unwrap(), old_path).unwrap();
                     let status = process::Command::new("patch")
                         .arg("-p1")
                         .arg("-F0")
                         .arg("--backup-if-mismatch")
                         .stdin(fs::File::open(path).unwrap())
-                        .current_dir(path.parent().unwrap())
+                        .current_dir(new_path.as_std_path().join(relpath))
                         .status()
                         .unwrap();
                     assert!(status.success(), "failed applying: {path:?}");
-                    fs::remove_file(path).unwrap();
 
                     // TODO: Switch to using a patch option rejecting mismatches if upstream ever
                     // supports that.
