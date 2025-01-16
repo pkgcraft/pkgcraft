@@ -19,8 +19,6 @@ use crate::utils::{use_expand, use_starts_with};
 
 use super::EbuildPkgCheck;
 
-static IUSE_PREFIX: &str = "python_targets_";
-static IUSE_PREFIX_S: &str = "python_single_target_";
 static IMPL_PKG: &str = "dev-lang/python";
 
 /// Supported python eclasses.
@@ -52,11 +50,11 @@ impl Eclass {
     }
 
     /// USE flag dependency prefixes.
-    fn prefixes(&self) -> Vec<&'static str> {
+    fn prefixes(&self) -> &[&str] {
         match self {
-            Self::PythonR1 => vec![IUSE_PREFIX],
-            Self::PythonSingleR1 => vec![IUSE_PREFIX, IUSE_PREFIX_S],
-            Self::PythonAnyR1 => vec![IUSE_PREFIX, IUSE_PREFIX_S],
+            Self::PythonR1 => &["python_targets_"],
+            Self::PythonSingleR1 => &["python_targets_", "python_single_target_"],
+            Self::PythonAnyR1 => &["python_targets_", "python_single_target_"],
         }
     }
 }
@@ -74,7 +72,6 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         repo: repo.clone(),
         targets: Default::default(),
-        prefixes: Default::default(),
         dep_iuse: Default::default(),
     }
 }
@@ -84,7 +81,6 @@ static CHECK: super::Check = super::Check::PythonUpdate;
 struct Check {
     repo: EbuildRepo,
     targets: OnceLock<IndexMap<Eclass, IndexSet<String>>>,
-    prefixes: OnceLock<IndexMap<Eclass, Vec<&'static str>>>,
     dep_iuse: DashMap<Restrict, Option<OrderedSet<Iuse>>>,
 }
 
@@ -96,13 +92,6 @@ impl Check {
             .get_or_init(|| Eclass::iter().map(|e| (e, e.targets(&self.repo))).collect())
             .get(eclass)
             .unwrap_or_else(|| unreachable!("missing eclass targets: {eclass}"))
-    }
-
-    fn prefixes(&self, eclass: &Eclass) -> &[&'static str] {
-        self.prefixes
-            .get_or_init(|| Eclass::iter().map(|e| (e, e.prefixes())).collect())
-            .get(eclass)
-            .unwrap_or_else(|| unreachable!("missing eclass prefixes: {eclass}"))
     }
 
     /// Get the package IUSE matching a given dependency.
@@ -165,12 +154,12 @@ impl EbuildPkgCheck for Check {
         // drop targets with missing dependencies
         for dep in deps
             .iter()
-            .filter(|x| use_starts_with(x, self.prefixes(&eclass)))
+            .filter(|x| use_starts_with(x, eclass.prefixes()))
         {
             if let Some(iuse) = self.get_dep_iuse(dep.no_use_deps()).as_ref() {
                 let iuse = iuse
                     .iter()
-                    .filter_map(|x| deprefix(x.flag(), self.prefixes(&eclass)))
+                    .filter_map(|x| deprefix(x.flag(), eclass.prefixes()))
                     .collect::<HashSet<_>>();
                 targets.retain(|x| iuse.contains(x.as_str()));
                 if targets.is_empty() {
