@@ -1,8 +1,7 @@
-use std::collections::HashSet;
-use std::sync::OnceLock;
+use std::collections::{HashMap, HashSet};
 
 use dashmap::{mapref::one::Ref, DashMap};
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
@@ -71,7 +70,7 @@ fn deprefix<S: AsRef<str>>(s: &str, prefixes: &[S]) -> Option<String> {
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         repo: repo.clone(),
-        targets: Default::default(),
+        targets: Eclass::iter().map(|e| (e, e.targets(repo))).collect(),
         dep_iuse: Default::default(),
     }
 }
@@ -80,16 +79,16 @@ static CHECK: super::Check = super::Check::PythonUpdate;
 
 struct Check {
     repo: EbuildRepo,
-    targets: OnceLock<IndexMap<Eclass, IndexSet<String>>>,
+    targets: HashMap<Eclass, IndexSet<String>>,
     dep_iuse: DashMap<Restrict, Option<OrderedSet<Iuse>>>,
 }
 
 super::register!(Check);
 
 impl Check {
+    /// Get the USE_EXPAND targets for an eclass.
     fn targets(&self, eclass: &Eclass) -> &IndexSet<String> {
         self.targets
-            .get_or_init(|| Eclass::iter().map(|e| (e, e.targets(&self.repo))).collect())
             .get(eclass)
             .unwrap_or_else(|| unreachable!("missing eclass targets: {eclass}"))
     }
