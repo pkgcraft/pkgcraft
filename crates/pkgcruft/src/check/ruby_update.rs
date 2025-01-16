@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::sync::OnceLock;
 
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -20,7 +19,7 @@ static IMPL_PKG: &str = "dev-lang/ruby";
 pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
     Check {
         repo: repo.clone(),
-        targets: OnceLock::new(),
+        targets: use_expand(repo, "ruby_targets", "ruby"),
     }
 }
 
@@ -28,17 +27,10 @@ static CHECK: super::Check = super::Check::RubyUpdate;
 
 struct Check {
     repo: EbuildRepo,
-    targets: OnceLock<IndexSet<String>>,
+    targets: IndexSet<String>,
 }
 
 super::register!(Check);
-
-impl Check {
-    fn targets(&self) -> &IndexSet<String> {
-        self.targets
-            .get_or_init(|| use_expand(&self.repo, "ruby_targets", "ruby"))
-    }
-}
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
@@ -57,7 +49,7 @@ impl EbuildPkgCheck for Check {
             .iter()
             .filter(|x| x.cpn() == IMPL_PKG)
             .filter_map(|x| x.slot().map(|s| format!("ruby{}", s.replace('.', ""))))
-            .sorted_by_key(|x| self.targets().get_index_of(x.as_str()))
+            .sorted_by_key(|x| self.targets.get_index_of(x.as_str()))
             .last()
         else {
             // missing deps
@@ -66,7 +58,7 @@ impl EbuildPkgCheck for Check {
 
         // determine potential targets
         let mut targets = self
-            .targets()
+            .targets
             .iter()
             .rev()
             .take_while(|x| *x != &latest)
