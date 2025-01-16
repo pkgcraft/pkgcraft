@@ -59,9 +59,9 @@ impl FromStr for Bound {
 #[derive(Args)]
 #[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
-    /// Parallel jobs to run (default: # of physical CPUs)
-    #[arg(short, long)]
-    jobs: Option<usize>,
+    /// Parallel jobs to run
+    #[arg(short, long, default_value_t = num_cpus::get_physical())]
+    jobs: usize,
 
     /// Benchmark sourcing for a given duration per package
     #[arg(long)]
@@ -231,7 +231,7 @@ where
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // default to running a job on each physical CPU in order to limit contention
-        let jobs = bounded_jobs(self.jobs.unwrap_or(num_cpus::get_physical()));
+        let jobs = bounded_jobs(self.jobs);
 
         // convert targets to pkgs
         let pkgs = TargetRestrictions::new(config)

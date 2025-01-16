@@ -14,8 +14,8 @@ use scallop::pool::PoolIter;
 #[clap(next_help_heading = "Pretend options")]
 pub(crate) struct Command {
     /// Parallel jobs to run
-    #[arg(short, long)]
-    jobs: Option<usize>,
+    #[arg(short, long, default_value_t = num_cpus::get())]
+    jobs: usize,
 
     /// Target repo
     #[arg(short, long)]
@@ -44,7 +44,7 @@ impl Command {
         };
 
         // loop over targets, tracking overall failure status
-        let jobs = bounded_jobs(self.jobs.unwrap_or_default());
+        let jobs = bounded_jobs(self.jobs);
         let mut failed = false;
 
         // convert targets to pkgs

@@ -10,8 +10,8 @@ use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 #[clap(next_help_heading = "Regen options")]
 pub(crate) struct Command {
     /// Parallel jobs to run
-    #[arg(short, long)]
-    jobs: Option<usize>,
+    #[arg(short, long, default_value_t = num_cpus::get())]
+    jobs: usize,
 
     /// Force regeneration to occur
     #[arg(short, long)]
@@ -53,7 +53,7 @@ impl Command {
 
         cache
             .regen(&repo)
-            .jobs(self.jobs.unwrap_or_default())
+            .jobs(self.jobs)
             .force(self.force)
             .progress(stdout().is_terminal() && !self.no_progress)
             .run()?;
