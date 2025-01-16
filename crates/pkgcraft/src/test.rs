@@ -286,6 +286,7 @@ pub fn test_data_patched() -> TestDataPatched {
                 let status = process::Command::new("patch")
                     .arg("-p1")
                     .arg("-F0")
+                    .arg("-N")
                     .arg("--backup-if-mismatch")
                     .stdin(fs::File::open(patch).unwrap())
                     .current_dir(&dir)
