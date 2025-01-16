@@ -33,7 +33,7 @@ impl<'a> IntoIterator for &'a Reports {
     type IntoIter = std::slice::Iter<'a, ReportTarget>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.reports.iter()
+        self.iter()
     }
 }
 
