@@ -162,7 +162,7 @@ impl ReportSet {
     }
 }
 
-/// Wrapper for report targets.
+/// Wrapper for report set targets.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub struct ReportTarget(TriState<ReportSet>);
 
@@ -230,7 +230,7 @@ impl FromStr for ReportTarget {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.parse()?))
+        s.parse().map(Self)
     }
 }
 
