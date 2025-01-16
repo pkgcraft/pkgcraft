@@ -13,7 +13,7 @@ use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
 use crate::repo::{ebuild::EbuildRepo, Repo, Repository};
 use crate::types::SortedSet;
-use crate::utils::relpath;
+use crate::utils::relpath_utf8;
 use crate::Error;
 
 /// Construct a Command from a given string.
@@ -250,12 +250,17 @@ pub fn test_data_patched() -> TestDataPatched {
     // generate temporary repos for with patches applied
     let data = test_data();
     for (name, repo) in &data.config.repos {
-        let patches_exist = WalkDir::new(repo.path())
+        let patches: Vec<Utf8PathBuf> = WalkDir::new(repo.path())
+            .sort_by_file_name()
             .into_iter()
-            .filter_map(|e| e.ok())
-            .any(|x| is_patch(&x));
+            .filter_map(Result::ok)
+            .filter(is_patch)
+            .map(|entry| entry.path().to_path_buf())
+            .map(|path| path.try_into())
+            .try_collect()
+            .unwrap();
 
-        if patches_exist {
+        if !patches.is_empty() {
             let old_path = repo.path();
             let new_path = tmppath.join(name);
 
@@ -275,35 +280,31 @@ pub fn test_data_patched() -> TestDataPatched {
             }
 
             // apply patches to new repo
-            for entry in WalkDir::new(old_path) {
-                let entry = entry.unwrap();
-                let path = entry.path();
-                if is_patch(&entry) {
-                    let relpath = relpath(path.parent().unwrap(), old_path).unwrap();
-                    let status = process::Command::new("patch")
-                        .arg("-p1")
-                        .arg("-F0")
-                        .arg("--backup-if-mismatch")
-                        .stdin(fs::File::open(path).unwrap())
-                        .current_dir(new_path.as_std_path().join(relpath))
-                        .status()
-                        .unwrap();
-                    assert!(status.success(), "failed applying: {path:?}");
+            for patch in &patches {
+                let relpath = relpath_utf8(patch.parent().unwrap(), old_path).unwrap();
+                let dir = new_path.join(relpath);
+                let status = process::Command::new("patch")
+                    .arg("-p1")
+                    .arg("-F0")
+                    .arg("--backup-if-mismatch")
+                    .stdin(fs::File::open(patch).unwrap())
+                    .current_dir(&dir)
+                    .status()
+                    .unwrap();
+                assert!(status.success(), "failed applying: {patch}");
 
-                    // TODO: Switch to using a patch option rejecting mismatches if upstream ever
-                    // supports that.
-                    //
-                    // verify no backup files were created due to mismatched patches
-                    let dir = entry.path().parent().unwrap();
-                    let mut files = fs::read_dir(dir).unwrap().filter_map(|e| e.ok());
-                    if files.any(|e| {
-                        e.path()
-                            .extension()
-                            .map(|s| s == "orig")
-                            .unwrap_or_default()
-                    }) {
-                        panic!("mismatched patch: {:?}", path.strip_prefix(tmppath).unwrap());
-                    }
+                // TODO: Switch to using a patch option rejecting mismatches if upstream ever
+                // supports that.
+                //
+                // verify no backup files were created due to mismatched patches
+                let mut files = fs::read_dir(&dir).unwrap().filter_map(|e| e.ok());
+                if files.any(|e| {
+                    e.path()
+                        .extension()
+                        .map(|s| s == "orig")
+                        .unwrap_or_default()
+                }) {
+                    panic!("mismatched patch: {}", patch.strip_prefix(tmppath).unwrap());
                 }
             }
 
