@@ -87,5 +87,13 @@ mod tests {
         let scanner = Scanner::new(repo).reports([ReportSet::All]);
         let mut reports = scanner.run(repo).unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+
+        // verify reports in version scope
+        let mut reports = scanner.run("Ignore/IgnoreUnused-0").unwrap();
+        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+
+        // verify reports in package scope
+        let mut reports = scanner.run("Ignore/IgnoreUnused").unwrap();
+        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
     }
 }
