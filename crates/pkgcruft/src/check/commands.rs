@@ -16,17 +16,8 @@ type CommandFn =
 
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     let mut check = Check { commands: Default::default() };
-    check.commands.extend(
-        ["find", "xargs"]
-            .into_iter()
-            .map(|name| (name.to_string(), builtins as CommandFn)),
-    );
-    check.commands.extend(
-        ["optfeature"]
-            .into_iter()
-            .map(|name| (name.to_string(), optfeature as CommandFn)),
-    );
-
+    check.extend(["find", "xargs"], builtins);
+    check.extend(["optfeature"], optfeature);
     check
 }
 
@@ -34,6 +25,18 @@ static CHECK: super::Check = super::Check::Commands;
 
 struct Check {
     commands: HashMap<String, CommandFn>,
+}
+
+impl Check {
+    /// Register commands for the check to handle.
+    fn extend<I>(&mut self, names: I, func: CommandFn)
+    where
+        I: IntoIterator,
+        I::Item: std::fmt::Display,
+    {
+        self.commands
+            .extend(names.into_iter().map(|x| (x.to_string(), func)));
+    }
 }
 
 super::register!(Check);
