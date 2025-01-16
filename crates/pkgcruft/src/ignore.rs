@@ -95,12 +95,10 @@ impl Ignore {
     /// ebuild ignore data stopping at the first match.
     pub fn ignored(&self, report: &Report) -> bool {
         self.generate(report.scope()).any(|mut entry| {
-            if let Some((_, used)) = entry.get_mut(&report.kind) {
-                *used = true;
-                true
-            } else {
-                false
-            }
+            entry
+                .get_mut(&report.kind)
+                .map(|(_, used)| *used = true)
+                .is_some()
         })
     }
 
