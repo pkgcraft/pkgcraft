@@ -54,7 +54,7 @@ impl Scanner {
         self
     }
 
-    /// Configure if ignore settings are respected.
+    /// Configure if ignore directives are respected.
     pub fn force(mut self, value: bool) -> Self {
         self.force = value;
         self

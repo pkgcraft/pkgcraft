@@ -17,8 +17,11 @@ impl CpvCheck for Check {
     fn run(&self, _cpv: &Cpv, _filter: &ReportFilter) {}
     fn finish_target(&self, cpv: &Cpv, filter: &ReportFilter) {
         let scope = ReportScope::Version(cpv.clone(), None);
+
         // forciby populate the cache
         filter.ignore.generate(&scope).count();
+
+        // flag unused version scope ignore directives
         if let Some(sets) = filter.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");
             IgnoreUnused.version(cpv).message(sets).report(filter);
@@ -30,6 +33,11 @@ impl CpnCheck for Check {
     fn run(&self, _cpn: &Cpn, _filter: &ReportFilter) {}
     fn finish_target(&self, cpn: &Cpn, filter: &ReportFilter) {
         let scope = ReportScope::Package(cpn.clone());
+
+        // forciby populate the cache
+        filter.ignore.generate(&scope).count();
+
+        // flag unused package scope ignore directives
         if let Some(sets) = filter.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");
             IgnoreUnused.package(cpn).message(sets).report(filter);
