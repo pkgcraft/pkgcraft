@@ -1,18 +1,4 @@
-use std::borrow::Borrow;
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
-use std::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Sub,
-    SubAssign,
-};
-
 use indexmap::IndexSet;
-use itertools::Itertools;
-
-use crate::eapi::Eapi;
-use crate::restrict::{Restrict as BaseRestrict, Restriction};
-use crate::traits::{Contains, IntoOwned, ToRef};
-use crate::types::{Deque, Ordered};
 
 pub mod cpn;
 pub use cpn::Cpn;
@@ -35,12 +21,26 @@ pub mod version;
 pub use version::{Operator, Revision, Version};
 
 pub trait Stringable:
-    Debug + Display + Default + Ord + Clone + Hash + Borrow<str> + AsRef<str>
+    std::fmt::Debug
+    + std::fmt::Display
+    + Default
+    + Ord
+    + Clone
+    + std::hash::Hash
+    + std::borrow::Borrow<str>
+    + AsRef<str>
 {
 }
 
 impl<T> Stringable for T where
-    T: Debug + Display + Default + Ord + Clone + Hash + Borrow<str> + AsRef<str>
+    T: std::fmt::Debug
+        + std::fmt::Display
+        + Default
+        + Ord
+        + Clone
+        + std::hash::Hash
+        + std::borrow::Borrow<str>
+        + AsRef<str>
 {
 }
 

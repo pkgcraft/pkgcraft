@@ -1,3 +1,10 @@
+use std::fmt;
+
+use itertools::Itertools;
+
+use crate::eapi::Eapi;
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::traits::{Contains, IntoOwned, ToRef};
 use crate::types::{Ordered, OrderedSet, SortedSet};
 
 use super::*;
@@ -378,8 +385,8 @@ impl<T: Ordered> Conditionals for Dependency<T> {
     }
 }
 
-impl<T: Display + Ordered> Display for Dependency<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<T: fmt::Display + Ordered> fmt::Display for Dependency<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Enabled(val) => write!(f, "{val}"),
             Self::Disabled(val) => write!(f, "!{val}"),

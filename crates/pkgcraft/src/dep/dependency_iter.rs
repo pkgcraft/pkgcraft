@@ -1,3 +1,5 @@
+use crate::types::{Deque, Ordered};
+
 use super::*;
 
 #[derive(Debug)]

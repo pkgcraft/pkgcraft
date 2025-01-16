@@ -1,3 +1,14 @@
+use std::fmt;
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, DerefMut, Sub,
+    SubAssign,
+};
+
+use itertools::Itertools;
+
+use crate::eapi::Eapi;
+use crate::restrict::{Restrict as BaseRestrict, Restriction};
+use crate::traits::{Contains, IntoOwned, ToRef};
 use crate::types::{Ordered, SortedSet};
 
 use super::*;
@@ -166,8 +177,8 @@ impl DependencySet<Uri> {
     }
 }
 
-impl<T: Display + Ordered> Display for DependencySet<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<T: fmt::Display + Ordered> fmt::Display for DependencySet<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", p!(self))
     }
 }
