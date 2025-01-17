@@ -1,5 +1,4 @@
 use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread;
 
@@ -90,10 +89,7 @@ impl ReportFilter {
     pub(crate) fn report(&self, report: Report) {
         let kind = report.kind;
         if self.enabled(kind) && (self.run.force || !self.ignore.ignored(&report)) {
-            if self.run.exit.contains(&kind) {
-                self.run.failed.store(true, Ordering::Relaxed);
-            }
-
+            self.run.exit(kind);
             self.sender.report(report);
         }
     }

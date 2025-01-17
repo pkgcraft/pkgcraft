@@ -83,15 +83,11 @@ impl Scanner {
     where
         T: TryIntoRestrict<EbuildRepo>,
     {
-        let restrict = value.try_into_restrict(repo)?;
-        let scope = Scope::from(&restrict);
-        info!("repo: {repo}");
-        info!("scope: {scope}");
-        info!("target: {restrict:?}");
+        let mut run = ScannerRun::new(self, repo, value)?;
 
         // expand report sets into enabled and selected reports
         let defaults = ReportKind::defaults(repo);
-        let supported = ReportKind::supported(repo, scope);
+        let supported = ReportKind::supported(repo, run.scope);
         let (enabled, selected) = if self.reports.is_empty() {
             (defaults.clone(), Default::default())
         } else {
@@ -99,7 +95,7 @@ impl Scanner {
         };
 
         // expand exit sets
-        let exit = self
+        run.exit = self
             .exit
             .iter()
             .flat_map(|x| x.expand(&defaults, &supported))
@@ -109,13 +105,13 @@ impl Scanner {
         let pkg_filtering = !self.filters.is_empty();
 
         // determine enabled reports -- errors if incompatible report is selected
-        let enabled: HashSet<_> = enabled
+        run.enabled = enabled
             .iter()
             .copied()
             .map(|report| {
-                if let Some(scope) = report.scoped(scope) {
+                if let Some(scope) = report.scoped(run.scope) {
                     Err(Error::ReportInit(report, format!("requires {scope} scope")))
-                } else if pkg_filtering && report.finish_check(scope) {
+                } else if pkg_filtering && report.finish_check(run.scope) {
                     Err(Error::ReportInit(report, "requires no package filtering".to_string()))
                 } else {
                     Ok(report)
@@ -134,7 +130,7 @@ impl Scanner {
 
         // determine enabled checks -- errors if incompatible check is selected
         let selected = Check::iter_report(&selected).collect();
-        let checks: IndexSet<_> = Check::iter_report(&enabled)
+        run.checks = Check::iter_report(&enabled)
             .unique()
             .sorted()
             .map(|check| {
@@ -142,7 +138,7 @@ impl Scanner {
                     Err(Error::CheckInit(check, "requires no package filtering".to_string()))
                 } else if let Some(context) = check.skipped(repo, &selected) {
                     Err(Error::CheckInit(check, format!("requires {context} context")))
-                } else if let Some(scope) = check.scoped(scope) {
+                } else if let Some(scope) = check.scoped(run.scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))
                 } else {
                     Ok(check)
@@ -159,21 +155,7 @@ impl Scanner {
             })
             .try_collect()?;
 
-        // create scanning run conglomeration
-        let run = Arc::new(ScannerRun {
-            repo: repo.clone(),
-            jobs: bounded_jobs(self.jobs),
-            force: self.force,
-            restrict,
-            scope,
-            failed: self.failed.clone(),
-            filters: self.filters.clone(),
-            checks,
-            enabled,
-            exit,
-        });
-
-        Ok(ReportIter::new(run))
+        Ok(ReportIter::new(Arc::new(run)))
     }
 }
 
@@ -181,21 +163,54 @@ impl Scanner {
 #[derive(Debug)]
 pub(crate) struct ScannerRun {
     pub(crate) repo: EbuildRepo,
-    pub(crate) jobs: usize,
-    pub(crate) force: bool,
     pub(crate) restrict: Restrict,
     pub(crate) scope: Scope,
-    pub(crate) failed: Arc<AtomicBool>,
+    pub(crate) force: bool,
+    pub(crate) jobs: usize,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) checks: IndexSet<Check>,
-    pub(crate) enabled: HashSet<ReportKind>,
-    pub(crate) exit: HashSet<ReportKind>,
+    enabled: HashSet<ReportKind>,
+    exit: HashSet<ReportKind>,
+    failed: Arc<AtomicBool>,
 }
 
 impl ScannerRun {
+    /// Create new aggregated data for a scanning run.
+    fn new<T>(scanner: &Scanner, repo: &EbuildRepo, value: T) -> crate::Result<Self>
+    where
+        T: TryIntoRestrict<EbuildRepo>,
+    {
+        let restrict = value.try_into_restrict(repo)?;
+        let scope = Scope::from(&restrict);
+
+        info!("repo: {repo}");
+        info!("scope: {scope}");
+        info!("target: {restrict:?}");
+
+        Ok(Self {
+            repo: repo.clone(),
+            restrict,
+            scope,
+            force: scanner.force,
+            jobs: bounded_jobs(scanner.jobs),
+            filters: scanner.filters.clone(),
+            checks: Default::default(),
+            enabled: Default::default(),
+            exit: Default::default(),
+            failed: scanner.failed.clone(),
+        })
+    }
+
     /// Return true if the run has a report variant enabled.
     pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
         self.enabled.contains(&kind)
+    }
+
+    /// Trigger a run failure for a relevant report variant.
+    pub(crate) fn exit(&self, kind: ReportKind) {
+        if self.exit.contains(&kind) {
+            self.failed.store(true, Ordering::Relaxed);
+        }
     }
 }
 
