@@ -4,6 +4,7 @@ use std::{mem, thread};
 
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use crossbeam_utils::sync::WaitGroup;
+use itertools::Itertools;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 
@@ -317,10 +318,8 @@ impl ReportIter {
                 }
             }
             ReportOrProcess::Flush => {
-                let mut reports: Vec<_> =
-                    self.cache.values_mut().flat_map(mem::take).collect();
-                reports.sort();
-                self.reports.extend(reports);
+                self.reports
+                    .extend(self.cache.values_mut().flat_map(mem::take).sorted());
             }
         })
     }
