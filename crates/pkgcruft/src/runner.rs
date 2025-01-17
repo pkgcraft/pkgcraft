@@ -19,6 +19,7 @@ use crate::source::*;
 pub(super) enum Target {
     Cpv(Cpv),
     Cpn(Cpn),
+    Category(String),
     Repo,
 }
 
@@ -28,6 +29,7 @@ impl Target {
         match self {
             Self::Cpv(_) => Scope::Version,
             Self::Cpn(_) => Scope::Package,
+            Self::Category(_) => Scope::Category,
             Self::Repo => Scope::Repo,
         }
     }
