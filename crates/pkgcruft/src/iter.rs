@@ -232,14 +232,17 @@ pub struct ReportIter {
 
 impl ReportIter {
     pub(crate) fn new(run: Arc<ScannerRun>) -> Self {
-        let runner = Arc::new(SyncCheckRunner::new(&run));
-        let finish_wg = WaitGroup::new();
-        let process_wg = WaitGroup::new();
+        // inject report sender into aggregate type
         let (reports_tx, reports_rx) = bounded(run.jobs);
         run.sender
             .set(ReportSender(reports_tx))
             .expect("failed setting sender");
 
+        let finish_wg = WaitGroup::new();
+        let process_wg = WaitGroup::new();
+        let runner = Arc::new(SyncCheckRunner::new(&run));
+
+        // create workers and producer threads depending on run scope
         let (_workers, _producer) = if run.scope >= Scope::Category {
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);

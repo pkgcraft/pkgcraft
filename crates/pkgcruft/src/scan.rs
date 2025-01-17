@@ -177,7 +177,7 @@ pub(crate) struct ScannerRun {
 }
 
 impl ScannerRun {
-    /// Create new aggregated data for a scanning run.
+    /// Create new aggregate data for a scanning run.
     fn new<T>(scanner: &Scanner, repo: &EbuildRepo, value: T) -> crate::Result<Self>
     where
         T: TryIntoRestrict<EbuildRepo>,
