@@ -73,7 +73,8 @@ impl From<Sender<Report>> for ReportSender {
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
     run: Arc<ScannerRun>,
-    wg: WaitGroup,
+    finish_wg: WaitGroup,
+    process_wg: WaitGroup,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
@@ -92,12 +93,19 @@ fn pkg_producer(
 
         // wait for all parallelized checks to finish
         drop(tx);
-        wg.wait();
+        finish_wg.wait();
 
         // finalize checks in parallel
         for check in run.checks.iter().filter(|c| c.finish_check(run.scope)) {
             finish_tx.send(*check).ok();
         }
+
+        // wait for all checks to finish
+        drop(finish_tx);
+        process_wg.wait();
+
+        // signal iterator to process repo scope reports
+        run.sender().process(Target::Repo);
     })
 }
 
@@ -105,7 +113,8 @@ fn pkg_producer(
 fn pkg_worker(
     run: Arc<ScannerRun>,
     runner: Arc<SyncCheckRunner>,
-    wg: WaitGroup,
+    finish_wg: WaitGroup,
+    process_wg: WaitGroup,
     rx: Receiver<(Option<Check>, Target)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
@@ -123,20 +132,23 @@ fn pkg_worker(
         for (check, target) in rx {
             if let Target::Cpn(cpn) = &target {
                 runner.run_checks(cpn, &run);
-                // signal iterator to process results for target package
+                // signal iterator to process reports for target package
                 run.sender().process(target);
             } else if let Some(check) = check {
                 runner.run_check(&check, &target, &run);
             }
         }
 
-        // signal the wait group
-        drop(wg);
+        // signal the finish wait group
+        drop(finish_wg);
 
         // finalize checks
         for check in finish_rx {
             runner.finish_check(&check, &run);
         }
+
+        // signal the end processing wait group
+        drop(process_wg);
     })
 }
 
@@ -155,19 +167,22 @@ impl IterPkg {
     fn receive(&mut self) -> Result<(), RecvError> {
         self.rx.recv().map(|value| match value {
             ReportOrProcess::Report(report) => {
-                let cached = report.kind.scope() <= Scope::Package;
+                let pkg_cache = report.kind.scope() <= Scope::Package;
                 match report.scope() {
-                    ReportScope::Version(cpv, _) if cached => {
+                    ReportScope::Version(cpv, _) if pkg_cache => {
                         self.cache
                             .entry(cpv.cpn().clone().into())
                             .or_default()
                             .push(report);
                     }
-                    ReportScope::Package(cpn) if cached => {
+                    ReportScope::Package(cpn) if pkg_cache => {
                         self.cache
                             .entry(cpn.clone().into())
                             .or_default()
                             .push(report);
+                    }
+                    ReportScope::Repo(_) => {
+                        self.cache.entry(Target::Repo).or_default().push(report);
                     }
                     _ => self.reports.push_back(report),
                 }
@@ -329,7 +344,8 @@ impl ReportIter {
         run.sender
             .set(reports_tx.into())
             .expect("failed setting sender");
-        let wg = WaitGroup::new();
+        let finish_wg = WaitGroup::new();
+        let process_wg = WaitGroup::new();
         let runner = Arc::new(SyncCheckRunner::new(&run));
 
         Self(ReportIterInternal::Pkg(IterPkg {
@@ -339,13 +355,14 @@ impl ReportIter {
                     pkg_worker(
                         run.clone(),
                         runner.clone(),
-                        wg.clone(),
+                        finish_wg.clone(),
+                        process_wg.clone(),
                         targets_rx.clone(),
                         finish_rx.clone(),
                     )
                 })
                 .collect(),
-            _producer: pkg_producer(run.clone(), wg, targets_tx, finish_tx),
+            _producer: pkg_producer(run.clone(), finish_wg, process_wg, targets_tx, finish_tx),
             cache: Default::default(),
             reports: Default::default(),
         }))
