@@ -3,8 +3,8 @@ use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::types::OrderedMap;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::EapiStale;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
@@ -19,7 +19,7 @@ struct Check;
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
+    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))
             .collect::<OrderedMap<_, Vec<_>>>()
@@ -31,7 +31,7 @@ impl EbuildPkgSetCheck for Check {
                 if let Some(latest_release) = release.last() {
                     for pkg in live {
                         if pkg.eapi() < latest_release.eapi() {
-                            EapiStale.version(pkg).message(pkg.eapi()).report(filter);
+                            EapiStale.version(pkg).message(pkg.eapi()).report(run);
                         }
                     }
                 }

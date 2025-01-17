@@ -2,8 +2,8 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use regex::Regex;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::HeaderInvalid;
+use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
@@ -28,7 +28,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let lines: Vec<_> = pkg
             .data()
             .lines()
@@ -39,7 +39,7 @@ impl EbuildRawPkgCheck for Check {
             HeaderInvalid
                 .version(pkg)
                 .message("missing copyright and/or license")
-                .report(filter);
+                .report(run);
             return;
         };
 
@@ -54,7 +54,7 @@ impl EbuildRawPkgCheck for Check {
                         .version(pkg)
                         .message(format!("invalid copyright holder: {holder}"))
                         .location(1)
-                        .report(filter);
+                        .report(run);
                 }
             }
         } else {
@@ -62,7 +62,7 @@ impl EbuildRawPkgCheck for Check {
                 .version(pkg)
                 .message(format!("invalid copyright: {copyright}"))
                 .location(1)
-                .report(filter);
+                .report(run);
         }
 
         if license != GENTOO_LICENSE_HEADER {
@@ -70,7 +70,7 @@ impl EbuildRawPkgCheck for Check {
                 .version(pkg)
                 .message(format!("invalid license: {license}"))
                 .location(2)
-                .report(filter);
+                .report(run);
         }
     }
 }

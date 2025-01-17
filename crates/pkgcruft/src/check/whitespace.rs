@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
+use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
@@ -25,7 +25,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();
@@ -45,13 +45,13 @@ impl EbuildRawPkgCheck for Check {
                             .version(pkg)
                             .message(format!("character {c:?}"))
                             .location((lineno, pos + 1))
-                            .report(filter);
+                            .report(run);
                     } else if char_indices.peek().is_none() && !whitespace_only_line {
                         WhitespaceUnneeded
                             .version(pkg)
                             .message("trailing whitespace")
                             .location((lineno, pos + 1))
-                            .report(filter);
+                            .report(run);
                     }
                 }
             }
@@ -65,7 +65,7 @@ impl EbuildRawPkgCheck for Check {
                             .version(pkg)
                             .message("leading whitespace")
                             .location(lineno)
-                            .report(filter);
+                            .report(run);
                     }
                 }
             } else if whitespace_only_line && !line.is_empty() {
@@ -73,7 +73,7 @@ impl EbuildRawPkgCheck for Check {
                     .version(pkg)
                     .location(lineno)
                     .message("empty line with whitespace")
-                    .report(filter);
+                    .report(run);
             }
 
             if !eapi_assign && line.trim().starts_with("EAPI=") {
@@ -85,7 +85,7 @@ impl EbuildRawPkgCheck for Check {
                         .version(pkg)
                         .message("non-standard EAPI assignment")
                         .location(lineno)
-                        .report(filter);
+                        .report(run);
                 }
                 eapi_assign = true;
             }
@@ -96,7 +96,7 @@ impl EbuildRawPkgCheck for Check {
                         .version(pkg)
                         .message("empty line")
                         .location(lineno)
-                        .report(filter);
+                        .report(run);
                 }
             }
 
@@ -108,7 +108,7 @@ impl EbuildRawPkgCheck for Check {
                 .version(pkg)
                 .message("missing ending newline")
                 .location(lineno)
-                .report(filter);
+                .report(run);
         }
     }
 }

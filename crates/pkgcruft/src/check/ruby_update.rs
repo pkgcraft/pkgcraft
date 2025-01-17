@@ -7,7 +7,6 @@ use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::RubyUpdate;
 use crate::scan::ScannerRun;
 use crate::utils::{use_expand, use_starts_with};
@@ -34,7 +33,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if pkg.category() == "virtual" || !pkg.inherited().contains("ruby-ng") {
             return;
         };
@@ -96,7 +95,7 @@ impl EbuildPkgCheck for Check {
         RubyUpdate
             .version(pkg)
             .message(targets.iter().rev().join(", "))
-            .report(filter);
+            .report(run);
     }
 }
 

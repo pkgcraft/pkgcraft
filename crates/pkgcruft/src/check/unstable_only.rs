@@ -5,7 +5,6 @@ use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::UnstableOnly;
 use crate::scan::ScannerRun;
 
@@ -32,7 +31,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let arches = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())
@@ -48,7 +47,7 @@ impl EbuildPkgSetCheck for Check {
             .join(", ");
 
         if !arches.is_empty() {
-            UnstableOnly.package(cpn).message(arches).report(filter);
+            UnstableOnly.package(cpn).message(arches).report(run);
         }
     }
 }

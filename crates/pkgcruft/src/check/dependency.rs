@@ -6,7 +6,6 @@ use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Intersects;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{
     DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing,
     PackageDeprecatedUnused,
@@ -40,7 +39,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for key in pkg.eapi().dep_keys().iter().copied() {
             let deps = pkg.dependencies([key]);
             for dep in deps.iter_flatten().unique() {
@@ -56,7 +55,7 @@ impl EbuildPkgCheck for Check {
                     DependencyInvalid
                         .version(pkg)
                         .message(format!("{key}: missing IUSE={flag}: {dep}"))
-                        .report(filter);
+                        .report(run);
                 }
 
                 if let Some(entry) = self.repo.deprecated(dep) {
@@ -64,10 +63,10 @@ impl EbuildPkgCheck for Check {
                     DependencyDeprecated
                         .version(pkg)
                         .message(format!("{key}: {}", dep.no_use_deps()))
-                        .report(filter);
+                        .report(run);
 
                     // mangle values for post-run finalization
-                    if filter.enabled(PackageDeprecatedUnused) {
+                    if run.enabled(PackageDeprecatedUnused) {
                         self.unused.remove(entry);
                     }
                 }
@@ -78,21 +77,21 @@ impl EbuildPkgCheck for Check {
                         DependencyInvalid
                             .version(pkg)
                             .message(format!("{key}: = slot operator with blocker: {dep}"))
-                            .report(filter);
+                            .report(run);
                     }
 
                     if dep.subslot().is_some() {
                         DependencyInvalid
                             .version(pkg)
                             .message(format!("{key}: = slot operator with subslot: {dep}"))
-                            .report(filter);
+                            .report(run);
                     }
 
                     if key == Key::PDEPEND {
                         DependencyInvalid
                             .version(pkg)
                             .message(format!("{key}: = slot operator invalid: {dep}"))
-                            .report(filter);
+                            .report(run);
                     }
                 }
 
@@ -100,14 +99,14 @@ impl EbuildPkgCheck for Check {
                     DependencyInvalid
                         .version(pkg)
                         .message(format!("{key}: blocker matches package: {dep}"))
-                        .report(filter);
+                        .report(run);
                 }
 
                 if dep.op() == Some(Operator::Equal) && dep.revision().is_none() {
                     DependencyRevisionMissing
                         .version(pkg)
                         .message(format!("{key}: {dep}"))
-                        .report(filter);
+                        .report(run);
                 }
             }
 
@@ -122,13 +121,13 @@ impl EbuildPkgCheck for Check {
                 DependencyInvalid
                     .version(pkg)
                     .message(format!("{key}: = slot operator in any-of: {dep}"))
-                    .report(filter);
+                    .report(run);
             }
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
-        if filter.enabled(PackageDeprecatedUnused) && !self.unused.is_empty() {
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        if run.enabled(PackageDeprecatedUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()
@@ -138,7 +137,7 @@ impl EbuildPkgCheck for Check {
             PackageDeprecatedUnused
                 .repo(repo)
                 .message(unused)
-                .report(filter);
+                .report(run);
         }
     }
 }

@@ -1,8 +1,8 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::LiveOnly;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
@@ -17,9 +17,9 @@ struct Check;
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         if pkgs.iter().all(|pkg| pkg.live()) {
-            LiveOnly.package(cpn).report(filter);
+            LiveOnly.package(cpn).report(run);
         }
     }
 }

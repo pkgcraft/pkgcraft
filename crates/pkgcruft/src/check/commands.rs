@@ -6,13 +6,12 @@ use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage};
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{Builtin, Optfeature};
+use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
-type CommandFn =
-    for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ReportFilter);
+type CommandFn = for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ScannerRun);
 
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     let mut check = Check { commands: Default::default() };
@@ -47,7 +46,7 @@ fn builtins<'a>(
     node: &Node<'a>,
     cursor: &mut TreeCursor<'a>,
     pkg: &EbuildRawPkg,
-    filter: &ReportFilter,
+    run: &ScannerRun,
 ) {
     for x in node.children(cursor).filter(|x| x.kind() == "word") {
         if let Some(builtin) = pkg.eapi().commands().get(x.as_str()) {
@@ -55,7 +54,7 @@ fn builtins<'a>(
                 .version(pkg)
                 .message(format!("{cmd} uses {builtin}"))
                 .location(node)
-                .report(filter);
+                .report(run);
         }
     }
 }
@@ -67,7 +66,7 @@ fn optfeature<'a>(
     node: &Node<'a>,
     cursor: &mut TreeCursor<'a>,
     pkg: &EbuildRawPkg,
-    filter: &ReportFilter,
+    run: &ScannerRun,
 ) {
     for x in node.children(cursor).skip(2).filter(|x| x.kind() == "word") {
         match Dep::try_new(x) {
@@ -78,7 +77,7 @@ fn optfeature<'a>(
                         .version(pkg)
                         .message(format!("nonexistent dep: {x}"))
                         .location(node)
-                        .report(filter);
+                        .report(run);
                 }
             }
             Err(_) => {
@@ -86,14 +85,14 @@ fn optfeature<'a>(
                     .version(pkg)
                     .message(format!("invalid dep: {x}"))
                     .location(node)
-                    .report(filter);
+                    .report(run);
             }
         }
     }
 }
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let mut cursor = pkg.tree().walk();
         // TODO: use parse tree query
         for (cmd, node, func) in pkg
@@ -103,7 +102,7 @@ impl EbuildRawPkgCheck for Check {
             .filter_map(|x| self.commands.get(x.as_str()).map(|func| (x, func)))
             .filter_map(|(x, func)| x.parent().map(|node| (x.to_string(), node, func)))
         {
-            func(&cmd, &node, &mut cursor, pkg, filter);
+            func(&cmd, &node, &mut cursor, pkg, run);
         }
     }
 }

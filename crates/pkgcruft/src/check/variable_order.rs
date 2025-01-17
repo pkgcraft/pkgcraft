@@ -2,8 +2,8 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use strum::{Display, EnumString};
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::VariableOrder;
+use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
@@ -35,7 +35,7 @@ struct Check;
 super::register!(Check);
 
 impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let mut variables = vec![];
         for node in pkg
             .tree()
@@ -63,7 +63,7 @@ impl EbuildRawPkgCheck for Check {
                     .version(pkg)
                     .message(format!("{var2} should occur before {var1}"))
                     .location(*lineno)
-                    .report(filter);
+                    .report(run);
             }
         }
     }

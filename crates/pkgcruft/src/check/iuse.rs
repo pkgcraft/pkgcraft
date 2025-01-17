@@ -4,7 +4,6 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{IuseInvalid, UseGlobalUnused};
 use crate::scan::ScannerRun;
 
@@ -45,31 +44,31 @@ impl Check {
 }
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for x in pkg.iuse() {
             if x.is_disabled() || (x.is_enabled() && self.use_expand(x.flag())) {
                 IuseInvalid
                     .version(pkg)
                     .message(format!("invalid default: {x}"))
-                    .report(filter);
+                    .report(run);
             }
 
             // mangle values for post-run finalization
-            if filter.enabled(UseGlobalUnused) {
+            if run.enabled(UseGlobalUnused) {
                 self.unused.remove(x.flag());
             }
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
-        if filter.enabled(UseGlobalUnused) && !self.unused.is_empty() {
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        if run.enabled(UseGlobalUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            UseGlobalUnused.repo(repo).message(unused).report(filter);
+            UseGlobalUnused.repo(repo).message(unused).report(run);
         }
     }
 }

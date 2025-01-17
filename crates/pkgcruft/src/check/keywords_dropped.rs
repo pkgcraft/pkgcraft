@@ -6,7 +6,6 @@ use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::KeywordsDropped;
 use crate::scan::ScannerRun;
 
@@ -25,7 +24,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
+    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let mut seen = HashSet::new();
         let mut previous = HashSet::new();
         let mut changes = HashMap::<_, _>::new();
@@ -93,7 +92,7 @@ impl EbuildPkgSetCheck for Check {
             KeywordsDropped
                 .version(pkg)
                 .message(arches.iter().sorted().join(", "))
-                .report(filter);
+                .report(run);
         }
     }
 }

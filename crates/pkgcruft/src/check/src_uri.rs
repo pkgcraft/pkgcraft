@@ -5,7 +5,6 @@ use pkgcraft::fetch::Fetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{MirrorsUnused, UriInvalid};
 use crate::scan::ScannerRun;
 
@@ -30,34 +29,34 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for uri in pkg.src_uri().iter_flatten() {
             let result = Fetchable::from_uri(uri, pkg, false);
             let Ok(fetchable) = result else {
                 if let Err(Error::InvalidFetchable(err)) = result {
-                    UriInvalid.version(pkg).message(err).report(filter);
+                    UriInvalid.version(pkg).message(err).report(run);
                 }
                 continue;
             };
 
             if let Some(mirror) = fetchable.mirrors().first() {
                 // mangle values for post-run finalization
-                if filter.enabled(MirrorsUnused) {
+                if run.enabled(MirrorsUnused) {
                     self.unused.remove(mirror.name());
                 }
             }
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
-        if filter.enabled(MirrorsUnused) && !self.unused.is_empty() {
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        if run.enabled(MirrorsUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            MirrorsUnused.repo(repo).message(unused).report(filter);
+            MirrorsUnused.repo(repo).message(unused).report(run);
         }
     }
 }

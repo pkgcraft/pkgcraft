@@ -10,12 +10,12 @@ use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 
 use crate::check::Check;
-use crate::ignore::Ignore;
-use crate::report::{Report, ReportKind, ReportScope};
+use crate::report::{Report, ReportScope};
 use crate::runner::{CheckRunner, SyncCheckRunner, Target};
 use crate::scan::ScannerRun;
 
-enum ReportOrProcess {
+#[derive(Debug)]
+pub(crate) enum ReportOrProcess {
     Report(Report),
     Process(Cpn),
 }
@@ -32,14 +32,15 @@ impl From<Cpn> for ReportOrProcess {
     }
 }
 
-enum ReportSender {
+#[derive(Debug)]
+pub(crate) enum ReportSender {
     Pkg(Sender<ReportOrProcess>),
     Version(Sender<Report>),
 }
 
 impl ReportSender {
     /// Process a single report.
-    fn report(&self, report: Report) {
+    pub(crate) fn report(&self, report: Report) {
         match self {
             Self::Version(tx) => {
                 tx.send(report).ok();
@@ -67,36 +68,6 @@ impl From<Sender<ReportOrProcess>> for ReportSender {
 impl From<Sender<Report>> for ReportSender {
     fn from(value: Sender<Report>) -> Self {
         Self::Version(value)
-    }
-}
-
-pub(crate) struct ReportFilter {
-    sender: ReportSender,
-    pub(crate) ignore: Ignore,
-    run: Arc<ScannerRun>,
-}
-
-impl ReportFilter {
-    fn new<S: Into<ReportSender>>(run: Arc<ScannerRun>, tx: S) -> Self {
-        Self {
-            sender: tx.into(),
-            ignore: Ignore::new(&run.repo),
-            run,
-        }
-    }
-
-    /// Conditionally add a report based on filter inclusion.
-    pub(crate) fn report(&self, report: Report) {
-        let kind = report.kind;
-        if self.enabled(kind) && (self.run.force || !self.ignore.ignored(&report)) {
-            self.run.exit(kind);
-            self.sender.report(report);
-        }
-    }
-
-    /// Return true if the filter has a report variant enabled.
-    pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
-        self.run.enabled(kind)
     }
 }
 
@@ -133,9 +104,9 @@ fn pkg_producer(
 
 /// Create worker thread that parallelizes check running at a package level.
 fn pkg_worker(
+    run: Arc<ScannerRun>,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    filter: Arc<ReportFilter>,
     rx: Receiver<(Option<Check>, Target)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
@@ -152,11 +123,11 @@ fn pkg_worker(
 
         for (check, target) in rx {
             if let Target::Cpn(cpn) = target {
-                runner.run_checks(&cpn, &filter);
+                runner.run_checks(&cpn, &run);
                 // signal iterator to process results for target package
-                filter.sender.process(cpn);
+                run.sender().process(cpn);
             } else if let Some(check) = check {
-                runner.run_check(&check, &target, &filter);
+                runner.run_check(&check, &target, &run);
             }
         }
 
@@ -165,7 +136,7 @@ fn pkg_worker(
 
         // finalize checks
         for check in finish_rx {
-            runner.finish_check(&check, &filter);
+            runner.finish_check(&check, &run);
         }
     })
 }
@@ -263,9 +234,9 @@ fn version_producer(
 
 /// Create worker thread that parallelizes check running at a version level.
 fn version_worker(
+    run: Arc<ScannerRun>,
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
-    filter: Arc<ReportFilter>,
     rx: Receiver<(Check, Target)>,
     finish_rx: Receiver<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
@@ -281,7 +252,7 @@ fn version_worker(
         let _entered = thread_span.clone().entered();
 
         for (check, target) in rx {
-            runner.run_check(&check, &target, &filter);
+            runner.run_check(&check, &target, &run);
         }
 
         // signal the wait group
@@ -289,7 +260,7 @@ fn version_worker(
 
         // run finalize methods for targets
         for (check, target) in finish_rx {
-            runner.finish_target(&check, &target, &filter);
+            runner.finish_target(&check, &target, &run);
         }
     })
 }
@@ -353,8 +324,10 @@ impl ReportIter {
         let (targets_tx, targets_rx) = bounded(run.jobs);
         let (finish_tx, finish_rx) = bounded(run.jobs);
         let (reports_tx, reports_rx) = bounded(run.jobs);
+        run.sender
+            .set(reports_tx.into())
+            .expect("failed setting sender");
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
         let runner = Arc::new(SyncCheckRunner::new(&run));
 
         Self(ReportIterInternal::Pkg(IterPkg {
@@ -362,9 +335,9 @@ impl ReportIter {
             _workers: (0..run.jobs)
                 .map(|_| {
                     pkg_worker(
+                        run.clone(),
                         runner.clone(),
                         wg.clone(),
-                        filter.clone(),
                         targets_rx.clone(),
                         finish_rx.clone(),
                     )
@@ -381,8 +354,10 @@ impl ReportIter {
         let (targets_tx, targets_rx) = bounded(run.jobs);
         let (finish_tx, finish_rx) = bounded(run.jobs);
         let (reports_tx, reports_rx) = bounded(run.jobs);
+        run.sender
+            .set(reports_tx.into())
+            .expect("failed setting sender");
         let wg = WaitGroup::new();
-        let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
         let runner = Arc::new(SyncCheckRunner::new(&run));
 
         Self(ReportIterInternal::Version(IterVersion {
@@ -390,9 +365,9 @@ impl ReportIter {
             _workers: (0..run.jobs)
                 .map(|_| {
                     version_worker(
+                        run.clone(),
                         runner.clone(),
                         wg.clone(),
-                        filter.clone(),
                         targets_rx.clone(),
                         finish_rx.clone(),
                     )

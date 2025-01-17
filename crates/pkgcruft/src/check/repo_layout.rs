@@ -4,8 +4,8 @@ use pkgcraft::files::is_ebuild;
 use pkgcraft::macros::build_path;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{RepoCategoriesUnused, RepoCategoryEmpty, RepoPackageEmpty};
+use crate::scan::ScannerRun;
 
 use super::RepoCheck;
 
@@ -27,20 +27,20 @@ fn find_ebuild(path: &Utf8Path) -> bool {
 }
 
 impl RepoCheck for Check {
-    fn run(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn run(&self, repo: &EbuildRepo, run: &ScannerRun) {
         // verify inherited categories
         for category in repo.categories() {
             let mut pkgs = vec![];
             for pkg in repo.packages(&category) {
                 let path = build_path!(repo, &category, &pkg);
                 if !find_ebuild(&path) {
-                    RepoPackageEmpty.package((&category, &pkg)).report(filter);
+                    RepoPackageEmpty.package((&category, &pkg)).report(run);
                 } else {
                     pkgs.push(pkg);
                 }
             }
             if pkgs.is_empty() {
-                RepoCategoryEmpty.category(&category).report(filter);
+                RepoCategoryEmpty.category(&category).report(run);
             }
         }
 
@@ -52,10 +52,7 @@ impl RepoCheck for Check {
             .filter(|x| !repo.path().join(x).is_dir())
             .join(", ");
         if !unused.is_empty() {
-            RepoCategoriesUnused
-                .repo(repo)
-                .message(unused)
-                .report(filter);
+            RepoCategoriesUnused.repo(repo).message(unused).report(run);
         }
     }
 }

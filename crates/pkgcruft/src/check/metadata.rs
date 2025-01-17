@@ -2,7 +2,6 @@ use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::shell::pool::MetadataTaskBuilder;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::MetadataError;
 use crate::scan::ScannerRun;
 
@@ -23,9 +22,9 @@ struct Check {
 super::register!(Check);
 
 impl CpvCheck for Check {
-    fn run(&self, cpv: &Cpv, filter: &ReportFilter) {
+    fn run(&self, cpv: &Cpv, run: &ScannerRun) {
         if let Err(InvalidPkg { err, .. }) = self.regen.run(cpv) {
-            MetadataError.version(cpv).message(err).report(filter)
+            MetadataError.version(cpv).message(err).report(run)
         }
     }
 }

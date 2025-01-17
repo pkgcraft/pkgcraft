@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use url::Url;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::HomepageInvalid;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
@@ -28,20 +28,14 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         let allowed_missing = self.missing_categories.contains(pkg.category());
         if pkg.homepage().is_empty() {
             if !allowed_missing {
-                HomepageInvalid
-                    .version(pkg)
-                    .message("missing")
-                    .report(filter);
+                HomepageInvalid.version(pkg).message("missing").report(run);
             }
         } else if allowed_missing {
-            HomepageInvalid
-                .version(pkg)
-                .message("unneeded")
-                .report(filter);
+            HomepageInvalid.version(pkg).message("unneeded").report(run);
         }
 
         for value in pkg.homepage() {
@@ -52,14 +46,14 @@ impl EbuildPkgCheck for Check {
                         HomepageInvalid
                             .version(pkg)
                             .message(format!("unsupported protocol: {url}"))
-                            .report(filter);
+                            .report(run);
                     }
                 }
                 Err(e) => {
                     HomepageInvalid
                         .version(pkg)
                         .message(format!("{e}: {value}"))
-                        .report(filter);
+                        .report(run);
                 }
             }
         }

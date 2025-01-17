@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::check::{Check, CheckContext};
-use crate::iter::ReportFilter;
+use crate::scan::ScannerRun;
 use crate::Error;
 
 /// The severity of the report.
@@ -678,9 +678,9 @@ impl ReportBuilder {
         self
     }
 
-    /// Pass the report to the scanning filter for processing.
-    pub(crate) fn report(self, filter: &ReportFilter) {
-        filter.report(self.0)
+    /// Queue the report for processing.
+    pub(crate) fn report(self, run: &ScannerRun) {
+        run.report(self.0)
     }
 }
 

@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::PropertiesInvalid;
 use crate::scan::ScannerRun;
 
@@ -28,7 +27,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if !self.allowed.is_empty() {
             let vals = pkg
                 .properties()
@@ -38,7 +37,7 @@ impl EbuildPkgCheck for Check {
 
             if !vals.is_empty() {
                 let vals = vals.iter().sorted().join(", ");
-                PropertiesInvalid.version(pkg).message(vals).report(filter);
+                PropertiesInvalid.version(pkg).message(vals).report(run);
             }
         }
         // TODO: verify USE flags in conditionals

@@ -2,8 +2,8 @@ use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 
-use crate::iter::ReportFilter;
 use crate::report::{ReportKind::IgnoreUnused, ReportScope};
+use crate::scan::ScannerRun;
 
 use super::{CpnCheck, CpvCheck, RepoCheck};
 
@@ -14,51 +14,51 @@ pub(super) struct Check;
 super::register!(Check);
 
 impl CpvCheck for Check {
-    fn run(&self, _cpv: &Cpv, _filter: &ReportFilter) {}
-    fn finish_target(&self, cpv: &Cpv, filter: &ReportFilter) {
+    fn run(&self, _cpv: &Cpv, _run: &ScannerRun) {}
+    fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {
         let scope = ReportScope::Version(cpv.clone(), None);
 
         // forciby populate the cache
-        filter.ignore.generate(&scope).count();
+        run.ignore.generate(&scope).count();
 
         // flag unused version scope ignore directives
-        if let Some(sets) = filter.ignore.unused(&scope) {
+        if let Some(sets) = run.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");
-            IgnoreUnused.version(cpv).message(sets).report(filter);
+            IgnoreUnused.version(cpv).message(sets).report(run);
         }
     }
 }
 
 impl CpnCheck for Check {
-    fn run(&self, _cpn: &Cpn, _filter: &ReportFilter) {}
-    fn finish_target(&self, cpn: &Cpn, filter: &ReportFilter) {
+    fn run(&self, _cpn: &Cpn, _run: &ScannerRun) {}
+    fn finish_target(&self, cpn: &Cpn, run: &ScannerRun) {
         let scope = ReportScope::Package(cpn.clone());
 
         // forciby populate the cache
-        filter.ignore.generate(&scope).count();
+        run.ignore.generate(&scope).count();
 
         // flag unused package scope ignore directives
-        if let Some(sets) = filter.ignore.unused(&scope) {
+        if let Some(sets) = run.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");
-            IgnoreUnused.package(cpn).message(sets).report(filter);
+            IgnoreUnused.package(cpn).message(sets).report(run);
         }
     }
 }
 
 impl RepoCheck for Check {
-    fn run(&self, _repo: &EbuildRepo, _filter: &ReportFilter) {}
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn run(&self, _repo: &EbuildRepo, _run: &ScannerRun) {}
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
         let scope = ReportScope::Repo(repo.to_string());
-        if let Some(sets) = filter.ignore.unused(&scope) {
+        if let Some(sets) = run.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");
-            IgnoreUnused.repo(repo).message(sets).report(filter);
+            IgnoreUnused.repo(repo).message(sets).report(run);
         }
 
         for category in repo.categories() {
             let scope = ReportScope::Category(category.clone());
-            if let Some(sets) = filter.ignore.unused(&scope) {
+            if let Some(sets) = run.ignore.unused(&scope) {
                 let sets = sets.iter().join(", ");
-                IgnoreUnused.category(category).message(sets).report(filter);
+                IgnoreUnused.category(category).message(sets).report(run);
             }
         }
     }

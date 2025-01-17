@@ -13,7 +13,6 @@ use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
 
-use crate::iter::ReportFilter;
 use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scan::ScannerRun;
@@ -161,7 +160,7 @@ fn expand_node<'a>(
 }
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let filesdir = build_path!(&self.repo, cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
         let mut files: HashSet<_> = WalkDir::new(&filesdir)
@@ -229,7 +228,7 @@ impl EbuildPkgSetCheck for Check {
                                             .version(pkg)
                                             .message(file.trim_start_matches('/'))
                                             .location(&node)
-                                            .report(filter);
+                                            .report(run);
                                     }
                                 }
                             }
@@ -269,7 +268,7 @@ impl EbuildPkgSetCheck for Check {
                 .map(|x| x.trim_start_matches('/'))
                 .sorted()
                 .join(", ");
-            FilesUnused.package(cpn).message(files).report(filter);
+            FilesUnused.package(cpn).message(files).report(run);
         }
     }
 }

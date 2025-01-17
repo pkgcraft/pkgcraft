@@ -12,7 +12,6 @@ use pkgcraft::restrict::Restrict;
 use pkgcraft::types::OrderedSet;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::PythonUpdate;
 use crate::scan::ScannerRun;
 use crate::utils::{use_expand, use_starts_with};
@@ -114,7 +113,7 @@ impl Check {
 }
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         let Some(eclass) = Eclass::iter().find(|x| pkg.inherited().contains(x.as_ref()))
         else {
             return;
@@ -172,7 +171,7 @@ impl EbuildPkgCheck for Check {
         PythonUpdate
             .version(pkg)
             .message(targets.iter().rev().join(", "))
-            .report(filter);
+            .report(run);
     }
 }
 

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -11,8 +11,9 @@ use tracing::{info, warn};
 
 use crate::check::Check;
 use crate::error::Error;
-use crate::iter::ReportIter;
-use crate::report::{ReportKind, ReportSet, ReportTarget};
+use crate::ignore::Ignore;
+use crate::iter::{ReportIter, ReportSender};
+use crate::report::{Report, ReportKind, ReportSet, ReportTarget};
 use crate::source::PkgFilter;
 
 /// Scanner builder.
@@ -160,18 +161,19 @@ impl Scanner {
 }
 
 /// Conglomeration of scanning run data.
-#[derive(Debug)]
 pub(crate) struct ScannerRun {
     pub(crate) repo: EbuildRepo,
     pub(crate) restrict: Restrict,
     pub(crate) scope: Scope,
-    pub(crate) force: bool,
+    force: bool,
     pub(crate) jobs: usize,
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) checks: IndexSet<Check>,
+    pub(crate) ignore: Ignore,
     enabled: HashSet<ReportKind>,
     exit: HashSet<ReportKind>,
     failed: Arc<AtomicBool>,
+    pub(crate) sender: OnceLock<ReportSender>,
 }
 
 impl ScannerRun {
@@ -195,22 +197,32 @@ impl ScannerRun {
             jobs: bounded_jobs(scanner.jobs),
             filters: scanner.filters.clone(),
             checks: Default::default(),
+            ignore: Ignore::new(repo),
             enabled: Default::default(),
             exit: Default::default(),
             failed: scanner.failed.clone(),
+            sender: Default::default(),
         })
+    }
+
+    pub(crate) fn sender(&self) -> &ReportSender {
+        self.sender.get().expect("failed getting sender")
+    }
+
+    /// Conditionally add a report based on filter inclusion.
+    pub(crate) fn report(&self, report: Report) {
+        let kind = report.kind;
+        if self.enabled(kind) && (self.force || !self.ignore.ignored(&report)) {
+            if self.exit.contains(&kind) {
+                self.failed.store(true, Ordering::Relaxed);
+            }
+            self.sender().report(report);
+        }
     }
 
     /// Return true if the run has a report variant enabled.
     pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
         self.enabled.contains(&kind)
-    }
-
-    /// Trigger a run failure for a relevant report variant.
-    pub(crate) fn exit(&self, kind: ReportKind) {
-        if self.exit.contains(&kind) {
-            self.failed.store(true, Ordering::Relaxed);
-        }
     }
 }
 

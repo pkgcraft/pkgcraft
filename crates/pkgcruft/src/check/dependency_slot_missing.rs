@@ -5,7 +5,6 @@ use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::DependencySlotMissing;
 use crate::scan::ScannerRun;
 
@@ -51,7 +50,7 @@ impl Check {
 }
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for dep in pkg
             .rdepend()
             .intersection(pkg.depend())
@@ -62,7 +61,7 @@ impl EbuildPkgCheck for Check {
                 DependencySlotMissing
                     .version(pkg)
                     .message(format!("{dep} matches multiple slots: {slots}"))
-                    .report(filter);
+                    .report(run);
             }
         }
     }

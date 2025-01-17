@@ -2,8 +2,8 @@ use pkgcraft::dep::{Dependency, DependencySet};
 use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::RestrictMissing;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
@@ -30,7 +30,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if pkg.iuse().contains(&self.iuse)
             && pkg
                 .restrict()
@@ -41,7 +41,7 @@ impl EbuildPkgCheck for Check {
             RestrictMissing
                 .version(pkg)
                 .message(r#"missing RESTRICT="!test? ( test )" with IUSE=test"#)
-                .report(filter);
+                .report(run);
         }
     }
 }

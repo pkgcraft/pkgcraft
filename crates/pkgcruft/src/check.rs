@@ -11,7 +11,6 @@ use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind;
 use crate::scan::ScannerRun;
 use crate::source::SourceKind;
@@ -356,8 +355,8 @@ use register;
 /// Run a check against a repo.
 #[allow(unused_variables)]
 pub(crate) trait RepoCheck: fmt::Display {
-    fn run(&self, repo: &EbuildRepo, filter: &ReportFilter);
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn run(&self, repo: &EbuildRepo, run: &ScannerRun);
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
         unimplemented!("{self} finish check")
     }
 }
@@ -366,8 +365,8 @@ pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 /// Run a check against a Cpv.
 #[allow(unused_variables)]
 pub(crate) trait CpvCheck: fmt::Display {
-    fn run(&self, cpv: &Cpv, filter: &ReportFilter);
-    fn finish_target(&self, cpv: &Cpv, filter: &ReportFilter) {
+    fn run(&self, cpv: &Cpv, run: &ScannerRun);
+    fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {
         unimplemented!("{self} finish target")
     }
 }
@@ -376,8 +375,8 @@ pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
 /// Run a check against a Cpn.
 #[allow(unused_variables)]
 pub(crate) trait CpnCheck: fmt::Display {
-    fn run(&self, cpn: &Cpn, filter: &ReportFilter);
-    fn finish_target(&self, cpn: &Cpn, filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, run: &ScannerRun);
+    fn finish_target(&self, cpn: &Cpn, run: &ScannerRun) {
         unimplemented!("{self} finish target")
     }
 }
@@ -386,8 +385,8 @@ pub(crate) type CpnRunner = Box<dyn CpnCheck + Send + Sync>;
 /// Run a check against a given ebuild package version.
 #[allow(unused_variables)]
 pub(crate) trait EbuildPkgCheck: fmt::Display {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter);
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun);
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
         unimplemented!("{self} finish check")
     }
 }
@@ -396,8 +395,8 @@ pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 /// Run a check against a given ebuild package set.
 #[allow(unused_variables)]
 pub(crate) trait EbuildPkgSetCheck: fmt::Display {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter);
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun);
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
         unimplemented!("{self} finish check")
     }
 }
@@ -406,8 +405,8 @@ pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 /// Run a check against a given raw ebuild package version.
 #[allow(unused_variables)]
 pub(crate) trait EbuildRawPkgCheck: fmt::Display {
-    fn run(&self, pkg: &EbuildRawPkg, filter: &ReportFilter);
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun);
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
         unimplemented!("{self} finish check")
     }
 }
@@ -416,8 +415,8 @@ pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 /// Run a check against a raw ebuild package set.
 #[allow(unused_variables)]
 pub(crate) trait EbuildRawPkgSetCheck: fmt::Display {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], filter: &ReportFilter);
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], run: &ScannerRun);
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
         unimplemented!("{self} finish check")
     }
 }

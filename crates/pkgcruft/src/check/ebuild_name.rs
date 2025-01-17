@@ -4,7 +4,6 @@ use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{EbuildNameInvalid, EbuildVersionsEqual};
 use crate::scan::ScannerRun;
 
@@ -23,12 +22,12 @@ struct Check {
 super::register!(Check);
 
 impl CpnCheck for Check {
-    fn run(&self, cpn: &Cpn, filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, run: &ScannerRun) {
         let mut cpvs = HashMap::<Cpv, Vec<_>>::new();
 
         for result in self.repo.cpvs_from_package(cpn.category(), cpn.package()) {
             match result {
-                Err(e) => EbuildNameInvalid.package(cpn).message(e).report(filter),
+                Err(e) => EbuildNameInvalid.package(cpn).message(e).report(run),
                 Ok(cpv) => {
                     let version = cpv.version().to_string();
                     cpvs.entry(cpv).or_default().push(version);
@@ -42,7 +41,7 @@ impl CpnCheck for Check {
                 EbuildVersionsEqual
                     .package(cpn)
                     .message(format!("versions overlap: {versions}"))
-                    .report(filter);
+                    .report(run);
             }
         }
     }

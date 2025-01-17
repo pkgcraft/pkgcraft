@@ -5,7 +5,6 @@ use pkgcraft::pkg::ebuild::{keyword::KeywordStatus::Stable, EbuildPkg};
 use pkgcraft::pkg::Package;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{
     ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
 };
@@ -38,18 +37,18 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if !pkg.keywords().is_empty() && pkg.live() {
             KeywordsLive
                 .version(pkg)
                 .message(pkg.keywords().iter().join(", "))
-                .report(filter);
+                .report(run);
         }
 
         let mut keywords_map = IndexMap::<_, IndexSet<_>>::new();
         for k in pkg.keywords() {
             // mangle values for post-run finalization
-            if filter.enabled(ArchesUnused) {
+            if run.enabled(ArchesUnused) {
                 self.unused.remove(k.arch().as_ref());
             }
 
@@ -60,7 +59,7 @@ impl EbuildPkgCheck for Check {
             KeywordsOverlapping
                 .version(pkg)
                 .message(keywords.iter().sorted().join(", "))
-                .report(filter);
+                .report(run);
         }
 
         let eapi = pkg.eapi().as_str();
@@ -75,7 +74,7 @@ impl EbuildPkgCheck for Check {
                 EapiUnstable
                     .version(pkg)
                     .message(format!("unstable EAPI {eapi} with stable keywords: {keywords}"))
-                    .report(filter);
+                    .report(run);
             }
         }
 
@@ -93,19 +92,19 @@ impl EbuildPkgCheck for Check {
             KeywordsUnsorted
                 .version(pkg)
                 .message(format!("unsorted KEYWORD: {unsorted} (sorted: {sorted})"))
-                .report(filter);
+                .report(run);
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
-        if filter.enabled(ArchesUnused) && !self.unused.is_empty() {
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        if run.enabled(ArchesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            ArchesUnused.repo(repo).message(unused).report(filter);
+            ArchesUnused.repo(repo).message(unused).report(run);
         }
     }
 }

@@ -3,7 +3,6 @@ use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::EclassUnused;
 use crate::scan::ScannerRun;
 
@@ -28,21 +27,21 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, _filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, _run: &ScannerRun) {
         for eclass in pkg.inherited() {
             self.unused.remove(eclass);
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
-        if filter.enabled(EclassUnused) && !self.unused.is_empty() {
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        if run.enabled(EclassUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            EclassUnused.repo(repo).message(unused).report(filter);
+            EclassUnused.repo(repo).message(unused).report(run);
         }
     }
 }

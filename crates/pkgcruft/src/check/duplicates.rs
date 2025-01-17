@@ -3,7 +3,6 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::traits::Contains;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::PackageOverride;
 use crate::scan::ScannerRun;
 
@@ -22,13 +21,13 @@ struct Check {
 super::register!(Check);
 
 impl CpnCheck for Check {
-    fn run(&self, cpn: &Cpn, filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, run: &ScannerRun) {
         for repo in self.repo.masters() {
             if repo.contains(cpn) {
                 PackageOverride
                     .package(cpn)
                     .message(format!("repo: {}", repo.name()))
-                    .report(filter);
+                    .report(run);
             }
         }
     }

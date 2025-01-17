@@ -9,7 +9,6 @@ use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
 use crate::scan::ScannerRun;
 
@@ -54,12 +53,12 @@ impl Check {
 }
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         // parse manifest
         let result = self.repo.metadata().pkg_manifest_parse(cpn);
         let Ok(manifest) = result else {
             if let Err(UnversionedPkg { err, .. }) = result {
-                ManifestInvalid.package(cpn).message(err).report(filter);
+                ManifestInvalid.package(cpn).message(err).report(run);
             }
             return;
         };
@@ -74,7 +73,7 @@ impl EbuildPkgSetCheck for Check {
 
             if let Some(hash) = x.hashes().get(&self.hash) {
                 // track duplicate names with different hashes
-                if filter.enabled(ManifestConflict) {
+                if run.enabled(ManifestConflict) {
                     self.conflicting
                         .entry(name.to_string())
                         .or_default()
@@ -82,7 +81,7 @@ impl EbuildPkgSetCheck for Check {
                 }
 
                 // track duplicate hashes with different names
-                if filter.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
+                if run.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
                     colliding
                         .entry(hash.clone())
                         .or_default()
@@ -94,7 +93,7 @@ impl EbuildPkgSetCheck for Check {
         for (hash, files) in colliding {
             if files.len() > 1 {
                 let files = files.iter().sorted().join(", ");
-                ManifestCollide.package(cpn).message(files).report(filter);
+                ManifestCollide.package(cpn).message(files).report(run);
             }
 
             for file in files {
@@ -116,7 +115,7 @@ impl EbuildPkgSetCheck for Check {
             ManifestInvalid
                 .package(cpn)
                 .message(format!("unknown: {unknown}"))
-                .report(filter);
+                .report(run);
         }
 
         // flag pkg distfiles that don't have manifest entries
@@ -128,7 +127,7 @@ impl EbuildPkgSetCheck for Check {
             ManifestInvalid
                 .package(cpn)
                 .message(format!("missing: {missing}"))
-                .report(filter);
+                .report(run);
         }
 
         // flag non-distfile manifest entries for thin manifests
@@ -143,24 +142,24 @@ impl EbuildPkgSetCheck for Check {
                 ManifestInvalid
                     .package(cpn)
                     .message(format!("unneeded: {files}"))
-                    .report(filter);
+                    .report(run);
             }
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
-        if filter.enabled(ManifestConflict) {
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        if run.enabled(ManifestConflict) {
             for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
                 let (name, map) = entry.pair();
                 let pkgs = map.values().sorted().join(", ");
                 ManifestConflict
                     .repo(repo)
                     .message(format!("{name}: {pkgs}"))
-                    .report(filter);
+                    .report(run);
             }
         }
 
-        if filter.enabled(ManifestCollide) {
+        if run.enabled(ManifestCollide) {
             for entry in self.colliding.iter().filter(|x| x.len() > 1) {
                 // sort colliding entries by Cpn
                 let mut map = IndexMap::<_, Vec<_>>::new();
@@ -180,7 +179,7 @@ impl EbuildPkgSetCheck for Check {
                             format!("({cpn}: {files})")
                         })
                         .join(", ");
-                    ManifestCollide.repo(repo).message(values).report(filter);
+                    ManifestCollide.repo(repo).message(values).report(run);
                 }
             }
         }

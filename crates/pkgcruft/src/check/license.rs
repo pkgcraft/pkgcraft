@@ -6,7 +6,6 @@ use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
 use crate::scan::ScannerRun;
 
@@ -52,28 +51,22 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, filter: &ReportFilter) {
+    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         let licenses: IndexSet<_> = pkg.license().iter_flatten().cloned().collect();
         let allowed_missing = self.missing_categories.contains(pkg.category());
         if licenses.is_empty() {
             if !allowed_missing {
-                LicenseInvalid
-                    .version(pkg)
-                    .message("missing")
-                    .report(filter);
+                LicenseInvalid.version(pkg).message("missing").report(run);
             }
         } else if allowed_missing {
-            LicenseInvalid
-                .version(pkg)
-                .message("unneeded")
-                .report(filter);
+            LicenseInvalid.version(pkg).message("unneeded").report(run);
         } else {
             let deprecated = licenses.intersection(&self.deprecated).sorted().join(", ");
             if !deprecated.is_empty() {
                 LicenseDeprecated
                     .version(pkg)
                     .message(deprecated)
-                    .report(filter);
+                    .report(run);
             }
         }
 
@@ -82,25 +75,25 @@ impl EbuildPkgCheck for Check {
                 LicenseInvalid
                     .version(pkg)
                     .message(format!("nonexistent: {license}"))
-                    .report(filter);
+                    .report(run);
             }
 
             // mangle values for post-run finalization
-            if filter.enabled(LicensesUnused) {
+            if run.enabled(LicensesUnused) {
                 self.unused.remove(&license);
             }
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, filter: &ReportFilter) {
-        if filter.enabled(LicensesUnused) && !self.unused.is_empty() {
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        if run.enabled(LicensesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
                 .iter()
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            LicensesUnused.repo(repo).message(unused).report(filter);
+            LicensesUnused.repo(repo).message(unused).report(run);
         }
     }
 }

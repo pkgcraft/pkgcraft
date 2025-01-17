@@ -5,7 +5,6 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::EbuildRepo;
 
-use crate::iter::ReportFilter;
 use crate::report::ReportKind::{
     UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
 };
@@ -26,7 +25,7 @@ struct Check {
 super::register!(Check);
 
 impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], filter: &ReportFilter) {
+    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let metadata = self.repo.metadata().pkg_metadata(cpn);
         let local_use = metadata.local_use();
         let sorted_flags = local_use
@@ -38,10 +37,7 @@ impl EbuildPkgSetCheck for Check {
         let mut unsorted = false;
         for ((flag, desc), sorted) in local_use.iter().zip(&sorted_flags) {
             if desc.is_empty() {
-                UseLocalDescMissing
-                    .package(cpn)
-                    .message(flag)
-                    .report(filter);
+                UseLocalDescMissing.package(cpn).message(flag).report(run);
             }
 
             if !unsorted && flag != sorted {
@@ -49,12 +45,12 @@ impl EbuildPkgSetCheck for Check {
                 UseLocalUnsorted
                     .package(cpn)
                     .message(format!("unsorted flag: {flag} (sorted: {sorted})"))
-                    .report(filter);
+                    .report(run);
             }
 
             if let Some(global_desc) = self.repo.metadata().use_global().get(flag) {
                 if global_desc == desc {
-                    UseLocalGlobal.package(cpn).message(flag).report(filter);
+                    UseLocalGlobal.package(cpn).message(flag).report(run);
                 }
             }
         }
@@ -70,7 +66,7 @@ impl EbuildPkgSetCheck for Check {
             .join(", ");
 
         if !unused.is_empty() {
-            UseLocalUnused.package(cpn).message(unused).report(filter);
+            UseLocalUnused.package(cpn).message(unused).report(run);
         }
     }
 }
