@@ -2203,6 +2203,7 @@ dependencies = [
  "crossbeam-channel",
  "crossbeam-utils",
  "dashmap",
+ "enum-as-inner",
  "glob",
  "indexmap 2.7.0",
  "indoc",

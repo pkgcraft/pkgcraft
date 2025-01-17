@@ -13,7 +13,7 @@ use pkgcraft::restrict::Scope;
 use crate::check::Check;
 use crate::ignore::Ignore;
 use crate::report::{Report, ReportKind, ReportScope};
-use crate::runner::{SyncCheckRunner, Target};
+use crate::runner::{CheckRunner, SyncCheckRunner, Target};
 use crate::scan::ScannerRun;
 
 enum ReportOrProcess {
@@ -107,22 +107,21 @@ impl ReportFilter {
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
     run: Arc<ScannerRun>,
-    runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     tx: Sender<(Option<Check>, Target)>,
     finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // parallelize running checks per package
-        if runner.checks().any(|c| c.scope() <= Scope::Package) {
+        if run.checks.iter().any(|c| c.scope() <= Scope::Package) {
             for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
                 tx.send((None, Target::Cpn(cpn))).ok();
             }
         }
 
         // run non-package checks in parallel
-        for check in runner.checks().filter(|c| c.scope() > Scope::Package) {
-            tx.send((Some(check), Target::Repo)).ok();
+        for check in run.checks.iter().filter(|c| c.scope() > Scope::Package) {
+            tx.send((Some(*check), Target::Repo)).ok();
         }
 
         // wait for all parallelized checks to finish
@@ -130,8 +129,8 @@ fn pkg_producer(
         wg.wait();
 
         // finalize checks in parallel
-        for check in runner.checks().filter(|c| c.finish_check(run.scope)) {
-            finish_tx.send(check).ok();
+        for check in run.checks.iter().filter(|c| c.finish_check(run.scope)) {
+            finish_tx.send(*check).ok();
         }
     })
 }
@@ -156,14 +155,12 @@ fn pkg_worker(
         let _entered = thread_span.clone().entered();
 
         for (check, target) in rx {
-            match check {
-                Some(check) => runner.run_check(&check, &target, &filter),
-                None => runner.run_checks(&target, &filter),
-            }
-
-            // signal iterator to process results for target package
             if let Target::Cpn(cpn) = target {
+                runner.run_checks(&cpn, &filter);
+                // signal iterator to process results for target package
                 filter.sender.process(cpn);
+            } else if let Some(check) = check {
+                runner.run_check(&check, &target, &filter);
             }
         }
 
@@ -172,7 +169,7 @@ fn pkg_worker(
 
         // finalize checks
         for check in finish_rx {
-            runner.finish_check(check, &filter);
+            runner.finish_check(&check, &filter);
         }
     })
 }
@@ -233,21 +230,20 @@ impl Iterator for IterPkg {
 /// Create a producer thread that sends checks with targets over a channel to workers.
 fn version_producer(
     run: Arc<ScannerRun>,
-    runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         for cpv in run.repo.iter_cpv_restrict(&run.restrict) {
-            for check in runner.checks().filter(|c| c.scope() == Scope::Version) {
-                tx.send((check, Target::Cpv(cpv.clone()))).ok();
+            for check in run.checks.iter().filter(|c| c.scope() == Scope::Version) {
+                tx.send((*check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 
         for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
-            for check in runner.checks().filter(|c| c.scope() == Scope::Package) {
-                tx.send((check, Target::Cpn(cpn.clone()))).ok();
+            for check in run.checks.iter().filter(|c| c.scope() == Scope::Package) {
+                tx.send((*check, Target::Cpn(cpn.clone()))).ok();
             }
         }
 
@@ -256,14 +252,14 @@ fn version_producer(
         wg.wait();
 
         for cpv in run.repo.iter_cpv_restrict(&run.restrict) {
-            for check in runner.checks().filter(|c| c.finish_target()) {
-                finish_tx.send((check, Target::Cpv(cpv.clone()))).ok();
+            for check in run.checks.iter().filter(|c| c.finish_target()) {
+                finish_tx.send((*check, Target::Cpv(cpv.clone()))).ok();
             }
         }
 
         for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
-            for check in runner.checks().filter(|c| c.finish_target()) {
-                finish_tx.send((check, Target::Cpn(cpn.clone()))).ok();
+            for check in run.checks.iter().filter(|c| c.finish_target()) {
+                finish_tx.send((*check, Target::Cpn(cpn.clone()))).ok();
             }
         }
     })
@@ -363,7 +359,6 @@ impl ReportIter {
         let (reports_tx, reports_rx) = bounded(run.jobs);
         let wg = WaitGroup::new();
         let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
-
         let runner = Arc::new(SyncCheckRunner::new(&run, &filter));
 
         Self(ReportIterInternal::Pkg(IterPkg {
@@ -379,7 +374,7 @@ impl ReportIter {
                     )
                 })
                 .collect(),
-            _producer: pkg_producer(run.clone(), runner.clone(), wg, targets_tx, finish_tx),
+            _producer: pkg_producer(run.clone(), wg, targets_tx, finish_tx),
             cache: Default::default(),
             reports: Default::default(),
         }))
@@ -392,7 +387,6 @@ impl ReportIter {
         let (reports_tx, reports_rx) = bounded(run.jobs);
         let wg = WaitGroup::new();
         let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
-
         let runner = Arc::new(SyncCheckRunner::new(&run, &filter));
 
         Self(ReportIterInternal::Version(IterVersion {
@@ -408,13 +402,7 @@ impl ReportIter {
                     )
                 })
                 .collect(),
-            _producer: version_producer(
-                run.clone(),
-                runner.clone(),
-                wg,
-                targets_tx,
-                finish_tx,
-            ),
+            _producer: version_producer(run.clone(), wg, targets_tx, finish_tx),
             reports: Default::default(),
         }))
     }
