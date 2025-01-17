@@ -11,6 +11,7 @@ use pkgcraft::restrict::Scope;
 use tracing::{debug, warn};
 
 use crate::check::*;
+use crate::report::ReportScope;
 use crate::scan::ScannerRun;
 use crate::source::*;
 
@@ -44,6 +45,17 @@ impl From<Cpn> for Target {
 impl From<Cpv> for Target {
     fn from(value: Cpv) -> Self {
         Self::Cpv(value)
+    }
+}
+
+impl From<&ReportScope> for Target {
+    fn from(value: &ReportScope) -> Self {
+        match value {
+            ReportScope::Version(cpv, _) => cpv.cpn().clone().into(),
+            ReportScope::Package(cpn) => cpn.clone().into(),
+            ReportScope::Category(s) => Target::Category(s.to_string()),
+            ReportScope::Repo(_) => Target::Repo,
+        }
     }
 }
 

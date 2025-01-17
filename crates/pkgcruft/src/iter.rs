@@ -9,7 +9,7 @@ use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 
 use crate::check::Check;
-use crate::report::{Report, ReportScope};
+use crate::report::Report;
 use crate::runner::{CheckRunner, SyncCheckRunner, Target};
 use crate::scan::ScannerRun;
 
@@ -290,32 +290,10 @@ impl ReportIter {
     fn receive(&mut self) -> Result<(), RecvError> {
         self.rx.recv().map(|value| match value {
             ReportOrProcess::Report(report) => {
-                match report.scope() {
-                    ReportScope::Version(cpv, _) => {
-                        self.target_cache
-                            .entry(cpv.cpn().clone().into())
-                            .or_default()
-                            .push(report);
-                    }
-                    ReportScope::Package(cpn) => {
-                        self.target_cache
-                            .entry(cpn.clone().into())
-                            .or_default()
-                            .push(report);
-                    }
-                    ReportScope::Repo(_) => {
-                        self.target_cache
-                            .entry(Target::Repo)
-                            .or_default()
-                            .push(report);
-                    }
-                    ReportScope::Category(category) => {
-                        self.target_cache
-                            .entry(Target::Category(category.to_string()))
-                            .or_default()
-                            .push(report);
-                    }
-                }
+                self.target_cache
+                    .entry(report.scope().into())
+                    .or_default()
+                    .push(report);
             }
             ReportOrProcess::Process(target, id) => {
                 let mut reports = self.target_cache.remove(&target).unwrap_or_default();
