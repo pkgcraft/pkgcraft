@@ -5,7 +5,6 @@ use std::thread;
 use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use crossbeam_utils::sync::WaitGroup;
 use itertools::Itertools;
-use pkgcraft::dep::Cpn;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 
@@ -17,7 +16,7 @@ use crate::scan::ScannerRun;
 #[derive(Debug)]
 pub(crate) enum ReportOrProcess {
     Report(Report),
-    Process(Cpn),
+    Process(Target),
 }
 
 impl From<Report> for ReportOrProcess {
@@ -26,8 +25,8 @@ impl From<Report> for ReportOrProcess {
     }
 }
 
-impl From<Cpn> for ReportOrProcess {
-    fn from(value: Cpn) -> Self {
+impl From<Target> for ReportOrProcess {
+    fn from(value: Target) -> Self {
         Self::Process(value)
     }
 }
@@ -52,9 +51,9 @@ impl ReportSender {
     }
 
     /// Process all reports for a package.
-    fn process(&self, cpn: Cpn) {
+    fn process(&self, target: Target) {
         if let Self::Pkg(tx) = self {
-            tx.send(cpn.into()).ok();
+            tx.send(target.into()).ok();
         }
     }
 }
@@ -82,7 +81,7 @@ fn pkg_producer(
         // parallelize running checks per package
         if run.checks.iter().any(|c| c.scope() <= Scope::Package) {
             for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
-                tx.send((None, Target::Cpn(cpn))).ok();
+                tx.send((None, cpn.into())).ok();
             }
         }
 
@@ -122,10 +121,10 @@ fn pkg_worker(
         let _entered = thread_span.clone().entered();
 
         for (check, target) in rx {
-            if let Target::Cpn(cpn) = target {
-                runner.run_checks(&cpn, &run);
+            if let Target::Cpn(cpn) = &target {
+                runner.run_checks(cpn, &run);
                 // signal iterator to process results for target package
-                run.sender().process(cpn);
+                run.sender().process(target);
             } else if let Some(check) = check {
                 runner.run_check(&check, &target, &run);
             }
@@ -147,7 +146,7 @@ struct IterPkg {
     rx: Receiver<ReportOrProcess>,
     _producer: thread::JoinHandle<()>,
     _workers: Vec<thread::JoinHandle<()>>,
-    cache: HashMap<Cpn, Vec<Report>>,
+    cache: HashMap<Target, Vec<Report>>,
     reports: VecDeque<Report>,
 }
 
@@ -160,18 +159,21 @@ impl IterPkg {
                 match report.scope() {
                     ReportScope::Version(cpv, _) if cached => {
                         self.cache
-                            .entry(cpv.cpn().clone())
+                            .entry(cpv.cpn().clone().into())
                             .or_default()
                             .push(report);
                     }
                     ReportScope::Package(cpn) if cached => {
-                        self.cache.entry(cpn.clone()).or_default().push(report);
+                        self.cache
+                            .entry(cpn.clone().into())
+                            .or_default()
+                            .push(report);
                     }
                     _ => self.reports.push_back(report),
                 }
             }
-            ReportOrProcess::Process(cpn) => {
-                if let Some(mut reports) = self.cache.remove(&cpn) {
+            ReportOrProcess::Process(target) => {
+                if let Some(mut reports) = self.cache.remove(&target) {
                     reports.sort();
                     self.reports.extend(reports);
                 }
@@ -204,13 +206,13 @@ fn version_producer(
     thread::spawn(move || {
         for cpv in run.repo.iter_cpv_restrict(&run.restrict) {
             for check in run.checks.iter().filter(|c| c.scope() == Scope::Version) {
-                tx.send((*check, Target::Cpv(cpv.clone()))).ok();
+                tx.send((*check, cpv.clone().into())).ok();
             }
         }
 
         for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
             for check in run.checks.iter().filter(|c| c.scope() == Scope::Package) {
-                tx.send((*check, Target::Cpn(cpn.clone()))).ok();
+                tx.send((*check, cpn.clone().into())).ok();
             }
         }
 
@@ -220,13 +222,13 @@ fn version_producer(
 
         for cpv in run.repo.iter_cpv_restrict(&run.restrict) {
             for check in run.checks.iter().filter(|c| c.finish_target()) {
-                finish_tx.send((*check, Target::Cpv(cpv.clone()))).ok();
+                finish_tx.send((*check, cpv.clone().into())).ok();
             }
         }
 
         for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
             for check in run.checks.iter().filter(|c| c.finish_target()) {
-                finish_tx.send((*check, Target::Cpn(cpn.clone()))).ok();
+                finish_tx.send((*check, cpn.clone().into())).ok();
             }
         }
     })

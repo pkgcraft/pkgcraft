@@ -15,7 +15,7 @@ use crate::scan::ScannerRun;
 use crate::source::*;
 
 /// Target to run checks against.
-#[derive(Debug, EnumAsInner)]
+#[derive(EnumAsInner, Debug, Eq, PartialEq, Hash)]
 pub(super) enum Target {
     Cpv(Cpv),
     Cpn(Cpn),
@@ -30,6 +30,18 @@ impl Target {
             Self::Cpn(_) => Scope::Package,
             Self::Repo => Scope::Repo,
         }
+    }
+}
+
+impl From<Cpn> for Target {
+    fn from(value: Cpn) -> Self {
+        Self::Cpn(value)
+    }
+}
+
+impl From<Cpv> for Target {
+    fn from(value: Cpv) -> Self {
+        Self::Cpv(value)
     }
 }
 
