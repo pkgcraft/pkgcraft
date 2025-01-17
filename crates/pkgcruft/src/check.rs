@@ -13,6 +13,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind;
+use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 mod commands;
@@ -424,50 +425,50 @@ pub(crate) type EbuildRawPkgSetRunner = Box<dyn EbuildRawPkgSetCheck + Send + Sy
 
 /// Create a check runner from a given check.
 pub(crate) trait ToRunner<T> {
-    fn to_runner(&self, repo: &EbuildRepo, filter: &ReportFilter) -> T;
+    fn to_runner(&self, run: &ScannerRun) -> T;
 }
 
 impl ToRunner<EbuildPkgRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo, filter: &ReportFilter) -> EbuildPkgRunner {
+    fn to_runner(&self, run: &ScannerRun) -> EbuildPkgRunner {
         match self {
-            Self::Dependency => Box::new(dependency::create(repo, filter)),
-            Self::DependencySlotMissing => Box::new(dependency_slot_missing::create(repo)),
-            Self::Eclass => Box::new(eclass::create(repo, filter)),
+            Self::Dependency => Box::new(dependency::create(run)),
+            Self::DependencySlotMissing => Box::new(dependency_slot_missing::create(run)),
+            Self::Eclass => Box::new(eclass::create(run)),
             Self::Homepage => Box::new(homepage::create()),
-            Self::Iuse => Box::new(iuse::create(repo, filter)),
-            Self::Keywords => Box::new(keywords::create(repo, filter)),
-            Self::License => Box::new(license::create(repo, filter)),
-            Self::Properties => Box::new(properties::create(repo)),
-            Self::PythonUpdate => Box::new(python_update::create(repo)),
-            Self::Restrict => Box::new(restrict::create(repo)),
+            Self::Iuse => Box::new(iuse::create(run)),
+            Self::Keywords => Box::new(keywords::create(run)),
+            Self::License => Box::new(license::create(run)),
+            Self::Properties => Box::new(properties::create(run)),
+            Self::PythonUpdate => Box::new(python_update::create(run)),
+            Self::Restrict => Box::new(restrict::create(run)),
             Self::RestrictTestMissing => Box::new(restrict_test_missing::create()),
-            Self::RubyUpdate => Box::new(ruby_update::create(repo)),
-            Self::SrcUri => Box::new(src_uri::create(repo, filter)),
+            Self::RubyUpdate => Box::new(ruby_update::create(run)),
+            Self::SrcUri => Box::new(src_uri::create(run)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
 }
 
 impl ToRunner<EbuildPkgSetRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> EbuildPkgSetRunner {
+    fn to_runner(&self, run: &ScannerRun) -> EbuildPkgSetRunner {
         match self {
-            Self::Filesdir => Box::new(filesdir::create(repo)),
+            Self::Filesdir => Box::new(filesdir::create(run)),
             Self::EapiStale => Box::new(eapi_stale::create()),
-            Self::KeywordsDropped => Box::new(keywords_dropped::create(repo)),
+            Self::KeywordsDropped => Box::new(keywords_dropped::create(run)),
             Self::Live => Box::new(live::create()),
-            Self::Manifest => Box::new(manifest::create(repo)),
-            Self::UnstableOnly => Box::new(unstable_only::create(repo)),
-            Self::UseLocal => Box::new(use_local::create(repo)),
+            Self::Manifest => Box::new(manifest::create(run)),
+            Self::UnstableOnly => Box::new(unstable_only::create(run)),
+            Self::UseLocal => Box::new(use_local::create(run)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
 }
 
 impl ToRunner<EbuildRawPkgRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo, filter: &ReportFilter) -> EbuildRawPkgRunner {
+    fn to_runner(&self, run: &ScannerRun) -> EbuildRawPkgRunner {
         match self {
             Self::Commands => Box::new(commands::create()),
-            Self::EapiStatus => Box::new(eapi_status::create(repo, filter)),
+            Self::EapiStatus => Box::new(eapi_status::create(run)),
             Self::Header => Box::new(header::create()),
             Self::VariableOrder => Box::new(variable_order::create()),
             Self::Whitespace => Box::new(whitespace::create()),
@@ -477,16 +478,16 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
 }
 
 impl ToRunner<EbuildRawPkgSetRunner> for Check {
-    fn to_runner(&self, _repo: &EbuildRepo, _filter: &ReportFilter) -> EbuildRawPkgSetRunner {
+    fn to_runner(&self, _run: &ScannerRun) -> EbuildRawPkgSetRunner {
         unreachable!("unsupported check: {self}")
     }
 }
 
 impl ToRunner<CpnRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> CpnRunner {
+    fn to_runner(&self, run: &ScannerRun) -> CpnRunner {
         match self {
-            Self::EbuildName => Box::new(ebuild_name::create(repo)),
-            Self::Duplicates => Box::new(duplicates::create(repo)),
+            Self::EbuildName => Box::new(ebuild_name::create(run)),
+            Self::Duplicates => Box::new(duplicates::create(run)),
             Self::Ignore => Box::new(ignore::Check),
             _ => unreachable!("unsupported check: {self}"),
         }
@@ -494,9 +495,9 @@ impl ToRunner<CpnRunner> for Check {
 }
 
 impl ToRunner<CpvRunner> for Check {
-    fn to_runner(&self, repo: &EbuildRepo, _filter: &ReportFilter) -> CpvRunner {
+    fn to_runner(&self, run: &ScannerRun) -> CpvRunner {
         match self {
-            Self::Metadata => Box::new(metadata::create(repo)),
+            Self::Metadata => Box::new(metadata::create(run)),
             Self::Ignore => Box::new(ignore::Check),
             _ => unreachable!("unsupported check: {self}"),
         }
@@ -504,7 +505,7 @@ impl ToRunner<CpvRunner> for Check {
 }
 
 impl ToRunner<RepoRunner> for Check {
-    fn to_runner(&self, _repo: &EbuildRepo, _filter: &ReportFilter) -> RepoRunner {
+    fn to_runner(&self, _run: &ScannerRun) -> RepoRunner {
         match self {
             Self::Ignore => Box::new(ignore::Check),
             Self::RepoLayout => Box::new(repo_layout::create()),

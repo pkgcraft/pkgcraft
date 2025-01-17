@@ -16,12 +16,14 @@ use walkdir::WalkDir;
 use crate::iter::ReportFilter;
 use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
+use crate::scan::ScannerRun;
 use crate::Error;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
-    let eclasses = repo
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
+    let eclasses = run
+        .repo
         .eclasses()
         .into_par_iter()
         .filter_map(|e| {
@@ -37,7 +39,10 @@ pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
         })
         .cloned()
         .collect();
-    Check { repo: repo.clone(), eclasses }
+    Check {
+        repo: run.repo.clone(),
+        eclasses,
+    }
 }
 
 static CHECK: super::Check = super::Check::Filesdir;

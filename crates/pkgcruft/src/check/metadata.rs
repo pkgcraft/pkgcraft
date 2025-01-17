@@ -1,16 +1,16 @@
 use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
-use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::shell::pool::MetadataTaskBuilder;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::MetadataError;
+use crate::scan::ScannerRun;
 
 use super::CpvCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl CpvCheck {
+pub(super) fn create(run: &ScannerRun) -> impl CpvCheck {
     Check {
-        regen: repo.pool().metadata_task(repo),
+        regen: run.repo.pool().metadata_task(&run.repo),
     }
 }
 

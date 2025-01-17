@@ -3,17 +3,18 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::UnstableOnly;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
     Check {
-        stable: repo
+        stable: run
+            .repo
             .metadata()
             .arches_desc()
             .get("stable")

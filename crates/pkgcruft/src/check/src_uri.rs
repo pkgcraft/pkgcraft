@@ -7,12 +7,13 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{MirrorsUnused, UriInvalid};
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.enabled(MirrorsUnused) {
-        repo.metadata().mirrors().keys().cloned().collect()
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+    let unused = if run.enabled(MirrorsUnused) {
+        run.repo.metadata().mirrors().keys().cloned().collect()
     } else {
         Default::default()
     };

@@ -5,11 +5,12 @@ use pkgcraft::traits::Contains;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::PackageOverride;
+use crate::scan::ScannerRun;
 
 use super::CpnCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl CpnCheck {
-    Check { repo: repo.clone() }
+pub(super) fn create(run: &ScannerRun) -> impl CpnCheck {
+    Check { repo: run.repo.clone() }
 }
 
 static CHECK: super::Check = super::Check::Duplicates;

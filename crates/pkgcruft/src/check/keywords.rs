@@ -9,12 +9,14 @@ use crate::iter::ReportFilter;
 use crate::report::ReportKind::{
     ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
 };
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.enabled(ArchesUnused) {
-        repo.metadata()
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+    let unused = if run.enabled(ArchesUnused) {
+        run.repo
+            .metadata()
             .arches()
             .iter()
             .map(|x| x.to_string())
@@ -23,7 +25,7 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkg
         Default::default()
     };
 
-    Check { repo: repo.clone(), unused }
+    Check { repo: run.repo.clone(), unused }
 }
 
 static CHECK: super::Check = super::Check::Keywords;

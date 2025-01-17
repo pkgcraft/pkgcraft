@@ -6,12 +6,13 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated, EapiUnused};
+use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildRawPkgCheck {
-    let banned = &repo.metadata().config.eapis_banned;
-    let unused = if filter.enabled(EapiUnused) && !banned.is_empty() {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildRawPkgCheck {
+    let banned = &run.repo.metadata().config.eapis_banned;
+    let unused = if run.enabled(EapiUnused) && !banned.is_empty() {
         EAPIS_OFFICIAL
             .iter()
             .filter(|x| !banned.contains(x.as_str()))
@@ -22,7 +23,7 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildRaw
         Default::default()
     };
 
-    Check { repo: repo.clone(), unused }
+    Check { repo: run.repo.clone(), unused }
 }
 
 static CHECK: super::Check = super::Check::EapiStatus;

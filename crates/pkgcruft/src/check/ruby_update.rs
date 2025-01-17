@@ -9,6 +9,7 @@ use pkgcraft::repo::PkgRepository;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::RubyUpdate;
+use crate::scan::ScannerRun;
 use crate::utils::{use_expand, use_starts_with};
 
 use super::EbuildPkgCheck;
@@ -16,10 +17,10 @@ use super::EbuildPkgCheck;
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
-        repo: repo.clone(),
-        targets: use_expand(repo, "ruby_targets", "ruby"),
+        repo: run.repo.clone(),
+        targets: use_expand(&run.repo, "ruby_targets", "ruby"),
     }
 }
 

@@ -11,17 +11,23 @@ use crate::report::ReportKind::{
     DependencyDeprecated, DependencyInvalid, DependencyRevisionMissing,
     PackageDeprecatedUnused,
 };
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.enabled(PackageDeprecatedUnused) {
-        repo.metadata().pkg_deprecated().iter().cloned().collect()
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+    let unused = if run.enabled(PackageDeprecatedUnused) {
+        run.repo
+            .metadata()
+            .pkg_deprecated()
+            .iter()
+            .cloned()
+            .collect()
     } else {
         Default::default()
     };
 
-    Check { repo: repo.clone(), unused }
+    Check { repo: run.repo.clone(), unused }
 }
 
 static CHECK: super::Check = super::Check::Dependency;

@@ -9,11 +9,12 @@ use crate::iter::ReportFilter;
 use crate::report::ReportKind::{
     UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
 };
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
-    Check { repo: repo.clone() }
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
+    Check { repo: run.repo.clone() }
 }
 
 static CHECK: super::Check = super::Check::UseLocal;

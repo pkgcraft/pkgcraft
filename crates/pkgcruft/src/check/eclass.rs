@@ -5,12 +5,13 @@ use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::EclassUnused;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.enabled(EclassUnused) {
-        repo.metadata().eclasses().iter().cloned().collect()
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+    let unused = if run.enabled(EclassUnused) {
+        run.repo.metadata().eclasses().iter().cloned().collect()
     } else {
         Default::default()
     };

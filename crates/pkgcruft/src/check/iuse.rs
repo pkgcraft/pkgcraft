@@ -6,12 +6,14 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{IuseInvalid, UseGlobalUnused};
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.enabled(UseGlobalUnused) {
-        repo.metadata()
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+    let unused = if run.enabled(UseGlobalUnused) {
+        run.repo
+            .metadata()
             .use_global()
             .keys()
             .map(Into::into)

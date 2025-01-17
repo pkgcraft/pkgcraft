@@ -2,16 +2,17 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::RestrictInvalid;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
-        allowed: repo
+        allowed: run
+            .repo
             .trees()
             .flat_map(|r| r.metadata().config.restrict_allowed.clone())
             .collect(),

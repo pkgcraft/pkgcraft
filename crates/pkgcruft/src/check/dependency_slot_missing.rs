@@ -7,12 +7,13 @@ use pkgcraft::restrict::Restrict;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::DependencySlotMissing;
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
-        repo: repo.clone(),
+        repo: run.repo.clone(),
         dep_slots: Default::default(),
     }
 }

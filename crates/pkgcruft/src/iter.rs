@@ -100,7 +100,7 @@ impl ReportFilter {
 
     /// Return true if the filter has a report variant enabled.
     pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
-        self.run.enabled.contains(&kind)
+        self.run.enabled(kind)
     }
 }
 
@@ -359,7 +359,7 @@ impl ReportIter {
         let (reports_tx, reports_rx) = bounded(run.jobs);
         let wg = WaitGroup::new();
         let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
-        let runner = Arc::new(SyncCheckRunner::new(&run, &filter));
+        let runner = Arc::new(SyncCheckRunner::new(&run));
 
         Self(ReportIterInternal::Pkg(IterPkg {
             rx: reports_rx,
@@ -387,7 +387,7 @@ impl ReportIter {
         let (reports_tx, reports_rx) = bounded(run.jobs);
         let wg = WaitGroup::new();
         let filter = Arc::new(ReportFilter::new(run.clone(), reports_tx));
-        let runner = Arc::new(SyncCheckRunner::new(&run, &filter));
+        let runner = Arc::new(SyncCheckRunner::new(&run));
 
         Self(ReportIterInternal::Version(IterVersion {
             rx: reports_rx,

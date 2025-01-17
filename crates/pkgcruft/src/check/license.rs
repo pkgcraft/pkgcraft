@@ -8,18 +8,25 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkgCheck {
-    let unused = if filter.enabled(LicensesUnused) {
-        repo.metadata().licenses().iter().map(Into::into).collect()
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+    let unused = if run.enabled(LicensesUnused) {
+        run.repo
+            .metadata()
+            .licenses()
+            .iter()
+            .map(Into::into)
+            .collect()
     } else {
         Default::default()
     };
 
     Check {
-        deprecated: repo
+        deprecated: run
+            .repo
             .license_groups()
             .get("DEPRECATED")
             .map(|x| x.iter().cloned().collect())
@@ -29,7 +36,7 @@ pub(super) fn create(repo: &EbuildRepo, filter: &ReportFilter) -> impl EbuildPkg
             .map(|x| x.to_string())
             .collect(),
         unused,
-        repo: repo.clone(),
+        repo: run.repo.clone(),
     }
 }
 

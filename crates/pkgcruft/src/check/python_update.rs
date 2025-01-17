@@ -14,6 +14,7 @@ use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::PythonUpdate;
+use crate::scan::ScannerRun;
 use crate::utils::{use_expand, use_starts_with};
 
 use super::EbuildPkgCheck;
@@ -67,10 +68,10 @@ fn deprefix<S: AsRef<str>>(s: &str, prefixes: &[S]) -> Option<String> {
         .next()
 }
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
-        repo: repo.clone(),
-        targets: Eclass::iter().map(|e| (e, e.targets(repo))).collect(),
+        repo: run.repo.clone(),
+        targets: Eclass::iter().map(|e| (e, e.targets(&run.repo))).collect(),
         dep_iuse: Default::default(),
     }
 }

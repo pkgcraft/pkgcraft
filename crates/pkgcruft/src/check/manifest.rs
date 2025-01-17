@@ -11,16 +11,18 @@ use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::iter::ReportFilter;
 use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
+use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(repo: &EbuildRepo) -> impl EbuildPkgSetCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
     Check {
-        repo: repo.clone(),
-        thin_manifests: repo.metadata().config.thin_manifests,
+        repo: run.repo.clone(),
+        thin_manifests: run.repo.metadata().config.thin_manifests,
         colliding: Default::default(),
         conflicting: Default::default(),
-        hash: repo
+        hash: run
+            .repo
             .metadata()
             .config
             .manifest_required_hashes

@@ -192,6 +192,13 @@ pub(crate) struct ScannerRun {
     pub(crate) exit: HashSet<ReportKind>,
 }
 
+impl ScannerRun {
+    /// Return true if the run has a report variant enabled.
+    pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
+        self.enabled.contains(&kind)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use camino::Utf8Path;

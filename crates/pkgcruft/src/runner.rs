@@ -37,7 +37,7 @@ impl Target {
 #[allow(unused_variables)]
 pub(super) trait CheckRunner {
     /// Add a check to the runner.
-    fn add_check(&mut self, check: Check, filter: &ReportFilter);
+    fn add_check(&mut self, check: Check, run: &ScannerRun);
 
     /// Run all checks for a [`Cpn`];
     fn run_checks(&self, cpn: &Cpn, filter: &ReportFilter) {}
@@ -55,18 +55,14 @@ pub(super) trait CheckRunner {
 /// Check runner for synchronous checks.
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, Box<dyn CheckRunner + Send + Sync>>,
-    run: Arc<ScannerRun>,
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(run: &Arc<ScannerRun>, filter: &ReportFilter) -> Self {
-        let mut runner = Self {
-            runners: Default::default(),
-            run: run.clone(),
-        };
+    pub(super) fn new(run: &Arc<ScannerRun>) -> Self {
+        let mut runner = Self { runners: Default::default() };
 
         for check in &run.checks {
-            runner.add_check(*check, filter);
+            runner.add_check(*check, run);
         }
 
         runner
@@ -74,8 +70,7 @@ impl SyncCheckRunner {
 }
 
 impl CheckRunner for SyncCheckRunner {
-    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
-        let run = &self.run;
+    fn add_check(&mut self, check: Check, run: &ScannerRun) {
         for source in check
             .sources()
             .iter()
@@ -87,11 +82,11 @@ impl CheckRunner for SyncCheckRunner {
                 .or_insert_with(|| match source {
                     SourceKind::EbuildPkg => Box::new(EbuildPkgCheckRunner::new(run)),
                     SourceKind::EbuildRawPkg => Box::new(EbuildRawPkgCheckRunner::new(run)),
-                    SourceKind::Cpn => Box::new(CpnCheckRunner::new(run)),
+                    SourceKind::Cpn => Box::new(CpnCheckRunner::new()),
                     SourceKind::Cpv => Box::new(CpvCheckRunner::new(run)),
                     SourceKind::Repo => Box::new(RepoCheckRunner::new(run)),
                 })
-                .add_check(check, filter)
+                .add_check(check, run)
         }
     }
 
@@ -197,13 +192,11 @@ macro_rules! make_pkg_check_runner {
         }
 
         impl CheckRunner for $pkg_check_runner {
-            fn add_check(&mut self, check: Check, filter: &ReportFilter) {
+            fn add_check(&mut self, check: Check, run: &ScannerRun) {
                 if check.scope() == Scope::Version {
-                    self.pkg_checks
-                        .insert(check, check.to_runner(&self.repo, filter));
+                    self.pkg_checks.insert(check, check.to_runner(run));
                 } else {
-                    self.pkg_set_checks
-                        .insert(check, check.to_runner(&self.repo, filter));
+                    self.pkg_set_checks.insert(check, check.to_runner(run));
                 }
             }
 
@@ -294,15 +287,11 @@ make_pkg_check_runner!(
 /// Check runner for [`Cpn`] objects.
 struct CpnCheckRunner {
     checks: IndexMap<Check, CpnRunner>,
-    repo: EbuildRepo,
 }
 
 impl CpnCheckRunner {
-    fn new(run: &ScannerRun) -> Self {
-        Self {
-            checks: Default::default(),
-            repo: run.repo.clone(),
-        }
+    fn new() -> Self {
+        Self { checks: Default::default() }
     }
 
     fn finish_cpn(&self, check: &Check, cpn: &Cpn, filter: &ReportFilter) {
@@ -317,9 +306,8 @@ impl CpnCheckRunner {
 }
 
 impl CheckRunner for CpnCheckRunner {
-    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
-        self.checks
-            .insert(check, check.to_runner(&self.repo, filter));
+    fn add_check(&mut self, check: Check, run: &ScannerRun) {
+        self.checks.insert(check, check.to_runner(run));
     }
 
     fn run_checks(&self, cpn: &Cpn, filter: &ReportFilter) {
@@ -382,9 +370,8 @@ impl CpvCheckRunner {
 }
 
 impl CheckRunner for CpvCheckRunner {
-    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
-        self.checks
-            .insert(check, check.to_runner(&self.repo, filter));
+    fn add_check(&mut self, check: Check, run: &ScannerRun) {
+        self.checks.insert(check, check.to_runner(run));
     }
 
     fn run_checks(&self, cpn: &Cpn, filter: &ReportFilter) {
@@ -439,9 +426,8 @@ impl RepoCheckRunner {
 }
 
 impl CheckRunner for RepoCheckRunner {
-    fn add_check(&mut self, check: Check, filter: &ReportFilter) {
-        self.checks
-            .insert(check, check.to_runner(&self.repo, filter));
+    fn add_check(&mut self, check: Check, run: &ScannerRun) {
+        self.checks.insert(check, check.to_runner(run));
     }
 
     fn run_check(&self, check: &Check, _target: &Target, filter: &ReportFilter) {
