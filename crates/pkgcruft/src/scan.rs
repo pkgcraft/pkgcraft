@@ -21,6 +21,7 @@ use crate::source::PkgFilter;
 pub struct Scanner {
     jobs: usize,
     force: bool,
+    sort: bool,
     reports: IndexSet<ReportTarget>,
     exit: IndexSet<ReportSet>,
     filters: IndexSet<PkgFilter>,
@@ -42,6 +43,15 @@ impl Scanner {
     /// Configure if ignore directives are respected.
     pub fn force(mut self, value: bool) -> Self {
         self.force = value;
+        self
+    }
+
+    /// Sort the report output.
+    ///
+    /// This is done on the fly causing negligible scanning slowdown, but can result in
+    /// interactive output lag when waiting on slower packages.
+    pub fn sort(mut self, value: bool) -> Self {
+        self.sort = value;
         self
     }
 
@@ -173,6 +183,7 @@ pub(crate) struct ScannerRun {
     enabled: HashSet<ReportKind>,
     exit: HashSet<ReportKind>,
     failed: Arc<AtomicBool>,
+    pub(crate) sort: bool,
     pub(crate) sender: OnceLock<ReportSender>,
 }
 
@@ -201,6 +212,7 @@ impl ScannerRun {
             enabled: Default::default(),
             exit: Default::default(),
             failed: scanner.failed.clone(),
+            sort: scanner.sort,
             sender: Default::default(),
         })
     }

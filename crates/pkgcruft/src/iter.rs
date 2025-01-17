@@ -16,20 +16,8 @@ use crate::scan::ScannerRun;
 #[derive(Debug)]
 pub(crate) enum ReportOrProcess {
     Report(Report),
-    Process(Target),
+    Process(Target, usize),
     Flush,
-}
-
-impl From<Report> for ReportOrProcess {
-    fn from(value: Report) -> Self {
-        Self::Report(value)
-    }
-}
-
-impl From<Target> for ReportOrProcess {
-    fn from(value: Target) -> Self {
-        Self::Process(value)
-    }
 }
 
 #[derive(Debug)]
@@ -38,12 +26,12 @@ pub(crate) struct ReportSender(Sender<ReportOrProcess>);
 impl ReportSender {
     /// Process a single report.
     pub(crate) fn report(&self, report: Report) {
-        self.0.send(report.into()).ok();
+        self.0.send(ReportOrProcess::Report(report)).ok();
     }
 
     /// Process all reports for a target.
-    fn process(&self, target: Target) {
-        self.0.send(target.into()).ok();
+    fn process(&self, target: Target, id: usize) {
+        self.0.send(ReportOrProcess::Process(target, id)).ok();
     }
 
     /// Flush and process all cached reports.
@@ -57,19 +45,19 @@ fn pkg_producer(
     run: Arc<ScannerRun>,
     finish_wg: WaitGroup,
     process_wg: WaitGroup,
-    tx: Sender<(Option<Check>, Target)>,
+    tx: Sender<(Option<Check>, Target, usize)>,
     finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run non-package checks in parallel
         for check in run.checks.iter().filter(|c| c.scope() > Scope::Package) {
-            tx.send((Some(*check), Target::Repo)).ok();
+            tx.send((Some(*check), Target::Repo, 0)).ok();
         }
 
         // parallelize running checks per package
         if run.checks.iter().any(|c| c.scope() <= Scope::Package) {
-            for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
-                tx.send((None, cpn.into())).ok();
+            for (id, cpn) in run.repo.iter_cpn_restrict(&run.restrict).enumerate() {
+                tx.send((None, cpn.into(), id)).ok();
             }
         }
 
@@ -97,7 +85,7 @@ fn pkg_worker(
     runner: Arc<SyncCheckRunner>,
     finish_wg: WaitGroup,
     process_wg: WaitGroup,
-    rx: Receiver<(Option<Check>, Target)>,
+    rx: Receiver<(Option<Check>, Target, usize)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
     // hack to force log capturing for tests to work in threads
@@ -111,11 +99,11 @@ fn pkg_worker(
         #[cfg(test)]
         let _entered = thread_span.clone().entered();
 
-        for (check, target) in rx {
+        for (check, target, id) in rx {
             if let Target::Cpn(cpn) = &target {
                 runner.run_checks(cpn, &run);
                 // signal iterator to process reports for target package
-                run.sender().process(target);
+                run.sender().process(target, id);
             } else if let Some(check) = check {
                 runner.run_check(&check, &target, &run);
             }
@@ -226,7 +214,10 @@ pub struct ReportIter {
     rx: Receiver<ReportOrProcess>,
     _workers: Vec<thread::JoinHandle<()>>,
     _producer: thread::JoinHandle<()>,
-    cache: HashMap<Target, Vec<Report>>,
+    id: usize,
+    sort: bool,
+    target_cache: HashMap<Target, Vec<Report>>,
+    id_cache: HashMap<usize, Vec<Report>>,
     reports: VecDeque<Report>,
 }
 
@@ -285,7 +276,10 @@ impl ReportIter {
             rx: reports_rx,
             _workers,
             _producer,
-            cache: Default::default(),
+            id: Default::default(),
+            sort: run.sort,
+            target_cache: Default::default(),
+            id_cache: Default::default(),
             reports: Default::default(),
         }
     }
@@ -294,35 +288,41 @@ impl ReportIter {
     fn receive(&mut self) -> Result<(), RecvError> {
         self.rx.recv().map(|value| match value {
             ReportOrProcess::Report(report) => {
-                let pkg_cache = report.kind.scope() <= Scope::Package;
                 match report.scope() {
-                    ReportScope::Version(cpv, _) if pkg_cache => {
-                        self.cache
+                    ReportScope::Version(cpv, _) => {
+                        self.target_cache
                             .entry(cpv.cpn().clone().into())
                             .or_default()
                             .push(report);
                     }
-                    ReportScope::Package(cpn) if pkg_cache => {
-                        self.cache
+                    ReportScope::Package(cpn) => {
+                        self.target_cache
                             .entry(cpn.clone().into())
                             .or_default()
                             .push(report);
                     }
                     ReportScope::Repo(_) => {
-                        self.cache.entry(Target::Repo).or_default().push(report);
+                        self.target_cache
+                            .entry(Target::Repo)
+                            .or_default()
+                            .push(report);
                     }
-                    _ => self.reports.push_back(report),
+                    // TODO: cache and output category reports for sorted mode
+                    ReportScope::Category(_) => self.reports.push_back(report),
                 }
             }
-            ReportOrProcess::Process(target) => {
-                if let Some(mut reports) = self.cache.remove(&target) {
-                    reports.sort();
+            ReportOrProcess::Process(target, id) => {
+                let mut reports = self.target_cache.remove(&target).unwrap_or_default();
+                reports.sort();
+                if self.sort {
+                    self.id_cache.insert(id, reports);
+                } else if !reports.is_empty() {
                     self.reports.extend(reports);
                 }
             }
             ReportOrProcess::Flush => {
                 self.reports
-                    .extend(self.cache.values_mut().flat_map(mem::take).sorted());
+                    .extend(self.target_cache.values_mut().flat_map(mem::take).sorted());
             }
         })
     }
@@ -333,6 +333,17 @@ impl Iterator for ReportIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
+            if self.sort {
+                if let Some(reports) = self.id_cache.remove(&self.id) {
+                    self.id += 1;
+                    if reports.is_empty() {
+                        continue;
+                    } else {
+                        self.reports.extend(reports);
+                    }
+                }
+            }
+
             if let Some(report) = self.reports.pop_front() {
                 return Some(report);
             } else if self.receive().is_err() {
