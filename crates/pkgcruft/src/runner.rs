@@ -53,13 +53,14 @@ pub(super) trait CheckRunner {
 }
 
 /// Check runner for synchronous checks.
+#[derive(Default)]
 pub(super) struct SyncCheckRunner {
     runners: IndexMap<SourceKind, Box<dyn CheckRunner + Send + Sync>>,
 }
 
 impl SyncCheckRunner {
     pub(super) fn new(run: &Arc<ScannerRun>) -> Self {
-        let mut runner = Self { runners: Default::default() };
+        let mut runner = Self::default();
 
         for check in &run.checks {
             runner.add_check(*check, run);
@@ -285,13 +286,14 @@ make_pkg_check_runner!(
 );
 
 /// Check runner for [`Cpn`] objects.
+#[derive(Default)]
 struct CpnCheckRunner {
     checks: IndexMap<Check, CpnRunner>,
 }
 
 impl CpnCheckRunner {
     fn new() -> Self {
-        Self { checks: Default::default() }
+        Self::default()
     }
 
     fn finish_cpn(&self, check: &Check, cpn: &Cpn, filter: &ReportFilter) {
