@@ -75,15 +75,22 @@ impl SyncCheckRunner {
 
 impl CheckRunner for SyncCheckRunner {
     fn add_check(&mut self, check: Check, filter: &ReportFilter) {
+        let run = &self.run;
         for source in check
             .sources()
             .iter()
-            .filter(|x| x.scope() <= self.run.scope)
+            .filter(|x| x.scope() <= run.scope)
             .copied()
         {
             self.runners
                 .entry(source)
-                .or_insert_with(|| source.runner(&self.run))
+                .or_insert_with(|| match source {
+                    SourceKind::EbuildPkg => Box::new(EbuildPkgCheckRunner::new(run)),
+                    SourceKind::EbuildRawPkg => Box::new(EbuildRawPkgCheckRunner::new(run)),
+                    SourceKind::Cpn => Box::new(CpnCheckRunner::new(run)),
+                    SourceKind::Cpv => Box::new(CpvCheckRunner::new(run)),
+                    SourceKind::Repo => Box::new(RepoCheckRunner::new(run)),
+                })
                 .add_check(check, filter)
         }
     }
@@ -123,19 +130,6 @@ impl CheckRunner for SyncCheckRunner {
     fn finish_check(&self, check: &Check, filter: &ReportFilter) {
         for runner in check.sources().iter().filter_map(|x| self.runners.get(x)) {
             runner.finish_check(check, filter);
-        }
-    }
-}
-
-impl SourceKind {
-    /// Create a check runner for a source.
-    fn runner(self, run: &ScannerRun) -> Box<dyn CheckRunner + Send + Sync> {
-        match self {
-            Self::EbuildPkg => Box::new(EbuildPkgCheckRunner::new(run)),
-            Self::EbuildRawPkg => Box::new(EbuildRawPkgCheckRunner::new(run)),
-            Self::Cpn => Box::new(CpnCheckRunner::new(run)),
-            Self::Cpv => Box::new(CpvCheckRunner::new(run)),
-            Self::Repo => Box::new(RepoCheckRunner::new(run)),
         }
     }
 }
