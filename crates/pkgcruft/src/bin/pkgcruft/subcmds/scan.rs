@@ -27,6 +27,10 @@ pub(crate) struct Command {
     #[arg(short, long, default_value_t = num_cpus::get())]
     jobs: usize,
 
+    /// Output reports in sorted order
+    #[arg(short, long)]
+    sort: bool,
+
     /// Exit status triggers
     #[arg(
         long,
@@ -78,6 +82,7 @@ impl Command {
             .reports(self.reports.iter().copied())
             .filters(self.filters.iter().cloned())
             .force(self.force)
+            .sort(self.sort)
             .exit(self.exit.iter().copied());
 
         // run scanner for all targets
