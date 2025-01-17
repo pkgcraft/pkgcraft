@@ -78,16 +78,16 @@ fn pkg_producer(
     finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
+        // run non-package checks in parallel
+        for check in run.checks.iter().filter(|c| c.scope() > Scope::Package) {
+            tx.send((Some(*check), Target::Repo)).ok();
+        }
+
         // parallelize running checks per package
         if run.checks.iter().any(|c| c.scope() <= Scope::Package) {
             for cpn in run.repo.iter_cpn_restrict(&run.restrict) {
                 tx.send((None, cpn.into())).ok();
             }
-        }
-
-        // run non-package checks in parallel
-        for check in run.checks.iter().filter(|c| c.scope() > Scope::Package) {
-            tx.send((Some(*check), Target::Repo)).ok();
         }
 
         // wait for all parallelized checks to finish
