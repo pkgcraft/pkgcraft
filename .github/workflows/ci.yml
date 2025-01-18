@@ -118,7 +118,7 @@ jobs:
       run: |
         # only collect code coverage for the latest rust release on linux
         if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          cargo llvm-cov --no-report nextest --all-features --workspace --tests --no-clean
+          cargo llvm-cov --no-report nextest --all-features --workspace --tests
           cargo llvm-cov report --lcov --output-path lcov.info
           # remove generated coverage data to avoid caching it
           find . -name \*.profraw -delete
