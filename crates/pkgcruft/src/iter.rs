@@ -13,30 +13,31 @@ use crate::report::Report;
 use crate::runner::{CheckRunner, SyncCheckRunner, Target};
 use crate::scan::ScannerRun;
 
+/// Item sent to the report iterator for processing.
 #[derive(Debug)]
-pub(crate) enum ReportOrProcess {
+pub(crate) enum Item {
     Report(Report),
     Process(Target, usize),
     Flush,
 }
 
 #[derive(Debug)]
-pub(crate) struct ReportSender(Sender<ReportOrProcess>);
+pub(crate) struct ReportSender(Sender<Item>);
 
 impl ReportSender {
-    /// Process a single report.
+    /// Send a single report.
     pub(crate) fn report(&self, report: Report) {
-        self.0.send(ReportOrProcess::Report(report)).ok();
+        self.0.send(Item::Report(report)).ok();
     }
 
-    /// Process all reports for a target.
+    /// Direct the iterator to process all reports for a target.
     fn process(&self, target: Target, id: usize) {
-        self.0.send(ReportOrProcess::Process(target, id)).ok();
+        self.0.send(Item::Process(target, id)).ok();
     }
 
-    /// Flush and process all cached reports.
+    /// Direct the iterator to process all cached reports.
     fn flush(&self) {
-        self.0.send(ReportOrProcess::Flush).ok();
+        self.0.send(Item::Flush).ok();
     }
 }
 
@@ -211,7 +212,7 @@ fn version_worker(
 /// Iterator of reports.
 #[derive(Debug)]
 pub struct ReportIter {
-    rx: Receiver<ReportOrProcess>,
+    rx: Receiver<Item>,
     _workers: Vec<thread::JoinHandle<()>>,
     _producer: thread::JoinHandle<()>,
     id: usize,
@@ -289,13 +290,13 @@ impl ReportIter {
     /// Process items from the reports channel.
     fn receive(&mut self) -> Result<(), RecvError> {
         self.rx.recv().map(|value| match value {
-            ReportOrProcess::Report(report) => {
+            Item::Report(report) => {
                 self.target_cache
                     .entry(report.scope().into())
                     .or_default()
                     .push(report);
             }
-            ReportOrProcess::Process(target, id) => {
+            Item::Process(target, id) => {
                 let mut reports = self.target_cache.remove(&target).unwrap_or_default();
                 reports.sort();
                 if self.sort {
@@ -304,7 +305,7 @@ impl ReportIter {
                     self.reports.extend(reports);
                 }
             }
-            ReportOrProcess::Flush => {
+            Item::Flush => {
                 self.reports
                     .extend(self.target_cache.values_mut().flat_map(mem::take).sorted());
             }
