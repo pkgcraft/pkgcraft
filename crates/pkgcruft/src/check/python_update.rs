@@ -48,11 +48,6 @@ impl Eclass {
     }
 }
 
-/// Remove a python IUSE prefix from a string.
-fn deprefix(s: &str) -> Option<&str> {
-    IUSE_PREFIXES.iter().find_map(|x| s.strip_prefix(x))
-}
-
 pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
         repo: run.repo.clone(),
@@ -70,6 +65,15 @@ struct Check {
 }
 
 super::register!(Check);
+
+/// Determine the set of compatible targets for a dependency.
+fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {
+    pkg.iuse()
+        .iter()
+        .filter_map(|x| IUSE_PREFIXES.iter().find_map(|s| x.flag().strip_prefix(s)))
+        .map(|x| x.to_string())
+        .collect()
+}
 
 impl Check {
     /// Get the USE_EXPAND targets for an eclass.
@@ -92,13 +96,7 @@ impl Check {
                     .iter_restrict(restrict)
                     .filter_map(Result::ok)
                     .last()
-                    .map(|pkg| {
-                        pkg.iuse()
-                            .iter()
-                            .filter_map(|x| deprefix(x.flag()))
-                            .map(|x| x.to_string())
-                            .collect()
-                    })
+                    .map(dep_targets)
             })
             .downgrade()
     }

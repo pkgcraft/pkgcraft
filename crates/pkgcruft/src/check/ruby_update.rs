@@ -35,6 +35,15 @@ struct Check {
 
 super::register!(Check);
 
+/// Determine the set of compatible targets for a dependency.
+fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {
+    pkg.iuse()
+        .iter()
+        .filter_map(|x| x.flag().strip_prefix(IUSE_PREFIX))
+        .map(|x| x.to_string())
+        .collect()
+}
+
 impl Check {
     /// Get the package IUSE matching a given dependency.
     fn get_dep_iuse<R: Into<Restrict>>(
@@ -49,13 +58,7 @@ impl Check {
                     .iter_restrict(restrict)
                     .filter_map(Result::ok)
                     .last()
-                    .map(|pkg| {
-                        pkg.iuse()
-                            .iter()
-                            .filter_map(|x| x.flag().strip_prefix(IUSE_PREFIX))
-                            .map(|x| x.to_string())
-                            .collect()
-                    })
+                    .map(dep_targets)
             })
             .downgrade()
     }
