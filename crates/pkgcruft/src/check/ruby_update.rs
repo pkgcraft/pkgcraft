@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use dashmap::{mapref::one::Ref, DashMap};
+use dashmap::{mapref::one::MappedRef, DashMap};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
@@ -45,11 +45,11 @@ fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {
 }
 
 impl Check {
-    /// Get the set of compatible targets for a dependency.
+    /// Get the set of compatible targets for a dependency if they exist.
     fn get_targets<R: Into<Restrict>>(
         &self,
         dep: R,
-    ) -> Ref<Restrict, Option<HashSet<String>>> {
+    ) -> Option<MappedRef<Restrict, Option<HashSet<String>>, HashSet<String>>> {
         let restrict = dep.into();
         self.dep_targets
             .entry(restrict.clone())
@@ -61,6 +61,8 @@ impl Check {
                     .map(dep_targets)
             })
             .downgrade()
+            .try_map(|x| x.as_ref())
+            .ok()
     }
 }
 
@@ -102,13 +104,15 @@ impl EbuildPkgCheck for Check {
         }
 
         // drop targets with missing dependencies
-        for dep in deps.iter().filter(|x| use_starts_with(x, &[IUSE_PREFIX])) {
-            if let Some(values) = self.get_targets(dep.no_use_deps()).as_ref() {
-                targets.retain(|&x| values.contains(x));
-                if targets.is_empty() {
-                    // no updates available
-                    return;
-                }
+        for dep_targets in deps
+            .iter()
+            .filter(|x| use_starts_with(x, &[IUSE_PREFIX]))
+            .filter_map(|dep| self.get_targets(dep.no_use_deps()))
+        {
+            targets.retain(|&x| dep_targets.contains(x));
+            if targets.is_empty() {
+                // no updates available
+                return;
             }
         }
 
