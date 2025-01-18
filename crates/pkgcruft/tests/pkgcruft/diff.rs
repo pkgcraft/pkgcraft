@@ -115,14 +115,17 @@ fn output() {
         +cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line
     "};
     let expected: Vec<_> = expected.lines().collect();
-    let output = cmd("pkgcruft diff --sort")
-        .args([old_file.path(), new_file.path()])
-        .output()
-        .unwrap()
-        .stdout;
-    let output = String::from_utf8(output).unwrap();
-    let output: Vec<_> = output.lines().collect();
-    assert_eq!(&output, &expected);
+    for opt in ["-s", "--sort"] {
+        let output = cmd("pkgcruft diff")
+            .arg(opt)
+            .args([old_file.path(), new_file.path()])
+            .output()
+            .unwrap()
+            .stdout;
+        let output = String::from_utf8(output).unwrap();
+        let output: Vec<_> = output.lines().collect();
+        assert_eq!(&output, &expected);
+    }
 
     // filtered reports
     let expected = indoc::indoc! {"

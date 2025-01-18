@@ -21,7 +21,7 @@ pub(crate) struct Options {
     pkgs: Vec<String>,
 
     /// Sort reports
-    #[arg(long)]
+    #[arg(short, long)]
     sort: bool,
 }
 
