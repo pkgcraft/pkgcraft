@@ -19,6 +19,7 @@ use crate::utils::{use_expand, use_starts_with};
 use super::EbuildPkgCheck;
 
 static IMPL_PKG: &str = "dev-lang/python";
+static IUSE_PREFIXES: &[&str] = &["python_targets_", "python_single_target_"];
 
 /// Supported python eclasses.
 #[derive(AsRefStr, Display, EnumIter, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
@@ -47,22 +48,13 @@ impl Eclass {
             Self::PythonAnyR1 => [DEPEND, BDEPEND].iter().copied(),
         }
     }
-
-    /// USE flag dependency prefixes.
-    fn prefixes(&self) -> &[&str] {
-        match self {
-            Self::PythonR1 => &["python_targets_"],
-            Self::PythonSingleR1 => &["python_targets_", "python_single_target_"],
-            Self::PythonAnyR1 => &["python_targets_", "python_single_target_"],
-        }
-    }
 }
 
-/// Remove a prefix from a string, given a list of prefixes.
-fn deprefix<S: AsRef<str>>(s: &str, prefixes: &[S]) -> Option<String> {
-    prefixes
+/// Remove a python IUSE prefix from a string.
+fn deprefix(s: &str) -> Option<String> {
+    IUSE_PREFIXES
         .iter()
-        .filter_map(|x| s.strip_prefix(x.as_ref()))
+        .filter_map(|x| s.strip_prefix(x))
         .map(|x| x.to_string())
         .next()
 }
@@ -151,14 +143,11 @@ impl EbuildPkgCheck for Check {
         }
 
         // drop targets with missing dependencies
-        for dep in deps
-            .iter()
-            .filter(|x| use_starts_with(x, eclass.prefixes()))
-        {
+        for dep in deps.iter().filter(|x| use_starts_with(x, IUSE_PREFIXES)) {
             if let Some(iuse) = self.get_dep_iuse(dep.no_use_deps()).as_ref() {
                 let iuse = iuse
                     .iter()
-                    .filter_map(|x| deprefix(x.flag(), eclass.prefixes()))
+                    .filter_map(|x| deprefix(x.flag()))
                     .collect::<HashSet<_>>();
                 targets.retain(|x| iuse.contains(x.as_str()));
                 if targets.is_empty() {
