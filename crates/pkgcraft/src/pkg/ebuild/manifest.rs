@@ -69,14 +69,14 @@ pub enum ManifestType {
 
 /// Package manifest contained in Manifest files as defined by GLEP 44.
 #[derive(Debug, Clone)]
-pub struct ManifestFile {
+pub struct ManifestEntry {
     kind: ManifestType,
     name: String,
     size: u64,
     hashes: IndexMap<HashType, String>,
 }
 
-impl ManifestFile {
+impl ManifestEntry {
     fn try_new(
         kind: ManifestType,
         name: &str,
@@ -153,21 +153,21 @@ impl ManifestFile {
     }
 }
 
-impl PartialEq for ManifestFile {
+impl PartialEq for ManifestEntry {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 
-impl Eq for ManifestFile {}
+impl Eq for ManifestEntry {}
 
-impl Hash for ManifestFile {
+impl Hash for ManifestEntry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);
     }
 }
 
-impl Ord for ManifestFile {
+impl Ord for ManifestEntry {
     fn cmp(&self, other: &Self) -> Ordering {
         self.kind
             .cmp(&other.kind)
@@ -175,19 +175,19 @@ impl Ord for ManifestFile {
     }
 }
 
-impl PartialOrd for ManifestFile {
+impl PartialOrd for ManifestEntry {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Borrow<str> for ManifestFile {
+impl Borrow<str> for ManifestEntry {
     fn borrow(&self) -> &str {
         &self.name
     }
 }
 
-impl fmt::Display for ManifestFile {
+impl fmt::Display for ManifestEntry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {} {}", self.kind, self.name, self.size)?;
         for (hash, value) in &self.hashes {
@@ -197,7 +197,7 @@ impl fmt::Display for ManifestFile {
     }
 }
 
-impl FromStr for ManifestFile {
+impl FromStr for ManifestEntry {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
@@ -229,7 +229,7 @@ impl FromStr for ManifestFile {
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
-pub struct Manifest(IndexSet<ManifestFile>);
+pub struct Manifest(IndexSet<ManifestEntry>);
 
 impl Manifest {
     /// Parse a [`Manifest`] from a file.
@@ -247,7 +247,7 @@ impl Manifest {
         let mut manifest = Self::default();
 
         for (i, line) in data.lines().enumerate() {
-            let entry: ManifestFile = line
+            let entry: ManifestEntry = line
                 .parse()
                 .map_err(|e| Error::InvalidValue(format!("line {}: {e}", i + 1)))?;
             manifest.0.insert(entry);
@@ -260,7 +260,7 @@ impl Manifest {
         Ok(manifest)
     }
 
-    pub fn get(&self, name: &str) -> Option<&ManifestFile> {
+    pub fn get(&self, name: &str) -> Option<&ManifestEntry> {
         self.0.get(name)
     }
 
@@ -268,7 +268,7 @@ impl Manifest {
         self.into_iter()
     }
 
-    pub fn distfiles(&self) -> impl Iterator<Item = &ManifestFile> {
+    pub fn distfiles(&self) -> impl Iterator<Item = &ManifestEntry> {
         self.into_iter().filter(|x| x.kind == ManifestType::Dist)
     }
 
@@ -318,7 +318,7 @@ impl Manifest {
             .into_par_iter()
             .filter(|(_, (_, update))| *update)
             .map(|(name, (path, _))| {
-                ManifestFile::from_path(ManifestType::Dist, name, path, hashes)
+                ManifestEntry::from_path(ManifestType::Dist, name, path, hashes)
             })
             .collect();
 
@@ -333,7 +333,7 @@ impl Manifest {
                     .filter_map(|path| Utf8PathBuf::from_path_buf(path).ok())
                     .map(|path| {
                         let abspath = files_path.join(&path);
-                        ManifestFile::from_path(ManifestType::Aux, path, abspath, hashes)
+                        ManifestEntry::from_path(ManifestType::Aux, path, abspath, hashes)
                     }),
             );
 
@@ -358,7 +358,7 @@ impl Manifest {
                         };
                         let name = e.file_name();
                         let abspath = pkgdir.join(e.path());
-                        ManifestFile::from_path(kind, name, abspath, hashes)
+                        ManifestEntry::from_path(kind, name, abspath, hashes)
                     }),
             );
         } else {
@@ -411,7 +411,7 @@ impl fmt::Display for Manifest {
 }
 
 impl<'a> IntoIterator for &'a Manifest {
-    type Item = &'a ManifestFile;
+    type Item = &'a ManifestEntry;
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -420,10 +420,10 @@ impl<'a> IntoIterator for &'a Manifest {
 }
 
 /// An iterator over the entries of a [`Manifest`].
-pub struct Iter<'a>(indexmap::set::Iter<'a, ManifestFile>);
+pub struct Iter<'a>(indexmap::set::Iter<'a, ManifestEntry>);
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = &'a ManifestFile;
+    type Item = &'a ManifestEntry;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
