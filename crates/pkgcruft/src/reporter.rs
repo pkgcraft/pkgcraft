@@ -5,12 +5,12 @@ use colored::{Color, Colorize};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use strfmt::strfmt;
-use strum::{AsRefStr, Display, EnumIter, EnumString, VariantNames};
+use strum::{EnumString, VariantNames};
 
 use crate::report::{Report, ReportKind, ReportScope};
 use crate::Error;
 
-#[derive(AsRefStr, Display, EnumIter, EnumString, VariantNames, Debug, Clone)]
+#[derive(EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Reporter {
     Count(CountReporter),
