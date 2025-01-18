@@ -4,11 +4,9 @@ use dashmap::{mapref::one::Ref, DashMap};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
-use pkgcraft::pkg::ebuild::{iuse::Iuse, EbuildPkg};
-use pkgcraft::pkg::Package;
+use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
-use pkgcraft::types::OrderedSet;
 
 use crate::report::ReportKind::RubyUpdate;
 use crate::scan::ScannerRun;
@@ -32,7 +30,7 @@ static CHECK: super::Check = super::Check::RubyUpdate;
 struct Check {
     repo: EbuildRepo,
     targets: IndexSet<String>,
-    dep_iuse: DashMap<Restrict, Option<OrderedSet<Iuse>>>,
+    dep_iuse: DashMap<Restrict, Option<HashSet<String>>>,
 }
 
 super::register!(Check);
@@ -42,7 +40,7 @@ impl Check {
     fn get_dep_iuse<R: Into<Restrict>>(
         &self,
         dep: R,
-    ) -> Ref<Restrict, Option<OrderedSet<Iuse>>> {
+    ) -> Ref<Restrict, Option<HashSet<String>>> {
         let restrict = dep.into();
         self.dep_iuse
             .entry(restrict.clone())
@@ -51,7 +49,13 @@ impl Check {
                     .iter_restrict(restrict)
                     .filter_map(Result::ok)
                     .last()
-                    .map(|pkg| pkg.iuse().clone())
+                    .map(|pkg| {
+                        pkg.iuse()
+                            .iter()
+                            .filter_map(|x| x.flag().strip_prefix(IUSE_PREFIX))
+                            .map(|x| x.to_string())
+                            .collect()
+                    })
             })
             .downgrade()
     }
@@ -97,11 +101,7 @@ impl EbuildPkgCheck for Check {
         // drop targets with missing dependencies
         for dep in deps.iter().filter(|x| use_starts_with(x, &[IUSE_PREFIX])) {
             if let Some(iuse) = self.get_dep_iuse(dep.no_use_deps()).as_ref() {
-                let iuse = iuse
-                    .iter()
-                    .filter_map(|x| x.flag().strip_prefix(IUSE_PREFIX))
-                    .collect::<HashSet<_>>();
-                targets.retain(|x| iuse.contains(x.as_str()));
+                targets.retain(|&x| iuse.contains(x));
                 if targets.is_empty() {
                     // no updates available
                     return;
