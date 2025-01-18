@@ -266,9 +266,9 @@ fn scopes() {
 fn pkgs() {
     let file = qa_primary_file();
     let reports = indoc::indoc! {r#"
-        {"kind":"KeywordsDropped","scope":{"Version":["sys-fs/lvm2-2.03.22-r2",null]},"message":"alpha, hppa, ia64, m68k, ppc"}
-        {"kind":"KeywordsDropped","scope":{"Version":["x11-wm/mutter-45.1",null]},"message":"ppc64"}
-        {"kind":"UnstableOnly","scope":{"Package":"x11-wm/mutter"},"message":"arm, ppc64"}
+        {"scope":{"Version":["sys-fs/lvm2-2.03.22-r2",null]},"kind":"KeywordsDropped","message":"alpha, hppa, ia64, m68k, ppc"}
+        {"scope":{"Version":["x11-wm/mutter-45.1",null]},"kind":"KeywordsDropped","message":"ppc64"}
+        {"scope":{"Package":"x11-wm/mutter"},"kind":"UnstableOnly","message":"arm, ppc64"}
     "#};
     let expected: Vec<_> = reports.lines().collect();
 
@@ -307,13 +307,13 @@ fn pkgs() {
 fn sort() {
     // serialized reports in reversed sorting order
     let reports = indoc::indoc! {r#"
-        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"x86"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",{"line":16,"column":0}]},"message":"missing ending newline"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",{"line":4,"column":17}]},"message":"character '\\u{2002}'"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-2",{"line":4,"column":5}]},"message":"character '\\u{2001}'"}
-        {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-2",{"line":3,"column":0}]},"message":"empty line"}
-        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-2",null]},"message":"BDEPEND: pkg/deprecated"}
-        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1",null]},"message":"BDEPEND: pkg/deprecated"}
+        {"scope":{"Package":"cat/pkg"},"kind":"UnstableOnly","message":"x86"}
+        {"scope":{"Version":["cat/pkg-2",{"line":16,"column":0}]},"kind":"WhitespaceInvalid","message":"missing ending newline"}
+        {"scope":{"Version":["cat/pkg-2",{"line":4,"column":17}]},"kind":"WhitespaceInvalid","message":"character '\\u{2002}'"}
+        {"scope":{"Version":["cat/pkg-2",{"line":4,"column":5}]},"kind":"WhitespaceInvalid","message":"character '\\u{2001}'"}
+        {"scope":{"Version":["cat/pkg-2",{"line":3,"column":0}]},"kind":"WhitespaceUnneeded","message":"empty line"}
+        {"scope":{"Version":["cat/pkg-2",null]},"kind":"DependencyDeprecated","message":"BDEPEND: pkg/deprecated"}
+        {"scope":{"Version":["cat/pkg-1",null]},"kind":"DependencyDeprecated","message":"BDEPEND: pkg/deprecated"}
     "#};
     let mut expected: Vec<_> = reports.lines().collect();
     expected.reverse();

@@ -258,13 +258,13 @@ mod tests {
     use super::*;
 
     static REPORTS: &str = indoc::indoc! {r#"
-        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
-        {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"message":"empty line"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
-        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
-        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat1"},"message":null}
-        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat2"},"message":null}
-        {"kind":"LicensesUnused","scope":{"Repo":"repo1"},"message":"unused"}
+        {"scope":{"Version":["cat/pkg-1-r2",null]},"kind":"DependencyDeprecated","message":"BDEPEND: cat/deprecated"}
+        {"scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"kind":"WhitespaceUnneeded","message":"empty line"}
+        {"scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"kind":"WhitespaceInvalid","message":"character '\\u{2001}'"}
+        {"scope":{"Package":"cat/pkg"},"kind":"UnstableOnly","message":"arch"}
+        {"scope":{"Category":"cat1"},"kind":"RepoCategoryEmpty","message":null}
+        {"scope":{"Category":"cat2"},"kind":"RepoCategoryEmpty","message":null}
+        {"scope":{"Repo":"repo1"},"kind":"LicensesUnused","message":"unused"}
     "#};
 
     fn report<R: Into<Reporter>>(reporter: R) -> String {

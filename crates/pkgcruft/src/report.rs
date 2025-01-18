@@ -802,10 +802,10 @@ impl fmt::Display for ReportScope {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Report {
-    pub kind: ReportKind,
     scope: ReportScope,
+    pub kind: ReportKind,
     message: Option<String>,
 }
 
@@ -834,21 +834,6 @@ impl Report {
     pub fn from_json(data: &str) -> crate::Result<Self> {
         serde_json::from_str(data)
             .map_err(|e| Error::InvalidValue(format!("failed deserializing report: {e}")))
-    }
-}
-
-impl Ord for Report {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.scope
-            .cmp(&other.scope)
-            .then_with(|| self.kind.cmp(&other.kind))
-            .then_with(|| self.message.cmp(&other.message))
-    }
-}
-
-impl PartialOrd for Report {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
 
