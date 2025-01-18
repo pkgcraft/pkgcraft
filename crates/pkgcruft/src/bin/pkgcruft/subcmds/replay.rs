@@ -20,7 +20,7 @@ pub(crate) struct Options {
 
     /// Restrict by scope
     #[arg(
-        short,
+        short = 'S',
         long,
         value_name = "SCOPE[,...]",
         value_delimiter = ',',
@@ -31,7 +31,7 @@ pub(crate) struct Options {
     scopes: Vec<Scope>,
 
     /// Sort reports
-    #[arg(long)]
+    #[arg(short, long)]
     sort: bool,
 
     #[clap(flatten)]

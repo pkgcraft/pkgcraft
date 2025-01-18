@@ -233,7 +233,7 @@ fn scopes() {
     );
     let data = multiple_expected.iter().map(|x| x.to_json()).join("\n");
 
-    for opt in ["-s", "--scopes"] {
+    for opt in ["-S", "--scopes"] {
         // invalid
         cmd("pkgcruft replay")
             .args([opt, "invalid"])
@@ -318,14 +318,17 @@ fn sort() {
     let mut expected: Vec<_> = reports.lines().collect();
     expected.reverse();
 
-    let output = cmd("pkgcruft replay -R json --sort -")
-        .write_stdin(reports)
-        .output()
-        .unwrap()
-        .stdout;
-    let output = String::from_utf8(output).unwrap();
-    let output: Vec<_> = output.lines().collect();
-    assert_eq!(&output, &expected);
+    for opt in ["-s", "--sort"] {
+        let output = cmd("pkgcruft replay -R json -")
+            .arg(opt)
+            .write_stdin(reports)
+            .output()
+            .unwrap()
+            .stdout;
+        let output = String::from_utf8(output).unwrap();
+        let output: Vec<_> = output.lines().collect();
+        assert_eq!(&output, &expected);
+    }
 }
 
 #[test]
