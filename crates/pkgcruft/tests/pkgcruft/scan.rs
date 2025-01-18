@@ -363,6 +363,22 @@ fn jobs() {
 }
 
 #[test]
+fn sort() {
+    let repo = test_data_path().join("repos/valid/qa-primary");
+    let mut expected = glob_reports!("{repo}/**/reports.json");
+    expected.sort();
+
+    for opt in ["-s", "--sort"] {
+        let reports = cmd("pkgcruft scan -R json")
+            .arg(opt)
+            .arg(&repo)
+            .to_reports()
+            .unwrap();
+        assert_ordered_eq!(&expected, &reports);
+    }
+}
+
+#[test]
 fn repo() {
     let repo = test_data_path().join("repos/valid/qa-primary");
 
