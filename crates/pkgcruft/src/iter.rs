@@ -216,10 +216,9 @@ pub struct ReportIter {
     _workers: Vec<thread::JoinHandle<()>>,
     _producer: thread::JoinHandle<()>,
     id: usize,
-    prev_category: Option<String>,
     sort: bool,
     target_cache: HashMap<Target, Vec<Report>>,
-    id_cache: HashMap<usize, (Target, Vec<Report>)>,
+    id_cache: HashMap<usize, Vec<Report>>,
     reports: VecDeque<Report>,
 }
 
@@ -279,7 +278,6 @@ impl ReportIter {
             _workers,
             _producer,
             id: Default::default(),
-            prev_category: Default::default(),
             sort: run.sort,
             target_cache: Default::default(),
             id_cache: Default::default(),
@@ -300,7 +298,7 @@ impl ReportIter {
                 let mut reports = self.target_cache.remove(&target).unwrap_or_default();
                 reports.sort();
                 if self.sort {
-                    self.id_cache.insert(id, (target, reports));
+                    self.id_cache.insert(id, reports);
                 } else if !reports.is_empty() {
                     self.reports.extend(reports);
                 }
@@ -319,24 +317,11 @@ impl Iterator for ReportIter {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.sort {
-                if let Some((target, reports)) = self.id_cache.remove(&self.id) {
+                if let Some(reports) = self.id_cache.remove(&self.id) {
                     self.id += 1;
-
                     if reports.is_empty() {
                         continue;
-                    } else if let Target::Cpn(cpn) = target {
-                        if let Some(category) = &self.prev_category {
-                            if category != cpn.category() {
-                                let target = Target::Category(category.clone());
-                                if let Some(mut reports) = self.target_cache.remove(&target) {
-                                    reports.sort();
-                                    self.reports.extend(reports);
-                                }
-                            }
-                        }
-                        self.prev_category = Some(cpn.category().to_string());
                     }
-
                     self.reports.extend(reports);
                 }
             }
