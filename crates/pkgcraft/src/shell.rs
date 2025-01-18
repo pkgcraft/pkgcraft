@@ -6,9 +6,8 @@ use std::sync::LazyLock;
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use scallop::builtins::{override_funcs, shopt};
 use scallop::variables::*;
-use scallop::{functions, Error, ExecStatus};
+use scallop::{builtins, functions, Error, ExecStatus};
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
@@ -338,14 +337,14 @@ impl BuildData {
         }
 
         // commands override functions
-        override_funcs(eapi.commands(), true)?;
+        builtins::override_funcs(eapi.commands(), true)?;
         // phase stubs override functions forcing direct calls to error out
-        override_funcs(eapi.phases(), true)?;
+        builtins::override_funcs(eapi.phases(), true)?;
 
         self.set_vars()?;
 
         if eapi.has(GlobalFailglob) {
-            shopt::enable(&["failglob"])?;
+            builtins::shopt::enable(&["failglob"])?;
         }
 
         // run global sourcing in restricted shell mode
@@ -422,9 +421,9 @@ type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
     scallop::shell::init(false);
     // all builtins are enabled by default, access is restricted at runtime based on scope
-    scallop::builtins::register(&*commands::BUILTINS);
+    builtins::register(&*commands::BUILTINS);
     // restrict builtin loading and toggling
-    scallop::builtins::disable(["enable"]).expect("failed disabling builtins");
+    builtins::disable(["enable"]).expect("failed disabling builtins");
 });
 
 /// Build wrapper for ebuild package variants.
@@ -509,7 +508,7 @@ mod tests {
         config.finalize().unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
-        scallop::builtins::set(["-e"]).unwrap();
+        builtins::set(["-e"]).unwrap();
         // absolute path for commands are denied via restricted shell
         let data = indoc::indoc! {r#"
             EAPI=8
