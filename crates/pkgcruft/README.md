@@ -1,6 +1,15 @@
 QA library and tools based on pkgcraft.
 
-# Requirements
+# Usage
+
+The main use for pkgcruft is to scan ebuild repos for issues. It works in a
+similar fashion to [pkgcheck] but operates in a much more performant manner
+while supporting features such as ignore directives, native package filtering,
+and sorted output.
+
+For basic use cases, simply run `pkgcruft scan` inside an ebuild repo.
+
+# Build requirements
 
 A recent version of rust and compatible clang compiler.
 
@@ -27,3 +36,5 @@ Benchmarks can be run individually for every supported check against a repo targ
 
     # run benchmarks
     cargo criterion Check --features test -p pkgcruft
+
+[pkgcheck]: <https://github.com/pkgcore/pkgcheck/>
