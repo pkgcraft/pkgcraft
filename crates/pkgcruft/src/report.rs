@@ -169,7 +169,7 @@ pub struct ReportTarget(TriState<ReportSet>);
 impl ReportTarget {
     /// Collapse report targets into default and selected report variant sets.
     pub fn collapse<'a, I>(
-        values: I,
+        targets: I,
         defaults: &IndexSet<ReportKind>,
         supported: &IndexSet<ReportKind>,
     ) -> crate::Result<(IndexSet<ReportKind>, IndexSet<ReportKind>)>
@@ -177,11 +177,11 @@ impl ReportTarget {
         I: IntoIterator<Item = &'a Self>,
     {
         // sort sets by variant
-        let mut values: IndexSet<_> = values.into_iter().copied().map(|x| x.0).collect();
-        values.sort();
+        let mut targets: IndexSet<_> = targets.into_iter().copied().map(|x| x.0).collect();
+        targets.sort();
 
         // don't use defaults if neutral options exist
-        let mut enabled = if let Some(TriState::Set(_)) = values.first() {
+        let mut enabled = if let Some(TriState::Set(_)) = targets.first() {
             Default::default()
         } else {
             defaults.clone()
@@ -191,8 +191,8 @@ impl ReportTarget {
         // to the selection set. Set membership determines if an enabled check is skipped
         // with a warning or errors out if it is unable to be run.
         let mut selected = IndexSet::new();
-        for x in values {
-            match x {
+        for target in targets {
+            match target {
                 TriState::Set(set) | TriState::Add(set) => {
                     for r in set.expand(defaults, supported) {
                         enabled.insert(r);
