@@ -18,7 +18,7 @@ use crate::scan::ScannerRun;
 pub(crate) enum Item {
     Report(Report),
     Process(Target, usize),
-    Flush,
+    Finish(thread::ThreadId),
 }
 
 #[derive(Debug)]
@@ -35,17 +35,16 @@ impl ReportSender {
         self.0.send(Item::Process(target, id)).ok();
     }
 
-    /// Direct the iterator to process all cached reports.
-    fn flush(&self) {
-        self.0.send(Item::Flush).ok();
+    /// Notify the iterator that a worker thread finished.
+    fn finish(&self) {
+        self.0.send(Item::Finish(thread::current().id())).ok();
     }
 }
 
 /// Create a producer thread that sends package targets over a channel to workers.
 fn pkg_producer(
     run: Arc<ScannerRun>,
-    finish_wg: WaitGroup,
-    process_wg: WaitGroup,
+    wg: WaitGroup,
     tx: Sender<(Option<Check>, Target, usize)>,
     finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
@@ -64,19 +63,12 @@ fn pkg_producer(
 
         // wait for all parallelized checks to finish
         drop(tx);
-        finish_wg.wait();
+        wg.wait();
 
         // finalize checks in parallel
         for check in run.checks.iter().filter(|c| c.finish_check(run.scope)) {
             finish_tx.send(*check).ok();
         }
-
-        // wait for all checks to finish
-        drop(finish_tx);
-        process_wg.wait();
-
-        // signal iterator to process all remaining cached reports
-        run.sender().flush();
     })
 }
 
@@ -84,8 +76,7 @@ fn pkg_producer(
 fn pkg_worker(
     run: Arc<ScannerRun>,
     runner: Arc<SyncCheckRunner>,
-    finish_wg: WaitGroup,
-    process_wg: WaitGroup,
+    wg: WaitGroup,
     rx: Receiver<(Option<Check>, Target, usize)>,
     finish_rx: Receiver<Check>,
 ) -> thread::JoinHandle<()> {
@@ -111,23 +102,22 @@ fn pkg_worker(
         }
 
         // signal the finish wait group
-        drop(finish_wg);
+        drop(wg);
 
         // finalize checks
         for check in finish_rx {
             runner.finish_check(&check, &run);
         }
 
-        // signal the end processing wait group
-        drop(process_wg);
+        // signal iterator that the worker finished
+        run.sender().finish();
     })
 }
 
 /// Create a producer thread that sends checks with targets over a channel to workers.
 fn version_producer(
     run: Arc<ScannerRun>,
-    finish_wg: WaitGroup,
-    process_wg: WaitGroup,
+    wg: WaitGroup,
     tx: Sender<(Check, Target)>,
     finish_tx: Sender<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
@@ -149,7 +139,7 @@ fn version_producer(
 
         // wait for all parallelized checks to finish
         drop(tx);
-        finish_wg.wait();
+        wg.wait();
 
         for cpv in &cpvs {
             for check in run.checks.iter().filter(|c| c.finish_target()) {
@@ -162,13 +152,6 @@ fn version_producer(
                 finish_tx.send((*check, cpn.clone().into())).ok();
             }
         }
-
-        // wait for all checks to finish
-        drop(finish_tx);
-        process_wg.wait();
-
-        // signal iterator to process all remaining cached reports
-        run.sender().flush();
     })
 }
 
@@ -176,8 +159,7 @@ fn version_producer(
 fn version_worker(
     run: Arc<ScannerRun>,
     runner: Arc<SyncCheckRunner>,
-    finish_wg: WaitGroup,
-    process_wg: WaitGroup,
+    wg: WaitGroup,
     rx: Receiver<(Check, Target)>,
     finish_rx: Receiver<(Check, Target)>,
 ) -> thread::JoinHandle<()> {
@@ -197,15 +179,15 @@ fn version_worker(
         }
 
         // signal the finish wait group
-        drop(finish_wg);
+        drop(wg);
 
         // run finalize methods for targets
         for (check, target) in finish_rx {
             runner.finish_target(&check, &target, &run);
         }
 
-        // signal the end processing wait group
-        drop(process_wg);
+        // signal iterator that the worker finished
+        run.sender().finish();
     })
 }
 
@@ -213,8 +195,8 @@ fn version_worker(
 #[derive(Debug)]
 pub struct ReportIter {
     rx: Receiver<Item>,
-    _workers: Vec<thread::JoinHandle<()>>,
-    _producer: thread::JoinHandle<()>,
+    workers: HashMap<thread::ThreadId, thread::JoinHandle<()>>,
+    producer: Option<thread::JoinHandle<()>>,
     id: usize,
     sort: bool,
     target_cache: HashMap<Target, Vec<Report>>,
@@ -230,12 +212,11 @@ impl ReportIter {
             .set(ReportSender(reports_tx))
             .expect("failed setting sender");
 
-        let finish_wg = WaitGroup::new();
-        let process_wg = WaitGroup::new();
+        let wg = WaitGroup::new();
         let runner = Arc::new(SyncCheckRunner::new(&run));
 
         // create workers and producer threads depending on run scope
-        let (_workers, _producer) = if run.scope >= Scope::Category {
+        let (workers, producer) = if run.scope >= Scope::Category {
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);
             (
@@ -244,14 +225,14 @@ impl ReportIter {
                         pkg_worker(
                             run.clone(),
                             runner.clone(),
-                            finish_wg.clone(),
-                            process_wg.clone(),
+                            wg.clone(),
                             targets_rx.clone(),
                             finish_rx.clone(),
                         )
                     })
+                    .map(|h| (h.thread().id(), h))
                     .collect(),
-                pkg_producer(run.clone(), finish_wg, process_wg, targets_tx, finish_tx),
+                pkg_producer(run.clone(), wg, targets_tx, finish_tx),
             )
         } else {
             let (targets_tx, targets_rx) = bounded(run.jobs);
@@ -262,21 +243,21 @@ impl ReportIter {
                         version_worker(
                             run.clone(),
                             runner.clone(),
-                            finish_wg.clone(),
-                            process_wg.clone(),
+                            wg.clone(),
                             targets_rx.clone(),
                             finish_rx.clone(),
                         )
                     })
+                    .map(|h| (h.thread().id(), h))
                     .collect(),
-                version_producer(run.clone(), finish_wg, process_wg, targets_tx, finish_tx),
+                version_producer(run.clone(), wg, targets_tx, finish_tx),
             )
         };
 
         Self {
             rx: reports_rx,
-            _workers,
-            _producer,
+            workers,
+            producer: Some(producer),
             id: Default::default(),
             sort: run.sort,
             target_cache: Default::default(),
@@ -303,9 +284,20 @@ impl ReportIter {
                     self.reports.extend(reports);
                 }
             }
-            Item::Flush => {
-                self.reports
-                    .extend(self.target_cache.values_mut().flat_map(mem::take).sorted());
+            Item::Finish(id) => {
+                let worker = self
+                    .workers
+                    .remove(&id)
+                    .unwrap_or_else(|| panic!("unknown worker thread: {id:?}"));
+                worker.join().unwrap();
+
+                // flush remaining cached reports when all workers are complete
+                if self.workers.is_empty() {
+                    let producer = self.producer.take().expect("unknown producer thread");
+                    producer.join().unwrap();
+                    self.reports
+                        .extend(self.target_cache.values_mut().flat_map(mem::take).sorted());
+                }
             }
         })
     }
