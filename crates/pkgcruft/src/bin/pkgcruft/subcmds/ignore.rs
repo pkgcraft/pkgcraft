@@ -38,12 +38,10 @@ impl Command {
             .finalize_targets(self.targets.iter().flatten())?;
 
         let mut stdout = io::stdout().lock();
-        for (repo_set, restrict) in targets {
-            for repo in repo_set.ebuild() {
-                let ignore = Ignore::new(repo);
-                ignore.populate(&restrict);
-                write!(stdout, "{ignore}")?;
-            }
+        for (repo, restrict) in targets.ebuild_repo_restricts() {
+            let ignore = Ignore::new(repo);
+            ignore.populate(restrict);
+            write!(stdout, "{ignore}")?;
         }
 
         Ok(ExitCode::SUCCESS)
