@@ -27,8 +27,8 @@ struct Check {
 super::register!(Check);
 
 impl Check {
-    /// Get the package slots matching a given dependency.
-    fn get_dep_slots<R: Into<Restrict>>(&self, dep: R) -> Ref<Restrict, Option<String>> {
+    /// Get the package slots for a dependency if more than one exist.
+    fn get_slots<R: Into<Restrict>>(&self, dep: R) -> Ref<Restrict, Option<String>> {
         let restrict = dep.into();
         self.dep_slots
             .entry(restrict.clone())
@@ -57,7 +57,7 @@ impl EbuildPkgCheck for Check {
             .flat_map(|x| x.iter_flatten())
             .filter(|x| x.blocker().is_none() && x.slot_dep().is_none())
         {
-            if let Some(slots) = self.get_dep_slots(dep.no_use_deps()).as_ref() {
+            if let Some(slots) = self.get_slots(dep.no_use_deps()).as_ref() {
                 DependencySlotMissing
                     .version(pkg)
                     .message(format!("{dep} matches multiple slots: {slots}"))
