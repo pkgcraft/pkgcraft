@@ -69,6 +69,9 @@ fn pkg_producer(
         for check in run.checks.iter().filter(|c| c.finish_check(run.scope)) {
             finish_tx.send(*check).ok();
         }
+
+        // signal iterator on thread completion
+        run.sender().finish();
     })
 }
 
@@ -109,7 +112,7 @@ fn pkg_worker(
             runner.finish_check(&check, &run);
         }
 
-        // signal iterator that the worker finished
+        // signal iterator on thread completion
         run.sender().finish();
     })
 }
@@ -152,6 +155,9 @@ fn version_producer(
                 finish_tx.send((*check, cpn.clone().into())).ok();
             }
         }
+
+        // signal iterator on thread completion
+        run.sender().finish();
     })
 }
 
@@ -186,7 +192,7 @@ fn version_worker(
             runner.finish_target(&check, &target, &run);
         }
 
-        // signal iterator that the worker finished
+        // signal iterator on thread completion
         run.sender().finish();
     })
 }
@@ -195,8 +201,7 @@ fn version_worker(
 #[derive(Debug)]
 pub struct ReportIter {
     rx: Receiver<Item>,
-    workers: HashMap<thread::ThreadId, thread::JoinHandle<()>>,
-    producer: Option<thread::JoinHandle<()>>,
+    threads: HashMap<thread::ThreadId, thread::JoinHandle<()>>,
     id: usize,
     sort: bool,
     target_cache: HashMap<Target, Vec<Report>>,
@@ -215,11 +220,12 @@ impl ReportIter {
         let wg = WaitGroup::new();
         let runner = Arc::new(SyncCheckRunner::new(&run));
 
-        // create workers and producer threads depending on run scope
-        let (workers, producer) = if run.scope >= Scope::Category {
+        // create worker and producer threads depending on run scope
+        let mut threads = HashMap::new();
+        if run.scope >= Scope::Category {
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);
-            (
+            threads.extend(
                 (0..run.jobs)
                     .map(|_| {
                         pkg_worker(
@@ -230,14 +236,14 @@ impl ReportIter {
                             finish_rx.clone(),
                         )
                     })
-                    .map(|h| (h.thread().id(), h))
-                    .collect(),
-                pkg_producer(run.clone(), wg, targets_tx, finish_tx),
-            )
+                    .map(|h| (h.thread().id(), h)),
+            );
+            let producer = pkg_producer(run.clone(), wg, targets_tx, finish_tx);
+            threads.insert(producer.thread().id(), producer);
         } else {
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);
-            (
+            threads.extend(
                 (0..run.jobs)
                     .map(|_| {
                         version_worker(
@@ -248,16 +254,15 @@ impl ReportIter {
                             finish_rx.clone(),
                         )
                     })
-                    .map(|h| (h.thread().id(), h))
-                    .collect(),
-                version_producer(run.clone(), wg, targets_tx, finish_tx),
-            )
-        };
+                    .map(|h| (h.thread().id(), h)),
+            );
+            let producer = version_producer(run.clone(), wg, targets_tx, finish_tx);
+            threads.insert(producer.thread().id(), producer);
+        }
 
         Self {
             rx: reports_rx,
-            workers,
-            producer: Some(producer),
+            threads,
             id: Default::default(),
             sort: run.sort,
             target_cache: Default::default(),
@@ -285,16 +290,14 @@ impl ReportIter {
                 }
             }
             Item::Finish(id) => {
-                let worker = self
-                    .workers
+                let thread = self
+                    .threads
                     .remove(&id)
-                    .unwrap_or_else(|| panic!("unknown worker thread: {id:?}"));
-                worker.join().unwrap();
+                    .unwrap_or_else(|| panic!("unknown thread: {id:?}"));
+                thread.join().unwrap();
 
-                // flush remaining cached reports when all workers are complete
-                if self.workers.is_empty() {
-                    let producer = self.producer.take().expect("unknown producer thread");
-                    producer.join().unwrap();
+                // flush remaining cached reports when all threads are complete
+                if self.threads.is_empty() {
                     self.reports
                         .extend(self.target_cache.values_mut().flat_map(mem::take).sorted());
                 }
