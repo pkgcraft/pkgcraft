@@ -21,7 +21,7 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
         repo: run.repo.clone(),
         targets: use_expand(&run.repo, "ruby_targets", "ruby"),
-        dep_iuse: Default::default(),
+        dep_targets: Default::default(),
     }
 }
 
@@ -30,7 +30,7 @@ static CHECK: super::Check = super::Check::RubyUpdate;
 struct Check {
     repo: EbuildRepo,
     targets: IndexSet<String>,
-    dep_iuse: DashMap<Restrict, Option<HashSet<String>>>,
+    dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
 
 super::register!(Check);
@@ -45,13 +45,13 @@ fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {
 }
 
 impl Check {
-    /// Get the package IUSE matching a given dependency.
-    fn get_dep_iuse<R: Into<Restrict>>(
+    /// Get the set of compatible targets for a dependency.
+    fn get_targets<R: Into<Restrict>>(
         &self,
         dep: R,
     ) -> Ref<Restrict, Option<HashSet<String>>> {
         let restrict = dep.into();
-        self.dep_iuse
+        self.dep_targets
             .entry(restrict.clone())
             .or_insert_with(|| {
                 self.repo
@@ -103,8 +103,8 @@ impl EbuildPkgCheck for Check {
 
         // drop targets with missing dependencies
         for dep in deps.iter().filter(|x| use_starts_with(x, &[IUSE_PREFIX])) {
-            if let Some(iuse) = self.get_dep_iuse(dep.no_use_deps()).as_ref() {
-                targets.retain(|&x| iuse.contains(x));
+            if let Some(values) = self.get_targets(dep.no_use_deps()).as_ref() {
+                targets.retain(|&x| values.contains(x));
                 if targets.is_empty() {
                     // no updates available
                     return;
