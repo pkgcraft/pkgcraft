@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{self, Write};
 
 use colored::{Color, Colorize};
 use indexmap::IndexMap;
@@ -24,7 +24,7 @@ pub enum Reporter {
 
 impl Reporter {
     /// Run a report through a reporter.
-    pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
+    pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> io::Result<()> {
         match self {
             Self::Count(r) => r.report(report, output),
             Self::Fancy(r) => r.report(report, output),
@@ -37,7 +37,7 @@ impl Reporter {
     }
 
     /// Perform any relevant reporter finalization.
-    pub fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
+    pub fn finish<W: Write>(&mut self, output: &mut W) -> io::Result<()> {
         match self {
             Self::Count(r) => r.finish(output),
             Self::Stats(r) => r.finish(output),
@@ -56,12 +56,12 @@ impl From<CountReporter> for Reporter {
 }
 
 impl CountReporter {
-    fn report<W: Write>(&mut self, _report: &Report, _output: &mut W) -> crate::Result<()> {
+    fn report<W: Write>(&mut self, _report: &Report, _output: &mut W) -> io::Result<()> {
         self.0 += 1;
         Ok(())
     }
 
-    fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
+    fn finish<W: Write>(&mut self, output: &mut W) -> io::Result<()> {
         writeln!(output, "{}", self.0)?;
         Ok(())
     }
@@ -80,12 +80,12 @@ impl From<StatsReporter> for Reporter {
 }
 
 impl StatsReporter {
-    fn report<W: Write>(&mut self, report: &Report, _output: &mut W) -> crate::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, _output: &mut W) -> io::Result<()> {
         *self.cache.entry(report.kind).or_default() += 1;
         Ok(())
     }
 
-    fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
+    fn finish<W: Write>(&mut self, output: &mut W) -> io::Result<()> {
         match self.sort_by.as_str() {
             "count" => self
                 .cache
@@ -115,7 +115,7 @@ impl From<SimpleReporter> for Reporter {
 }
 
 impl SimpleReporter {
-    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> io::Result<()> {
         writeln!(output, "{report}")?;
         Ok(())
     }
@@ -133,7 +133,7 @@ impl From<FancyReporter> for Reporter {
 }
 
 impl FancyReporter {
-    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> io::Result<()> {
         let scope = report.scope();
         let key = if let ReportScope::Version(cpv, _) = scope {
             cpv.cpn().to_string()
@@ -182,7 +182,7 @@ impl From<JsonReporter> for Reporter {
 }
 
 impl JsonReporter {
-    fn report<W: Write>(&self, report: &Report, output: &mut W) -> crate::Result<()> {
+    fn report<W: Write>(&self, report: &Report, output: &mut W) -> io::Result<()> {
         writeln!(output, "{}", report.to_json())?;
         Ok(())
     }
@@ -200,7 +200,7 @@ impl From<FormatReporter> for Reporter {
 }
 
 impl FormatReporter {
-    fn report<W: Write>(&self, report: &Report, output: &mut W) -> crate::Result<()> {
+    fn report<W: Write>(&self, report: &Report, output: &mut W) -> io::Result<()> {
         let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind.to_string())]
             .into_iter()
             .collect();
@@ -238,10 +238,11 @@ impl FormatReporter {
 
         let s = strfmt(&self.format, &attrs).map_err(|e| {
             let supported = attrs.keys().sorted().join(", ");
-            Error::InvalidValue(format!(
+            let error = Error::InvalidValue(format!(
                 "{}: invalid output format: {e}\n  [possible attributes: {supported}]",
                 report.kind
-            ))
+            ));
+            io::Error::new(io::ErrorKind::Other, error)
         })?;
         if !s.is_empty() {
             writeln!(output, "{s}")?;
