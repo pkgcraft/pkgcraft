@@ -20,13 +20,10 @@ Install with cargo-binstall:
 
 # Benchmarking
 
-Benchmarks can be run individually for every check against a repo target:
+Benchmarks can be run individually for every supported check against a repo target:
 
     # set repo target
     export PKGCRUFT_BENCH_REPO=path/to/repo
-
-    # update repo metadata
-    pk repo metadata regen path/to/repo
 
     # run benchmarks
     cargo criterion Check --features test -p pkgcruft
