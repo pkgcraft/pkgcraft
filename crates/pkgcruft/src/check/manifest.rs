@@ -67,11 +67,11 @@ impl EbuildPkgSetCheck for Check {
         let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
         let mut manifest_distfiles = HashSet::new();
         let mut colliding = HashMap::<_, HashSet<_>>::new();
-        for x in manifest.distfiles() {
-            let name = x.name();
+        for entry in manifest.distfiles() {
+            let name = entry.name();
             manifest_distfiles.insert(name);
 
-            if let Some(hash) = x.hashes().get(&self.hash) {
+            if let Some(hash) = entry.hashes().get(&self.hash) {
                 // track duplicate names with different hashes
                 if run.enabled(ManifestConflict) {
                     self.conflicting
