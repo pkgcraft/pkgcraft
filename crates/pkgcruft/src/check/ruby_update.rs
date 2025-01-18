@@ -83,7 +83,7 @@ impl EbuildPkgCheck for Check {
             .iter()
             .filter(|x| x.cpn() == IMPL_PKG)
             .filter_map(|x| x.slot().map(|s| format!("ruby{}", s.replace('.', ""))))
-            .sorted_by_key(|x| self.targets.get_index_of(x.as_str()))
+            .sorted_by_key(|x| self.targets.get_index_of(x))
             .last()
         else {
             // missing deps
