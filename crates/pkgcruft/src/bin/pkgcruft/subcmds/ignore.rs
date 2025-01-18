@@ -39,8 +39,7 @@ impl Command {
 
         let mut stdout = io::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {
-            let ignore = Ignore::new(repo);
-            ignore.populate(restrict);
+            let ignore = Ignore::new(repo).populate(restrict);
             write!(stdout, "{ignore}")?;
         }
 

@@ -32,6 +32,20 @@ impl Ignore {
         }
     }
 
+    /// Fully populate the cache for a restriction.
+    pub fn populate(self, restrict: &Restrict) -> Self {
+        // TODO: replace with parallel Cpv iterator
+        self.repo
+            .iter_cpv_restrict(restrict)
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .for_each(|cpv| {
+                let scope = ReportScope::Version(cpv, None);
+                self.generate(&scope).count();
+            });
+        self
+    }
+
     /// Parse the ignore data from a line.
     ///
     /// This supports comma-separated values with optional whitespace.
@@ -100,19 +114,6 @@ impl Ignore {
                 .map(|(_, used)| *used = true)
                 .is_some()
         })
-    }
-
-    /// Fully populate the cache for a restriction.
-    pub fn populate(&self, restrict: &Restrict) {
-        // TODO: replace with parallel Cpv iterator
-        self.repo
-            .iter_cpv_restrict(restrict)
-            .collect::<Vec<_>>()
-            .into_par_iter()
-            .for_each(|cpv| {
-                let scope = ReportScope::Version(cpv, None);
-                self.generate(&scope).count();
-            });
     }
 
     /// Return the set of unused ignore directives for a scope if it exists.
