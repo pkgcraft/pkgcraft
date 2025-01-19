@@ -221,48 +221,38 @@ impl ReportIter {
         let runner = Arc::new(SyncCheckRunner::new(&run));
 
         // create worker and producer threads depending on run scope
-        let mut threads = HashMap::new();
+        let mut threads = vec![];
         if run.scope >= Scope::Category {
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);
-            threads.extend(
-                (0..run.jobs)
-                    .map(|_| {
-                        pkg_worker(
-                            run.clone(),
-                            runner.clone(),
-                            wg.clone(),
-                            targets_rx.clone(),
-                            finish_rx.clone(),
-                        )
-                    })
-                    .map(|h| (h.thread().id(), h)),
-            );
-            let producer = pkg_producer(run.clone(), wg, targets_tx, finish_tx);
-            threads.insert(producer.thread().id(), producer);
+            threads.extend((0..run.jobs).map(|_| {
+                pkg_worker(
+                    run.clone(),
+                    runner.clone(),
+                    wg.clone(),
+                    targets_rx.clone(),
+                    finish_rx.clone(),
+                )
+            }));
+            threads.push(pkg_producer(run.clone(), wg, targets_tx, finish_tx));
         } else {
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);
-            threads.extend(
-                (0..run.jobs)
-                    .map(|_| {
-                        version_worker(
-                            run.clone(),
-                            runner.clone(),
-                            wg.clone(),
-                            targets_rx.clone(),
-                            finish_rx.clone(),
-                        )
-                    })
-                    .map(|h| (h.thread().id(), h)),
-            );
-            let producer = version_producer(run.clone(), wg, targets_tx, finish_tx);
-            threads.insert(producer.thread().id(), producer);
+            threads.extend((0..run.jobs).map(|_| {
+                version_worker(
+                    run.clone(),
+                    runner.clone(),
+                    wg.clone(),
+                    targets_rx.clone(),
+                    finish_rx.clone(),
+                )
+            }));
+            threads.push(version_producer(run.clone(), wg, targets_tx, finish_tx));
         }
 
         Self {
             rx: reports_rx,
-            threads,
+            threads: threads.into_iter().map(|x| (x.thread().id(), x)).collect(),
             id: Default::default(),
             sort: run.sort,
             target_cache: Default::default(),
