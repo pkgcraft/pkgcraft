@@ -25,18 +25,6 @@ pub(super) enum Target {
     Repo,
 }
 
-impl Target {
-    /// Return the target scope.
-    fn scope(&self) -> Scope {
-        match self {
-            Self::Cpv(_) => Scope::Version,
-            Self::Cpn(_) => Scope::Package,
-            Self::Category(_) => Scope::Category,
-            Self::Repo => Scope::Repo,
-        }
-    }
-}
-
 impl From<Cpn> for Target {
     fn from(value: Cpn) -> Self {
         Self::Cpn(value)
