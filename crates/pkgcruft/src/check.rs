@@ -360,6 +360,14 @@ pub(crate) trait RepoCheck: fmt::Display {
 }
 pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 
+/// Run a check against a category.
+#[allow(unused_variables)]
+pub(crate) trait CategoryCheck: fmt::Display {
+    fn run(&self, category: &str, run: &ScannerRun);
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
+}
+pub(crate) type CategoryRunner = Box<dyn CategoryCheck + Send + Sync>;
+
 /// Run a check against a Cpv.
 #[allow(unused_variables)]
 pub(crate) trait CpvCheck: fmt::Display {

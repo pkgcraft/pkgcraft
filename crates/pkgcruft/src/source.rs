@@ -25,6 +25,7 @@ pub enum SourceKind {
     EbuildPkg,
     EbuildRawPkg,
     Cpn,
+    Category,
     Repo,
 }
 
@@ -36,6 +37,7 @@ impl SourceKind {
             Self::EbuildPkg => Scope::Version,
             Self::EbuildRawPkg => Scope::Version,
             Self::Cpn => Scope::Package,
+            Self::Category => Scope::Category,
             Self::Repo => Scope::Repo,
         }
     }

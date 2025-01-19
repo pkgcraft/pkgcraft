@@ -6,7 +6,7 @@ use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
 use crossbeam_utils::sync::WaitGroup;
 use itertools::Itertools;
 use pkgcraft::repo::PkgRepository;
-use pkgcraft::restrict::Scope;
+use pkgcraft::restrict::{Restriction, Scope};
 
 use crate::check::Check;
 use crate::report::Report;
@@ -57,6 +57,24 @@ fn pkg_producer(
             .filter(|c| c.sources().contains(&SourceKind::Repo))
         {
             tx.send((Some(*check), Target::Repo, 0)).ok();
+        }
+
+        // TODO: queue these after all version/pkg checks have completed
+        // run category checks in parallel
+        for category in run
+            .repo
+            .categories()
+            .into_iter()
+            .filter(|x| run.restrict.matches(x))
+        {
+            for check in run
+                .checks
+                .iter()
+                .filter(|c| c.sources().contains(&SourceKind::Category))
+            {
+                let target = Target::Category(category.clone());
+                tx.send((Some(*check), target, 0)).ok();
+            }
         }
 
         // parallelize running checks per package

@@ -115,6 +115,7 @@ enum CheckRunner {
     EbuildRawPkg(EbuildRawPkgCheckRunner),
     Cpn(CpnCheckRunner),
     Cpv(CpvCheckRunner),
+    Category(CategoryCheckRunner),
     Repo(RepoCheckRunner),
 }
 
@@ -125,6 +126,7 @@ impl fmt::Debug for CheckRunner {
             Self::EbuildRawPkg(_) => write!(f, "EbuildRawPkgCheckRunner"),
             Self::Cpn(_) => write!(f, "CpnCheckRunner"),
             Self::Cpv(_) => write!(f, "CpvCheckRunner"),
+            Self::Category(_) => write!(f, "CategoryCheckRunner"),
             Self::Repo(_) => write!(f, "RepoCheckRunner"),
         }
     }
@@ -137,6 +139,7 @@ impl CheckRunner {
             SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(run)),
             SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(run)),
             SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(run)),
+            SourceKind::Category => Self::Category(CategoryCheckRunner::new(run)),
             SourceKind::Repo => Self::Repo(RepoCheckRunner::new(run)),
         }
     }
@@ -147,6 +150,7 @@ impl CheckRunner {
             Self::EbuildRawPkg(r) => r.add_check(check, run),
             Self::Cpn(r) => r.add_check(check, run),
             Self::Cpv(r) => r.add_check(check, run),
+            Self::Category(r) => r.add_check(check, run),
             Self::Repo(r) => r.add_check(check, run),
         }
     }
@@ -169,6 +173,7 @@ impl CheckRunner {
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, run),
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, run),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, run),
+            (Self::Category(r), Target::Category(cat)) => r.run_check(check, cat, run),
             (Self::Repo(r), Target::Repo) => r.run_check(check, run),
             _ => (),
         }
@@ -188,6 +193,7 @@ impl CheckRunner {
             Self::EbuildRawPkg(r) => r.finish_check(check, run),
             Self::Cpn(r) => r.finish_check(check, run),
             Self::Cpv(r) => r.finish_check(check, run),
+            Self::Category(r) => r.finish_check(check, run),
             Self::Repo(r) => r.finish_check(check, run),
         }
     }
@@ -464,7 +470,46 @@ impl CpvCheckRunner {
     }
 }
 
-/// Check runner for Repo objects.
+/// Check runner for category targets.
+struct CategoryCheckRunner {
+    checks: IndexMap<Check, CategoryRunner>,
+    repo: EbuildRepo,
+}
+
+impl CategoryCheckRunner {
+    fn new(run: &ScannerRun) -> Self {
+        Self {
+            checks: Default::default(),
+            repo: run.repo.clone(),
+        }
+    }
+
+    fn add_check(&mut self, check: Check, run: &ScannerRun) {
+        self.checks.insert(check, check.to_runner(run));
+    }
+
+    fn run_check(&self, check: &Check, category: &str, run: &ScannerRun) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.run(category, run);
+        debug!("{check}: {category} {:?}", now.elapsed());
+    }
+
+    fn finish_check(&self, check: &Check, run: &ScannerRun) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.finish_check(&self.repo, run);
+        debug!("{check}: finish: {:?}", now.elapsed());
+    }
+}
+
+/// Check runner for repo targets.
 struct RepoCheckRunner {
     checks: IndexMap<Check, RepoRunner>,
     repo: EbuildRepo,
