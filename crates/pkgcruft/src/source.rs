@@ -342,8 +342,8 @@ impl Source for EbuildRawPkgSource {
 /// Cache used to avoid recreating package objects for package and version scope scans.
 #[derive(Debug)]
 pub(crate) struct PkgCache<T> {
-    cache: IndexMap<Cpv, pkgcraft::Result<T>>,
     pkgs: pkgcraft::Result<Vec<T>>,
+    cache: IndexMap<Cpv, pkgcraft::Result<T>>,
 }
 
 impl<T: Package + Clone> PkgCache<T> {
@@ -354,25 +354,18 @@ impl<T: Package + Clone> PkgCache<T> {
     {
         let mut cache = IndexMap::new();
 
-        // create pkg cache when running in pkg or version scope
-        if run.scope <= Scope::Package {
-            for result in source.iter_restrict_ordered(&run.restrict) {
-                if let Ok(pkg) = &result {
-                    cache.insert(pkg.cpv().clone(), result);
-                } else if let Err(InvalidPkg { cpv, .. }) = &result {
-                    cache.insert(*cpv.clone(), result);
-                }
+        for result in source.iter_restrict_ordered(&run.restrict) {
+            if let Ok(pkg) = &result {
+                cache.insert(pkg.cpv().clone(), result);
+            } else if let Err(InvalidPkg { cpv, .. }) = &result {
+                cache.insert(*cpv.clone(), result);
             }
         }
 
-        // only collect set in unfiltered package scope, in all other scopes it's not used
-        let pkgs = if run.scope == Scope::Package && !source.is_filtered() {
-            cache.values().cloned().try_collect()
-        } else {
-            Ok(Default::default())
-        };
-
-        Self { cache, pkgs }
+        Self {
+            pkgs: cache.values().cloned().try_collect(),
+            cache,
+        }
     }
 
     /// Get all packages from the cache if none were invalid on creation.
