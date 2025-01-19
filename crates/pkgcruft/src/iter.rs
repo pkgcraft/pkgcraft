@@ -15,7 +15,7 @@ use crate::scan::ScannerRun;
 
 /// Item sent to the report iterator for processing.
 #[derive(Debug)]
-pub(crate) enum Item {
+enum Item {
     Report(Report),
     Process(Target, usize),
     Finish(thread::ThreadId),
