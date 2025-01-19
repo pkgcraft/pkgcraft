@@ -16,6 +16,10 @@ pub(crate) struct Command {
     #[arg(long)]
     mirror: Option<String>,
 
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     // positionals
     /// Target repositories
     #[arg(value_name = "REPO", default_value = ".", help_heading = "Arguments")]
@@ -49,7 +53,7 @@ impl Command {
             let mut mirrors = IndexMap::<_, IndexSet<_>>::new();
 
             // TODO: use parallel iterator
-            let mut iter = repo.iter_ordered().log_errors();
+            let mut iter = repo.iter_ordered().log_errors(self.ignore);
             for pkg in &mut iter {
                 let cpv = pkg.cpv();
                 for f in pkg.fetchables(false, false).filter_map(Result::ok) {

@@ -40,8 +40,12 @@ pub(crate) struct Command {
     #[arg(short, long)]
     force: bool,
 
-    /// Ignore invalid service certificates
+    /// Ignore invalid packages
     #[arg(short, long)]
+    ignore: bool,
+
+    /// Ignore invalid service certificates
+    #[arg(short = 'I', long)]
     insecure: bool,
 
     /// Try fetching from default mirrors
@@ -98,7 +102,7 @@ impl Command {
             .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?
             .ebuild_pkgs()
-            .log_errors();
+            .log_errors(self.ignore);
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();

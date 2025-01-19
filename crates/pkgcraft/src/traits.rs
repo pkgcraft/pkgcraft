@@ -88,12 +88,12 @@ impl<T: AsRef<str>> FilterLines for T {
     }
 }
 
-/// Filter an iterable of results while logging errors.
+/// Filter an iterable of results while conditionally logging errors.
 pub trait LogErrors<I, T>
 where
     I: Iterator<Item = crate::Result<T>>,
 {
-    fn log_errors(self) -> LogErrorsIter<I, T>;
+    fn log_errors(self, ignore: bool) -> LogErrorsIter<I, T>;
 }
 
 /// Iterable that filters an iterator of results while logging errors.
@@ -103,6 +103,7 @@ where
 {
     iter: I,
     failed: bool,
+    ignore: bool,
 }
 
 impl<I, T> From<LogErrorsIter<I, T>> for ExitCode
@@ -135,8 +136,10 @@ where
             match result {
                 Ok(object) => return Some(object),
                 Err(e) => {
-                    error!("{e}");
-                    self.failed = true;
+                    if !self.ignore {
+                        error!("{e}");
+                        self.failed = true;
+                    }
                     continue;
                 }
             }
@@ -150,8 +153,12 @@ impl<I, T> LogErrors<I, T> for I
 where
     I: Iterator<Item = crate::Result<T>>,
 {
-    fn log_errors(self) -> LogErrorsIter<I, T> {
-        LogErrorsIter { iter: self, failed: false }
+    fn log_errors(self, ignore: bool) -> LogErrorsIter<I, T> {
+        LogErrorsIter {
+            iter: self,
+            failed: false,
+            ignore,
+        }
     }
 }
 

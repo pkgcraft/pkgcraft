@@ -17,6 +17,10 @@ pub(crate) struct Command {
     #[arg(long)]
     eapi: Option<&'static Eapi>,
 
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     // positionals
     /// Target repositories
     #[arg(value_name = "REPO", default_value = ".", help_heading = "Arguments")]
@@ -38,7 +42,7 @@ impl Command {
             let mut eapis = IndexMap::<_, Vec<_>>::new();
 
             // TODO: use parallel iterator
-            let mut iter = repo.iter_raw_ordered().log_errors();
+            let mut iter = repo.iter_raw_ordered().log_errors(self.ignore);
             for pkg in &mut iter {
                 eapis.entry(pkg.eapi()).or_default().push(pkg.cpv().clone());
             }

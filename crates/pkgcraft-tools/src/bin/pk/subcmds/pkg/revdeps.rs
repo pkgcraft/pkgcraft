@@ -11,6 +11,10 @@ use pkgcraft::traits::{Intersects, LogErrors};
 #[derive(Args)]
 #[clap(next_help_heading = "Revdeps options")]
 pub(crate) struct Command {
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     /// Target repository
     #[arg(short, long, default_value = ".")]
     repo: String,
@@ -37,7 +41,7 @@ impl Command {
         // TODO: use a revdeps cache for queries (#120)
         // TODO: use parallel iterators (#121)
         let mut stdout = io::stdout().lock();
-        let mut iter = repo.iter_unordered().log_errors();
+        let mut iter = repo.iter_unordered().log_errors(self.ignore);
         for pkg in &mut iter {
             for dep in pkg.dependencies([]).into_iter_flatten() {
                 if targets.iter().any(|t| t.intersects(dep)) && dep.blocker().is_none() {

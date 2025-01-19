@@ -16,6 +16,10 @@ pub(crate) struct Command {
     #[arg(long)]
     license: Option<String>,
 
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     // positionals
     /// Target repositories
     #[arg(value_name = "REPO", default_value = ".", help_heading = "Arguments")]
@@ -48,7 +52,7 @@ impl Command {
             let mut licenses = IndexMap::<_, IndexSet<_>>::new();
 
             // TODO: use parallel iterator
-            let mut iter = repo.iter_ordered().log_errors();
+            let mut iter = repo.iter_ordered().log_errors(self.ignore);
             for pkg in &mut iter {
                 let cpv = pkg.cpv();
                 for license in pkg.license().iter_flatten() {

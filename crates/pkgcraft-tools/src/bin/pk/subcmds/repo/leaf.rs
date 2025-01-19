@@ -10,7 +10,12 @@ use pkgcraft::pkg::Package;
 use pkgcraft::traits::{Intersects, LogErrors};
 
 #[derive(Args)]
+#[clap(next_help_heading = "Leaf options")]
 pub(crate) struct Command {
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     // positionals
     /// Target repository
     #[arg(default_value = ".")]
@@ -25,7 +30,7 @@ impl Command {
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();
 
-        let mut iter = repo.iter_ordered().log_errors();
+        let mut iter = repo.iter_ordered().log_errors(self.ignore);
         for pkg in &mut iter {
             cpvs.push(pkg.cpv().clone());
             for dep in pkg.dependencies([]).into_iter_flatten() {

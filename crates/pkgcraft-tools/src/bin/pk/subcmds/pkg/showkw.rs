@@ -11,6 +11,10 @@ use pkgcraft::traits::LogErrors;
 #[derive(Args)]
 #[clap(next_help_heading = "Target options")]
 pub(crate) struct Command {
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     /// Target repo
     #[arg(short, long)]
     repo: Option<String>,
@@ -35,7 +39,7 @@ impl Command {
             .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?
             .ebuild_pkgs()
-            .log_errors();
+            .log_errors(self.ignore);
 
         let mut stdout = io::stdout().lock();
         for pkg in &mut iter {
