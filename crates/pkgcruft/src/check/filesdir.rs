@@ -195,7 +195,7 @@ impl EbuildPkgSetCheck for Check {
                             Ok(path) => path,
                             Err(e) => {
                                 let location = Location::from(&node);
-                                warn!("{CHECK}: {pkg}, {location}: {node}: {e}");
+                                warn!("{self}: {pkg}, {location}: {node}: {e}");
                                 // disable FilesUnused report
                                 files.clear();
                                 continue;
@@ -207,7 +207,7 @@ impl EbuildPkgSetCheck for Check {
                             if let Some(idx) = path.find(filesdir.as_str()) {
                                 path = path.split_at(idx).1.to_string();
                             } else {
-                                warn!("{CHECK}: {pkg}: unhandled file path: {path}");
+                                warn!("{self}: {pkg}: unhandled file path: {path}");
                                 // disable FilesUnused report
                                 files.clear();
                                 continue;
@@ -257,7 +257,7 @@ impl EbuildPkgSetCheck for Check {
                 pkgs.iter().flat_map(|x| x.inherited()).cloned().collect();
             if let Some(eclass) = self.eclasses.intersection(&inherited).next() {
                 warn!(
-                    "{CHECK}: {cpn}: skipping unused files due to eclass FILESDIR usage: {eclass}"
+                    "{self}: {cpn}: skipping unused files due to eclass FILESDIR usage: {eclass}"
                 );
                 return;
             }
