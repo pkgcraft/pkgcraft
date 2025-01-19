@@ -61,14 +61,15 @@ fn default_current_directory() {
         .code(2);
 
     // repo working directory
+    // fails due to invalid pkgs
     let data = test_data();
     let repo = data.ebuild_repo("qa-primary").unwrap();
     env::set_current_dir(repo).unwrap();
     cmd("pk repo mirror")
         .assert()
         .stdout(predicate::str::is_empty().not())
-        .stderr("")
-        .success();
+        .stderr(predicate::str::is_empty().not())
+        .failure();
 }
 
 #[test]
@@ -145,10 +146,11 @@ fn multiple_repos() {
     let repo1 = data.ebuild_repo("metadata").unwrap();
     let repo2 = data.ebuild_repo("qa-primary").unwrap();
 
+    // fails if any repo has invalid pkgs
     cmd("pk repo mirror")
         .args([&repo1, &repo2])
         .assert()
         .stdout(predicate::str::is_empty().not())
-        .stderr("")
-        .success();
+        .stderr(predicate::str::is_empty().not())
+        .failure();
 }

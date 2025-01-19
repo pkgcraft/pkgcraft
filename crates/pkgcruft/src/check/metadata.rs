@@ -28,3 +28,32 @@ impl CpvCheck for Check {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pkgcraft::test::*;
+
+    use crate::scan::Scanner;
+    use crate::test::glob_reports;
+
+    use super::*;
+
+    #[test]
+    fn check() {
+        let scanner = Scanner::new().reports([CHECK]);
+
+        // primary unfixed
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let dir = repo.path().join(CHECK);
+        let expected = glob_reports!("{dir}/*/reports.json");
+        let reports = scanner.run(repo, repo).unwrap();
+        assert_unordered_eq!(reports, expected);
+
+        // primary fixed
+        let data = test_data_patched();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let reports = scanner.run(repo, repo).unwrap();
+        assert_unordered_eq!(reports, []);
+    }
+}

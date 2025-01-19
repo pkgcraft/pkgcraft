@@ -152,10 +152,11 @@ fn multiple_repos() {
     let repo1 = data.ebuild_repo("metadata").unwrap();
     let repo2 = data.ebuild_repo("qa-primary").unwrap();
 
+    // fails if any repo has invalid pkgs
     cmd("pk repo eclass")
         .args([&repo1, &repo2])
         .assert()
         .stdout(predicate::str::is_empty().not())
-        .stderr("")
-        .success();
+        .stderr(predicate::str::is_empty().not())
+        .failure();
 }
