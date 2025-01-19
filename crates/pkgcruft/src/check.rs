@@ -174,7 +174,7 @@ impl Check {
             Self::Metadata => Scope::Version,
             Self::Properties => Scope::Version,
             Self::PythonUpdate => Scope::Version,
-            Self::RepoLayout => Scope::Repo,
+            Self::RepoLayout => Scope::Package,
             Self::Restrict => Scope::Version,
             Self::RestrictTestMissing => Scope::Version,
             Self::RubyUpdate => Scope::Version,
@@ -210,7 +210,7 @@ impl Check {
             Self::Metadata => &[SourceKind::Cpv],
             Self::Properties => &[SourceKind::EbuildPkg],
             Self::PythonUpdate => &[SourceKind::EbuildPkg],
-            Self::RepoLayout => &[SourceKind::Repo],
+            Self::RepoLayout => &[SourceKind::Cpn, SourceKind::Repo],
             Self::Restrict => &[SourceKind::EbuildPkg],
             Self::RestrictTestMissing => &[SourceKind::EbuildPkg],
             Self::RubyUpdate => &[SourceKind::EbuildPkg],
@@ -356,9 +356,7 @@ use register;
 #[allow(unused_variables)]
 pub(crate) trait RepoCheck: fmt::Display {
     fn run(&self, repo: &EbuildRepo, run: &ScannerRun);
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        unimplemented!("{self} finish check")
-    }
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 
@@ -366,9 +364,8 @@ pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 #[allow(unused_variables)]
 pub(crate) trait CpvCheck: fmt::Display {
     fn run(&self, cpv: &Cpv, run: &ScannerRun);
-    fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {
-        unimplemented!("{self} finish target")
-    }
+    fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {}
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
 
@@ -376,9 +373,8 @@ pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
 #[allow(unused_variables)]
 pub(crate) trait CpnCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, run: &ScannerRun);
-    fn finish_target(&self, cpn: &Cpn, run: &ScannerRun) {
-        unimplemented!("{self} finish target")
-    }
+    fn finish_target(&self, cpn: &Cpn, run: &ScannerRun) {}
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type CpnRunner = Box<dyn CpnCheck + Send + Sync>;
 
@@ -386,9 +382,7 @@ pub(crate) type CpnRunner = Box<dyn CpnCheck + Send + Sync>;
 #[allow(unused_variables)]
 pub(crate) trait EbuildPkgCheck: fmt::Display {
     fn run(&self, pkg: &EbuildPkg, run: &ScannerRun);
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        unimplemented!("{self} finish check")
-    }
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 
@@ -396,9 +390,7 @@ pub(crate) type EbuildPkgRunner = Box<dyn EbuildPkgCheck + Send + Sync>;
 #[allow(unused_variables)]
 pub(crate) trait EbuildPkgSetCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun);
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        unimplemented!("{self} finish check")
-    }
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 
@@ -406,9 +398,7 @@ pub(crate) type EbuildPkgSetRunner = Box<dyn EbuildPkgSetCheck + Send + Sync>;
 #[allow(unused_variables)]
 pub(crate) trait EbuildRawPkgCheck: fmt::Display {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun);
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        unimplemented!("{self} finish check")
-    }
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 
@@ -416,9 +406,7 @@ pub(crate) type EbuildRawPkgRunner = Box<dyn EbuildRawPkgCheck + Send + Sync>;
 #[allow(unused_variables)]
 pub(crate) trait EbuildRawPkgSetCheck: fmt::Display {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], run: &ScannerRun);
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        unimplemented!("{self} finish check")
-    }
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type EbuildRawPkgSetRunner = Box<dyn EbuildRawPkgSetCheck + Send + Sync>;
 
@@ -488,6 +476,7 @@ impl ToRunner<CpnRunner> for Check {
             Self::EbuildName => Box::new(ebuild_name::create(run)),
             Self::Duplicates => Box::new(duplicates::create(run)),
             Self::Ignore => Box::new(ignore::Check),
+            Self::RepoLayout => Box::new(repo_layout::create(run)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }
@@ -504,10 +493,10 @@ impl ToRunner<CpvRunner> for Check {
 }
 
 impl ToRunner<RepoRunner> for Check {
-    fn to_runner(&self, _run: &ScannerRun) -> RepoRunner {
+    fn to_runner(&self, run: &ScannerRun) -> RepoRunner {
         match self {
             Self::Ignore => Box::new(ignore::Check),
-            Self::RepoLayout => Box::new(repo_layout::create()),
+            Self::RepoLayout => Box::new(repo_layout::create(run)),
             _ => unreachable!("unsupported check: {self}"),
         }
     }

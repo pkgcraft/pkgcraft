@@ -1,5 +1,7 @@
 use camino::Utf8Path;
+use dashmap::DashSet;
 use itertools::Itertools;
+use pkgcraft::dep::Cpn;
 use pkgcraft::files::is_ebuild;
 use pkgcraft::macros::build_path;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
@@ -7,15 +9,27 @@ use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use crate::report::ReportKind::{RepoCategoriesUnused, RepoCategoryEmpty, RepoPackageEmpty};
 use crate::scan::ScannerRun;
 
-use super::RepoCheck;
+use super::{CpnCheck, RepoCheck};
 
-pub(super) fn create() -> impl RepoCheck {
-    Check
+pub(super) fn create(run: &ScannerRun) -> Check {
+    let empty_categories = if run.enabled(RepoPackageEmpty) {
+        run.repo.categories().iter().map(Into::into).collect()
+    } else {
+        Default::default()
+    };
+
+    Check {
+        repo: run.repo.clone(),
+        empty_categories,
+    }
 }
 
 static CHECK: super::Check = super::Check::RepoLayout;
 
-struct Check;
+pub(super) struct Check {
+    repo: EbuildRepo,
+    empty_categories: DashSet<String>,
+}
 
 super::register!(Check);
 
@@ -26,25 +40,26 @@ fn find_ebuild(path: &Utf8Path) -> bool {
         .unwrap_or(false)
 }
 
+impl CpnCheck for Check {
+    fn run(&self, cpn: &Cpn, run: &ScannerRun) {
+        let (category, package) = (cpn.category(), cpn.package());
+        let path = build_path!(&self.repo, category, package);
+        if !find_ebuild(&path) {
+            RepoPackageEmpty.package(cpn).report(run);
+        } else {
+            self.empty_categories.remove(category);
+        }
+    }
+
+    fn finish_check(&self, _repo: &EbuildRepo, run: &ScannerRun) {
+        for category in self.empty_categories.iter() {
+            RepoCategoryEmpty.category(category.to_string()).report(run);
+        }
+    }
+}
+
 impl RepoCheck for Check {
     fn run(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        // verify inherited categories
-        for category in repo.categories() {
-            let mut pkgs = vec![];
-            for pkg in repo.packages(&category) {
-                let path = build_path!(repo, &category, &pkg);
-                if !find_ebuild(&path) {
-                    RepoPackageEmpty.package((&category, &pkg)).report(run);
-                } else {
-                    pkgs.push(pkg);
-                }
-            }
-            if pkgs.is_empty() {
-                RepoCategoryEmpty.category(&category).report(run);
-            }
-        }
-
-        // verify metadata categories
         let unused = repo
             .metadata()
             .categories()

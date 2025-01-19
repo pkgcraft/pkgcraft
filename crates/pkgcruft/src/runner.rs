@@ -147,7 +147,7 @@ impl CheckRunner {
         match source {
             SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(run)),
             SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(run)),
-            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new()),
+            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(run)),
             SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(run)),
             SourceKind::Repo => Self::Repo(RepoCheckRunner::new(run)),
         }
@@ -198,8 +198,9 @@ impl CheckRunner {
         match self {
             Self::EbuildPkg(r) => r.finish_check(check, run),
             Self::EbuildRawPkg(r) => r.finish_check(check, run),
+            Self::Cpn(r) => r.finish_check(check, run),
+            Self::Cpv(r) => r.finish_check(check, run),
             Self::Repo(r) => r.finish_check(check, run),
-            _ => (),
         }
     }
 }
@@ -350,14 +351,17 @@ make_pkg_check_runner!(
 );
 
 /// Check runner for [`Cpn`] objects.
-#[derive(Default)]
 struct CpnCheckRunner {
     checks: IndexMap<Check, CpnRunner>,
+    repo: EbuildRepo,
 }
 
 impl CpnCheckRunner {
-    fn new() -> Self {
-        Self::default()
+    fn new(run: &ScannerRun) -> Self {
+        Self {
+            checks: Default::default(),
+            repo: run.repo.clone(),
+        }
     }
 
     fn add_check(&mut self, check: Check, run: &ScannerRun) {
@@ -395,6 +399,16 @@ impl CpnCheckRunner {
         let now = Instant::now();
         runner.finish_target(cpn, run);
         debug!("{check}: {cpn}: finish target: {:?}", now.elapsed());
+    }
+
+    fn finish_check(&self, check: &Check, run: &ScannerRun) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.finish_check(&self.repo, run);
+        debug!("{check}: finish: {:?}", now.elapsed());
     }
 }
 
@@ -449,6 +463,16 @@ impl CpvCheckRunner {
         let now = Instant::now();
         runner.finish_target(cpv, run);
         debug!("{check}: {cpv}: finish target: {:?}", now.elapsed());
+    }
+
+    fn finish_check(&self, check: &Check, run: &ScannerRun) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.finish_check(&self.repo, run);
+        debug!("{check}: finish: {:?}", now.elapsed());
     }
 }
 

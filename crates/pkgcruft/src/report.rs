@@ -580,7 +580,7 @@ impl ReportKind {
             Self::PythonUpdate => Scope::Version,
             Self::RepoCategoriesUnused => Scope::Repo,
             Self::RepoCategoryEmpty => Scope::Repo,
-            Self::RepoPackageEmpty => Scope::Repo,
+            Self::RepoPackageEmpty => Scope::Package,
             Self::RestrictInvalid => Scope::Version,
             Self::RestrictMissing => Scope::Version,
             Self::RubyUpdate => Scope::Version,
@@ -618,6 +618,7 @@ impl ReportKind {
             Self::ManifestConflict => scope == Scope::Repo,
             Self::MirrorsUnused => scope == Scope::Repo,
             Self::PackageDeprecatedUnused => scope == Scope::Repo,
+            Self::RepoCategoryEmpty => scope == Scope::Repo,
             Self::UseGlobalUnused => scope == Scope::Repo,
             _ => false,
         }

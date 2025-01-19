@@ -12,6 +12,7 @@ use crate::check::Check;
 use crate::report::Report;
 use crate::runner::{SyncCheckRunner, Target};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
 /// Item sent to the report iterator for processing.
 #[derive(Debug)]
@@ -49,8 +50,12 @@ fn pkg_producer(
     finish_tx: Sender<Check>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        // run non-package checks in parallel
-        for check in run.checks.iter().filter(|c| c.scope() > Scope::Package) {
+        // run repo checks in parallel
+        for check in run
+            .checks
+            .iter()
+            .filter(|c| c.sources().contains(&SourceKind::Repo))
+        {
             tx.send((Some(*check), Target::Repo, 0)).ok();
         }
 
