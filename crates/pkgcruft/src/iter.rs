@@ -10,7 +10,7 @@ use pkgcraft::restrict::Scope;
 
 use crate::check::Check;
 use crate::report::Report;
-use crate::runner::{CheckRunner, SyncCheckRunner, Target};
+use crate::runner::{SyncCheckRunner, Target};
 use crate::scan::ScannerRun;
 
 /// Item sent to the report iterator for processing.
@@ -95,8 +95,8 @@ fn pkg_worker(
         let _entered = thread_span.clone().entered();
 
         for (check, target, id) in rx {
-            if let Target::Cpn(cpn) = &target {
-                runner.run_checks(cpn, &run);
+            if let Target::Cpn(_) = &target {
+                runner.run_checks(&target, &run);
                 // signal iterator to process reports for target package
                 run.sender().process(target, id);
             } else if let Some(check) = check {
