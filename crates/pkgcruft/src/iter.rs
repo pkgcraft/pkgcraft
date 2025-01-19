@@ -47,7 +47,7 @@ fn pkg_producer(
     run: Arc<ScannerRun>,
     wg: WaitGroup,
     tx: Sender<(Option<Check>, Target, usize)>,
-    finish_tx: Sender<Check>,
+    finish_tx: Sender<(Check, Option<Target>)>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         // run repo checks in parallel
@@ -59,21 +59,24 @@ fn pkg_producer(
             tx.send((Some(*check), Target::Repo, 0)).ok();
         }
 
-        // TODO: queue these after all version/pkg checks have completed
-        // run category checks in parallel
-        for category in run
+        let category_targets: Vec<_> = run
             .repo
             .categories()
             .into_iter()
             .filter(|x| run.restrict.matches(x))
-        {
-            for check in run
-                .checks
-                .iter()
-                .filter(|c| c.sources().contains(&SourceKind::Category))
-            {
-                let target = Target::Category(category.clone());
-                tx.send((Some(*check), target, 0)).ok();
+            .map(Target::Category)
+            .collect();
+        let category_checks: Vec<_> = run
+            .checks
+            .iter()
+            .filter(|c| c.sources().contains(&SourceKind::Category))
+            .copied()
+            .collect();
+
+        // run category checks in parallel
+        for target in &category_targets {
+            for check in &category_checks {
+                tx.send((Some(*check), target.clone(), 0)).ok();
             }
         }
 
@@ -88,9 +91,15 @@ fn pkg_producer(
         drop(tx);
         wg.wait();
 
+        for target in &category_targets {
+            for check in category_checks.iter().filter(|c| c.finish_target()) {
+                finish_tx.send((*check, Some(target.clone()))).ok();
+            }
+        }
+
         // finalize checks in parallel
         for check in run.checks.iter().filter(|c| c.finish_check(run.scope)) {
-            finish_tx.send(*check).ok();
+            finish_tx.send((*check, None)).ok();
         }
 
         // signal iterator on thread completion
@@ -104,7 +113,7 @@ fn pkg_worker(
     runner: Arc<SyncCheckRunner>,
     wg: WaitGroup,
     rx: Receiver<(Option<Check>, Target, usize)>,
-    finish_rx: Receiver<Check>,
+    finish_rx: Receiver<(Check, Option<Target>)>,
 ) -> thread::JoinHandle<()> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
@@ -131,8 +140,12 @@ fn pkg_worker(
         drop(wg);
 
         // finalize checks
-        for check in finish_rx {
-            runner.finish_check(&check, &run);
+        for (check, target) in finish_rx {
+            if let Some(target) = target {
+                runner.finish_target(&check, &target, &run);
+            } else {
+                runner.finish_check(&check, &run);
+            }
         }
 
         // signal iterator on thread completion

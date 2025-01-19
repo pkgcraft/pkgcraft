@@ -364,6 +364,7 @@ pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 #[allow(unused_variables)]
 pub(crate) trait CategoryCheck: fmt::Display {
     fn run(&self, category: &str, run: &ScannerRun);
+    fn finish_target(&self, category: &str, run: &ScannerRun) {}
     fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {}
 }
 pub(crate) type CategoryRunner = Box<dyn CategoryCheck + Send + Sync>;

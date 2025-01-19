@@ -2,7 +2,6 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Instant;
 
-use enum_as_inner::EnumAsInner;
 use indexmap::IndexMap;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
@@ -17,7 +16,7 @@ use crate::scan::ScannerRun;
 use crate::source::*;
 
 /// Target to run checks against.
-#[derive(EnumAsInner, Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub(super) enum Target {
     Cpv(Cpv),
     Cpn(Cpn),
@@ -183,6 +182,7 @@ impl CheckRunner {
         match (self, target) {
             (Self::Cpn(r), Target::Cpn(cpn)) => r.finish_target(check, cpn, run),
             (Self::Cpv(r), Target::Cpv(cpv)) => r.finish_target(check, cpv, run),
+            (Self::Category(r), Target::Category(cat)) => r.finish_target(check, cat, run),
             _ => (),
         }
     }
@@ -496,6 +496,16 @@ impl CategoryCheckRunner {
         let now = Instant::now();
         runner.run(category, run);
         debug!("{check}: {category} {:?}", now.elapsed());
+    }
+
+    fn finish_target(&self, check: &Check, category: &str, run: &ScannerRun) {
+        let runner = self
+            .checks
+            .get(check)
+            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
+        let now = Instant::now();
+        runner.finish_target(category, run);
+        debug!("{check}: {category}: finish target: {:?}", now.elapsed());
     }
 
     fn finish_check(&self, check: &Check, run: &ScannerRun) {
