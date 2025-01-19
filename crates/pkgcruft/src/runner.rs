@@ -73,7 +73,7 @@ impl SyncCheckRunner {
         {
             self.runners
                 .entry(source)
-                .or_insert_with(|| CheckRunner::new(source, run))
+                .or_insert_with(|| CheckRunner::new(source))
                 .add_check(check, run)
         }
     }
@@ -131,10 +131,10 @@ impl fmt::Debug for CheckRunner {
 }
 
 impl CheckRunner {
-    fn new(source: SourceKind, run: &ScannerRun) -> Self {
+    fn new(source: SourceKind) -> Self {
         match source {
-            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(run)),
-            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(run)),
+            SourceKind::EbuildPkg => Self::EbuildPkg(Default::default()),
+            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(Default::default()),
             SourceKind::Cpn => Self::Cpn(Default::default()),
             SourceKind::Cpv => Self::Cpv(Default::default()),
             SourceKind::Category => Self::Category(Default::default()),
@@ -202,24 +202,22 @@ impl CheckRunner {
 macro_rules! make_pkg_check_runner {
     ($pkg_check_runner:ident, $pkg_runner:ty, $pkg_set_runner:ty, $source:ty, $pkg:ty) => {
         /// Check runner for package checks.
+        #[derive(Default)]
         struct $pkg_check_runner {
             pkg_checks: IndexMap<Check, $pkg_runner>,
             pkg_set_checks: IndexMap<Check, $pkg_set_runner>,
-            source: $source,
-            cache: PkgCache<$pkg>,
+            source: std::sync::OnceLock<$source>,
+            cache: std::sync::OnceLock<PkgCache<$pkg>>,
         }
 
         impl $pkg_check_runner {
-            fn new(run: &ScannerRun) -> Self {
-                let source = <$source>::new(run);
-                let cache = PkgCache::new(&source, run);
+            fn source(&self, run: &ScannerRun) -> &$source {
+                self.source.get_or_init(|| <$source>::new(run))
+            }
 
-                Self {
-                    pkg_checks: Default::default(),
-                    pkg_set_checks: Default::default(),
-                    source,
-                    cache,
-                }
+            fn cache(&self, run: &ScannerRun) -> &PkgCache<$pkg> {
+                self.cache
+                    .get_or_init(|| PkgCache::new(self.source(run), run))
             }
 
             fn add_check(&mut self, check: Check, run: &ScannerRun) {
@@ -231,7 +229,7 @@ macro_rules! make_pkg_check_runner {
             }
 
             fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
-                let source = &self.source;
+                let source = self.source(run);
                 let mut pkgs = Ok(vec![]);
 
                 for result in source.iter_restrict(cpn) {
@@ -269,7 +267,7 @@ macro_rules! make_pkg_check_runner {
 
             /// Run a check for a [`Cpv`].
             fn run_pkg(&self, check: &Check, cpv: &Cpv, run: &ScannerRun) {
-                match self.cache.get_pkg(cpv) {
+                match self.cache(run).get_pkg(cpv) {
                     Some(Ok(pkg)) => {
                         let runner = self
                             .pkg_checks
@@ -286,7 +284,7 @@ macro_rules! make_pkg_check_runner {
 
             /// Run a check for a [`Cpn`].
             fn run_pkg_set(&self, check: &Check, cpn: &Cpn, run: &ScannerRun) {
-                match self.cache.get_pkgs() {
+                match self.cache(run).get_pkgs() {
                     Ok(pkgs) => {
                         if !pkgs.is_empty() {
                             let runner = self
