@@ -73,6 +73,7 @@ mod tests {
 
     use crate::report::ReportSet;
     use crate::scan::Scanner;
+    use crate::test::glob_reports;
 
     use super::*;
 
@@ -80,6 +81,8 @@ mod tests {
     fn check() {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
+        let dir = repo.path().join(CHECK);
+        let expected = glob_reports!("{dir}/IgnoreUnused.json");
 
         // check isn't run by default
         let scanner = Scanner::new();
@@ -88,19 +91,26 @@ mod tests {
 
         // check run when all supported reports targeted
         let scanner = Scanner::new().reports([ReportSet::All]);
-        let mut reports = scanner.run(repo, repo).unwrap();
-        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+        let reports: Vec<_> = scanner
+            .run(repo, repo)
+            .unwrap()
+            .filter(|x| x.kind == IgnoreUnused)
+            .collect();
+        assert_ordered_eq!(&reports, &expected);
 
         // verify reports in version scope
-        let mut reports = scanner.run(repo, "Ignore/IgnoreUnused-0").unwrap();
-        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+        let reports: Vec<_> = scanner
+            .run(repo, "Ignore/IgnoreUnused-0")
+            .unwrap()
+            .collect();
+        assert_ordered_eq!(&reports, &expected[..1]);
 
         // verify reports in package scope
-        let mut reports = scanner.run(repo, "Ignore/IgnoreUnused").unwrap();
-        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+        let reports: Vec<_> = scanner.run(repo, "Ignore/IgnoreUnused").unwrap().collect();
+        assert_ordered_eq!(&reports, &expected[..2]);
 
         // verify reports in category scope
-        let mut reports = scanner.run(repo, "Ignore/*").unwrap();
-        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+        let reports: Vec<_> = scanner.run(repo, "Ignore/*").unwrap().collect();
+        assert_ordered_eq!(&reports, &expected[..3]);
     }
 }
