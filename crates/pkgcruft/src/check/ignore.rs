@@ -13,7 +13,6 @@ pub(super) struct Check;
 super::register!(Check);
 
 impl CpvCheck for Check {
-    fn run(&self, _cpv: &Cpv, _run: &ScannerRun) {}
     fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {
         let scope = ReportScope::Version(cpv.clone(), None);
 
@@ -37,7 +36,6 @@ impl CpvCheck for Check {
 }
 
 impl CpnCheck for Check {
-    fn run(&self, _cpn: &Cpn, _run: &ScannerRun) {}
     fn finish_target(&self, cpn: &Cpn, run: &ScannerRun) {
         let scope = ReportScope::Package(cpn.clone());
 
@@ -53,7 +51,6 @@ impl CpnCheck for Check {
 }
 
 impl CategoryCheck for Check {
-    fn run(&self, _category: &str, _run: &ScannerRun) {}
     fn finish_target(&self, category: &str, run: &ScannerRun) {
         let scope = ReportScope::Category(category.to_string());
 

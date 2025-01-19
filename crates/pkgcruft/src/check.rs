@@ -355,7 +355,7 @@ use register;
 /// Run a check against a repo.
 #[allow(unused_variables)]
 pub(crate) trait RepoCheck: fmt::Display {
-    fn run(&self, run: &ScannerRun);
+    fn run(&self, run: &ScannerRun) {}
     fn finish_check(&self, run: &ScannerRun) {}
 }
 pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
@@ -363,7 +363,7 @@ pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 /// Run a check against a category.
 #[allow(unused_variables)]
 pub(crate) trait CategoryCheck: fmt::Display {
-    fn run(&self, category: &str, run: &ScannerRun);
+    fn run(&self, category: &str, run: &ScannerRun) {}
     fn finish_target(&self, category: &str, run: &ScannerRun) {}
     fn finish_check(&self, run: &ScannerRun) {}
 }
@@ -372,7 +372,7 @@ pub(crate) type CategoryRunner = Box<dyn CategoryCheck + Send + Sync>;
 /// Run a check against a Cpv.
 #[allow(unused_variables)]
 pub(crate) trait CpvCheck: fmt::Display {
-    fn run(&self, cpv: &Cpv, run: &ScannerRun);
+    fn run(&self, cpv: &Cpv, run: &ScannerRun) {}
     fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {}
     fn finish_check(&self, run: &ScannerRun) {}
 }
@@ -381,7 +381,7 @@ pub(crate) type CpvRunner = Box<dyn CpvCheck + Send + Sync>;
 /// Run a check against a Cpn.
 #[allow(unused_variables)]
 pub(crate) trait CpnCheck: fmt::Display {
-    fn run(&self, cpn: &Cpn, run: &ScannerRun);
+    fn run(&self, cpn: &Cpn, run: &ScannerRun) {}
     fn finish_target(&self, cpn: &Cpn, run: &ScannerRun) {}
     fn finish_check(&self, run: &ScannerRun) {}
 }
