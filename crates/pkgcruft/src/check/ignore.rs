@@ -1,11 +1,11 @@
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::{ReportKind::IgnoreUnused, ReportScope};
 use crate::scan::ScannerRun;
 
-use super::{CpnCheck, CpvCheck, RepoCheck};
+use super::{CategoryCheck, CpnCheck, CpvCheck};
 
 static CHECK: super::Check = super::Check::Ignore;
 
@@ -53,14 +53,16 @@ impl CpnCheck for Check {
     }
 }
 
-impl RepoCheck for Check {
-    fn run(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        for category in repo.categories() {
-            let scope = ReportScope::Category(category.clone());
-            if let Some(sets) = run.ignore.unused(&scope) {
-                let sets = sets.iter().join(", ");
-                IgnoreUnused.category(category).message(sets).report(run);
-            }
+impl CategoryCheck for Check {
+    fn run(&self, category: &str, run: &ScannerRun) {
+        let scope = ReportScope::Category(category.to_string());
+
+        // forciby populate the cache
+        run.ignore.generate(&scope).count();
+
+        if let Some(sets) = run.ignore.unused(&scope) {
+            let sets = sets.iter().join(", ");
+            IgnoreUnused.category(category).message(sets).report(run);
         }
     }
 }
@@ -95,6 +97,10 @@ mod tests {
 
         // verify reports in package scope
         let mut reports = scanner.run(repo, "Ignore/IgnoreUnused").unwrap();
+        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+
+        // verify reports in category scope
+        let mut reports = scanner.run(repo, "Ignore/*").unwrap();
         assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
     }
 }

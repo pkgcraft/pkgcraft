@@ -200,7 +200,7 @@ impl Check {
             Self::Eclass => &[SourceKind::EbuildPkg],
             Self::Header => &[SourceKind::EbuildRawPkg],
             Self::Homepage => &[SourceKind::EbuildPkg],
-            Self::Ignore => &[SourceKind::Cpv, SourceKind::Cpn, SourceKind::Repo],
+            Self::Ignore => &[SourceKind::Cpv, SourceKind::Cpn, SourceKind::Category],
             Self::Iuse => &[SourceKind::EbuildPkg],
             Self::Keywords => &[SourceKind::EbuildPkg],
             Self::KeywordsDropped => &[SourceKind::EbuildPkg],
@@ -500,10 +500,18 @@ impl ToRunner<CpvRunner> for Check {
     }
 }
 
+impl ToRunner<CategoryRunner> for Check {
+    fn to_runner(&self, _run: &ScannerRun) -> CategoryRunner {
+        match self {
+            Self::Ignore => Box::new(ignore::Check),
+            _ => unreachable!("unsupported check: {self}"),
+        }
+    }
+}
+
 impl ToRunner<RepoRunner> for Check {
     fn to_runner(&self, run: &ScannerRun) -> RepoRunner {
         match self {
-            Self::Ignore => Box::new(ignore::Check),
             Self::RepoLayout => Box::new(repo_layout::create(run)),
             _ => unreachable!("unsupported check: {self}"),
         }
