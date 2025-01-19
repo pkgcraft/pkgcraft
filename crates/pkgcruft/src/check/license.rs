@@ -4,7 +4,6 @@ use dashmap::DashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
 use crate::scan::ScannerRun;
@@ -35,7 +34,6 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
             .map(|x| x.to_string())
             .collect(),
         unused,
-        repo: run.repo.clone(),
     }
 }
 
@@ -45,7 +43,6 @@ struct Check {
     deprecated: IndexSet<String>,
     missing_categories: HashSet<String>,
     unused: DashSet<String>,
-    repo: EbuildRepo,
 }
 
 super::register!(Check);
@@ -71,7 +68,7 @@ impl EbuildPkgCheck for Check {
         }
 
         for license in licenses {
-            if !self.repo.licenses().contains(&license) {
+            if !run.repo.licenses().contains(&license) {
                 LicenseInvalid
                     .version(pkg)
                     .message(format!("nonexistent: {license}"))
@@ -85,7 +82,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(LicensesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
@@ -93,7 +90,7 @@ impl EbuildPkgCheck for Check {
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            LicensesUnused.repo(repo).message(unused).report(run);
+            LicensesUnused.repo(&run.repo).message(unused).report(run);
         }
     }
 }

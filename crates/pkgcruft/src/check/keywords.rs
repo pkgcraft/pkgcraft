@@ -3,7 +3,6 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus::Stable, EbuildPkg};
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{
     ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
@@ -24,13 +23,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
         Default::default()
     };
 
-    Check { repo: run.repo.clone(), unused }
+    Check { unused }
 }
 
 static CHECK: super::Check = super::Check::Keywords;
 
 struct Check {
-    repo: EbuildRepo,
     unused: DashSet<String>,
 }
 
@@ -63,7 +61,7 @@ impl EbuildPkgCheck for Check {
         }
 
         let eapi = pkg.eapi().as_str();
-        if self.repo.metadata().config.eapis_testing.contains(eapi) {
+        if run.repo.metadata().config.eapis_testing.contains(eapi) {
             let keywords = pkg
                 .keywords()
                 .iter()
@@ -96,7 +94,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(ArchesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
@@ -104,7 +102,7 @@ impl EbuildPkgCheck for Check {
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            ArchesUnused.repo(repo).message(unused).report(run);
+            ArchesUnused.repo(&run.repo).message(unused).report(run);
         }
     }
 }

@@ -5,7 +5,6 @@ use std::time::Instant;
 use indexmap::IndexMap;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
-use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 use tracing::{debug, warn};
@@ -136,10 +135,10 @@ impl CheckRunner {
         match source {
             SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(run)),
             SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(run)),
-            SourceKind::Cpn => Self::Cpn(CpnCheckRunner::new(run)),
-            SourceKind::Cpv => Self::Cpv(CpvCheckRunner::new(run)),
-            SourceKind::Category => Self::Category(CategoryCheckRunner::new(run)),
-            SourceKind::Repo => Self::Repo(RepoCheckRunner::new(run)),
+            SourceKind::Cpn => Self::Cpn(Default::default()),
+            SourceKind::Cpv => Self::Cpv(Default::default()),
+            SourceKind::Category => Self::Category(Default::default()),
+            SourceKind::Repo => Self::Repo(Default::default()),
         }
     }
 
@@ -208,7 +207,6 @@ macro_rules! make_pkg_check_runner {
             pkg_set_checks: IndexMap<Check, $pkg_set_runner>,
             source: $source,
             cache: PkgCache<$pkg>,
-            repo: EbuildRepo,
         }
 
         impl $pkg_check_runner {
@@ -221,7 +219,6 @@ macro_rules! make_pkg_check_runner {
                     pkg_set_checks: Default::default(),
                     source,
                     cache,
-                    repo: run.repo.clone(),
                 }
             }
 
@@ -312,13 +309,13 @@ macro_rules! make_pkg_check_runner {
                         .pkg_checks
                         .get(check)
                         .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                    runner.finish_check(&self.repo, run);
+                    runner.finish_check(run);
                 } else {
                     let runner = self
                         .pkg_set_checks
                         .get(check)
                         .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                    runner.finish_check(&self.repo, run);
+                    runner.finish_check(run);
                 }
                 debug!("{check}: finish: {:?}", now.elapsed());
             }
@@ -345,19 +342,12 @@ make_pkg_check_runner!(
 );
 
 /// Check runner for [`Cpn`] objects.
+#[derive(Default)]
 struct CpnCheckRunner {
     checks: IndexMap<Check, CpnRunner>,
-    repo: EbuildRepo,
 }
 
 impl CpnCheckRunner {
-    fn new(run: &ScannerRun) -> Self {
-        Self {
-            checks: Default::default(),
-            repo: run.repo.clone(),
-        }
-    }
-
     fn add_check(&mut self, check: Check, run: &ScannerRun) {
         self.checks.insert(check, check.to_runner(run));
     }
@@ -401,31 +391,24 @@ impl CpnCheckRunner {
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.finish_check(&self.repo, run);
+        runner.finish_check(run);
         debug!("{check}: finish: {:?}", now.elapsed());
     }
 }
 
 /// Check runner for [`Cpv`] objects.
+#[derive(Default)]
 struct CpvCheckRunner {
     checks: IndexMap<Check, CpvRunner>,
-    repo: EbuildRepo,
 }
 
 impl CpvCheckRunner {
-    fn new(run: &ScannerRun) -> Self {
-        Self {
-            checks: Default::default(),
-            repo: run.repo.clone(),
-        }
-    }
-
     fn add_check(&mut self, check: Check, run: &ScannerRun) {
         self.checks.insert(check, check.to_runner(run));
     }
 
     fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
-        for cpv in self.repo.iter_cpv_restrict(cpn) {
+        for cpv in run.repo.iter_cpv_restrict(cpn) {
             for (check, runner) in &self.checks {
                 let now = Instant::now();
                 runner.run(&cpv, run);
@@ -465,25 +448,18 @@ impl CpvCheckRunner {
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.finish_check(&self.repo, run);
+        runner.finish_check(run);
         debug!("{check}: finish: {:?}", now.elapsed());
     }
 }
 
 /// Check runner for category targets.
+#[derive(Default)]
 struct CategoryCheckRunner {
     checks: IndexMap<Check, CategoryRunner>,
-    repo: EbuildRepo,
 }
 
 impl CategoryCheckRunner {
-    fn new(run: &ScannerRun) -> Self {
-        Self {
-            checks: Default::default(),
-            repo: run.repo.clone(),
-        }
-    }
-
     fn add_check(&mut self, check: Check, run: &ScannerRun) {
         self.checks.insert(check, check.to_runner(run));
     }
@@ -514,25 +490,18 @@ impl CategoryCheckRunner {
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.finish_check(&self.repo, run);
+        runner.finish_check(run);
         debug!("{check}: finish: {:?}", now.elapsed());
     }
 }
 
 /// Check runner for repo targets.
+#[derive(Default)]
 struct RepoCheckRunner {
     checks: IndexMap<Check, RepoRunner>,
-    repo: EbuildRepo,
 }
 
 impl RepoCheckRunner {
-    fn new(run: &ScannerRun) -> Self {
-        Self {
-            checks: Default::default(),
-            repo: run.repo.clone(),
-        }
-    }
-
     fn add_check(&mut self, check: Check, run: &ScannerRun) {
         self.checks.insert(check, check.to_runner(run));
     }
@@ -543,8 +512,8 @@ impl RepoCheckRunner {
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.run(&self.repo, run);
-        debug!("{check}: {} {:?}", self.repo, now.elapsed());
+        runner.run(run);
+        debug!("{check}: {} {:?}", run.repo, now.elapsed());
     }
 
     fn finish_check(&self, check: &Check, run: &ScannerRun) {
@@ -553,7 +522,7 @@ impl RepoCheckRunner {
             .get(check)
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
-        runner.finish_check(&self.repo, run);
+        runner.finish_check(run);
         debug!("{check}: finish: {:?}", now.elapsed());
     }
 }

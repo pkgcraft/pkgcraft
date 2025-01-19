@@ -1,7 +1,7 @@
 use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
+use pkgcraft::repo::ebuild::Eclass;
 
 use crate::report::ReportKind::EclassUnused;
 use crate::scan::ScannerRun;
@@ -33,7 +33,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(EclassUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
@@ -41,7 +41,7 @@ impl EbuildPkgCheck for Check {
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            EclassUnused.repo(repo).message(unused).report(run);
+            EclassUnused.repo(&run.repo).message(unused).report(run);
         }
     }
 }

@@ -3,7 +3,6 @@ use itertools::Itertools;
 use pkgcraft::dep::{Dep, Dependency, Operator, SlotOperator, UseDepKind};
 use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPkg};
 use pkgcraft::pkg::Package;
-use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{
@@ -26,13 +25,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
         Default::default()
     };
 
-    Check { repo: run.repo.clone(), unused }
+    Check { unused }
 }
 
 static CHECK: super::Check = super::Check::Dependency;
 
 struct Check {
-    repo: EbuildRepo,
     unused: DashSet<Dep>,
 }
 
@@ -58,7 +56,7 @@ impl EbuildPkgCheck for Check {
                         .report(run);
                 }
 
-                if let Some(entry) = self.repo.deprecated(dep) {
+                if let Some(entry) = run.repo.deprecated(dep) {
                     // drop use deps since package.deprecated doesn't include them
                     DependencyDeprecated
                         .version(pkg)
@@ -126,7 +124,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(PackageDeprecatedUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
@@ -135,7 +133,7 @@ impl EbuildPkgCheck for Check {
                 .sorted()
                 .join(", ");
             PackageDeprecatedUnused
-                .repo(repo)
+                .repo(&run.repo)
                 .message(unused)
                 .report(run);
         }

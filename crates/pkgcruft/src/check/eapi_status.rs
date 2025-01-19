@@ -2,7 +2,6 @@ use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::eapi::{EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated, EapiUnused};
 use crate::scan::ScannerRun;
@@ -22,13 +21,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildRawPkgCheck {
         Default::default()
     };
 
-    Check { repo: run.repo.clone(), unused }
+    Check { unused }
 }
 
 static CHECK: super::Check = super::Check::EapiStatus;
 
 struct Check {
-    repo: EbuildRepo,
     unused: DashSet<String>,
 }
 
@@ -37,9 +35,9 @@ super::register!(Check);
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let eapi = pkg.eapi().as_str();
-        if self.repo.metadata().config.eapis_deprecated.contains(eapi) {
+        if run.repo.metadata().config.eapis_deprecated.contains(eapi) {
             EapiDeprecated.version(pkg).message(eapi).report(run);
-        } else if self.repo.metadata().config.eapis_banned.contains(eapi) {
+        } else if run.repo.metadata().config.eapis_banned.contains(eapi) {
             EapiBanned.version(pkg).message(eapi).report(run);
         }
 
@@ -48,7 +46,7 @@ impl EbuildRawPkgCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(EapiUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
@@ -56,7 +54,7 @@ impl EbuildRawPkgCheck for Check {
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            EapiUnused.repo(repo).message(unused).report(run);
+            EapiUnused.repo(&run.repo).message(unused).report(run);
         }
     }
 }

@@ -7,7 +7,6 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::error::Error::UnversionedPkg;
 use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
 use crate::scan::ScannerRun;
@@ -16,7 +15,6 @@ use super::EbuildPkgSetCheck;
 
 pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
     Check {
-        repo: run.repo.clone(),
         thin_manifests: run.repo.metadata().config.thin_manifests,
         colliding: Default::default(),
         conflicting: Default::default(),
@@ -35,7 +33,6 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
 static CHECK: super::Check = super::Check::Manifest;
 
 struct Check {
-    repo: EbuildRepo,
     thin_manifests: bool,
     colliding: DashMap<String, HashMap<String, HashSet<Cpn>>>,
     conflicting: DashMap<String, HashMap<String, Cpn>>,
@@ -55,7 +52,7 @@ impl Check {
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         // parse manifest
-        let result = self.repo.metadata().pkg_manifest_parse(cpn);
+        let result = run.repo.metadata().pkg_manifest_parse(cpn);
         let Ok(manifest) = result else {
             if let Err(UnversionedPkg { err, .. }) = result {
                 ManifestInvalid.package(cpn).message(err).report(run);
@@ -147,13 +144,13 @@ impl EbuildPkgSetCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(ManifestConflict) {
             for entry in self.conflicting.iter().filter(|x| x.len() > 1) {
                 let (name, map) = entry.pair();
                 let pkgs = map.values().sorted().join(", ");
                 ManifestConflict
-                    .repo(repo)
+                    .repo(&run.repo)
                     .message(format!("{name}: {pkgs}"))
                     .report(run);
             }
@@ -179,7 +176,7 @@ impl EbuildPkgSetCheck for Check {
                             format!("({cpn}: {files})")
                         })
                         .join(", ");
-                    ManifestCollide.repo(repo).message(values).report(run);
+                    ManifestCollide.repo(&run.repo).message(values).report(run);
                 }
             }
         }

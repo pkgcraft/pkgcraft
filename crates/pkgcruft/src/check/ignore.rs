@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::{ReportKind::IgnoreUnused, ReportScope};
 use crate::scan::ScannerRun;
@@ -28,11 +27,11 @@ impl CpvCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        let scope = ReportScope::Repo(repo.to_string());
+    fn finish_check(&self, run: &ScannerRun) {
+        let scope = ReportScope::Repo(run.repo.to_string());
         if let Some(sets) = run.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");
-            IgnoreUnused.repo(repo).message(sets).report(run);
+            IgnoreUnused.repo(&run.repo).message(sets).report(run);
         }
     }
 }

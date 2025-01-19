@@ -3,7 +3,6 @@ use itertools::Itertools;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{MirrorsUnused, UriInvalid};
 use crate::scan::ScannerRun;
@@ -48,7 +47,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(MirrorsUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
@@ -56,7 +55,7 @@ impl EbuildPkgCheck for Check {
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            MirrorsUnused.repo(repo).message(unused).report(run);
+            MirrorsUnused.repo(&run.repo).message(unused).report(run);
         }
     }
 }

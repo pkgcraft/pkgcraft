@@ -2,22 +2,19 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{EbuildNameInvalid, EbuildVersionsEqual};
 use crate::scan::ScannerRun;
 
 use super::CpnCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl CpnCheck {
-    Check { repo: run.repo.clone() }
+pub(super) fn create() -> impl CpnCheck {
+    Check
 }
 
 static CHECK: super::Check = super::Check::EbuildName;
 
-struct Check {
-    repo: EbuildRepo,
-}
+struct Check;
 
 super::register!(Check);
 
@@ -25,7 +22,7 @@ impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, run: &ScannerRun) {
         let mut cpvs = HashMap::<Cpv, Vec<_>>::new();
 
-        for result in self.repo.cpvs_from_package(cpn.category(), cpn.package()) {
+        for result in run.repo.cpvs_from_package(cpn.category(), cpn.package()) {
             match result {
                 Err(e) => EbuildNameInvalid.package(cpn).message(e).report(run),
                 Ok(cpv) => {

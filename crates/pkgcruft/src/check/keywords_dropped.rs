@@ -4,22 +4,19 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::KeywordsDropped;
 use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
-    Check { repo: run.repo.clone() }
+pub(super) fn create() -> impl EbuildPkgSetCheck {
+    Check
 }
 
 static CHECK: super::Check = super::Check::KeywordsDropped;
 
-struct Check {
-    repo: EbuildRepo,
-}
+struct Check;
 
 super::register!(Check);
 
@@ -53,7 +50,7 @@ impl EbuildPkgSetCheck for Check {
             };
 
             for arch in drops {
-                if self.repo.arches().contains(arch) {
+                if run.repo.arches().contains(arch) {
                     changes.insert(arch.clone(), pkg);
                 }
             }

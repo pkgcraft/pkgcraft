@@ -4,7 +4,7 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::files::is_ebuild;
 use pkgcraft::macros::build_path;
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::repo::PkgRepository;
 
 use crate::report::ReportKind::{RepoCategoriesUnused, RepoCategoryEmpty, RepoPackageEmpty};
 use crate::scan::ScannerRun;
@@ -18,16 +18,12 @@ pub(super) fn create(run: &ScannerRun) -> Check {
         Default::default()
     };
 
-    Check {
-        repo: run.repo.clone(),
-        empty_categories,
-    }
+    Check { empty_categories }
 }
 
 static CHECK: super::Check = super::Check::RepoLayout;
 
 pub(super) struct Check {
-    repo: EbuildRepo,
     empty_categories: DashSet<String>,
 }
 
@@ -43,7 +39,7 @@ fn find_ebuild(path: &Utf8Path) -> bool {
 impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, run: &ScannerRun) {
         let (category, package) = (cpn.category(), cpn.package());
-        let path = build_path!(&self.repo, category, package);
+        let path = build_path!(&run.repo, category, package);
         if !find_ebuild(&path) {
             RepoPackageEmpty.package(cpn).report(run);
         } else {
@@ -51,7 +47,7 @@ impl CpnCheck for Check {
         }
     }
 
-    fn finish_check(&self, _repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         for category in self.empty_categories.iter() {
             RepoCategoryEmpty.category(category.to_string()).report(run);
         }
@@ -59,15 +55,19 @@ impl CpnCheck for Check {
 }
 
 impl RepoCheck for Check {
-    fn run(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        let unused = repo
+    fn run(&self, run: &ScannerRun) {
+        let unused = run
+            .repo
             .metadata()
             .categories()
             .iter()
-            .filter(|x| !repo.path().join(x).is_dir())
+            .filter(|x| !run.repo.path().join(x).is_dir())
             .join(", ");
         if !unused.is_empty() {
-            RepoCategoriesUnused.repo(repo).message(unused).report(run);
+            RepoCategoriesUnused
+                .repo(&run.repo)
+                .message(unused)
+                .report(run);
         }
     }
 }

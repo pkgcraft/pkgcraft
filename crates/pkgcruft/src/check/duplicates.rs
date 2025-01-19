@@ -1,5 +1,4 @@
 use pkgcraft::dep::Cpn;
-use pkgcraft::repo::ebuild::EbuildRepo;
 use pkgcraft::repo::Repository;
 use pkgcraft::traits::Contains;
 
@@ -8,21 +7,19 @@ use crate::scan::ScannerRun;
 
 use super::CpnCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl CpnCheck {
-    Check { repo: run.repo.clone() }
+pub(super) fn create() -> impl CpnCheck {
+    Check
 }
 
 static CHECK: super::Check = super::Check::Duplicates;
 
-struct Check {
-    repo: EbuildRepo,
-}
+struct Check;
 
 super::register!(Check);
 
 impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, run: &ScannerRun) {
-        for repo in self.repo.masters() {
+        for repo in run.repo.masters() {
             if repo.contains(cpn) {
                 PackageOverride
                     .package(cpn)

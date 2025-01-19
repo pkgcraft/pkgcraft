@@ -50,7 +50,6 @@ impl Eclass {
 
 pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
-        repo: run.repo.clone(),
         targets: Eclass::iter().map(|e| (e, e.targets(&run.repo))).collect(),
         dep_targets: Default::default(),
     }
@@ -59,7 +58,6 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
 static CHECK: super::Check = super::Check::PythonUpdate;
 
 struct Check {
-    repo: EbuildRepo,
     targets: HashMap<Eclass, IndexSet<String>>,
     dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
@@ -86,14 +84,14 @@ impl Check {
     /// Get the set of compatible targets for a dependency if they exist.
     fn get_targets<R: Into<Restrict>>(
         &self,
+        repo: &EbuildRepo,
         dep: R,
     ) -> Option<MappedRef<Restrict, Option<HashSet<String>>, HashSet<String>>> {
         let restrict = dep.into();
         self.dep_targets
             .entry(restrict.clone())
             .or_insert_with(|| {
-                self.repo
-                    .iter_restrict(restrict)
+                repo.iter_restrict(restrict)
                     .filter_map(Result::ok)
                     .last()
                     .map(dep_targets)
@@ -146,7 +144,7 @@ impl EbuildPkgCheck for Check {
         for dep_targets in deps
             .iter()
             .filter(|x| use_starts_with(x, IUSE_PREFIXES))
-            .filter_map(|dep| self.get_targets(dep.no_use_deps()))
+            .filter_map(|dep| self.get_targets(&run.repo, dep.no_use_deps()))
         {
             targets.retain(|&x| dep_targets.contains(x));
             if targets.is_empty() {

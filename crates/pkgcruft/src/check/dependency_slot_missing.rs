@@ -10,17 +10,13 @@ use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
-    Check {
-        repo: run.repo.clone(),
-        dep_slots: Default::default(),
-    }
+pub(super) fn create() -> impl EbuildPkgCheck {
+    Check { dep_slots: Default::default() }
 }
 
 static CHECK: super::Check = super::Check::DependencySlotMissing;
 
 struct Check {
-    repo: EbuildRepo,
     dep_slots: DashMap<Restrict, Option<String>>,
 }
 
@@ -28,13 +24,16 @@ super::register!(Check);
 
 impl Check {
     /// Get the package slots for a dependency if more than one exist.
-    fn get_slots<R: Into<Restrict>>(&self, dep: R) -> Ref<Restrict, Option<String>> {
+    fn get_slots<R: Into<Restrict>>(
+        &self,
+        repo: &EbuildRepo,
+        dep: R,
+    ) -> Ref<Restrict, Option<String>> {
         let restrict = dep.into();
         self.dep_slots
             .entry(restrict.clone())
             .or_insert_with(|| {
-                let slots = self
-                    .repo
+                let slots = repo
                     .iter_restrict(restrict)
                     .filter_map(Result::ok)
                     .map(|pkg| pkg.slot().to_string())
@@ -57,7 +56,7 @@ impl EbuildPkgCheck for Check {
             .flat_map(|x| x.iter_flatten())
             .filter(|x| x.blocker().is_none() && x.slot_dep().is_none())
         {
-            if let Some(slots) = self.get_slots(dep.no_use_deps()).as_ref() {
+            if let Some(slots) = self.get_slots(&run.repo, dep.no_use_deps()).as_ref() {
                 DependencySlotMissing
                     .version(pkg)
                     .message(format!("{dep} matches multiple slots: {slots}"))

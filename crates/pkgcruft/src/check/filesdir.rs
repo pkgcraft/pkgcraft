@@ -8,7 +8,7 @@ use pkgcraft::bash::{Node, Tree};
 use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
-use pkgcraft::repo::ebuild::{EbuildRepo, Eclass};
+use pkgcraft::repo::ebuild::Eclass;
 use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
@@ -38,16 +38,13 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
         })
         .cloned()
         .collect();
-    Check {
-        repo: run.repo.clone(),
-        eclasses,
-    }
+
+    Check { eclasses }
 }
 
 static CHECK: super::Check = super::Check::Filesdir;
 
 struct Check {
-    repo: EbuildRepo,
     eclasses: HashSet<Eclass>,
 }
 
@@ -161,7 +158,7 @@ fn expand_node<'a>(
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
-        let filesdir = build_path!(&self.repo, cpn.category(), cpn.package(), "files");
+        let filesdir = build_path!(&run.repo, cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
         let mut files: HashSet<_> = WalkDir::new(&filesdir)
             .min_depth(1)

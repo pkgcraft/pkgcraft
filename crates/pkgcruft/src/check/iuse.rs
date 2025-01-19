@@ -2,7 +2,6 @@ use dashmap::DashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::ebuild::EbuildRepo;
 
 use crate::report::ReportKind::{IuseInvalid, UseGlobalUnused};
 use crate::scan::ScannerRun;
@@ -60,7 +59,7 @@ impl EbuildPkgCheck for Check {
         }
     }
 
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+    fn finish_check(&self, run: &ScannerRun) {
         if run.enabled(UseGlobalUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused
@@ -68,7 +67,7 @@ impl EbuildPkgCheck for Check {
                 .map(|x| x.to_string())
                 .sorted()
                 .join(", ");
-            UseGlobalUnused.repo(repo).message(unused).report(run);
+            UseGlobalUnused.repo(&run.repo).message(unused).report(run);
         }
     }
 }
