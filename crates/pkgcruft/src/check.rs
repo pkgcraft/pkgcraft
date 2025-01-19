@@ -355,8 +355,7 @@ use register;
 /// Run a check against a repo.
 #[allow(unused_variables)]
 pub(crate) trait RepoCheck: fmt::Display {
-    fn run(&self, run: &ScannerRun) {}
-    fn finish_check(&self, run: &ScannerRun) {}
+    fn run(&self, run: &ScannerRun);
 }
 pub(crate) type RepoRunner = Box<dyn RepoCheck + Send + Sync>;
 

@@ -193,7 +193,7 @@ impl CheckRunner {
             Self::Cpn(r) => r.finish_check(check, run),
             Self::Cpv(r) => r.finish_check(check, run),
             Self::Category(r) => r.finish_check(check, run),
-            Self::Repo(r) => r.finish_check(check, run),
+            _ => (),
         }
     }
 }
@@ -512,15 +512,5 @@ impl RepoCheckRunner {
         let now = Instant::now();
         runner.run(run);
         debug!("{check}: {} {:?}", run.repo, now.elapsed());
-    }
-
-    fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.finish_check(run);
-        debug!("{check}: finish: {:?}", now.elapsed());
     }
 }
