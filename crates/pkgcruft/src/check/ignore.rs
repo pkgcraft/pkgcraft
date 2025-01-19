@@ -54,7 +54,8 @@ impl CpnCheck for Check {
 }
 
 impl CategoryCheck for Check {
-    fn run(&self, category: &str, run: &ScannerRun) {
+    fn run(&self, _category: &str, _run: &ScannerRun) {}
+    fn finish_target(&self, category: &str, run: &ScannerRun) {
         let scope = ReportScope::Category(category.to_string());
 
         // forciby populate the cache
