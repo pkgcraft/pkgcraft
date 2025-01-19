@@ -9,6 +9,17 @@ and sorted output.
 
 For basic use cases, simply run `pkgcruft scan` inside an ebuild repo.
 
+# Warning
+
+To maximize report accuracy, pkgcruft should generate package metadata itself
+during a scanning run. Alternatively, it can be manually generated using
+various tools from pkgcraft-tools.
+
+For more explanation, pkgcraft is much more strict than alternatives on what is
+allowed in global scope. However, if a less stringent tool is used, potential
+reports may be skipped as pkgcruft will not regenerate data for valid cache
+entries.
+
 # Build requirements
 
 A recent version of rust and compatible clang compiler.
