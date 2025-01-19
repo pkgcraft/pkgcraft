@@ -223,8 +223,8 @@ impl Check {
     }
 
     /// Contexts required to run the check.
-    pub fn context(&self) -> &[CheckContext] {
-        use CheckContext::*;
+    pub fn context(&self) -> &[Context] {
+        use Context::*;
         match self {
             Self::Duplicates => &[Optional, Overlay],
             Self::Header => &[Gentoo],
@@ -277,13 +277,13 @@ impl Check {
         &self,
         repo: &EbuildRepo,
         selected: &IndexSet<Self>,
-    ) -> Option<CheckContext> {
+    ) -> Option<Context> {
         self.context().iter().copied().find(|context| {
             match context {
-                CheckContext::Gentoo => repo.name() == "gentoo" || selected.contains(self),
-                CheckContext::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
-                CheckContext::Optional => selected.contains(self),
-                CheckContext::Overlay => !repo.masters().is_empty(),
+                Context::Gentoo => repo.name() == "gentoo" || selected.contains(self),
+                Context::GentooInherited => repo.trees().any(|x| x.name() == "gentoo"),
+                Context::Optional => selected.contains(self),
+                Context::Overlay => !repo.masters().is_empty(),
             }
             .not()
         })
@@ -322,12 +322,12 @@ impl AsRef<Utf8Path> for Check {
     }
 }
 
-/// Check contexts.
+/// Context required to operate by check or report.
 #[derive(
     Debug, Display, EnumIter, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone,
 )]
 #[strum(serialize_all = "kebab-case")]
-pub enum CheckContext {
+pub enum Context {
     /// Check only runs by default in the gentoo repo.
     Gentoo,
 

@@ -3,7 +3,7 @@ use std::env;
 use itertools::Itertools;
 use pkgcraft::restrict::Scope;
 use pkgcraft::test::{cmd, test_data};
-use pkgcruft::check::{Check, CheckContext};
+use pkgcruft::check::{Check, Context};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use predicates::prelude::*;
 use predicates::str::contains;
@@ -47,8 +47,8 @@ fn sets() {
             .stderr("")
             .success();
 
-        // check context
-        let context = CheckContext::iter().next().unwrap();
+        // context
+        let context = Context::iter().next().unwrap();
         cmd(format!("pkgcruft show reports {opt} @{context}"))
             .assert()
             .stdout(predicate::str::is_empty().not())

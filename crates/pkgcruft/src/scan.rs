@@ -244,7 +244,7 @@ mod tests {
     use pkgcraft::test::*;
     use tracing_test::traced_test;
 
-    use crate::check::{Check, CheckContext};
+    use crate::check::{Check, Context};
     use crate::report::ReportLevel;
     use crate::test::glob_reports;
 
@@ -328,7 +328,7 @@ mod tests {
         assert_err_re!(result, "FilesUnused: report requires package scope");
 
         // context
-        let scanner = Scanner::new().reports([CheckContext::Optional]);
+        let scanner = Scanner::new().reports([Context::Optional]);
         let reports = scanner.run(repo, repo).unwrap().count();
         assert!(reports > 0);
 

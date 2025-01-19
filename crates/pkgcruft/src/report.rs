@@ -15,7 +15,7 @@ use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
-use crate::check::{Check, CheckContext};
+use crate::check::{Check, Context};
 use crate::scan::ScannerRun;
 use crate::Error;
 
@@ -50,7 +50,7 @@ pub enum ReportSet {
     All,
     Finalize,
     Check(Check),
-    Context(CheckContext),
+    Context(Context),
     Level(ReportLevel),
     Report(ReportKind),
     Scope(Scope),
@@ -62,8 +62,8 @@ impl From<Check> for ReportSet {
     }
 }
 
-impl From<CheckContext> for ReportSet {
-    fn from(value: CheckContext) -> Self {
+impl From<Context> for ReportSet {
+    fn from(value: Context) -> Self {
         Self::Context(value)
     }
 }
