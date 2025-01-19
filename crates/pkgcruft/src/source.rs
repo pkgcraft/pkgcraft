@@ -21,10 +21,10 @@ use crate::scan::ScannerRun;
 #[derive(Display, EnumIter, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 pub enum SourceKind {
-    Cpn,
     Cpv,
     EbuildPkg,
     EbuildRawPkg,
+    Cpn,
     Repo,
 }
 
@@ -32,10 +32,10 @@ impl SourceKind {
     /// Return the source scope.
     pub(crate) fn scope(&self) -> Scope {
         match self {
-            Self::Cpn => Scope::Package,
             Self::Cpv => Scope::Version,
             Self::EbuildPkg => Scope::Version,
             Self::EbuildRawPkg => Scope::Version,
+            Self::Cpn => Scope::Package,
             Self::Repo => Scope::Repo,
         }
     }
