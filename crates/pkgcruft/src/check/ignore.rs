@@ -27,6 +27,14 @@ impl CpvCheck for Check {
             IgnoreUnused.version(cpv).message(sets).report(run);
         }
     }
+
+    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
+        let scope = ReportScope::Repo(repo.to_string());
+        if let Some(sets) = run.ignore.unused(&scope) {
+            let sets = sets.iter().join(", ");
+            IgnoreUnused.repo(repo).message(sets).report(run);
+        }
+    }
 }
 
 impl CpnCheck for Check {
@@ -46,14 +54,7 @@ impl CpnCheck for Check {
 }
 
 impl RepoCheck for Check {
-    fn run(&self, _repo: &EbuildRepo, _run: &ScannerRun) {}
-    fn finish_check(&self, repo: &EbuildRepo, run: &ScannerRun) {
-        let scope = ReportScope::Repo(repo.to_string());
-        if let Some(sets) = run.ignore.unused(&scope) {
-            let sets = sets.iter().join(", ");
-            IgnoreUnused.repo(repo).message(sets).report(run);
-        }
-
+    fn run(&self, repo: &EbuildRepo, run: &ScannerRun) {
         for category in repo.categories() {
             let scope = ReportScope::Category(category.clone());
             if let Some(sets) = run.ignore.unused(&scope) {
