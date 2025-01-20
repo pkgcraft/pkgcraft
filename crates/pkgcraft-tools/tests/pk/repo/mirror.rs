@@ -153,4 +153,12 @@ fn multiple_repos() {
         .stdout(predicate::str::is_empty().not())
         .stderr(predicate::str::is_empty().not())
         .failure();
+
+    // ignore invalid pkgs
+    cmd("pk repo mirror -i")
+        .args([&repo1, &repo2])
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
 }
