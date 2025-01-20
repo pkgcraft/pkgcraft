@@ -79,7 +79,8 @@ mod tests {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
-        let expected = glob_reports!("{dir}/IgnoreUnused.json");
+        let unused = glob_reports!("{dir}/IgnoreUnused.json");
+        let all = glob_reports!("{dir}/IgnoreUnused.json", "{dir}/IgnoreInvalid.json");
 
         // check isn't run by default
         let scanner = Scanner::new();
@@ -91,23 +92,32 @@ mod tests {
         let reports: Vec<_> = scanner
             .run(repo, repo)
             .unwrap()
-            .filter(|x| x.kind == IgnoreUnused)
+            .filter(|x| CHECK.reports().contains(&x.kind))
             .collect();
-        assert_ordered_eq!(&reports, &expected);
+        assert_unordered_eq!(&reports, &all);
 
         // verify reports in version scope
         let reports: Vec<_> = scanner
             .run(repo, "Ignore/IgnoreUnused-0")
             .unwrap()
+            .filter(|x| x.kind == IgnoreUnused)
             .collect();
-        assert_ordered_eq!(&reports, &expected[..1]);
+        assert_ordered_eq!(&reports, &unused[..1]);
 
         // verify reports in package scope
-        let reports: Vec<_> = scanner.run(repo, "Ignore/IgnoreUnused").unwrap().collect();
-        assert_ordered_eq!(&reports, &expected[..2]);
+        let reports: Vec<_> = scanner
+            .run(repo, "Ignore/IgnoreUnused")
+            .unwrap()
+            .filter(|x| x.kind == IgnoreUnused)
+            .collect();
+        assert_ordered_eq!(&reports, &unused[..2]);
 
         // verify reports in category scope
-        let reports: Vec<_> = scanner.run(repo, "Ignore/*").unwrap().collect();
-        assert_ordered_eq!(&reports, &expected[..3]);
+        let reports: Vec<_> = scanner
+            .run(repo, "Ignore/*")
+            .unwrap()
+            .filter(|x| x.kind == IgnoreUnused)
+            .collect();
+        assert_ordered_eq!(&reports, &unused[..3]);
     }
 }
