@@ -72,7 +72,7 @@ impl Ignore {
                                 .message(e)
                                 .report(run);
                         } else {
-                            warn!("invalid ignore directive: {relpath}, line {lineno}: {e}");
+                            warn!("{scope}: invalid ignore directive: line {lineno}: {e}");
                         }
                     }
                 }
