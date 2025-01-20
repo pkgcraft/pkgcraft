@@ -335,7 +335,6 @@ impl BuildData {
     }
 
     fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
-        LazyLock::force(&BASH);
         let eapi = self.eapi();
 
         // remove external metadata vars from the environment

@@ -34,6 +34,7 @@ fn initialize() {
     if !env::args().any(|x| x == "--bench") {
         env::var("NEXTEST").expect("tests must be run via cargo-nextest");
     }
+
     // initialize bash
     std::sync::LazyLock::force(&crate::shell::BASH);
 }
