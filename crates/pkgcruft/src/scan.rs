@@ -226,8 +226,12 @@ impl ScannerRun {
         let kind = report.kind;
         if self.enabled(kind)
             && (self.force
-                // HACK: IgnoreInvalid is unignorable to avoid deadlocks in the concurrent
-                // ignore cache since it is generated while holding a reference to it.
+                // HACK: IgnoreInvalid cannot be ignored to prevent deadlocks since the
+                // report is generated while holding a reference to the ignore cache
+                // causing issues for DashMap's concurrent locking design.
+                //
+                // In order to avoid deadlocks the ignore cache should return any
+                // generated IgnoreInvalid reports instead of handling them internally.
                 || kind == ReportKind::IgnoreInvalid
                 || !self.ignore.ignored(&report, self))
         {
