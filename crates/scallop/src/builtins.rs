@@ -282,6 +282,73 @@ where
     }
 }
 
+#[derive(Debug, Default)]
+pub struct ScopedBuiltins {
+    enabled: Vec<String>,
+    disabled: Vec<String>,
+}
+
+/// Enable/disable builtins, automatically reverting their status when leaving scope.
+impl ScopedBuiltins {
+    pub fn new<I>(builtins: I) -> crate::Result<Self>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let mut enabled = vec![];
+        let mut disabled = vec![];
+
+        for s in builtins {
+            let s = s.as_ref();
+            if let Some(value) = s.strip_prefix('-') {
+                disabled.push(value.to_string());
+            } else if let Some(value) = s.strip_prefix('+') {
+                enabled.push(value.to_string());
+            } else {
+                return Err(Error::Base(format!("missing -/+ prefix: {s}")));
+            }
+        }
+
+        enable(&enabled)?;
+        disable(&disabled)?;
+
+        Ok(Self { enabled, disabled })
+    }
+
+    pub fn disable<I>(values: I) -> crate::Result<Self>
+    where
+        I: IntoIterator,
+        I::Item: fmt::Display,
+    {
+        let mut builtins = Self::default();
+        builtins.disabled = values.into_iter().map(|s| s.to_string()).collect();
+        disable(&builtins.disabled)?;
+        Ok(builtins)
+    }
+
+    pub fn enable<I>(values: I) -> crate::Result<Self>
+    where
+        I: IntoIterator,
+        I::Item: fmt::Display,
+    {
+        let mut builtins = Self::default();
+        builtins.enabled = values.into_iter().map(|s| s.to_string()).collect();
+        enable(&builtins.enabled)?;
+        Ok(builtins)
+    }
+}
+
+impl Drop for ScopedBuiltins {
+    fn drop(&mut self) {
+        if !self.enabled.is_empty() {
+            disable(&self.enabled).unwrap_or_else(|_| panic!("failed disabling builtins"));
+        }
+        if !self.disabled.is_empty() {
+            enable(&self.disabled).unwrap_or_else(|_| panic!("failed enabling builtins"));
+        }
+    }
+}
+
 /// Toggle shell options, automatically reverting their status when leaving scope.
 #[derive(Debug, Default)]
 pub struct ScopedOptions {
