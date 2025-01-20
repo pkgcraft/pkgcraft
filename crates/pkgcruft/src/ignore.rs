@@ -12,13 +12,15 @@ use tracing::warn;
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 use crate::scan::ScannerRun;
 
+type CacheEntry = IndexMap<ReportKind, (ReportSet, bool)>;
+
 /// The cache of ignore data for an ebuild repo.
 ///
 /// This is lazily and concurrently populated during scanning runs as reports are
 /// generated.
 pub struct Ignore {
     repo: EbuildRepo,
-    cache: DashMap<ReportScope, IndexMap<ReportKind, (ReportSet, bool)>>,
+    cache: DashMap<ReportScope, CacheEntry>,
     default: IndexSet<ReportKind>,
     supported: IndexSet<ReportKind>,
 }
@@ -49,11 +51,7 @@ impl Ignore {
     }
 
     /// Load ignore data from ebuild lines or files.
-    fn load_data(
-        &self,
-        scope: &ReportScope,
-        run: Option<&ScannerRun>,
-    ) -> IndexMap<ReportKind, (ReportSet, bool)> {
+    fn load_data(&self, scope: &ReportScope, run: Option<&ScannerRun>) -> CacheEntry {
         let relpath = scope_to_path(scope);
         let mut ignore = IndexMap::new();
 
@@ -118,8 +116,7 @@ impl Ignore {
         &'a self,
         scope: &'b ReportScope,
         run: Option<&'a ScannerRun>,
-    ) -> impl Iterator<Item = RefMut<'a, ReportScope, IndexMap<ReportKind, (ReportSet, bool)>>>
-           + use<'a, 'b> {
+    ) -> impl Iterator<Item = RefMut<'a, ReportScope, CacheEntry>> + use<'a, 'b> {
         IgnoreScopes::new(&self.repo, scope).map(move |scope| {
             self.cache
                 .entry(scope.clone())
