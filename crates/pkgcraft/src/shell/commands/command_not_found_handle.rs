@@ -1,3 +1,4 @@
+use scallop::builtins::shell_builtins;
 use scallop::{Error, ExecStatus};
 
 use super::make_builtin;
@@ -11,7 +12,18 @@ instead.
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    Err(Error::Base(format!("unknown command: {}", args[0])))
+    let Some(cmd) = args.first().copied() else {
+        return Err(Error::Base("requires 1 or more args, got 0".into()));
+    };
+
+    let (_, disabled) = shell_builtins();
+    let error = if disabled.contains(cmd) {
+        "disabled builtin"
+    } else {
+        "unknown command"
+    };
+
+    Err(Error::Base(format!("{error}: {cmd}")))
 }
 
 const USAGE: &str = "for internal use only";
