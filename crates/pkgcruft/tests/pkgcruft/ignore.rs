@@ -2,6 +2,7 @@ use std::{env, fs};
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
+use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
 
@@ -124,5 +125,27 @@ fn current_dir_targets() {
               @style
         "})
         .stderr("")
+        .success();
+}
+
+#[test]
+fn invalid() {
+    let data = test_data();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
+
+    // invalid directives are ignored by default
+    cmd("pkgcruft ignore")
+        .arg(repo)
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // warnings shown with increased verbosity level
+    cmd("pkgcruft ignore -v")
+        .arg(repo)
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr(contains("invalid ignore directive"))
         .success();
 }
