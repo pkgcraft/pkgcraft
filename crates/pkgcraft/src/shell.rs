@@ -36,6 +36,13 @@ mod utils;
 use environment::Variable;
 use scope::Scope;
 
+// builtins that are permanently disabled
+static DISABLED_BUILTINS: &[&str] = &["enable"];
+
+// builtins that are disabled in global scope
+static DISABLED_GLOBAL_BUILTINS: &[&str] =
+    &["cd", "exit", "hash", "jobs", "kill", "pushd", "popd", "source", "."];
+
 #[derive(Debug)]
 pub(crate) enum BuildState {
     Empty(&'static Eapi),
@@ -336,6 +343,9 @@ impl BuildData {
             env::remove_var(var.as_ref());
         }
 
+        // explicitly disable builtins in global scope
+        let _builtins = builtins::ScopedBuiltins::disable(DISABLED_GLOBAL_BUILTINS)?;
+
         // commands override functions
         builtins::override_funcs(eapi.commands(), true)?;
         // phase stubs override functions forcing direct calls to error out
@@ -422,8 +432,8 @@ pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
     scallop::shell::init(false);
     // all builtins are enabled by default, access is restricted at runtime based on scope
     builtins::register(&*commands::BUILTINS);
-    // restrict builtin loading and toggling
-    builtins::disable(["enable"]).expect("failed disabling builtins");
+    // permanently disable builtins such as `enable` to restrict overriding builtins
+    builtins::disable(DISABLED_BUILTINS).expect("failed disabling builtins");
 });
 
 /// Build wrapper for ebuild package variants.
