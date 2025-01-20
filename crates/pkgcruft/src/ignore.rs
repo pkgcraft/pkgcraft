@@ -7,6 +7,7 @@ use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::traits::FilterLines;
 use rayon::prelude::*;
+use tracing::warn;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 
@@ -46,43 +47,53 @@ impl Ignore {
         self
     }
 
-    /// Parse the ignore data from a line.
-    ///
-    /// This supports comma-separated values with optional whitespace.
-    fn parse_line<'a>(
-        &'a self,
-        data: &'a str,
-    ) -> impl Iterator<Item = (ReportKind, (ReportSet, bool))> + 'a {
-        data.split(',')
-            .filter_map(|x| x.trim().parse::<ReportSet>().ok())
-            .flat_map(move |set| {
-                set.expand(&self.default, &self.supported)
-                    .map(move |kind| (kind, (set, false)))
-            })
-    }
-
     /// Load ignore data from ebuild lines or files.
     fn load_data(&self, scope: ReportScope) -> IndexMap<ReportKind, (ReportSet, bool)> {
-        let path = self.repo.path().join(scope_to_path(&scope));
+        let relpath = scope_to_path(&scope);
+        let mut ignore = IndexMap::new();
+
+        // Parse ignore directives from a line.
+        //
+        // This supports comma-separated values with optional whitespace.
+        let mut parse_line = |data: &str, lineno: usize| {
+            for result in data.split(',').map(|s| s.trim().parse::<ReportSet>()) {
+                match result {
+                    Ok(set) => ignore.extend(
+                        set.expand(&self.default, &self.supported)
+                            .map(move |kind| (kind, (set, false))),
+                    ),
+                    Err(e) => {
+                        warn!("invalid ignore directive: {relpath}, line {lineno}: {e}");
+                    }
+                }
+            }
+        };
+
+        let abspath = self.repo.path().join(&relpath);
         if matches!(scope, ReportScope::Version(..)) {
             // TODO: use BufRead to avoid loading the entire ebuild file?
-            let mut ignore = IndexMap::new();
-            for line in fs::read_to_string(path).unwrap_or_default().lines() {
+            for (i, line) in fs::read_to_string(abspath)
+                .unwrap_or_default()
+                .lines()
+                .enumerate()
+            {
                 let line = line.trim();
                 if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
-                    ignore.extend(self.parse_line(data));
+                    parse_line(data, i + 1);
                 } else if !line.is_empty() && !line.starts_with("#") {
                     break;
                 }
             }
-            ignore
         } else {
-            fs::read_to_string(path.join(".pkgcruft-ignore"))
+            for (i, line) in fs::read_to_string(abspath.join(".pkgcruft-ignore"))
                 .unwrap_or_default()
                 .filter_lines()
-                .flat_map(|(_, data)| self.parse_line(data))
-                .collect()
+            {
+                parse_line(line, i);
+            }
         }
+
+        ignore
     }
 
     /// Return an iterator of ignore cache entries for a scope.
