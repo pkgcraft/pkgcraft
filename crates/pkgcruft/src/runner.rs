@@ -1,5 +1,4 @@
 use std::fmt;
-use std::sync::Arc;
 use std::time::Instant;
 
 use indexmap::IndexMap;
@@ -53,7 +52,7 @@ pub(super) struct SyncCheckRunner {
 }
 
 impl SyncCheckRunner {
-    pub(super) fn new(run: &Arc<ScannerRun>) -> Self {
+    pub(super) fn new(run: &ScannerRun) -> Self {
         let mut runner = Self::default();
 
         for check in &run.checks {
