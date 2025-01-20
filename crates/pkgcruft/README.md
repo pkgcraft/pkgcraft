@@ -17,8 +17,8 @@ various tools from pkgcraft-tools.
 
 For more explanation, pkgcraft is much more strict than alternatives on what is
 allowed in global scope. However, if a less stringent tool is used, potential
-reports may be skipped as pkgcruft will not regenerate data for valid cache
-entries.
+reports may be skipped as pkgcruft will not regenerate data for packages with
+valid cache entries.
 
 # Build requirements
 
