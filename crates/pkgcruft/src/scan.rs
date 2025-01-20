@@ -224,7 +224,13 @@ impl ScannerRun {
     /// Conditionally add a report based on filter inclusion.
     pub(crate) fn report(&self, report: Report) {
         let kind = report.kind;
-        if self.enabled(kind) && (self.force || !self.ignore.ignored(&report)) {
+        if self.enabled(kind)
+            && (self.force
+                // HACK: IgnoreInvalid is unignorable to avoid deadlocks in the concurrent
+                // ignore cache since it is generated while holding a reference to it.
+                || kind == ReportKind::IgnoreInvalid
+                || !self.ignore.ignored(&report, self))
+        {
             if self.exit.contains(&kind) {
                 self.failed.store(true, Ordering::Relaxed);
             }

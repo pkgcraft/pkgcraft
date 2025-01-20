@@ -312,7 +312,10 @@ pub enum ReportKind {
     /// Ebuild has an invalid homepage.
     HomepageInvalid,
 
-    /// Repo has unused pkgcruft ignore directives.
+    /// Repo has an invalid ignore directive.
+    IgnoreInvalid,
+
+    /// Repo has an unused ignore directive.
     IgnoreUnused,
 
     /// Ebuild has an invalid USE flag.
@@ -471,6 +474,15 @@ impl ReportKind {
         })
     }
 
+    /// Create a report using a scope.
+    pub(crate) fn in_scope(self, scope: ReportScope) -> ReportBuilder {
+        ReportBuilder(Report {
+            kind: self,
+            scope,
+            message: Default::default(),
+        })
+    }
+
     /// Return the severity level of the report variant.
     pub fn level(&self) -> ReportLevel {
         use ReportLevel::*;
@@ -494,6 +506,7 @@ impl ReportKind {
             Self::FilesUnused => Warning,
             Self::HeaderInvalid => Error,
             Self::HomepageInvalid => Error,
+            Self::IgnoreInvalid => Warning,
             Self::IgnoreUnused => Warning,
             Self::IuseInvalid => Error,
             Self::KeywordsDropped => Warning,
@@ -558,6 +571,7 @@ impl ReportKind {
             Self::FilesUnused => Scope::Package,
             Self::HeaderInvalid => Scope::Version,
             Self::HomepageInvalid => Scope::Version,
+            Self::IgnoreInvalid => Scope::Version,
             Self::IgnoreUnused => Scope::Version,
             Self::IuseInvalid => Scope::Version,
             Self::KeywordsDropped => Scope::Version,

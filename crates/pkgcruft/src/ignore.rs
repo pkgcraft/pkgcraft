@@ -10,6 +10,7 @@ use rayon::prelude::*;
 use tracing::warn;
 
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
+use crate::scan::ScannerRun;
 
 /// The cache of ignore data for an ebuild repo.
 ///
@@ -42,14 +43,18 @@ impl Ignore {
             .into_par_iter()
             .for_each(|cpv| {
                 let scope = ReportScope::Version(cpv, None);
-                self.generate(&scope).count();
+                self.generate(&scope, None).count();
             });
         self
     }
 
     /// Load ignore data from ebuild lines or files.
-    fn load_data(&self, scope: ReportScope) -> IndexMap<ReportKind, (ReportSet, bool)> {
-        let relpath = scope_to_path(&scope);
+    fn load_data(
+        &self,
+        scope: &ReportScope,
+        run: Option<&ScannerRun>,
+    ) -> IndexMap<ReportKind, (ReportSet, bool)> {
+        let relpath = scope_to_path(scope);
         let mut ignore = IndexMap::new();
 
         // Parse ignore directives from a line.
@@ -63,7 +68,14 @@ impl Ignore {
                             .map(move |kind| (kind, (set, false))),
                     ),
                     Err(e) => {
-                        warn!("invalid ignore directive: {relpath}, line {lineno}: {e}");
+                        if let Some(run) = run {
+                            ReportKind::IgnoreInvalid
+                                .in_scope(scope.clone())
+                                .message(e)
+                                .report(run);
+                        } else {
+                            warn!("invalid ignore directive: {relpath}, line {lineno}: {e}");
+                        }
                     }
                 }
             }
@@ -105,12 +117,13 @@ impl Ignore {
     pub(crate) fn generate<'a, 'b>(
         &'a self,
         scope: &'b ReportScope,
+        run: Option<&'a ScannerRun>,
     ) -> impl Iterator<Item = RefMut<'a, ReportScope, IndexMap<ReportKind, (ReportSet, bool)>>>
            + use<'a, 'b> {
         IgnoreScopes::new(&self.repo, scope).map(move |scope| {
             self.cache
                 .entry(scope.clone())
-                .or_insert_with(|| self.load_data(scope))
+                .or_insert_with(|| self.load_data(&scope, run))
         })
     }
 
@@ -118,8 +131,8 @@ impl Ignore {
     ///
     /// For example, a version scope report will check for repo, category, package, and
     /// ebuild ignore data stopping at the first match.
-    pub fn ignored(&self, report: &Report) -> bool {
-        self.generate(report.scope()).any(|mut entry| {
+    pub(crate) fn ignored(&self, report: &Report, run: &ScannerRun) -> bool {
+        self.generate(report.scope(), Some(run)).any(|mut entry| {
             entry
                 .get_mut(&report.kind)
                 .map(|(_, used)| *used = true)

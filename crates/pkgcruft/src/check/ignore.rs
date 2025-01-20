@@ -17,7 +17,7 @@ impl CpvCheck for Check {
         let scope = ReportScope::Version(cpv.clone(), None);
 
         // forciby populate the cache
-        run.ignore.generate(&scope).count();
+        run.ignore.generate(&scope, Some(run)).count();
 
         // flag unused version scope ignore directives
         if let Some(sets) = run.ignore.unused(&scope) {
@@ -40,7 +40,7 @@ impl CpnCheck for Check {
         let scope = ReportScope::Package(cpn.clone());
 
         // forciby populate the cache
-        run.ignore.generate(&scope).count();
+        run.ignore.generate(&scope, Some(run)).count();
 
         // flag unused package scope ignore directives
         if let Some(sets) = run.ignore.unused(&scope) {
@@ -55,7 +55,7 @@ impl CategoryCheck for Check {
         let scope = ReportScope::Category(category.to_string());
 
         // forciby populate the cache
-        run.ignore.generate(&scope).count();
+        run.ignore.generate(&scope, Some(run)).count();
 
         if let Some(sets) = run.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");

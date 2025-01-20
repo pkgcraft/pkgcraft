@@ -120,7 +120,7 @@ impl Check {
             Self::Eclass => &[EclassUnused],
             Self::Header => &[HeaderInvalid],
             Self::Homepage => &[HomepageInvalid],
-            Self::Ignore => &[IgnoreUnused],
+            Self::Ignore => &[IgnoreInvalid, IgnoreUnused],
             Self::Iuse => &[IuseInvalid, UseGlobalUnused],
             Self::Keywords => &[
                 EapiUnstable,
