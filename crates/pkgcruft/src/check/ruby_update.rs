@@ -133,6 +133,7 @@ mod tests {
 
     #[test]
     fn check() {
+        // ignore stub/* ebuilds
         let filter: PkgFilter = "category != 'stub'".parse().unwrap();
         let scanner = Scanner::new().reports([CHECK]).filters([filter]);
 
@@ -140,7 +141,6 @@ mod tests {
         let data = test_data();
         let repo = data.ebuild_repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
-        // ignore stub/* ebuilds
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
