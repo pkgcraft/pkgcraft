@@ -825,12 +825,22 @@ fn reports() {
 
     for opt in ["-r", "--reports"] {
         // invalid
-        cmd("pkgcruft scan -R json")
+        cmd("pkgcruft scan")
             .args([opt, "invalid"])
             .arg(&repo)
             .assert()
             .stdout("")
             .stderr(contains("invalid report: invalid"))
+            .failure()
+            .code(2);
+
+        // none enabled
+        cmd("pkgcruft scan")
+            .args([opt, "@Manifest,-@Manifest"])
+            .arg(&repo)
+            .assert()
+            .stdout("")
+            .stderr(contains("no reports enabled"))
             .failure()
             .code(2);
 
