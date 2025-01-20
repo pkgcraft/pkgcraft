@@ -62,6 +62,7 @@ impl Command {
 
         tracing_subscriber::fmt()
             .event_format(format)
+            .with_ansi(args.color.unwrap_or(true))
             .with_max_level(level.as_trace())
             .with_writer(stderr)
             .init();
