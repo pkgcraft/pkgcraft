@@ -149,7 +149,7 @@ pub(crate) fn has_ext_utf8(entry: &Utf8DirEntry, ext: &str) -> bool {
 }
 
 /// Determine if a [`Utf8DirEntry`] is a valid ebuild file.
-pub fn is_ebuild(entry: &Utf8DirEntry) -> bool {
+pub(crate) fn is_ebuild(entry: &Utf8DirEntry) -> bool {
     is_file_utf8(entry) && !is_hidden_utf8(entry) && has_ext_utf8(entry, "ebuild")
 }
 

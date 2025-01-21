@@ -1,9 +1,6 @@
-use camino::Utf8Path;
 use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
-use pkgcraft::files::is_ebuild;
-use pkgcraft::macros::build_path;
 use pkgcraft::repo::PkgRepository;
 
 use crate::report::ReportKind::{RepoCategoriesUnused, RepoCategoryEmpty, RepoPackageEmpty};
@@ -41,18 +38,15 @@ pub(super) struct Check {
 
 super::register!(Check);
 
-/// Determine if an ebuild file exists in a directory path.
-fn find_ebuild(path: &Utf8Path) -> bool {
-    path.read_dir_utf8()
-        .map(|entries| entries.filter_map(Result::ok).any(|e| is_ebuild(&e)))
-        .unwrap_or(false)
-}
-
 impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, run: &ScannerRun) {
         let (category, package) = (cpn.category(), cpn.package());
-        let path = build_path!(&run.repo, category, package);
-        if !find_ebuild(&path) {
+        if run
+            .repo
+            .cpvs_from_package(category, package)
+            .next()
+            .is_none()
+        {
             RepoPackageEmpty.package(cpn).report(run);
         } else {
             self.empty_categories.remove(category);
