@@ -865,10 +865,22 @@ fn reports() {
             "@error",
             "-@warning",
             "+@info",
+            "@<warning",
+            "@<=warning",
+            "@=warning",
+            "@!=warning",
+            "@>=warning",
+            "@>warning",
             // scopes
             "@category",
             "-@package",
             "+@version",
+            "@<package",
+            "@<=package",
+            "@=package",
+            "@!=package",
+            "@>=package",
+            "@>package",
         ] {
             let reports = cmd("pkgcruft scan -R json")
                 .args([opt, target])
