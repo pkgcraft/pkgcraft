@@ -59,14 +59,16 @@ impl EbuildRawPkgCheck for Check {
             // Flag leading single spaces, skipping certain parse tree node variants such
             // as heredocs and raw strings.
             if line.starts_with(' ') {
-                if let Some(node) = pkg.tree().last_node_for_position(lineno - 1, 0) {
-                    if !self.allowed_leading_whitespace.contains(node.kind()) {
-                        WhitespaceUnneeded
-                            .version(pkg)
-                            .message("leading whitespace")
-                            .location(lineno)
-                            .report(run);
-                    }
+                let node = pkg
+                    .tree()
+                    .last_node_for_position(lineno - 1, 0)
+                    .unwrap_or_else(|| panic!("nonexistent line: {lineno}"));
+                if !self.allowed_leading_whitespace.contains(node.kind()) {
+                    WhitespaceUnneeded
+                        .version(pkg)
+                        .message("leading whitespace")
+                        .location(lineno)
+                        .report(run);
                 }
             } else if whitespace_only_line && !line.is_empty() {
                 WhitespaceUnneeded
