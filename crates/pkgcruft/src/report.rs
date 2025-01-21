@@ -1113,13 +1113,14 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 mod tests {
     use itertools::Itertools;
     use pkgcraft::restrict::Scope;
-    use pkgcraft::test::*;
+    use pkgcraft::test::test_data;
     use pretty_assertions::assert_eq;
     use strum::IntoEnumIterator;
 
     use super::*;
     use crate::check::Check;
     use crate::report::ReportLevel;
+    use crate::test::assert_ordered_reports;
 
     // serialized reports in order
     static REPORTS: &str = indoc::indoc! {r#"
@@ -1165,10 +1166,7 @@ mod tests {
         reports.reverse();
         reports.sort();
 
-        // compare reports via string serialization for better diff output
-        let expected = expected.iter().map(|r| r.to_string());
-        let reports = reports.iter().map(|r| r.to_string());
-        assert_ordered_eq!(expected, reports);
+        assert_ordered_reports!(expected, reports);
     }
 
     #[test]

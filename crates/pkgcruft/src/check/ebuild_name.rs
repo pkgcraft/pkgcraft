@@ -48,10 +48,10 @@ impl CpnCheck for Check {
 mod tests {
     use std::env;
 
-    use pkgcraft::test::*;
+    use pkgcraft::test::{test_data, test_data_patched};
 
     use crate::scan::Scanner;
-    use crate::test::glob_reports;
+    use crate::test::{assert_unordered_reports, glob_reports};
 
     use super::*;
 
@@ -65,19 +65,19 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // verify scanning in a package with only invalid names
         let dir = dir.join("EbuildNameInvalid");
         env::set_current_dir(&dir).unwrap();
         let expected = glob_reports!("{dir}/reports.json");
         let reports = scanner.run(repo, &dir).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // primary fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
     }
 }

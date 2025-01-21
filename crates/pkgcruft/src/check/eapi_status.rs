@@ -65,11 +65,11 @@ mod tests {
 
     use pkgcraft::config::Config;
     use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-    use pkgcraft::test::*;
+    use pkgcraft::test::{test_data, test_data_patched};
 
     use crate::report::Report;
     use crate::scan::Scanner;
-    use crate::test::glob_reports;
+    use crate::test::{assert_unordered_reports, glob_reports};
 
     use super::*;
 
@@ -83,7 +83,7 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // TODO: move this to shared test data
         // repo with unused EAPI
@@ -105,18 +105,18 @@ mod tests {
             r#"{"kind":"EapiUnused","scope":{"Repo":"test"},"message":"7"}"#,
         )
         .unwrap()];
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // secondary with no banned or deprecated EAPIs set
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         assert!(repo.path().join(CHECK).exists());
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
 
         // primary fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
     }
 }

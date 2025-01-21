@@ -77,10 +77,10 @@ impl EbuildRawPkgCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::test::*;
+    use pkgcraft::test::{test_data, test_data_patched};
 
     use crate::scan::Scanner;
-    use crate::test::glob_reports;
+    use crate::test::{assert_unordered_reports, glob_reports};
 
     use super::*;
 
@@ -104,12 +104,12 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // gentoo fixed
         let data = test_data_patched();
         let repo = data.ebuild_repo("gentoo").unwrap();
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
     }
 }

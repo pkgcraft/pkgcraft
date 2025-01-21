@@ -256,7 +256,7 @@ mod tests {
 
     use crate::check::{Check, Context};
     use crate::report::ReportLevel;
-    use crate::test::glob_reports;
+    use crate::test::*;
 
     use super::*;
 
@@ -270,28 +270,28 @@ mod tests {
         // repo
         let expected = glob_reports!("{path}/**/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // category
         let expected = glob_reports!("{path}/Keywords/*/reports.json");
         let reports = scanner.run(repo, Utf8Path::new("Keywords")).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // package
         let expected = glob_reports!("{path}/Dependency/DependencyInvalid/reports.json");
         let reports = scanner
             .run(repo, Utf8Path::new("Dependency/DependencyInvalid"))
             .unwrap();
-        assert_ordered_eq!(reports, expected);
+        assert_ordered_reports!(reports, expected);
 
         // version
         let expected = glob_reports!("{path}/Whitespace/WhitespaceInvalid/reports.json");
         let reports = scanner.run(repo, "Whitespace/WhitespaceInvalid-0").unwrap();
-        assert_ordered_eq!(reports, expected);
+        assert_ordered_reports!(reports, expected);
 
         // non-matching restriction doesn't raise error unlike `pkgcruft scan`
         let reports = scanner.run(repo, "nonexistent/pkg").unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
     }
 
     #[test]
@@ -319,7 +319,7 @@ mod tests {
         let scanner = Scanner::new().reports([Check::Dependency]);
         let expected = glob_reports!("{path}/Dependency/**/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // filter failure
         let latest = "latest".parse().unwrap();
@@ -368,21 +368,21 @@ mod tests {
         let path = repo.path();
         let expected = glob_reports!("{path}/**/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // empty repo
         let repo = data.ebuild_repo("empty").unwrap();
         // no failure with repo target
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
         // no failure with specific target
         let reports = scanner.run(repo, "nonexistent/pkg").unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
 
         // overlay repo -- dependent repo is auto-loaded
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
     }
 
     #[traced_test]
@@ -394,7 +394,7 @@ mod tests {
         let scanner = Scanner::new();
         let reports = scanner.run(repo, "eapi/invalid-9999").unwrap();
         let expected = glob_reports!("{path}/eapi/invalid/reports.json");
-        assert_ordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
         assert_logs_re!(format!(".+: skipping due to invalid pkg: eapi/invalid-9999"));
     }
 
@@ -409,7 +409,7 @@ mod tests {
             .run(repo, repo)
             .unwrap()
             .collect();
-        assert_unordered_eq!(&reports, &[]);
+        assert_unordered_reports!(&reports, &[]);
 
         let repo = data.ebuild_repo("gentoo").unwrap();
         let pkgdir = repo.path().join("Header/HeaderInvalid");
@@ -418,7 +418,7 @@ mod tests {
         // none
         let mut scanner = Scanner::new().reports([ReportKind::HeaderInvalid]);
         let reports: Vec<_> = scanner.run(repo, repo).unwrap().collect();
-        assert_unordered_eq!(&reports, &expected);
+        assert_unordered_reports!(&reports, &expected);
 
         for (filters, expected) in [
             (vec!["latest"], &expected[5..]),
@@ -442,7 +442,7 @@ mod tests {
             // run scanner in repo scope
             let reports: Vec<_> = scanner.run(repo, repo).unwrap().collect();
             let failed = filters.iter().join(", ");
-            assert_unordered_eq!(
+            assert_unordered_reports!(
                 &reports,
                 expected,
                 format!("repo scope: failed filters: {failed}")
@@ -450,7 +450,7 @@ mod tests {
 
             // run scanner in package scope
             let reports: Vec<_> = scanner.run(repo, pkgdir.as_path()).unwrap().collect();
-            assert_unordered_eq!(
+            assert_unordered_reports!(
                 &reports,
                 expected,
                 format!("pkg scope: failed filters: {failed}")

@@ -32,7 +32,7 @@ impl CpnCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::test::*;
+    use pkgcraft::test::{assert_err_re, test_data};
 
     use crate::scan::Scanner;
 

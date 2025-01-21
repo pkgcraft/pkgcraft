@@ -26,10 +26,10 @@ impl EbuildPkgSetCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::test::*;
+    use pkgcraft::test::{test_data, test_data_patched};
 
     use crate::scan::Scanner;
-    use crate::test::glob_reports;
+    use crate::test::{assert_unordered_reports, glob_reports};
 
     use super::*;
 
@@ -41,13 +41,13 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new();
         let reports = scanner.run(repo, &dir).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
 
         // primary unfixed
         let scanner = Scanner::new().reports([CHECK]);
         let expected = glob_reports!("{dir}/*/optional.json");
         let reports = scanner.run(repo, &dir).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // gentoo unfixed
         let repo = data.ebuild_repo("gentoo").unwrap();
@@ -55,7 +55,7 @@ mod tests {
         let scanner = Scanner::new();
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, &dir).unwrap();
-        assert_unordered_eq!(reports, expected);
+        assert_unordered_reports!(reports, expected);
 
         // primary fixed
         let data = test_data_patched();
@@ -63,12 +63,12 @@ mod tests {
         let dir = repo.path().join(CHECK);
         let scanner = Scanner::new().reports([CHECK]);
         let reports = scanner.run(repo, &dir).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
 
         // gentoo fixed
         let repo = data.ebuild_repo("gentoo").unwrap();
         let scanner = Scanner::new().reports([CHECK]);
         let reports = scanner.run(repo, repo).unwrap();
-        assert_unordered_eq!(reports, []);
+        assert_unordered_reports!(reports, []);
     }
 }

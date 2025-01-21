@@ -66,11 +66,11 @@ impl CategoryCheck for Check {
 
 #[cfg(test)]
 mod tests {
-    use pkgcraft::test::*;
+    use pkgcraft::test::test_data;
 
     use crate::report::ReportSet;
     use crate::scan::Scanner;
-    use crate::test::glob_reports;
+    use crate::test::{assert_ordered_reports, assert_unordered_reports, glob_reports};
 
     use super::*;
 
@@ -94,7 +94,7 @@ mod tests {
             .unwrap()
             .filter(|x| CHECK.reports().contains(&x.kind))
             .collect();
-        assert_unordered_eq!(&reports, &all);
+        assert_unordered_reports!(&reports, &all);
 
         // verify reports in version scope
         let reports: Vec<_> = scanner
@@ -102,7 +102,7 @@ mod tests {
             .unwrap()
             .filter(|x| x.kind == IgnoreUnused)
             .collect();
-        assert_ordered_eq!(&reports, &unused[..1]);
+        assert_ordered_reports!(&reports, &unused[..1]);
 
         // verify reports in package scope
         let reports: Vec<_> = scanner
@@ -110,7 +110,7 @@ mod tests {
             .unwrap()
             .filter(|x| x.kind == IgnoreUnused)
             .collect();
-        assert_ordered_eq!(&reports, &unused[..2]);
+        assert_ordered_reports!(&reports, &unused[..2]);
 
         // verify reports in category scope
         let reports: Vec<_> = scanner
@@ -118,6 +118,6 @@ mod tests {
             .unwrap()
             .filter(|x| x.kind == IgnoreUnused)
             .collect();
-        assert_ordered_eq!(&reports, &unused[..3]);
+        assert_ordered_reports!(&reports, &unused[..3]);
     }
 }
