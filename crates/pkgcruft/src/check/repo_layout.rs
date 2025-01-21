@@ -74,6 +74,8 @@ impl RepoCheck for Check {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use pkgcraft::test::*;
 
     use crate::scan::Scanner;
@@ -83,13 +85,21 @@ mod tests {
 
     #[test]
     fn check() {
-        let scanner = Scanner::new().reports([CHECK]);
-
-        // primary unfixed
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
+
+        // verify scanning in empty package
+        let pkg_dir = repo.path().join("CategoryEmpty/PackageEmpty");
+        env::set_current_dir(&pkg_dir).unwrap();
+        let expected = glob_reports!("{pkg_dir}/reports.json");
+        let scanner = Scanner::new();
+        let reports = scanner.run(repo, &pkg_dir).unwrap();
+        assert_unordered_eq!(reports, expected);
+
+        // primary unfixed
         let dir = repo.path();
-        let expected = glob_reports!("{dir}/reports.json");
+        let expected = glob_reports!("{dir}/reports.json", "{pkg_dir}/reports.json");
+        let scanner = Scanner::new().reports([CHECK]);
         let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_eq!(reports, expected);
 
