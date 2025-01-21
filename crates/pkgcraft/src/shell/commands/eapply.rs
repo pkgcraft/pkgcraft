@@ -75,7 +75,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         if path.is_dir() {
             let paths: Vec<_> = path
                 .read_dir_utf8()?
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
                 .filter(is_patch)
                 .map(|e| e.into_path())
                 .sorted()

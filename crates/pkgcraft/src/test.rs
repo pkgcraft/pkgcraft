@@ -299,7 +299,7 @@ pub fn test_data_patched() -> TestDataPatched {
                 // supports that.
                 //
                 // verify no backup files were created due to mismatched patches
-                let mut files = fs::read_dir(&dir).unwrap().filter_map(|e| e.ok());
+                let mut files = fs::read_dir(&dir).unwrap().filter_map(Result::ok);
                 if files.any(|e| {
                     e.path()
                         .extension()

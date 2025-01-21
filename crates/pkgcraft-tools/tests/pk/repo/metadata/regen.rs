@@ -273,7 +273,7 @@ where
         .min_depth(2)
         .max_depth(2)
         .into_iter()
-        .filter_map(|e| e.ok())
+        .filter_map(Result::ok)
         .map(|e| {
             let short_path = e.path().strip_prefix(path).unwrap();
             let data = fs::read_to_string(e.path()).unwrap();

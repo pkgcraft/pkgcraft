@@ -119,7 +119,7 @@ impl Syncable for Repo {
             archive
                 .entries()
                 .map_err(|e| Error::RepoSync(e.to_string()))?
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
                 .map(|mut entry| -> crate::Result<PathBuf> {
                     // drop first directory component in archive paths
                     let stripped_path: PathBuf = entry
@@ -135,7 +135,7 @@ impl Syncable for Repo {
                         })?;
                     Ok(stripped_path)
                 })
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
                 .for_each(drop);
         }
 

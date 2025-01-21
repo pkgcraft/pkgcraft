@@ -163,7 +163,7 @@ impl EbuildPkgSetCheck for Check {
         let mut files: HashSet<_> = WalkDir::new(&filesdir)
             .min_depth(1)
             .into_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(Result::ok)
             .filter(|e| e.path().is_file())
             .map(|e| e.path().to_string_lossy().to_string())
             .collect();

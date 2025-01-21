@@ -350,9 +350,9 @@ impl EbuildRepo {
         let path = build_path!(self.path(), category);
         if let Ok(entries) = path.read_dir_utf8() {
             let mut cpvs: IndexSet<_> = entries
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
                 .flat_map(|e| self.cpvs_from_package(category, e.file_name()))
-                .filter_map(|x| x.ok())
+                .filter_map(Result::ok)
                 .collect();
             cpvs.sort();
             cpvs
@@ -373,7 +373,7 @@ impl EbuildRepo {
         let path = build_path!(self.path(), category, package);
         if let Ok(entries) = path.read_dir_utf8() {
             let cpvs: Vec<_> = entries
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
                 .filter(is_ebuild)
                 .map(|e| self.cpv_from_path(e.path()))
                 .sorted()
@@ -1127,7 +1127,7 @@ impl IterCpv {
                 let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(
                     repo.cpvs_from_package(cat, pn)
-                        .filter_map(|x| x.ok())
+                        .filter_map(Result::ok)
                         .filter(move |cpv| ver_restrict.matches(cpv)),
                 )
             }
@@ -1136,7 +1136,7 @@ impl IterCpv {
                 let ver_restrict = Restrict::and(ver_restricts);
                 Box::new(repo.categories().into_iter().flat_map(move |cat| {
                     repo.cpvs_from_package(&cat, &pn)
-                        .filter_map(|x| x.ok())
+                        .filter_map(Result::ok)
                         .filter(|cpv| ver_restrict.matches(cpv))
                         .collect::<Vec<_>>()
                 }))

@@ -13,7 +13,7 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
     // expand directory path into files
     let mut files = match path.read_dir_utf8() {
         Ok(entries) => entries
-            .filter_map(|d| d.ok())
+            .filter_map(Result::ok)
             .map(|d| d.path().to_path_buf())
             .collect(),
         // TODO: switch to `e.kind() == ErrorKind::NotADirectory` on rust stabilization

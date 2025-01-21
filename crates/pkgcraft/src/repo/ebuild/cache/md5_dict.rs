@@ -290,7 +290,7 @@ impl Cache for Md5Dict {
         // empty while ignoring I/O errors.
         entries
             .into_par_iter()
-            .filter_map(|e| e.ok())
+            .filter_map(Result::ok)
             .filter(is_file)
             .for_each(|e| {
                 if let Some(path) = Utf8Path::from_path(e.path()) {
