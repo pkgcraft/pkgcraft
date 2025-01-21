@@ -35,12 +35,12 @@ shell = ["dep:clap_complete"]
 aho-corasick = "1.1.3"
 anyhow = "1.0.95"
 camino = "1.1.9"
-clap = { version = "4.5.26", features = ["derive"] }
+clap = { version = "4.5.27", features = ["derive"] }
 clap_complete = { version = "4.5.42", optional = true }
 clap-verbosity-flag = "3.0.2"
 futures = "0.3.31"
 humantime = "2.1.0"
-indexmap = { version = "2.7.0", features = ["rayon", "serde"] }
+indexmap = { version = "2.7.1", features = ["rayon", "serde"] }
 indicatif = "0.17.9"
 indoc = "2.0.5"
 itertools = "0.13.0"
