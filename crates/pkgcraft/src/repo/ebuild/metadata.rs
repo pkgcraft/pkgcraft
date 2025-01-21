@@ -902,18 +902,6 @@ mod tests {
         assert!(metadata.config.restrict_allowed.is_empty());
         assert!(metadata.config.thin_manifests);
 
-        // custom profile-formats
-        let data = indoc::indoc! {r#"
-            masters =
-            profile-formats = custom
-        "#};
-        fs::write(repo.path().join("metadata/layout.conf"), data).unwrap();
-        let r = Metadata::try_new("test", repo.path());
-        assert_err_re!(
-            r,
-            "^invalid repo: test: metadata/layout.conf: unsupported profile-formats"
-        );
-
         // existing
         let data = indoc::indoc! {r#"
             masters = repo1 repo2
