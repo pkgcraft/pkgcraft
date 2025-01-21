@@ -12,7 +12,9 @@ mod peg;
 
 pub(crate) use self::peg::peg_error;
 
-#[derive(Debug, Clone, Deserialize, Serialize, thiserror::Error)]
+#[derive(
+    Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, thiserror::Error,
+)]
 pub enum Error {
     #[error("{0}")]
     PegParse(String),
