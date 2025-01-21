@@ -15,26 +15,30 @@ type CommandFn = for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg,
 
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     let mut check = Check { commands: Default::default() };
-    check.extend(["find", "xargs"], builtins);
-    check.extend(["optfeature"], optfeature);
+    check.register(["find", "xargs"], builtins);
+    check.register(["optfeature"], optfeature);
     check
 }
 
 static CHECK: super::Check = super::Check::Commands;
 
 struct Check {
-    commands: HashMap<String, CommandFn>,
+    commands: HashMap<String, Vec<CommandFn>>,
 }
 
 impl Check {
     /// Register commands for the check to handle.
-    fn extend<I>(&mut self, names: I, func: CommandFn)
+    fn register<I>(&mut self, names: I, func: CommandFn)
     where
         I: IntoIterator,
         I::Item: std::fmt::Display,
     {
-        self.commands
-            .extend(names.into_iter().map(|x| (x.to_string(), func)));
+        for name in names {
+            self.commands
+                .entry(name.to_string())
+                .or_default()
+                .push(func);
+        }
     }
 }
 
@@ -95,14 +99,16 @@ impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let mut cursor = pkg.tree().walk();
         // TODO: use parse tree query
-        for (cmd, node, func) in pkg
+        for (cmd, node, funcs) in pkg
             .tree()
             .iter_func()
             .filter(|x| x.kind() == "command_name")
-            .filter_map(|x| self.commands.get(x.as_str()).map(|func| (x, func)))
-            .filter_map(|(x, func)| x.parent().map(|node| (x.to_string(), node, func)))
+            .filter_map(|x| self.commands.get(x.as_str()).map(|funcs| (x, funcs)))
+            .filter_map(|(x, funcs)| x.parent().map(|node| (x.to_string(), node, funcs)))
         {
-            func(&cmd, &node, &mut cursor, pkg, run);
+            for f in funcs {
+                f(&cmd, &node, &mut cursor, pkg, run);
+            }
         }
     }
 }
