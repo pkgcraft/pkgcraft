@@ -59,6 +59,48 @@ macro_rules! glob_reports {
 }
 pub use glob_reports;
 
+/// Verify two, ordered report iterables are equal.
+#[cfg(test)]
+#[macro_export]
+macro_rules! assert_ordered_reports {
+    ($iter1:expr, $iter2:expr, $msg:expr) => {{
+        let iter1 = $iter1
+            .into_iter()
+            .map(|x| $crate::report::Report::to_string(&x));
+        let iter2 = $iter2
+            .into_iter()
+            .map(|x| $crate::report::Report::to_string(&x));
+        pkgcraft::test::assert_ordered_eq!(iter1, iter2, $msg);
+    }};
+
+    ($iter1:expr, $iter2:expr $(,)?) => {{
+        assert_ordered_reports!($iter1, $iter2, "");
+    }};
+}
+#[cfg(test)]
+pub(crate) use assert_ordered_reports;
+
+/// Verify two, unordered report iterables contain the same content.
+#[cfg(test)]
+#[macro_export]
+macro_rules! assert_unordered_reports {
+    ($iter1:expr, $iter2:expr, $msg:expr) => {{
+        let iter1 = $iter1
+            .into_iter()
+            .map(|x| $crate::report::Report::to_string(&x));
+        let iter2 = $iter2
+            .into_iter()
+            .map(|x| $crate::report::Report::to_string(&x));
+        pkgcraft::test::assert_unordered_eq!(iter1, iter2, $msg);
+    }};
+
+    ($iter1:expr, $iter2:expr $(,)?) => {{
+        assert_unordered_reports!($iter1, $iter2, "");
+    }};
+}
+#[cfg(test)]
+pub(crate) use assert_unordered_reports;
+
 #[cfg(test)]
 mod tests {
     use pkgcraft::test::*;
