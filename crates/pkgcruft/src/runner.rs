@@ -1,4 +1,3 @@
-use std::fmt;
 use std::time::Instant;
 
 use indexmap::IndexMap;
@@ -114,19 +113,6 @@ enum CheckRunner {
     Cpv(CpvCheckRunner),
     Category(CategoryCheckRunner),
     Repo(RepoCheckRunner),
-}
-
-impl fmt::Debug for CheckRunner {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::EbuildPkg(_) => write!(f, "EbuildPkgCheckRunner"),
-            Self::EbuildRawPkg(_) => write!(f, "EbuildRawPkgCheckRunner"),
-            Self::Cpn(_) => write!(f, "CpnCheckRunner"),
-            Self::Cpv(_) => write!(f, "CpvCheckRunner"),
-            Self::Category(_) => write!(f, "CategoryCheckRunner"),
-            Self::Repo(_) => write!(f, "RepoCheckRunner"),
-        }
-    }
 }
 
 impl CheckRunner {
