@@ -9,7 +9,7 @@ use pkgcraft::repo::PkgRepository;
 use crate::report::ReportKind::{RepoCategoriesUnused, RepoCategoryEmpty, RepoPackageEmpty};
 use crate::scan::ScannerRun;
 
-use super::{CpnCheck, RepoCheck};
+use super::{CategoryCheck, CpnCheck};
 
 pub(super) fn create(run: &ScannerRun) -> Check {
     let empty_categories = if run.enabled(RepoPackageEmpty) {
@@ -18,13 +18,25 @@ pub(super) fn create(run: &ScannerRun) -> Check {
         Default::default()
     };
 
-    Check { empty_categories }
+    let unused = if run.enabled(RepoCategoriesUnused) {
+        run.repo
+            .metadata()
+            .categories()
+            .iter()
+            .map(Into::into)
+            .collect()
+    } else {
+        Default::default()
+    };
+
+    Check { empty_categories, unused }
 }
 
 static CHECK: super::Check = super::Check::RepoLayout;
 
 pub(super) struct Check {
     empty_categories: DashSet<String>,
+    unused: DashSet<String>,
 }
 
 super::register!(Check);
@@ -54,16 +66,19 @@ impl CpnCheck for Check {
     }
 }
 
-impl RepoCheck for Check {
-    fn run(&self, run: &ScannerRun) {
-        let unused = run
-            .repo
-            .metadata()
-            .categories()
-            .iter()
-            .filter(|x| !run.repo.path().join(x).is_dir())
-            .join(", ");
-        if !unused.is_empty() {
+impl CategoryCheck for Check {
+    fn run(&self, category: &str, _run: &ScannerRun) {
+        self.unused.remove(category);
+    }
+
+    fn finish_check(&self, run: &ScannerRun) {
+        if run.enabled(RepoCategoriesUnused) && !self.unused.is_empty() {
+            let unused = self
+                .unused
+                .iter()
+                .map(|x| x.to_string())
+                .sorted()
+                .join(", ");
             RepoCategoriesUnused
                 .repo(&run.repo)
                 .message(unused)
