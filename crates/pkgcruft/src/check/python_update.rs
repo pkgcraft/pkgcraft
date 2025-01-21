@@ -176,8 +176,13 @@ mod tests {
         let filter: PkgFilter = "category != 'stub'".parse().unwrap();
         let scanner = Scanner::new().reports([CHECK]).filters([filter]);
 
-        // gentoo unfixed
+        // check can't run in non-gentoo inheriting repo
         let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let r = scanner.run(repo, repo);
+        assert_err_re!(r, "PythonUpdate: check requires gentoo-inherited context");
+
+        // gentoo unfixed
         let repo = data.ebuild_repo("gentoo").unwrap();
         let dir = repo.path().join(CHECK);
         let expected = glob_reports!("{dir}/*/reports.json");
