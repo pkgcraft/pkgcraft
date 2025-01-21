@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, OnceLock, Weak};
@@ -373,17 +372,12 @@ impl EbuildRepo {
     ) -> impl Iterator<Item = crate::Result<Cpv>> {
         let path = build_path!(self.path(), category, package);
         if let Ok(entries) = path.read_dir_utf8() {
-            let mut cpvs: Vec<_> = entries
+            let cpvs: Vec<_> = entries
                 .filter_map(|e| e.ok())
                 .filter(is_ebuild)
                 .map(|e| self.cpv_from_path(e.path()))
+                .sorted()
                 .collect();
-            cpvs.sort_by(|a, b| match (a, b) {
-                (Ok(a), Ok(b)) => a.cmp(b),
-                (Err(_), Ok(_)) => Ordering::Less,
-                (Ok(_), Err(_)) => Ordering::Greater,
-                (Err(_), Err(_)) => Ordering::Equal,
-            });
             Either::Left(cpvs.into_iter())
         } else {
             Either::Right(std::iter::empty())
