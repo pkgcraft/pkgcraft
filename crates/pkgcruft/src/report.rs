@@ -1211,7 +1211,8 @@ mod tests {
         let repo = data.ebuild_repo("gentoo").unwrap();
         let defaults = ReportKind::defaults(repo);
         let supported = ReportKind::supported(repo, Scope::Repo);
-        let (enabled, _) = ReportTarget::collapse([], &defaults, &supported).unwrap();
+        let (enabled, selected) = ReportTarget::collapse([], &defaults, &supported).unwrap();
+        assert!(selected.is_empty());
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         // repo specific checks enabled when scanning the matching repo
         assert!(checks.contains(&Check::Header));
@@ -1220,7 +1221,8 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let defaults = ReportKind::defaults(repo);
         let supported = ReportKind::supported(repo, Scope::Repo);
-        let (enabled, _) = ReportTarget::collapse([], &defaults, &supported).unwrap();
+        let (enabled, selected) = ReportTarget::collapse([], &defaults, &supported).unwrap();
+        assert!(selected.is_empty());
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(checks.contains(&Check::Dependency));
         // optional checks aren't run by default when scanning
@@ -1232,8 +1234,11 @@ mod tests {
         let report = ReportKind::HeaderInvalid;
         assert_eq!(report.level(), ReportLevel::Error);
         let target = ReportLevel::Error.into();
-        let (enabled, _) = ReportTarget::collapse([&target], &defaults, &supported).unwrap();
+        let (enabled, selected) =
+            ReportTarget::collapse([&target], &defaults, &supported).unwrap();
         assert!(!enabled.contains(&report));
         assert!(!enabled.is_empty());
+        assert!(selected.is_subset(&enabled));
+        assert!(!selected.is_empty());
     }
 }
