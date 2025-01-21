@@ -10,7 +10,9 @@ use crate::{bash, ExecStatus};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Clone, Deserialize, Serialize, thiserror::Error)]
+#[derive(
+    Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord, thiserror::Error,
+)]
 pub enum Error {
     #[error("{0}")]
     Bail(String),

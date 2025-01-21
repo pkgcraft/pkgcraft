@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{bash, Error};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub enum ExecStatus {
     Success,
     Failure(i32),
