@@ -166,7 +166,7 @@ impl Scanner {
             })
             .try_collect()?;
 
-        Ok(ReportIter::new(Arc::new(run)))
+        Ok(ReportIter::new(run))
     }
 }
 

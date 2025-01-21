@@ -246,7 +246,7 @@ pub struct ReportIter {
 }
 
 impl ReportIter {
-    pub(crate) fn new(run: Arc<ScannerRun>) -> Self {
+    pub(crate) fn new(run: ScannerRun) -> Self {
         // inject report sender into aggregate type
         let (reports_tx, reports_rx) = bounded(run.jobs);
         run.sender
@@ -255,6 +255,7 @@ impl ReportIter {
 
         let wg = WaitGroup::new();
         let runner = Arc::new(SyncCheckRunner::new(&run));
+        let run = Arc::new(run);
 
         // create worker and producer threads depending on run scope
         let mut threads = vec![];
