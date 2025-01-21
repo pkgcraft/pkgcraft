@@ -226,11 +226,6 @@ impl BuildPool {
         }
     }
 
-    /// Return true if the build pool is running, false otherwise.
-    pub fn running(&self) -> bool {
-        self.running.get().is_some()
-    }
-
     /// Start the build pool loop.
     pub(crate) fn start(&self, config: &Config) -> crate::Result<()> {
         self.running
