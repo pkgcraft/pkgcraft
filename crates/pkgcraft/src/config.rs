@@ -361,9 +361,7 @@ impl Config {
         LazyLock::force(&shell::BASH);
 
         // start the build pool
-        if !self.pool.running() {
-            self.pool.start(self)?;
-        }
+        self.pool.start(self)?;
 
         Ok(())
     }
