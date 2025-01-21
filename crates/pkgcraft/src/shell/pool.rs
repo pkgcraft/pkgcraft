@@ -149,9 +149,9 @@ enum Task {
 }
 
 impl Task {
-    fn run(self, config: &Config, pipes: Pipes) {
+    fn run(self, config: &Config, pipes: Pipes, nullfd: RawFd) {
         // redirect output
-        let mut result = pipes.redirect();
+        let mut result = pipes.redirect(nullfd);
 
         // run the task
         match self {
@@ -179,10 +179,7 @@ impl Pipes {
     }
 
     /// Redirect stdout and stderr to the specified fds, if any.
-    fn redirect(&self) -> crate::Result<()> {
-        let null = File::options().write(true).open("/dev/null")?;
-        let nullfd = null.as_raw_fd();
-
+    fn redirect(&self, nullfd: RawFd) -> crate::Result<()> {
         dup2(self.stdout.unwrap_or(nullfd), 1)
             .map_err(|e| Error::InvalidValue(format!("failed redirecting stdout: {e}")))?;
 
@@ -235,12 +232,14 @@ impl BuildPool {
     }
 
     /// Start the build pool loop.
-    pub(crate) fn start(&self, config: &Config) {
+    pub(crate) fn start(&self, config: &Config) -> crate::Result<()> {
         self.running.get_or_init(|| true);
-        let mut sem = SharedSemaphore::new(self.jobs).unwrap();
+        let mut sem = SharedSemaphore::new(self.jobs)?;
+        let null = File::options().write(true).open("/dev/null")?;
+        let nullfd = null.as_raw_fd();
 
         match unsafe { fork() } {
-            Ok(ForkResult::Parent { .. }) => (),
+            Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 // signal child to exit on parent death
                 #[cfg(target_os = "linux")]
@@ -257,7 +256,7 @@ impl BuildPool {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
                             scallop::shell::fork_init();
-                            task.run(config, pipes);
+                            task.run(config, pipes, nullfd);
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }

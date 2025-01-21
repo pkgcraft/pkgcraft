@@ -362,7 +362,7 @@ impl Config {
 
         // start the build pool
         if !self.pool.running() {
-            self.pool.start(self);
+            self.pool.start(self)?;
         }
 
         Ok(())
