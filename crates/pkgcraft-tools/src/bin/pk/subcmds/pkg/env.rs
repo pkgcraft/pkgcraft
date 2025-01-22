@@ -21,6 +21,10 @@ pub(crate) struct Command {
     #[arg(short, long)]
     filter: Vec<String>,
 
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     /// Target repo
     #[arg(short, long)]
     repo: Option<String>,
@@ -90,7 +94,7 @@ impl Command {
 
         // source ebuilds and output ebuild-specific environment variables
         let mut stdout = io::stdout().lock();
-        let iter = pkgs.par_map_ordered(get_env).log_errors(false);
+        let iter = pkgs.par_map_ordered(get_env).log_errors(self.ignore);
         let failed = iter.failed.clone();
         let mut iter = iter.peekable();
         let mut multiple = false;
