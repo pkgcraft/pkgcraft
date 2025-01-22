@@ -121,7 +121,7 @@ impl MetadataTaskBuilder {
             .unwrap_or_else(|| self.repo.metadata().cache());
 
         if !self.force {
-            let pkg = EbuildRawPkg::try_new(cpv.clone(), &self.repo)?;
+            let pkg = self.repo.get_pkg_raw(cpv.clone())?;
             if let Some(result) = cache.get(&pkg) {
                 if self.verify {
                     // perform deserialization, returning any occurring error
@@ -160,7 +160,7 @@ impl SourceEnvTask {
 
     fn run(self, config: &Config) -> crate::Result<IndexMap<String, String>> {
         let repo = get_ebuild_repo(config, self.repo)?;
-        let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
+        let pkg = repo.get_pkg_raw(self.cpv)?;
         pkg.source()?;
         Ok(variables::visible()
             .into_iter()
