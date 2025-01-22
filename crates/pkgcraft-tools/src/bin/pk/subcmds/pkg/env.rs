@@ -45,6 +45,16 @@ pub(crate) struct Command {
 // TODO: support other repo types such as configured and binpkg
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
+        let jobs = bounded_jobs(self.jobs);
+        let mut failed = false;
+
+        // convert targets to pkgs
+        let pkgs = TargetRestrictions::new(config)
+            .repo_format(RepoFormat::Ebuild)
+            .repo(self.repo.as_deref())?
+            .finalize_targets(self.targets.iter().flatten())?
+            .ebuild_raw_pkgs();
+
         let external: HashSet<_> = variables::visible().into_iter().collect();
         let bash: HashSet<_> = ["PIPESTATUS"].into_iter().collect();
         let pms: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
@@ -98,17 +108,6 @@ impl Command {
 
             Ok((pkg.to_string(), env))
         };
-
-        // loop over targets, tracking overall failure status
-        let jobs = bounded_jobs(self.jobs);
-        let mut failed = false;
-
-        // convert targets to pkgs
-        let pkgs = TargetRestrictions::new(config)
-            .repo_format(RepoFormat::Ebuild)
-            .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?
-            .ebuild_raw_pkgs();
 
         // source ebuilds and output ebuild-specific environment variables
         let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
