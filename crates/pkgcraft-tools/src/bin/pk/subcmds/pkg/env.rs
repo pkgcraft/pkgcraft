@@ -4,25 +4,20 @@ use std::process::ExitCode;
 use std::sync::atomic::Ordering;
 
 use clap::{builder::ArgPredicate, Args};
+use indexmap::IndexMap;
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
-use pkgcraft::traits::LogErrors;
-use pkgcraft::utils::bounded_jobs;
-use scallop::pool::PoolIter;
-use scallop::variables::{self, ShellVariable};
+use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
+use scallop::variables;
 use strum::IntoEnumIterator;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Env options")]
 pub(crate) struct Command {
-    /// Parallel jobs to run
-    #[arg(short, long, default_value_t = num_cpus::get())]
-    jobs: usize,
-
     /// Variable filtering
     #[arg(short, long)]
     filter: Vec<String>,
@@ -42,6 +37,13 @@ pub(crate) struct Command {
         help_heading = "Arguments",
     )]
     targets: Vec<MaybeStdinVec<String>>,
+}
+
+/// Get the environment data from a raw ebuild package.
+fn get_env(
+    pkg: pkgcraft::Result<EbuildRawPkg>,
+) -> pkgcraft::Result<(String, IndexMap<String, String>)> {
+    pkg.and_then(|pkg| pkg.env().map(|env| (pkg.to_string(), env)))
 }
 
 // TODO: support other repo types such as configured and binpkg
@@ -79,39 +81,17 @@ impl Command {
             }
         }
 
-        let filter = |var: &variables::Variable| -> bool {
-            let name = var.name();
+        // filter variables being shown
+        let filter = |name: &str| -> bool {
             !external.contains(name)
                 && !bash.contains(name)
                 && !hide.contains(name)
                 && (show.is_empty() || show.contains(name))
         };
 
-        let value = |var: variables::Variable| -> Option<(String, String)> {
-            var.to_vec().map(|v| (var.to_string(), v.join(" ")))
-        };
-
-        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<(String, Vec<(String, String)>)> {
-            let pkg = pkg?;
-            // TODO: move error mapping into pkgcraft for pkg sourcing
-            pkg.source().map_err(|e| {
-                let err: pkgcraft::Error = e.into();
-                err.into_invalid_pkg_err(&pkg)
-            })?;
-
-            let env: Vec<(_, _)> = variables::visible()
-                .into_iter()
-                .filter(filter)
-                .filter_map(value)
-                .collect();
-
-            Ok((pkg.to_string(), env))
-        };
-
         // source ebuilds and output ebuild-specific environment variables
         let mut stdout = io::stdout().lock();
-        let jobs = bounded_jobs(self.jobs);
-        let iter = PoolIter::new(jobs, pkgs, func, true)?.log_errors(false);
+        let iter = pkgs.par_map_ordered(get_env).log_errors(false);
         let failed = iter.failed.clone();
         let mut iter = iter.peekable();
         let mut multiple = false;
@@ -131,8 +111,8 @@ impl Command {
                 if header {
                     writeln!(stdout, "{pkg}")?;
                 }
-                for (k, v) in env {
-                    writeln!(stdout, "{k}={v}")?;
+                for (name, value) in env.iter().filter(|(name, _)| filter(name)) {
+                    writeln!(stdout, "{name}={value}")?;
                 }
                 if footer {
                     writeln!(stdout)?;
