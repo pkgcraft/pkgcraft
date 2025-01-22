@@ -1,5 +1,7 @@
 use std::hash::Hash;
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{Equivalent, IndexSet};
@@ -102,7 +104,7 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     iter: I,
-    failed: bool,
+    pub failed: Arc<AtomicBool>,
     ignore: bool,
 }
 
@@ -111,7 +113,7 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     fn from(iter: LogErrorsIter<I, T>) -> Self {
-        ExitCode::from(iter.failed as u8)
+        ExitCode::from(iter.failed() as u8)
     }
 }
 
@@ -121,7 +123,7 @@ where
 {
     /// Return true if any errors occurred during iteration, false otherwise.
     pub fn failed(&self) -> bool {
-        self.failed
+        self.failed.load(Ordering::Relaxed)
     }
 }
 
@@ -138,7 +140,7 @@ where
                 Err(e) => {
                     if !self.ignore {
                         error!("{e}");
-                        self.failed = true;
+                        self.failed.store(true, Ordering::Relaxed);
                     }
                     continue;
                 }
@@ -156,7 +158,7 @@ where
     fn log_errors(self, ignore: bool) -> LogErrorsIter<I, T> {
         LogErrorsIter {
             iter: self,
-            failed: false,
+            failed: Default::default(),
             ignore,
         }
     }
