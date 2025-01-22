@@ -40,9 +40,9 @@ pub(crate) struct Command {
 
 /// Get the environment data from a raw ebuild package.
 fn get_env(
-    pkg: pkgcraft::Result<EbuildRawPkg>,
+    result: pkgcraft::Result<EbuildRawPkg>,
 ) -> pkgcraft::Result<(String, IndexMap<String, String>)> {
-    pkg.and_then(|pkg| pkg.env().map(|env| (pkg.to_string(), env)))
+    result.and_then(|pkg| pkg.env().map(|env| (pkg.to_string(), env)))
 }
 
 // TODO: support other repo types such as configured and binpkg
