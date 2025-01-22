@@ -326,7 +326,7 @@ impl Targets {
         self.into_iter().flat_map(|(set, restrict)| {
             set.into_iter()
                 .filter_map(|r| r.into_ebuild().ok())
-                .flat_map(move |r| r.iter_raw_restrict(&restrict))
+                .flat_map(move |r| r.iter_raw_restrict_ordered(&restrict))
         })
     }
 }
