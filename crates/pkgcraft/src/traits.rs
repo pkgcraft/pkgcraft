@@ -167,10 +167,10 @@ where
     }
 }
 
-/// Convert the values of an iterator in parallel while retaining the original order.
+/// Convert the values of an iterable in parallel while retaining the original order.
 pub trait ParallelMapOrdered<I, F, T, R>
 where
-    I: Iterator<Item = T> + Send + 'static,
+    I: IntoIterator<Item = T> + Send + 'static,
     F: FnOnce(T) -> R + Copy + Send + 'static,
     T: Send + 'static,
     R: Send + 'static,
@@ -191,9 +191,9 @@ impl<R> ParallelMapOrderedIter<R>
 where
     R: Send + 'static,
 {
-    fn new<I, F, T>(iter: I, func: F) -> Self
+    fn new<I, F, T>(value: I, func: F) -> Self
     where
-        I: Iterator<Item = T> + Send + 'static,
+        I: IntoIterator<Item = T> + Send + 'static,
         F: FnOnce(T) -> R + Copy + Send + 'static,
         T: Send + 'static,
     {
@@ -201,7 +201,7 @@ where
         let (output_tx, output_rx) = bounded(num_cpus::get());
 
         Self {
-            _producer: Self::producer(iter, input_tx),
+            _producer: Self::producer(value, input_tx),
             _workers: (0..num_cpus::get())
                 .map(|_| Self::worker(func, input_rx.clone(), output_tx.clone()))
                 .collect(),
@@ -211,13 +211,13 @@ where
         }
     }
 
-    fn producer<I, T>(iter: I, tx: Sender<(usize, T)>) -> thread::JoinHandle<()>
+    fn producer<I, T>(value: I, tx: Sender<(usize, T)>) -> thread::JoinHandle<()>
     where
-        I: Iterator<Item = T> + Send + 'static,
+        I: IntoIterator<Item = T> + Send + 'static,
         T: Send + 'static,
     {
         thread::spawn(move || {
-            for (id, item) in iter.enumerate() {
+            for (id, item) in value.into_iter().enumerate() {
                 tx.send((id, item)).ok();
             }
         })
@@ -242,7 +242,7 @@ where
 
 impl<I, F, T, R> ParallelMapOrdered<I, F, T, R> for I
 where
-    I: Iterator<Item = T> + Send + 'static,
+    I: IntoIterator<Item = T> + Send + 'static,
     F: FnOnce(T) -> R + Copy + Send + 'static,
     T: Send + 'static,
     R: Send + 'static,
