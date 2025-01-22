@@ -171,7 +171,7 @@ where
 pub trait ParallelMapOrdered<I, F, T, R>
 where
     I: IntoIterator<Item = T> + Send + 'static,
-    F: FnOnce(T) -> R + Copy + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
     T: Send + 'static,
     R: Send + 'static,
 {
@@ -191,10 +191,10 @@ impl<R> ParallelMapOrderedIter<R>
 where
     R: Send + 'static,
 {
-    fn new<I, F, T>(value: I, func: F) -> Self
+    pub(crate) fn new<I, F, T>(value: I, func: F) -> Self
     where
         I: IntoIterator<Item = T> + Send + 'static,
-        F: FnOnce(T) -> R + Copy + Send + 'static,
+        F: Fn(T) -> R + Clone + Send + 'static,
         T: Send + 'static,
     {
         let (input_tx, input_rx) = bounded(num_cpus::get());
@@ -203,7 +203,7 @@ where
         Self {
             _producer: Self::producer(value, input_tx),
             _workers: (0..num_cpus::get())
-                .map(|_| Self::worker(func, input_rx.clone(), output_tx.clone()))
+                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone()))
                 .collect(),
             rx: output_rx,
             id: 0,
@@ -229,7 +229,7 @@ where
         tx: Sender<(usize, R)>,
     ) -> thread::JoinHandle<()>
     where
-        F: FnOnce(T) -> R + Copy + Send + 'static,
+        F: Fn(T) -> R + Clone + Send + 'static,
         T: Send + 'static,
     {
         thread::spawn(move || {
@@ -243,7 +243,7 @@ where
 impl<I, F, T, R> ParallelMapOrdered<I, F, T, R> for I
 where
     I: IntoIterator<Item = T> + Send + 'static,
-    F: FnOnce(T) -> R + Copy + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
     T: Send + 'static,
     R: Send + 'static,
 {
