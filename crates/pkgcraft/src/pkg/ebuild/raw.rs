@@ -2,6 +2,7 @@ use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
+use indexmap::IndexMap;
 
 use crate::bash;
 use crate::dep::{Cpv, Dep};
@@ -138,6 +139,12 @@ impl EbuildRawPkg {
                 Err(e)
             }
         })
+    }
+
+    /// Return the mapping of global environment variables exported by the package.
+    pub fn env(&self) -> crate::Result<IndexMap<String, String>> {
+        let repo = &self.0.repo;
+        self.0.repo.pool().source_env_task(repo, &self.0.cpv)
     }
 }
 
