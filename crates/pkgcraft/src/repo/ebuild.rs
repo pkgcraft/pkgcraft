@@ -734,7 +734,7 @@ impl IterUnordered {
         let iter = IterRaw::new(repo, restrict);
 
         Self {
-            _producer: Self::producer(iter, raw_tx, iter_tx.clone()),
+            _producer: Self::producer(iter, raw_tx),
             _workers: (0..num_cpus::get())
                 .map(|_| Self::worker(raw_rx.clone(), iter_tx.clone()))
                 .collect(),
@@ -746,27 +746,24 @@ impl IterUnordered {
     /// packages and errors directly to be output.
     fn producer(
         iter: IterRaw,
-        pkg_tx: Sender<EbuildRawPkg>,
-        iter_tx: Sender<crate::Result<EbuildPkg>>,
+        tx: Sender<crate::Result<EbuildRawPkg>>,
     ) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             for result in iter {
-                match result {
-                    Ok(pkg) => pkg_tx.send(pkg).ok(),
-                    Err(e) => iter_tx.send(Err(e)).ok(),
-                };
+                tx.send(result).ok();
             }
         })
     }
 
     /// Convert raw ebuild packages into ebuild packages, sending the results for output.
     fn worker(
-        rx: Receiver<EbuildRawPkg>,
+        rx: Receiver<crate::Result<EbuildRawPkg>>,
         tx: Sender<crate::Result<EbuildPkg>>,
     ) -> thread::JoinHandle<()> {
         thread::spawn(move || {
-            for raw_pkg in rx {
-                tx.send(raw_pkg.try_into()).ok();
+            for result in rx {
+                let result = result.and_then(|pkg| pkg.try_into());
+                tx.send(result).ok();
             }
         })
     }
@@ -798,7 +795,7 @@ impl IterOrdered {
         let iter = IterRaw::new(repo, restrict);
 
         Self {
-            _producer: Self::producer(iter, raw_tx, iter_tx.clone()),
+            _producer: Self::producer(iter, raw_tx),
             _workers: (0..num_cpus::get())
                 .map(|_| Self::worker(raw_rx.clone(), iter_tx.clone()))
                 .collect(),
@@ -812,27 +809,23 @@ impl IterOrdered {
     /// packages and errors directly to be output.
     fn producer(
         iter: IterRaw,
-        pkg_tx: Sender<(usize, EbuildRawPkg)>,
-        iter_tx: Sender<(usize, crate::Result<EbuildPkg>)>,
+        tx: Sender<(usize, crate::Result<EbuildRawPkg>)>,
     ) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             for (id, result) in iter.enumerate() {
-                match result {
-                    Ok(pkg) => pkg_tx.send((id, pkg)).ok(),
-                    Err(e) => iter_tx.send((id, Err(e))).ok(),
-                };
+                tx.send((id, result)).ok();
             }
         })
     }
 
     /// Convert raw ebuild packages into ebuild packages, sending the results for output.
     fn worker(
-        rx: Receiver<(usize, EbuildRawPkg)>,
+        rx: Receiver<(usize, crate::Result<EbuildRawPkg>)>,
         tx: Sender<(usize, crate::Result<EbuildPkg>)>,
     ) -> thread::JoinHandle<()> {
         thread::spawn(move || {
-            for (id, raw_pkg) in rx {
-                let result = raw_pkg.try_into();
+            for (id, result) in rx {
+                let result = result.and_then(|pkg| pkg.try_into());
                 tx.send((id, result)).ok();
             }
         })
