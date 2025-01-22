@@ -246,6 +246,12 @@ impl BuildPool {
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
 
+                // TODO: skip variables from allowed set
+                // wipe external environment variables
+                for (name, _value) in std::env::vars() {
+                    std::env::remove_var(name);
+                }
+
                 while let Ok(Command::Task(task, pipes)) = self.rx.recv() {
                     // wait on bounded semaphore for pool space
                     sem.acquire().unwrap();
