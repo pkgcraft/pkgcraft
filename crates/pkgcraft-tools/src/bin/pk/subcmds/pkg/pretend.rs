@@ -11,6 +11,10 @@ use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
 #[derive(Args)]
 #[clap(next_help_heading = "Pretend options")]
 pub(crate) struct Command {
+    /// Ignore invalid packages
+    #[arg(short, long)]
+    ignore: bool,
+
     /// Target repo
     #[arg(short, long)]
     repo: Option<String>,
@@ -46,7 +50,7 @@ impl Command {
 
         // run pkg_pretend across selected pkgs
         let mut stdout = io::stdout().lock();
-        let iter = pkgs.par_map_ordered(pretend).log_errors(false);
+        let iter = pkgs.par_map_ordered(pretend).log_errors(self.ignore);
         let failed = iter.failed.clone();
         for output in iter.flatten() {
             writeln!(stdout, "{output}")?;
