@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::io::{self, Write};
 use std::process::ExitCode;
+use std::sync::atomic::Ordering;
 
 use clap::{builder::ArgPredicate, Args};
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
@@ -9,6 +10,7 @@ use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
+use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
 use scallop::pool::PoolIter;
 use scallop::variables::{self, ShellVariable};
@@ -45,9 +47,6 @@ pub(crate) struct Command {
 // TODO: support other repo types such as configured and binpkg
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let jobs = bounded_jobs(self.jobs);
-        let mut failed = false;
-
         // convert targets to pkgs
         let pkgs = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
@@ -92,7 +91,7 @@ impl Command {
             var.to_vec().map(|v| (var.to_string(), v.join(" ")))
         };
 
-        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<(String, String)>)> {
+        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<(String, Vec<(String, String)>)> {
             let pkg = pkg?;
             // TODO: move error mapping into pkgcraft for pkg sourcing
             pkg.source().map_err(|e| {
@@ -110,40 +109,38 @@ impl Command {
         };
 
         // source ebuilds and output ebuild-specific environment variables
-        let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
-        let mut iter = PoolIter::new(jobs, pkgs, func, true)?.peekable();
+        let mut stdout = io::stdout().lock();
+        let jobs = bounded_jobs(self.jobs);
+        let iter = PoolIter::new(jobs, pkgs, func, true)?.log_errors(false);
+        let failed = iter.failed.clone();
+        let mut iter = iter.peekable();
         let mut multiple = false;
-        while let Some(result) = iter.next() {
-            match result {
-                Err(e) => {
-                    failed = true;
-                    writeln!(stderr, "{e}")?;
-                }
-                Ok((_, env)) if env.is_empty() => continue,
-                Ok((pkg, env)) => {
-                    // determine if the header and footer should be displayed
-                    let (header, footer) = match iter.peek() {
-                        Some(Ok(_)) => {
-                            multiple = true;
-                            (multiple, true)
-                        }
-                        None => (multiple, false),
-                        _ => (multiple, true),
-                    };
+        while let Some((pkg, env)) = iter.next() {
+            if env.is_empty() {
+                continue;
+            } else {
+                // determine if the header and footer should be displayed
+                let (header, footer) = match iter.peek() {
+                    Some(_) => {
+                        multiple = true;
+                        (multiple, true)
+                    }
+                    None => (multiple, false),
+                };
 
-                    if header {
-                        writeln!(stdout, "{pkg}")?;
-                    }
-                    for (k, v) in env {
-                        writeln!(stdout, "{k}={v}")?;
-                    }
-                    if footer {
-                        writeln!(stdout)?;
-                    }
+                if header {
+                    writeln!(stdout, "{pkg}")?;
+                }
+                for (k, v) in env {
+                    writeln!(stdout, "{k}={v}")?;
+                }
+                if footer {
+                    writeln!(stdout)?;
                 }
             }
         }
 
+        let failed = failed.load(Ordering::Relaxed);
         Ok(ExitCode::from(failed as u8))
     }
 }
