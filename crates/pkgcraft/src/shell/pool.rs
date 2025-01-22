@@ -15,7 +15,7 @@ use crate::config::Config;
 use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
-use crate::pkg::{ebuild::EbuildRawPkg, Source};
+use crate::pkg::{ebuild::EbuildRawPkg, PkgPretend, Source};
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 use crate::repo::ebuild::EbuildRepo;
 use crate::repo::Repository;
@@ -145,6 +145,26 @@ impl MetadataTaskBuilder {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct PkgPretendTask {
+    repo: String,
+    cpv: Cpv,
+}
+
+impl PkgPretendTask {
+    fn new<T: Into<Cpv>>(repo: &EbuildRepo, cpv: T) -> Self {
+        Self {
+            repo: repo.id().to_string(),
+            cpv: cpv.into(),
+        }
+    }
+
+    fn run(self, config: &Config) -> crate::Result<Option<String>> {
+        let repo = get_ebuild_repo(config, self.repo)?;
+        repo.get_pkg(self.cpv).and_then(|x| Ok(x.pkg_pretend()?))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct SourceEnvTask {
     repo: String,
     cpv: Cpv,
@@ -173,6 +193,7 @@ impl SourceEnvTask {
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
     Metadata(MetadataTask, IpcSender<crate::Result<()>>),
+    PkgPretend(PkgPretendTask, IpcSender<crate::Result<Option<String>>>),
     SourceEnv(SourceEnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
 }
 
@@ -184,6 +205,9 @@ impl Task {
         // run the task
         match self {
             Self::Metadata(task, tx) => {
+                tx.send(result.and_then(|_| task.run(config))).unwrap();
+            }
+            Self::PkgPretend(task, tx) => {
                 tx.send(result.and_then(|_| task.run(config))).unwrap();
             }
             Self::SourceEnv(task, tx) => {
@@ -310,7 +334,24 @@ impl BuildPool {
         MetadataTaskBuilder::new(self, repo)
     }
 
-    /// Create an ebuild package metadata regeneration task builder.
+    /// Run the pkg_pretend phase for an ebuild package.
+    pub fn pretend<T: Into<Cpv>>(
+        &self,
+        repo: &EbuildRepo,
+        cpv: T,
+    ) -> crate::Result<Option<String>> {
+        let task = PkgPretendTask::new(repo, cpv);
+        let (tx, rx) = ipc::channel()
+            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
+        let task = Task::PkgPretend(task, tx);
+        self.tx
+            .send(Command::Task(task, Default::default()))
+            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
+        rx.recv()
+            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
+    }
+
+    /// Return the mapping of global environment variables exported by a package.
     pub fn source_env<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,

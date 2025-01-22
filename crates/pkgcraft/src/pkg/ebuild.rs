@@ -97,6 +97,12 @@ impl EbuildPkg {
         self.0.repo.pool().source_env(repo, &self.0.cpv)
     }
 
+    /// Run the pkg_pretend phase for the package.
+    pub fn pretend(&self) -> crate::Result<Option<String>> {
+        let repo = &self.0.repo;
+        self.0.repo.pool().pretend(repo, &self.0.cpv)
+    }
+
     /// Return the bash parse tree for the ebuild.
     pub fn tree(&self) -> &bash::Tree<'static> {
         self.0.tree.get_or_init(|| {

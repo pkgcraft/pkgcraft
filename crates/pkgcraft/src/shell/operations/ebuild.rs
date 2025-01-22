@@ -5,7 +5,7 @@ use scallop::{functions, Error, ExecStatus};
 use tempfile::NamedTempFile;
 
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
-use crate::pkg::{Build, Package, Pretend, Source};
+use crate::pkg::{Build, Package, PkgPretend, Source};
 use crate::shell::scope::Scope;
 use crate::shell::{get_build_mut, BuildData};
 
@@ -29,8 +29,8 @@ impl Build for EbuildPkg {
     }
 }
 
-impl Pretend for EbuildPkg {
-    fn pretend(&self) -> scallop::Result<Option<String>> {
+impl PkgPretend for EbuildPkg {
+    fn pkg_pretend(&self) -> scallop::Result<Option<String>> {
         let Ok(op) = self.eapi().operation(OperationKind::Pretend) else {
             // ignore packages with EAPIs lacking pkg_pretend() support
             return Ok(None);
@@ -99,7 +99,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pretend() {
+    fn pkg_pretend() {
         let data = test_data();
         let repo = data.ebuild_repo("phases").unwrap();
 

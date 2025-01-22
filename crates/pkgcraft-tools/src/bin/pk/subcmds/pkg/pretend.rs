@@ -4,19 +4,13 @@ use std::process::ExitCode;
 use clap::{builder::ArgPredicate, Args};
 use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
-use pkgcraft::pkg::Pretend;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::utils::bounded_jobs;
-use scallop::pool::PoolIter;
+use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
 
 #[derive(Args)]
 #[clap(next_help_heading = "Pretend options")]
 pub(crate) struct Command {
-    /// Parallel jobs to run
-    #[arg(short, long, default_value_t = num_cpus::get())]
-    jobs: usize,
-
     /// Target repo
     #[arg(short, long)]
     repo: Option<String>,
@@ -34,39 +28,30 @@ pub(crate) struct Command {
     targets: Vec<MaybeStdinVec<String>>,
 }
 
-// TODO: use configured ebuild repos instead of raw ones
+// TODO: use configured ebuild repos
 // TODO: support binpkg repos
+/// Run pkg_pretend() phase for a package.
+fn pretend(result: pkgcraft::Result<EbuildPkg>) -> pkgcraft::Result<Option<String>> {
+    result.and_then(|pkg| pkg.pretend())
+}
+
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Option<String>> {
-            let pkg = EbuildPkg::try_from(pkg?)?;
-            pkg.pretend()
-        };
-
-        // loop over targets, tracking overall failure status
-        let jobs = bounded_jobs(self.jobs);
-        let mut failed = false;
-
         // convert targets to pkgs
         let pkgs = TargetRestrictions::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .finalize_targets(self.targets.iter().flatten())?
-            .ebuild_raw_pkgs();
+            .ebuild_pkgs();
 
         // run pkg_pretend across selected pkgs
-        let (mut stdout, mut stderr) = (io::stdout().lock(), io::stderr().lock());
-        for result in PoolIter::new(jobs, pkgs, func, true)? {
-            match result {
-                Err(e) => {
-                    failed = true;
-                    writeln!(stderr, "{e}")?;
-                }
-                Ok(Some(s)) => writeln!(stdout, "{s}")?,
-                Ok(None) => (),
-            }
+        let mut stdout = io::stdout().lock();
+        let iter = pkgs.par_map_ordered(pretend).log_errors(false);
+        let failed = iter.failed.clone();
+        for output in iter.flatten() {
+            writeln!(stdout, "{output}")?;
         }
 
-        Ok(ExitCode::from(failed as u8))
+        Ok(ExitCode::from(failed.get() as u8))
     }
 }
