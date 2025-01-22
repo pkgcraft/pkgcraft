@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use crossbeam_channel::{bounded, Receiver, Sender};
 use indexmap::{Equivalent, IndexSet};
 use scallop::{source, ExecStatus};
 use tracing::error;
@@ -160,6 +163,112 @@ where
             iter: self,
             failed: Default::default(),
             ignore,
+        }
+    }
+}
+
+/// Convert the values of an iterator in parallel while retaining the original order.
+pub trait ParallelMapOrdered<I, F, T, R>
+where
+    I: Iterator<Item = T> + Send + 'static,
+    F: FnOnce(T) -> R + Copy + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    fn par_map_ordered(self, func: F) -> ParallelMapOrderedIter<R>;
+}
+
+/// Iterator that converts values in parallel while retaining the original order.
+pub struct ParallelMapOrderedIter<R: Send> {
+    _producer: thread::JoinHandle<()>,
+    _workers: Vec<thread::JoinHandle<()>>,
+    rx: Receiver<(usize, R)>,
+    id: usize,
+    cache: HashMap<usize, R>,
+}
+
+impl<R> ParallelMapOrderedIter<R>
+where
+    R: Send + 'static,
+{
+    fn new<I, F, T>(iter: I, func: F) -> Self
+    where
+        I: Iterator<Item = T> + Send + 'static,
+        F: FnOnce(T) -> R + Copy + Send + 'static,
+        T: Send + 'static,
+    {
+        let (input_tx, input_rx) = bounded(num_cpus::get());
+        let (output_tx, output_rx) = bounded(num_cpus::get());
+
+        Self {
+            _producer: Self::producer(iter, input_tx),
+            _workers: (0..num_cpus::get())
+                .map(|_| Self::worker(func, input_rx.clone(), output_tx.clone()))
+                .collect(),
+            rx: output_rx,
+            id: 0,
+            cache: Default::default(),
+        }
+    }
+
+    fn producer<I, T>(iter: I, tx: Sender<(usize, T)>) -> thread::JoinHandle<()>
+    where
+        I: Iterator<Item = T> + Send + 'static,
+        T: Send + 'static,
+    {
+        thread::spawn(move || {
+            for (id, item) in iter.enumerate() {
+                tx.send((id, item)).ok();
+            }
+        })
+    }
+
+    fn worker<F, T>(
+        func: F,
+        rx: Receiver<(usize, T)>,
+        tx: Sender<(usize, R)>,
+    ) -> thread::JoinHandle<()>
+    where
+        F: FnOnce(T) -> R + Copy + Send + 'static,
+        T: Send + 'static,
+    {
+        thread::spawn(move || {
+            for (id, item) in rx {
+                tx.send((id, func(item))).ok();
+            }
+        })
+    }
+}
+
+impl<I, F, T, R> ParallelMapOrdered<I, F, T, R> for I
+where
+    I: Iterator<Item = T> + Send + 'static,
+    F: FnOnce(T) -> R + Copy + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    fn par_map_ordered(self, func: F) -> ParallelMapOrderedIter<R> {
+        ParallelMapOrderedIter::new(self, func)
+    }
+}
+
+impl<R> Iterator for ParallelMapOrderedIter<R>
+where
+    R: Send + 'static,
+{
+    type Item = R;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(value) = self.cache.remove(&self.id) {
+                self.id += 1;
+                return Some(value);
+            } else if let Ok((id, value)) = self.rx.recv() {
+                self.cache.insert(id, value);
+                continue;
+            } else {
+                return None;
+            }
         }
     }
 }
