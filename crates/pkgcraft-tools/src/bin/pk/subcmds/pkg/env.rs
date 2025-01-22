@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::io::{self, Write};
 use std::process::ExitCode;
-use std::sync::atomic::Ordering;
 
 use clap::{builder::ArgPredicate, Args};
 use indexmap::IndexMap;
@@ -120,7 +119,6 @@ impl Command {
             }
         }
 
-        let failed = failed.load(Ordering::Relaxed);
-        Ok(ExitCode::from(failed as u8))
+        Ok(ExitCode::from(failed.get() as u8))
     }
 }

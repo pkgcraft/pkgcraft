@@ -1,8 +1,8 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::rc::Rc;
 use std::thread;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -107,7 +107,7 @@ where
     I: Iterator<Item = crate::Result<T>>,
 {
     iter: I,
-    pub failed: Arc<AtomicBool>,
+    pub failed: Rc<Cell<bool>>,
     ignore: bool,
 }
 
@@ -126,7 +126,7 @@ where
 {
     /// Return true if any errors occurred during iteration, false otherwise.
     pub fn failed(&self) -> bool {
-        self.failed.load(Ordering::Relaxed)
+        self.failed.get()
     }
 }
 
@@ -143,7 +143,7 @@ where
                 Err(e) => {
                     if !self.ignore {
                         error!("{e}");
-                        self.failed.store(true, Ordering::Relaxed);
+                        self.failed.set(true);
                     }
                     continue;
                 }
