@@ -167,6 +167,94 @@ where
     }
 }
 
+/// Convert the values of an iterable in parallel.
+pub trait ParallelMap<I, F, T, R>
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    fn par_map(self, func: F) -> ParallelMapIter<R>;
+}
+
+/// Iterator that converts values in parallel while retaining the original order.
+pub struct ParallelMapIter<R: Send> {
+    _producer: thread::JoinHandle<()>,
+    _workers: Vec<thread::JoinHandle<()>>,
+    rx: Receiver<R>,
+}
+
+impl<R> ParallelMapIter<R>
+where
+    R: Send + 'static,
+{
+    pub(crate) fn new<I, F, T>(value: I, func: F) -> Self
+    where
+        I: IntoIterator<Item = T> + Send + 'static,
+        F: Fn(T) -> R + Clone + Send + 'static,
+        T: Send + 'static,
+    {
+        let (input_tx, input_rx) = bounded(num_cpus::get());
+        let (output_tx, output_rx) = bounded(num_cpus::get());
+
+        Self {
+            _producer: Self::producer(value, input_tx),
+            _workers: (0..num_cpus::get())
+                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone()))
+                .collect(),
+            rx: output_rx,
+        }
+    }
+
+    fn producer<I, T>(value: I, tx: Sender<T>) -> thread::JoinHandle<()>
+    where
+        I: IntoIterator<Item = T> + Send + 'static,
+        T: Send + 'static,
+    {
+        thread::spawn(move || {
+            for item in value {
+                tx.send(item).ok();
+            }
+        })
+    }
+
+    fn worker<F, T>(func: F, rx: Receiver<T>, tx: Sender<R>) -> thread::JoinHandle<()>
+    where
+        F: Fn(T) -> R + Clone + Send + 'static,
+        T: Send + 'static,
+    {
+        thread::spawn(move || {
+            for item in rx {
+                tx.send(func(item)).ok();
+            }
+        })
+    }
+}
+
+impl<I, F, T, R> ParallelMap<I, F, T, R> for I
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    fn par_map(self, func: F) -> ParallelMapIter<R> {
+        ParallelMapIter::new(self, func)
+    }
+}
+
+impl<R> Iterator for ParallelMapIter<R>
+where
+    R: Send + 'static,
+{
+    type Item = R;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.rx.recv().ok()
+    }
+}
+
 /// Convert the values of an iterable in parallel while retaining the original order.
 pub trait ParallelMapOrdered<I, F, T, R>
 where
