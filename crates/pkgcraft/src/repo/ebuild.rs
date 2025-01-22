@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, iter, mem, thread};
@@ -781,54 +780,16 @@ impl Iterator for IterUnordered {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterOrdered {
-    _producer: thread::JoinHandle<()>,
-    _workers: Vec<thread::JoinHandle<()>>,
-    rx: Receiver<(usize, crate::Result<EbuildPkg>)>,
-    id: usize,
-    cache: HashMap<usize, crate::Result<EbuildPkg>>,
+    iter: ParallelMapOrderedIter<crate::Result<EbuildPkg>>,
 }
 
 impl IterOrdered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
-        let (raw_tx, raw_rx) = bounded(num_cpus::get());
-        let (iter_tx, iter_rx) = bounded(num_cpus::get());
         let iter = IterRaw::new(repo, restrict);
-
-        Self {
-            _producer: Self::producer(iter, raw_tx),
-            _workers: (0..num_cpus::get())
-                .map(|_| Self::worker(raw_rx.clone(), iter_tx.clone()))
-                .collect(),
-            rx: iter_rx,
-            id: 0,
-            cache: Default::default(),
-        }
-    }
-
-    /// Generate raw ebuild packages, sending valid results to be processed into ebuild
-    /// packages and errors directly to be output.
-    fn producer(
-        iter: IterRaw,
-        tx: Sender<(usize, crate::Result<EbuildRawPkg>)>,
-    ) -> thread::JoinHandle<()> {
-        thread::spawn(move || {
-            for (id, result) in iter.enumerate() {
-                tx.send((id, result)).ok();
-            }
-        })
-    }
-
-    /// Convert raw ebuild packages into ebuild packages, sending the results for output.
-    fn worker(
-        rx: Receiver<(usize, crate::Result<EbuildRawPkg>)>,
-        tx: Sender<(usize, crate::Result<EbuildPkg>)>,
-    ) -> thread::JoinHandle<()> {
-        thread::spawn(move || {
-            for (id, result) in rx {
-                let result = result.and_then(|pkg| pkg.try_into());
-                tx.send((id, result)).ok();
-            }
-        })
+        let func =
+            move |result: crate::Result<EbuildRawPkg>| result.and_then(|pkg| pkg.try_into());
+        let iter = ParallelMapOrderedIter::new(iter, func);
+        Self { iter }
     }
 }
 
@@ -836,17 +797,7 @@ impl Iterator for IterOrdered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(result) = self.cache.remove(&self.id) {
-                self.id += 1;
-                return Some(result);
-            } else if let Ok((id, result)) = self.rx.recv() {
-                self.cache.insert(id, result);
-                continue;
-            } else {
-                return None;
-            }
-        }
+        self.iter.next()
     }
 }
 
