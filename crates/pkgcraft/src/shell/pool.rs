@@ -3,17 +3,19 @@ use std::io::{stderr, stdout};
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::OnceLock;
 
+use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use nix::sys::{prctl, signal::Signal};
 use nix::unistd::{dup2, fork, ForkResult};
 use scallop::pool::SharedSemaphore;
+use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
-use crate::pkg::ebuild::EbuildRawPkg;
+use crate::pkg::{ebuild::EbuildRawPkg, Source};
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 use crate::repo::ebuild::EbuildRepo;
 use crate::repo::Repository;
@@ -142,22 +144,50 @@ impl MetadataTaskBuilder {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct SourceEnvTask {
+    repo: String,
+    cpv: Cpv,
+}
+
+impl SourceEnvTask {
+    fn new<T: Into<Cpv>>(repo: &EbuildRepo, cpv: T) -> Self {
+        Self {
+            repo: repo.id().to_string(),
+            cpv: cpv.into(),
+        }
+    }
+
+    fn run(self, config: &Config) -> crate::Result<IndexMap<String, String>> {
+        let repo = get_ebuild_repo(config, self.repo)?;
+        let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
+        pkg.source()?;
+        Ok(variables::visible()
+            .into_iter()
+            .filter_map(|var| var.to_vec().map(|v| (var.to_string(), v.join(" "))))
+            .collect())
+    }
+}
+
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
     Metadata(MetadataTask, IpcSender<crate::Result<()>>),
+    SourceEnv(SourceEnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
 }
 
 impl Task {
     fn run(self, config: &Config, pipes: Pipes, nullfd: RawFd) {
         // redirect output
-        let mut result = pipes.redirect(nullfd);
+        let result = pipes.redirect(nullfd);
 
         // run the task
         match self {
             Self::Metadata(task, tx) => {
-                result = result.and_then(|_| task.run(config));
-                tx.send(result).unwrap();
+                tx.send(result.and_then(|_| task.run(config))).unwrap();
+            }
+            Self::SourceEnv(task, tx) => {
+                tx.send(result.and_then(|_| task.run(config))).unwrap();
             }
         }
     }
@@ -278,6 +308,23 @@ impl BuildPool {
     /// Create an ebuild package metadata regeneration task builder.
     pub fn metadata_task(&self, repo: &EbuildRepo) -> MetadataTaskBuilder {
         MetadataTaskBuilder::new(self, repo)
+    }
+
+    /// Create an ebuild package metadata regeneration task builder.
+    pub fn source_env_task<T: Into<Cpv>>(
+        &self,
+        repo: &EbuildRepo,
+        cpv: T,
+    ) -> crate::Result<IndexMap<String, String>> {
+        let task = SourceEnvTask::new(repo, cpv);
+        let (tx, rx) = ipc::channel()
+            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
+        let task = Task::SourceEnv(task, tx);
+        self.tx
+            .send(Command::Task(task, Default::default()))
+            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
+        rx.recv()
+            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
     }
 }
 
