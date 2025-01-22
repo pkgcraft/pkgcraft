@@ -21,7 +21,7 @@ use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::shell::BuildPool;
-use crate::traits::{Contains, Intersects};
+use crate::traits::{Contains, Intersects, ParallelMapOrderedIter};
 use crate::xml::parse_xml_with_dtd;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
@@ -882,76 +882,6 @@ impl Iterator for IterRaw {
     }
 }
 
-/// Ordered iterable of results from constructing raw packages.
-///
-/// This constructs packages in parallel and returns them in repo order.
-pub struct IterRawOrdered {
-    _producer: thread::JoinHandle<()>,
-    _workers: Vec<thread::JoinHandle<()>>,
-    rx: Receiver<(usize, crate::Result<EbuildRawPkg>)>,
-    id: usize,
-    cache: HashMap<usize, crate::Result<EbuildRawPkg>>,
-}
-
-impl IterRawOrdered {
-    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
-        let (cpv_tx, cpv_rx) = bounded(num_cpus::get());
-        let (iter_tx, iter_rx) = bounded(num_cpus::get());
-        let iter = IterCpv::new(repo, restrict);
-
-        Self {
-            _producer: Self::producer(iter, cpv_tx),
-            _workers: (0..num_cpus::get())
-                .map(|_| Self::worker(repo.clone(), cpv_rx.clone(), iter_tx.clone()))
-                .collect(),
-            rx: iter_rx,
-            id: 0,
-            cache: Default::default(),
-        }
-    }
-
-    /// Generate Cpv objects sending them to workers to generate matching raw packages.
-    fn producer(iter: IterCpv, tx: Sender<(usize, Cpv)>) -> thread::JoinHandle<()> {
-        thread::spawn(move || {
-            for (id, cpv) in iter.enumerate() {
-                tx.send((id, cpv)).ok();
-            }
-        })
-    }
-
-    /// Convert Cpv targets into raw packages, sending the results for output.
-    fn worker(
-        repo: EbuildRepo,
-        rx: Receiver<(usize, Cpv)>,
-        tx: Sender<(usize, crate::Result<EbuildRawPkg>)>,
-    ) -> thread::JoinHandle<()> {
-        thread::spawn(move || {
-            for (id, cpv) in rx {
-                let result = EbuildRawPkg::try_new(cpv, &repo);
-                tx.send((id, result)).ok();
-            }
-        })
-    }
-}
-
-impl Iterator for IterRawOrdered {
-    type Item = crate::Result<EbuildRawPkg>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if let Some(result) = self.cache.remove(&self.id) {
-                self.id += 1;
-                return Some(result);
-            } else if let Ok((id, result)) = self.rx.recv() {
-                self.cache.insert(id, result);
-                continue;
-            } else {
-                return None;
-            }
-        }
-    }
-}
-
 /// Iterable of [`Cpn`] objects.
 pub struct IterCpn(Box<dyn Iterator<Item = Cpn> + Send>);
 
@@ -1308,6 +1238,31 @@ impl Iterator for IterRawRestrict {
             Ok(_) => None,
             Err(e) => Some(Err(e)),
         })
+    }
+}
+
+/// Ordered iterable of results from constructing raw packages.
+///
+/// This constructs packages in parallel and returns them in repo order.
+pub struct IterRawOrdered {
+    iter: ParallelMapOrderedIter<crate::Result<EbuildRawPkg>>,
+}
+
+impl IterRawOrdered {
+    fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
+        let iter = IterCpv::new(repo, restrict);
+        let repo = repo.clone();
+        let func = move |cpv: Cpv| repo.get_pkg_raw(cpv);
+        let iter = ParallelMapOrderedIter::new(iter, func);
+        Self { iter }
+    }
+}
+
+impl Iterator for IterRawOrdered {
+    type Item = crate::Result<EbuildRawPkg>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
     }
 }
 
