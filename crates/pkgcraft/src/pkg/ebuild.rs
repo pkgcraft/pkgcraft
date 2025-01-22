@@ -2,7 +2,7 @@ use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
 use crate::dep::{Cpv, Dep};
@@ -89,6 +89,12 @@ impl EbuildPkg {
         self.0
             .data
             .get_or_init(|| fs::read_to_string(self.path()).unwrap_or_default())
+    }
+
+    /// Return the mapping of global environment variables exported by the package.
+    pub fn env(&self) -> crate::Result<IndexMap<String, String>> {
+        let repo = &self.0.repo;
+        self.0.repo.pool().source_env_task(repo, &self.0.cpv)
     }
 
     /// Return the bash parse tree for the ebuild.
