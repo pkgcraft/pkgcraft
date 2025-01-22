@@ -95,27 +95,23 @@ impl Command {
         let mut iter = iter.peekable();
         let mut multiple = false;
         while let Some((pkg, env)) = iter.next() {
-            if env.is_empty() {
-                continue;
-            } else {
-                // determine if the header and footer should be displayed
-                let (header, footer) = match iter.peek() {
-                    Some(_) => {
-                        multiple = true;
-                        (multiple, true)
-                    }
-                    None => (multiple, false),
-                };
+            // determine if the header and footer should be displayed
+            let (header, footer) = match iter.peek() {
+                Some(_) => {
+                    multiple = true;
+                    (multiple, true)
+                }
+                None => (multiple, false),
+            };
 
-                if header {
-                    writeln!(stdout, "{pkg}")?;
-                }
-                for (name, value) in env.iter().filter(|(name, _)| filter(name)) {
-                    writeln!(stdout, "{name}={value}")?;
-                }
-                if footer {
-                    writeln!(stdout)?;
-                }
+            if header {
+                writeln!(stdout, "{pkg}")?;
+            }
+            for (name, value) in env.iter().filter(|(name, _)| filter(name)) {
+                writeln!(stdout, "{name}={value}")?;
+            }
+            if footer {
+                writeln!(stdout)?;
             }
         }
 
