@@ -144,7 +144,7 @@ impl EbuildRawPkg {
     /// Return the mapping of global environment variables exported by the package.
     pub fn env(&self) -> crate::Result<IndexMap<String, String>> {
         let repo = &self.0.repo;
-        self.0.repo.pool().source_env_task(repo, &self.0.cpv)
+        self.0.repo.pool().source_env(repo, &self.0.cpv)
     }
 }
 

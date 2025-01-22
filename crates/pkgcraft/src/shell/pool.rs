@@ -311,7 +311,7 @@ impl BuildPool {
     }
 
     /// Create an ebuild package metadata regeneration task builder.
-    pub fn source_env_task<T: Into<Cpv>>(
+    pub fn source_env<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
         cpv: T,
