@@ -486,6 +486,18 @@ mod tests {
             assert_eq!(&dep_ref, &dep);
             let dep_owned = dep_ref.into_owned();
             assert_eq!(&dep, &dep_owned);
+
+            // option wrapped values
+            let value = Some(dep.clone());
+            let value_ref = value.to_ref();
+            let value_owned = value_ref.into_owned();
+            assert_eq!(value_owned, value);
+
+            // result wrapped values
+            let value = Ok(dep.clone());
+            let value_ref = value.to_ref();
+            let value_owned = value_ref.into_owned();
+            assert_eq!(value_owned, value);
         }
     }
 
