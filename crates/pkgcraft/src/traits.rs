@@ -54,11 +54,11 @@ impl<T: IntoOwned> IntoOwned for Option<T> {
     }
 }
 
-impl<T: IntoOwned> IntoOwned for crate::Result<T> {
-    type Owned = crate::Result<T::Owned>;
+impl<T: IntoOwned> IntoOwned for Result<T, &crate::Error> {
+    type Owned = Result<T::Owned, crate::Error>;
 
     fn into_owned(self) -> Self::Owned {
-        self.map(|x| x.into_owned())
+        self.map(|x| x.into_owned()).map_err(|e| e.clone())
     }
 }
 
