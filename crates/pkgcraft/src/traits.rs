@@ -76,6 +76,14 @@ impl<'a, T: ToRef<'a>> ToRef<'a> for Option<T> {
     }
 }
 
+impl<'a, T: ToRef<'a>> ToRef<'a> for Result<T, crate::Error> {
+    type Ref = Result<T::Ref, &'a crate::Error>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        self.as_ref().map(|x| x.to_ref())
+    }
+}
+
 /// Iterate over an object's lines, filtering comments starting with '#' and empty lines returning
 /// an enumerated iterator for the remaining content.
 pub trait FilterLines {
