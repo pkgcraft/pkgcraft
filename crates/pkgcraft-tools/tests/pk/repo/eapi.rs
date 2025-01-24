@@ -24,9 +24,11 @@ fn nonexistent_repo() {
 }
 
 #[test]
-fn invalid_pkgs() {
+fn ignore() {
     let data = test_data();
     let repo = data.ebuild_repo("bad").unwrap();
+
+    // invalid pkgs log errors and cause failure by default
     cmd("pk repo eapi")
         .arg(repo)
         .assert()
@@ -34,6 +36,17 @@ fn invalid_pkgs() {
         .stderr(predicate::str::is_empty().not())
         .failure()
         .code(1);
+
+    // ignoring invalid pkgs entirely skips them
+    for opt in ["-i", "--ignore"] {
+        cmd("pk repo eapi")
+            .arg(opt)
+            .arg(repo)
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+    }
 }
 
 #[test]
