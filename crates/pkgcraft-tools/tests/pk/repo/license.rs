@@ -24,16 +24,29 @@ fn nonexistent_repo() {
 }
 
 #[test]
-fn invalid_pkgs() {
+fn ignore() {
     let data = test_data();
-    let repo = data.ebuild_repo("bad").unwrap();
+    let repo = data.ebuild_repo("qa-primary").unwrap();
+
+    // invalid pkgs log errors and cause failure by default
     cmd("pk repo license")
         .arg(repo)
         .assert()
-        .stdout("")
+        .stdout(predicate::str::is_empty().not())
         .stderr(predicate::str::is_empty().not())
         .failure()
         .code(1);
+
+    // ignoring invalid pkgs entirely skips them
+    for opt in ["-i", "--ignore"] {
+        cmd("pk repo license")
+            .arg(opt)
+            .arg(repo)
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+    }
 }
 
 #[test]
