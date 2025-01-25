@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use scallop::variables::{ScopedVariable, ShellVariable, Variable};
 use scallop::{Error, ExecStatus};
 
@@ -17,7 +18,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
 
     // force incrementals to be restored between nested inherits
-    let incrementals: Vec<(_, _)> = build
+    let mut incrementals: IndexMap<_, _> = build
         .eapi()
         .incremental_keys()
         .iter()
@@ -52,6 +53,11 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         // update $ECLASS and $INHERITED variables
         eclass_var.bind(name, None, None)?;
         inherited_var.append(format!(" {name}"))?;
+
+        // unset incrementals so values don't propagate to nested inherits
+        for var in incrementals.values_mut() {
+            var.unbind()?;
+        }
 
         eclass.source_bash().map_err(|e| {
             // strip path prefix from bash error
