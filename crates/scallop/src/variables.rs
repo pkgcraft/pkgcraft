@@ -258,11 +258,13 @@ impl ScopedVariable {
 
     /// Reset the variable to its original value.
     pub fn reset(&mut self) -> crate::Result<ExecStatus> {
-        if let Some(val) = &self.orig {
+        let result = if let Some(val) = &self.orig {
             self.var.bind(val, None, None)
         } else {
             self.var.unbind()
-        }
+        };
+
+        result.map_err(|e| Error::Base(format!("failed resetting variable: {self}: {e}")))
     }
 }
 
@@ -293,8 +295,7 @@ impl fmt::Display for ScopedVariable {
 impl Drop for ScopedVariable {
     fn drop(&mut self) {
         if self.optional() != self.orig {
-            self.reset()
-                .unwrap_or_else(|e| panic!("failed resetting variable: {self}: {e}"));
+            self.reset().unwrap();
         }
     }
 }
