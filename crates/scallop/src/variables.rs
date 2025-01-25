@@ -247,12 +247,22 @@ pub struct ScopedVariable {
     orig: Option<String>,
 }
 
-/// Variable that will reset itself to its original value when it leaves scope.
+/// Variable that is reset to its original value when dropped.
 impl ScopedVariable {
+    /// Create a new scoped variable.
     pub fn new<S: ToString>(name: S) -> Self {
         let var = Variable::new(name);
         let orig = optional(&var.name);
         Self { var, orig }
+    }
+
+    /// Reset the variable to its original value.
+    pub fn reset(&mut self) -> crate::Result<ExecStatus> {
+        if let Some(val) = &self.orig {
+            self.var.bind(val, None, None)
+        } else {
+            self.var.unbind()
+        }
     }
 }
 
@@ -283,14 +293,8 @@ impl fmt::Display for ScopedVariable {
 impl Drop for ScopedVariable {
     fn drop(&mut self) {
         if self.optional() != self.orig {
-            let mut reset = || -> crate::Result<ExecStatus> {
-                if let Some(val) = &self.orig {
-                    self.var.bind(val, None, None)
-                } else {
-                    self.var.unbind()
-                }
-            };
-            reset().unwrap_or_else(|e| panic!("failed resetting variable: {self}: {e}"));
+            self.reset()
+                .unwrap_or_else(|e| panic!("failed resetting variable: {self}: {e}"));
         }
     }
 }
