@@ -270,7 +270,7 @@ impl MetadataCacheRegen<'_> {
         self
     }
 
-    /// Regenerate the package metadata cache, returning the number of errors that occurred.
+    /// Regenerate the package metadata cache.
     pub fn run(self) -> crate::Result<()> {
         let cpvs = self.targets.unwrap_or_else(|| {
             // TODO: replace with parallel Cpv iterator -- repo.par_iter_cpvs()
