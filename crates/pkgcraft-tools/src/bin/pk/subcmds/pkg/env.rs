@@ -23,7 +23,7 @@ pub(crate) struct Command {
         long,
         value_name = "FILTER[,....]",
         value_delimiter = ',',
-        allow_hyphen_values = true,
+        allow_hyphen_values = true
     )]
     filter: Vec<String>,
 
@@ -67,7 +67,7 @@ impl Command {
 
         let external: HashSet<_> = variables::visible().into_iter().collect();
         let bash: HashSet<_> = ["PIPESTATUS"].into_iter().collect();
-        let pms: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
+        let eapi: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
         let meta: HashSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
         // create variable filters
@@ -82,7 +82,7 @@ impl Command {
 
             // expand variable aliases
             match var {
-                "@PMS" => set.extend(pms.iter().map(|s| s.as_str())),
+                "@EAPI" => set.extend(eapi.iter().map(|s| s.as_str())),
                 "@META" => set.extend(meta.iter().map(|s| s.as_str())),
                 _ => {
                     set.insert(var);
