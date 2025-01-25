@@ -18,7 +18,13 @@ use strum::IntoEnumIterator;
 #[clap(next_help_heading = "Env options")]
 pub(crate) struct Command {
     /// Variable filtering
-    #[arg(short, long)]
+    #[arg(
+        short,
+        long,
+        value_name = "FILTER[,....]",
+        value_delimiter = ',',
+        allow_hyphen_values = true,
+    )]
     filter: Vec<String>,
 
     /// Ignore invalid packages
