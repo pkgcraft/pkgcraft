@@ -43,7 +43,7 @@ harness = false
 anyhow = "1.0.95"
 camino = "1.1.9"
 clap = { version = "4.5.27", features = ["derive", "string"] }
-clap_complete = { version = "4.5.42", optional = true }
+clap_complete = { version = "4.5.43", optional = true }
 clap-verbosity-flag = "3.0.2"
 colored = "3.0.0"
 crossbeam-channel = "0.5.14"

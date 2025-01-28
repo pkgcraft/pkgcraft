@@ -44,7 +44,7 @@ git2 = { version = "0.20.0", optional = true }
 glob = "0.3.2"
 hex = "0.4.3"
 indexmap = { version = "2.7.1", features = ["rayon", "serde"] }
-indicatif = "0.17.9"
+indicatif = "0.17.10"
 indoc = "2.0.5"
 ipc-channel = "0.19.0"
 is_executable = "1.0.4"
