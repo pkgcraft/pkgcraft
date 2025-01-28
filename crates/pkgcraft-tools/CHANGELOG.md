@@ -1,3 +1,11 @@
+# 0.0.23 (2025-01-28)
+
+## Added
+- Add -i/--ignore option to ignore invalid packages for relevant subcommands.
+
+## Fixed
+- `pk pkg env`: Fix populating the external variables set.
+
 # 0.0.22 (2025-01-13)
 
 ## Added
