@@ -1,7 +1,6 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
-use std::env;
 use std::sync::LazyLock;
 
 use indexmap::{IndexMap, IndexSet};
