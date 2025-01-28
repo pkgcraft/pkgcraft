@@ -96,8 +96,6 @@ impl Source for EbuildPkg {
 mod tests {
     use crate::test::test_data;
 
-    use super::*;
-
     #[test]
     fn pkg_pretend() {
         let data = test_data();
