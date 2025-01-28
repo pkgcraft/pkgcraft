@@ -337,11 +337,6 @@ impl BuildData {
     fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
         let eapi = self.eapi();
 
-        // remove external metadata vars from the environment
-        for var in eapi.metadata_keys() {
-            env::remove_var(var.as_ref());
-        }
-
         // explicitly disable builtins in global scope
         let _builtins = builtins::ScopedBuiltins::disable(DISABLED_GLOBAL_BUILTINS)?;
 
