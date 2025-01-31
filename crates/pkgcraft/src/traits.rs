@@ -188,8 +188,7 @@ where
 
 /// Iterator that converts values in parallel while retaining the original order.
 pub struct ParallelMapIter<R: Send> {
-    _producer: thread::JoinHandle<()>,
-    _workers: Vec<thread::JoinHandle<()>>,
+    threads: Vec<thread::JoinHandle<()>>,
     rx: Receiver<R>,
 }
 
@@ -205,14 +204,13 @@ where
     {
         let (input_tx, input_rx) = bounded(num_cpus::get());
         let (output_tx, output_rx) = bounded(num_cpus::get());
+        let mut threads = vec![Self::producer(value, input_tx)];
+        threads.extend(
+            (0..num_cpus::get())
+                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone())),
+        );
 
-        Self {
-            _producer: Self::producer(value, input_tx),
-            _workers: (0..num_cpus::get())
-                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone()))
-                .collect(),
-            rx: output_rx,
-        }
+        Self { threads, rx: output_rx }
     }
 
     fn producer<I, T>(value: I, tx: Sender<T>) -> thread::JoinHandle<()>
@@ -259,7 +257,15 @@ where
     type Item = R;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.rx.recv().ok()
+        match self.rx.recv() {
+            Ok(item) => Some(item),
+            Err(_) => {
+                for thread in self.threads.drain(..) {
+                    thread.join().unwrap();
+                }
+                None
+            }
+        }
     }
 }
 
@@ -276,8 +282,7 @@ where
 
 /// Iterator that converts values in parallel while retaining the original order.
 pub struct ParallelMapOrderedIter<R: Send> {
-    _producer: thread::JoinHandle<()>,
-    _workers: Vec<thread::JoinHandle<()>>,
+    threads: Vec<thread::JoinHandle<()>>,
     rx: Receiver<(usize, R)>,
     id: usize,
     cache: HashMap<usize, R>,
@@ -295,12 +300,14 @@ where
     {
         let (input_tx, input_rx) = bounded(num_cpus::get());
         let (output_tx, output_rx) = bounded(num_cpus::get());
+        let mut threads = vec![Self::producer(value, input_tx)];
+        threads.extend(
+            (0..num_cpus::get())
+                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone())),
+        );
 
         Self {
-            _producer: Self::producer(value, input_tx),
-            _workers: (0..num_cpus::get())
-                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone()))
-                .collect(),
+            threads,
             rx: output_rx,
             id: 0,
             cache: Default::default(),
@@ -363,6 +370,9 @@ where
                 self.cache.insert(id, value);
                 continue;
             } else {
+                for thread in self.threads.drain(..) {
+                    thread.join().unwrap();
+                }
                 return None;
             }
         }
