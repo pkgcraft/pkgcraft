@@ -357,9 +357,6 @@ impl Config {
                 .map_err(|e| Error::Config(format!("{repo}: {e}")))?;
         }
 
-        // initialize bash
-        shell::init()?;
-
         // start the build pool
         self.pool.start(self)?;
 

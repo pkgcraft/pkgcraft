@@ -285,6 +285,10 @@ impl BuildPool {
         self.running
             .set(true)
             .map_err(|_| Error::InvalidValue("task pool already running".to_string()))?;
+
+        // initialize bash
+        super::init()?;
+
         let mut sem = SharedSemaphore::new(self.jobs)?;
         let null = File::options().write(true).open("/dev/null")?;
         let nullfd = null.as_raw_fd();
