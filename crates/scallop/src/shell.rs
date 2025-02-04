@@ -22,7 +22,7 @@ pub fn init(restricted: bool) {
     }
 
     // shell name is saved since bash requires a valid pointer to it
-    SHELL.set(name).expect("failed setting shell name");
+    SHELL.set(name).ok();
 }
 
 /// Bash callback to convert bash errors into native errors.
