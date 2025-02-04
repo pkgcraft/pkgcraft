@@ -36,7 +36,7 @@ fn initialize() {
     }
 
     // initialize bash
-    std::sync::LazyLock::force(&crate::shell::BASH);
+    crate::shell::init().unwrap();
 }
 
 #[serde_as]

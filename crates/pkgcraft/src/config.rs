@@ -1,4 +1,4 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -358,7 +358,7 @@ impl Config {
         }
 
         // initialize bash
-        LazyLock::force(&shell::BASH);
+        shell::init()?;
 
         // start the build pool
         self.pool.start(self)?;

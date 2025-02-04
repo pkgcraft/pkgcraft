@@ -421,13 +421,13 @@ fn update_build(state: BuildData) {
 type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
-pub(crate) static BASH: LazyLock<()> = LazyLock::new(|| {
+pub(crate) fn init() -> scallop::Result<()> {
     scallop::shell::init(false);
     // all builtins are enabled by default, access is restricted at runtime based on scope
     builtins::register(&*commands::BUILTINS);
     // permanently disable builtins such as `enable` to restrict overriding builtins
-    builtins::disable(DISABLED_BUILTINS).expect("failed disabling builtins");
-});
+    builtins::disable(DISABLED_BUILTINS)
+}
 
 /// Build wrapper for ebuild package variants.
 enum EbuildPackage<'a> {
