@@ -8,13 +8,21 @@ use nix::unistd::{getpid, Pid};
 use crate::shm::create_shm;
 use crate::{bash, error, ExecStatus};
 
-/// Initialize the shell for library use.
-pub fn init() {
+/// Initialize shared memory for proxying errors.
+fn shm_init() {
     let shm =
         create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
+        bash::SHM_BUF = shm;
+    }
+}
+
+/// Initialize the shell for library use.
+pub fn init() {
+    shm_init();
+    unsafe {
         bash::lib_error_handlers(Some(bash_error), Some(error::bash_warning_log));
-        bash::lib_init(shm);
+        bash::lib_init();
     }
 }
 
@@ -29,13 +37,12 @@ fn pid() -> Pid {
     Pid::from_raw(unsafe { bash::SHELL_PID })
 }
 
-/// Reinitialize the shell when forking processes.
+/// Reinitialize the shell inside a forked process.
 pub fn fork_init() {
-    // use new shared memory object for proxying errors
-    let shm =
-        create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
+    // use separate shared memory for proxying errors
+    shm_init();
+
     unsafe {
-        bash::SHM_BUF = shm;
         // update shell pid for child process
         bash::SHELL_PID = getpid().as_raw();
     }
