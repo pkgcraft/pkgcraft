@@ -35,7 +35,7 @@ shell = ["dep:clap_complete"]
 aho-corasick = "1.1.3"
 anyhow = "1.0.95"
 camino = "1.1.9"
-clap = { version = "4.5.28", features = ["derive"] }
+clap = { version = "4.5.29", features = ["derive"] }
 clap_complete = { version = "4.5.44", optional = true }
 clap-verbosity-flag = "3.0.2"
 futures = "0.3.31"
@@ -43,13 +43,13 @@ humantime = "2.1.0"
 indexmap = { version = "2.7.1", features = ["rayon", "serde"] }
 indicatif = "0.17.11"
 indoc = "2.0.5"
-itertools = "0.13.0"
+itertools = "0.14.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.23" }
 rayon = "1.10.0"
 reqwest = { version = "0.12.12", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 scallop = { path = "../scallop", version = "0.0.22" }
-strum = { version = "0.26.3", features = ["derive"] }
+strum = { version = "0.27.0", features = ["derive"] }
 tempfile = "3.16.0"
 tokio = { version = "1.43.0", features = ["full"] }
 tracing = "0.1.41"

@@ -14,12 +14,12 @@ rust-version.workspace = true
 [dependencies]
 anyhow = "1.0.95"
 async-stream = "0.3.6"
-clap = { version = "4.5.28", default-features = false, features = ["std", "suggestions"] }
-config = { version = "0.15.7", default-features = false, features = ["toml"] }
+clap = { version = "4.5.29", default-features = false, features = ["std", "suggestions"] }
+config = { version = "0.15.8", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 hyper-util = "0.1.10"
 pkgcraft = { path = "../pkgcraft", version = "0.0.23" }
-prost = "0.13.4"
+prost = "0.13.5"
 regex = "1.11.1"
 serde = { version = "1.0.217", features = ["derive"] }
 thiserror = "2.0.11"

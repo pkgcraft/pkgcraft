@@ -42,7 +42,7 @@ harness = false
 [dependencies]
 anyhow = "1.0.95"
 camino = "1.1.9"
-clap = { version = "4.5.28", features = ["derive", "string"] }
+clap = { version = "4.5.29", features = ["derive", "string"] }
 clap_complete = { version = "4.5.44", optional = true }
 clap-verbosity-flag = "3.0.2"
 colored = "3.0.0"
@@ -51,7 +51,7 @@ crossbeam-utils = "0.8.21"
 dashmap = { version = "6.1.0", features = ["rayon", "serde"] }
 indexmap = { version = "2.7.1", features = ["rayon", "serde"] }
 indoc = "2.0.5"
-itertools = "0.13.0"
+itertools = "0.14.0"
 num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.23" }
 rayon = "1.10.0"
@@ -60,7 +60,7 @@ scallop = { path = "../scallop", version = "0.0.22" }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
 strfmt = "0.2.4"
-strum = { version = "0.26.3", features = ["derive"] }
+strum = { version = "0.27.0", features = ["derive"] }
 thiserror = "2.0.11"
 tracing = "0.1.41"
 tracing-log = "0.2.0"
