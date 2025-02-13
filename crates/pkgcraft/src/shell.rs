@@ -422,7 +422,7 @@ type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
 pub(crate) fn init() -> scallop::Result<()> {
-    scallop::shell::init(false);
+    scallop::shell::init();
     // all builtins are enabled by default, access is restricted at runtime based on scope
     builtins::register(&*commands::BUILTINS);
     // permanently disable builtins such as `enable` to restrict overriding builtins

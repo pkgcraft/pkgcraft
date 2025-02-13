@@ -9,12 +9,12 @@ use crate::shm::create_shm;
 use crate::{bash, error, ExecStatus};
 
 /// Initialize the shell for library use.
-pub fn init(restricted: bool) {
+pub fn init() {
     let shm =
         create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
         bash::lib_error_handlers(Some(bash_error), Some(error::bash_warning_log));
-        bash::lib_init(shm, restricted as i32);
+        bash::lib_init(shm);
     }
 }
 

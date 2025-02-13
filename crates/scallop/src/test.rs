@@ -9,5 +9,5 @@ fn initialize() {
         env::var("NEXTEST").expect("tests must be run via cargo-nextest");
     }
     // initialize bash
-    crate::shell::init(false);
+    crate::shell::init();
 }

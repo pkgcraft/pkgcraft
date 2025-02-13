@@ -2,7 +2,7 @@ use scallop::{builtins, shell};
 
 fn main() {
     // initialize shell
-    shell::init(false);
+    shell::init();
 
     // load and enable builtins
     let builtins = [builtins::profile::BUILTIN];
