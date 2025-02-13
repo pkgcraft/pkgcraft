@@ -1,6 +1,6 @@
 use std::cmp::min;
 use std::ffi::{c_char, c_int, CStr, CString};
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 use std::{env, mem, process, ptr};
 
 use nix::unistd::{getpid, Pid};
@@ -8,21 +8,14 @@ use nix::unistd::{getpid, Pid};
 use crate::shm::create_shm;
 use crate::{bash, error, ExecStatus};
 
-// shell name
-static SHELL: OnceLock<CString> = OnceLock::new();
-
 /// Initialize the shell for library use.
 pub fn init(restricted: bool) {
-    let name = CString::new("scallop").unwrap();
     let shm =
         create_shm("scallop", 4096).unwrap_or_else(|e| panic!("failed creating shm: {e}"));
     unsafe {
         bash::lib_error_handlers(Some(bash_error), Some(error::bash_warning_log));
-        bash::lib_init(name.as_ptr() as *mut _, shm, restricted as i32);
+        bash::lib_init(shm, restricted as i32);
     }
-
-    // shell name is saved since bash requires a valid pointer to it
-    SHELL.set(name).ok();
 }
 
 /// Bash callback to convert bash errors into native errors.
