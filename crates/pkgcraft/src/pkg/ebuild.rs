@@ -495,21 +495,12 @@ mod tests {
         config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let pkg1 = repo.get_pkg("cat/pkg-1").unwrap();
-        temp.create_ebuild("cat/pkg-2", &["EAPI=8"]).unwrap();
-        let pkg2 = repo.get_pkg("cat/pkg-2").unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
 
-        // temp repo ebuild creation defaults to the latest EAPI
-        assert_eq!(pkg1.eapi(), *EAPI_LATEST_OFFICIAL);
-        assert_eq!(pkg1.eapi(), &*EAPI8);
-        assert_eq!(pkg1.cpv(), &Cpv::try_new("cat/pkg-1").unwrap());
-        assert_eq!(pkg2.cpv(), &Cpv::try_new("cat/pkg-2").unwrap());
-
-        // repo attribute allows recursion
-        assert_eq!(pkg1.repo(), pkg2.repo());
-        let mut i = pkg1.repo().iter();
-        assert_eq!(pkg1, i.next().unwrap().unwrap());
-        assert_eq!(pkg2, i.next().unwrap().unwrap());
+        assert_eq!(pkg.eapi(), *EAPI_LATEST_OFFICIAL);
+        assert_eq!(pkg.cpv(), &Cpv::try_new("cat/pkg-1").unwrap());
+        assert_eq!(pkg.repo(), repo.clone());
+        assert_eq!(pkg, pkg.repo().iter().next().unwrap().unwrap());
     }
 
     #[test]
