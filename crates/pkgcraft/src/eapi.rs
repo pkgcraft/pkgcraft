@@ -820,7 +820,12 @@ pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
         .disable_archives(["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
-pub static EAPI9: LazyLock<Eapi> = LazyLock::new(|| Eapi::new("9", Some(&EAPI8)));
+pub static EAPI9: LazyLock<Eapi> = LazyLock::new(|| {
+    use crate::shell::commands::builtins::*;
+
+    Eapi::new("9", Some(&EAPI8))
+        .disable_commands([assert])
+});
 
 /// Reference to the most recent, official EAPI.
 pub static EAPI_LATEST_OFFICIAL: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI9);
