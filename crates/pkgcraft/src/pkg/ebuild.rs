@@ -389,7 +389,7 @@ impl Intersects<Dep> for EbuildPkg {
 #[cfg(test)]
 mod tests {
     use crate::config::Config;
-    use crate::eapi::{EAPI8, EAPI_LATEST_OFFICIAL};
+    use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::PkgRepository;
     use crate::test::assert_err_re;
@@ -424,13 +424,13 @@ mod tests {
 
         // quoted and commented
         let data = indoc::formatdoc! {r#"
-            EAPI="8" # comment
+            EAPI="{}" # comment
             DESCRIPTION="testing EAPI"
             SLOT=0
-        "#};
+        "#, *EAPI_LATEST_OFFICIAL};
         temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
-        assert_eq!(pkg.eapi(), &*EAPI8);
+        assert_eq!(pkg.eapi(), *EAPI_LATEST_OFFICIAL);
 
         // invalid with unquoted self reference
         let data = indoc::indoc! {r#"
