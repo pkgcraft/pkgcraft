@@ -64,6 +64,7 @@ mod tests {
     use std::fs;
 
     use pkgcraft::config::Config;
+    use pkgcraft::eapi::{EAPI6, EAPI7};
     use pkgcraft::repo::ebuild::EbuildRepoBuilder;
     use pkgcraft::test::{test_data, test_data_patched};
 
@@ -85,14 +86,19 @@ mod tests {
         let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_reports!(reports, expected);
 
-        // TODO: move this to shared test data
         // repo with unused EAPI
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let layout = indoc::indoc! {"
             eapis-banned = 0 1 2 3 4 5 6
         "};
         fs::write(temp.path().join("metadata/layout.conf"), layout).unwrap();
-        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        for eapi in EAPIS_OFFICIAL
+            .iter()
+            .filter(|e| **e > &*EAPI6 && **e != &*EAPI7)
+        {
+            temp.create_ebuild(format!("cat/pkg-{eapi}"), &[&format!("EAPI={eapi}")])
+                .unwrap();
+        }
         let mut config = Config::new("pkgcraft", "");
         let repo = config
             .add_repo(&temp, false)
