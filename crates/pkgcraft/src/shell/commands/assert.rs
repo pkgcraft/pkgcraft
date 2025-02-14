@@ -24,7 +24,7 @@ mod tests {
     use scallop::source;
     use scallop::variables::{self, *};
 
-    use crate::eapi::{Feature::NonfatalDie, EAPIS_OFFICIAL};
+    use crate::eapi::{Feature::NonfatalDie, EAPI8, EAPIS_OFFICIAL};
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
@@ -48,6 +48,9 @@ mod tests {
 
     #[test]
     fn success() {
+        // use EAPI where assert isn't banned
+        BuildData::empty(&EAPI8);
+
         // unset PIPESTATUS
         assert!(source::string("assert").is_ok());
 
@@ -57,6 +60,9 @@ mod tests {
 
     #[test]
     fn main() {
+        // use EAPI where assert isn't banned
+        BuildData::empty(&EAPI8);
+
         bind("VAR", "1", None, None).unwrap();
 
         let r = source::string("true | false | true; assert && VAR=2");
@@ -73,6 +79,9 @@ mod tests {
     #[ignore]
     #[test]
     fn subshell() {
+        // use EAPI where assert isn't banned
+        BuildData::empty(&EAPI8);
+
         bind("VAR", "1", None, None).unwrap();
 
         // forced subshell
@@ -96,6 +105,9 @@ mod tests {
 
     #[test]
     fn nonfatal() {
+        // use EAPI where assert isn't banned
+        BuildData::empty(&EAPI8);
+
         // nonfatal requires `die -n` call
         let r = source::string("true | false; nonfatal assert");
         assert_err_re!(r, r"line 1: assert: error: \(no error message\)$");

@@ -813,7 +813,13 @@ pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
         .finalize()
 });
 
-pub static EAPI9: LazyLock<Eapi> = LazyLock::new(|| Eapi::new("9", Some(&EAPI8)).finalize());
+pub static EAPI9: LazyLock<Eapi> = LazyLock::new(|| {
+    use crate::shell::commands::*;
+
+    Eapi::new("9", Some(&EAPI8))
+        .disable_commands([assert])
+        .finalize()
+});
 
 /// Reference to the most recent, official EAPI.
 pub static EAPI_LATEST_OFFICIAL: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI9);
