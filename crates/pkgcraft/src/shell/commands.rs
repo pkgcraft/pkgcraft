@@ -101,6 +101,7 @@ mod newlib_so;
 mod newman;
 mod newsbin;
 mod nonfatal;
+mod pipestatus;
 mod unpack;
 mod use_;
 mod use_enable;
@@ -199,6 +200,7 @@ pub(crate) mod builtins {
     pub(crate) use super::newman::BUILTIN as newman;
     pub(crate) use super::newsbin::BUILTIN as newsbin;
     pub(crate) use super::nonfatal::BUILTIN as nonfatal;
+    pub(crate) use super::pipestatus::BUILTIN as pipestatus;
     pub(crate) use super::unpack::BUILTIN as unpack;
     pub(crate) use super::use_::BUILTIN as use_;
     pub(crate) use super::use_enable::BUILTIN as use_enable;
@@ -314,6 +316,7 @@ pub(crate) mod functions {
     pub(crate) use super::newman::run as newman;
     pub(crate) use super::newsbin::run as newsbin;
     pub(crate) use super::nonfatal::run as nonfatal;
+    pub(crate) use super::pipestatus::run as pipestatus;
     pub(crate) use super::unpack::run as unpack;
     pub(crate) use super::use_::run as use_;
     pub(crate) use super::use_enable::run as use_enable;
@@ -585,6 +588,7 @@ pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
         builtins::newman,
         builtins::newsbin,
         builtins::nonfatal,
+        builtins::pipestatus,
         builtins::unpack,
         builtins::use_,
         builtins::use_enable,
