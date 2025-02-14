@@ -820,8 +820,10 @@ pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
         .disable_archives(["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
+pub static EAPI9: LazyLock<Eapi> = LazyLock::new(|| Eapi::new("9", Some(&EAPI8)));
+
 /// Reference to the most recent, official EAPI.
-pub static EAPI_LATEST_OFFICIAL: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI8);
+pub static EAPI_LATEST_OFFICIAL: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI9);
 
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: LazyLock<Eapi> = LazyLock::new(|| {
@@ -833,8 +835,11 @@ pub static EAPI_PKGCRAFT: LazyLock<Eapi> = LazyLock::new(|| {
 pub static EAPI_LATEST: LazyLock<&'static Eapi> = LazyLock::new(|| &EAPI_PKGCRAFT);
 
 /// Ordered set of official, supported EAPIs.
-pub static EAPIS_OFFICIAL: LazyLock<IndexSet<&'static Eapi>> =
-    LazyLock::new(|| [&*EAPI5, &*EAPI6, &*EAPI7, &*EAPI8].into_iter().collect());
+pub static EAPIS_OFFICIAL: LazyLock<IndexSet<&'static Eapi>> = LazyLock::new(|| {
+    [&*EAPI5, &*EAPI6, &*EAPI7, &*EAPI8, &*EAPI9]
+        .into_iter()
+        .collect()
+});
 
 /// Ordered set of unofficial EAPIs.
 pub static EAPIS_UNOFFICIAL: LazyLock<IndexSet<&'static Eapi>> =
