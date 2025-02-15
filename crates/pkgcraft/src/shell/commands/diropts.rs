@@ -7,7 +7,7 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "diropts",
-    long_about = "Sets the options for directory creation via `dodir` and similar commands.",
+    long_about = "Sets the options for directory creation via `dodir` and similar commands."
 )]
 struct Command {
     #[arg(required = true, allow_hyphen_values = true, value_name = "OPTION")]
