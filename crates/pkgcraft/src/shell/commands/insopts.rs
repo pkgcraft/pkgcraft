@@ -1,20 +1,23 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Sets the options for installing files via `doins` and similar commands.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "insopts",
+    long_about = "Sets the options for installing files via `doins` and similar commands."
+)]
+struct Command {
+    #[arg(required = true, allow_hyphen_values = true, value_name = "OPTION")]
+    options: Vec<String>,
+}
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    get_build_mut().insopts = args.iter().map(|s| s.to_string()).collect();
-
+    let cmd = Command::try_parse_args(args)?;
+    get_build_mut().insopts = cmd.options.into_iter().collect();
     Ok(ExecStatus::Success)
 }
 
@@ -27,14 +30,14 @@ mod tests {
 
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, doins, insopts};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, doins, insopts};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(insopts, &[0]);
+        assert_invalid_cmd(insopts, &[0]);
     }
 
     #[test]
