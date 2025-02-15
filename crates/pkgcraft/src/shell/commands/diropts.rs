@@ -4,17 +4,16 @@ use crate::shell::get_build_mut;
 
 use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Sets the options for directory creation via `dodir` and similar commands.";
-
 #[derive(clap::Parser, Debug)]
-#[command(name = "diropts")]
+#[command(
+    name = "diropts",
+    long_about = "Sets the options for directory creation via `dodir` and similar commands.",
+)]
 struct Command {
     #[arg(required = true, allow_hyphen_values = true, value_name = "OPTION")]
     options: Vec<String>,
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     get_build_mut().diropts = cmd.options.into_iter().collect();

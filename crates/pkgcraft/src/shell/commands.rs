@@ -566,7 +566,7 @@ macro_rules! make_builtin {
             func: run,
             flags: scallop::builtins::Attr::ENABLED.bits(),
             cfunc: $func_name,
-            help: LONG_DOC,
+            help: "",
             usage: USAGE,
         };
     };
