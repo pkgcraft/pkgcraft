@@ -3,11 +3,6 @@ use scallop::ExecStatus;
 
 use super::{die, make_builtin};
 
-const LONG_DOC: &str = "\
-Calls `die` with passed arguments if any process in the most recently-executed foreground pipeline
-exited with an error status.";
-
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if PipeStatus::get().failed() {
         die(args)
@@ -28,7 +23,7 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert, assert_invalid_args, cmd_scope_tests};
+    use super::super::{assert, assert_invalid_cmd, cmd_scope_tests};
     use super::*;
 
     cmd_scope_tests!(USAGE);
@@ -38,11 +33,11 @@ mod tests {
         // make sure PIPESTATUS is set to cause failures
         source::string("true | false").ok();
 
-        assert_invalid_args(assert, &[3]);
+        assert_invalid_cmd(assert, &[3]);
 
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(NonfatalDie)) {
             BuildData::empty(eapi);
-            assert_invalid_args(assert, &[2]);
+            assert_invalid_cmd(assert, &[2]);
         }
     }
 

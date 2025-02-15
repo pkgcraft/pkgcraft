@@ -6,32 +6,34 @@ use crate::eapi::Feature::NonfatalDie;
 use crate::io::stderr;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Displays a failure message provided in an optional argument and then aborts the build process.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "die",
+    long_about = "Displays a failure message provided in an optional argument and then aborts the build process."
+)]
+struct Command {
+    #[arg(short = 'n')]
+    nonfatal: bool,
+    #[arg(default_value = "(no error message)")]
+    message: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
-    let supported = build.eapi().has(NonfatalDie);
+    let eapi = build.eapi();
+    let cmd = Command::try_parse_args(args)?;
 
-    let (nonfatal, msg) = match args[..] {
-        ["-n", msg] if supported => (build.nonfatal, msg),
-        ["-n"] if supported => (build.nonfatal, ""),
-        [msg] => (false, msg),
-        [] => (false, "(no error message)"),
-        _ => return Err(Error::Base(format!("takes up to 1 arg, got {}", args.len()))),
-    };
-
-    if nonfatal {
-        if !msg.is_empty() {
-            writeln!(stderr(), "{msg}")?;
+    if cmd.nonfatal && build.nonfatal && eapi.has(NonfatalDie) {
+        if !cmd.message.is_empty() {
+            writeln!(stderr(), "{}", cmd.message)?;
         }
+
         Ok(ExecStatus::Failure(1))
     } else {
         // TODO: add bash backtrace to output
-        Err(Error::Bail(msg.to_string()))
+        Err(Error::Bail(cmd.message))
     }
 }
 
@@ -51,18 +53,18 @@ mod tests {
     use crate::shell::{BuildData, BuildState, Scope};
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, die};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, die};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(die, &[3]);
+        assert_invalid_cmd(die, &[3]);
 
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(NonfatalDie)) {
             BuildData::empty(eapi);
-            assert_invalid_args(die, &[2]);
+            assert_invalid_cmd(die, &[2]);
         }
     }
 
@@ -142,7 +144,7 @@ mod tests {
 
         // `die -n` only works in supported EAPIs
         let r = source::string("die -n");
-        assert_err_re!(r, "^line 1: die: error: -n");
+        assert_err_re!(r, r"^line 1: die: error: \(no error message\)$");
 
         build.state = BuildState::Empty(EAPIS_OFFICIAL.last().unwrap());
 
