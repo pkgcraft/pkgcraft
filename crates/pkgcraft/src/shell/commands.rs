@@ -322,6 +322,20 @@ impl Command {
     }
 }
 
+/// Try to parse the arguments for a given command.
+trait TryParseArgs: Sized {
+    fn try_parse_args(args: &[&str]) -> scallop::Result<Self>;
+}
+
+impl<P: clap::Parser> TryParseArgs for P {
+    fn try_parse_args(args: &[&str]) -> scallop::Result<Self> {
+        let cmd = Self::command();
+        let name = cmd.get_name();
+        Self::try_parse_from([&[name], args].concat())
+            .map_err(|e| scallop::Error::Base(format!("{name}: {e}")))
+    }
+}
+
 /// Ordered set of all known builtins.
 pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
     [
