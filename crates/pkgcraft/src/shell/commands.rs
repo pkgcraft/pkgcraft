@@ -584,6 +584,15 @@ fn assert_invalid_args(builtin: Builtin, nums: &[u32]) {
 }
 
 #[cfg(test)]
+fn assert_invalid_cmd(builtin: Builtin, nums: &[u32]) {
+    for n in nums {
+        let args: Vec<_> = (0..*n).map(|n| n.to_string()).collect();
+        let args: Vec<_> = args.iter().map(|s| s.as_str()).collect();
+        assert!(builtin(&args).is_err());
+    }
+}
+
+#[cfg(test)]
 macro_rules! cmd_scope_tests {
     ($cmd:expr) => {
         #[test]
