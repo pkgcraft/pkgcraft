@@ -146,8 +146,13 @@ impl From<Builtin> for bash::Builtin {
         mem::forget(short_doc_str);
 
         let long_docs = iter_to_array!(builtin.help.lines(), str_to_raw);
-        let long_doc = long_docs.as_ptr();
-        mem::forget(long_docs);
+        let long_doc = if long_docs.is_empty() {
+            ptr::null_mut()
+        } else {
+            let ptr = long_docs.as_ptr();
+            mem::forget(long_docs);
+            ptr
+        };
 
         bash::Builtin {
             name,
