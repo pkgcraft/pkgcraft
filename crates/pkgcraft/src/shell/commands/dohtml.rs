@@ -3,7 +3,6 @@ use std::fmt;
 use std::io::Write;
 
 use camino::Utf8Path;
-use clap::Parser;
 use scallop::{Error, ExecStatus};
 use walkdir::DirEntry;
 
@@ -12,32 +11,30 @@ use crate::macros::build_path;
 use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install HTML documentation files.";
-
-#[derive(Parser, Debug, Default)]
-#[clap(name = "dohtml")]
-struct Options {
-    #[clap(short = 'r')]
+#[derive(clap::Parser, Debug, Default)]
+#[command(name = "dohtml", long_about = "Install HTML documentation files.")]
+struct Command {
+    #[arg(short = 'r')]
     recursive: bool,
-    #[clap(short = 'V')]
+    #[arg(short = 'V')]
     verbose: bool,
-    #[clap(short = 'A')]
+    #[arg(short = 'A')]
     extra_file_exts: Vec<String>,
-    #[clap(short = 'a', default_value = "css,gif,htm,html,jpeg,jpg,js,png")]
+    #[arg(short = 'a', default_value = "css,gif,htm,html,jpeg,jpg,js,png")]
     allowed_file_exts: Vec<String>,
-    #[clap(short = 'f')]
+    #[arg(short = 'f')]
     allowed_files: Vec<String>,
-    #[clap(short = 'x')]
+    #[arg(short = 'x')]
     excluded_dirs: Vec<String>,
-    #[clap(short = 'p')]
+    #[arg(short = 'p')]
     doc_prefix: Option<String>,
-    // file targets
+    #[arg(required = true, value_name = "TARGET")]
     targets: Vec<String>,
 }
 
-impl fmt::Display for Options {
+impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let csv_or_none = |val: &[String]| -> String {
             if val.is_empty() {
@@ -70,33 +67,27 @@ impl fmt::Display for Options {
     }
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let opts = Options::try_parse_from([&["dohtml"], args].concat())
-        .map_err(|e| Error::Base(format!("invalid args: {e}")))?;
+    let cmd = Command::try_parse_args(args)?;
 
-    if opts.targets.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    if opts.verbose {
-        write!(stderr(), "{opts}")?;
+    if cmd.verbose {
+        write!(stderr(), "{cmd}")?;
     }
 
     // TODO: replace csv expansion with clap arg parsing?
-    let mut allowed_file_exts: HashSet<_> = opts
+    let mut allowed_file_exts: HashSet<_> = cmd
         .allowed_file_exts
         .iter()
         .flat_map(|s| s.split(','))
         .collect();
-    allowed_file_exts.extend(opts.extra_file_exts.iter().flat_map(|s| s.split(',')));
-    let excluded_dirs: HashSet<_> = opts
+    allowed_file_exts.extend(cmd.extra_file_exts.iter().flat_map(|s| s.split(',')));
+    let excluded_dirs: HashSet<_> = cmd
         .excluded_dirs
         .iter()
         .flat_map(|s| s.split(','))
         .map(Utf8Path::new)
         .collect();
-    let allowed_files: HashSet<_> = opts
+    let allowed_files: HashSet<_> = cmd
         .allowed_files
         .iter()
         .flat_map(|s| s.split(','))
@@ -134,7 +125,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         "" => "html",
         val => val,
     };
-    let doc_prefix = opts
+    let doc_prefix = cmd
         .doc_prefix
         .as_ref()
         .map(|s| s.trim_start_matches('/'))
@@ -142,14 +133,14 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let dest = build_path!("/usr/share/doc", build.cpv().pf(), subdir, doc_prefix);
     let install = build.install().dest(dest)?;
 
-    let (dirs, files): (Vec<_>, Vec<_>) = opts
+    let (dirs, files): (Vec<_>, Vec<_>) = cmd
         .targets
         .iter()
         .map(Utf8Path::new)
         .partition(|p| p.is_dir());
 
     if let Some(path) = dirs.first() {
-        if opts.recursive {
+        if cmd.recursive {
             install.recursive(dirs, Some(is_allowed))?;
         } else {
             return Err(Error::Base(format!("trying to install directory as file: {path}")));
@@ -174,14 +165,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, docinto, dohtml};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, docinto, dohtml};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(dohtml, &[0]);
+        assert_invalid_cmd(dohtml, &[0]);
 
         let data = test_data();
         let repo = data.ebuild_repo("commands").unwrap();
