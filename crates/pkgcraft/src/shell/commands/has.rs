@@ -1,17 +1,24 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Returns success if the first argument is found in subsequent arguments, failure otherwise.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "has",
+    long_about = indoc::indoc! {"
+        Returns success if the first argument is found in subsequent arguments, failure
+        otherwise.
+    "}
+)]
+struct Command {
+    needle: String,
+    haystack: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if let [needle, haystack @ ..] = args {
-        Ok(ExecStatus::from(haystack.contains(needle)))
-    } else {
-        Err(Error::Base("requires 1 or more args, got 0".to_string()))
-    }
+    let cmd = Command::try_parse_args(args)?;
+    let found = cmd.haystack.contains(&cmd.needle);
+    Ok(ExecStatus::from(found))
 }
 
 const USAGE: &str = "has needle ${haystack}";
@@ -19,14 +26,14 @@ make_builtin!("has", has_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, has};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, has};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(has, &[0]);
+        assert_invalid_cmd(has, &[0]);
     }
 
     #[test]
