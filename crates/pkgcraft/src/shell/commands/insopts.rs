@@ -14,7 +14,6 @@ struct Command {
     options: Vec<String>,
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     get_build_mut().insopts = cmd.options.into_iter().collect();
