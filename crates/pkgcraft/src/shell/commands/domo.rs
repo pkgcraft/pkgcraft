@@ -1,23 +1,24 @@
 use std::collections::HashSet;
 
-use camino::Utf8Path;
-use scallop::{Error, ExecStatus};
+use camino::{Utf8Path, Utf8PathBuf};
+use scallop::ExecStatus;
 
 use crate::eapi::Feature::DomoUsesDesttree;
 use crate::macros::build_path;
 use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install gettext *.mo files.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "domo", long_about = "Install gettext *.mo files.")]
+struct Command {
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
+    let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let dest = if build.eapi().has(DomoUsesDesttree) {
         build.env(DESTTREE)
@@ -34,7 +35,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let mut files = vec![];
     let filename = format!("{}.mo", build.cpv().package());
 
-    for path in args.iter().map(Utf8Path::new) {
+    for path in cmd.paths {
         if let Some(dir) = path.file_stem().map(Utf8Path::new) {
             let dir = dir.join("LC_MESSAGES");
             files.push((path, dir.join(&filename)));
@@ -63,14 +64,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, domo, into};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, domo, into};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(domo, &[0]);
+        assert_invalid_cmd(domo, &[0]);
 
         let data = test_data();
         let repo = data.ebuild_repo("commands").unwrap();
