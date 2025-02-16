@@ -1,22 +1,26 @@
-use std::process::Command;
-
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::command::RunCommand;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Run `chmod` taking paths relative to the image directory.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "fowners",
+    long_about = "Run `chmod` taking paths relative to the image directory."
+)]
+struct Command {
+    // can't easily split options from arguments without listing all supported options
+    #[arg(required = true, allow_hyphen_values = true, num_args = 2..)]
+    args: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.len() < 2 {
-        return Err(Error::Base(format!("requires at least 2 args, got {}", args.len())));
-    }
+    let cmd = Command::try_parse_args(args)?;
 
-    Command::new("chmod")
-        .args(args.iter().map(|s| s.trim_start_matches('/')))
+    std::process::Command::new("chmod")
+        .args(cmd.args.iter().map(|s| s.trim_start_matches('/')))
         .current_dir(get_build_mut().destdir())
         .run_with_output()?;
 
@@ -36,14 +40,14 @@ mod tests {
     use crate::shell::{test::FileTree, BuildData};
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, fperms};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, fperms};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(fperms, &[0, 1]);
+        assert_invalid_cmd(fperms, &[0, 1]);
     }
 
     #[test]
