@@ -1,12 +1,18 @@
 use scallop::ExecStatus;
 
-use super::{has, make_builtin};
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Deprecated synonym for has.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "hasq", long_about = "Deprecated synonym for has.")]
+struct Command {
+    needle: String,
+    haystack: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    has(args)
+    let cmd = Command::try_parse_args(args)?;
+    let found = cmd.haystack.contains(&cmd.needle);
+    Ok(ExecStatus::from(found))
 }
 
 const USAGE: &str = "hasq needle ${haystack}";
@@ -14,14 +20,14 @@ make_builtin!("hasq", hasq_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, hasq};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, hasq};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(hasq, &[0]);
+        assert_invalid_cmd(hasq, &[0]);
     }
 
     #[test]
