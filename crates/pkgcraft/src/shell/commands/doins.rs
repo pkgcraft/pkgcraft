@@ -1,43 +1,40 @@
-use std::path::Path;
-
+use camino::Utf8PathBuf;
 use scallop::{Error, ExecStatus};
 
 use crate::files::NO_WALKDIR_FILTER;
 use crate::shell::environment::Variable::INSDESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install files into INSDESTTREE.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "doins", long_about = "Install files into INSDESTTREE.")]
+struct Command {
+    #[arg(short = 'r')]
+    recursive: bool,
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (recursive, args) = match args {
-        ["-r", args @ ..] => (true, args),
-        _ => (false, args),
-    };
-
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".to_string()));
-    }
-
+    let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let dest = build.env(INSDESTTREE);
     let opts = &build.insopts;
     let install = build.install().dest(dest)?.file_options(opts);
 
-    let (dirs, files): (Vec<_>, Vec<_>) = args.iter().map(Path::new).partition(|p| p.is_dir());
+    let (dirs, files): (Vec<_>, Vec<_>) = cmd.paths.into_iter().partition(|p| p.is_dir());
 
     if !dirs.is_empty() {
-        if recursive {
+        if cmd.recursive {
             install.recursive(dirs, NO_WALKDIR_FILTER)?;
         } else {
-            let dir = dirs[0].to_string_lossy();
+            let dir = &dirs[0];
             return Err(Error::Base(format!("installing directory without -r: {dir}")));
         }
     }
 
-    install.files(files)?;
+    install.files(&files)?;
     Ok(ExecStatus::Success)
 }
 
@@ -51,18 +48,17 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, doins, insinto, insopts};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, doins, insinto, insopts};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(doins, &[0]);
+        assert_invalid_cmd(doins, &[0]);
 
         // missing args
-        let r = doins(&["-r"]);
-        assert_err_re!(r, "^requires 1 or more args, got 0");
+        assert!(doins(&["-r"]).is_err());
 
         let _file_tree = FileTree::new();
 
