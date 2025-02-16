@@ -4,18 +4,26 @@ use scallop::ExecStatus;
 
 use crate::io::stdout;
 
-use super::{has, make_builtin};
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "The same as has, but also prints the first argument if found.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "hasv",
+    long_about = "The same as has, but also prints the first argument if found."
+)]
+struct Command {
+    needle: String,
+    haystack: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let ret = has(args)?;
-    if bool::from(&ret) {
+    let cmd = Command::try_parse_args(args)?;
+    let found = cmd.haystack.contains(&cmd.needle);
+    if found {
         write!(stdout(), "{}", args[0])?;
     }
 
-    Ok(ret)
+    Ok(ExecStatus::from(found))
 }
 
 const USAGE: &str = "hasv needle ${haystack}";
@@ -25,14 +33,14 @@ make_builtin!("hasv", hasv_builtin);
 mod tests {
     use crate::io::stdout;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, hasv};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, hasv};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(hasv, &[0]);
+        assert_invalid_cmd(hasv, &[0]);
     }
 
     #[test]
