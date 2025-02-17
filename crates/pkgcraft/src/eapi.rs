@@ -825,7 +825,7 @@ pub static EAPI9: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::scope::EbuildScope::*;
 
     Eapi::new("9", Some(&EAPI8))
-        .update_commands([pipestatus.allowed_in([All])])
+        .update_commands([pipestatus.allowed_in([All]), ver_replacing.allowed_in([Pkg])])
         .disable_commands([assert])
 });
 

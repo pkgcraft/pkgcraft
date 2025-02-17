@@ -110,6 +110,7 @@ mod useq;
 mod usev;
 mod usex;
 mod ver_cut;
+mod ver_replacing;
 mod ver_rs;
 mod ver_test;
 
@@ -209,6 +210,7 @@ pub(crate) mod builtins {
     pub(crate) use super::usev::BUILTIN as usev;
     pub(crate) use super::usex::BUILTIN as usex;
     pub(crate) use super::ver_cut::BUILTIN as ver_cut;
+    pub(crate) use super::ver_replacing::BUILTIN as ver_replacing;
     pub(crate) use super::ver_rs::BUILTIN as ver_rs;
     pub(crate) use super::ver_test::BUILTIN as ver_test;
     // phase stubs
@@ -325,6 +327,7 @@ pub(crate) mod functions {
     pub(crate) use super::usev::run as usev;
     pub(crate) use super::usex::run as usex;
     pub(crate) use super::ver_cut::run as ver_cut;
+    pub(crate) use super::ver_replacing::run as ver_replacing;
     pub(crate) use super::ver_rs::run as ver_rs;
     pub(crate) use super::ver_test::run as ver_test;
 }
@@ -597,6 +600,7 @@ pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
         builtins::usev,
         builtins::usex,
         builtins::ver_cut,
+        builtins::ver_replacing,
         builtins::ver_rs,
         builtins::ver_test,
         // phase stubs

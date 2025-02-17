@@ -45,3 +45,9 @@ impl From<bool> for ExecStatus {
         }
     }
 }
+
+impl From<ExecStatus> for bool {
+    fn from(exec: ExecStatus) -> bool {
+        matches!(exec, ExecStatus::Success)
+    }
+}
