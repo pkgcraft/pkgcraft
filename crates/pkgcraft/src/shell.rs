@@ -47,6 +47,8 @@ pub(crate) enum BuildState {
     Empty(&'static Eapi),
     Metadata(EbuildRawPkg),
     Build(EbuildPkg),
+    // TODO: use binpkgs for the replace state
+    Replace { old: Vec<EbuildPkg>, new: EbuildPkg },
 }
 
 impl Default for BuildState {
@@ -152,6 +154,7 @@ impl BuildData {
             BuildState::Empty(eapi) => eapi,
             BuildState::Metadata(pkg) => pkg.eapi(),
             BuildState::Build(pkg) => pkg.eapi(),
+            BuildState::Replace { new, .. } => new.eapi(),
         }
     }
 
@@ -160,6 +163,7 @@ impl BuildData {
         match &self.state {
             BuildState::Metadata(pkg) => pkg.cpv(),
             BuildState::Build(pkg) => pkg.cpv(),
+            BuildState::Replace { new, .. } => new.cpv(),
             _ => panic!("cpv invalid for scope: {}", self.scope),
         }
     }
@@ -169,6 +173,7 @@ impl BuildData {
         match &self.state {
             BuildState::Metadata(pkg) => pkg.repo(),
             BuildState::Build(pkg) => pkg.repo(),
+            BuildState::Replace { new, .. } => new.repo(),
             _ => panic!("ebuild repo invalid for scope: {}", self.scope),
         }
     }
@@ -178,6 +183,7 @@ impl BuildData {
         match &self.state {
             BuildState::Metadata(pkg) => pkg.repo().into(),
             BuildState::Build(pkg) => pkg.repo().into(),
+            BuildState::Replace { new, .. } => new.repo().into(),
             _ => panic!("repo invalid for scope: {}", self.scope),
         }
     }
@@ -186,6 +192,7 @@ impl BuildData {
     fn ebuild_pkg(&self) -> EbuildPackage {
         match &self.state {
             BuildState::Build(pkg) => EbuildPackage::Pkg(pkg),
+            BuildState::Replace { new, .. } => EbuildPackage::Pkg(new),
             _ => panic!("ebuild pkg invalid for scope: {}", self.scope),
         }
     }
@@ -195,6 +202,7 @@ impl BuildData {
         match &self.state {
             BuildState::Metadata(pkg) => Box::new(pkg),
             BuildState::Build(pkg) => Box::new(pkg),
+            BuildState::Replace { new, .. } => Box::new(new),
             _ => panic!("pkg invalid for scope: {}", self.scope),
         }
     }
@@ -283,8 +291,14 @@ impl BuildData {
             EBUILD_PHASE_FUNC => self.phase().to_string(),
 
             // TODO: alter for build vs install pkg state variants
-            REPLACING_VERSIONS => Default::default(),
-            REPLACED_BY_VERSION => Default::default(),
+            REPLACING_VERSIONS => match &self.state {
+                BuildState::Replace { old, .. } => old.iter().map(|p| p.cpv().pvr()).join(" "),
+                _ => Default::default(),
+            },
+            REPLACED_BY_VERSION => match &self.state {
+                BuildState::Replace { new, .. } => new.cpv().pvr(),
+                _ => Default::default(),
+            },
             MERGE_TYPE => "source".to_string(),
             A => Default::default(),
             USE => Default::default(),
