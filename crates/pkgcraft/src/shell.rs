@@ -36,7 +36,7 @@ use environment::Variable;
 use scope::Scope;
 
 // builtins that are permanently disabled
-static DISABLED_BUILTINS: &[&str] = &["enable"];
+static DISABLED_BUILTINS: &[&str] = &["alias", "enable"];
 
 // builtins that are disabled in global scope
 static DISABLED_GLOBAL_BUILTINS: &[&str] =
@@ -303,7 +303,7 @@ impl BuildData {
                 BuildState::Build(_) => "source".into(),
                 BuildState::Replace { .. } => "binary".into(),
                 _ => Default::default(),
-            }
+            },
             A => Default::default(),
             USE => Default::default(),
         }
