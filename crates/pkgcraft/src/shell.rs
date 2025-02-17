@@ -299,7 +299,11 @@ impl BuildData {
                 BuildState::Replace { new, .. } => new.cpv().pvr(),
                 _ => Default::default(),
             },
-            MERGE_TYPE => "source".to_string(),
+            MERGE_TYPE => match &self.state {
+                BuildState::Build(_) => "source".into(),
+                BuildState::Replace { .. } => "binary".into(),
+                _ => Default::default(),
+            }
             A => Default::default(),
             USE => Default::default(),
         }
