@@ -1,0 +1,6 @@
+---
+source: crates/pkgcraft/src/dep/parse.rs
+expression: "number.parse(\"0\").unwrap()"
+---
+raw: "0"
+value: 0

@@ -1,0 +1,8 @@
+---
+source: crates/pkgcraft/src/dep/parse.rs
+expression: "suffix.parse(\"_alpha1\").unwrap()"
+---
+kind: Alpha
+version:
+  raw: "1"
+  value: 1
