@@ -28,11 +28,11 @@ test = ["dep:assert_cmd", "dep:pretty_assertions"]
 
 [dependencies]
 blake2 = "0.10.6"
-blake3 = { version = "1.5.5", features = ["traits-preview"] }
+blake3 = { version = "1.6.0", features = ["traits-preview"] }
 cached = "0.54.0"
 camino = { version = "1.1.9", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.5.29", features = ["derive"] }
+clap = { version = "4.5.30", features = ["derive"] }
 crossbeam-channel = "0.5.14"
 dashmap = "6.1.0"
 digest = "0.10.7"
@@ -63,11 +63,11 @@ scallop = { path = "../scallop", version = "0.0.22" }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_with = { version = "3.12.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
-strum = { version = "0.27.0", features = ["derive"] }
+strum = { version = "0.27.1", features = ["derive"] }
 tar = { version = "0.4.43", optional = true }
-tempfile = "3.16.0"
+tempfile = "3.17.1"
 thiserror = "2.0.11"
-tree-sitter = "0.25.1"
+tree-sitter = "0.25.2"
 tree-sitter-bash = "0.23.3"
 tokio = { version = "1.43.0", features = ["full"] }
 toml = "0.8.20"
@@ -81,7 +81,7 @@ pretty_assertions = { version = "1.4.1", optional = true }
 
 [dev-dependencies]
 criterion = "0.5"
-ctor = "0.3.1"
+ctor = "0.3.6"
 tracing-test = "0.2.5"
 
 [[bench]]
