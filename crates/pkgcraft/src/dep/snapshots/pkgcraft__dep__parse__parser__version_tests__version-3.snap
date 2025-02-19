@@ -1,0 +1,39 @@
+---
+source: crates/pkgcraft/src/dep/parse.rs
+expression: "version.parse(\"1.2.3a_alpha_alpha4_beta5_pre6_rc7_p8-r9\").unwrap()"
+---
+op: ~
+numbers:
+  - raw: "1"
+    value: 1
+  - raw: "2"
+    value: 2
+  - raw: "3"
+    value: 3
+letter: a
+suffixes:
+  - kind: Alpha
+    version: ~
+  - kind: Alpha
+    version:
+      raw: "4"
+      value: 4
+  - kind: Beta
+    version:
+      raw: "5"
+      value: 5
+  - kind: Pre
+    version:
+      raw: "6"
+      value: 6
+  - kind: Rc
+    version:
+      raw: "7"
+      value: 7
+  - kind: P
+    version:
+      raw: "8"
+      value: 8
+revision:
+  raw: "9"
+  value: 9
