@@ -6,6 +6,7 @@ use std::str::FromStr;
 use crate::dep::parse;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct Arch(String);
 
 impl From<&str> for Arch {
@@ -67,6 +68,7 @@ impl fmt::Display for Arch {
 /// Package keyword type.
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub enum KeywordStatus {
     Disabled, // -arch
     Unstable, // ~arch
@@ -74,6 +76,7 @@ pub enum KeywordStatus {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct Keyword {
     pub(crate) status: KeywordStatus,
     pub(crate) arch: Arch,

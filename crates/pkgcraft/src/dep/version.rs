@@ -21,6 +21,7 @@ pub trait WithOp {
 }
 
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub(crate) struct Number {
     pub(crate) raw: String,
     pub(crate) value: u64,
@@ -76,6 +77,7 @@ impl fmt::Display for Number {
 }
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct Revision(pub(crate) Number);
 
 impl Revision {
@@ -120,6 +122,7 @@ impl fmt::Display for Revision {
 
 #[derive(Debug, Display, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[strum(serialize_all = "snake_case")]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub(crate) enum SuffixKind {
     Alpha,
     Beta,
@@ -129,6 +132,7 @@ pub(crate) enum SuffixKind {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub(crate) struct Suffix {
     pub(crate) kind: SuffixKind,
     pub(crate) version: Option<Number>,
@@ -159,6 +163,7 @@ impl fmt::Display for Suffix {
     Copy,
     Clone,
 )]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub enum Operator {
     #[strum(serialize = "<")]
     Less = 1,
@@ -192,6 +197,7 @@ impl Operator {
 }
 
 #[derive(Clone)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct Version {
     pub(crate) op: Option<Operator>,
     pub(crate) numbers: Vec<Number>,
