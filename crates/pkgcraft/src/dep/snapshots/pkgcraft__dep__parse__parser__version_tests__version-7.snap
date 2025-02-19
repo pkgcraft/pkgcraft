@@ -1,0 +1,17 @@
+---
+source: crates/pkgcraft/src/dep/parse.rs
+expression: "version.parse(\"1_p18446744073709551615\").unwrap()"
+---
+op: ~
+numbers:
+  - raw: "1"
+    value: 1
+letter: ~
+suffixes:
+  - kind: P
+    version:
+      raw: "18446744073709551615"
+      value: 18446744073709551615
+revision:
+  raw: ""
+  value: 0

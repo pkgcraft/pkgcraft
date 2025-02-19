@@ -321,7 +321,7 @@ pub fn eclass_name(s: &str) -> crate::Result<&str> {
 }
 
 pub fn slot(s: &str) -> crate::Result<Slot> {
-    parser::slot_name
+    parser::slot
         .parse(s)
         .map_err(|err| Error::ParseError(err.to_string()))
 }
@@ -351,8 +351,9 @@ pub(crate) fn keyword(s: &str) -> crate::Result<Keyword> {
 }
 
 pub(crate) fn revision(s: &str) -> crate::Result<Revision> {
-    parser::revision
+    parser::number
         .parse(s)
+        .map(Revision)
         .map_err(|err| Error::ParseError(err.to_string()))
 }
 
@@ -368,7 +369,6 @@ pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
         .parse(s)
         .map_err(|err| Error::ParseError(err.to_string()))
 }
-
 /// Parse a string into a [`CpvOrDep`].
 pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
     depspec::cpv_or_dep(s).map_err(|e| peg_error("invalid cpv or dep", s, e))
@@ -382,9 +382,10 @@ pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
 }
-
 pub(super) fn cpn(s: &str) -> crate::Result<Cpn> {
-    depspec::cpn(s).map_err(|e| peg_error("invalid cpn", s, e))
+    parser::cpn
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
@@ -446,150 +447,52 @@ pub(super) fn package_dependency(
 }
 
 mod parser {
+    #![allow(dead_code)]
+
+    use crate::dep::{
+        cpn::Cpn,
+        cpv::Cpv,
+        pkg::Slot,
+        version::{Number, Operator, Revision, Suffix, SuffixKind, Version},
+    };
+    use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
+
     use winnow::{
         ascii::{alpha1, digit1},
         combinator::{
-            alt, dispatch, empty, eof, fail, not, opt, preceded, repeat, separated, seq, trace,
+            alt, dispatch, empty, eof, fail, not, opt, peek, preceded, repeat, separated, seq,
+            trace,
         },
+        error::ParserError,
         prelude::*,
-        stream::AsChar,
+        stream::{AsChar, ContainsToken, Stream, StreamIsPartial},
         token::{one_of, take_while},
     };
 
-    use crate::{
-        dep::{
-            version::{Number, Suffix, SuffixKind},
-            Cpn, Cpv, Operator, Revision, Slot, Version,
-        },
-        pkg::ebuild::keyword::{Keyword, KeywordStatus},
-    };
-
-    pub(super) fn category_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "category_name",
-            (
-                one_of((AsChar::is_alphanum, '_')),
-                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
-
-    pub(super) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "package_name",
-            (
-                one_of((AsChar::is_alphanum, '_')),
-                repeat::<_, _, Vec<&str>, _, _>(
-                    0..,
-                    alt((
-                        one_of((AsChar::is_alphanum, '_', '+')).take(),
-                        (not(('-', version, eof)), '-').take(),
-                    )),
-                ),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
-
-    pub(super) fn slot_name(input: &mut &str) -> ModalResult<Slot> {
-        trace(
-            "slot_name",
-            (
-                one_of((AsChar::is_alphanum, '_')),
-                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-        .map(str::to_string)
-        .map(|name| Slot { name })
-    }
-
-    pub(super) fn use_flag_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "use_flag_name",
-            (
-                one_of(AsChar::is_alphanum),
-                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+', '@')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
-
-    pub(super) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "repository_name",
-            (
-                one_of((AsChar::is_alphanum, '_')),
-                take_while(0.., (AsChar::is_alphanum, '_', '-')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
-
-    pub(super) fn eclass_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "eclass_name",
-            (
-                not("default"),
-                one_of((AsChar::is_alpha, '_')),
-                take_while(0.., (AsChar::is_alphanum, '_', '-', '.')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
-
-    pub(super) fn license_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "license_name",
-            (
-                one_of((AsChar::is_alphanum, '_')),
-                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
-
-    pub(super) fn keyword_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "keyword_name",
-            (
-                one_of((AsChar::is_alphanum, '_')),
-                take_while(0.., (AsChar::is_alphanum, '_', '-')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
+    // Parsing to concrete types
 
     pub(super) fn cpv(input: &mut &str) -> ModalResult<Cpv> {
-        trace(
-            "cpv",
-            seq!(Cpv {
-                cpn: cpn,
-                _: '-',
-                version: version,
-            }),
-        )
+        seq!(Cpv {
+            cpn: cpn,
+            _: '-',
+            version: version,
+        })
         .parse_next(input)
     }
 
     pub(super) fn cpn(input: &mut &str) -> ModalResult<Cpn> {
-        trace(
-            "cpn",
-            seq!(Cpn {
-                category: category_name.map(str::to_string),
-                _: '/',
-                package: package_name.map(str::to_string),
-            }),
-        )
+        seq!(Cpn {
+            category: category_name.map(str::to_string),
+            _: '/',
+            package: package_name.map(str::to_string),
+        })
+        .parse_next(input)
+    }
+
+    pub(super) fn slot(input: &mut &str) -> ModalResult<Slot> {
+        seq!(Slot {
+            name: slot_name.map(str::to_string)
+        })
         .parse_next(input)
     }
 
@@ -605,34 +508,185 @@ mod parser {
         Ok(Keyword { status, arch: arch.into() })
     }
 
+    // Parsing names according to the package manager specification chapter 3.1
+
+    // 3.1.1 Category names
+    pub(super) fn category_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        name((AsChar::is_alphanum, '_'), ('-', '.', '+')).parse_next(input)
+    }
+
+    // 3.1.2 Package names
+    pub(super) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        (
+            one_of((AsChar::is_alphanum, '_')),
+            repeat::<_, _, Vec<_>, _, _>(
+                0..,
+                alt((
+                    one_of((AsChar::is_alphanum, '_', '+')).take(),
+                    preceded(
+                        not((repeat::<_, _, Vec<_>, _, _>(1.., preceded('-', version)), eof)),
+                        "-",
+                    ),
+                )),
+            ),
+        )
+            .take()
+            .parse_next(input)
+    }
+
+    // 3.1.3 Slot names
+    pub(super) fn slot_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        name((AsChar::is_alphanum, '_'), ('-', '.', '+')).parse_next(input)
+    }
+
+    // 3.1.4 USE flag names
+    pub(super) fn use_flag_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        name(AsChar::is_alphanum, ('_', '-', '.', '+', '@')).parse_next(input)
+    }
+
+    // 3.1.5 Repository names
+    pub(super) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        (
+            one_of((AsChar::is_alphanum, '_')),
+            repeat::<_, _, Vec<_>, _, _>(
+                0..,
+                alt((
+                    one_of((AsChar::is_alphanum, '_')).take(),
+                    preceded(
+                        not((repeat::<_, _, Vec<_>, _, _>(0.., preceded('-', version)), eof)),
+                        "-",
+                    ),
+                )),
+            ),
+        )
+            .take()
+            .parse_next(input)
+    }
+
+    // 3.1.6 Eclass names
+    pub(super) fn eclass_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        preceded(
+            not("default"),
+            name((AsChar::is_alpha, '_'), (AsChar::is_dec_digit, '-', '.')),
+        )
+        .parse_next(input)
+    }
+
+    // 3.1.7 License names
+    pub(super) fn license_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        name((AsChar::is_alphanum, '_'), ('-', '.', '+')).parse_next(input)
+    }
+
+    /// 3.1.8
+    pub(super) fn keyword_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        name((AsChar::is_alphanum, '_'), '-').parse_next(input)
+    }
+
+    #[inline(always)]
+    fn name<LeadSet, RestSet, Input, Error>(
+        lead: LeadSet,
+        rest: RestSet,
+    ) -> impl Parser<Input, <Input as Stream>::Slice, Error>
+    where
+        Input: StreamIsPartial + Stream,
+        <Input as Stream>::Token: Clone,
+        LeadSet: ContainsToken<<Input as Stream>::Token> + Clone,
+        RestSet: ContainsToken<<Input as Stream>::Token> + Clone,
+        Error: ParserError<Input>,
+    {
+        (one_of(lead.clone()), take_while(0.., (lead, rest))).take()
+    }
+
     #[cfg(test)]
-    mod parse_tests {
+    mod name_tests {
         use super::*;
 
         #[test]
-        fn parse_cpv() {
-            insta::assert_yaml_snapshot!(cpv.parse("dev-lang/rust-1.84.1_p5-r1").unwrap(), @"dev-lang/rust-1.84.1_p5-r1");
+        fn test_cpv() {
+            assert!(cpv.parse("a/b-1a-1").is_err());
         }
 
         #[test]
-        fn parse_cpn() {
-            insta::assert_yaml_snapshot!(cpn.parse("dev-lang/rust").unwrap(), @"dev-lang/rust");
-            insta::assert_yaml_snapshot!(cpn.parse("x11-libs/gtk+").unwrap(), @"x11-libs/gtk+");
-            insta::assert_yaml_snapshot!(cpn.parse("x11-libs/gtk3").unwrap(), @"x11-libs/gtk3");
+        fn test_package() {
+            assert!(package_name.parse("a-1a-1").is_err());
+        }
+
+        #[test]
+        fn test_eclass() {
+            assert!(eclass_name.parse("default").is_err());
+        }
+
+        #[test]
+        fn test_keyword() {
+            assert_eq!(keyword_name.parse("a").unwrap(), "a");
+            assert_eq!(keyword_name.parse("0").unwrap(), "0");
+            assert_eq!(keyword_name.parse("_").unwrap(), "_");
+            assert_eq!(keyword_name.parse("a-").unwrap(), "a-");
+            assert_eq!(keyword_name.parse("0-").unwrap(), "0-");
+            assert_eq!(keyword_name.parse("_-").unwrap(), "_-");
+            assert_eq!(keyword_name.parse("a_").unwrap(), "a_");
+            assert_eq!(keyword_name.parse("0_").unwrap(), "0_");
+            assert_eq!(keyword_name.parse("__").unwrap(), "__");
+            assert_eq!(keyword_name.parse("_a-").unwrap(), "_a-");
+            assert_eq!(keyword_name.parse("_0-").unwrap(), "_0-");
+            assert_eq!(keyword_name.parse("__-").unwrap(), "__-");
+
+            assert!(keyword_name.parse("").is_err());
+            assert!(keyword_name.parse(" ").is_err());
+            assert!(keyword_name.parse("@").is_err());
+            assert!(keyword_name.parse(".").is_err());
+            assert!(keyword_name.parse("+").is_err());
+            assert!(keyword_name.parse("-a").is_err());
+            assert!(keyword_name.parse("-0").is_err());
+            assert!(keyword_name.parse("-_").is_err());
         }
     }
 
+    // Parsing version components according to the package manager specification chapter 3.2
+
     pub(super) fn version_with_op(input: &mut &str) -> ModalResult<Version> {
-        trace(
-            "version_with_op",
-            seq!(Version {
-                op: opt(operator),
+        trace("version_with_op", move |input: &mut &str| {
+            let Version {
+                mut op,
+                numbers,
+                letter,
+                suffixes,
+                revision,
+            } = seq!(Version {
+                op: operator.map(Some),
                 numbers: numbers,
                 letter: opt(letter),
                 suffixes: suffixes,
                 revision: revision,
-            }),
-        )
+            })
+            .verify(|version| {
+                // The approximate operator may only be used on package names without a revision
+                if version
+                    .op
+                    .as_ref()
+                    .is_some_and(|op| *op == Operator::Approximate)
+                {
+                    return version.revision.is_empty();
+                }
+                true
+            })
+            .parse_next(input)?;
+
+            // Transform the Equal operator to EqualGlob if the version has a trailing '*'
+            if op.as_ref().is_some_and(|op| *op == Operator::Equal)
+                && opt('*').parse_next(input)?.is_some()
+            {
+                op = Some(Operator::EqualGlob);
+            }
+
+            Ok(Version {
+                op,
+                numbers,
+                letter,
+                suffixes,
+                revision,
+            })
+        })
         .parse_next(input)
     }
 
@@ -653,9 +707,8 @@ mod parser {
     pub(super) fn operator(input: &mut &str) -> ModalResult<Operator> {
         trace(
             "operator",
-            dispatch!(take_while(0..=2, ('<', '=', '>', '*', '~'));
+            dispatch!(take_while(1..=2, ('<', '=', '>', '~'));
                 "<=" => empty.value(Operator::LessOrEqual),
-                "=*" => empty.value(Operator::EqualGlob),
                 ">=" => empty.value(Operator::GreaterOrEqual),
                 "<" => empty.value(Operator::Less),
                 "=" => empty.value(Operator::Equal),
@@ -714,95 +767,148 @@ mod parser {
     }
 
     pub(super) fn number(input: &mut &str) -> ModalResult<Number> {
-        let raw = trace("number", digit1).parse_next(input)?;
-        let value = raw.parse().unwrap_or_default();
-        Ok(Number { raw: raw.to_string(), value })
+        trace(
+            "number",
+            seq!(Number {
+                // Get a string reference to copy the raw value from before parsing to an integer.
+                // This is done to use `Parser::parse_to` to delegate error conversion.
+                // TODO: Investigate if parsing the string once and converting the error ourselfs from
+                // `parse` is faster.
+                raw: peek(digit1).map(str::to_string),
+                value: digit1.parse_to(),
+            }),
+        )
+        .parse_next(input)
     }
 
     #[cfg(test)]
     mod version_tests {
-        use winnow::ascii::digit1;
-
         use super::*;
 
         #[test]
-        fn parse_operator() {
+        fn test_version_with_op() {
+            insta::assert_yaml_snapshot!(version_with_op.parse("=0").unwrap());
+            insta::assert_yaml_snapshot!(version_with_op.parse("=0*").unwrap());
+
+            assert!(version_with_op.parse("").is_err());
+            assert!(version_with_op.parse(" ").is_err());
+            assert!(version_with_op.parse("0").is_err());
+            assert!(version_with_op.parse("*0").is_err());
+            assert!(version_with_op.parse("0=").is_err());
+        }
+
+        #[test]
+        fn test_version() {
+            insta::assert_yaml_snapshot!(version.parse("0").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1a").unwrap());
+            insta::assert_yaml_snapshot!(version
+                .parse("1.2.3a_alpha_alpha4_beta5_pre6_rc7_p8-r9")
+                .unwrap());
+
+            // Numeric limits
+            insta::assert_yaml_snapshot!(version.parse("18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1.18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1.2.18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1_p18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1-r18446744073709551615").unwrap());
+
+            // Invalid
+            assert!(version.parse("").is_err());
+            assert!(version.parse(" ").is_err());
+            assert!(version.parse(".").is_err());
+            assert!(version.parse("-1").is_err());
+            assert!(version.parse(".1").is_err());
+            assert!(version.parse("a").is_err());
+            assert!(version.parse("a1").is_err());
+            assert!(version.parse("1a-1").is_err());
+            assert!(version.parse("1a-1a").is_err());
+            assert!(version.parse("1aa").is_err());
+            assert!(version.parse("1.a").is_err());
+            assert!(version.parse("1_a").is_err());
+            assert!(version.parse("1a.2").is_err());
+            assert!(version.parse("1..2").is_err());
+
+            // Numeric overflow
+            assert!(version.parse("18446744073709551616").is_err());
+            assert!(version.parse("1.18446744073709551616").is_err());
+            assert!(version.parse("1.2.18446744073709551616").is_err());
+            assert!(version.parse("1_p18446744073709551616").is_err());
+            assert!(version.parse("1-r18446744073709551616").is_err());
+        }
+
+        #[test]
+        fn test_operator() {
             assert_eq!(operator.parse(">=").unwrap(), Operator::GreaterOrEqual);
-            assert_eq!(operator.parse("=*").unwrap(), Operator::EqualGlob);
-            assert_eq!(operator.parse("<=").unwrap(), Operator::LessOrEqual);
-            assert_eq!(operator.parse("~").unwrap(), Operator::Approximate);
-            assert_eq!(operator.parse("=").unwrap(), Operator::Equal);
             assert_eq!(operator.parse(">").unwrap(), Operator::Greater);
+            assert_eq!(operator.parse("<=").unwrap(), Operator::LessOrEqual);
             assert_eq!(operator.parse("<").unwrap(), Operator::Less);
+            assert_eq!(operator.parse("=").unwrap(), Operator::Equal);
+            assert_eq!(operator.parse("~").unwrap(), Operator::Approximate);
         }
 
         #[test]
-        fn dumb() {
-            assert!(version.parse("1_alpha").is_ok());
+        fn test_letter() {
+            assert_eq!(letter.parse("a").unwrap(), 'a');
+            assert_eq!(letter.parse("z").unwrap(), 'z');
+
+            assert!(letter.parse("").is_err());
+            assert!(letter.parse("A").is_err());
+            assert!(letter.parse("0").is_err());
+            assert!(letter.parse(".").is_err());
+            assert!(letter.parse("-").is_err());
+            assert!(letter.parse("_").is_err());
+            assert!(letter.parse("+").is_err());
+            assert!(letter.parse("@").is_err());
+            assert!(letter.parse("ab").is_err());
         }
 
         #[test]
-        fn parse_version() {
-            fn parser<'s>(input: &mut &'s str) -> winnow::ModalResult<Vec<&'s str>> {
-                separated(1.., digit1, '.').parse_next(input)
-            }
+        fn test_suffix() {
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_beta").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_pre").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_rc").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_p").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha0").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha01").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha1").unwrap());
 
-            insta::assert_yaml_snapshot!(version.parse("1").unwrap(), @r#"
-            op: ~
-            numbers:
-              - raw: "1"
-                value: 1
-            letter: ~
-            suffixes: []
-            revision:
-              raw: ""
-              value: 0
-            "#);
-            insta::assert_yaml_snapshot!(version.parse("1z").unwrap(), @r#"
-            op: ~
-            numbers:
-              - raw: "1"
-                value: 1
-            letter: z
-            suffixes: []
-            revision:
-              raw: ""
-              value: 0
-            "#);
-            insta::assert_yaml_snapshot!(version.parse("1_rc").unwrap(), @r#"
-            op: ~
-            numbers:
-              - raw: "1"
-                value: 1
-            letter: ~
-            suffixes:
-              - kind: Rc
-                version:
-                  raw: ""
-                  value: 0
-            revision:
-              raw: ""
-              value: 0
-            "#);
-            insta::assert_yaml_snapshot!(version.parse("1.2.3z_rc05-r20250101").unwrap(), @r#"
-            op: ~
-            numbers:
-              - raw: "1"
-                value: 1
-              - raw: "2"
-                value: 2
-              - raw: "3"
-                value: 3
-            letter: z
-            suffixes:
-              - kind: Rc
-                version:
-                  raw: "05"
-                  value: 5
-            revision:
-              raw: "20250101"
-              value: 20250101
-            "#);
+            assert!(suffix.parse("").is_err());
+            assert!(suffix.parse(" ").is_err());
+            assert!(suffix.parse("_").is_err());
+            assert!(suffix.parse("a").is_err());
+            assert!(suffix.parse("0").is_err());
+            assert!(suffix.parse("-alpha").is_err());
+            assert!(suffix.parse("_alphaa").is_err());
+            assert!(suffix.parse("_aalpha").is_err());
+            assert!(suffix.parse("aalpha").is_err());
+            assert!(suffix.parse("0alpha").is_err());
+        }
+
+        #[test]
+        fn test_revision() {
+            insta::assert_yaml_snapshot!(revision.parse("").unwrap());
+            insta::assert_yaml_snapshot!(revision.parse("-r1").unwrap());
+            insta::assert_yaml_snapshot!(revision.parse("-r01").unwrap());
+
+            assert!(revision.parse(" ").is_err());
+            assert!(revision.parse("a").is_err());
+            assert!(revision.parse("1").is_err());
+            assert!(revision.parse("-a").is_err());
+            assert!(revision.parse("-r").is_err());
+            assert!(revision.parse("-1").is_err());
+            assert!(revision.parse("-ra").is_err());
+            assert!(revision.parse("-r1a").is_err());
+        }
+
+        #[test]
+        fn test_number() {
+            insta::assert_yaml_snapshot!(number.parse("0").unwrap());
+            insta::assert_yaml_snapshot!(number.parse("01").unwrap());
+            insta::assert_yaml_snapshot!(number.parse("10").unwrap());
+
+            assert!(number.parse("").is_err());
+            assert!(number.parse(" ").is_err());
         }
     }
 }

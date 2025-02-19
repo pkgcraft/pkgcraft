@@ -64,10 +64,13 @@ mod parser {
         use super::*;
 
         #[test]
-        fn parse_eapi() {
+        fn test_eapi() {
             assert_eq!(eapi_value.parse("8").unwrap(), "8");
             assert_eq!(eapi_value.parse("'8'").unwrap(), "8");
             assert_eq!(eapi_value.parse(r#""8""#).unwrap(), "8");
+
+            assert!(eapi_value.parse("").is_err());
+            assert!(eapi_value.parse(" ").is_err());
         }
     }
 }

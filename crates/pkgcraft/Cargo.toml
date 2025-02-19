@@ -57,7 +57,12 @@ ordermap = { version = "0.5.5", features = ["rayon", "serde"] }
 peg = "0.8.5"
 rayon = "1.10.0"
 regex = "1.11.1"
-reqwest = { version = "0.12.12", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
+reqwest = { version = "0.12.12", default-features = false, features = [
+  "hickory-dns",
+  "rustls-tls",
+  "socks",
+  "stream",
+] }
 roxmltree = "0.20.0"
 rust-ini = "0.21.1"
 scallop = { path = "../scallop", version = "0.0.22" }
