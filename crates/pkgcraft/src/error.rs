@@ -17,6 +17,8 @@ pub(crate) use self::peg::peg_error;
 )]
 pub enum Error {
     #[error("{0}")]
+    ParseError(String),
+    #[error("{0}")]
     PegParse(String),
     #[error("config error: {0}")]
     Config(String),

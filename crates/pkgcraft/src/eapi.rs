@@ -10,6 +10,7 @@ use camino::Utf8Path;
 use indexmap::{set::MutableValues, IndexSet};
 use itertools::Either;
 use strum::EnumString;
+use winnow::prelude::*;
 
 use crate::archive::Archive;
 use crate::dep;
@@ -23,32 +24,51 @@ use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::Phase;
 use crate::Error;
 
-peg::parser!(grammar parse() for str {
-    // EAPIs must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule eapi() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("EAPI"))
-        { s }
-
-    rule single_quotes<T>(expr: rule<T>) -> T
-        = "\'" v:expr() "\'" { v }
-
-    rule double_quotes<T>(expr: rule<T>) -> T
-        = "\"" v:expr() "\"" { v }
-
-    rule optionally_quoted<T>(expr: rule<T>) -> T
-        = s:expr() { s }
-        / s:double_quotes(<expr()>) { s }
-        / s:single_quotes(<expr()>) { s }
-
-    pub(super) rule eapi_value() -> &'input str
-        = s:optionally_quoted(<eapi()>) { s }
-});
-
 pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
-    parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))
+    parser::eapi_value
+        .parse(s)
+        .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))
+}
+
+mod parser {
+    use winnow::{
+        combinator::{alt, delimited, trace},
+        prelude::*,
+        stream::AsChar,
+        token::{one_of, take_while},
+    };
+
+    pub(super) fn eapi_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "eapi_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn eapi_value<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "eapi_value",
+            alt((eapi_name, delimited('"', eapi_name, '"'), delimited('\'', eapi_name, '\''))),
+        )
+        .parse_next(input)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn parse_eapi() {
+            assert_eq!(eapi_value.parse("8").unwrap(), "8");
+            assert_eq!(eapi_value.parse("'8'").unwrap(), "8");
+            assert_eq!(eapi_value.parse(r#""8""#).unwrap(), "8");
+        }
+    }
 }
 
 /// Features that relate to differentiation between EAPIs as specified by PMS.
@@ -227,7 +247,9 @@ impl Eapi {
     /// Verify a string represents a valid EAPI.
     pub fn parse<S: AsRef<str>>(s: S) -> crate::Result<()> {
         let s = s.as_ref();
-        parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
+        parser::eapi_name
+            .parse(s)
+            .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
         Ok(())
     }
 
