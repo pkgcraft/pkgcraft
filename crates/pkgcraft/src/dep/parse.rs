@@ -1,4 +1,5 @@
 use cached::{proc_macro::cached, SizedCache};
+use winnow::prelude::*;
 
 use crate::dep::cpn::Cpn;
 use crate::dep::cpv::{Cpv, CpvOrDep};
@@ -10,48 +11,17 @@ use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::pkg::ebuild::iuse::Iuse;
-use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
+use crate::pkg::ebuild::keyword::Keyword;
 use crate::types::Ordered;
+use crate::Error;
 
 peg::parser!(grammar depspec() for str {
-    // Keywords must not begin with a hyphen.
-    rule keyword_name() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-']*
-        } / expected!("keyword name"))
-        { s }
-
-    // The "-*" keyword is allowed in KEYWORDS for package metadata.
-    pub(super) rule keyword() -> Keyword
-        = arch:keyword_name()
-            { Keyword { status: KeywordStatus::Stable, arch: arch.into() } }
-        / "~" arch:keyword_name()
-            { Keyword { status: KeywordStatus::Unstable, arch: arch.into() } }
-        / "-" arch:keyword_name()
-            { Keyword { status: KeywordStatus::Disabled, arch: arch.into() } }
-        / "-*"
-            { Keyword { status: KeywordStatus::Disabled, arch: "*".into() } }
-
     // License names must not begin with a hyphen, dot, or plus sign.
     pub(super) rule license_name() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         }) { s }
-
-    // Eclass names must not begin with a hyphen or dot and cannot be named "default".
-    pub(super) rule eclass_name() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-']*
-        } / expected!("eclass name")) {?
-            if s == "default" {
-                Err("eclass cannot be named: default")
-            } else {
-                Ok(s)
-            }
-        }
 
     // Categories must not begin with a hyphen, dot, or plus sign.
     pub(super) rule category() -> &'input str
@@ -98,9 +68,6 @@ peg::parser!(grammar depspec() for str {
                 revision: revision.unwrap_or_default(),
             }
         }
-
-    pub(super) rule version_with_op() -> Version
-        = v:with_op(<version()>) { v }
 
     rule with_op<T: WithOp>(expr: rule<T>) -> T::WithOp
         = "<=" v:expr() {? v.with_op(Operator::LessOrEqual) }
@@ -318,31 +285,45 @@ peg::parser!(grammar depspec() for str {
 });
 
 pub fn category(s: &str) -> crate::Result<&str> {
-    depspec::category(s).map_err(|e| peg_error("invalid category name", s, e))
+    parser::category_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn package(s: &str) -> crate::Result<&str> {
-    depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))
+    parser::package_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn version(s: &str) -> crate::Result<Version> {
-    depspec::version(s).map_err(|e| peg_error("invalid version", s, e))
+    parser::version
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
-    depspec::version_with_op(s).map_err(|e| peg_error("invalid version", s, e))
+    parser::version_with_op
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn license_name(s: &str) -> crate::Result<&str> {
-    depspec::license_name(s).map_err(|e| peg_error("invalid license name", s, e))
+    parser::license_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn eclass_name(s: &str) -> crate::Result<&str> {
-    depspec::eclass_name(s).map_err(|e| peg_error("invalid eclass name", s, e))
+    parser::eclass_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn slot(s: &str) -> crate::Result<Slot> {
-    depspec::slot(s).map_err(|e| peg_error("invalid slot", s, e))
+    parser::slot_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn use_dep(s: &str) -> crate::Result<UseDep> {
@@ -354,7 +335,9 @@ pub(super) fn slot_dep(s: &str) -> crate::Result<SlotDep> {
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {
-    depspec::use_flag(s).map_err(|e| peg_error("invalid USE flag", s, e))
+    parser::use_flag_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
@@ -362,22 +345,28 @@ pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
 }
 
 pub(crate) fn keyword(s: &str) -> crate::Result<Keyword> {
-    depspec::keyword(s).map_err(|e| peg_error("invalid keyword", s, e))
+    parser::keyword
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(crate) fn revision(s: &str) -> crate::Result<Revision> {
-    depspec::number(s)
-        .map_err(|e| peg_error("invalid revision", s, e))
-        .map(Revision)
+    parser::revision
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
-    depspec::repo(s).map_err(|e| peg_error("invalid repo name", s, e))
+    parser::repository_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 /// Parse a string into a [`Cpv`].
 pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
-    depspec::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
+    parser::cpv
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 /// Parse a string into a [`CpvOrDep`].
@@ -454,6 +443,368 @@ pub(super) fn package_dependency(
 ) -> crate::Result<Dependency<Dep>> {
     depspec::package_dependency(s, eapi)
         .map_err(|e| peg_error("invalid package dependency", s, e))
+}
+
+mod parser {
+    use winnow::{
+        ascii::{alpha1, digit1},
+        combinator::{
+            alt, dispatch, empty, eof, fail, not, opt, preceded, repeat, separated, seq, trace,
+        },
+        prelude::*,
+        stream::AsChar,
+        token::{one_of, take_while},
+    };
+
+    use crate::{
+        dep::{
+            version::{Number, Suffix, SuffixKind},
+            Cpn, Cpv, Operator, Revision, Slot, Version,
+        },
+        pkg::ebuild::keyword::{Keyword, KeywordStatus},
+    };
+
+    pub(super) fn category_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "category_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "package_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                repeat::<_, _, Vec<&str>, _, _>(
+                    0..,
+                    alt((
+                        one_of((AsChar::is_alphanum, '_', '+')).take(),
+                        (not(('-', version, eof)), '-').take(),
+                    )),
+                ),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn slot_name(input: &mut &str) -> ModalResult<Slot> {
+        trace(
+            "slot_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+        .map(str::to_string)
+        .map(|name| Slot { name })
+    }
+
+    pub(super) fn use_flag_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "use_flag_name",
+            (
+                one_of(AsChar::is_alphanum),
+                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+', '@')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "repository_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                take_while(0.., (AsChar::is_alphanum, '_', '-')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn eclass_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "eclass_name",
+            (
+                not("default"),
+                one_of((AsChar::is_alpha, '_')),
+                take_while(0.., (AsChar::is_alphanum, '_', '-', '.')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn license_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "license_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn keyword_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "keyword_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                take_while(0.., (AsChar::is_alphanum, '_', '-')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn cpv(input: &mut &str) -> ModalResult<Cpv> {
+        trace(
+            "cpv",
+            seq!(Cpv {
+                cpn: cpn,
+                _: '-',
+                version: version,
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn cpn(input: &mut &str) -> ModalResult<Cpn> {
+        trace(
+            "cpn",
+            seq!(Cpn {
+                category: category_name.map(str::to_string),
+                _: '/',
+                package: package_name.map(str::to_string),
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn keyword(input: &mut &str) -> ModalResult<Keyword> {
+        let (status, arch) = dispatch!(take_while(0..=2, ('~', '-', '*'));
+            "~" => (empty.value(KeywordStatus::Unstable), keyword_name),
+            "-" => (empty.value(KeywordStatus::Disabled), keyword_name),
+            "-*" => (empty.value(KeywordStatus::Disabled), empty.value("*")),
+            "" => (empty.value(KeywordStatus::Stable), keyword_name),
+        _ => fail,
+        )
+        .parse_next(input)?;
+        Ok(Keyword { status, arch: arch.into() })
+    }
+
+    #[cfg(test)]
+    mod parse_tests {
+        use super::*;
+
+        #[test]
+        fn parse_cpv() {
+            insta::assert_yaml_snapshot!(cpv.parse("dev-lang/rust-1.84.1_p5-r1").unwrap(), @"dev-lang/rust-1.84.1_p5-r1");
+        }
+
+        #[test]
+        fn parse_cpn() {
+            insta::assert_yaml_snapshot!(cpn.parse("dev-lang/rust").unwrap(), @"dev-lang/rust");
+            insta::assert_yaml_snapshot!(cpn.parse("x11-libs/gtk+").unwrap(), @"x11-libs/gtk+");
+            insta::assert_yaml_snapshot!(cpn.parse("x11-libs/gtk3").unwrap(), @"x11-libs/gtk3");
+        }
+    }
+
+    pub(super) fn version_with_op(input: &mut &str) -> ModalResult<Version> {
+        trace(
+            "version_with_op",
+            seq!(Version {
+                op: opt(operator),
+                numbers: numbers,
+                letter: opt(letter),
+                suffixes: suffixes,
+                revision: revision,
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn version(input: &mut &str) -> ModalResult<Version> {
+        trace(
+            "version",
+            seq!(Version {
+                op: empty.value(None),
+                numbers: numbers,
+                letter: opt(letter),
+                suffixes: suffixes,
+                revision: revision,
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn operator(input: &mut &str) -> ModalResult<Operator> {
+        trace(
+            "operator",
+            dispatch!(take_while(0..=2, ('<', '=', '>', '*', '~'));
+                "<=" => empty.value(Operator::LessOrEqual),
+                "=*" => empty.value(Operator::EqualGlob),
+                ">=" => empty.value(Operator::GreaterOrEqual),
+                "<" => empty.value(Operator::Less),
+                "=" => empty.value(Operator::Equal),
+                "~" => empty.value(Operator::Approximate),
+                ">" => empty.value(Operator::Greater),
+                _ => fail,
+            ),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn numbers(input: &mut &str) -> ModalResult<Vec<Number>> {
+        trace("numbers", separated(1.., number, '.')).parse_next(input)
+    }
+
+    pub(super) fn letter(input: &mut &str) -> ModalResult<char> {
+        trace("letter", one_of('a'..='z')).parse_next(input)
+    }
+
+    pub(super) fn suffixes(input: &mut &str) -> ModalResult<Vec<Suffix>> {
+        trace("suffixes", repeat(0.., suffix)).parse_next(input)
+    }
+
+    pub(super) fn suffix(input: &mut &str) -> ModalResult<Suffix> {
+        trace(
+            "suffix",
+            seq!(Suffix {
+                _: '_',
+                kind: suffix_kind,
+                version: opt(number),
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn suffix_kind(input: &mut &str) -> ModalResult<SuffixKind> {
+        trace(
+            "suffix_kind",
+            dispatch!(alpha1;
+                "alpha" => empty.value(SuffixKind::Alpha),
+                "beta" => empty.value(SuffixKind::Beta),
+                "pre" => empty.value(SuffixKind::Pre),
+                "rc" => empty.value(SuffixKind::Rc),
+                "p" => empty.value(SuffixKind::P),
+                _ => fail,
+            ),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn revision(input: &mut &str) -> ModalResult<Revision> {
+        trace("revision", opt(preceded("-r", number)))
+            .parse_next(input)
+            .map(Option::unwrap_or_default)
+            .map(Revision)
+    }
+
+    pub(super) fn number(input: &mut &str) -> ModalResult<Number> {
+        let raw = trace("number", digit1).parse_next(input)?;
+        let value = raw.parse().unwrap_or_default();
+        Ok(Number { raw: raw.to_string(), value })
+    }
+
+    #[cfg(test)]
+    mod version_tests {
+        use winnow::ascii::digit1;
+
+        use super::*;
+
+        #[test]
+        fn parse_operator() {
+            assert_eq!(operator.parse(">=").unwrap(), Operator::GreaterOrEqual);
+            assert_eq!(operator.parse("=*").unwrap(), Operator::EqualGlob);
+            assert_eq!(operator.parse("<=").unwrap(), Operator::LessOrEqual);
+            assert_eq!(operator.parse("~").unwrap(), Operator::Approximate);
+            assert_eq!(operator.parse("=").unwrap(), Operator::Equal);
+            assert_eq!(operator.parse(">").unwrap(), Operator::Greater);
+            assert_eq!(operator.parse("<").unwrap(), Operator::Less);
+        }
+
+        #[test]
+        fn dumb() {
+            assert!(version.parse("1_alpha").is_ok());
+        }
+
+        #[test]
+        fn parse_version() {
+            fn parser<'s>(input: &mut &'s str) -> winnow::ModalResult<Vec<&'s str>> {
+                separated(1.., digit1, '.').parse_next(input)
+            }
+
+            insta::assert_yaml_snapshot!(version.parse("1").unwrap(), @r#"
+            op: ~
+            numbers:
+              - raw: "1"
+                value: 1
+            letter: ~
+            suffixes: []
+            revision:
+              raw: ""
+              value: 0
+            "#);
+            insta::assert_yaml_snapshot!(version.parse("1z").unwrap(), @r#"
+            op: ~
+            numbers:
+              - raw: "1"
+                value: 1
+            letter: z
+            suffixes: []
+            revision:
+              raw: ""
+              value: 0
+            "#);
+            insta::assert_yaml_snapshot!(version.parse("1_rc").unwrap(), @r#"
+            op: ~
+            numbers:
+              - raw: "1"
+                value: 1
+            letter: ~
+            suffixes:
+              - kind: Rc
+                version:
+                  raw: ""
+                  value: 0
+            revision:
+              raw: ""
+              value: 0
+            "#);
+            insta::assert_yaml_snapshot!(version.parse("1.2.3z_rc05-r20250101").unwrap(), @r#"
+            op: ~
+            numbers:
+              - raw: "1"
+                value: 1
+              - raw: "2"
+                value: 2
+              - raw: "3"
+                value: 3
+            letter: z
+            suffixes:
+              - kind: Rc
+                version:
+                  raw: "05"
+                  value: 5
+            revision:
+              raw: "20250101"
+              value: 20250101
+            "#);
+        }
+    }
 }
 
 #[cfg(test)]
