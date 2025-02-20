@@ -1,21 +1,25 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Takes exactly one argument and sets the install path for dodoc and other doc-related commands.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "docinto",
+    long_about = indoc::indoc! {"
+        Takes exactly one argument and sets the install path for dodoc and other
+        doc-related commands.
+    "}
+)]
+struct Command {
+    path: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let [path] = args else {
-        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
-    };
-
-    get_build_mut().override_var(DOCDESTTREE, path)?;
-
+    let cmd = Command::try_parse_args(args)?;
+    get_build_mut().override_var(DOCDESTTREE, &cmd.path)?;
     Ok(ExecStatus::Success)
 }
 
@@ -31,14 +35,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, docinto, dodoc};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, docinto, dodoc};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(docinto, &[0, 2]);
+        assert_invalid_cmd(docinto, &[0, 2]);
     }
 
     #[test]
