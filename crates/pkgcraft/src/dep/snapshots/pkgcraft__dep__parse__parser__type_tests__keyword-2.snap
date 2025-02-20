@@ -1,0 +1,6 @@
+---
+source: crates/pkgcraft/src/dep/parse.rs
+expression: "keyword.parse(\"~amd64\").unwrap()"
+---
+status: Unstable
+arch: amd64
