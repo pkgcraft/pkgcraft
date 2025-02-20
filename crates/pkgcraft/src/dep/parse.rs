@@ -496,13 +496,10 @@ mod parser {
     }
 
     pub(super) fn slot(input: &mut &str) -> ModalResult<Slot> {
-        trace(
-            "slot",
-            seq!(Slot {
-                name: slot_name.map(str::to_string)
-            }),
-        )
-        .parse_next(input)
+        trace("slot", (slot_name, opt(('/', slot_name))).take())
+            .parse_next(input)
+            .map(str::to_string)
+            .map(|name| Slot { name })
     }
 
     pub(super) fn keyword(input: &mut &str) -> ModalResult<Keyword> {
