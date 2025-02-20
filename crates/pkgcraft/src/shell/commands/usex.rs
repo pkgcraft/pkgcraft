@@ -1,32 +1,34 @@
 use std::io::Write;
 
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::io::stdout;
 
-use super::{make_builtin, use_};
+use super::{make_builtin, use_, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Tests if a given USE flag is enabled and outputs a string related to its status.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "usex",
+    long_about = "Tests if a given USE flag is enabled and outputs a string related to its status."
+)]
+struct Command {
+    flag: String,
+    #[arg(required = false, default_value = "yes")]
+    enabled: String,
+    #[arg(required = false, default_value = "no")]
+    disabled: String,
+    #[arg(required = false, default_value = "")]
+    enabled_output: String,
+    #[arg(required = false, default_value = "")]
+    disabled_output: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    // default output values
-    let mut vals = ["yes", "no", "", ""];
-
-    let flag = match args {
-        [flag, args @ ..] if args.len() <= 4 => {
-            // override default output values with args
-            vals[0..args.len()].copy_from_slice(args);
-            flag
-        }
-        _ => return Err(Error::Base(format!("requires 1 to 5 args, got {}", args.len()))),
-    };
-
+    let cmd = Command::try_parse_args(args)?;
     let mut stdout = stdout();
-    match use_(&[flag])? {
-        ExecStatus::Success => write!(stdout, "{}{}", vals[0], vals[2])?,
-        ExecStatus::Failure(_) => write!(stdout, "{}{}", vals[1], vals[3])?,
+    match use_(&[&cmd.flag])? {
+        ExecStatus::Success => write!(stdout, "{}{}", cmd.enabled, cmd.enabled_output)?,
+        ExecStatus::Failure(_) => write!(stdout, "{}{}", cmd.disabled, cmd.disabled_output)?,
     }
     stdout.flush()?;
 
@@ -46,14 +48,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, usex};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, usex};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(usex, &[0, 6]);
+        assert_invalid_cmd(usex, &[0, 6]);
     }
 
     #[test]
