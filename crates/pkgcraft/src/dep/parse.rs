@@ -472,114 +472,160 @@ mod parser {
     // Parsing to concrete types
 
     pub(super) fn cpv(input: &mut &str) -> ModalResult<Cpv> {
-        seq!(Cpv {
-            cpn: cpn,
-            _: '-',
-            version: version,
-        })
+        trace(
+            "cpv",
+            seq!(Cpv {
+                cpn: cpn,
+                _: '-',
+                version: version,
+            }),
+        )
         .parse_next(input)
     }
 
     pub(super) fn cpn(input: &mut &str) -> ModalResult<Cpn> {
-        seq!(Cpn {
-            category: category_name.map(str::to_string),
-            _: '/',
-            package: package_name.map(str::to_string),
-        })
+        trace(
+            "cpn",
+            seq!(Cpn {
+                category: category_name.map(str::to_string),
+                _: '/',
+                package: package_name.map(str::to_string),
+            }),
+        )
         .parse_next(input)
     }
 
     pub(super) fn slot(input: &mut &str) -> ModalResult<Slot> {
-        seq!(Slot {
-            name: slot_name.map(str::to_string)
-        })
+        trace(
+            "slot",
+            seq!(Slot {
+                name: slot_name.map(str::to_string)
+            }),
+        )
         .parse_next(input)
     }
 
     pub(super) fn keyword(input: &mut &str) -> ModalResult<Keyword> {
-        let (status, arch) = dispatch!(take_while(0..=2, ('~', '-', '*'));
-            "~" => (empty.value(KeywordStatus::Unstable), keyword_name),
-            "-" => (empty.value(KeywordStatus::Disabled), keyword_name),
-            "-*" => (empty.value(KeywordStatus::Disabled), empty.value("*")),
-            "" => (empty.value(KeywordStatus::Stable), keyword_name),
-        _ => fail,
-        )
-        .parse_next(input)?;
-        Ok(Keyword { status, arch: arch.into() })
+        trace("keyword", move |input: &mut &str| {
+            dispatch!(take_while(0..=2, ('~', '-', '*'));
+                "~" => (empty.value(KeywordStatus::Unstable), keyword_name.map(Into::into)),
+                "-" => (empty.value(KeywordStatus::Disabled), keyword_name.map(Into::into)),
+                "-*" => (empty.value(KeywordStatus::Disabled), empty.value("*".into())),
+                "" => (empty.value(KeywordStatus::Stable), keyword_name.map(Into::into)),
+                _ => fail,
+            )
+            .parse_next(input)
+        })
+        .parse_next(input)
+        .map(|(status, arch)| Keyword { status, arch })
+    }
+
+    #[cfg(test)]
+    mod type_tests {
+        use super::*;
+
+        #[test]
+        fn test_keyword() {
+            insta::assert_yaml_snapshot!(keyword.parse("amd64").unwrap());
+            insta::assert_yaml_snapshot!(keyword.parse("~amd64").unwrap());
+            insta::assert_yaml_snapshot!(keyword.parse("-amd64").unwrap());
+            insta::assert_yaml_snapshot!(keyword.parse("-*").unwrap());
+
+            assert!(keyword.parse("").is_err());
+            assert!(keyword.parse(" ").is_err());
+        }
     }
 
     // Parsing names according to the package manager specification chapter 3.1
 
     // 3.1.1 Category names
     pub(super) fn category_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        name((AsChar::is_alphanum, '_'), ('-', '.', '+')).parse_next(input)
+        trace("category_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+')))
+            .parse_next(input)
     }
 
     // 3.1.2 Package names
     pub(super) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        (
-            one_of((AsChar::is_alphanum, '_')),
-            repeat::<_, _, Vec<_>, _, _>(
-                0..,
-                alt((
-                    one_of((AsChar::is_alphanum, '_', '+')).take(),
-                    preceded(
-                        not((repeat::<_, _, Vec<_>, _, _>(1.., preceded('-', version)), eof)),
-                        "-",
-                    ),
-                )),
+        trace(
+            "package_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                repeat::<_, _, Vec<_>, _, _>(
+                    0..,
+                    alt((
+                        one_of((AsChar::is_alphanum, '_', '+')).take(),
+                        preceded(
+                            not((
+                                repeat::<_, _, Vec<_>, _, _>(1.., preceded('-', version)),
+                                eof,
+                            )),
+                            "-",
+                        ),
+                    )),
+                ),
             ),
         )
-            .take()
-            .parse_next(input)
+        .take()
+        .parse_next(input)
     }
 
     // 3.1.3 Slot names
     pub(super) fn slot_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        name((AsChar::is_alphanum, '_'), ('-', '.', '+')).parse_next(input)
+        trace("slot_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+'))).parse_next(input)
     }
 
     // 3.1.4 USE flag names
     pub(super) fn use_flag_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        name(AsChar::is_alphanum, ('_', '-', '.', '+', '@')).parse_next(input)
+        trace("use_flag_name", name(AsChar::is_alphanum, ('_', '-', '.', '+', '@')))
+            .parse_next(input)
     }
 
     // 3.1.5 Repository names
     pub(super) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        (
-            one_of((AsChar::is_alphanum, '_')),
-            repeat::<_, _, Vec<_>, _, _>(
-                0..,
-                alt((
-                    one_of((AsChar::is_alphanum, '_')).take(),
-                    preceded(
-                        not((repeat::<_, _, Vec<_>, _, _>(0.., preceded('-', version)), eof)),
-                        "-",
-                    ),
-                )),
+        trace(
+            "repository_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                repeat::<_, _, Vec<_>, _, _>(
+                    0..,
+                    alt((
+                        one_of((AsChar::is_alphanum, '_')).take(),
+                        preceded(
+                            not((
+                                repeat::<_, _, Vec<_>, _, _>(0.., preceded('-', version)),
+                                eof,
+                            )),
+                            "-",
+                        ),
+                    )),
+                ),
             ),
         )
-            .take()
-            .parse_next(input)
+        .take()
+        .parse_next(input)
     }
 
     // 3.1.6 Eclass names
     pub(super) fn eclass_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        preceded(
-            not("default"),
-            name((AsChar::is_alpha, '_'), (AsChar::is_dec_digit, '-', '.')),
+        trace(
+            "eclass_name",
+            preceded(
+                not("default"),
+                name((AsChar::is_alpha, '_'), (AsChar::is_dec_digit, '-', '.')),
+            ),
         )
         .parse_next(input)
     }
 
     // 3.1.7 License names
     pub(super) fn license_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        name((AsChar::is_alphanum, '_'), ('-', '.', '+')).parse_next(input)
+        trace("license_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+')))
+            .parse_next(input)
     }
 
     /// 3.1.8
     pub(super) fn keyword_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        name((AsChar::is_alphanum, '_'), '-').parse_next(input)
+        trace("keyword_name", name((AsChar::is_alphanum, '_'), '-')).parse_next(input)
     }
 
     #[inline(always)]
@@ -594,7 +640,7 @@ mod parser {
         RestSet: ContainsToken<<Input as Stream>::Token> + Clone,
         Error: ParserError<Input>,
     {
-        (one_of(lead.clone()), take_while(0.., (lead, rest))).take()
+        trace("name", (one_of(lead.clone()), take_while(0.., (lead, rest))).take())
     }
 
     #[cfg(test)]
