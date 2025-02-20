@@ -1,21 +1,22 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::INSDESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Takes exactly one argument and sets the value of INSDESTTREE.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "insinto",
+    long_about = "Takes exactly one argument and sets the value of INSDESTTREE."
+)]
+struct Command {
+    path: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let [path] = args else {
-        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
-    };
-
-    get_build_mut().override_var(INSDESTTREE, path)?;
-
+    let cmd = Command::try_parse_args(args)?;
+    get_build_mut().override_var(INSDESTTREE, &cmd.path)?;
     Ok(ExecStatus::Success)
 }
 
@@ -32,14 +33,14 @@ mod tests {
     use crate::shell::phase::PhaseKind;
     use crate::shell::{BuildData, Scope};
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, insinto};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, insinto};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(insinto, &[0]);
+        assert_invalid_cmd(insinto, &[0]);
     }
 
     #[test]
