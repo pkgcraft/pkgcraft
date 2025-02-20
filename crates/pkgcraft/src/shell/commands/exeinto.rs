@@ -1,20 +1,22 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::EXEDESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Takes exactly one argument and sets the install path for doexe and newexe.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "exeinto",
+    long_about = "Takes exactly one argument and sets the install path for doexe and newexe."
+)]
+struct Command {
+    path: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let [path] = args else {
-        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
-    };
-
-    get_build_mut().override_var(EXEDESTTREE, path)?;
+    let cmd = Command::try_parse_args(args)?;
+    get_build_mut().override_var(EXEDESTTREE, &cmd.path)?;
 
     Ok(ExecStatus::Success)
 }
@@ -24,14 +26,14 @@ make_builtin!("exeinto", exeinto_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, exeinto};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, exeinto};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(exeinto, &[0, 2]);
+        assert_invalid_cmd(exeinto, &[0, 2]);
     }
 
     #[test]
