@@ -1,27 +1,30 @@
 use std::cmp;
 use std::io::Write;
 
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::io::stdout;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, parse};
+use super::{make_builtin, parse, TryParseArgs};
 
-const LONG_DOC: &str = "Output substring from package version string and range arguments.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "ver_cut",
+    long_about = "Output substring from package version string and range arguments."
+)]
+struct Command {
+    range: String,
+    version: Option<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let cmd = Command::try_parse_args(args)?;
     let pv = get_build_mut().cpv().pv();
-    let (range, ver) = match args[..] {
-        [range] => (range, pv.as_str()),
-        [range, ver] => (range, ver),
-        _ => return Err(Error::Base(format!("requires 1 or 2 args, got {}", args.len()))),
-    };
-
-    let version_parts = parse::version_split(ver)?;
+    let version = cmd.version.as_deref().unwrap_or(pv.as_str());
+    let version_parts = parse::version_split(version)?;
     let len = version_parts.len();
-    let (mut start, mut end) = parse::range(range, len / 2)?;
+    let (mut start, mut end) = parse::range(&cmd.range, len / 2)?;
 
     // remap indices to array positions
     if start != 0 {
@@ -36,7 +39,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "ver_cut 1-2 - 1.2.3";
+const USAGE: &str = "ver_cut 1-2 1.2.3";
 make_builtin!("ver_cut", ver_cut_builtin);
 
 #[cfg(test)]
@@ -49,7 +52,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, ver_cut};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, ver_cut};
     use super::*;
 
     cmd_scope_tests!(USAGE);
@@ -60,7 +63,7 @@ mod tests {
         let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
-        assert_invalid_args(ver_cut, &[0, 3]);
+        assert_invalid_cmd(ver_cut, &[0, 3]);
     }
 
     #[test]
@@ -71,8 +74,7 @@ mod tests {
         BuildData::from_raw_pkg(&raw_pkg);
 
         for rng in ["-", "-2"] {
-            let r = ver_cut(&[rng, "2"]);
-            assert!(r.unwrap_err().to_string().contains("invalid range"));
+            assert!(ver_cut(&[rng, "2"]).is_err());
         }
 
         let r = ver_cut(&["3-2", "1.2.3"]);
