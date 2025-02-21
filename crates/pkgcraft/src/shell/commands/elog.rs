@@ -9,7 +9,7 @@ use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
 #[command(
-    name = "einfo",
+    name = "elog",
     long_about = "Display informational message of higher importance."
 )]
 struct Command {
