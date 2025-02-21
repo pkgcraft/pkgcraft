@@ -1,0 +1,6 @@
+---
+source: crates/pkgcraft/src/dep/parse.rs
+expression: "revision.parse(\"\").unwrap()"
+---
+raw: ""
+value: 0

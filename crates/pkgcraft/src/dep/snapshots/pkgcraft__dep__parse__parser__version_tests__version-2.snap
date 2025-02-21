@@ -1,0 +1,13 @@
+---
+source: crates/pkgcraft/src/dep/parse.rs
+expression: "version.parse(\"1a\").unwrap()"
+---
+op: ~
+numbers:
+  - raw: "1"
+    value: 1
+letter: a
+suffixes: []
+revision:
+  raw: ""
+  value: 0
