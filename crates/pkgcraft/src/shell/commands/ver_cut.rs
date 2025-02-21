@@ -14,15 +14,15 @@ use super::{make_builtin, parse, TryParseArgs};
     long_about = "Output substring from package version string and range arguments."
 )]
 struct Command {
+    #[arg(allow_hyphen_values = true)]
     range: String,
     version: Option<String>,
 }
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-    let pv = get_build_mut().cpv().pv();
-    let version = cmd.version.as_deref().unwrap_or(pv.as_str());
-    let version_parts = parse::version_split(version)?;
+    let version = cmd.version.unwrap_or_else(|| get_build_mut().cpv().pv());
+    let version_parts = parse::version_split(&version)?;
     let len = version_parts.len();
     let (mut start, mut end) = parse::range(&cmd.range, len / 2)?;
 
@@ -74,7 +74,8 @@ mod tests {
         BuildData::from_raw_pkg(&raw_pkg);
 
         for rng in ["-", "-2"] {
-            assert!(ver_cut(&[rng, "2"]).is_err());
+            let r = ver_cut(&[rng, "2"]);
+            assert!(r.unwrap_err().to_string().contains("invalid range"));
         }
 
         let r = ver_cut(&["3-2", "1.2.3"]);
