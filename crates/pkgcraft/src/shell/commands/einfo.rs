@@ -1,51 +1,56 @@
 use std::io::Write;
 
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::io::stderr;
-use crate::shell::unescape::unescape_iter;
+use crate::shell::unescape::unescape;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Display informational message.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "einfo", long_about = "Display informational message.")]
+struct Command {
+    #[arg(required = false, default_value = "")]
+    message: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    let msg = unescape_iter(args)?.join(" ");
+    let cmd = Command::try_parse_args(args)?;
+    let msg = unescape(&cmd.message)?;
     writeln!(stderr(), "* {msg}")?;
-
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "einfo \"message\"";
+const USAGE: &str = "einfo \"a message\"";
 make_builtin!("einfo", einfo_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, einfo};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, einfo};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(einfo, &[0]);
+        assert_invalid_cmd(einfo, &[2]);
     }
 
     #[test]
     fn output() {
-        for (args, expected) in [
-            (vec!["msg"], "* msg\n"),
-            (vec![r"\tmsg"], "* \tmsg\n"),
-            (vec!["msg1", "msg2"], "* msg1 msg2\n"),
-            (vec![r"msg1\nmsg2"], "* msg1\nmsg2\n"),
-            (vec![r"msg1\\msg2"], "* msg1\\msg2\n"),
+        // no message
+        einfo(&[]).unwrap();
+        assert_eq!(stderr().get(), "* \n");
+
+        for (value, expected) in [
+            ("", "* \n"),
+            ("msg", "* msg\n"),
+            (r"\tmsg", "* \tmsg\n"),
+            ("msg1 msg2", "* msg1 msg2\n"),
+            (r"msg1\nmsg2", "* msg1\nmsg2\n"),
+            (r"msg1\\msg2", "* msg1\\msg2\n"),
         ] {
-            einfo(&args).unwrap();
+            einfo(&[value]).unwrap();
             assert_eq!(stderr().get(), expected);
         }
     }
