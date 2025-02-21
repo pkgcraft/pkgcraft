@@ -580,7 +580,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             Command::new(domo, [SrcInstall]),
             Command::new(dosbin, [SrcInstall]),
             Command::new(dosym, [SrcInstall]),
-            Command::new(ebegin, [All]),
+            Command::new(ebegin, [Phases]),
             Command::new(econf, [SrcConfigure]),
             Command::new(eend, [All]),
             Command::new(eerror, [Phases]),
