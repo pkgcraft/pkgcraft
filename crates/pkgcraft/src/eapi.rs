@@ -770,7 +770,7 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
         .disable_features([DomoUsesDesttree, QueryHostRoot, TrailingSlash])
         .update_commands([
             Command::new(dostrip, [SrcInstall]),
-            Command::new(eqawarn, [All]),
+            Command::new(eqawarn, [Phases]),
             Command::new(ver_cut, [All]),
             Command::new(ver_rs, [All]),
             Command::new(ver_test, [All]),
