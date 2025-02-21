@@ -584,7 +584,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             Command::new(econf, [SrcConfigure]),
             Command::new(eend, [All]),
             Command::new(eerror, [All]),
-            Command::new(einfo, [All]),
+            Command::new(einfo, [Phases]),
             Command::new(einfon, [All]),
             Command::new(einstall, [SrcInstall]),
             Command::new(elog, [All]),
