@@ -21,7 +21,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "eerror \"message\"";
+const USAGE: &str = "eerror \"a message\"";
 make_builtin!("eerror", eerror_builtin);
 
 #[cfg(test)]

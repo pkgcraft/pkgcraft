@@ -1,51 +1,53 @@
 use std::io::Write;
 
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::io::stderr;
-use crate::shell::unescape::unescape_iter;
+use crate::shell::unescape::unescape;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Display information message when starting a process.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "ebegin",
+    long_about = "Display information message when starting a process."
+)]
+struct Command {
+    message: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    let msg = unescape_iter(args)?.join(" ");
+    let cmd = Command::try_parse_args(args)?;
+    let msg = unescape(&cmd.message)?;
     writeln!(stderr(), "* {msg} ...")?;
-
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "ebegin \"message\"";
+const USAGE: &str = "ebegin \"a message\"";
 make_builtin!("ebegin", ebegin_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, ebegin};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, ebegin};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(ebegin, &[0]);
+        assert_invalid_cmd(ebegin, &[0, 2]);
     }
 
     #[test]
     fn output() {
-        for (args, expected) in [
-            (vec!["msg"], "* msg ...\n"),
-            (vec![r"\tmsg"], "* \tmsg ...\n"),
-            (vec!["msg1", "msg2"], "* msg1 msg2 ...\n"),
-            (vec![r"msg1\nmsg2"], "* msg1\nmsg2 ...\n"),
-            (vec![r"msg1\\msg2"], "* msg1\\msg2 ...\n"),
+        for (value, expected) in [
+            ("msg", "* msg ...\n"),
+            (r"\tmsg", "* \tmsg ...\n"),
+            ("msg1 msg2", "* msg1 msg2 ...\n"),
+            (r"msg1\nmsg2", "* msg1\nmsg2 ...\n"),
+            (r"msg1\\msg2", "* msg1\\msg2 ...\n"),
         ] {
-            ebegin(&args).unwrap();
+            ebegin(&[value]).unwrap();
             assert_eq!(stderr().get(), expected);
         }
     }
