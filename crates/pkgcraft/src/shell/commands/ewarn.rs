@@ -43,6 +43,7 @@ mod tests {
         assert_eq!(stderr().get(), "* \n");
 
         for (value, expected) in [
+            ("", "* \n"),
             ("msg", "* msg\n"),
             (r"\tmsg", "* \tmsg\n"),
             ("msg1 msg2", "* msg1 msg2\n"),
