@@ -1,38 +1,38 @@
 use std::io::Write;
 
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::io::stdout;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, parse};
+use super::{make_builtin, parse, TryParseArgs};
 
-const LONG_DOC: &str = "Perform string substitution on package version strings.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "ver_rs",
+    long_about = "Perform string substitution on package version strings."
+)]
+struct Command {
+    #[arg(required = true, allow_hyphen_values = true, num_args = 2..)]
+    args: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let pv = get_build_mut().cpv().pv();
-    let (ver, args) = match args.len() {
-        n if n < 2 => return Err(Error::Base(format!("requires 2 or more args, got {n}"))),
-
-        // even number of args uses $PV
-        n if n % 2 == 0 => (pv.as_str(), args),
-
-        // odd number of args uses the last arg as the version
-        _ => {
-            let idx = args.len() - 1;
-            (args[idx], &args[..idx])
-        }
+    let mut cmd = Command::try_parse_args(args)?;
+    let version = if cmd.args.len() % 2 == 0 {
+        get_build_mut().cpv().pv()
+    } else {
+        cmd.args.pop().unwrap()
     };
 
     // split version string into separators and components, note that invalid versions
     // like ".1.2.3" are allowed
-    let mut version_parts = parse::version_split(ver)?;
+    let mut version_parts = parse::version_split(&version)?;
     let len = version_parts.len();
 
     // iterate over (range, separator) pairs, altering the denoted separators as requested
-    let mut args_iter = args.chunks_exact(2);
-    while let Some(&[range, sep]) = args_iter.next() {
+    let mut args_iter = cmd.args.chunks_exact(2);
+    while let Some([range, sep]) = args_iter.next() {
         let (start, end) = parse::range(range, len / 2)?;
         (start..=end)
             .map(|i| i * 2)
@@ -64,7 +64,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, ver_rs};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, ver_rs};
     use super::*;
 
     cmd_scope_tests!(USAGE);
@@ -75,7 +75,7 @@ mod tests {
         let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
-        assert_invalid_args(ver_rs, &[0, 1]);
+        assert_invalid_cmd(ver_rs, &[0, 1]);
     }
 
     #[test]
