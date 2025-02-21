@@ -1,25 +1,28 @@
 use std::io::Write;
 
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::io::stderr;
-use crate::shell::unescape::unescape_iter;
+use crate::shell::unescape::unescape;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Display informational message without trailing newline.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "einfo",
+    long_about = "Display informational message without trailing newline."
+)]
+struct Command {
+    #[arg(required = false, default_value = "")]
+    message: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    let msg = unescape_iter(args)?.join(" ");
+    let cmd = Command::try_parse_args(args)?;
+    let msg = unescape(&cmd.message)?;
     let mut stderr = stderr();
     write!(stderr, "* {msg}")?;
     stderr.flush()?;
-
     Ok(ExecStatus::Success)
 }
 
@@ -28,26 +31,31 @@ make_builtin!("einfon", einfon_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, einfon};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, einfon};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(einfon, &[0]);
+        assert_invalid_cmd(einfon, &[2]);
     }
 
     #[test]
     fn output() {
-        for (args, expected) in [
-            (vec!["msg"], "* msg"),
-            (vec![r"\tmsg"], "* \tmsg"),
-            (vec!["msg1", "msg2"], "* msg1 msg2"),
-            (vec![r"msg1\nmsg2"], "* msg1\nmsg2"),
-            (vec![r"msg1\\msg2"], "* msg1\\msg2"),
+        // no message
+        einfon(&[]).unwrap();
+        assert_eq!(stderr().get(), "* ");
+
+        for (value, expected) in [
+            ("", "* "),
+            ("msg", "* msg"),
+            (r"\tmsg", "* \tmsg"),
+            ("msg1 msg2", "* msg1 msg2"),
+            (r"msg1\nmsg2", "* msg1\nmsg2"),
+            (r"msg1\\msg2", "* msg1\\msg2"),
         ] {
-            einfon(&args).unwrap();
+            einfon(&[value]).unwrap();
             assert_eq!(stderr().get(), expected);
         }
     }
