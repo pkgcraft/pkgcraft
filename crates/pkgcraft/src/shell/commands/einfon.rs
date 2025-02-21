@@ -26,7 +26,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "einfon \"message\"";
+const USAGE: &str = "einfon \"a message\"";
 make_builtin!("einfon", einfon_builtin);
 
 #[cfg(test)]
