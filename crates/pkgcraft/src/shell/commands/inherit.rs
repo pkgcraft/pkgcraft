@@ -4,26 +4,29 @@ use scallop::{Error, ExecStatus};
 use crate::shell::get_build_mut;
 use crate::traits::SourceBash;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Sources the given list of eclasses.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "inherit",
+    long_about = "Sources the given list of eclasses."
+)]
+struct Command {
+    #[arg(required = true, value_name = "ECLASS")]
+    eclasses: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
+    let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
-
     let mut eclass_var = ScopedVariable::new("ECLASS");
     let mut inherited_var = Variable::new("INHERITED");
 
-    for name in args {
+    for name in cmd.eclasses.iter().map(|s| s.as_str()) {
         let eclass = build
             .ebuild_repo()
             .eclasses()
-            .get(*name)
+            .get(name)
             .cloned()
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
@@ -92,14 +95,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::{assert_ordered_eq, test_data};
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, inherit};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, inherit};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(inherit, &[0]);
+        assert_invalid_cmd(inherit, &[0]);
     }
 
     #[test]
