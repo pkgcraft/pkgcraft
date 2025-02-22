@@ -7,10 +7,7 @@ use crate::traits::SourceBash;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(
-    name = "inherit",
-    long_about = "Sources the given list of eclasses."
-)]
+#[command(name = "inherit", long_about = "Sources the given list of eclasses.")]
 struct Command {
     #[arg(required = true, value_name = "ECLASS")]
     eclasses: Vec<String>,

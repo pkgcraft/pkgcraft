@@ -1,20 +1,22 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Returns success if the USE flag argument is found in IUSE_EFFECTIVE, failure otherwise.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "in_iuse",
+    long_about = "Returns success if the USE flag argument is found in IUSE_EFFECTIVE."
+)]
+struct Command {
+    flag: String,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let [flag] = args else {
-        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
-    };
-
+    let cmd = Command::try_parse_args(args)?;
     let pkg = get_build_mut().ebuild_pkg();
-    Ok(ExecStatus::from(pkg.iuse_effective().contains(*flag)))
+    Ok(ExecStatus::from(pkg.iuse_effective().contains(&cmd.flag)))
 }
 
 const USAGE: &str = "in_iuse flag";
@@ -26,14 +28,14 @@ mod tests {
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, in_iuse};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, in_iuse};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(in_iuse, &[0, 2]);
+        assert_invalid_cmd(in_iuse, &[0, 2]);
     }
 
     #[test]
