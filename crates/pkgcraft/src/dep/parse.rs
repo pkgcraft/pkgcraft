@@ -457,11 +457,11 @@ mod parser {
     };
     use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
 
+    use winnow::stream::ParseSlice;
     use winnow::{
         ascii::{alpha1, digit1},
         combinator::{
-            alt, dispatch, empty, eof, fail, not, opt, peek, preceded, repeat, separated, seq,
-            trace,
+            alt, dispatch, empty, eof, fail, not, opt, preceded, repeat, separated, seq, trace,
         },
         error::ParserError,
         prelude::*,
@@ -810,17 +810,15 @@ mod parser {
     }
 
     pub(super) fn number(input: &mut &str) -> ModalResult<Number> {
-        trace(
-            "number",
-            seq!(Number {
-                // Get a string reference to copy the raw value from before parsing to an integer.
-                // This is done to use `Parser::parse_to` to delegate error conversion.
-                // TODO: Investigate if parsing the string once and converting the error ourselfs from
-                // `parse` is faster.
-                raw: peek(digit1).map(str::to_string),
-                value: digit1.parse_to(),
-            }),
-        )
+        trace("number", move |input: &mut &str| {
+            let start = input.checkpoint();
+            let raw = digit1.parse_next(input)?;
+            let value = raw.parse_slice().ok_or_else(|| {
+                input.reset(&start);
+                ParserError::from_input(input)
+            })?;
+            Ok(Number { raw: raw.to_string(), value })
+        })
         .parse_next(input)
     }
 
