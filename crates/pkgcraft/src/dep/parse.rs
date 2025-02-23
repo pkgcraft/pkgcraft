@@ -3,16 +3,14 @@ use winnow::prelude::*;
 
 use crate::dep::cpn::Cpn;
 use crate::dep::cpv::{Cpv, CpvOrDep};
-use crate::dep::pkg::{Blocker, Dep, Slot, SlotDep, SlotOperator};
+use crate::dep::pkg::{Dep, Slot, SlotDep};
 use crate::dep::uri::Uri;
-use crate::dep::use_dep::{UseDep, UseDepKind};
-use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
+use crate::dep::use_dep::UseDep;
+use crate::dep::version::{Revision, Version};
 use crate::dep::{Dependency, DependencySet};
-use crate::eapi::{Eapi, Feature};
-use crate::error::peg_error;
+use crate::eapi::Eapi;
 use crate::pkg::ebuild::iuse::Iuse;
 use crate::pkg::ebuild::keyword::Keyword;
-use crate::types::Ordered;
 use crate::Error;
 
 pub fn category(s: &str) -> crate::Result<&str> {
@@ -225,7 +223,7 @@ mod parser {
     };
 
     use winnow::ascii::multispace1;
-    use winnow::combinator::{delimited, terminated};
+    use winnow::combinator::{delimited, repeat_till, terminated};
     use winnow::error::ContextError;
     use winnow::stream::ParseSlice;
     use winnow::{
@@ -321,10 +319,7 @@ mod parser {
                     alt((
                         one_of((AsChar::is_alphanum, '_', '+')).take(),
                         preceded(
-                            not((
-                                repeat::<_, _, Vec<_>, _, _>(1.., preceded('-', version)),
-                                eof,
-                            )),
+                            not(repeat::<_, _, Vec<_>, _, _>(1.., preceded('-', version))),
                             "-",
                         ),
                     )),
@@ -716,15 +711,16 @@ mod parser {
     pub(super) fn slot_dep(input: &mut &str) -> ModalResult<SlotDep> {
         trace(
             "slot_dep",
-            dispatch!(repeat::<_, _, Vec<_>, _, _>(0.., any).take();
+            dispatch!(opt(alt(('=', '*'))).take();
                 "=" => empty.value(SlotDep::Op(SlotOperator::Equal)),
                 "*" => empty.value(SlotDep::Op(SlotOperator::Star)),
-                _ => (slot, opt("="))
+                "" => (slot, opt("="))
                     .map(|(slot, op)| if op.is_some() {
                         SlotDep::SlotOp(slot, SlotOperator::Equal)
                     } else {
                         SlotDep::Slot(slot)
                     }),
+                _ => fail,
             ),
         )
         .parse_next(input)
@@ -859,6 +855,8 @@ mod parser {
 
     #[cfg(test)]
     mod dep_tests {
+        use crate::eapi::EAPI_LATEST;
+
         use super::*;
 
         #[test]
@@ -868,6 +866,12 @@ mod parser {
 
             assert!(blocker.parse("").is_err());
             assert!(blocker.parse(" ").is_err());
+        }
+
+        #[test]
+        fn parse_dep() {
+            dep(*EAPI_LATEST).parse("=cat/pkg-4*").unwrap();
+            dep(*EAPI_LATEST).parse("=cat/pkg-4*").unwrap();
         }
     }
 
@@ -880,19 +884,12 @@ mod parser {
 
     pub(super) fn license_dependency(input: &mut &str) -> ModalResult<Dependency<String>> {
         alt((
-            conditional(license_dependency_),
-            any_of(license_dependency_),
-            all_of(license_dependency_),
-            license_dependency_,
+            conditional(license_dependency),
+            any_of(license_dependency),
+            all_of(license_dependency),
+            license_name.map(str::to_string).map(Dependency::Enabled),
         ))
         .parse_next(input)
-    }
-
-    fn license_dependency_(input: &mut &str) -> ModalResult<Dependency<String>> {
-        license_name
-            .parse_next(input)
-            .map(str::to_string)
-            .map(Dependency::Enabled)
     }
 
     pub(super) fn src_uri_dependency_set(input: &mut &str) -> ModalResult<DependencySet<Uri>> {
@@ -901,22 +898,18 @@ mod parser {
     }
 
     pub(super) fn src_uri_dependency(input: &mut &str) -> ModalResult<Dependency<Uri>> {
-        alt((
-            conditional(src_uri_dependency_),
-            all_of(src_uri_dependency_),
-            src_uri_dependency_,
-        ))
-        .parse_next(input)
+        alt((conditional(src_uri_dependency), all_of(src_uri_dependency), src_uri_dependency_))
+            .parse_next(input)
     }
 
     fn src_uri_dependency_(input: &mut &str) -> ModalResult<Dependency<Uri>> {
         let (uri, rename) = (
-            license_name,
+            repeat_till::<_, _, Vec<_>, _, _, _, _>(1.., any, not(multispace1)).take(),
             opt((
                 multispace1.void(),
                 "->".void(),
                 multispace1.void(),
-                repeat::<_, _, Vec<_>, _, _>(1.., not(multispace1)),
+                repeat_till::<_, _, Vec<_>, _, _, _, _>(1.., any, multispace1),
             )
                 .take()),
         )
@@ -934,9 +927,9 @@ mod parser {
 
     pub(super) fn properties_dependency(input: &mut &str) -> ModalResult<Dependency<String>> {
         alt((
-            conditional(license_dependency_),
-            all_of(license_dependency_),
-            license_dependency_,
+            conditional(properties_dependency),
+            all_of(properties_dependency),
+            license_name.map(str::to_string).map(Dependency::Enabled),
         ))
         .parse_next(input)
     }
@@ -952,11 +945,11 @@ mod parser {
         input: &mut &str,
     ) -> ModalResult<Dependency<String>> {
         alt((
-            conditional(required_use_dependency_),
-            any_of(required_use_dependency_),
-            all_of(required_use_dependency_),
-            exactly_one_of(required_use_dependency_),
-            at_most_one_of(required_use_dependency_),
+            conditional(required_use_dependency),
+            any_of(required_use_dependency),
+            all_of(required_use_dependency),
+            exactly_one_of(required_use_dependency),
+            at_most_one_of(required_use_dependency),
             required_use_dependency_,
         ))
         .parse_next(input)
@@ -971,6 +964,7 @@ mod parser {
             Ok(Dependency::Enabled(use_flag))
         }
     }
+
     pub(super) fn restrict_dependency_set(
         input: &mut &str,
     ) -> ModalResult<DependencySet<String>> {
@@ -981,18 +975,11 @@ mod parser {
 
     pub(super) fn restrict_dependency(input: &mut &str) -> ModalResult<Dependency<String>> {
         alt((
-            conditional(restrict_dependency_),
-            all_of(restrict_dependency_),
-            restrict_dependency_,
+            conditional(restrict_dependency),
+            all_of(restrict_dependency),
+            license_name.map(str::to_string).map(Dependency::Enabled),
         ))
         .parse_next(input)
-    }
-
-    fn restrict_dependency_(input: &mut &str) -> ModalResult<Dependency<String>> {
-        license_name
-            .parse_next(input)
-            .map(str::to_string)
-            .map(Dependency::Enabled)
     }
 
     pub(super) fn package_dependency_set<'s>(
@@ -1010,19 +997,27 @@ mod parser {
     ) -> impl ModalParser<&'s str, Dependency<Dep>, ContextError> {
         move |input: &mut &str| {
             alt((
-                conditional(package_dependency_(eapi)),
-                any_of(package_dependency_(eapi)),
-                all_of(package_dependency_(eapi)),
-                package_dependency_(eapi),
+                conditional(package_dependency(eapi)),
+                any_of(package_dependency(eapi)),
+                all_of(package_dependency(eapi)),
+                dep(eapi).map(Dependency::Enabled),
             ))
             .parse_next(input)
         }
     }
 
-    fn package_dependency_(
-        eapi: &'static Eapi,
-    ) -> impl FnMut(&mut &str) -> ModalResult<Dependency<Dep>> {
-        move |input: &mut &str| dep(eapi).parse_next(input).map(Dependency::Enabled)
+    #[cfg(test)]
+    mod dependency_set_tests {
+        use crate::eapi::EAPI_LATEST;
+
+        use super::*;
+
+        #[test]
+        fn parse_package_dependency() {
+            assert!(package_dependency(*EAPI_LATEST)
+                .parse("( ( !a/b ) )")
+                .is_ok());
+        }
     }
 
     // Custom composable parsers
@@ -1035,7 +1030,8 @@ mod parser {
         O: Ordered,
     {
         move |input: &mut &'s str| {
-            let (disabled, flag, _) = (opt('!'), use_flag_name, '?').parse_next(input)?;
+            let (disabled, flag, _, _) =
+                (opt('!'), use_flag_name, '?', multispace1).parse_next(input)?;
             let use_dep = UseDep {
                 flag: flag.to_string(),
                 kind: UseDepKind::Conditional,
@@ -1135,7 +1131,10 @@ mod parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::eapi::{EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL, EAPI_PKGCRAFT};
+    use crate::{
+        dep::{Blocker, SlotOperator},
+        eapi::{EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL, EAPI_PKGCRAFT},
+    };
 
     use super::*;
 
