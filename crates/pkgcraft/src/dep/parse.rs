@@ -15,275 +15,6 @@ use crate::pkg::ebuild::keyword::Keyword;
 use crate::types::Ordered;
 use crate::Error;
 
-peg::parser!(grammar depspec() for str {
-    // License names must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule license_name() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        }) { s }
-
-    // Categories must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule category() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("category name"))
-        { s }
-
-    // Packages must not begin with a hyphen or plus sign and must not end in a
-    // hyphen followed by anything matching a version.
-    pub(super) rule package() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            (['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_'] /
-                ("-" !(version() ("-" version())? (__ / "*" / ":" / "[" / ![_]))))*
-        } / expected!("package name"))
-        { s }
-
-    pub(super) rule number() -> Number
-        = s:$(['0'..='9']+) {?
-            let value = s.parse().map_err(|_| "integer overflow")?;
-            Ok(Number { raw: s.to_string(), value })
-        }
-
-    rule suffix() -> SuffixKind
-        = "alpha" { SuffixKind::Alpha }
-        / "beta" { SuffixKind::Beta }
-        / "pre" { SuffixKind::Pre }
-        / "rc" { SuffixKind::Rc }
-        / "p" { SuffixKind::P }
-
-    rule version_suffix() -> Suffix
-        = "_" kind:suffix() version:number()? { Suffix { kind, version } }
-
-    pub(super) rule version() -> Version
-        = numbers:number() ++ "." letter:['a'..='z']?
-                suffixes:version_suffix()* revision:revision()? {
-            Version {
-                op: None,
-                numbers,
-                letter,
-                suffixes,
-                revision: revision.unwrap_or_default(),
-            }
-        }
-
-    rule with_op<T: WithOp>(expr: rule<T>) -> T::WithOp
-        = "<=" v:expr() {? v.with_op(Operator::LessOrEqual) }
-        / "<" v:expr() {? v.with_op(Operator::Less) }
-        / ">=" v:expr() {? v.with_op(Operator::GreaterOrEqual) }
-        / ">" v:expr() {? v.with_op(Operator::Greater) }
-        / "=" v:expr() glob:"*"? {?
-            if glob.is_none() {
-                v.with_op(Operator::Equal)
-            } else {
-                v.with_op(Operator::EqualGlob)
-            }
-        } / "~" v:expr() {? v.with_op(Operator::Approximate) }
-
-    rule revision() -> Revision
-        = "-r" rev:number() { Revision(rev) }
-
-    // Slot names must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule slot_name() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("slot name")
-        ) { s }
-
-    pub(super) rule slot() -> Slot
-        = name:$(slot_name() ("/" slot_name())?) { Slot { name: name.to_string() } }
-
-    pub(super) rule slot_dep() -> SlotDep
-        = "=" { SlotDep::Op(SlotOperator::Equal) }
-        / "*" { SlotDep::Op(SlotOperator::Star) }
-        / slot:slot() "=" { SlotDep::SlotOp(slot, SlotOperator::Equal) }
-        / slot:slot() { SlotDep::Slot(slot) }
-
-    rule slot_dep_str() -> SlotDep
-        = ":" slot_dep:slot_dep() { slot_dep }
-
-    rule blocker() -> Blocker
-        = s:$("!" "!"?) {?
-            s.parse().map_err(|_| "invalid blocker")
-        }
-
-    pub(super) rule use_flag() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '@' | '-']*
-        } / expected!("USE flag name")
-        ) { s }
-
-    pub(super) rule iuse() -> Iuse
-        = flag:use_flag() { Iuse { flag: flag.to_string(), default: None } }
-        / "+" flag:use_flag() { Iuse { flag: flag.to_string(), default: Some(true) } }
-        / "-" flag:use_flag() { Iuse { flag: flag.to_string(), default: Some(false) } }
-
-    rule use_dep_default() -> bool
-        = "(+)" { true }
-        / "(-)" { false }
-
-    pub(super) rule use_dep() -> UseDep
-        = disabled:"!"? flag:use_flag() default:use_dep_default()? kind:$(['=' | '?']) {
-            UseDep {
-                flag: flag.to_string(),
-                kind: match kind {
-                    "=" => UseDepKind::Equal,
-                    "?" => UseDepKind::Conditional,
-                    _ => unreachable!("invalid use dep kind"),
-                },
-                enabled: disabled.is_none(),
-                default,
-            }
-        } / disabled:"-"? flag:use_flag() default:use_dep_default()? {
-            UseDep {
-                flag: flag.to_string(),
-                kind: UseDepKind::Enabled,
-                enabled: disabled.is_none(),
-                default,
-            }
-        } / expected!("use dep")
-
-    rule use_deps() -> Vec<UseDep>
-        = "[" use_deps:use_dep() ++ "," "]" { use_deps }
-
-    // repo must not begin with a hyphen and must also be a valid package name
-    pub(super) rule repo() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            (['a'..='z' | 'A'..='Z' | '0'..='9' | '_'] / ("-" !version()))*
-        } / expected!("repo name")
-        ) { s }
-
-    rule repo_dep(eapi: &'static Eapi) -> &'input str
-        = "::" repo:repo() {?
-            if eapi.has(Feature::RepoIds) {
-                Ok(repo)
-            } else {
-                Err("repo deps aren't supported in official EAPIs")
-            }
-        }
-
-    pub(super) rule cpn() -> Cpn
-        = category:category() "/" package:package()
-            { Cpn { category: category.to_string(), package: package.to_string() } }
-
-    pub(super) rule cpv() -> Cpv
-        = cpn:cpn() "-" version:version() { Cpv { cpn, version } }
-
-    rule dep_pkg() -> Dep
-        = cpn:cpn() { cpn.into() }
-        / dep:with_op(<cpv()>) { dep }
-
-    pub(super) rule dep(eapi: &'static Eapi) -> Dep
-        = blocker:blocker()? dep:dep_pkg() slot:slot_dep_str()?
-                repo:repo_dep(eapi)? use_deps:use_deps()? {
-            dep.with(blocker, slot, use_deps, repo)
-        }
-
-    pub(super) rule cpv_or_dep() -> CpvOrDep
-        = cpv:cpv() { CpvOrDep::Cpv(cpv) }
-        / dep:dep(Default::default()) { CpvOrDep::Dep(dep) }
-
-    rule _ = quiet!{[^ ' ' | '\n' | '\t']+}
-    rule __ = quiet!{[' ' | '\n' | '\t']+}
-
-    rule parens<T>(expr: rule<T>) -> Vec<T>
-        = "(" __ v:expr() ++ __ __ ")" { v }
-
-    rule all_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
-        = vals:parens(<expr()>)
-        { Dependency::AllOf(vals.into_iter().map(Box::new).collect()) }
-
-    rule any_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
-        = "||" __ vals:parens(<expr()>)
-        { Dependency::AnyOf(vals.into_iter().map(Box::new).collect()) }
-
-    rule conditional<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
-        = disabled:"!"? flag:use_flag() "?" __ vals:parens(<expr()>) {
-            let use_dep = UseDep {
-                flag: flag.to_string(),
-                kind: UseDepKind::Conditional,
-                enabled: disabled.is_none(),
-                default: None,
-            };
-            let deps = vals.into_iter().map(Box::new).collect();
-            Dependency::Conditional(use_dep, deps)
-        }
-
-    rule exactly_one_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
-        = "^^" __ vals:parens(<expr()>)
-        { Dependency::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
-
-    rule at_most_one_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
-        = "??" __ vals:parens(<expr()>)
-        { Dependency::AtMostOneOf(vals.into_iter().map(Box::new).collect()) }
-
-    pub(super) rule license_dependency() -> Dependency<String>
-        = conditional(<license_dependency()>)
-        / any_of(<license_dependency()>)
-        / all_of(<license_dependency()>)
-        / s:license_name() { Dependency::Enabled(s.to_string()) }
-
-    pub(super) rule src_uri_dependency() -> Dependency<Uri>
-        = conditional(<src_uri_dependency()>)
-        / all_of(<src_uri_dependency()>)
-        / s:$(quiet!{!")" _+}) rename:(__ "->" __ s:$(_+) {s})? {
-            let uri = Uri::new(s, rename);
-            Dependency::Enabled(uri)
-        }
-
-    // Technically RESTRICT tokens have no restrictions, but license
-    // restrictions are currently used in order to properly parse use restrictions.
-    pub(super) rule properties_dependency() -> Dependency<String>
-        = conditional(<properties_dependency()>)
-        / all_of(<properties_dependency()>)
-        / s:license_name() { Dependency::Enabled(s.to_string()) }
-
-    pub(super) rule required_use_dependency() -> Dependency<String>
-        = conditional(<required_use_dependency()>)
-        / any_of(<required_use_dependency()>)
-        / all_of(<required_use_dependency()>)
-        / exactly_one_of(<required_use_dependency()>)
-        / at_most_one_of(<required_use_dependency()>)
-        / "!" s:use_flag() { Dependency::Disabled(s.to_string()) }
-        / s:use_flag() { Dependency::Enabled(s.to_string()) }
-
-    // Technically RESTRICT tokens have no restrictions, but license
-    // restrictions are currently used in order to properly parse use restrictions.
-    pub(super) rule restrict_dependency() -> Dependency<String>
-        = conditional(<restrict_dependency()>)
-        / all_of(<restrict_dependency()>)
-        / s:license_name() { Dependency::Enabled(s.to_string()) }
-
-    pub(super) rule package_dependency(eapi: &'static Eapi) -> Dependency<Dep>
-        = conditional(<package_dependency(eapi)>)
-        / any_of(<package_dependency(eapi)>)
-        / all_of(<package_dependency(eapi)>)
-        / dep:dep(eapi) { Dependency::Enabled(dep) }
-
-    pub(super) rule license_dependency_set() -> DependencySet<String>
-        = v:license_dependency() ** __ { v.into_iter().collect() }
-
-    pub(super) rule src_uri_dependency_set() -> DependencySet<Uri>
-        = v:src_uri_dependency() ** __ { v.into_iter().collect() }
-
-    pub(super) rule properties_dependency_set() -> DependencySet<String>
-        = v:properties_dependency() ** __ { v.into_iter().collect() }
-
-    pub(super) rule required_use_dependency_set() -> DependencySet<String>
-        = v:required_use_dependency() ** __ { v.into_iter().collect() }
-
-    pub(super) rule restrict_dependency_set() -> DependencySet<String>
-        = v:restrict_dependency() ** __ { v.into_iter().collect() }
-
-    pub(super) rule package_dependency_set(eapi: &'static Eapi) -> DependencySet<Dep>
-        = v:package_dependency(eapi) ** __ { v.into_iter().collect() }
-});
-
 pub fn category(s: &str) -> crate::Result<&str> {
     parser::category_name
         .parse(s)
@@ -388,12 +119,9 @@ pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
     convert = r#"{ (s.to_string(), eapi) }"#
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
-    depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
-    // TODO: How to pass eapi?
-    //
-    // parser::dep(eapi)
-    //     .parse(s)
-    //     .map_err(|err| Error::ParseError(err.to_string()))
+    parser::dep(eapi)
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 pub(super) fn cpn(s: &str) -> crate::Result<Cpn> {
     parser::cpn
@@ -402,70 +130,89 @@ pub(super) fn cpn(s: &str) -> crate::Result<Cpn> {
 }
 
 pub(super) fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
-    depspec::license_dependency_set(s).map_err(|e| peg_error("invalid LICENSE", s, e))
+    parser::license_dependency_set
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn license_dependency(s: &str) -> crate::Result<Dependency<String>> {
-    depspec::license_dependency(s).map_err(|e| peg_error("invalid LICENSE dependency", s, e))
+    parser::license_dependency
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn src_uri_dependency_set(s: &str) -> crate::Result<DependencySet<Uri>> {
-    depspec::src_uri_dependency_set(s).map_err(|e| peg_error("invalid SRC_URI", s, e))
+    parser::src_uri_dependency_set
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn src_uri_dependency(s: &str) -> crate::Result<Dependency<Uri>> {
-    depspec::src_uri_dependency(s).map_err(|e| peg_error("invalid SRC_URI dependency", s, e))
+    parser::src_uri_dependency
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn properties_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
-    depspec::properties_dependency_set(s).map_err(|e| peg_error("invalid PROPERTIES", s, e))
+    parser::properties_dependency_set
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn properties_dependency(s: &str) -> crate::Result<Dependency<String>> {
-    depspec::properties_dependency(s)
-        .map_err(|e| peg_error("invalid PROPERTIES dependency", s, e))
+    parser::properties_dependency
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn required_use_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
-    depspec::required_use_dependency_set(s)
-        .map_err(|e| peg_error("invalid REQUIRED_USE", s, e))
+    parser::required_use_dependency_set
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn required_use_dependency(s: &str) -> crate::Result<Dependency<String>> {
-    depspec::required_use_dependency(s)
-        .map_err(|e| peg_error("invalid REQUIRED_USE dependency", s, e))
+    parser::required_use_dependency
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn restrict_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
-    depspec::restrict_dependency_set(s).map_err(|e| peg_error("invalid RESTRICT", s, e))
+    parser::restrict_dependency_set
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn restrict_dependency(s: &str) -> crate::Result<Dependency<String>> {
-    depspec::restrict_dependency(s).map_err(|e| peg_error("invalid RESTRICT dependency", s, e))
+    parser::restrict_dependency
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn package_dependency_set(
     s: &str,
     eapi: &'static Eapi,
 ) -> crate::Result<DependencySet<Dep>> {
-    depspec::package_dependency_set(s, eapi).map_err(|e| peg_error("invalid dependency", s, e))
+    parser::package_dependency_set(eapi)
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn package_dependency(
     s: &str,
     eapi: &'static Eapi,
 ) -> crate::Result<Dependency<Dep>> {
-    depspec::package_dependency(s, eapi)
-        .map_err(|e| peg_error("invalid package dependency", s, e))
+    parser::package_dependency(eapi)
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 mod parser {
-    #![allow(dead_code)]
-
     use crate::dep::version::WithOp;
-    use crate::dep::{CpvOrDep, Dep, UseDep, UseDepKind};
+    use crate::dep::{CpvOrDep, Dep, Dependency, DependencySet, Uri, UseDep, UseDepKind};
+    use crate::eapi::{Eapi, Feature};
     use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
-    use crate::types::SortedSet;
+    use crate::types::{Ordered, SortedSet};
     use crate::{
         dep::{
             cpn::Cpn,
@@ -477,7 +224,9 @@ mod parser {
         pkg::ebuild::iuse::Iuse,
     };
 
-    use winnow::combinator::delimited;
+    use winnow::ascii::multispace1;
+    use winnow::combinator::{delimited, terminated};
+    use winnow::error::ContextError;
     use winnow::stream::ParseSlice;
     use winnow::{
         ascii::{alpha1, digit1},
@@ -486,7 +235,7 @@ mod parser {
         },
         error::ParserError,
         prelude::*,
-        stream::{AsChar, ContainsToken, Stream, StreamIsPartial},
+        stream::{AsChar, ContainsToken},
         token::{any, one_of, take_while},
     };
 
@@ -643,21 +392,6 @@ mod parser {
     /// 3.1.8
     pub(super) fn keyword_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
         trace("keyword_name", name((AsChar::is_alphanum, '_'), '-')).parse_next(input)
-    }
-
-    #[inline(always)]
-    fn name<LeadSet, RestSet, Input, Error>(
-        lead: LeadSet,
-        rest: RestSet,
-    ) -> impl Parser<Input, <Input as Stream>::Slice, Error>
-    where
-        Input: StreamIsPartial + Stream,
-        <Input as Stream>::Token: Clone,
-        LeadSet: ContainsToken<<Input as Stream>::Token> + Clone,
-        RestSet: ContainsToken<<Input as Stream>::Token> + Clone,
-        Error: ParserError<Input>,
-    {
-        trace("name", (one_of(lead.clone()), take_while(0.., (lead, rest))).take())
     }
 
     #[cfg(test)]
@@ -1053,8 +787,17 @@ mod parser {
         .parse_next(input)
     }
 
-    fn repo_dep<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace("repo_dep", preceded("::", repository_name)).parse_next(input)
+    fn repo_dep<'s>(eapi: &'static Eapi) -> impl FnMut(&mut &'s str) -> ModalResult<&'s str> {
+        |input| {
+            if eapi.has(Feature::RepoIds) {
+                trace("repo_dep", move |input: &mut &'s str| {
+                    preceded("::", repository_name).parse_next(input)
+                })
+                .parse_next(input)
+            } else {
+                Ok("")
+            }
+        }
     }
 
     fn dep_op_pkg(input: &mut &str) -> ModalResult<Dep> {
@@ -1080,31 +823,38 @@ mod parser {
         trace("dep_pkg", alt((cpn.map(Into::into), dep_op_pkg))).parse_next(input)
     }
 
-    pub(super) fn dep(input: &mut &str) -> ModalResult<Dep> {
-        trace("dep", |input: &mut &str| {
-            let (blocker, Dep { cpn, version, .. }, slot_dep, repo, use_deps) = (
-                opt(blocker),
-                dep_pkg,
-                opt(slot_dep_str),
-                opt(repo_dep.map(str::to_string)),
-                opt(use_deps),
-            )
-                .parse_next(input)?;
-            Ok(Dep {
-                cpn,
-                version,
-                blocker,
-                slot_dep,
-                use_deps,
-                repo,
+    pub(super) fn dep<'s>(
+        eapi: &'static Eapi,
+    ) -> impl ModalParser<&'s str, Dep, ContextError> {
+        move |input: &mut &'s str| {
+            trace("dep", move |input: &mut &'s str| {
+                let (blocker, Dep { cpn, version, .. }, slot_dep, repo, use_deps) = (
+                    opt(blocker),
+                    dep_pkg,
+                    opt(slot_dep_str),
+                    opt(repo_dep(eapi).map(str::to_string)),
+                    opt(use_deps),
+                )
+                    .parse_next(input)?;
+                Ok(Dep {
+                    cpn,
+                    blocker,
+                    version,
+                    slot_dep,
+                    use_deps,
+                    repo,
+                })
             })
-        })
-        .parse_next(input)
+            .parse_next(input)
+        }
     }
 
     pub(super) fn cpv_or_dep(input: &mut &str) -> ModalResult<CpvOrDep> {
-        trace("cpv_or_dep", alt((cpv.map(CpvOrDep::Cpv), dep.map(CpvOrDep::Dep))))
-            .parse_next(input)
+        trace("cpv_or_dep", move |input: &mut &str| {
+            alt((cpv.map(CpvOrDep::Cpv), dep(Default::default()).map(CpvOrDep::Dep)))
+                .parse_next(input)
+        })
+        .parse_next(input)
     }
 
     #[cfg(test)]
@@ -1119,6 +869,267 @@ mod parser {
             assert!(blocker.parse("").is_err());
             assert!(blocker.parse(" ").is_err());
         }
+    }
+
+    pub(super) fn license_dependency_set(
+        input: &mut &str,
+    ) -> ModalResult<DependencySet<String>> {
+        let set: Vec<_> = separated(0.., license_dependency, multispace1).parse_next(input)?;
+        Ok(set.into_iter().collect())
+    }
+
+    pub(super) fn license_dependency(input: &mut &str) -> ModalResult<Dependency<String>> {
+        alt((
+            conditional(license_dependency_),
+            any_of(license_dependency_),
+            all_of(license_dependency_),
+            license_dependency_,
+        ))
+        .parse_next(input)
+    }
+
+    fn license_dependency_(input: &mut &str) -> ModalResult<Dependency<String>> {
+        license_name
+            .parse_next(input)
+            .map(str::to_string)
+            .map(Dependency::Enabled)
+    }
+
+    pub(super) fn src_uri_dependency_set(input: &mut &str) -> ModalResult<DependencySet<Uri>> {
+        let set: Vec<_> = separated(0.., src_uri_dependency, multispace1).parse_next(input)?;
+        Ok(set.into_iter().collect())
+    }
+
+    pub(super) fn src_uri_dependency(input: &mut &str) -> ModalResult<Dependency<Uri>> {
+        alt((
+            conditional(src_uri_dependency_),
+            all_of(src_uri_dependency_),
+            src_uri_dependency_,
+        ))
+        .parse_next(input)
+    }
+
+    fn src_uri_dependency_(input: &mut &str) -> ModalResult<Dependency<Uri>> {
+        let (uri, rename) = (
+            license_name,
+            opt((
+                multispace1.void(),
+                "->".void(),
+                multispace1.void(),
+                repeat::<_, _, Vec<_>, _, _>(1.., not(multispace1)),
+            )
+                .take()),
+        )
+            .parse_next(input)?;
+        Ok(Dependency::Enabled(Uri::new(uri, rename)))
+    }
+
+    pub(super) fn properties_dependency_set(
+        input: &mut &str,
+    ) -> ModalResult<DependencySet<String>> {
+        let set: Vec<_> =
+            separated(0.., properties_dependency, multispace1).parse_next(input)?;
+        Ok(set.into_iter().collect())
+    }
+
+    pub(super) fn properties_dependency(input: &mut &str) -> ModalResult<Dependency<String>> {
+        alt((
+            conditional(license_dependency_),
+            all_of(license_dependency_),
+            license_dependency_,
+        ))
+        .parse_next(input)
+    }
+    pub(super) fn required_use_dependency_set(
+        input: &mut &str,
+    ) -> ModalResult<DependencySet<String>> {
+        let set: Vec<_> =
+            separated(0.., required_use_dependency, multispace1).parse_next(input)?;
+        Ok(set.into_iter().collect())
+    }
+
+    pub(super) fn required_use_dependency(
+        input: &mut &str,
+    ) -> ModalResult<Dependency<String>> {
+        alt((
+            conditional(required_use_dependency_),
+            any_of(required_use_dependency_),
+            all_of(required_use_dependency_),
+            exactly_one_of(required_use_dependency_),
+            at_most_one_of(required_use_dependency_),
+            required_use_dependency_,
+        ))
+        .parse_next(input)
+    }
+
+    fn required_use_dependency_(input: &mut &str) -> ModalResult<Dependency<String>> {
+        let disabled = opt('!').parse_next(input)?;
+        let use_flag = use_flag_name.map(str::to_string).parse_next(input)?;
+        if disabled.is_some() {
+            Ok(Dependency::Disabled(use_flag))
+        } else {
+            Ok(Dependency::Enabled(use_flag))
+        }
+    }
+    pub(super) fn restrict_dependency_set(
+        input: &mut &str,
+    ) -> ModalResult<DependencySet<String>> {
+        let set: Vec<_> =
+            separated(0.., restrict_dependency, multispace1).parse_next(input)?;
+        Ok(set.into_iter().collect())
+    }
+
+    pub(super) fn restrict_dependency(input: &mut &str) -> ModalResult<Dependency<String>> {
+        alt((
+            conditional(restrict_dependency_),
+            all_of(restrict_dependency_),
+            restrict_dependency_,
+        ))
+        .parse_next(input)
+    }
+
+    fn restrict_dependency_(input: &mut &str) -> ModalResult<Dependency<String>> {
+        license_name
+            .parse_next(input)
+            .map(str::to_string)
+            .map(Dependency::Enabled)
+    }
+
+    pub(super) fn package_dependency_set<'s>(
+        eapi: &'static Eapi,
+    ) -> impl ModalParser<&'s str, DependencySet<Dep>, ContextError> {
+        move |input: &mut &str| {
+            let set: Vec<_> =
+                separated(0.., package_dependency(eapi), multispace1).parse_next(input)?;
+            Ok(set.into_iter().collect())
+        }
+    }
+
+    pub(super) fn package_dependency<'s>(
+        eapi: &'static Eapi,
+    ) -> impl ModalParser<&'s str, Dependency<Dep>, ContextError> {
+        move |input: &mut &str| {
+            alt((
+                conditional(package_dependency_(eapi)),
+                any_of(package_dependency_(eapi)),
+                all_of(package_dependency_(eapi)),
+                package_dependency_(eapi),
+            ))
+            .parse_next(input)
+        }
+    }
+
+    fn package_dependency_(
+        eapi: &'static Eapi,
+    ) -> impl FnMut(&mut &str) -> ModalResult<Dependency<Dep>> {
+        move |input: &mut &str| dep(eapi).parse_next(input).map(Dependency::Enabled)
+    }
+
+    // Custom composable parsers
+
+    #[inline(always)]
+    fn conditional<'s, O>(
+        mut parser: impl ModalParser<&'s str, Dependency<O>, ContextError>,
+    ) -> impl ModalParser<&'s str, Dependency<O>, ContextError>
+    where
+        O: Ordered,
+    {
+        move |input: &mut &'s str| {
+            let (disabled, flag, _) = (opt('!'), use_flag_name, '?').parse_next(input)?;
+            let use_dep = UseDep {
+                flag: flag.to_string(),
+                kind: UseDepKind::Conditional,
+                enabled: disabled.is_none(),
+                default: None,
+            };
+            let dependencies = group(parser.by_ref()).parse_next(input)?;
+            let dependencies = dependencies.into_iter().map(Box::new).collect();
+            Ok(Dependency::Conditional(use_dep, dependencies))
+        }
+    }
+
+    #[inline(always)]
+    fn all_of<'s, O, E>(
+        mut parser: impl Parser<&'s str, Dependency<O>, E>,
+    ) -> impl Parser<&'s str, Dependency<O>, E>
+    where
+        O: Ordered,
+        E: ParserError<&'s str>,
+    {
+        move |input: &mut &'s str| {
+            let dependencies = group(parser.by_ref()).parse_next(input)?;
+            let dependencies = dependencies.into_iter().map(Box::new).collect();
+            Ok(Dependency::AllOf(dependencies))
+        }
+    }
+
+    #[inline(always)]
+    fn any_of<'s, O, E>(
+        mut parser: impl Parser<&'s str, Dependency<O>, E>,
+    ) -> impl Parser<&'s str, Dependency<O>, E>
+    where
+        O: Ordered,
+        E: ParserError<&'s str>,
+    {
+        move |input: &mut &'s str| {
+            let dependencies =
+                preceded(("||", multispace1), group(parser.by_ref())).parse_next(input)?;
+            let dependencies = dependencies.into_iter().map(Box::new).collect();
+            Ok(Dependency::AnyOf(dependencies))
+        }
+    }
+
+    #[inline(always)]
+    fn exactly_one_of<'s, O, E>(
+        mut parser: impl Parser<&'s str, Dependency<O>, E>,
+    ) -> impl Parser<&'s str, Dependency<O>, E>
+    where
+        O: Ordered,
+        E: ParserError<&'s str>,
+    {
+        move |input: &mut &'s str| {
+            let dependencies =
+                preceded(("^^", multispace1), group(parser.by_ref())).parse_next(input)?;
+            let dependencies = dependencies.into_iter().map(Box::new).collect();
+            Ok(Dependency::ExactlyOneOf(dependencies))
+        }
+    }
+
+    #[inline(always)]
+    fn at_most_one_of<'s, O, E>(
+        mut parser: impl Parser<&'s str, Dependency<O>, E>,
+    ) -> impl Parser<&'s str, Dependency<O>, E>
+    where
+        O: Ordered,
+        E: ParserError<&'s str>,
+    {
+        move |input: &mut &'s str| {
+            let dependencies =
+                preceded(("??", multispace1), group(parser.by_ref())).parse_next(input)?;
+            let dependencies = dependencies.into_iter().map(Box::new).collect();
+            Ok(Dependency::AtMostOneOf(dependencies))
+        }
+    }
+
+    #[inline(always)]
+    fn name<'s, LeadSet, RestSet, Error>(
+        lead: LeadSet,
+        rest: RestSet,
+    ) -> impl Parser<&'s str, &'s str, Error>
+    where
+        LeadSet: ContainsToken<char> + Clone,
+        RestSet: ContainsToken<char> + Clone,
+        Error: ParserError<&'s str>,
+    {
+        trace("name", (one_of(lead.clone()), take_while(0.., (lead, rest))).take())
+    }
+
+    #[inline(always)]
+    fn group<'s, O, E>(parser: impl Parser<&'s str, O, E>) -> impl Parser<&'s str, Vec<O>, E>
+    where
+        E: ParserError<&'s str>,
+    {
+        delimited(('(', multispace1), repeat(1.., terminated(parser, multispace1)), ')')
     }
 }
 
