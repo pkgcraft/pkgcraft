@@ -327,11 +327,15 @@ pub fn slot(s: &str) -> crate::Result<Slot> {
 }
 
 pub(super) fn use_dep(s: &str) -> crate::Result<UseDep> {
-    depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e))
+    parser::use_dep
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn slot_dep(s: &str) -> crate::Result<SlotDep> {
-    depspec::slot_dep(s).map_err(|e| peg_error("invalid slot", s, e))
+    parser::slot_dep
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {
@@ -341,7 +345,9 @@ pub fn use_flag(s: &str) -> crate::Result<&str> {
 }
 
 pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
-    depspec::iuse(s).map_err(|e| peg_error("invalid IUSE", s, e))
+    parser::iuse
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(crate) fn keyword(s: &str) -> crate::Result<Keyword> {
@@ -371,7 +377,9 @@ pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
 }
 /// Parse a string into a [`CpvOrDep`].
 pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
-    depspec::cpv_or_dep(s).map_err(|e| peg_error("invalid cpv or dep", s, e))
+    parser::cpv_or_dep
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 #[cached(
@@ -381,6 +389,11 @@ pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
+    // TODO: How to pass eapi?
+    //
+    // parser::dep(eapi)
+    //     .parse(s)
+    //     .map_err(|err| Error::ParseError(err.to_string()))
 }
 pub(super) fn cpn(s: &str) -> crate::Result<Cpn> {
     parser::cpn
@@ -449,14 +462,22 @@ pub(super) fn package_dependency(
 mod parser {
     #![allow(dead_code)]
 
-    use crate::dep::{
-        cpn::Cpn,
-        cpv::Cpv,
-        pkg::Slot,
-        version::{Number, Operator, Revision, Suffix, SuffixKind, Version},
-    };
+    use crate::dep::version::WithOp;
+    use crate::dep::{CpvOrDep, Dep, UseDep, UseDepKind};
     use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
+    use crate::types::SortedSet;
+    use crate::{
+        dep::{
+            cpn::Cpn,
+            cpv::Cpv,
+            pkg::Slot,
+            version::{Number, Operator, Revision, Suffix, SuffixKind, Version},
+            Blocker, SlotDep, SlotOperator,
+        },
+        pkg::ebuild::iuse::Iuse,
+    };
 
+    use winnow::combinator::delimited;
     use winnow::stream::ParseSlice;
     use winnow::{
         ascii::{alpha1, digit1},
@@ -466,7 +487,7 @@ mod parser {
         error::ParserError,
         prelude::*,
         stream::{AsChar, ContainsToken, Stream, StreamIsPartial},
-        token::{one_of, take_while},
+        token::{any, one_of, take_while},
     };
 
     // Parsing to concrete types
@@ -508,8 +529,7 @@ mod parser {
                 "~" => (empty.value(KeywordStatus::Unstable), keyword_name.map(Into::into)),
                 "-" => (empty.value(KeywordStatus::Disabled), keyword_name.map(Into::into)),
                 "-*" => (empty.value(KeywordStatus::Disabled), empty.value("*".into())),
-                "" => (empty.value(KeywordStatus::Stable), keyword_name.map(Into::into)),
-                _ => fail,
+                _ => (empty.value(KeywordStatus::Stable), keyword_name.map(Into::into)),
             )
             .parse_next(input)
         })
@@ -950,6 +970,134 @@ mod parser {
 
             assert!(number.parse("").is_err());
             assert!(number.parse(" ").is_err());
+        }
+    }
+
+    // Depedency parsers
+
+    pub(super) fn blocker(input: &mut &str) -> ModalResult<Blocker> {
+        ('!', opt('!')).take().parse_to().parse_next(input)
+    }
+
+    pub(super) fn slot_dep(input: &mut &str) -> ModalResult<SlotDep> {
+        dispatch!(repeat::<_, _, Vec<_>, _, _>(0.., any).take();
+            "=" => empty.value(SlotDep::Op(SlotOperator::Equal)),
+            "*" => empty.value(SlotDep::Op(SlotOperator::Star)),
+            _ => (slot, opt("="))
+                .map(|(slot, op)| if op.is_some() {
+                    SlotDep::SlotOp(slot, SlotOperator::Equal)
+                } else {
+                    SlotDep::Slot(slot)
+                }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn slot_dep_str(input: &mut &str) -> ModalResult<SlotDep> {
+        preceded(':', slot_dep).parse_next(input)
+    }
+
+    pub(super) fn iuse(input: &mut &str) -> ModalResult<Iuse> {
+        seq!(Iuse {
+            flag: use_flag_name.map(str::to_string),
+            default: opt(alt(('+'.value(true), '-'.value(false))))
+        })
+        .parse_next(input)
+    }
+
+    fn use_dep_default(input: &mut &str) -> ModalResult<bool> {
+        delimited('(', alt(('+'.value(true), '-'.value(false))), ')').parse_next(input)
+    }
+
+    pub(super) fn use_dep(input: &mut &str) -> ModalResult<UseDep> {
+        let disabled = opt(alt(('!', '-'))).parse_next(input)?;
+        let flag = use_flag_name.map(str::to_string).parse_next(input)?;
+        let default = opt(use_dep_default).parse_next(input)?;
+        let kind = if let Some(disabled) = disabled {
+            if disabled == '!' {
+                alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional)))
+                    .parse_next(input)?
+            } else {
+                UseDepKind::Enabled
+            }
+        } else {
+            opt(alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional))))
+                .parse_next(input)?
+                .unwrap_or(UseDepKind::Enabled)
+        };
+        Ok(UseDep {
+            flag,
+            kind,
+            enabled: disabled.is_none(),
+            default,
+        })
+    }
+
+    fn use_deps(input: &mut &str) -> ModalResult<SortedSet<UseDep>> {
+        let _ = '['.parse_next(input)?;
+        let use_deps: Vec<_> = separated(1.., use_dep, ',').parse_next(input)?;
+        let _ = ']'.parse_next(input)?;
+        Ok(SortedSet::from_iter(use_deps))
+    }
+
+    fn repo_dep<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        preceded("::", repository_name).parse_next(input)
+    }
+
+    fn dep_op_pkg(input: &mut &str) -> ModalResult<Dep> {
+        let mut op = operator.parse_next(input)?;
+        let Cpv { cpn, version } = cpv.parse_next(input)?;
+        if op == Operator::Equal && opt('*').parse_next(input)?.is_some() {
+            op = Operator::EqualGlob;
+        }
+        Ok(Dep {
+            cpn,
+            version: Some(version.with_op(op).unwrap()),
+            blocker: None,
+            slot_dep: None,
+            use_deps: None,
+            repo: None,
+        })
+    }
+
+    fn dep_pkg(input: &mut &str) -> ModalResult<Dep> {
+        alt((cpn.map(Into::into), dep_op_pkg)).parse_next(input)
+    }
+
+    pub(super) fn dep(input: &mut &str) -> ModalResult<Dep> {
+        let (blocker, Dep { cpn, version, .. }, slot_dep, repo, use_deps) = (
+            opt(blocker),
+            dep_pkg,
+            opt(slot_dep_str),
+            opt(repo_dep.map(str::to_string)),
+            opt(use_deps),
+        )
+            .parse_next(input)?;
+        Ok(Dep {
+            cpn,
+            version,
+            blocker,
+            slot_dep,
+            use_deps,
+            repo,
+        })
+    }
+
+    pub(super) fn cpv_or_dep(input: &mut &str) -> ModalResult<CpvOrDep> {
+        alt((cpv.map(CpvOrDep::Cpv), dep.map(CpvOrDep::Dep))).parse_next(input)
+    }
+
+    #[cfg(test)]
+    mod dep_tests {
+        use super::*;
+
+        #[test]
+        fn parse_blocker() {
+            assert_eq!(blocker.parse("!"), Ok(Blocker::Weak));
+            assert_eq!(blocker.parse("!!"), Ok(Blocker::Strong));
+
+            assert!(blocker.parse("").is_err());
+            assert!(blocker.parse(" ").is_err());
         }
     }
 }
