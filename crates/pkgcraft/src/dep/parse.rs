@@ -1,4 +1,5 @@
 use cached::{proc_macro::cached, SizedCache};
+use winnow::prelude::*;
 
 use crate::dep::cpn::Cpn;
 use crate::dep::cpv::{Cpv, CpvOrDep};
@@ -10,48 +11,17 @@ use crate::dep::{Dependency, DependencySet};
 use crate::eapi::{Eapi, Feature};
 use crate::error::peg_error;
 use crate::pkg::ebuild::iuse::Iuse;
-use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
+use crate::pkg::ebuild::keyword::Keyword;
 use crate::types::Ordered;
+use crate::Error;
 
 peg::parser!(grammar depspec() for str {
-    // Keywords must not begin with a hyphen.
-    rule keyword_name() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-']*
-        } / expected!("keyword name"))
-        { s }
-
-    // The "-*" keyword is allowed in KEYWORDS for package metadata.
-    pub(super) rule keyword() -> Keyword
-        = arch:keyword_name()
-            { Keyword { status: KeywordStatus::Stable, arch: arch.into() } }
-        / "~" arch:keyword_name()
-            { Keyword { status: KeywordStatus::Unstable, arch: arch.into() } }
-        / "-" arch:keyword_name()
-            { Keyword { status: KeywordStatus::Disabled, arch: arch.into() } }
-        / "-*"
-            { Keyword { status: KeywordStatus::Disabled, arch: "*".into() } }
-
     // License names must not begin with a hyphen, dot, or plus sign.
     pub(super) rule license_name() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
         }) { s }
-
-    // Eclass names must not begin with a hyphen or dot and cannot be named "default".
-    pub(super) rule eclass_name() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.' | '-']*
-        } / expected!("eclass name")) {?
-            if s == "default" {
-                Err("eclass cannot be named: default")
-            } else {
-                Ok(s)
-            }
-        }
 
     // Categories must not begin with a hyphen, dot, or plus sign.
     pub(super) rule category() -> &'input str
@@ -98,9 +68,6 @@ peg::parser!(grammar depspec() for str {
                 revision: revision.unwrap_or_default(),
             }
         }
-
-    pub(super) rule version_with_op() -> Version
-        = v:with_op(<version()>) { v }
 
     rule with_op<T: WithOp>(expr: rule<T>) -> T::WithOp
         = "<=" v:expr() {? v.with_op(Operator::LessOrEqual) }
@@ -318,71 +285,101 @@ peg::parser!(grammar depspec() for str {
 });
 
 pub fn category(s: &str) -> crate::Result<&str> {
-    depspec::category(s).map_err(|e| peg_error("invalid category name", s, e))
+    parser::category_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn package(s: &str) -> crate::Result<&str> {
-    depspec::package(s).map_err(|e| peg_error("invalid package name", s, e))
+    parser::package_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn version(s: &str) -> crate::Result<Version> {
-    depspec::version(s).map_err(|e| peg_error("invalid version", s, e))
+    parser::version
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn version_with_op(s: &str) -> crate::Result<Version> {
-    depspec::version_with_op(s).map_err(|e| peg_error("invalid version", s, e))
+    parser::version_with_op
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn license_name(s: &str) -> crate::Result<&str> {
-    depspec::license_name(s).map_err(|e| peg_error("invalid license name", s, e))
+    parser::license_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn eclass_name(s: &str) -> crate::Result<&str> {
-    depspec::eclass_name(s).map_err(|e| peg_error("invalid eclass name", s, e))
+    parser::eclass_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn slot(s: &str) -> crate::Result<Slot> {
-    depspec::slot(s).map_err(|e| peg_error("invalid slot", s, e))
+    parser::slot
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn use_dep(s: &str) -> crate::Result<UseDep> {
-    depspec::use_dep(s).map_err(|e| peg_error("invalid use dep", s, e))
+    parser::use_dep
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn slot_dep(s: &str) -> crate::Result<SlotDep> {
-    depspec::slot_dep(s).map_err(|e| peg_error("invalid slot", s, e))
+    parser::slot_dep
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn use_flag(s: &str) -> crate::Result<&str> {
-    depspec::use_flag(s).map_err(|e| peg_error("invalid USE flag", s, e))
+    parser::use_flag_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
-    depspec::iuse(s).map_err(|e| peg_error("invalid IUSE", s, e))
+    parser::iuse
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(crate) fn keyword(s: &str) -> crate::Result<Keyword> {
-    depspec::keyword(s).map_err(|e| peg_error("invalid keyword", s, e))
+    parser::keyword
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(crate) fn revision(s: &str) -> crate::Result<Revision> {
-    depspec::number(s)
-        .map_err(|e| peg_error("invalid revision", s, e))
+    parser::number
+        .parse(s)
         .map(Revision)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub fn repo(s: &str) -> crate::Result<&str> {
-    depspec::repo(s).map_err(|e| peg_error("invalid repo name", s, e))
+    parser::repository_name
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 /// Parse a string into a [`Cpv`].
 pub(super) fn cpv(s: &str) -> crate::Result<Cpv> {
-    depspec::cpv(s).map_err(|e| peg_error("invalid cpv", s, e))
+    parser::cpv
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
-
 /// Parse a string into a [`CpvOrDep`].
 pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
-    depspec::cpv_or_dep(s).map_err(|e| peg_error("invalid cpv or dep", s, e))
+    parser::cpv_or_dep
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 #[cached(
@@ -392,10 +389,16 @@ pub(super) fn cpv_or_dep(s: &str) -> crate::Result<CpvOrDep> {
 )]
 pub(crate) fn dep(s: &str, eapi: &'static Eapi) -> crate::Result<Dep> {
     depspec::dep(s, eapi).map_err(|e| peg_error("invalid dep", s, e))
+    // TODO: How to pass eapi?
+    //
+    // parser::dep(eapi)
+    //     .parse(s)
+    //     .map_err(|err| Error::ParseError(err.to_string()))
 }
-
 pub(super) fn cpn(s: &str) -> crate::Result<Cpn> {
-    depspec::cpn(s).map_err(|e| peg_error("invalid cpn", s, e))
+    parser::cpn
+        .parse(s)
+        .map_err(|err| Error::ParseError(err.to_string()))
 }
 
 pub(super) fn license_dependency_set(s: &str) -> crate::Result<DependencySet<String>> {
@@ -454,6 +457,649 @@ pub(super) fn package_dependency(
 ) -> crate::Result<Dependency<Dep>> {
     depspec::package_dependency(s, eapi)
         .map_err(|e| peg_error("invalid package dependency", s, e))
+}
+
+mod parser {
+    #![allow(dead_code)]
+
+    use crate::dep::version::WithOp;
+    use crate::dep::{CpvOrDep, Dep, UseDep, UseDepKind};
+    use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
+    use crate::types::SortedSet;
+    use crate::{
+        dep::{
+            cpn::Cpn,
+            cpv::Cpv,
+            pkg::Slot,
+            version::{Number, Operator, Revision, Suffix, SuffixKind, Version},
+            Blocker, SlotDep, SlotOperator,
+        },
+        pkg::ebuild::iuse::Iuse,
+    };
+
+    use winnow::combinator::delimited;
+    use winnow::stream::ParseSlice;
+    use winnow::{
+        ascii::{alpha1, digit1},
+        combinator::{
+            alt, dispatch, empty, eof, fail, not, opt, preceded, repeat, separated, seq, trace,
+        },
+        error::ParserError,
+        prelude::*,
+        stream::{AsChar, ContainsToken, Stream, StreamIsPartial},
+        token::{any, one_of, take_while},
+    };
+
+    // Parsing to concrete types
+
+    pub(super) fn cpv(input: &mut &str) -> ModalResult<Cpv> {
+        trace(
+            "cpv",
+            seq!(Cpv {
+                cpn: cpn,
+                _: '-',
+                version: version,
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn cpn(input: &mut &str) -> ModalResult<Cpn> {
+        trace(
+            "cpn",
+            seq!(Cpn {
+                category: category_name.map(str::to_string),
+                _: '/',
+                package: package_name.map(str::to_string),
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn slot(input: &mut &str) -> ModalResult<Slot> {
+        trace("slot", (slot_name, opt(('/', slot_name))).take())
+            .parse_next(input)
+            .map(str::to_string)
+            .map(|name| Slot { name })
+    }
+
+    pub(super) fn keyword(input: &mut &str) -> ModalResult<Keyword> {
+        trace("keyword", move |input: &mut &str| {
+            dispatch!(take_while(0..=2, ('~', '-', '*'));
+                "~" => (empty.value(KeywordStatus::Unstable), keyword_name.map(Into::into)),
+                "-" => (empty.value(KeywordStatus::Disabled), keyword_name.map(Into::into)),
+                "-*" => (empty.value(KeywordStatus::Disabled), empty.value("*".into())),
+                _ => (empty.value(KeywordStatus::Stable), keyword_name.map(Into::into)),
+            )
+            .parse_next(input)
+        })
+        .parse_next(input)
+        .map(|(status, arch)| Keyword { status, arch })
+    }
+
+    #[cfg(test)]
+    mod type_tests {
+        use super::*;
+
+        #[test]
+        fn test_keyword() {
+            insta::assert_yaml_snapshot!(keyword.parse("amd64").unwrap());
+            insta::assert_yaml_snapshot!(keyword.parse("~amd64").unwrap());
+            insta::assert_yaml_snapshot!(keyword.parse("-amd64").unwrap());
+            insta::assert_yaml_snapshot!(keyword.parse("-*").unwrap());
+
+            assert!(keyword.parse("").is_err());
+            assert!(keyword.parse(" ").is_err());
+        }
+    }
+
+    // Parsing names according to the package manager specification chapter 3.1
+
+    // 3.1.1 Category names
+    pub(super) fn category_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace("category_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+')))
+            .parse_next(input)
+    }
+
+    // 3.1.2 Package names
+    pub(super) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "package_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                repeat::<_, _, Vec<_>, _, _>(
+                    0..,
+                    alt((
+                        one_of((AsChar::is_alphanum, '_', '+')).take(),
+                        preceded(
+                            not((
+                                repeat::<_, _, Vec<_>, _, _>(1.., preceded('-', version)),
+                                eof,
+                            )),
+                            "-",
+                        ),
+                    )),
+                ),
+            ),
+        )
+        .take()
+        .parse_next(input)
+    }
+
+    // 3.1.3 Slot names
+    pub(super) fn slot_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace("slot_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+'))).parse_next(input)
+    }
+
+    // 3.1.4 USE flag names
+    pub(super) fn use_flag_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace("use_flag_name", name(AsChar::is_alphanum, ('_', '-', '.', '+', '@')))
+            .parse_next(input)
+    }
+
+    // 3.1.5 Repository names
+    pub(super) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "repository_name",
+            (
+                one_of((AsChar::is_alphanum, '_')),
+                repeat::<_, _, Vec<_>, _, _>(
+                    0..,
+                    alt((
+                        one_of((AsChar::is_alphanum, '_')).take(),
+                        preceded(
+                            not((
+                                repeat::<_, _, Vec<_>, _, _>(0.., preceded('-', version)),
+                                eof,
+                            )),
+                            "-",
+                        ),
+                    )),
+                ),
+            ),
+        )
+        .take()
+        .parse_next(input)
+    }
+
+    // 3.1.6 Eclass names
+    pub(super) fn eclass_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace(
+            "eclass_name",
+            preceded(
+                not("default"),
+                name((AsChar::is_alpha, '_'), (AsChar::is_dec_digit, '-', '.')),
+            ),
+        )
+        .parse_next(input)
+    }
+
+    // 3.1.7 License names
+    pub(super) fn license_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace("license_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+')))
+            .parse_next(input)
+    }
+
+    /// 3.1.8
+    pub(super) fn keyword_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        trace("keyword_name", name((AsChar::is_alphanum, '_'), '-')).parse_next(input)
+    }
+
+    #[inline(always)]
+    fn name<LeadSet, RestSet, Input, Error>(
+        lead: LeadSet,
+        rest: RestSet,
+    ) -> impl Parser<Input, <Input as Stream>::Slice, Error>
+    where
+        Input: StreamIsPartial + Stream,
+        <Input as Stream>::Token: Clone,
+        LeadSet: ContainsToken<<Input as Stream>::Token> + Clone,
+        RestSet: ContainsToken<<Input as Stream>::Token> + Clone,
+        Error: ParserError<Input>,
+    {
+        trace("name", (one_of(lead.clone()), take_while(0.., (lead, rest))).take())
+    }
+
+    #[cfg(test)]
+    mod name_tests {
+        use super::*;
+
+        #[test]
+        fn test_cpv() {
+            assert!(cpv.parse("a/b-1a-1").is_err());
+        }
+
+        #[test]
+        fn test_package() {
+            assert!(package_name.parse("a-1a-1").is_err());
+        }
+
+        #[test]
+        fn test_eclass() {
+            assert!(eclass_name.parse("default").is_err());
+        }
+
+        #[test]
+        fn test_keyword() {
+            assert_eq!(keyword_name.parse("a").unwrap(), "a");
+            assert_eq!(keyword_name.parse("0").unwrap(), "0");
+            assert_eq!(keyword_name.parse("_").unwrap(), "_");
+            assert_eq!(keyword_name.parse("a-").unwrap(), "a-");
+            assert_eq!(keyword_name.parse("0-").unwrap(), "0-");
+            assert_eq!(keyword_name.parse("_-").unwrap(), "_-");
+            assert_eq!(keyword_name.parse("a_").unwrap(), "a_");
+            assert_eq!(keyword_name.parse("0_").unwrap(), "0_");
+            assert_eq!(keyword_name.parse("__").unwrap(), "__");
+            assert_eq!(keyword_name.parse("_a-").unwrap(), "_a-");
+            assert_eq!(keyword_name.parse("_0-").unwrap(), "_0-");
+            assert_eq!(keyword_name.parse("__-").unwrap(), "__-");
+
+            assert!(keyword_name.parse("").is_err());
+            assert!(keyword_name.parse(" ").is_err());
+            assert!(keyword_name.parse("@").is_err());
+            assert!(keyword_name.parse(".").is_err());
+            assert!(keyword_name.parse("+").is_err());
+            assert!(keyword_name.parse("-a").is_err());
+            assert!(keyword_name.parse("-0").is_err());
+            assert!(keyword_name.parse("-_").is_err());
+        }
+    }
+
+    // Parsing version components according to the package manager specification chapter 3.2
+
+    pub(super) fn version_with_op(input: &mut &str) -> ModalResult<Version> {
+        trace("version_with_op", move |input: &mut &str| {
+            let Version {
+                mut op,
+                numbers,
+                letter,
+                suffixes,
+                revision,
+            } = seq!(Version {
+                op: operator.map(Some),
+                numbers: numbers,
+                letter: opt(letter),
+                suffixes: suffixes,
+                revision: revision,
+            })
+            .verify(|version| {
+                // The approximate operator may only be used on package names without a revision
+                if version
+                    .op
+                    .as_ref()
+                    .is_some_and(|op| *op == Operator::Approximate)
+                {
+                    return version.revision.is_empty();
+                }
+                true
+            })
+            .parse_next(input)?;
+
+            // Transform the Equal operator to EqualGlob if the version has a trailing '*'
+            if op.as_ref().is_some_and(|op| *op == Operator::Equal)
+                && opt('*').parse_next(input)?.is_some()
+            {
+                op = Some(Operator::EqualGlob);
+            }
+
+            Ok(Version {
+                op,
+                numbers,
+                letter,
+                suffixes,
+                revision,
+            })
+        })
+        .parse_next(input)
+    }
+
+    pub(super) fn version(input: &mut &str) -> ModalResult<Version> {
+        trace(
+            "version",
+            seq!(Version {
+                op: empty.value(None),
+                numbers: numbers,
+                letter: opt(letter),
+                suffixes: suffixes,
+                revision: revision,
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn operator(input: &mut &str) -> ModalResult<Operator> {
+        trace(
+            "operator",
+            dispatch!(take_while(1..=2, ('<', '=', '>', '~'));
+                "<=" => empty.value(Operator::LessOrEqual),
+                ">=" => empty.value(Operator::GreaterOrEqual),
+                "<" => empty.value(Operator::Less),
+                "=" => empty.value(Operator::Equal),
+                "~" => empty.value(Operator::Approximate),
+                ">" => empty.value(Operator::Greater),
+                _ => fail,
+            ),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn numbers(input: &mut &str) -> ModalResult<Vec<Number>> {
+        trace("numbers", separated(1.., number, '.')).parse_next(input)
+    }
+
+    pub(super) fn letter(input: &mut &str) -> ModalResult<char> {
+        trace("letter", one_of('a'..='z')).parse_next(input)
+    }
+
+    pub(super) fn suffixes(input: &mut &str) -> ModalResult<Vec<Suffix>> {
+        trace("suffixes", repeat(0.., suffix)).parse_next(input)
+    }
+
+    pub(super) fn suffix(input: &mut &str) -> ModalResult<Suffix> {
+        trace(
+            "suffix",
+            seq!(Suffix {
+                _: '_',
+                kind: suffix_kind,
+                version: opt(number),
+            }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn suffix_kind(input: &mut &str) -> ModalResult<SuffixKind> {
+        trace(
+            "suffix_kind",
+            dispatch!(alpha1;
+                "alpha" => empty.value(SuffixKind::Alpha),
+                "beta" => empty.value(SuffixKind::Beta),
+                "pre" => empty.value(SuffixKind::Pre),
+                "rc" => empty.value(SuffixKind::Rc),
+                "p" => empty.value(SuffixKind::P),
+                _ => fail,
+            ),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn revision(input: &mut &str) -> ModalResult<Revision> {
+        trace("revision", opt(preceded("-r", number)))
+            .parse_next(input)
+            .map(Option::unwrap_or_default)
+            .map(Revision)
+    }
+
+    pub(super) fn number(input: &mut &str) -> ModalResult<Number> {
+        trace("number", move |input: &mut &str| {
+            let start = input.checkpoint();
+            let raw = digit1.parse_next(input)?;
+            let value = raw.parse_slice().ok_or_else(|| {
+                input.reset(&start);
+                ParserError::from_input(input)
+            })?;
+            Ok(Number { raw: raw.to_string(), value })
+        })
+        .parse_next(input)
+    }
+
+    #[cfg(test)]
+    mod version_tests {
+        use super::*;
+
+        #[test]
+        fn test_version_with_op() {
+            insta::assert_yaml_snapshot!(version_with_op.parse("=0").unwrap());
+            insta::assert_yaml_snapshot!(version_with_op.parse("=0*").unwrap());
+
+            assert!(version_with_op.parse("").is_err());
+            assert!(version_with_op.parse(" ").is_err());
+            assert!(version_with_op.parse("0").is_err());
+            assert!(version_with_op.parse("*0").is_err());
+            assert!(version_with_op.parse("0=").is_err());
+        }
+
+        #[test]
+        fn test_version() {
+            insta::assert_yaml_snapshot!(version.parse("0").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1a").unwrap());
+            insta::assert_yaml_snapshot!(version
+                .parse("1.2.3a_alpha_alpha4_beta5_pre6_rc7_p8-r9")
+                .unwrap());
+
+            // Numeric limits
+            insta::assert_yaml_snapshot!(version.parse("18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1.18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1.2.18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1_p18446744073709551615").unwrap());
+            insta::assert_yaml_snapshot!(version.parse("1-r18446744073709551615").unwrap());
+
+            // Invalid
+            assert!(version.parse("").is_err());
+            assert!(version.parse(" ").is_err());
+            assert!(version.parse(".").is_err());
+            assert!(version.parse("-1").is_err());
+            assert!(version.parse(".1").is_err());
+            assert!(version.parse("a").is_err());
+            assert!(version.parse("a1").is_err());
+            assert!(version.parse("1a-1").is_err());
+            assert!(version.parse("1a-1a").is_err());
+            assert!(version.parse("1aa").is_err());
+            assert!(version.parse("1.a").is_err());
+            assert!(version.parse("1_a").is_err());
+            assert!(version.parse("1a.2").is_err());
+            assert!(version.parse("1..2").is_err());
+
+            // Numeric overflow
+            assert!(version.parse("18446744073709551616").is_err());
+            assert!(version.parse("1.18446744073709551616").is_err());
+            assert!(version.parse("1.2.18446744073709551616").is_err());
+            assert!(version.parse("1_p18446744073709551616").is_err());
+            assert!(version.parse("1-r18446744073709551616").is_err());
+        }
+
+        #[test]
+        fn test_operator() {
+            assert_eq!(operator.parse(">=").unwrap(), Operator::GreaterOrEqual);
+            assert_eq!(operator.parse(">").unwrap(), Operator::Greater);
+            assert_eq!(operator.parse("<=").unwrap(), Operator::LessOrEqual);
+            assert_eq!(operator.parse("<").unwrap(), Operator::Less);
+            assert_eq!(operator.parse("=").unwrap(), Operator::Equal);
+            assert_eq!(operator.parse("~").unwrap(), Operator::Approximate);
+        }
+
+        #[test]
+        fn test_letter() {
+            assert_eq!(letter.parse("a").unwrap(), 'a');
+            assert_eq!(letter.parse("z").unwrap(), 'z');
+
+            assert!(letter.parse("").is_err());
+            assert!(letter.parse("A").is_err());
+            assert!(letter.parse("0").is_err());
+            assert!(letter.parse(".").is_err());
+            assert!(letter.parse("-").is_err());
+            assert!(letter.parse("_").is_err());
+            assert!(letter.parse("+").is_err());
+            assert!(letter.parse("@").is_err());
+            assert!(letter.parse("ab").is_err());
+        }
+
+        #[test]
+        fn test_suffix() {
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_beta").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_pre").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_rc").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_p").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha0").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha01").unwrap());
+            insta::assert_yaml_snapshot!(suffix.parse("_alpha1").unwrap());
+
+            assert!(suffix.parse("").is_err());
+            assert!(suffix.parse(" ").is_err());
+            assert!(suffix.parse("_").is_err());
+            assert!(suffix.parse("a").is_err());
+            assert!(suffix.parse("0").is_err());
+            assert!(suffix.parse("-alpha").is_err());
+            assert!(suffix.parse("_alphaa").is_err());
+            assert!(suffix.parse("_aalpha").is_err());
+            assert!(suffix.parse("aalpha").is_err());
+            assert!(suffix.parse("0alpha").is_err());
+        }
+
+        #[test]
+        fn test_revision() {
+            insta::assert_yaml_snapshot!(revision.parse("").unwrap());
+            insta::assert_yaml_snapshot!(revision.parse("-r1").unwrap());
+            insta::assert_yaml_snapshot!(revision.parse("-r01").unwrap());
+
+            assert!(revision.parse(" ").is_err());
+            assert!(revision.parse("a").is_err());
+            assert!(revision.parse("1").is_err());
+            assert!(revision.parse("-a").is_err());
+            assert!(revision.parse("-r").is_err());
+            assert!(revision.parse("-1").is_err());
+            assert!(revision.parse("-ra").is_err());
+            assert!(revision.parse("-r1a").is_err());
+        }
+
+        #[test]
+        fn test_number() {
+            insta::assert_yaml_snapshot!(number.parse("0").unwrap());
+            insta::assert_yaml_snapshot!(number.parse("01").unwrap());
+            insta::assert_yaml_snapshot!(number.parse("10").unwrap());
+
+            assert!(number.parse("").is_err());
+            assert!(number.parse(" ").is_err());
+        }
+    }
+
+    // Depedency parsers
+
+    pub(super) fn blocker(input: &mut &str) -> ModalResult<Blocker> {
+        ('!', opt('!')).take().parse_to().parse_next(input)
+    }
+
+    pub(super) fn slot_dep(input: &mut &str) -> ModalResult<SlotDep> {
+        dispatch!(repeat::<_, _, Vec<_>, _, _>(0.., any).take();
+            "=" => empty.value(SlotDep::Op(SlotOperator::Equal)),
+            "*" => empty.value(SlotDep::Op(SlotOperator::Star)),
+            _ => (slot, opt("="))
+                .map(|(slot, op)| if op.is_some() {
+                    SlotDep::SlotOp(slot, SlotOperator::Equal)
+                } else {
+                    SlotDep::Slot(slot)
+                }),
+        )
+        .parse_next(input)
+    }
+
+    pub(super) fn slot_dep_str(input: &mut &str) -> ModalResult<SlotDep> {
+        preceded(':', slot_dep).parse_next(input)
+    }
+
+    pub(super) fn iuse(input: &mut &str) -> ModalResult<Iuse> {
+        seq!(Iuse {
+            flag: use_flag_name.map(str::to_string),
+            default: opt(alt(('+'.value(true), '-'.value(false))))
+        })
+        .parse_next(input)
+    }
+
+    fn use_dep_default(input: &mut &str) -> ModalResult<bool> {
+        delimited('(', alt(('+'.value(true), '-'.value(false))), ')').parse_next(input)
+    }
+
+    pub(super) fn use_dep(input: &mut &str) -> ModalResult<UseDep> {
+        let disabled = opt(alt(('!', '-'))).parse_next(input)?;
+        let flag = use_flag_name.map(str::to_string).parse_next(input)?;
+        let default = opt(use_dep_default).parse_next(input)?;
+        let kind = if let Some(disabled) = disabled {
+            if disabled == '!' {
+                alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional)))
+                    .parse_next(input)?
+            } else {
+                UseDepKind::Enabled
+            }
+        } else {
+            opt(alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional))))
+                .parse_next(input)?
+                .unwrap_or(UseDepKind::Enabled)
+        };
+        Ok(UseDep {
+            flag,
+            kind,
+            enabled: disabled.is_none(),
+            default,
+        })
+    }
+
+    fn use_deps(input: &mut &str) -> ModalResult<SortedSet<UseDep>> {
+        let _ = '['.parse_next(input)?;
+        let use_deps: Vec<_> = separated(1.., use_dep, ',').parse_next(input)?;
+        let _ = ']'.parse_next(input)?;
+        Ok(SortedSet::from_iter(use_deps))
+    }
+
+    fn repo_dep<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+        preceded("::", repository_name).parse_next(input)
+    }
+
+    fn dep_op_pkg(input: &mut &str) -> ModalResult<Dep> {
+        let mut op = operator.parse_next(input)?;
+        let Cpv { cpn, version } = cpv.parse_next(input)?;
+        if op == Operator::Equal && opt('*').parse_next(input)?.is_some() {
+            op = Operator::EqualGlob;
+        }
+        Ok(Dep {
+            cpn,
+            version: Some(version.with_op(op).unwrap()),
+            blocker: None,
+            slot_dep: None,
+            use_deps: None,
+            repo: None,
+        })
+    }
+
+    fn dep_pkg(input: &mut &str) -> ModalResult<Dep> {
+        alt((cpn.map(Into::into), dep_op_pkg)).parse_next(input)
+    }
+
+    pub(super) fn dep(input: &mut &str) -> ModalResult<Dep> {
+        let (blocker, Dep { cpn, version, .. }, slot_dep, repo, use_deps) = (
+            opt(blocker),
+            dep_pkg,
+            opt(slot_dep_str),
+            opt(repo_dep.map(str::to_string)),
+            opt(use_deps),
+        )
+            .parse_next(input)?;
+        Ok(Dep {
+            cpn,
+            version,
+            blocker,
+            slot_dep,
+            use_deps,
+            repo,
+        })
+    }
+
+    pub(super) fn cpv_or_dep(input: &mut &str) -> ModalResult<CpvOrDep> {
+        alt((cpv.map(CpvOrDep::Cpv), dep.map(CpvOrDep::Dep))).parse_next(input)
+    }
+
+    #[cfg(test)]
+    mod dep_tests {
+        use super::*;
+
+        #[test]
+        fn parse_blocker() {
+            assert_eq!(blocker.parse("!"), Ok(Blocker::Weak));
+            assert_eq!(blocker.parse("!!"), Ok(Blocker::Strong));
+
+            assert!(blocker.parse("").is_err());
+            assert!(blocker.parse(" ").is_err());
+        }
+    }
 }
 
 #[cfg(test)]
