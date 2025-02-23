@@ -580,9 +580,9 @@ mod parser {
                         ),
                     )),
                 ),
-            ),
+            )
+                .take(),
         )
-        .take()
         .parse_next(input)
     }
 
@@ -616,9 +616,9 @@ mod parser {
                         ),
                     )),
                 ),
-            ),
+            )
+                .take(),
         )
-        .take()
         .parse_next(input)
     }
 
@@ -976,115 +976,135 @@ mod parser {
     // Depedency parsers
 
     pub(super) fn blocker(input: &mut &str) -> ModalResult<Blocker> {
-        ('!', opt('!')).take().parse_to().parse_next(input)
+        trace("blocker", ('!', opt('!')).take().parse_to()).parse_next(input)
     }
 
     pub(super) fn slot_dep(input: &mut &str) -> ModalResult<SlotDep> {
-        dispatch!(repeat::<_, _, Vec<_>, _, _>(0.., any).take();
-            "=" => empty.value(SlotDep::Op(SlotOperator::Equal)),
-            "*" => empty.value(SlotDep::Op(SlotOperator::Star)),
-            _ => (slot, opt("="))
-                .map(|(slot, op)| if op.is_some() {
-                    SlotDep::SlotOp(slot, SlotOperator::Equal)
-                } else {
-                    SlotDep::Slot(slot)
-                }),
+        trace(
+            "slot_dep",
+            dispatch!(repeat::<_, _, Vec<_>, _, _>(0.., any).take();
+                "=" => empty.value(SlotDep::Op(SlotOperator::Equal)),
+                "*" => empty.value(SlotDep::Op(SlotOperator::Star)),
+                _ => (slot, opt("="))
+                    .map(|(slot, op)| if op.is_some() {
+                        SlotDep::SlotOp(slot, SlotOperator::Equal)
+                    } else {
+                        SlotDep::Slot(slot)
+                    }),
+            ),
         )
         .parse_next(input)
     }
 
     pub(super) fn slot_dep_str(input: &mut &str) -> ModalResult<SlotDep> {
-        preceded(':', slot_dep).parse_next(input)
+        trace("slot_dep_str", preceded(':', slot_dep)).parse_next(input)
     }
 
     pub(super) fn iuse(input: &mut &str) -> ModalResult<Iuse> {
-        seq!(Iuse {
-            flag: use_flag_name.map(str::to_string),
-            default: opt(alt(('+'.value(true), '-'.value(false))))
-        })
+        trace(
+            "iuse",
+            seq!(Iuse {
+                flag: use_flag_name.map(str::to_string),
+                default: opt(alt(('+'.value(true), '-'.value(false))))
+            }),
+        )
         .parse_next(input)
     }
 
     fn use_dep_default(input: &mut &str) -> ModalResult<bool> {
-        delimited('(', alt(('+'.value(true), '-'.value(false))), ')').parse_next(input)
+        trace("use_dep_default", delimited('(', alt(('+'.value(true), '-'.value(false))), ')'))
+            .parse_next(input)
     }
 
     pub(super) fn use_dep(input: &mut &str) -> ModalResult<UseDep> {
-        let disabled = opt(alt(('!', '-'))).parse_next(input)?;
-        let flag = use_flag_name.map(str::to_string).parse_next(input)?;
-        let default = opt(use_dep_default).parse_next(input)?;
-        let kind = if let Some(disabled) = disabled {
-            if disabled == '!' {
-                alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional)))
-                    .parse_next(input)?
+        trace("use_dep", |input: &mut &str| {
+            let disabled = opt(alt(('!', '-'))).parse_next(input)?;
+            let flag = use_flag_name.map(str::to_string).parse_next(input)?;
+            let default = opt(use_dep_default).parse_next(input)?;
+            let kind = if let Some(disabled) = disabled {
+                if disabled == '!' {
+                    alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional)))
+                        .parse_next(input)?
+                } else {
+                    UseDepKind::Enabled
+                }
             } else {
-                UseDepKind::Enabled
-            }
-        } else {
-            opt(alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional))))
-                .parse_next(input)?
-                .unwrap_or(UseDepKind::Enabled)
-        };
-        Ok(UseDep {
-            flag,
-            kind,
-            enabled: disabled.is_none(),
-            default,
+                opt(alt(('='.value(UseDepKind::Equal), '?'.value(UseDepKind::Conditional))))
+                    .parse_next(input)?
+                    .unwrap_or(UseDepKind::Enabled)
+            };
+            Ok(UseDep {
+                flag,
+                kind,
+                enabled: disabled.is_none(),
+                default,
+            })
         })
+        .parse_next(input)
     }
 
     fn use_deps(input: &mut &str) -> ModalResult<SortedSet<UseDep>> {
-        let _ = '['.parse_next(input)?;
-        let use_deps: Vec<_> = separated(1.., use_dep, ',').parse_next(input)?;
-        let _ = ']'.parse_next(input)?;
-        Ok(SortedSet::from_iter(use_deps))
+        trace("use_deps", |input: &mut &str| {
+            let _ = '['.parse_next(input)?;
+            let use_deps: Vec<_> = separated(1.., use_dep, ',').parse_next(input)?;
+            let _ = ']'.parse_next(input)?;
+            Ok(SortedSet::from_iter(use_deps))
+        })
+        .parse_next(input)
     }
 
     fn repo_dep<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        preceded("::", repository_name).parse_next(input)
+        trace("repo_dep", preceded("::", repository_name)).parse_next(input)
     }
 
     fn dep_op_pkg(input: &mut &str) -> ModalResult<Dep> {
-        let mut op = operator.parse_next(input)?;
-        let Cpv { cpn, version } = cpv.parse_next(input)?;
-        if op == Operator::Equal && opt('*').parse_next(input)?.is_some() {
-            op = Operator::EqualGlob;
-        }
-        Ok(Dep {
-            cpn,
-            version: Some(version.with_op(op).unwrap()),
-            blocker: None,
-            slot_dep: None,
-            use_deps: None,
-            repo: None,
+        trace("dep_op_pkg", |input: &mut &str| {
+            let mut op = operator.parse_next(input)?;
+            let Cpv { cpn, version } = cpv.parse_next(input)?;
+            if op == Operator::Equal && opt('*').parse_next(input)?.is_some() {
+                op = Operator::EqualGlob;
+            }
+            Ok(Dep {
+                cpn,
+                version: Some(version.with_op(op).unwrap()),
+                blocker: None,
+                slot_dep: None,
+                use_deps: None,
+                repo: None,
+            })
         })
+        .parse_next(input)
     }
 
     fn dep_pkg(input: &mut &str) -> ModalResult<Dep> {
-        alt((cpn.map(Into::into), dep_op_pkg)).parse_next(input)
+        trace("dep_pkg", alt((cpn.map(Into::into), dep_op_pkg))).parse_next(input)
     }
 
     pub(super) fn dep(input: &mut &str) -> ModalResult<Dep> {
-        let (blocker, Dep { cpn, version, .. }, slot_dep, repo, use_deps) = (
-            opt(blocker),
-            dep_pkg,
-            opt(slot_dep_str),
-            opt(repo_dep.map(str::to_string)),
-            opt(use_deps),
-        )
-            .parse_next(input)?;
-        Ok(Dep {
-            cpn,
-            version,
-            blocker,
-            slot_dep,
-            use_deps,
-            repo,
+        trace("dep", |input: &mut &str| {
+            let (blocker, Dep { cpn, version, .. }, slot_dep, repo, use_deps) = (
+                opt(blocker),
+                dep_pkg,
+                opt(slot_dep_str),
+                opt(repo_dep.map(str::to_string)),
+                opt(use_deps),
+            )
+                .parse_next(input)?;
+            Ok(Dep {
+                cpn,
+                version,
+                blocker,
+                slot_dep,
+                use_deps,
+                repo,
+            })
         })
+        .parse_next(input)
     }
 
     pub(super) fn cpv_or_dep(input: &mut &str) -> ModalResult<CpvOrDep> {
-        alt((cpv.map(CpvOrDep::Cpv), dep.map(CpvOrDep::Dep))).parse_next(input)
+        trace("cpv_or_dep", alt((cpv.map(CpvOrDep::Cpv), dep.map(CpvOrDep::Dep))))
+            .parse_next(input)
     }
 
     #[cfg(test)]
