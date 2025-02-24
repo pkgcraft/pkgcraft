@@ -2,11 +2,13 @@ use std::collections::HashMap;
 
 use pkgcraft::bash::Node;
 use pkgcraft::dep::Dep;
+use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage};
+use pkgcraft::shell::scope::{EbuildScope, Scope};
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
-use crate::report::ReportKind::{Builtin, Optfeature};
+use crate::report::ReportKind::{Builtin, CommandScopeInvalid, Optfeature};
 use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
@@ -16,15 +18,27 @@ type CommandFn =
 
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     let mut check = Check { commands: Default::default() };
+
+    // register non-EAPI commands
     check.register(["find", "xargs"], builtins);
     check.register(["optfeature"], optfeature);
+
+    // register EAPI commands
+    for eapi in &*EAPIS {
+        let cmds = eapi
+            .commands()
+            .iter()
+            .filter(|cmd| !cmd.allowed.contains(&EbuildScope::All));
+        check.register_eapi(eapi, cmds, eapi_command);
+    }
+
     check
 }
 
 static CHECK: super::Check = super::Check::Commands;
 
 struct Check {
-    commands: HashMap<String, Vec<CommandFn>>,
+    commands: HashMap<&'static Eapi, HashMap<String, Vec<CommandFn>>>,
 }
 
 impl Check {
@@ -35,7 +49,27 @@ impl Check {
         I::Item: std::fmt::Display,
     {
         for name in names {
+            for eapi in &*EAPIS {
+                self.commands
+                    .entry(eapi)
+                    .or_default()
+                    .entry(name.to_string())
+                    .or_default()
+                    .push(func);
+            }
+        }
+    }
+
+    /// Register EAPI commands for the check to handle.
+    fn register_eapi<I>(&mut self, eapi: &'static Eapi, names: I, func: CommandFn)
+    where
+        I: IntoIterator,
+        I::Item: std::fmt::Display,
+    {
+        for name in names {
             self.commands
+                .entry(eapi)
+                .or_default()
                 .entry(name.to_string())
                 .or_default()
                 .push(func);
@@ -102,14 +136,43 @@ fn optfeature<'a>(
     }
 }
 
+/// Flag issues with EAPI commands.
+fn eapi_command<'a>(
+    cmd: &str,
+    func_node: &Node<'a>,
+    cmd_node: &Node<'a>,
+    _cursor: &mut TreeCursor<'a>,
+    pkg: &EbuildRawPkg,
+    run: &ScannerRun,
+) {
+    let cmd = pkg.eapi().commands().get(cmd).unwrap();
+    let func_name = func_node.name().unwrap_or_default();
+    // TODO: handle nested function calls
+    if let Some(scope) = Scope::from_func(func_name) {
+        if !cmd.is_allowed(&scope) {
+            CommandScopeInvalid
+                .version(pkg)
+                .message(format!("{scope}: {cmd}"))
+                .location(cmd_node)
+                .report(run);
+        }
+    }
+}
+
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
+        let eapi = pkg.eapi();
+        let cmds = self
+            .commands
+            .get(eapi)
+            .unwrap_or_else(|| panic!("{pkg}: no commands registered for EAPI {eapi}"));
+
         let mut cursor = pkg.tree().walk();
         for func_node in pkg.tree().iter_func() {
             for (cmd, cmd_node, funcs) in func_node
                 .into_iter()
                 .filter(|x| x.kind() == "command_name")
-                .filter_map(|x| self.commands.get(x.as_str()).map(|funcs| (x, funcs)))
+                .filter_map(|x| cmds.get(x.as_str()).map(|funcs| (x, funcs)))
                 .filter_map(|(x, funcs)| x.parent().map(|node| (x.to_string(), node, funcs)))
             {
                 for f in funcs {

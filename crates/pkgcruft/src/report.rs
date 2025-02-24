@@ -397,6 +397,9 @@ pub enum ReportKind {
     /// Ebuild uses a bash builtin as an external command.
     Builtin,
 
+    /// An EAPI command is used in an invalid scope.
+    CommandScopeInvalid,
+
     /// Package dependency flagged as deprecated by the repo.
     DependencyDeprecated,
 
@@ -628,6 +631,7 @@ impl ReportKind {
         match self {
             Self::ArchesUnused => Warning,
             Self::Builtin => Error,
+            Self::CommandScopeInvalid => Error,
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Error,
             Self::DependencyRevisionMissing => Warning,
@@ -693,6 +697,7 @@ impl ReportKind {
         match self {
             Self::ArchesUnused => Scope::Repo,
             Self::Builtin => Scope::Version,
+            Self::CommandScopeInvalid => Scope::Version,
             Self::DependencyDeprecated => Scope::Version,
             Self::DependencyInvalid => Scope::Version,
             Self::DependencyRevisionMissing => Scope::Version,
