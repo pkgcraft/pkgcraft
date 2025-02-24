@@ -230,7 +230,7 @@ pub(crate) use _phases::SRC_UNPACK as src_unpack_stub;
 #[derive(Debug, Clone)]
 pub struct Command {
     builtin: Builtin,
-    allowed: HashSet<EbuildScope>,
+    pub allowed: HashSet<EbuildScope>,
 }
 
 impl PartialEq for Command {
@@ -312,7 +312,7 @@ impl Command {
     }
 
     /// Determine if the command is allowed in a given `Scope`.
-    pub(crate) fn is_allowed(&self, scope: &Scope) -> bool {
+    pub fn is_allowed(&self, scope: &Scope) -> bool {
         self.allowed.iter().any(|x| x == scope)
     }
 
