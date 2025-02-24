@@ -4,7 +4,7 @@ use pkgcraft::bash::Node;
 use pkgcraft::dep::Dep;
 use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage};
-use pkgcraft::shell::scope::{EbuildScope, Scope};
+use pkgcraft::shell::scope::Scope;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
@@ -25,11 +25,7 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
 
     // register EAPI commands
     for eapi in &*EAPIS {
-        let cmds = eapi
-            .commands()
-            .iter()
-            .filter(|cmd| !cmd.allowed.contains(&EbuildScope::All));
-        check.register_eapi(eapi, cmds, eapi_command);
+        check.register_eapi(eapi, eapi.commands(), eapi_command);
     }
 
     check
@@ -145,14 +141,20 @@ fn eapi_command<'a>(
     pkg: &EbuildRawPkg,
     run: &ScannerRun,
 ) {
-    let cmd = pkg.eapi().commands().get(cmd).unwrap();
+    let eapi_cmd = pkg.eapi().commands().get(cmd).unwrap();
     let func_name = func_node.name().unwrap_or_default();
     // TODO: handle nested function calls
     if let Some(scope) = Scope::from_func(func_name) {
-        if !cmd.is_allowed(&scope) {
+        if !eapi_cmd.is_allowed(&scope) {
             CommandScopeInvalid
                 .version(pkg)
                 .message(format!("{cmd}: disabled in {scope} scope"))
+                .location(cmd_node)
+                .report(run);
+        } else if Scope::from_func(cmd).is_some() {
+            CommandScopeInvalid
+                .version(pkg)
+                .message(format!("{cmd}: direct phase call"))
                 .location(cmd_node)
                 .report(run);
         }
