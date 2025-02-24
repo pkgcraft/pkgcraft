@@ -152,7 +152,7 @@ fn eapi_command<'a>(
         if !cmd.is_allowed(&scope) {
             CommandScopeInvalid
                 .version(pkg)
-                .message(format!("{scope}: {cmd}"))
+                .message(format!("{cmd}: disabled in {scope} scope"))
                 .location(cmd_node)
                 .report(run);
         }
