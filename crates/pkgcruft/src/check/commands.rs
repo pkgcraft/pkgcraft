@@ -11,7 +11,8 @@ use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
-type CommandFn = for<'a> fn(&str, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ScannerRun);
+type CommandFn =
+    for<'a> fn(&str, &Node<'a>, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ScannerRun);
 
 pub(crate) fn create() -> impl EbuildRawPkgCheck {
     let mut check = Check { commands: Default::default() };
@@ -47,17 +48,18 @@ super::register!(Check);
 /// Flag builtins used as external commands.
 fn builtins<'a>(
     cmd: &str,
-    node: &Node<'a>,
+    _func_node: &Node<'a>,
+    cmd_node: &Node<'a>,
     cursor: &mut TreeCursor<'a>,
     pkg: &EbuildRawPkg,
     run: &ScannerRun,
 ) {
-    for x in node.children(cursor).filter(|x| x.kind() == "word") {
+    for x in cmd_node.children(cursor).filter(|x| x.kind() == "word") {
         if let Some(builtin) = pkg.eapi().commands().get(x.as_str()) {
             Builtin
                 .version(pkg)
                 .message(format!("{cmd} uses {builtin}"))
-                .location(node)
+                .location(cmd_node)
                 .report(run);
         }
     }
@@ -67,12 +69,17 @@ fn builtins<'a>(
 /// Flag issues with optfeature usage.
 fn optfeature<'a>(
     _cmd: &str,
-    node: &Node<'a>,
+    _func_node: &Node<'a>,
+    cmd_node: &Node<'a>,
     cursor: &mut TreeCursor<'a>,
     pkg: &EbuildRawPkg,
     run: &ScannerRun,
 ) {
-    for x in node.children(cursor).skip(2).filter(|x| x.kind() == "word") {
+    for x in cmd_node
+        .children(cursor)
+        .skip(2)
+        .filter(|x| x.kind() == "word")
+    {
         match Dep::try_new(x) {
             Ok(dep) => {
                 // TODO: move inherited repo search to pkgcraft
@@ -80,7 +87,7 @@ fn optfeature<'a>(
                     Optfeature
                         .version(pkg)
                         .message(format!("nonexistent dep: {x}"))
-                        .location(node)
+                        .location(cmd_node)
                         .report(run);
                 }
             }
@@ -88,7 +95,7 @@ fn optfeature<'a>(
                 Optfeature
                     .version(pkg)
                     .message(format!("invalid dep: {x}"))
-                    .location(node)
+                    .location(cmd_node)
                     .report(run);
             }
         }
@@ -98,16 +105,16 @@ fn optfeature<'a>(
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let mut cursor = pkg.tree().walk();
-        // TODO: use parse tree query
-        for (cmd, node, funcs) in pkg
-            .tree()
-            .iter_func()
-            .filter(|x| x.kind() == "command_name")
-            .filter_map(|x| self.commands.get(x.as_str()).map(|funcs| (x, funcs)))
-            .filter_map(|(x, funcs)| x.parent().map(|node| (x.to_string(), node, funcs)))
-        {
-            for f in funcs {
-                f(&cmd, &node, &mut cursor, pkg, run);
+        for func_node in pkg.tree().iter_func() {
+            for (cmd, cmd_node, funcs) in func_node
+                .into_iter()
+                .filter(|x| x.kind() == "command_name")
+                .filter_map(|x| self.commands.get(x.as_str()).map(|funcs| (x, funcs)))
+                .filter_map(|(x, funcs)| x.parent().map(|node| (x.to_string(), node, funcs)))
+            {
+                for f in funcs {
+                    f(&cmd, &func_node, &cmd_node, &mut cursor, pkg, run);
+                }
             }
         }
     }

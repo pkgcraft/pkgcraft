@@ -32,16 +32,15 @@ impl<'a> Tree<'a> {
         Self { data, tree }
     }
 
-    /// Return an iterator over all global nodes, skipping function scope.
+    /// Return an iterator over global nodes, skipping function scope.
     pub fn iter_global(&self) -> impl Iterator<Item = Node> {
         self.into_iter().skip(["function_definition"])
     }
 
-    /// Return an iterator over all function nodes, skipping global scope.
+    /// Return an iterator over function nodes, skipping global scope.
     pub fn iter_func(&self) -> impl Iterator<Item = Node> {
         self.into_iter()
             .filter(|x| x.kind() == "function_definition")
-            .flatten()
     }
 
     /// Return the last node for a given position if one exists.
