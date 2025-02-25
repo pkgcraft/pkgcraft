@@ -19,12 +19,12 @@ pub(crate) fn run(args: &[&str]) -> crate::Result<ExecStatus> {
 
     let mut loops = 0;
     let mut elapsed = Duration::new(0, 0);
-    let orig_cmd = args.join(" ");
-    eprintln!("profiling: {orig_cmd}");
+    let cmd = args.join(" ");
+    eprintln!("profiling: {cmd}");
 
     // force success so the shell doesn't exit prematurely while profiling
-    let cmd_str = format!("{orig_cmd} || :");
-    let cmd = Command::new(cmd_str, None)?;
+    let cmd_str = format!("{cmd} || :");
+    let cmd: Command = cmd_str.parse()?;
     let start = Instant::now();
     while elapsed.as_secs() < 3 {
         cmd.execute().ok();

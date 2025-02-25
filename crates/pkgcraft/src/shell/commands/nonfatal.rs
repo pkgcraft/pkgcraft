@@ -1,4 +1,4 @@
-use scallop::{command, Error, ExecStatus};
+use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
@@ -22,22 +22,18 @@ struct Command {
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-    let cmd = cmd.command.as_str();
+    let program = cmd.command.as_str();
+    let mut command = scallop::command::Command::new(program);
 
     // enable nonfatal status
     let build = get_build_mut();
     build.nonfatal = true;
 
     // use subshell for `die` and external commands
-    let flags = if cmd == "die" || !build.eapi().commands().contains(cmd) {
-        Some(command::Flags::FORCE_SUBSHELL)
-    } else {
-        None
-    };
+    let subshell = program == "die" || !build.eapi().commands().contains(program);
 
     // run the specified command
-    let cmd = command::Command::new(args.join(" "), flags)?;
-    let result = match cmd.execute() {
+    let result = match command.args(cmd.args).subshell(subshell).execute() {
         r @ (Ok(_) | Err(Error::Bail(_))) => r,
         Err(Error::Status(s)) => Ok(s),
         _ => Ok(ExecStatus::Failure(1)),

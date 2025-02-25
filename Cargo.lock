@@ -2778,6 +2778,7 @@ dependencies = [
  "ctor",
  "indexmap 2.7.1",
  "ipc-channel",
+ "itertools 0.14.0",
  "libc",
  "nix",
  "num_cpus",

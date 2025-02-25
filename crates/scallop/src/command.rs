@@ -4,6 +4,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 
 use bitflags::bitflags;
+use itertools::Itertools;
 
 use crate::error::{ok_or_error, Error};
 use crate::{bash, ExecStatus};
@@ -22,21 +23,82 @@ bitflags! {
     }
 }
 
-#[derive(Debug)]
 pub struct Command {
-    ptr: *mut bash::Command,
+    args: Vec<String>,
+    flags: Option<Flags>,
 }
 
 impl Command {
-    pub fn new<S: AsRef<str>>(s: S, flags: Option<Flags>) -> crate::Result<Self> {
-        let cmd: Self = s.as_ref().parse()?;
-        if let Some(flags) = flags {
-            unsafe { (*cmd.ptr).flags |= flags.bits() as i32 };
+    pub fn new<S: std::fmt::Display>(program: S) -> Self {
+        Self {
+            args: vec![program.to_string()],
+            flags: None,
         }
-        Ok(cmd)
+    }
+
+    pub fn args<I>(&mut self, args: I) -> &mut Self
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        self.args.extend(args.into_iter().map(Into::into));
+        self
+    }
+
+    pub fn subshell(&mut self, value: bool) -> &mut Self {
+        if value {
+            self.flags = Some(Flags::FORCE_SUBSHELL);
+        }
+        self
+    }
+
+    pub fn invert(&mut self, value: bool) -> &mut Self {
+        if value {
+            self.flags = Some(Flags::INVERT_RETURN);
+        }
+        self
     }
 
     pub fn execute(&self) -> crate::Result<ExecStatus> {
+        let cmd: RawCommand = self.try_into()?;
+        cmd.execute()
+    }
+}
+
+impl FromStr for Command {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // TODO: use shlex to split string
+        Ok(Self {
+            args: s.split(' ').map(Into::into).collect(),
+            flags: None,
+        })
+    }
+}
+
+impl TryFrom<&Command> for RawCommand {
+    type Error = Error;
+
+    fn try_from(value: &Command) -> crate::Result<Self> {
+        let cmd: Self = value.args.iter().join(" ").parse()?;
+
+        // apply flags
+        if let Some(flags) = &value.flags {
+            unsafe { (*cmd.ptr).flags |= flags.bits() as i32 };
+        }
+
+        Ok(cmd)
+    }
+}
+
+#[derive(Debug)]
+struct RawCommand {
+    ptr: *mut bash::Command,
+}
+
+impl RawCommand {
+    fn execute(&self) -> crate::Result<ExecStatus> {
         ok_or_error(|| match unsafe { bash::scallop_execute_command(self.ptr) } {
             0 => Ok(ExecStatus::Success),
             n => Err(Error::Status(ExecStatus::Failure(n))),
@@ -44,16 +106,7 @@ impl Command {
     }
 }
 
-impl Drop for Command {
-    fn drop(&mut self) {
-        unsafe { bash::dispose_command(self.ptr) };
-    }
-}
-
-static COMMAND_MARKER: LazyLock<CString> =
-    LazyLock::new(|| CString::new("Command::from_str").unwrap());
-
-impl FromStr for Command {
+impl FromStr for RawCommand {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -81,9 +134,18 @@ impl FromStr for Command {
             bash::pop_stream();
         }
 
-        Ok(Command { ptr: cmd })
+        Ok(Self { ptr: cmd })
     }
 }
+
+impl Drop for RawCommand {
+    fn drop(&mut self) {
+        unsafe { bash::dispose_command(self.ptr) };
+    }
+}
+
+static COMMAND_MARKER: LazyLock<CString> =
+    LazyLock::new(|| CString::new("Command::from_str").unwrap());
 
 /// Get the currently running command name if one exists.
 pub fn current<'a>() -> Option<&'a str> {
@@ -114,36 +176,25 @@ mod tests {
 
     #[test]
     fn new_and_execute() {
-        let cmd = Command::new("VAR=0", None).unwrap();
+        let cmd: Command = "VAR=0".parse().unwrap();
         cmd.execute().unwrap();
         assert_eq!(optional("VAR").unwrap(), "0");
 
-        let cmd = Command::new("VAR=1", Some(Flags::WANT_SUBSHELL)).unwrap();
-        cmd.execute().unwrap();
+        let mut cmd: Command = "VAR=1".parse().unwrap();
+        cmd.subshell(true).execute().unwrap();
         assert_eq!(optional("VAR").unwrap(), "0");
 
-        let cmd = Command::new("VAR=1", Some(Flags::FORCE_SUBSHELL)).unwrap();
-        cmd.execute().unwrap();
-        assert_eq!(optional("VAR").unwrap(), "0");
-
-        let cmd = Command::new("VAR=1", Some(Flags::INVERT_RETURN)).unwrap();
-        assert!(cmd.execute().is_err());
+        let mut cmd: Command = "VAR=1".parse().unwrap();
+        assert!(cmd.invert(true).execute().is_err());
         assert_eq!(optional("VAR").unwrap(), "1");
 
-        let cmd = Command::new("exit 1", None).unwrap();
+        let cmd: Command = "exit 1".parse().unwrap();
         assert!(cmd.execute().is_err());
     }
 
     #[test]
-    fn parse() {
-        // invalid
-        assert!(Command::from_str("|| {").is_err());
-
-        // valid
-        let s = "VAR=1";
-        let cmd: Command = s.parse().unwrap();
-        cmd.execute().unwrap();
-        assert_eq!(optional("VAR").unwrap(), "1");
+    fn invalid() {
+        assert!(RawCommand::from_str("|| {").is_err());
     }
 
     #[test]
