@@ -456,6 +456,8 @@ impl Eapi {
     /// Enable support for archive extensions during Eapi registration.
     fn enable_archives(mut self, types: &[&str]) -> Self {
         self.archives.extend(types.iter().map(|s| s.to_string()));
+        // sort archives by extension length, longest to shortest
+        self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
     }
 
@@ -466,6 +468,8 @@ impl Eapi {
                 unreachable!("EAPI {self}: disabling unknown archive format: {x:?}");
             }
         }
+        // sort archives by extension length, longest to shortest
+        self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
     }
 
@@ -506,13 +510,6 @@ impl Eapi {
             hooks.insert(hook);
             hooks.sort();
         }
-        self
-    }
-
-    /// Finalize and sort ordered fields that depend on previous operations.
-    fn finalize(mut self) -> Self {
-        // sort archives by extension length, longest to shortest.
-        self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
     }
 }
@@ -735,7 +732,6 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             SrcInstall.pre("docompress", docompress::pre),
             SrcInstall.post("docompress", docompress::post),
         ])
-        .finalize()
 });
 
 pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
@@ -768,7 +764,6 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
         ])
         .enable_archives(&["txz"])
-        .finalize()
 });
 
 pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
@@ -807,7 +802,6 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
             SrcInstall.pre("dostrip", dostrip::pre),
             SrcInstall.post("dostrip", dostrip::post),
         ])
-        .finalize()
 });
 
 pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
@@ -825,7 +819,6 @@ pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
             ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
         ])
         .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
-        .finalize()
 });
 
 /// Reference to the most recent, official EAPI.
@@ -834,9 +827,7 @@ pub static EAPI_LATEST_OFFICIAL: LazyLock<&'static Eapi> = LazyLock::new(|| &EAP
 /// The latest EAPI with extensions on top.
 pub static EAPI_PKGCRAFT: LazyLock<Eapi> = LazyLock::new(|| {
     use Feature::*;
-    Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL))
-        .enable_features([RepoIds])
-        .finalize()
+    Eapi::new("pkgcraft", Some(&EAPI_LATEST_OFFICIAL)).enable_features([RepoIds])
 });
 
 /// Reference to the most recent EAPI.
