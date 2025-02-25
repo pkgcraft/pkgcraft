@@ -65,7 +65,6 @@ impl PhaseKind {
             name: name.to_string(),
             func,
             priority: 0,
-            parallel: false,
         }
     }
 
@@ -77,7 +76,6 @@ impl PhaseKind {
             name: name.to_string(),
             func,
             priority: 0,
-            parallel: false,
         }
     }
 

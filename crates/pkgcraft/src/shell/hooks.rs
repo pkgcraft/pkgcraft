@@ -25,7 +25,6 @@ pub(crate) struct HookBuilder {
     pub(crate) name: String,
     pub(crate) func: BuildFn,
     pub(crate) priority: usize,
-    pub(crate) parallel: bool,
 }
 
 impl From<HookBuilder> for Hook {
@@ -34,7 +33,6 @@ impl From<HookBuilder> for Hook {
             name: value.name,
             func: value.func,
             priority: value.priority,
-            parallel: value.parallel,
         }
     }
 }
@@ -44,7 +42,6 @@ pub(crate) struct Hook {
     name: String,
     func: BuildFn,
     priority: usize,
-    parallel: bool,
 }
 
 impl PartialEq for Hook {
