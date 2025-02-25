@@ -521,7 +521,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
     use crate::shell::environment::Variable::*;
-    use crate::shell::hooks::*;
+    use crate::shell::hooks;
     use crate::shell::operations::OperationKind::*;
     use crate::shell::phase::{eapi5, PhaseKind::*};
     use crate::shell::scope::EbuildScope::*;
@@ -724,14 +724,14 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             ("--disable-silent-rules", None, None),
         ])
         .update_hooks([
-            SrcInstall.pre("docompress", docompress::pre),
-            SrcInstall.post("docompress", docompress::post),
+            SrcInstall.pre("docompress", hooks::docompress::pre),
+            SrcInstall.post("docompress", hooks::docompress::post),
         ])
 });
 
 pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::commands::*;
-    use crate::shell::hooks::*;
+    use crate::shell::hooks;
     use crate::shell::phase::{eapi6, PhaseKind::*};
     use crate::shell::scope::EbuildScope::*;
     use Feature::*;
@@ -760,14 +760,14 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
         ])
         .enable_archives(&["txz"])
-        .update_hooks([SrcPrepare.post("eapply_user", eapply_user::post)])
+        .update_hooks([SrcPrepare.post("eapply_user", hooks::eapply_user::post)])
 });
 
 pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
     use crate::shell::commands::*;
     use crate::shell::environment::Variable::*;
-    use crate::shell::hooks::*;
+    use crate::shell::hooks;
     use crate::shell::phase::PhaseKind::*;
     use crate::shell::scope::EbuildScope::*;
     use Feature::*;
@@ -796,8 +796,8 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
         // entirely removed
         .disable_env([PORTDIR, ECLASSDIR])
         .update_hooks([
-            SrcInstall.pre("dostrip", dostrip::pre),
-            SrcInstall.post("dostrip", dostrip::post),
+            SrcInstall.pre("dostrip", hooks::dostrip::pre),
+            SrcInstall.post("dostrip", hooks::dostrip::post),
         ])
 });
 
