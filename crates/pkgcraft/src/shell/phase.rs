@@ -1,14 +1,16 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+use indexmap::IndexSet;
 use scallop::{functions, ExecStatus};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::commands::emake;
 use super::environment::Variable::D;
-use super::hooks::{Hook, HookKind};
+use super::hooks::{Hook, HookBuilder, HookKind};
 use super::utils::makefile_exists;
 use super::{get_build_mut, BuildData, BuildFn};
 
@@ -48,12 +50,16 @@ pub enum PhaseKind {
 impl PhaseKind {
     /// Create a phase function that runs an internal function by default.
     pub(crate) fn func(self, func: BuildFn) -> Phase {
-        Phase { kind: self, func: Some(func) }
+        Phase {
+            kind: self,
+            func: Some(func),
+            hooks: Default::default(),
+        }
     }
 
-    /// Create a new pre-phase hook.
-    pub(crate) fn pre(self, name: &str, func: BuildFn) -> Hook {
-        Hook {
+    /// Create a new pre-phase hook builder.
+    pub(crate) fn pre(self, name: &str, func: BuildFn) -> HookBuilder {
+        HookBuilder {
             phase: self,
             kind: HookKind::Pre,
             name: name.to_string(),
@@ -63,9 +69,9 @@ impl PhaseKind {
         }
     }
 
-    /// Create a new post-phase hook.
-    pub(crate) fn post(self, name: &str, func: BuildFn) -> Hook {
-        Hook {
+    /// Create a new post-phase hook builder.
+    pub(crate) fn post(self, name: &str, func: BuildFn) -> HookBuilder {
+        HookBuilder {
             phase: self,
             kind: HookKind::Post,
             name: name.to_string(),
@@ -116,10 +122,11 @@ impl PartialOrd for PhaseKind {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Phase {
     pub kind: PhaseKind,
     func: Option<BuildFn>,
+    pub(crate) hooks: HashMap<HookKind, IndexSet<Hook>>,
 }
 
 impl From<&Phase> for PhaseKind {
@@ -186,7 +193,11 @@ impl Borrow<str> for Phase {
 
 impl From<PhaseKind> for Phase {
     fn from(value: PhaseKind) -> Self {
-        Phase { kind: value, func: None }
+        Self {
+            kind: value,
+            func: None,
+            hooks: Default::default(),
+        }
     }
 }
 
@@ -200,11 +211,9 @@ impl Phase {
         build.set_vars()?;
 
         // run internal pre-phase hooks
-        if let Some(hooks) = build.eapi().hooks().get(&self.kind) {
-            if let Some(hooks) = hooks.get(&HookKind::Pre) {
-                for hook in hooks {
-                    hook.run(build)?;
-                }
+        if let Some(hooks) = self.hooks.get(&HookKind::Pre) {
+            for hook in hooks {
+                hook.run(build)?;
             }
         }
 
@@ -226,11 +235,9 @@ impl Phase {
         }
 
         // run internal post-phase hooks
-        if let Some(hooks) = build.eapi().hooks().get(&self.kind) {
-            if let Some(hooks) = hooks.get(&HookKind::Post) {
-                for hook in hooks {
-                    hook.run(build)?;
-                }
+        if let Some(hooks) = self.hooks.get(&HookKind::Post) {
+            for hook in hooks {
+                hook.run(build)?;
             }
         }
 

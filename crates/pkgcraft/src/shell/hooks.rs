@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
 use scallop::ExecStatus;
 
@@ -16,14 +17,47 @@ pub(crate) enum HookKind {
     Post,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub(crate) struct Hook {
+#[derive(Debug)]
+pub(crate) struct HookBuilder {
     pub(crate) phase: PhaseKind,
     pub(crate) kind: HookKind,
     pub(crate) name: String,
     pub(crate) func: BuildFn,
     pub(crate) priority: usize,
     pub(crate) parallel: bool,
+}
+
+impl From<HookBuilder> for Hook {
+    fn from(value: HookBuilder) -> Self {
+        Self {
+            name: value.name,
+            func: value.func,
+            priority: value.priority,
+            parallel: value.parallel,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Hook {
+    name: String,
+    func: BuildFn,
+    priority: usize,
+    parallel: bool,
+}
+
+impl PartialEq for Hook {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for Hook {}
+
+impl Hash for Hook {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
 }
 
 impl Ord for Hook {

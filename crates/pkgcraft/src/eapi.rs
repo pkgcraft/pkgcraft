@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::IndexSet;
+use indexmap::{set::MutableValues, IndexSet};
 use itertools::Either;
 use strum::EnumString;
 
@@ -18,9 +18,9 @@ use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
 use crate::shell::commands::Command;
 use crate::shell::environment::{BuildVariable, Variable};
-use crate::shell::hooks::{Hook, HookKind};
+use crate::shell::hooks::HookBuilder;
 use crate::shell::operations::{Operation, OperationKind};
-use crate::shell::phase::{Phase, PhaseKind};
+use crate::shell::phase::Phase;
 use crate::Error;
 
 peg::parser!(grammar parse() for str {
@@ -109,7 +109,6 @@ pub struct Eapi {
     archives: IndexSet<String>,
     env: HashSet<BuildVariable>,
     commands: HashSet<Command>,
-    hooks: HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>>,
 }
 
 impl PartialEq for Eapi {
@@ -261,7 +260,7 @@ impl Eapi {
                 op.into_iter().map(move |phase| {
                     self.phases
                         .get(phase)
-                        .unwrap_or_else(|| panic!("EAPI {self}: unregistered phase {phase}"))
+                        .unwrap_or_else(|| panic!("EAPI {self}: unregistered phase: {phase}"))
                 })
             })
     }
@@ -329,11 +328,6 @@ impl Eapi {
     /// Return all the enabled commands for an EAPI.
     pub fn commands(&self) -> &HashSet<Command> {
         &self.commands
-    }
-
-    /// Return the hooks for a given Phase.
-    pub(crate) fn hooks(&self) -> &HashMap<PhaseKind, HashMap<HookKind, IndexSet<Hook>>> {
-        &self.hooks
     }
 
     /// Enable commands during Eapi registration.
@@ -498,16 +492,17 @@ impl Eapi {
     /// Update hooks during Eapi registration.
     fn update_hooks<I>(mut self, values: I) -> Self
     where
-        I: IntoIterator<Item = Hook>,
+        I: IntoIterator<Item = HookBuilder>,
     {
-        for hook in values {
-            let hooks = self
-                .hooks
-                .entry(hook.phase)
-                .or_default()
-                .entry(hook.kind)
-                .or_default();
-            hooks.insert(hook);
+        for builder in values {
+            let phase = builder.phase;
+            // TODO: replace with .entry() if/when upstream adds support
+            let (_, phase) = self
+                .phases
+                .get_full_mut2(&phase)
+                .unwrap_or_else(|| panic!("unregistered phase: {phase}"));
+            let hooks = phase.hooks.entry(builder.kind).or_default();
+            hooks.replace(builder.into());
             hooks.sort();
         }
         self
