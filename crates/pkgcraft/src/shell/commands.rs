@@ -62,7 +62,7 @@ mod dosym;
 pub(super) mod eapply;
 pub(super) mod eapply_user;
 mod ebegin;
-pub(super) mod econf;
+pub(crate) mod econf;
 mod eend;
 mod eerror;
 mod einfo;

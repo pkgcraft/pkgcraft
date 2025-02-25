@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 use std::io::Write;
 use std::process::Command;
 use std::sync::LazyLock;
@@ -13,6 +15,71 @@ use crate::shell::get_build_mut;
 use crate::shell::utils::{configure, get_libdir};
 
 use super::make_builtin;
+
+#[derive(Debug, Clone)]
+pub(crate) struct EconfOption {
+    option: String,
+    markers: IndexSet<String>,
+    value: Option<String>,
+}
+
+impl PartialEq for EconfOption {
+    fn eq(&self, other: &Self) -> bool {
+        self.option == other.option
+    }
+}
+
+impl Eq for EconfOption {}
+
+impl Hash for EconfOption {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.option.hash(state);
+    }
+}
+
+impl Ord for EconfOption {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.option.cmp(&other.option)
+    }
+}
+
+impl PartialOrd for EconfOption {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl EconfOption {
+    /// Create a new econf option.
+    pub(crate) fn new(option: &str) -> Self {
+        Self {
+            option: option.to_string(),
+            markers: [option.to_string()].into_iter().collect(),
+            value: None,
+        }
+    }
+
+    /// Set custom options to match for an econf option to be applied.
+    pub(crate) fn markers<I>(mut self, values: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        self.markers = values.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// Set the value for an econf option.
+    pub(crate) fn value(mut self, value: &str) -> Self {
+        self.value = Some(value.to_string());
+        self
+    }
+
+    /// Expand the value of an econf option.
+    fn expand(&self) -> Option<String> {
+        self.value.as_ref().and_then(variables::expand)
+    }
+}
 
 static CONFIG_OPT_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
@@ -86,9 +153,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     // add EAPI specific options if found
-    for (opt, (markers, val)) in get_build_mut().eapi().econf_options() {
-        if !known_opts.is_disjoint(markers) {
-            options.insert(opt, val.as_ref().and_then(variables::expand));
+    for opt in get_build_mut().eapi().econf_options() {
+        if !known_opts.is_disjoint(&opt.markers) {
+            options.insert(&opt.option, opt.expand());
         }
     }
 
@@ -180,9 +247,14 @@ mod tests {
             BuildData::empty(eapi);
             if !eapi.econf_options().is_empty() {
                 let opts = get_opts(&[]);
-                let eapi_opts: Vec<_> = eapi.econf_options().keys().cloned().collect();
+                let eapi_opts: Vec<_> =
+                    eapi.econf_options().iter().map(|x| &x.option).collect();
                 let cmd_opts: Vec<_> = opts.keys().map(|s| s.as_str()).collect();
-                assert_eq!(&eapi_opts, &cmd_opts[cmd_opts.len() - eapi_opts.len()..]);
+                assert_eq!(
+                    &eapi_opts,
+                    &cmd_opts[cmd_opts.len() - eapi_opts.len()..],
+                    "EAPI {eapi} failed"
+                );
             }
         }
 

@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -16,6 +16,7 @@ use crate::dep;
 use crate::pkg::ebuild::metadata::Key;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
+use crate::shell::commands::econf::EconfOption;
 use crate::shell::commands::Command;
 use crate::shell::environment::{BuildVariable, Variable};
 use crate::shell::hooks::HookBuilder;
@@ -91,9 +92,6 @@ pub enum Feature {
     RepoIds,
 }
 
-type EconfUpdate<'a> = (&'a str, Option<&'a [&'a str]>, Option<&'a str>);
-type EapiEconfOptions = HashMap<String, (IndexSet<String>, Option<String>)>;
-
 /// EAPI object.
 #[derive(Default, Clone)]
 pub struct Eapi {
@@ -105,7 +103,7 @@ pub struct Eapi {
     incremental_keys: IndexSet<Key>,
     mandatory_keys: IndexSet<Key>,
     metadata_keys: IndexSet<Key>,
-    econf_options: EapiEconfOptions,
+    econf_options: IndexSet<EconfOption>,
     archives: IndexSet<String>,
     env: HashSet<BuildVariable>,
     commands: HashSet<Command>,
@@ -316,7 +314,7 @@ impl Eapi {
     }
 
     /// Return all EAPI-specific econf options.
-    pub(crate) fn econf_options(&self) -> &EapiEconfOptions {
+    pub(crate) fn econf_options(&self) -> &IndexSet<EconfOption> {
         &self.econf_options
     }
 
@@ -434,16 +432,14 @@ impl Eapi {
     }
 
     /// Update econf options during Eapi registration.
-    fn update_econf(mut self, updates: &[EconfUpdate]) -> Self {
-        for (opt, markers, val) in updates {
-            let markers = markers
-                .unwrap_or(&[opt])
-                .iter()
-                .map(|s| s.to_string())
-                .collect();
-            let val = val.map(|s| s.to_string());
-            self.econf_options.insert(opt.to_string(), (markers, val));
+    fn update_econf<I>(mut self, values: I) -> Self
+    where
+        I: IntoIterator<Item = EconfOption>,
+    {
+        for option in values {
+            self.econf_options.replace(option);
         }
+        self.econf_options.sort();
         self
     }
 
@@ -719,9 +715,9 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
         ])
         // unexported, internal variables
         .update_env([DOCDESTTREE, EXEDESTTREE])
-        .update_econf(&[
-            ("--disable-dependency-tracking", None, None),
-            ("--disable-silent-rules", None, None),
+        .update_econf([
+            EconfOption::new("--disable-dependency-tracking"),
+            EconfOption::new("--disable-silent-rules"),
         ])
         .update_hooks([
             SrcInstall.pre("docompress", hooks::docompress::pre),
@@ -755,9 +751,9 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
             SrcPrepare.func(eapi6::src_prepare),
             SrcInstall.func(eapi6::src_install),
         ])
-        .update_econf(&[
-            ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
-            ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
+        .update_econf([
+            EconfOption::new("--docdir").value("${EPREFIX}/usr/share/doc/${PF}"),
+            EconfOption::new("--htmldir").value("${EPREFIX}/usr/share/doc/${PF}/html"),
         ])
         .enable_archives(&["txz"])
         .update_hooks([SrcPrepare.post("eapply_user", hooks::eapply_user::post)])
@@ -785,7 +781,7 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
         .disable_commands([dohtml, dolib, libopts])
         .update_dep_keys(&[BDEPEND])
         .update_incremental_keys(&[BDEPEND])
-        .update_econf(&[("--with-sysroot", None, Some("${ESYSROOT:-/}"))])
+        .update_econf([EconfOption::new("--with-sysroot").value("${ESYSROOT:-/}")])
         .update_env([
             SYSROOT.internal([Src, Phase(PkgSetup)]),
             ESYSROOT.internal([Src, Phase(PkgSetup)]),
@@ -811,9 +807,10 @@ pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
         .disable_commands([hasq, hasv, useq])
         .update_dep_keys(&[IDEPEND])
         .update_incremental_keys(&[IDEPEND, PROPERTIES, RESTRICT])
-        .update_econf(&[
-            ("--datarootdir", None, Some("${EPREFIX}/usr/share")),
-            ("--disable-static", Some(&["--disable-static", "--enable-static"]), None),
+        .update_econf([
+            EconfOption::new("--datarootdir").value("${EPREFIX}/usr/share"),
+            EconfOption::new("--disable-static")
+                .markers(["--disable-static", "--enable-static"]),
         ])
         .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
