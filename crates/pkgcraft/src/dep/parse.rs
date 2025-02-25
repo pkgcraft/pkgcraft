@@ -223,7 +223,7 @@ mod parser {
     };
 
     use winnow::ascii::multispace1;
-    use winnow::combinator::{delimited, repeat_till, terminated};
+    use winnow::combinator::{delimited, peek, repeat_till, terminated};
     use winnow::error::ContextError;
     use winnow::stream::ParseSlice;
     use winnow::{
@@ -289,11 +289,16 @@ mod parser {
         use super::*;
 
         #[test]
+        fn test_cpv() {
+            insta::assert_yaml_snapshot!(cpv.parse("a/b-1-c-2-r3").unwrap(), @"a/b-1-c-2-r3");
+        }
+
+        #[test]
         fn test_keyword() {
-            insta::assert_yaml_snapshot!(keyword.parse("amd64").unwrap());
-            insta::assert_yaml_snapshot!(keyword.parse("~amd64").unwrap());
-            insta::assert_yaml_snapshot!(keyword.parse("-amd64").unwrap());
-            insta::assert_yaml_snapshot!(keyword.parse("-*").unwrap());
+            insta::assert_snapshot!(keyword.parse("amd64").unwrap());
+            insta::assert_snapshot!(keyword.parse("~amd64").unwrap());
+            insta::assert_snapshot!(keyword.parse("-amd64").unwrap());
+            insta::assert_snapshot!(keyword.parse("-*").unwrap());
 
             assert!(keyword.parse("").is_err());
             assert!(keyword.parse(" ").is_err());
@@ -318,12 +323,32 @@ mod parser {
                     0..,
                     alt((
                         one_of((AsChar::is_alphanum, '_', '+')).take(),
+                        // TODO: investigate how this effects performance
                         preceded(
-                            not(repeat::<_, _, Vec<_>, _, _>(1.., preceded('-', version))),
+                            peek((
+                                '-',
+                                alt((
+                                    // If the `-` is not followed by a version, take it.
+                                    not(version).take(),
+                                    // If the `-` is followed by version[-version]* followed by a
+                                    // -!version, take it.
+                                    (
+                                        separated::<_, _, Vec<_>, _, _, _, _>(
+                                            1..,
+                                            version,
+                                            '-',
+                                        ),
+                                        not(preceded('-', version)),
+                                        ((not('*'), not(slot_dep_str), not(eof))),
+                                    )
+                                        .take(),
+                                )),
+                            )),
                             "-",
                         ),
                     )),
-                ),
+                )
+                .take(),
             )
                 .take(),
         )
@@ -395,6 +420,9 @@ mod parser {
 
         #[test]
         fn test_cpv() {
+            insta::assert_yaml_snapshot!(cpv.parse("a/b-1-c-2-3-d-4").unwrap(), @"a/b-1-c-2-3-d-4");
+            insta::assert_yaml_snapshot!(cpv.parse("a/b-1-c-2-3-4err-4").unwrap(), @"a/b-1-c-2-3-4err-4");
+
             assert!(cpv.parse("a/b-1a-1").is_err());
         }
 
@@ -791,7 +819,7 @@ mod parser {
                 })
                 .parse_next(input)
             } else {
-                Ok("")
+                Err(ParserError::from_input(input))
             }
         }
     }
@@ -893,28 +921,51 @@ mod parser {
     }
 
     pub(super) fn src_uri_dependency_set(input: &mut &str) -> ModalResult<DependencySet<Uri>> {
-        let set: Vec<_> = separated(0.., src_uri_dependency, multispace1).parse_next(input)?;
-        Ok(set.into_iter().collect())
+        trace("src_uri_dependency_set", move |input: &mut &str| {
+            let set: Vec<_> =
+                separated(0.., src_uri_dependency, multispace1).parse_next(input)?;
+            Ok(set.into_iter().collect())
+        })
+        .parse_next(input)
     }
 
     pub(super) fn src_uri_dependency(input: &mut &str) -> ModalResult<Dependency<Uri>> {
-        alt((conditional(src_uri_dependency), all_of(src_uri_dependency), src_uri_dependency_))
+        trace("src_uri_dependency", move |input: &mut &str| {
+            alt((
+                conditional(src_uri_dependency),
+                all_of(src_uri_dependency),
+                src_uri_dependency_,
+            ))
             .parse_next(input)
+        })
+        .parse_next(input)
     }
 
     fn src_uri_dependency_(input: &mut &str) -> ModalResult<Dependency<Uri>> {
-        let (uri, rename) = (
-            repeat_till::<_, _, Vec<_>, _, _, _, _>(1.., any, not(multispace1)).take(),
-            opt((
-                multispace1.void(),
-                "->".void(),
-                multispace1.void(),
-                repeat_till::<_, _, Vec<_>, _, _, _, _>(1.., any, multispace1),
+        trace("src_uri_dependency_", move |input: &mut &str| {
+            let (uri, rename) = (
+                repeat_till::<_, _, Vec<_>, _, _, _, _>(
+                    1..,
+                    any,
+                    peek(alt((multispace1, "(", ")", eof))),
+                )
+                .take(),
+                opt((
+                    multispace1.void(),
+                    "->".void(),
+                    multispace1.void(),
+                    repeat_till::<_, _, Vec<_>, _, _, _, _>(
+                        1..,
+                        any,
+                        peek(alt((multispace1, "(", ")", eof))),
+                    ),
+                )
+                    .take()),
             )
-                .take()),
-        )
-            .parse_next(input)?;
-        Ok(Dependency::Enabled(Uri::new(uri, rename)))
+                .parse_next(input)?;
+            Ok(Dependency::Enabled(Uri::new(uri, rename)))
+        })
+        .parse_next(input)
     }
 
     pub(super) fn properties_dependency_set(
@@ -926,43 +977,55 @@ mod parser {
     }
 
     pub(super) fn properties_dependency(input: &mut &str) -> ModalResult<Dependency<String>> {
-        alt((
-            conditional(properties_dependency),
-            all_of(properties_dependency),
-            license_name.map(str::to_string).map(Dependency::Enabled),
-        ))
+        trace("properties_dependency", move |input: &mut &str| {
+            alt((
+                conditional(properties_dependency),
+                all_of(properties_dependency),
+                license_name.map(str::to_string).map(Dependency::Enabled),
+            ))
+            .parse_next(input)
+        })
         .parse_next(input)
     }
     pub(super) fn required_use_dependency_set(
         input: &mut &str,
     ) -> ModalResult<DependencySet<String>> {
-        let set: Vec<_> =
-            separated(0.., required_use_dependency, multispace1).parse_next(input)?;
-        Ok(set.into_iter().collect())
+        trace("required_use_dependency_set", move |input: &mut &str| {
+            let set: Vec<_> =
+                separated(0.., required_use_dependency, multispace1).parse_next(input)?;
+            Ok(set.into_iter().collect())
+        })
+        .parse_next(input)
     }
 
     pub(super) fn required_use_dependency(
         input: &mut &str,
     ) -> ModalResult<Dependency<String>> {
-        alt((
-            conditional(required_use_dependency),
-            any_of(required_use_dependency),
-            all_of(required_use_dependency),
-            exactly_one_of(required_use_dependency),
-            at_most_one_of(required_use_dependency),
-            required_use_dependency_,
-        ))
+        trace("required_use_dependency", move |input: &mut &str| {
+            alt((
+                conditional(required_use_dependency),
+                any_of(required_use_dependency),
+                all_of(required_use_dependency),
+                exactly_one_of(required_use_dependency),
+                at_most_one_of(required_use_dependency),
+                required_use_dependency_,
+            ))
+            .parse_next(input)
+        })
         .parse_next(input)
     }
 
     fn required_use_dependency_(input: &mut &str) -> ModalResult<Dependency<String>> {
-        let disabled = opt('!').parse_next(input)?;
-        let use_flag = use_flag_name.map(str::to_string).parse_next(input)?;
-        if disabled.is_some() {
-            Ok(Dependency::Disabled(use_flag))
-        } else {
-            Ok(Dependency::Enabled(use_flag))
-        }
+        trace("required_use_dependency_", move |input: &mut &str| {
+            let disabled = opt('!').parse_next(input)?;
+            let use_flag = use_flag_name.map(str::to_string).parse_next(input)?;
+            if disabled.is_some() {
+                Ok(Dependency::Disabled(use_flag))
+            } else {
+                Ok(Dependency::Enabled(use_flag))
+            }
+        })
+        .parse_next(input)
     }
 
     pub(super) fn restrict_dependency_set(
@@ -1125,7 +1188,10 @@ mod parser {
     where
         E: ParserError<&'s str>,
     {
-        delimited(('(', multispace1), repeat(1.., terminated(parser, multispace1)), ')')
+        trace(
+            "group",
+            delimited(('(', multispace1), repeat(1.., terminated(parser, multispace1)), ')'),
+        )
     }
 }
 
