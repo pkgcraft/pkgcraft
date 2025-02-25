@@ -6,6 +6,7 @@ use tempfile::NamedTempFile;
 
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Build, Package, PkgPretend, Source};
+use crate::shell::phase::PhaseKind;
 use crate::shell::scope::Scope;
 use crate::shell::{get_build_mut, BuildData};
 
@@ -31,12 +32,10 @@ impl Build for EbuildPkg {
 
 impl PkgPretend for EbuildPkg {
     fn pkg_pretend(&self) -> scallop::Result<Option<String>> {
-        let Ok(op) = self.eapi().operation(OperationKind::Pretend) else {
+        let Some(phase) = self.eapi().phases().get(&PhaseKind::PkgPretend) else {
             // ignore packages with EAPIs lacking pkg_pretend() support
             return Ok(None);
         };
-
-        let phase = op.into_iter().next().unwrap();
 
         if !self.defined_phases().contains(phase) {
             // phase function is undefined
