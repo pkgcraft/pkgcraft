@@ -248,10 +248,22 @@ impl Eapi {
     }
 
     /// Return the ordered set of phases for a given operation.
-    pub(crate) fn operation(&self, op: OperationKind) -> crate::Result<&Operation> {
-        self.operations.get(&op).ok_or_else(|| {
-            Error::InvalidValue(format!("EAPI {self}: unknown operation: {op}"))
-        })
+    pub(crate) fn operation(
+        &self,
+        op: OperationKind,
+    ) -> crate::Result<impl Iterator<Item = &Phase>> {
+        self.operations
+            .get(&op)
+            .ok_or_else(|| {
+                Error::InvalidValue(format!("EAPI {self}: unknown operation: {op}"))
+            })
+            .map(move |op| {
+                op.into_iter().map(move |phase| {
+                    self.phases
+                        .get(phase)
+                        .unwrap_or_else(|| panic!("EAPI {self}: unregistered phase {phase}"))
+                })
+            })
     }
 
     /// Return all the known phases for an EAPI.
@@ -377,8 +389,8 @@ impl Eapi {
     where
         I: IntoIterator<Item = Operation>,
     {
-        for op in operations {
-            self.operations.replace(op);
+        for operation in operations {
+            self.operations.replace(operation);
         }
         self
     }
@@ -388,21 +400,10 @@ impl Eapi {
     where
         I: IntoIterator<Item = Phase>,
     {
-        let phases: Vec<_> = phases.into_iter().collect();
-
-        // replace phases registered into operations with new phases
-        self.operations = self
-            .operations
-            .into_iter()
-            .map(|mut op| {
-                for phase in &phases {
-                    if op.phases.contains(phase) {
-                        op.phases.replace(*phase);
-                    }
-                }
-                op
-            })
-            .collect();
+        for phase in phases {
+            self.phases.replace(phase);
+        }
+        self.phases.sort();
         self
     }
 
@@ -510,9 +511,6 @@ impl Eapi {
 
     /// Finalize and sort ordered fields that depend on previous operations.
     fn finalize(mut self) -> Self {
-        self.phases = self.operations.iter().flatten().copied().collect();
-        // sort phases by name
-        self.phases.sort();
         // sort archives by extension length, longest to shortest.
         self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
@@ -533,7 +531,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks::*;
     use crate::shell::operations::OperationKind::*;
-    use crate::shell::phase::{eapi5::*, PhaseKind::*};
+    use crate::shell::phase::{eapi5, PhaseKind::*};
     use crate::shell::scope::EbuildScope::*;
     use Feature::*;
 
@@ -642,22 +640,40 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             Command::new(src_test_stub, [All]),
             Command::new(src_unpack_stub, [All]),
         ])
+        .update_phases([
+            PkgPretend.into(),
+            PkgSetup.into(),
+            SrcUnpack.func(eapi5::src_unpack),
+            SrcPrepare.into(),
+            SrcConfigure.func(eapi5::src_configure),
+            SrcCompile.func(eapi5::src_compile),
+            SrcTest.func(eapi5::src_test),
+            SrcInstall.func(eapi5::src_install),
+            PkgPreinst.into(),
+            PkgPostinst.into(),
+            PkgPrerm.into(),
+            PkgPostrm.into(),
+            PkgConfig.into(),
+            PkgInfo.into(),
+            PkgNofetch.func(eapi5::pkg_nofetch),
+        ])
         .update_operations([
-            Pretend.phase(PkgPretend),
-            Build
-                .phase(PkgSetup)
-                .phase(SrcUnpack.func(src_unpack))
-                .phase(SrcPrepare)
-                .phase(SrcConfigure.func(src_configure))
-                .phase(SrcCompile.func(src_compile))
-                .phase(SrcTest.func(src_test))
-                .phase(SrcInstall.func(src_install)),
+            Pretend.phases([PkgPretend]),
+            Build.phases([
+                PkgSetup,
+                SrcUnpack,
+                SrcPrepare,
+                SrcConfigure,
+                SrcCompile,
+                SrcTest,
+                SrcInstall,
+            ]),
             Install.phases([PkgPreinst, PkgPostinst]),
             Uninstall.phases([PkgPrerm, PkgPostrm]),
             Replace.phases([PkgPreinst, PkgPrerm, PkgPostrm, PkgPostinst]),
-            Config.phase(PkgConfig),
-            Info.phase(PkgInfo),
-            NoFetch.phase(PkgNofetch.func(pkg_nofetch)),
+            Config.phases([PkgConfig]),
+            Info.phases([PkgInfo]),
+            NoFetch.phases([PkgNofetch]),
         ])
         .update_dep_keys(&[DEPEND, RDEPEND, PDEPEND])
         .update_incremental_keys(&[IUSE, DEPEND, RDEPEND, PDEPEND, REQUIRED_USE])
@@ -728,7 +744,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
 
 pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::commands::*;
-    use crate::shell::phase::{eapi6::*, PhaseKind::*};
+    use crate::shell::phase::{eapi6, PhaseKind::*};
     use crate::shell::scope::EbuildScope::*;
     use Feature::*;
 
@@ -747,7 +763,10 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
             Command::new(in_iuse, [Phases]),
         ])
         .disable_commands([einstall])
-        .update_phases([SrcPrepare.func(src_prepare), SrcInstall.func(src_install)])
+        .update_phases([
+            SrcPrepare.func(eapi6::src_prepare),
+            SrcInstall.func(eapi6::src_install),
+        ])
         .update_econf(&[
             ("--docdir", None, Some("${EPREFIX}/usr/share/doc/${PF}")),
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),

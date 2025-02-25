@@ -36,9 +36,9 @@ impl PkgPretend for EbuildPkg {
             return Ok(None);
         };
 
-        let phase = op.phases[0];
+        let phase = op.into_iter().next().unwrap();
 
-        if !self.defined_phases().contains(&phase) {
+        if !self.defined_phases().contains(phase) {
             // phase function is undefined
             return Ok(None);
         }

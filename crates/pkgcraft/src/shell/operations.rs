@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use indexmap::IndexSet;
 use strum::{AsRefStr, Display, EnumString};
 
-use super::phase::Phase;
+use super::phase::PhaseKind;
 
 pub(crate) mod ebuild;
 
@@ -25,20 +25,11 @@ impl OperationKind {
     /// Create an operation from an iterator of phases.
     pub(crate) fn phases<I>(self, phases: I) -> Operation
     where
-        I: IntoIterator,
-        I::Item: Into<Phase>,
+        I: IntoIterator<Item = PhaseKind>,
     {
         Operation {
             kind: self,
-            phases: phases.into_iter().map(Into::into).collect(),
-        }
-    }
-
-    /// Create an operation from a single phase.
-    pub(crate) fn phase<P: Into<Phase>>(self, phase: P) -> Operation {
-        Operation {
-            kind: self,
-            phases: IndexSet::from([phase.into()]),
+            phases: phases.into_iter().collect(),
         }
     }
 }
@@ -46,15 +37,7 @@ impl OperationKind {
 #[derive(Debug, Clone)]
 pub(crate) struct Operation {
     kind: OperationKind,
-    pub(crate) phases: IndexSet<Phase>,
-}
-
-impl Operation {
-    /// Append a phase to an operation.
-    pub(crate) fn phase<P: Into<Phase>>(mut self, phase: P) -> Self {
-        self.phases.insert(phase.into());
-        self
-    }
+    phases: IndexSet<PhaseKind>,
 }
 
 impl PartialEq for Operation {
@@ -78,8 +61,8 @@ impl Borrow<OperationKind> for Operation {
 }
 
 impl<'a> IntoIterator for &'a Operation {
-    type Item = &'a Phase;
-    type IntoIter = indexmap::set::Iter<'a, Phase>;
+    type Item = &'a PhaseKind;
+    type IntoIter = indexmap::set::Iter<'a, PhaseKind>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.phases.iter()
