@@ -19,7 +19,7 @@ struct Command {
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-    get_build_mut().override_var(DOCDESTTREE, &cmd.path)?;
+    get_build_mut().override_var(DOCDESTTREE, cmd.path)?;
     Ok(ExecStatus::Success)
 }
 
