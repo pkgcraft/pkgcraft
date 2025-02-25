@@ -37,7 +37,7 @@ impl PkgPretend for EbuildPkg {
             return Ok(None);
         };
 
-        if !self.defined_phases().contains(phase) {
+        if !self.defined_phases().contains(&phase.kind) {
             // phase function is undefined
             return Ok(None);
         }

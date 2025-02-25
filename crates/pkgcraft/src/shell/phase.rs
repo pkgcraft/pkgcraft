@@ -76,7 +76,7 @@ impl PhaseKind {
     }
 
     /// Return the phase name, e.g. src_compile -> compile.
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         self.as_ref()
             .split_once('_')
             .unwrap_or_else(|| panic!("invalid phase name: {self}"))
@@ -118,7 +118,7 @@ impl PartialOrd for PhaseKind {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Phase {
-    kind: PhaseKind,
+    pub kind: PhaseKind,
     func: Option<BuildFn>,
 }
 

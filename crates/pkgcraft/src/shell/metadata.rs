@@ -30,7 +30,7 @@ impl TryFrom<&EbuildRawPkg> for Metadata {
                         .phases()
                         .iter()
                         .filter(|p| functions::find(p).is_some())
-                        .copied()
+                        .map(|p| p.kind)
                         .collect();
                 }
                 Key::INHERIT => meta.inherit = build.inherit.clone(),

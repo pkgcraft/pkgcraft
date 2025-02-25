@@ -12,7 +12,7 @@ use crate::fetch::Fetchable;
 use crate::macros::bool_not_equal;
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::Repository;
-use crate::shell::phase::Phase;
+use crate::shell::phase::PhaseKind;
 use crate::traits::{Contains, Intersects, ToRef};
 use crate::types::OrderedSet;
 use crate::{bash, Error};
@@ -235,7 +235,7 @@ impl EbuildPkg {
     }
 
     /// Return a package's defined phases
-    pub fn defined_phases(&self) -> &OrderedSet<Phase> {
+    pub fn defined_phases(&self) -> &OrderedSet<PhaseKind> {
         &self.0.meta.defined_phases
     }
 
@@ -684,15 +684,15 @@ mod tests {
         // ebuild-defined
         let pkg = repo.get_pkg("phases/direct-8").unwrap();
         assert_ordered_eq!(
-            pkg.defined_phases().iter().map(|p| p.to_string()),
-            ["src_compile", "src_install", "src_prepare"],
+            pkg.defined_phases().into_iter().copied(),
+            [PhaseKind::SrcCompile, PhaseKind::SrcInstall, PhaseKind::SrcPrepare],
         );
 
         // eclass-defined
         let pkg = repo.get_pkg("phases/indirect-8").unwrap();
         assert_ordered_eq!(
-            pkg.defined_phases().iter().map(|p| p.to_string()),
-            ["src_install", "src_prepare", "src_test"],
+            pkg.defined_phases().into_iter().copied(),
+            [PhaseKind::SrcInstall, PhaseKind::SrcPrepare, PhaseKind::SrcTest],
         );
     }
 

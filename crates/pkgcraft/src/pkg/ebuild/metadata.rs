@@ -4,7 +4,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString};
 use crate::dep::{Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::repo::ebuild::{EbuildRepo, Eclass};
-use crate::shell::phase::Phase;
+use crate::shell::phase::PhaseKind;
 use crate::types::OrderedSet;
 use crate::Error;
 
@@ -77,7 +77,7 @@ pub struct Metadata {
     pub(crate) restrict: DependencySet<String>,
     pub(crate) src_uri: DependencySet<Uri>,
     pub(crate) homepage: OrderedSet<String>,
-    pub(crate) defined_phases: OrderedSet<Phase>,
+    pub(crate) defined_phases: OrderedSet<PhaseKind>,
     pub(crate) keywords: OrderedSet<Keyword>,
     pub(crate) iuse: OrderedSet<Iuse>,
     pub(crate) inherit: OrderedSet<Eclass>,
@@ -114,10 +114,10 @@ impl Metadata {
         };
 
         // return the Phase for a given name if it exists
-        let phase = |name: &str| -> crate::Result<Phase> {
+        let phase = |name: &str| -> crate::Result<PhaseKind> {
             eapi.phases()
                 .get(name)
-                .copied()
+                .map(|x| x.kind)
                 .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
         };
 
