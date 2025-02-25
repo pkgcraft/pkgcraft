@@ -12,16 +12,23 @@ instead a non-zero exit status shall be returned.";
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
+    let Some(cmd) = args.first().copied() else {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
+    };
 
     // enable nonfatal status
     let build = get_build_mut();
     build.nonfatal = true;
 
+    // use subshell for `die` and external commands
+    let flags = if cmd == "die" || !build.eapi().commands().contains(cmd) {
+        Some(Flags::FORCE_SUBSHELL)
+    } else {
+        None
+    };
+
     // run the specified command
-    let cmd = Command::new(args.join(" "), Some(Flags::FORCE_SUBSHELL))?;
+    let cmd = Command::new(args.join(" "), flags)?;
     let result = match cmd.execute() {
         r @ (Ok(_) | Err(Error::Bail(_))) => r,
         Err(Error::Status(s)) => Ok(s),
