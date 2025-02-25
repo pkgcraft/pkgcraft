@@ -86,14 +86,16 @@ impl Variable {
     /// Set the value of a variable in the build environment.
     pub(crate) fn set(&self, value: String) -> scallop::Result<()> {
         let build = get_build_mut();
-        if let Some(var) = build.eapi().env().get(self) {
+        let eapi = build.eapi();
+        if let Some(var) = eapi.env().get(self) {
             if var.is_exported(&build.scope) {
                 var.bind(&value)?;
             }
             build.env.insert(*self, value);
+            Ok(())
+        } else {
+            Err(scallop::Error::Base(format!("EAPI {eapi}: undefined build variable: {self}")))
         }
-
-        Ok(())
     }
 }
 
