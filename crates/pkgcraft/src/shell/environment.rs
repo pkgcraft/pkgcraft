@@ -258,6 +258,9 @@ mod tests {
                                 DESCRIPTION="testing {var} exporting"
                                 SLOT=0
                                 {phase}() {{
+                                    # run default phase if it exists
+                                    nonfatal default
+
                                     # verify internal export
                                     if [[ -n "{internal}" ]]; then
                                         [[ -v {var} ]] || die "EAPI {eapi}: \${var} not internally exported in {phase}"
@@ -364,6 +367,9 @@ mod tests {
                     let name = phase.name();
                     indoc::formatdoc! {r#"
                     {phase}() {{
+                        # run default phase if it exists
+                        nonfatal default
+
                         [[ $EBUILD_PHASE == "{name}" ]] || die "invalid EBUILD_PHASE value: $EBUILD_PHASE"
                         [[ $EBUILD_PHASE_FUNC == "{phase}" ]] || die "invalid EBUILD_PHASE_FUNC value: $EBUILD_PHASE_FUNC"
                     }}
@@ -406,6 +412,9 @@ mod tests {
                 .map(|phase| {
                     indoc::formatdoc! {r#"
                     {phase}() {{
+                        # run default phase if it exists
+                        nonfatal default
+
                         test_vars phase
                     }}
                     "#}

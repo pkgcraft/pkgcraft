@@ -731,6 +731,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
 
 pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::commands::*;
+    use crate::shell::hooks::*;
     use crate::shell::phase::{eapi6, PhaseKind::*};
     use crate::shell::scope::EbuildScope::*;
     use Feature::*;
@@ -759,6 +760,7 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
             ("--htmldir", None, Some("${EPREFIX}/usr/share/doc/${PF}/html")),
         ])
         .enable_archives(&["txz"])
+        .update_hooks([SrcPrepare.post("eapply_user", eapply_user::post)])
 });
 
 pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {

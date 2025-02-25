@@ -10,6 +10,7 @@ use super::BuildFn;
 
 pub(crate) mod docompress;
 pub(crate) mod dostrip;
+pub(crate) mod eapply_user;
 
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
 pub(crate) enum HookKind {
