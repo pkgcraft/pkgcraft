@@ -809,8 +809,7 @@ pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
         .update_incremental_keys(&[IDEPEND, PROPERTIES, RESTRICT])
         .update_econf([
             EconfOption::new("--datarootdir").value("${EPREFIX}/usr/share"),
-            EconfOption::new("--disable-static")
-                .markers(["--disable-static", "--enable-static"]),
+            EconfOption::new("--disable-static").markers(["--enable-static"]),
         ])
         .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });

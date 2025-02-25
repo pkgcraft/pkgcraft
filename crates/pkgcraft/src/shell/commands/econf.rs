@@ -59,13 +59,13 @@ impl EconfOption {
         }
     }
 
-    /// Set custom options to match for an econf option to be applied.
+    /// Add custom options to match for an econf option to be applied.
     pub(crate) fn markers<I>(mut self, values: I) -> Self
     where
         I: IntoIterator,
         I::Item: Into<String>,
     {
-        self.markers = values.into_iter().map(Into::into).collect();
+        self.markers.extend(values.into_iter().map(Into::into));
         self
     }
 
