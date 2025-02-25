@@ -8,6 +8,7 @@ use scallop::variables::{bind, unbind, Attr};
 use scallop::ExecStatus;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
+use super::get_build_mut;
 use super::scope::{EbuildScope, Scope};
 
 #[derive(AsRefStr, Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -80,6 +81,19 @@ impl Variable {
             allowed: scopes.into_iter().map(Into::into).collect(),
             external: false,
         }
+    }
+
+    /// Set the value of a variable in the build environment.
+    pub(crate) fn set(&self, value: String) -> scallop::Result<()> {
+        let build = get_build_mut();
+        if let Some(var) = build.eapi().env().get(self) {
+            if var.exported(&build.scope) {
+                var.bind(&value)?;
+            }
+            build.env.insert(*self, value);
+        }
+
+        Ok(())
     }
 }
 

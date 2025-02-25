@@ -329,16 +329,6 @@ impl BuildData {
         Ok(())
     }
 
-    fn override_var(&mut self, var: Variable, value: String) -> scallop::Result<()> {
-        if let Some(var) = self.eapi().env().get(&var) {
-            if var.exported(&self.scope) {
-                var.bind(&value)?;
-            }
-            self.env.insert(var.into(), value);
-        }
-        Ok(())
-    }
-
     fn destdir(&self) -> &str {
         self.env.get(&Variable::ED).unwrap_or_else(|| {
             self.env

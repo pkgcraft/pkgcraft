@@ -1,7 +1,6 @@
 use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::DOCDESTTREE;
-use crate::shell::get_build_mut;
 
 use super::{make_builtin, TryParseArgs};
 
@@ -19,7 +18,7 @@ struct Command {
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-    get_build_mut().override_var(DOCDESTTREE, cmd.path)?;
+    DOCDESTTREE.set(cmd.path)?;
     Ok(ExecStatus::Success)
 }
 

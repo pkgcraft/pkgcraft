@@ -1,7 +1,6 @@
 use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::INSDESTTREE;
-use crate::shell::get_build_mut;
 
 use super::{make_builtin, TryParseArgs};
 
@@ -16,7 +15,7 @@ struct Command {
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-    get_build_mut().override_var(INSDESTTREE, cmd.path)?;
+    INSDESTTREE.set(cmd.path)?;
     Ok(ExecStatus::Success)
 }
 
@@ -31,7 +30,7 @@ mod tests {
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::phase::PhaseKind;
-    use crate::shell::{BuildData, Scope};
+    use crate::shell::{get_build_mut, BuildData, Scope};
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, insinto};
     use super::*;

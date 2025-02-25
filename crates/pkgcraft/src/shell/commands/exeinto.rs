@@ -1,7 +1,6 @@
 use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::EXEDESTTREE;
-use crate::shell::get_build_mut;
 
 use super::{make_builtin, TryParseArgs};
 
@@ -16,7 +15,7 @@ struct Command {
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-    get_build_mut().override_var(EXEDESTTREE, cmd.path)?;
+    EXEDESTTREE.set(cmd.path)?;
     Ok(ExecStatus::Success)
 }
 
@@ -25,6 +24,8 @@ make_builtin!("exeinto", exeinto_builtin);
 
 #[cfg(test)]
 mod tests {
+    use crate::shell::get_build_mut;
+
     use super::super::{assert_invalid_cmd, cmd_scope_tests, exeinto};
     use super::*;
 
