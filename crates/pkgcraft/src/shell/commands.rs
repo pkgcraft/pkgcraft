@@ -211,21 +211,21 @@ pub(crate) use ver_cut::BUILTIN as ver_cut;
 pub(crate) use ver_rs::BUILTIN as ver_rs;
 pub(crate) use ver_test::BUILTIN as ver_test;
 // phase stubs
-pub(crate) use _phases::PKG_CONFIG as pkg_config_stub;
-pub(crate) use _phases::PKG_INFO as pkg_info_stub;
-pub(crate) use _phases::PKG_NOFETCH as pkg_nofetch_stub;
-pub(crate) use _phases::PKG_POSTINST as pkg_postinst_stub;
-pub(crate) use _phases::PKG_POSTRM as pkg_postrm_stub;
-pub(crate) use _phases::PKG_PREINST as pkg_preinst_stub;
-pub(crate) use _phases::PKG_PRERM as pkg_prerm_stub;
-pub(crate) use _phases::PKG_PRETEND as pkg_pretend_stub;
-pub(crate) use _phases::PKG_SETUP as pkg_setup_stub;
-pub(crate) use _phases::SRC_COMPILE as src_compile_stub;
-pub(crate) use _phases::SRC_CONFIGURE as src_configure_stub;
-pub(crate) use _phases::SRC_INSTALL as src_install_stub;
-pub(crate) use _phases::SRC_PREPARE as src_prepare_stub;
-pub(crate) use _phases::SRC_TEST as src_test_stub;
-pub(crate) use _phases::SRC_UNPACK as src_unpack_stub;
+pub(crate) use _phases::PKG_CONFIG as pkg_config;
+pub(crate) use _phases::PKG_INFO as pkg_info;
+pub(crate) use _phases::PKG_NOFETCH as pkg_nofetch;
+pub(crate) use _phases::PKG_POSTINST as pkg_postinst;
+pub(crate) use _phases::PKG_POSTRM as pkg_postrm;
+pub(crate) use _phases::PKG_PREINST as pkg_preinst;
+pub(crate) use _phases::PKG_PRERM as pkg_prerm;
+pub(crate) use _phases::PKG_PRETEND as pkg_pretend;
+pub(crate) use _phases::PKG_SETUP as pkg_setup;
+pub(crate) use _phases::SRC_COMPILE as src_compile;
+pub(crate) use _phases::SRC_CONFIGURE as src_configure;
+pub(crate) use _phases::SRC_INSTALL as src_install;
+pub(crate) use _phases::SRC_PREPARE as src_prepare;
+pub(crate) use _phases::SRC_TEST as src_test;
+pub(crate) use _phases::SRC_UNPACK as src_unpack;
 
 #[derive(Debug, Clone)]
 pub struct Command {
@@ -435,21 +435,21 @@ pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
         ver_rs,
         ver_test,
         // phase stubs
-        pkg_config_stub,
-        pkg_info_stub,
-        pkg_nofetch_stub,
-        pkg_postinst_stub,
-        pkg_postrm_stub,
-        pkg_preinst_stub,
-        pkg_prerm_stub,
-        pkg_pretend_stub,
-        pkg_setup_stub,
-        src_compile_stub,
-        src_configure_stub,
-        src_install_stub,
-        src_prepare_stub,
-        src_test_stub,
-        src_unpack_stub,
+        pkg_config,
+        pkg_info,
+        pkg_nofetch,
+        pkg_postinst,
+        pkg_postrm,
+        pkg_preinst,
+        pkg_prerm,
+        pkg_pretend,
+        pkg_setup,
+        src_compile,
+        src_configure,
+        src_install,
+        src_prepare,
+        src_test,
+        src_unpack,
     ]
     .into_iter()
     .collect()
