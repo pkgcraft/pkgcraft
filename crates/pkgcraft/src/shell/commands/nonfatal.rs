@@ -1,20 +1,28 @@
-use scallop::command::{Command, Flags};
-use scallop::{Error, ExecStatus};
+use scallop::{command, Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Takes one or more arguments and executes them as a command, preserving the exit status. If this
-results in a command being called that would normally abort the build process due to a failure,
-instead a non-zero exit status shall be returned.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "nonfatal",
+    long_about = indoc::indoc! {"
+        Takes one or more arguments and executes them as a command, preserving the exit
+        status. If this results in a command being called that would normally abort the
+        build process due to a failure, instead a non-zero exit status shall be
+        returned.
+    "}
+)]
+struct Command {
+    command: String,
+    #[arg(allow_hyphen_values = true)]
+    args: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let Some(cmd) = args.first().copied() else {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    };
+    let cmd = Command::try_parse_args(args)?;
+    let cmd = cmd.command.as_str();
 
     // enable nonfatal status
     let build = get_build_mut();
@@ -22,13 +30,13 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // use subshell for `die` and external commands
     let flags = if cmd == "die" || !build.eapi().commands().contains(cmd) {
-        Some(Flags::FORCE_SUBSHELL)
+        Some(command::Flags::FORCE_SUBSHELL)
     } else {
         None
     };
 
     // run the specified command
-    let cmd = Command::new(args.join(" "), flags)?;
+    let cmd = command::Command::new(args.join(" "), flags)?;
     let result = match cmd.execute() {
         r @ (Ok(_) | Err(Error::Bail(_))) => r,
         Err(Error::Status(s)) => Ok(s),
@@ -49,14 +57,14 @@ mod tests {
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, nonfatal};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, nonfatal};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(nonfatal, &[0]);
+        assert_invalid_cmd(nonfatal, &[0]);
     }
 
     #[test]
