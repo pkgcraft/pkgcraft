@@ -87,7 +87,7 @@ impl Variable {
     pub(crate) fn set(&self, value: String) -> scallop::Result<()> {
         let build = get_build_mut();
         if let Some(var) = build.eapi().env().get(self) {
-            if var.exported(&build.scope) {
+            if var.is_exported(&build.scope) {
                 var.bind(&value)?;
             }
             build.env.insert(*self, value);
@@ -172,7 +172,7 @@ impl BuildVariable {
     }
 
     /// Determine if the variable is exported to a given scope.
-    pub(crate) fn exported(&self, scope: &Scope) -> bool {
+    pub(crate) fn is_exported(&self, scope: &Scope) -> bool {
         self.allowed.iter().any(|x| x == scope)
     }
 
@@ -237,7 +237,7 @@ mod tests {
                             temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
                             let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
                             raw_pkg.source().unwrap();
-                            if eapi.env().get(&var).is_some_and(|v| v.exported(scope)) {
+                            if eapi.env().get(&var).is_some_and(|v| v.is_exported(scope)) {
                                 assert!(
                                     variables::optional(var).is_some(),
                                     "EAPI {eapi}: ${var} not set globally"
@@ -250,11 +250,9 @@ mod tests {
                             }
                         }
                         Phase(phase) if eapi.phases().contains(phase) => {
-                            let internal = if eapi
-                                .env()
-                                .get(&var)
-                                .is_some_and(|v| v.exported(scope) || v.exported(&Global))
-                            {
+                            let internal = if eapi.env().get(&var).is_some_and(|v| {
+                                v.is_exported(scope) || v.is_exported(&Global)
+                            }) {
                                 "yes"
                             } else {
                                 ""
@@ -301,7 +299,7 @@ mod tests {
 
                             BuildData::from_pkg(&pkg);
                             pkg.build().unwrap();
-                            if !eapi.env().get(&var).is_some_and(|v| v.exported(&Global)) {
+                            if !eapi.env().get(&var).is_some_and(|v| v.is_exported(&Global)) {
                                 assert!(
                                     variables::optional(var).is_none(),
                                     "EAPI {eapi}: ${var} is leaking into global scope"

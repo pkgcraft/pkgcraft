@@ -243,7 +243,7 @@ impl Phase {
 
         // unset phase scope variables
         for var in build.eapi().env() {
-            if var.exported(&build.scope) {
+            if var.is_exported(&build.scope) {
                 var.unbind()?;
             }
         }
