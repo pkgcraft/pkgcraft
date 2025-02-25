@@ -658,7 +658,6 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             PkgNofetch.func(eapi5::pkg_nofetch),
         ])
         .update_operations([
-            Pretend.phases([PkgPretend]),
             Build.phases([
                 PkgSetup,
                 SrcUnpack,
@@ -671,9 +670,6 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             Install.phases([PkgPreinst, PkgPostinst]),
             Uninstall.phases([PkgPrerm, PkgPostrm]),
             Replace.phases([PkgPreinst, PkgPrerm, PkgPostrm, PkgPostinst]),
-            Config.phases([PkgConfig]),
-            Info.phases([PkgInfo]),
-            NoFetch.phases([PkgNofetch]),
         ])
         .update_dep_keys(&[DEPEND, RDEPEND, PDEPEND])
         .update_incremental_keys(&[IUSE, DEPEND, RDEPEND, PDEPEND, REQUIRED_USE])

@@ -11,14 +11,10 @@ pub(crate) mod ebuild;
 #[derive(AsRefStr, Display, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]
 pub(crate) enum OperationKind {
-    Pretend,
     Build,
     Install,
     Uninstall,
     Replace,
-    Config,
-    Info,
-    NoFetch,
 }
 
 impl OperationKind {
