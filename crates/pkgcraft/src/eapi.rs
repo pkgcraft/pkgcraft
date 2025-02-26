@@ -395,39 +395,39 @@ impl Eapi {
         for phase in phases {
             self.phases.replace(phase);
         }
-        self.phases.sort();
+        self.phases.sort_unstable();
         self
     }
 
     /// Update dependency types during Eapi registration.
     fn update_dep_keys(mut self, updates: &[Key]) -> Self {
         self.dep_keys.extend(updates);
-        self.dep_keys.sort();
+        self.dep_keys.sort_unstable();
         self.metadata_keys.extend(updates);
-        self.metadata_keys.sort();
+        self.metadata_keys.sort_unstable();
         self
     }
 
     /// Update incremental variables during Eapi registration.
     fn update_incremental_keys(mut self, updates: &[Key]) -> Self {
         self.incremental_keys.extend(updates);
-        self.incremental_keys.sort();
+        self.incremental_keys.sort_unstable();
         self
     }
 
     /// Update mandatory metadata variables during Eapi registration.
     fn update_mandatory_keys(mut self, updates: &[Key]) -> Self {
         self.mandatory_keys.extend(updates);
-        self.mandatory_keys.sort();
+        self.mandatory_keys.sort_unstable();
         self.metadata_keys.extend(updates);
-        self.metadata_keys.sort();
+        self.metadata_keys.sort_unstable();
         self
     }
 
     /// Update metadata variables during Eapi registration.
     fn update_metadata_keys(mut self, updates: &[Key]) -> Self {
         self.metadata_keys.extend(updates);
-        self.metadata_keys.sort();
+        self.metadata_keys.sort_unstable();
         self
     }
 
@@ -439,7 +439,7 @@ impl Eapi {
         for option in values {
             self.econf_options.replace(option);
         }
-        self.econf_options.sort();
+        self.econf_options.sort_unstable();
         self
     }
 
@@ -499,7 +499,7 @@ impl Eapi {
                 .unwrap_or_else(|| panic!("unregistered phase: {phase}"));
             let hooks = phase.hooks.entry(builder.kind).or_default();
             hooks.replace(builder.into());
-            hooks.sort();
+            hooks.sort_unstable();
         }
         self
     }
