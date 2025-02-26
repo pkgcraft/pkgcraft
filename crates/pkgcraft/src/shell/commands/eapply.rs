@@ -200,12 +200,16 @@ mod tests {
         env::set_current_dir(&dir).unwrap();
         fs::write("file.txt", file_content).unwrap();
         assert_eq!(fs::read_to_string("file.txt").unwrap(), "0\n");
-        for (opts, data) in [(vec![], good_content), (vec!["-p2"], different_prefix)] {
+        for (opts, data, expected) in [
+            (vec![], good_content, "1"),
+            (vec!["-p2"], different_prefix, "2"),
+            (vec!["-p2", "-R", "--"], different_prefix, "1"),
+        ] {
             fs::write("file.patch", data).unwrap();
             let args = [opts, vec!["file.patch"]].concat();
             eapply(&args).unwrap();
+            assert_eq!(fs::read_to_string("file.txt").unwrap().trim(), expected);
         }
-        assert_eq!(fs::read_to_string("file.txt").unwrap(), "2\n");
     }
 
     #[test]
