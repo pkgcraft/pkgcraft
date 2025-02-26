@@ -1,19 +1,28 @@
 use std::fs::File;
 
+use camino::Utf8PathBuf;
 use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install directories.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "keepdir",
+    long_about = indoc::indoc! {"
+        For each argument, creates a directory as for dodir, and an empty file whose name
+        starts with .keep in that directory to ensure that the directory does not get
+        removed by the package manager should it be empty at any point.
+    "}
+)]
+struct Command {
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
+    let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let install = build.install();
 
@@ -23,10 +32,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let file_name = format!(".keep_{cat}_{pkg}_{slot}");
 
     // create dirs
-    install.dirs(args)?;
+    install.dirs(&cmd.paths)?;
 
     // create stub files
-    for path in args {
+    for path in cmd.paths {
         let keep = install.prefix(path).join(&file_name);
         File::create(&keep)
             .map_err(|e| Error::Base(format!("failed creating keep file: {keep:?}: {e}")))?;
@@ -46,14 +55,14 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, keepdir};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, keepdir};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(keepdir, &[0]);
+        assert_invalid_cmd(keepdir, &[0]);
     }
 
     #[test]
