@@ -8,7 +8,7 @@ use pkgcraft::shell::phase::PhaseKind;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
-use crate::report::ReportKind::{Builtin, CommandScopeInvalid, Optfeature};
+use crate::report::ReportKind::{Builtin, CommandScopeInvalid, Optfeature, PhaseCall};
 use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
@@ -144,17 +144,17 @@ fn eapi_command<'a>(
     let eapi_cmd = pkg.eapi().commands().get(cmd).unwrap();
     let func_name = func_node.name().unwrap_or_default();
     // TODO: handle nested function calls
-    if let Ok(phase) = func_name.parse::<PhaseKind>() {
+    if let Ok(phase) = cmd.parse::<PhaseKind>() {
+        PhaseCall
+            .version(pkg)
+            .message(format!("{phase}"))
+            .location(cmd_node)
+            .report(run);
+    } else if let Ok(phase) = func_name.parse::<PhaseKind>() {
         if !eapi_cmd.is_allowed(&phase) {
             CommandScopeInvalid
                 .version(pkg)
                 .message(format!("{cmd}: disabled in {phase} scope"))
-                .location(cmd_node)
-                .report(run);
-        } else if let Ok(phase) = cmd.parse::<PhaseKind>() {
-            CommandScopeInvalid
-                .version(pkg)
-                .message(format!("{phase}: direct phase call"))
                 .location(cmd_node)
                 .report(run);
         }

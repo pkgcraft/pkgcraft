@@ -513,6 +513,9 @@ pub enum ReportKind {
     /// Overlay package matches the name of a package from a parent repo.
     PackageOverride,
 
+    /// An ebuild phase is directly called.
+    PhaseCall,
+
     /// Ebuild has invalid PROPERTIES.
     PropertiesInvalid,
 
@@ -668,6 +671,7 @@ impl ReportKind {
             Self::Optfeature => Warning,
             Self::PackageDeprecatedUnused => Warning,
             Self::PackageOverride => Warning,
+            Self::PhaseCall => Error,
             Self::PropertiesInvalid => Error,
             Self::PythonUpdate => Info,
             Self::RepoCategoriesUnused => Warning,
@@ -734,6 +738,7 @@ impl ReportKind {
             Self::Optfeature => Scope::Version,
             Self::PackageDeprecatedUnused => Scope::Repo,
             Self::PackageOverride => Scope::Package,
+            Self::PhaseCall => Scope::Version,
             Self::PropertiesInvalid => Scope::Version,
             Self::PythonUpdate => Scope::Version,
             Self::RepoCategoriesUnused => Scope::Repo,
