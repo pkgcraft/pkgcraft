@@ -618,7 +618,7 @@ macro_rules! cmd_scope_tests {
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::pkg::Source;
             use crate::repo::ebuild::EbuildRepoBuilder;
-            use crate::shell::scope::{EbuildScope, Scope::*};
+            use crate::shell::scope::{EbuildScope, Scope};
             use crate::test::assert_err_re;
 
             let cmd = $cmd;
@@ -662,7 +662,7 @@ macro_rules! cmd_scope_tests {
                         for scope in &scopes {
                             let info = format!("EAPI={eapi}, scope: {scope}");
                             match scope {
-                                Eclass(_) => {
+                                Scope::Eclass(_) => {
                                     let data = indoc::formatdoc! {r#"
                                         EAPI={eapi}
                                         inherit invalid
@@ -674,7 +674,7 @@ macro_rules! cmd_scope_tests {
                                     let r = raw_pkg.source();
                                     assert_err_re!(r, non_utf8_args_err, &info);
                                 }
-                                Global => {
+                                Scope::Global => {
                                     let data = indoc::formatdoc! {r#"
                                         EAPI={eapi}
                                         DESCRIPTION="testing global scope failures"
@@ -688,7 +688,7 @@ macro_rules! cmd_scope_tests {
                                     let r = raw_pkg.source();
                                     assert_err_re!(r, non_utf8_args_err, &info);
                                 }
-                                Phase(phase) => {
+                                Scope::Phase(phase) => {
                                     let data = indoc::formatdoc! {r#"
                                         EAPI={eapi}
                                         DESCRIPTION="testing phase scope failures"
@@ -714,7 +714,7 @@ macro_rules! cmd_scope_tests {
                     for scope in all_scopes.difference(&scopes) {
                         let info = format!("EAPI={eapi}, scope: {scope}");
                         match scope {
-                            Eclass(_) => {
+                            Scope::Eclass(_) => {
                                 let data = indoc::formatdoc! {r#"
                                     EAPI={eapi}
                                     inherit e1
@@ -730,7 +730,7 @@ macro_rules! cmd_scope_tests {
                                 let err = format!("{name}: error: disabled in eclass scope");
                                 assert_err_re!(r, err, &info);
                             }
-                            Global => {
+                            Scope::Global => {
                                 let data = indoc::formatdoc! {r#"
                                     EAPI={eapi}
                                     DESCRIPTION="testing global scope failures"
@@ -748,7 +748,7 @@ macro_rules! cmd_scope_tests {
                                 let err = format!("{name}: error: disabled in global scope");
                                 assert_err_re!(r, err, &info);
                             }
-                            Phase(phase) => {
+                            Scope::Phase(phase) => {
                                 let data = indoc::formatdoc! {r#"
                                     EAPI={eapi}
                                     DESCRIPTION="testing phase scope failures"
