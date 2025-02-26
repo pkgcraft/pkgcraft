@@ -40,10 +40,10 @@ name = "bench"
 harness = false
 
 [dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.96"
 camino = "1.1.9"
-clap = { version = "4.5.30", features = ["derive", "string"] }
-clap_complete = { version = "4.5.45", optional = true }
+clap = { version = "4.5.31", features = ["derive", "string"] }
+clap_complete = { version = "4.5.46", optional = true }
 clap-verbosity-flag = "3.0.2"
 colored = "3.0.0"
 crossbeam-channel = "0.5.14"
@@ -57,8 +57,8 @@ pkgcraft = { path = "../pkgcraft", version = "0.0.23" }
 rayon = "1.10.0"
 regex = "1.11.1"
 scallop = { path = "../scallop", version = "0.0.22" }
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.138"
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139"
 strfmt = "0.2.4"
 strum = { version = "0.27.1", features = ["derive"] }
 thiserror = "2.0.11"
