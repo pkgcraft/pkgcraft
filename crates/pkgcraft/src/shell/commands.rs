@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
+use std::ffi::OsString;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
@@ -324,15 +325,24 @@ impl Command {
 
 /// Try to parse the arguments for a given command.
 trait TryParseArgs: Sized {
-    fn try_parse_args(args: &[&str]) -> scallop::Result<Self>;
+    fn try_parse_args<I>(args: I) -> scallop::Result<Self>
+    where
+        I: IntoIterator,
+        I::Item: Into<OsString>;
 }
 
 impl<P: clap::Parser> TryParseArgs for P {
-    fn try_parse_args(args: &[&str]) -> scallop::Result<Self> {
+    fn try_parse_args<I>(args: I) -> scallop::Result<Self>
+    where
+        I: IntoIterator,
+        I::Item: Into<OsString>,
+    {
         let cmd = Self::command();
         let name = cmd.get_name();
-        Self::try_parse_from([&[name], args].concat())
-            .map_err(|e| scallop::Error::Base(format!("{name}: {e}")))
+        let args = [name.into()]
+            .into_iter()
+            .chain(args.into_iter().map(Into::into));
+        Self::try_parse_from(args).map_err(|e| scallop::Error::Base(format!("{name}: {e}")))
     }
 }
 
