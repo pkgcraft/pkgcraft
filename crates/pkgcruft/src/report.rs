@@ -317,7 +317,7 @@ impl ReportTarget {
     {
         // sort sets by variant
         let mut targets: IndexSet<_> = targets.into_iter().copied().map(|x| x.0).collect();
-        targets.sort();
+        targets.sort_unstable();
 
         // don't use defaults if neutral options exist
         let mut enabled = if let Some(TriState::Set(_)) = targets.first() {
@@ -352,8 +352,8 @@ impl ReportTarget {
         if enabled.is_empty() {
             Err(Error::InvalidValue("no reports enabled".to_string()))
         } else {
-            enabled.sort();
-            selected.sort();
+            enabled.sort_unstable();
+            selected.sort_unstable();
             Ok((enabled, selected))
         }
     }
@@ -793,7 +793,7 @@ impl ReportKind {
             .flat_map(|x| x.reports())
             .copied()
             .collect();
-        set.sort();
+        set.sort_unstable();
         set
     }
 
@@ -805,7 +805,7 @@ impl ReportKind {
             .filter(|r| scope >= r.scope())
             .copied()
             .collect();
-        set.sort();
+        set.sort_unstable();
         set
     }
 }
