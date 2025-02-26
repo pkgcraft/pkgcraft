@@ -12,7 +12,7 @@ use scallop::builtins::Builtin;
 
 use super::get_build_mut;
 use super::phase::PhaseKind;
-use super::scope::{EbuildScope, Scope};
+use super::scope::EbuildScope;
 
 mod _default_phase_func;
 mod _new;
@@ -313,8 +313,11 @@ impl Command {
     }
 
     /// Determine if the command is allowed in a given `Scope`.
-    pub fn is_allowed(&self, scope: &Scope) -> bool {
-        self.allowed.iter().any(|x| x == scope)
+    pub fn is_allowed<T>(&self, value: &T) -> bool
+    where
+        EbuildScope: PartialEq<T>,
+    {
+        self.allowed.iter().any(|x| x == value)
     }
 
     /// Determine if the command is a phase stub.

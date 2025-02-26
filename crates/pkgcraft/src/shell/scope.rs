@@ -16,11 +16,6 @@ pub enum Scope {
 }
 
 impl Scope {
-    /// Get the scope for a function name if it exists.
-    pub fn from_func(name: &str) -> Option<Self> {
-        name.parse().ok().map(Self::Phase)
-    }
-
     /// Determine if the scope is an eclass scope.
     pub(crate) fn is_eclass(&self) -> bool {
         matches!(self, Self::Eclass(_))
@@ -91,6 +86,13 @@ impl PartialEq<Scope> for EbuildScope {
             (Self::Phase(x), Scope::Phase(y)) if x == y => true,
             _ => false,
         }
+    }
+}
+
+impl PartialEq<PhaseKind> for EbuildScope {
+    fn eq(&self, other: &PhaseKind) -> bool {
+        let scope = Scope::Phase(*other);
+        *self == scope
     }
 }
 

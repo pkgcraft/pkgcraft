@@ -4,7 +4,7 @@ use pkgcraft::bash::Node;
 use pkgcraft::dep::Dep;
 use pkgcraft::eapi::{Eapi, EAPIS};
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage};
-use pkgcraft::shell::scope::Scope;
+use pkgcraft::shell::phase::PhaseKind;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
@@ -144,17 +144,17 @@ fn eapi_command<'a>(
     let eapi_cmd = pkg.eapi().commands().get(cmd).unwrap();
     let func_name = func_node.name().unwrap_or_default();
     // TODO: handle nested function calls
-    if let Some(scope) = Scope::from_func(func_name) {
-        if !eapi_cmd.is_allowed(&scope) {
+    if let Ok(phase) = func_name.parse::<PhaseKind>() {
+        if !eapi_cmd.is_allowed(&phase) {
             CommandScopeInvalid
                 .version(pkg)
-                .message(format!("{cmd}: disabled in {scope} scope"))
+                .message(format!("{cmd}: disabled in {phase} scope"))
                 .location(cmd_node)
                 .report(run);
-        } else if Scope::from_func(cmd).is_some() {
+        } else if let Ok(phase) = cmd.parse::<PhaseKind>() {
             CommandScopeInvalid
                 .version(pkg)
-                .message(format!("{cmd}: direct phase call"))
+                .message(format!("{phase}: direct phase call"))
                 .location(cmd_node)
                 .report(run);
         }
