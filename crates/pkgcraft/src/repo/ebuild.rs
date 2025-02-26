@@ -204,7 +204,7 @@ impl EbuildRepo {
                 .rev()
                 .flat_map(|r| r.metadata().eclasses().clone())
                 .collect();
-            eclasses.sort();
+            eclasses.sort_unstable();
             eclasses
         })
     }
@@ -217,7 +217,7 @@ impl EbuildRepo {
                 .rev()
                 .flat_map(|r| r.metadata().use_expand().clone())
                 .collect();
-            use_expand.sort_keys();
+            use_expand.sort_unstable_keys();
             use_expand
         })
     }
@@ -299,7 +299,7 @@ impl EbuildRepo {
                 .rev()
                 .flat_map(|r| r.metadata().arches().clone())
                 .collect();
-            arches.sort();
+            arches.sort_unstable();
             arches
         })
     }
@@ -312,7 +312,7 @@ impl EbuildRepo {
                 .rev()
                 .flat_map(|r| r.metadata().licenses().clone())
                 .collect();
-            licenses.sort();
+            licenses.sort_unstable();
             licenses
         })
     }
@@ -352,7 +352,7 @@ impl EbuildRepo {
                 .flat_map(|e| self.cpvs_from_package(category, e.file_name()))
                 .filter_map(Result::ok)
                 .collect();
-            cpvs.sort();
+            cpvs.sort_unstable();
             cpvs
         } else {
             Default::default()
@@ -503,7 +503,7 @@ impl PkgRepository for EbuildRepo {
             .filter(|x| self.path().join(x).is_dir())
             .cloned()
             .collect();
-        categories.sort();
+        categories.sort_unstable();
         categories
     }
 
@@ -553,7 +553,7 @@ impl PkgRepository for EbuildRepo {
                     .and_then(|s| Version::try_new(s).ok())
             })
             .collect();
-        versions.sort();
+        versions.sort_unstable();
         versions
     }
 

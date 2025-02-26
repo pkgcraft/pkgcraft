@@ -61,7 +61,7 @@ impl RepoSet {
 impl<R: Into<Repo>> FromIterator<R> for RepoSet {
     fn from_iter<I: IntoIterator<Item = R>>(iterable: I) -> Self {
         let mut repos: OrderedSet<_> = iterable.into_iter().map(Into::into).collect();
-        repos.sort();
+        repos.sort_unstable();
         Self { repos }
     }
 }
@@ -89,13 +89,13 @@ impl PkgRepository for RepoSet {
 
     fn categories(&self) -> IndexSet<String> {
         let mut cats: IndexSet<_> = self.repos.iter().flat_map(|r| r.categories()).collect();
-        cats.sort();
+        cats.sort_unstable();
         cats
     }
 
     fn packages(&self, cat: &str) -> IndexSet<String> {
         let mut pkgs: IndexSet<_> = self.repos.iter().flat_map(|r| r.packages(cat)).collect();
-        pkgs.sort();
+        pkgs.sort_unstable();
         pkgs
     }
 
@@ -105,7 +105,7 @@ impl PkgRepository for RepoSet {
             .iter()
             .flat_map(|r| r.versions(cat, pkg))
             .collect();
-        versions.sort();
+        versions.sort_unstable();
         versions
     }
 
@@ -115,7 +115,7 @@ impl PkgRepository for RepoSet {
 
     fn iter_cpn(&self) -> Self::IterCpn {
         let mut cpns: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpn()).collect();
-        cpns.sort();
+        cpns.sort_unstable();
         IterCpn(cpns.into_iter())
     }
 
@@ -128,7 +128,7 @@ impl PkgRepository for RepoSet {
 
     fn iter_cpv(&self) -> Self::IterCpv {
         let mut cpvs: IndexSet<_> = self.repos.iter().flat_map(|r| r.iter_cpv()).collect();
-        cpvs.sort();
+        cpvs.sort_unstable();
         IterCpv(cpvs.into_iter())
     }
 
@@ -322,7 +322,7 @@ impl BitOr<&Self> for RepoSet {
 impl BitOrAssign<&Self> for RepoSet {
     fn bitor_assign(&mut self, other: &Self) {
         self.repos |= &other.repos;
-        self.repos.sort();
+        self.repos.sort_unstable();
     }
 }
 
@@ -338,7 +338,7 @@ impl BitXor<&Self> for RepoSet {
 impl BitXorAssign<&Self> for RepoSet {
     fn bitxor_assign(&mut self, other: &Self) {
         self.repos ^= &other.repos;
-        self.repos.sort();
+        self.repos.sort_unstable();
     }
 }
 
@@ -386,7 +386,7 @@ impl BitOrAssign<&Repo> for RepoSet {
     fn bitor_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
         self.repos |= &set;
-        self.repos.sort();
+        self.repos.sort_unstable();
     }
 }
 
@@ -403,7 +403,7 @@ impl BitXorAssign<&Repo> for RepoSet {
     fn bitxor_assign(&mut self, other: &Repo) {
         let set = [other.clone()].into_iter().collect();
         self.repos ^= &set;
-        self.repos.sort();
+        self.repos.sort_unstable();
     }
 }
 

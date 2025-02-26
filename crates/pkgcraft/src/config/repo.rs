@@ -304,8 +304,8 @@ impl Config {
         self.repos.extend(new_repos);
 
         // sort raw and configured repos
-        self.repos.sort_by(|_, r1, _, r2| r1.cmp(r2));
-        self.configured.sort();
+        self.repos.sort_unstable_by(|_, r1, _, r2| r1.cmp(r2));
+        self.configured.sort_unstable();
 
         Ok(())
     }

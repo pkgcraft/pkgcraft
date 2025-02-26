@@ -119,7 +119,7 @@ impl FakeRepo {
         }
 
         if orig_len != repo.cpvs.len() {
-            repo.cpvs.sort();
+            repo.cpvs.sort_unstable();
 
             // recreate entire PkgMap structure to preserve correct ordering
             let mut pkgmap = PkgMap::new();

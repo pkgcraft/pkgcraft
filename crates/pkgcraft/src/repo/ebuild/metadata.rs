@@ -508,7 +508,7 @@ impl Metadata {
                             }
                         })
                         .collect();
-                    vals.sort();
+                    vals.sort_unstable();
                     vals
                 }
                 Err(e) => {
@@ -535,7 +535,7 @@ impl Metadata {
                             }
                         })
                         .collect();
-                    vals.sort();
+                    vals.sort_unstable();
                     vals
                 }
                 Err(e) => {

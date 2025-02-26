@@ -38,7 +38,7 @@ impl<T: Ord + Copy + Hash> TriState<T> {
             };
         }
 
-        enabled.sort();
+        enabled.sort_unstable();
     }
 }
 

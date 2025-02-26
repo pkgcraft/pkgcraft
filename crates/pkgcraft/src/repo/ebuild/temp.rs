@@ -127,7 +127,7 @@ impl EbuildTempRepo {
         let meta = Metadata::try_new(&self.name, &self.path)?;
         let mut categories = meta.categories().clone();
         if categories.insert(category.to_string()) {
-            categories.sort();
+            categories.sort_unstable();
             let data = categories.iter().map(|value| format!("{value}\n")).join("");
             atomic_write_file(self.path.join("profiles/categories"), data)?;
         }
