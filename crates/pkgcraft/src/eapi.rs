@@ -105,7 +105,7 @@ pub struct Eapi {
     metadata_keys: IndexSet<Key>,
     econf_options: IndexSet<EconfOption>,
     archives: IndexSet<String>,
-    env: HashSet<BuildVariable>,
+    env: IndexSet<BuildVariable>,
     commands: HashSet<Command>,
 }
 
@@ -313,7 +313,7 @@ impl Eapi {
     }
 
     /// Return the set of all environment variables.
-    pub(crate) fn env(&self) -> &HashSet<BuildVariable> {
+    pub(crate) fn env(&self) -> &IndexSet<BuildVariable> {
         &self.env
     }
 
@@ -472,16 +472,18 @@ impl Eapi {
         for var in variables {
             self.env.replace(var.into());
         }
+        self.env.sort_unstable();
         self
     }
 
     /// Disable support for build variables during Eapi registration.
     fn disable_env<I: IntoIterator<Item = Variable>>(mut self, variables: I) -> Self {
         for var in variables {
-            if !self.env.remove(&var) {
+            if !self.env.swap_remove(&var) {
                 unreachable!("EAPI {self}: disabling unregistered variable: {var}");
             }
         }
+        self.env.sort_unstable();
         self
     }
 
@@ -682,36 +684,36 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             "lha", "lzh", "a", "deb", "lzma", "tar.lzma", "tar.xz", "xz",
         ])
         .update_env([
+            A.internal([Src, Phase(PkgNofetch)]),
+            CATEGORY.internal([All]),
+            D.internal([SrcInstall, PkgPreinst, PkgPostinst]),
+            DESTTREE.internal([SrcInstall]),
+            DISTDIR.internal([Src, Global]),
+            EBUILD_PHASE.internal([Phases]),
+            EBUILD_PHASE_FUNC.internal([Phases]),
+            ECLASSDIR.internal([Src]),
+            ED.internal([SrcInstall, PkgPreinst, PkgPostinst]),
+            EPREFIX.internal([Global]),
+            EROOT.internal([Pkg]),
+            FILESDIR.internal([Src, Global]),
+            HOME.internal([All]).external(),
+            INSDESTTREE.internal([SrcInstall]),
+            MERGE_TYPE.internal([Pkg]),
             P.internal([All]),
             PF.internal([All]),
             PN.internal([All]),
-            CATEGORY.internal([All]),
-            PV.internal([All]),
-            PR.internal([All]),
-            PVR.internal([All]),
-            A.internal([Src, Phase(PkgNofetch)]),
-            FILESDIR.internal([Src, Global]),
-            DISTDIR.internal([Src, Global]),
-            WORKDIR.internal([Src, Global]),
-            S.internal([Src]),
             PORTDIR.internal([Src]),
-            ECLASSDIR.internal([Src]),
+            PR.internal([All]),
+            PV.internal([All]),
+            PVR.internal([All]),
+            REPLACED_BY_VERSION.internal([PkgPrerm, PkgPostrm]),
+            REPLACING_VERSIONS.internal([Pkg]),
             ROOT.internal([Pkg]),
+            S.internal([Src]),
             T.internal([All]),
             TMPDIR.internal([All]).external(),
-            HOME.internal([All]).external(),
-            D.internal([SrcInstall, PkgPreinst, PkgPostinst]),
-            DESTTREE.internal([SrcInstall]),
-            INSDESTTREE.internal([SrcInstall]),
             USE.internal([All]),
-            EBUILD_PHASE.internal([Phases]),
-            EBUILD_PHASE_FUNC.internal([Phases]),
-            EPREFIX.internal([Global]),
-            ED.internal([SrcInstall, PkgPreinst, PkgPostinst]),
-            EROOT.internal([Pkg]),
-            MERGE_TYPE.internal([Pkg]),
-            REPLACING_VERSIONS.internal([Pkg]),
-            REPLACED_BY_VERSION.internal([PkgPrerm, PkgPostrm]),
+            WORKDIR.internal([Src, Global]),
         ])
         // unexported, internal variables
         .update_env([DOCDESTTREE, EXEDESTTREE])
@@ -783,9 +785,9 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
         .update_incremental_keys(&[BDEPEND])
         .update_econf([EconfOption::new("--with-sysroot").value("${ESYSROOT:-/}")])
         .update_env([
-            SYSROOT.internal([Src, Phase(PkgSetup)]),
-            ESYSROOT.internal([Src, Phase(PkgSetup)]),
             BROOT.internal([Src, Phase(PkgSetup)]),
+            ESYSROOT.internal([Src, Phase(PkgSetup)]),
+            SYSROOT.internal([Src, Phase(PkgSetup)]),
         ])
         // unexported, internal variables
         .update_env([DESTTREE, INSDESTTREE])
