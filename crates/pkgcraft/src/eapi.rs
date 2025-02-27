@@ -444,18 +444,24 @@ impl Eapi {
     }
 
     /// Enable support for archive extensions during Eapi registration.
-    fn enable_archives(mut self, types: &[&str]) -> Self {
-        self.archives.extend(types.iter().map(|s| s.to_string()));
+    fn enable_archives<'a, I>(mut self, extensions: I) -> Self
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        self.archives.extend(extensions.into_iter().map(Into::into));
         // sort archives by extension length, longest to shortest
         self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
     }
 
     /// Disable support for archive extensions during Eapi registration.
-    fn disable_archives(mut self, types: &[&str]) -> Self {
-        for x in types {
-            if !self.archives.swap_remove(*x) {
-                unreachable!("EAPI {self}: disabling unknown archive format: {x:?}");
+    fn disable_archives<'a, I>(mut self, extensions: I) -> Self
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        for x in extensions {
+            if !self.archives.swap_remove(x) {
+                unreachable!("EAPI {self}: disabling unknown archive format: {x}");
             }
         }
         // sort archives by extension length, longest to shortest
@@ -676,7 +682,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             RESTRICT,
             SRC_URI,
         ])
-        .enable_archives(&[
+        .enable_archives([
             "tar", "gz", "Z", "tar.gz", "tgz", "tar.Z", "bz2", "bz", "tar.bz2", "tbz2",
             "tar.bz", "tbz", "zip", "ZIP", "jar", "7z", "7Z", "rar", "RAR", "LHA", "LHa",
             "lha", "lzh", "a", "deb", "lzma", "tar.lzma", "tar.xz", "xz",
@@ -755,7 +761,7 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
             EconfOption::new("--docdir").value("${EPREFIX}/usr/share/doc/${PF}"),
             EconfOption::new("--htmldir").value("${EPREFIX}/usr/share/doc/${PF}/html"),
         ])
-        .enable_archives(&["txz"])
+        .enable_archives(["txz"])
         .update_hooks([SrcPrepare.post("eapply_user", hooks::eapply_user::post)])
 });
 
@@ -811,7 +817,7 @@ pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
             EconfOption::new("--datarootdir").value("${EPREFIX}/usr/share"),
             EconfOption::new("--disable-static").markers(["--enable-static"]),
         ])
-        .disable_archives(&["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
+        .disable_archives(["7z", "7Z", "rar", "RAR", "LHA", "LHa", "lha", "lzh"])
 });
 
 /// Reference to the most recent, official EAPI.
