@@ -43,7 +43,7 @@ impl<T: Ord + Copy + Hash> TriState<T> {
 }
 
 impl<T: FromStr> FromStr for TriState<T> {
-    type Err = <T as FromStr>::Err;
+    type Err = T::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(value) = s.strip_prefix('+') {

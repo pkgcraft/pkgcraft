@@ -138,7 +138,7 @@ impl EbuildTempRepo {
     pub fn create_ebuild<T>(&mut self, value: T, data: &[&str]) -> crate::Result<Utf8PathBuf>
     where
         T: TryInto<Cpv>,
-        Error: From<<T as TryInto<Cpv>>::Error>,
+        Error: From<T::Error>,
     {
         let cpv = value.try_into()?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));
@@ -183,7 +183,7 @@ impl EbuildTempRepo {
     ) -> crate::Result<Utf8PathBuf>
     where
         T: TryInto<Cpv>,
-        Error: From<<T as TryInto<Cpv>>::Error>,
+        Error: From<T::Error>,
     {
         let cpv = value.try_into()?;
         let path = self.path.join(format!("{}/{}.ebuild", cpv.cpn(), cpv.pf()));

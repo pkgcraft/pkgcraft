@@ -78,7 +78,7 @@ pub struct MaybeStdin<T> {
 impl<T> FromStr for MaybeStdin<T>
 where
     T: FromStr,
-    <T as FromStr>::Err: fmt::Display,
+    T::Err: fmt::Display,
 {
     type Err = StdinError;
 
@@ -145,7 +145,7 @@ pub struct MaybeStdinVec<T> {
 impl<T> FromStr for MaybeStdinVec<T>
 where
     T: FromStr,
-    <T as FromStr>::Err: fmt::Display,
+    T::Err: fmt::Display,
 {
     type Err = StdinError;
 

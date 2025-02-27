@@ -433,18 +433,20 @@ impl EbuildRepo {
     }
 
     /// Retrieve a package from the repo given its [`Cpv`].
-    pub fn get_pkg<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<EbuildPkg>
+    pub fn get_pkg<T>(&self, value: T) -> crate::Result<EbuildPkg>
     where
-        Error: From<<T as TryInto<Cpv>>::Error>,
+        T: TryInto<Cpv>,
+        Error: From<T::Error>,
     {
         let raw_pkg = self.get_pkg_raw(value)?;
         raw_pkg.try_into()
     }
 
     /// Retrieve a raw package from the repo given its [`Cpv`].
-    pub fn get_pkg_raw<T: TryInto<Cpv>>(&self, value: T) -> crate::Result<EbuildRawPkg>
+    pub fn get_pkg_raw<T>(&self, value: T) -> crate::Result<EbuildRawPkg>
     where
-        Error: From<<T as TryInto<Cpv>>::Error>,
+        T: TryInto<Cpv>,
+        Error: From<T::Error>,
     {
         let cpv = value.try_into()?;
         EbuildRawPkg::try_new(cpv, self)

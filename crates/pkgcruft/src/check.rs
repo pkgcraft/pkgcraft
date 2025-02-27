@@ -258,7 +258,7 @@ impl Check {
     pub fn iter_report<'a, I>(reports: I) -> impl Iterator<Item = Check> + 'a
     where
         I: IntoIterator<Item = &'a ReportKind>,
-        <I as IntoIterator>::IntoIter: 'a,
+        I::IntoIter: 'a,
     {
         reports
             .into_iter()

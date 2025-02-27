@@ -68,7 +68,7 @@ where
 impl<T> FromStr for RangeOrValue<T>
 where
     T: FromStr + Eq + Copy,
-    <T as FromStr>::Err: fmt::Display + fmt::Debug,
+    T::Err: fmt::Display + fmt::Debug,
 {
     type Err = Error;
 
@@ -138,7 +138,7 @@ where
 impl<T> FromStr for RangeOp<T>
 where
     T: FromStr + Eq + Copy,
-    <T as FromStr>::Err: fmt::Display + fmt::Debug,
+    T::Err: fmt::Display + fmt::Debug,
 {
     type Err = Error;
 
@@ -588,7 +588,7 @@ impl ReportKind {
     pub(crate) fn package<T>(self, value: T) -> ReportBuilder
     where
         T: TryInto<Cpn>,
-        <T as TryInto<Cpn>>::Error: fmt::Display,
+        T::Error: fmt::Display,
     {
         let cpn = value
             .try_into()

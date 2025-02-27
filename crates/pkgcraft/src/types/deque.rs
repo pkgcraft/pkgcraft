@@ -20,7 +20,7 @@ impl<T> Deque<T> {
     pub fn extend_left<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = T>,
-        <I as IntoIterator>::IntoIter: DoubleEndedIterator,
+        I::IntoIter: DoubleEndedIterator,
     {
         for item in iter.into_iter().rev() {
             self.push_front(item);
