@@ -1,23 +1,21 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::shell::get_build_mut;
 
-use super::{eapply, make_builtin};
+use super::{eapply, make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Apply user patches.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "eapply_user", long_about = "Apply user patches.")]
+struct Command;
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if !args.is_empty() {
-        return Err(Error::Base(format!("takes no args, got {}", args.len())));
-    }
-
+    let _cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
 
     if !build.user_patches_applied {
-        let args: Vec<_> = build.user_patches.iter().map(|s| s.as_str()).collect();
-        if !args.is_empty() {
-            eapply(&args)?;
+        let patches: Vec<_> = build.user_patches.iter().map(|s| s.as_str()).collect();
+        if !patches.is_empty() {
+            eapply(&patches)?;
         }
 
         build.user_patches_applied = true;
@@ -39,14 +37,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, eapply_user};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, eapply_user};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(eapply_user, &[1]);
+        assert_invalid_cmd(eapply_user, &[1]);
     }
 
     #[test]
