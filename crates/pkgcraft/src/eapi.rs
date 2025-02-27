@@ -245,21 +245,15 @@ impl Eapi {
     }
 
     /// Return the ordered set of phases for a given operation.
-    pub(crate) fn operation(
-        &self,
-        op: OperationKind,
-    ) -> crate::Result<impl Iterator<Item = &Phase>> {
+    pub(crate) fn operation(&self, op: OperationKind) -> impl Iterator<Item = &Phase> {
         self.operations
             .get(&op)
-            .ok_or_else(|| {
-                Error::InvalidValue(format!("EAPI {self}: unknown operation: {op}"))
-            })
-            .map(move |op| {
-                op.into_iter().map(move |phase| {
-                    self.phases
-                        .get(phase)
-                        .unwrap_or_else(|| panic!("EAPI {self}: unregistered phase: {phase}"))
-                })
+            .unwrap_or_else(|| panic!("EAPI {self}: unknown operation: {op}"))
+            .into_iter()
+            .map(move |phase| {
+                self.phases
+                    .get(phase)
+                    .unwrap_or_else(|| panic!("EAPI {self}: unregistered phase: {phase}"))
             })
     }
 

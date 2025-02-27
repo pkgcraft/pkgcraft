@@ -19,7 +19,7 @@ impl Build for EbuildPkg {
             err.into_invalid_pkg_err(self)
         })?;
 
-        for phase in self.eapi().operation(OperationKind::Build)? {
+        for phase in self.eapi().operation(OperationKind::Build) {
             phase.run().map_err(|e| {
                 let err: crate::Error = e.into();
                 err.into_pkg_err(self)
