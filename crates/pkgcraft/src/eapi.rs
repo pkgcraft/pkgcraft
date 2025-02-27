@@ -629,21 +629,21 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             Command::new(src_unpack, [All]),
         ])
         .update_phases([
-            PkgPretend.into(),
-            PkgSetup.into(),
-            SrcUnpack.func(eapi5::src_unpack),
-            SrcPrepare.into(),
-            SrcConfigure.func(eapi5::src_configure),
-            SrcCompile.func(eapi5::src_compile),
-            SrcTest.func(eapi5::src_test),
-            SrcInstall.func(eapi5::src_install),
-            PkgPreinst.into(),
-            PkgPostinst.into(),
-            PkgPrerm.into(),
-            PkgPostrm.into(),
             PkgConfig.into(),
             PkgInfo.into(),
             PkgNofetch.func(eapi5::pkg_nofetch),
+            PkgPostinst.into(),
+            PkgPostrm.into(),
+            PkgPreinst.into(),
+            PkgPrerm.into(),
+            PkgPretend.into(),
+            PkgSetup.into(),
+            SrcCompile.func(eapi5::src_compile),
+            SrcConfigure.func(eapi5::src_configure),
+            SrcInstall.func(eapi5::src_install),
+            SrcPrepare.into(),
+            SrcTest.func(eapi5::src_test),
+            SrcUnpack.func(eapi5::src_unpack),
         ])
         .update_operations([
             Build.phases([
