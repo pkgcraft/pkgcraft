@@ -106,7 +106,7 @@ pub struct Eapi {
     econf_options: IndexSet<EconfOption>,
     archives: IndexSet<String>,
     env: IndexSet<BuildVariable>,
-    commands: HashSet<Command>,
+    commands: IndexSet<Command>,
 }
 
 impl PartialEq for Eapi {
@@ -318,7 +318,7 @@ impl Eapi {
     }
 
     /// Return all the enabled commands for an EAPI.
-    pub fn commands(&self) -> &HashSet<Command> {
+    pub fn commands(&self) -> &IndexSet<Command> {
         &self.commands
     }
 
@@ -328,6 +328,7 @@ impl Eapi {
         I: IntoIterator<Item = Command>,
     {
         self.commands.extend(commands);
+        self.commands.sort_unstable();
         self
     }
 
@@ -337,10 +338,11 @@ impl Eapi {
         I: IntoIterator<Item = scallop::builtins::Builtin>,
     {
         for b in commands {
-            if !self.commands.remove(&b) {
+            if !self.commands.swap_remove(&b) {
                 unreachable!("EAPI {self}: disabling unset builtin: {b}");
             }
         }
+        self.commands.sort_unstable();
         self
     }
 
