@@ -12,7 +12,7 @@ use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::report::ReportKind::PythonUpdate;
 use crate::scan::ScannerRun;
-use crate::utils::{use_expand, use_starts_with};
+use crate::utils::{impl_targets, use_starts_with};
 
 use super::EbuildPkgCheck;
 
@@ -30,11 +30,11 @@ enum Eclass {
 
 impl Eclass {
     /// USE_EXPAND targets pulled from the given repo.
-    fn targets(&self, repo: &EbuildRepo) -> IndexSet<String> {
+    fn targets(&self, repo: &EbuildRepo) -> impl Iterator<Item = String> {
         match self {
-            Self::PythonR1 => use_expand(repo, "python_targets", "python"),
-            Self::PythonSingleR1 => use_expand(repo, "python_single_target", "python"),
-            Self::PythonAnyR1 => use_expand(repo, "python_targets", "python"),
+            Self::PythonR1 => impl_targets(repo, "python_targets", "python"),
+            Self::PythonSingleR1 => impl_targets(repo, "python_single_target", "python"),
+            Self::PythonAnyR1 => impl_targets(repo, "python_targets", "python"),
         }
     }
 
@@ -50,7 +50,9 @@ impl Eclass {
 
 pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
-        targets: Eclass::iter().map(|e| (e, e.targets(&run.repo))).collect(),
+        targets: Eclass::iter()
+            .map(|e| (e, e.targets(&run.repo).collect()))
+            .collect(),
         dep_targets: Default::default(),
     }
 }

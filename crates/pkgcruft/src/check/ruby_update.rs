@@ -10,7 +10,7 @@ use pkgcraft::restrict::Restrict;
 
 use crate::report::ReportKind::RubyUpdate;
 use crate::scan::ScannerRun;
-use crate::utils::{use_expand, use_starts_with};
+use crate::utils::{impl_targets, use_starts_with};
 
 use super::EbuildPkgCheck;
 
@@ -19,7 +19,7 @@ static IMPL_PKG: &str = "dev-lang/ruby";
 
 pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
     Check {
-        targets: use_expand(&run.repo, "ruby_targets", "ruby"),
+        targets: impl_targets(&run.repo, "ruby_targets", "ruby").collect(),
         dep_targets: Default::default(),
     }
 }
