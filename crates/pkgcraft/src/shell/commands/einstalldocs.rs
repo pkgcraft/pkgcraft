@@ -6,10 +6,17 @@ use itertools::Itertools;
 use scallop::variables::var_to_vec;
 use scallop::{Error, ExecStatus};
 
-use super::{dodoc::install_docs, make_builtin};
+use super::{dodoc::install_docs, make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Installs the files specified by the DOCS and HTML_DOCS variables or a default set of files.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "einstalldocs",
+    long_about = indoc::indoc! {"
+        Installs the files specified by the DOCS and HTML_DOCS variables or a default set
+        of files.
+    "}
+)]
+struct Command;
 
 const DOCS_DEFAULTS: &[&str] = &[
     "README*",
@@ -79,11 +86,8 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if !args.is_empty() {
-        return Err(Error::Base(format!("takes no args, got {}", args.len())));
-    }
+    let _cmd = Command::try_parse_args(args)?;
 
     for var in ["DOCS", "HTML_DOCS"] {
         install_docs_from(var)?;
@@ -104,14 +108,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, einstalldocs};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, einstalldocs};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(einstalldocs, &[1]);
+        assert_invalid_cmd(einstalldocs, &[1]);
     }
 
     #[test]
