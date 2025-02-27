@@ -1,22 +1,13 @@
-// TODO: This type can possibly be dropped if/when indexmap upstream implements an order-aware
-// alternative type or changes IndexSet.
-//
-// See the following issues for more info:
-// https://github.com/bluss/indexmap/issues/135
-// https://github.com/bluss/indexmap/issues/153
-
-use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 
-use indexmap::IndexSet;
+use ordermap::OrderSet;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::{make_set_traits, Ordered};
 
-/// Ordered set that implements Ord and Hash.
-#[derive(Debug, Clone)]
-pub struct OrderedSet<T: Ordered>(IndexSet<T>);
+/// Wrapper for OrderSet that provides additional FromIterator implemetations.
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+pub struct OrderedSet<T: Ordered>(OrderSet<T>);
 
 impl<T: Ordered> Default for OrderedSet<T> {
     fn default() -> Self {
@@ -24,8 +15,8 @@ impl<T: Ordered> Default for OrderedSet<T> {
     }
 }
 
-impl<T: Ordered> From<IndexSet<T>> for OrderedSet<T> {
-    fn from(value: IndexSet<T>) -> Self {
+impl<T: Ordered> From<OrderSet<T>> for OrderedSet<T> {
+    fn from(value: OrderSet<T>) -> Self {
         Self(value)
     }
 }
@@ -42,34 +33,6 @@ impl<T: Ordered> OrderedSet<T> {
     }
 }
 
-impl<T: Ordered> Hash for OrderedSet<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for e in &self.0 {
-            e.hash(state);
-        }
-    }
-}
-
-impl<T: Ordered> Ord for OrderedSet<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.iter().cmp(other.0.iter())
-    }
-}
-
-impl<T: Ordered> PartialOrd for OrderedSet<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<T: Ordered> PartialEq for OrderedSet<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl<T: Ordered> Eq for OrderedSet<T> {}
-
 impl<T: Ordered> FromIterator<T> for OrderedSet<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iterable: I) -> Self {
         Self(iterable.into_iter().collect())
@@ -84,7 +47,7 @@ impl<T: Ordered, const N: usize> From<[T; N]> for OrderedSet<T> {
 
 impl<'a, T: Ordered> IntoIterator for &'a OrderedSet<T> {
     type Item = &'a T;
-    type IntoIter = indexmap::set::Iter<'a, T>;
+    type IntoIter = ordermap::set::Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -93,7 +56,7 @@ impl<'a, T: Ordered> IntoIterator for &'a OrderedSet<T> {
 
 impl<T: Ordered> IntoIterator for OrderedSet<T> {
     type Item = T;
-    type IntoIter = indexmap::set::IntoIter<T>;
+    type IntoIter = ordermap::set::IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
@@ -101,7 +64,7 @@ impl<T: Ordered> IntoIterator for OrderedSet<T> {
 }
 
 impl<T: Ordered> Deref for OrderedSet<T> {
-    type Target = IndexSet<T>;
+    type Target = OrderSet<T>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -122,7 +85,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        IndexSet::deserialize(deserializer).map(OrderedSet)
+        OrderSet::deserialize(deserializer).map(OrderedSet)
     }
 }
 
@@ -145,56 +108,6 @@ mod tests {
     use crate::test::assert_ordered_eq;
 
     use super::*;
-
-    #[test]
-    fn eq_and_ord() {
-        let s1 = OrderedSet::<&str>::new();
-        let s2 = OrderedSet::<&str>::new();
-        assert!(s1 >= s2);
-        assert!(s1 <= s2);
-        assert!(s1 == s2);
-
-        let s1 = OrderedSet::from(["a"]);
-        let s2 = OrderedSet::from(["a"]);
-        assert!(s1 >= s2);
-        assert!(s1 <= s2);
-        assert!(s1 == s2);
-
-        let s1 = OrderedSet::from(["a"]);
-        let s2 = OrderedSet::from(["b"]);
-        assert!(s1 < s2);
-
-        let s1 = OrderedSet::from(["a", "b", "d"]);
-        let s2 = OrderedSet::from(["a", "b", "c"]);
-        assert!(s1 > s2);
-    }
-
-    #[test]
-    fn hash() {
-        // different elements
-        let s1 = OrderedSet::from(["a"]);
-        let s2 = OrderedSet::from(["b"]);
-        assert_ne!(&s1, &s2);
-        assert_eq!(OrderedSet::from([s1, s2]).len(), 2);
-
-        // different ordering
-        let s1 = OrderedSet::from(["a", "b"]);
-        let s2 = OrderedSet::from(["b", "a"]);
-        assert_ne!(&s1, &s2);
-        assert_eq!(OrderedSet::from([s1, s2]).len(), 2);
-
-        // similar ordering
-        let s1 = OrderedSet::from(["a", "b"]);
-        let s2 = OrderedSet::from(["a", "b"]);
-        assert_eq!(&s1, &s2);
-        assert_eq!(OrderedSet::from([s1, s2]).len(), 1);
-
-        // matching elements
-        let s1 = OrderedSet::from(["a", "b", "a"]);
-        let s2 = OrderedSet::from(["a", "b", "b"]);
-        assert_eq!(&s1, &s2);
-        assert_eq!(OrderedSet::from([s1, s2]).len(), 1);
-    }
 
     #[test]
     fn deref() {

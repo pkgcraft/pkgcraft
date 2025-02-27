@@ -625,6 +625,8 @@ impl Intersects<Dep> for Cow<'_, Dep> {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexSet;
+
     use crate::eapi::{self, EAPIS};
     use crate::test::test_data;
     use crate::utils::hash;
@@ -648,7 +650,7 @@ mod tests {
         // valid
         for e in &data.dep_toml.valid {
             let s = e.dep.as_str();
-            let passing_eapis: OrderedSet<_> = eapi::range(&e.eapis).unwrap().collect();
+            let passing_eapis: IndexSet<_> = eapi::range(&e.eapis).unwrap().collect();
             for eapi in &passing_eapis {
                 let result = eapi.dep(s);
                 assert!(result.is_ok(), "{s:?} failed for EAPI={eapi}");

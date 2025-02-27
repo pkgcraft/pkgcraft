@@ -2009,6 +2009,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordermap"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c55fdf45a2b1e929e3656d404395767e05c98b6ebd8157eb31e370077d545160"
+dependencies = [
+ "indexmap 2.7.1",
+ "rayon",
+ "serde",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2157,6 +2168,7 @@ dependencies = [
  "md-5",
  "nix",
  "num_cpus",
+ "ordermap",
  "peg",
  "pretty_assertions",
  "rayon",

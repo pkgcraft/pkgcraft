@@ -1,16 +1,14 @@
-use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 
-use indexmap::IndexMap;
+use ordermap::OrderMap;
 use serde::{Deserialize, Deserializer};
 
 use super::{Ordered, OrderedSet};
 
-/// Ordered map that implements Ord and Hash.
-#[derive(Debug, Clone)]
-pub struct OrderedMap<K: Ordered, V: Ordered>(IndexMap<K, V>);
+/// Wrapper for OrderMap that provides additional FromIterator implemetations.
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
+pub struct OrderedMap<K: Ordered, V: Ordered>(OrderMap<K, V>);
 
 impl<K: Ordered, V: Ordered> Default for OrderedMap<K, V> {
     fn default() -> Self {
@@ -24,38 +22,10 @@ impl<K: Ordered, V: Ordered> OrderedMap<K, V> {
         Self::default()
     }
 
-    pub fn into_values(self) -> indexmap::map::IntoValues<K, V> {
+    pub fn into_values(self) -> ordermap::map::IntoValues<K, V> {
         self.0.into_values()
     }
 }
-
-impl<K: Ordered, V: Ordered> Hash for OrderedMap<K, V> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for e in &self.0 {
-            e.hash(state);
-        }
-    }
-}
-
-impl<K: Ordered, V: Ordered> Ord for OrderedMap<K, V> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.iter().cmp(other.0.iter())
-    }
-}
-
-impl<K: Ordered, V: Ordered> PartialOrd for OrderedMap<K, V> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<K: Ordered, V: Ordered> PartialEq for OrderedMap<K, V> {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl<K: Ordered, V: Ordered> Eq for OrderedMap<K, V> {}
 
 impl<K: Ordered, V: Ordered> FromIterator<(K, V)> for OrderedMap<K, V> {
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iterable: I) -> Self {
@@ -103,7 +73,7 @@ impl<K: Ordered, V: Ordered, const N: usize> From<[(K, V); N]> for OrderedMap<K,
 
 impl<'a, K: Ordered, V: Ordered> IntoIterator for &'a OrderedMap<K, V> {
     type Item = (&'a K, &'a V);
-    type IntoIter = indexmap::map::Iter<'a, K, V>;
+    type IntoIter = ordermap::map::Iter<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -112,7 +82,7 @@ impl<'a, K: Ordered, V: Ordered> IntoIterator for &'a OrderedMap<K, V> {
 
 impl<K: Ordered, V: Ordered> IntoIterator for OrderedMap<K, V> {
     type Item = (K, V);
-    type IntoIter = indexmap::map::IntoIter<K, V>;
+    type IntoIter = ordermap::map::IntoIter<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
@@ -120,7 +90,7 @@ impl<K: Ordered, V: Ordered> IntoIterator for OrderedMap<K, V> {
 }
 
 impl<K: Ordered, V: Ordered> Deref for OrderedMap<K, V> {
-    type Target = IndexMap<K, V>;
+    type Target = OrderMap<K, V>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -142,61 +112,6 @@ where
     where
         D: Deserializer<'de>,
     {
-        IndexMap::deserialize(deserializer).map(OrderedMap)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn eq_and_ord() {
-        let m1 = OrderedMap::<&str, usize>::new();
-        let m2 = OrderedMap::<&str, usize>::new();
-        assert!(m1 >= m2);
-        assert!(m1 <= m2);
-        assert!(m1 == m2);
-
-        let m1 = OrderedMap::from([("a", 1)]);
-        let m2 = OrderedMap::from([("a", 1)]);
-        assert!(m1 >= m2);
-        assert!(m1 <= m2);
-        assert!(m1 == m2);
-
-        let m1 = OrderedMap::from([("a", 1)]);
-        let m2 = OrderedMap::from([("b", 2)]);
-        assert!(m1 < m2);
-
-        let m1 = OrderedMap::from([("a", 1), ("b", 2), ("d", 3)]);
-        let m2 = OrderedMap::from([("a", 1), ("b", 2), ("c", 3)]);
-        assert!(m1 > m2);
-    }
-
-    #[test]
-    fn hash() {
-        // different elements
-        let m1 = OrderedMap::from([("a", 1)]);
-        let m2 = OrderedMap::from([("b", 2)]);
-        assert_ne!(&m1, &m2);
-        assert_eq!(OrderedSet::from([m1, m2]).len(), 2);
-
-        // different ordering
-        let m1 = OrderedMap::from([("a", 1), ("b", 2)]);
-        let m2 = OrderedMap::from([("b", 2), ("a", 1)]);
-        assert_ne!(&m1, &m2);
-        assert_eq!(OrderedSet::from([m1, m2]).len(), 2);
-
-        // similar ordering
-        let m1 = OrderedMap::from([("a", 1), ("b", 2)]);
-        let m2 = OrderedMap::from([("a", 1), ("b", 2)]);
-        assert_eq!(&m1, &m2);
-        assert_eq!(OrderedSet::from([m1, m2]).len(), 1);
-
-        // matching elements
-        let m1 = OrderedMap::from([("a", 1), ("b", 2), ("a", 1)]);
-        let m2 = OrderedMap::from([("a", 1), ("b", 2), ("b", 2)]);
-        assert_eq!(&m1, &m2);
-        assert_eq!(OrderedSet::from([m1, m2]).len(), 1);
+        OrderMap::deserialize(deserializer).map(OrderedMap)
     }
 }

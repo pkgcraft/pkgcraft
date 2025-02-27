@@ -12,7 +12,7 @@ use crate::macros::partial_cmp_not_equal_opt;
 
 use super::{make_set_traits, Ordered};
 
-/// Ordered set that implements Ord and Hash via sorting.
+/// Wrapper for IndexSet that implements Ord and Hash via sorting.
 #[derive(Debug, Clone)]
 pub struct SortedSet<T: Ordered>(IndexSet<T>);
 
