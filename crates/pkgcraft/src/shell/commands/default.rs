@@ -2,16 +2,17 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Calls the default_* function for the current phase.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "default",
+    long_about = "Calls the default_* function for the current phase."
+)]
+struct Command;
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if !args.is_empty() {
-        return Err(Error::Base(format!("takes no args, got {}", args.len())));
-    }
-
+    let _cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let phase = build.phase();
     let default_phase = format!("default_{phase}");
@@ -34,14 +35,14 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, default};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, default};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(default, &[1]);
+        assert_invalid_cmd(default, &[1]);
     }
 
     #[test]
