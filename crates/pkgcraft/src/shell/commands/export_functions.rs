@@ -1,34 +1,37 @@
 use scallop::{Error, ExecStatus};
 
+use crate::shell::phase::PhaseKind;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Export stub functions that call the eclass's functions, thereby making them default.
-For example, if ECLASS=base and `EXPORT_FUNCTIONS src_unpack` is called the following
-function is defined:
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "EXPORT_FUNCTIONS",
+    long_about = indoc::indoc! {"
+        Export stub functions that call the eclass's functions, thereby making them default.
+        For example, if ECLASS=base and `EXPORT_FUNCTIONS src_unpack` is called the following
+        function is defined:
 
-src_unpack() { base_src_unpack; }";
+        src_unpack() { base_src_unpack; }
+    "}
+)]
+struct Command {
+    #[arg(required = true, value_name = "PHASE")]
+    phases: Vec<PhaseKind>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
+    let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let eclass = build.eclass();
     let eapi = build.eapi();
 
-    for arg in args {
-        let phase = arg
-            .parse()
-            .map_err(|_| Error::Base(format!("invalid phase: {arg}")))?;
+    for phase in cmd.phases {
         if eapi.phases().contains(&phase) {
             build.eclass_phases.insert(phase, eclass.clone());
         } else {
-            return Err(Error::Base(format!("{phase} phase undefined in EAPI {eapi}")));
+            return Err(Error::Base(format!("EAPI {eapi}: undefined phase: {phase}")));
         }
     }
 
@@ -48,14 +51,14 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, export_functions};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, export_functions};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(export_functions, &[0]);
+        assert_invalid_cmd(export_functions, &[0]);
     }
 
     #[test]
@@ -218,8 +221,7 @@ mod tests {
         "#};
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
-        let r = raw_pkg.source();
-        assert_err_re!(r, "line 2: EXPORT_FUNCTIONS: error: invalid phase: invalid_phase$");
+        assert!(raw_pkg.source().is_err());
     }
 
     #[test]
