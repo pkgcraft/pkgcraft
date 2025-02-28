@@ -64,6 +64,7 @@ fn current_dir() {
             RDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
             REQUIRED_USE=global eclass a global eclass b
             RESTRICT=global eclass a global eclass b
+            S=/tmp
             SLOT=0/1
             SRC_URI=https://github.com/pkgcraft/a.tar.xz https://github.com/pkgcraft/pkgcraft-9999.tar.xz
             T=/tmp
@@ -103,6 +104,7 @@ fn current_dir() {
             RDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg
             REQUIRED_USE=global eclass a
             RESTRICT=global eclass a
+            S=/tmp
             SLOT=0
             SRC_URI=https://github.com/pkgcraft/pkgcraft-9999.tar.xz
             T=/tmp
@@ -134,6 +136,7 @@ fn current_dir() {
             RDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
             REQUIRED_USE=global eclass a global eclass b
             RESTRICT=global eclass a global eclass b
+            S=/tmp
             SLOT=0/1
             SRC_URI=https://github.com/pkgcraft/a.tar.xz https://github.com/pkgcraft/pkgcraft-9999.tar.xz
             T=/tmp
@@ -160,6 +163,7 @@ fn current_dir() {
             PV=8
             PVR=8
             RDEPEND=cat/pkg ebuild/pkg
+            S=/tmp
             SLOT=0
             SRC_URI=https://github.com/pkgcraft/pkgcraft-9999.tar.xz
             T=/tmp
