@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn set_and_export() {
-        use crate::shell::scope::Scope::*;
+        use crate::shell::scope::Scope;
 
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
@@ -262,7 +262,7 @@ mod tests {
             for var in Variable::iter() {
                 for scope in &all_scopes {
                     match scope {
-                        Global => {
+                        Scope::Global => {
                             let data = indoc::formatdoc! {r#"
                                 EAPI={eapi}
                                 DESCRIPTION="testing {var} global scope"
@@ -283,15 +283,14 @@ mod tests {
                                 );
                             }
                         }
-                        Phase(phase) if eapi.phases().contains(phase) => {
-                            let internal =
-                                if eapi.env().get(&var).is_some_and(|v| {
-                                    v.is_allowed(scope) || v.is_allowed(&Global)
-                                }) {
-                                    "yes"
-                                } else {
-                                    ""
-                                };
+                        Scope::Phase(phase) if eapi.phases().contains(phase) => {
+                            let internal = if eapi.env().get(&var).is_some_and(|v| {
+                                v.is_allowed(scope) || v.is_allowed(&Scope::Global)
+                            }) {
+                                "yes"
+                            } else {
+                                ""
+                            };
 
                             let external = if eapi.env().get(&var).is_some_and(|v| v.external)
                             {
@@ -334,7 +333,11 @@ mod tests {
 
                             BuildData::from_pkg(&pkg);
                             pkg.build().unwrap();
-                            if !eapi.env().get(&var).is_some_and(|v| v.is_allowed(&Global)) {
+                            if !eapi
+                                .env()
+                                .get(&var)
+                                .is_some_and(|v| v.is_allowed(&Scope::Global))
+                            {
                                 assert!(
                                     variables::optional(var).is_none(),
                                     "EAPI {eapi}: ${var} is leaking into global scope"
