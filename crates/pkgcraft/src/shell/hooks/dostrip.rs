@@ -4,7 +4,7 @@ use crate::shell::BuildData;
 
 pub(crate) fn pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     // TODO: conditionalize based on RESTRICT value
-    build.strip_include.insert("/".to_string());
+    build.strip_include.insert("/".into());
     Ok(ExecStatus::Success)
 }
 

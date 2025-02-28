@@ -1,24 +1,31 @@
-use scallop::{Error, ExecStatus};
+use camino::Utf8PathBuf;
+use scallop::ExecStatus;
 
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Include or exclude paths for symbol stripping.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "dostrip",
+    long_about = "Include or exclude paths for symbol stripping."
+)]
+struct Command {
+    #[arg(short = 'x')]
+    exclude: bool,
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
-    let (set, args) = match args {
-        ["-x", args @ ..] => (&mut build.strip_exclude, args),
-        _ => (&mut build.strip_include, args),
-    };
 
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".to_string()));
+    if cmd.exclude {
+        build.strip_exclude.extend(cmd.paths);
+    } else {
+        build.strip_include.extend(cmd.paths);
     }
-
-    set.extend(args.iter().map(|s| s.to_string()));
 
     Ok(ExecStatus::Success)
 }
@@ -30,18 +37,17 @@ make_builtin!("dostrip", dostrip_builtin);
 mod tests {
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, dostrip};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, dostrip};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(dostrip, &[0]);
+        assert_invalid_cmd(dostrip, &[0]);
 
         // missing args
-        let r = dostrip(&["-x"]);
-        assert_err_re!(r, "^requires 1 or more args, got 0");
+        assert!(dostrip(&["-x"]).is_err())
     }
 
     // TODO: run builds with tests and verify file modifications
@@ -49,12 +55,18 @@ mod tests {
     #[test]
     fn include() {
         dostrip(&["/test/path"]).unwrap();
-        assert!(get_build_mut().strip_include.contains("/test/path"));
+        assert!(get_build_mut()
+            .strip_include
+            .iter()
+            .any(|x| x == "/test/path"));
     }
 
     #[test]
     fn exclude() {
         dostrip(&["-x", "/test/path"]).unwrap();
-        assert!(get_build_mut().strip_exclude.contains("/test/path"));
+        assert!(get_build_mut()
+            .strip_exclude
+            .iter()
+            .any(|x| x == "/test/path"));
     }
 }

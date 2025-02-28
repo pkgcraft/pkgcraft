@@ -3,6 +3,7 @@ use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
+use camino::Utf8PathBuf;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use scallop::variables::*;
@@ -91,8 +92,8 @@ pub(crate) struct BuildData {
 
     compress_include: IndexSet<String>,
     compress_exclude: IndexSet<String>,
-    strip_include: IndexSet<String>,
-    strip_exclude: IndexSet<String>,
+    strip_include: IndexSet<Utf8PathBuf>,
+    strip_exclude: IndexSet<Utf8PathBuf>,
 
     /// phases defined by eclasses
     eclass_phases: IndexMap<phase::PhaseKind, Eclass>,
