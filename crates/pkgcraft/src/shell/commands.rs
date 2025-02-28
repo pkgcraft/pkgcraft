@@ -231,7 +231,7 @@ pub(crate) use _phases::SRC_UNPACK as src_unpack;
 pub(crate) struct Builtin(scallop::builtins::Builtin);
 
 impl Builtin {
-    pub(crate) fn allowed<I>(self, scopes: I) -> Command
+    pub(crate) fn allowed_in<I>(self, scopes: I) -> Command
     where
         I: IntoIterator,
         I::Item: Into<EbuildScope>,
