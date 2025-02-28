@@ -1,14 +1,21 @@
 use scallop::ExecStatus;
 
-use super::_default_phase_func::default_phase_func;
-use super::make_builtin;
+use crate::shell::get_build_mut;
 
-const LONG_DOC: &str = "\
-Runs the default src_configure implementation for a package's EAPI.";
+use super::{make_builtin, TryParseArgs};
 
-#[doc = stringify!(LONG_DOC)]
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "default_src_configure",
+    long_about = indoc::indoc! {"
+        Runs the default src_configure implementation for a package's EAPI.
+    "}
+)]
+struct Command;
+
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    default_phase_func(args)
+    let _cmd = Command::try_parse_args(args)?;
+    get_build_mut().phase().default()
 }
 
 const USAGE: &str = "default_src_configure";
@@ -16,14 +23,14 @@ make_builtin!("default_src_configure", default_src_configure_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_args, cmd_scope_tests, default_src_configure};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, default_src_configure};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(default_src_configure, &[1]);
+        assert_invalid_cmd(default_src_configure, &[1]);
     }
 
     // TODO: add usage tests

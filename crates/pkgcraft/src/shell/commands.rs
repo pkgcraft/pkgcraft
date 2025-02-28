@@ -13,7 +13,6 @@ use super::get_build_mut;
 use super::phase::PhaseKind;
 use super::scope::EbuildScope;
 
-mod _default_phase_func;
 mod _new;
 mod _phases;
 mod _query_cmd;

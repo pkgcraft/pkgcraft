@@ -1,14 +1,21 @@
 use scallop::ExecStatus;
 
-use super::_default_phase_func::default_phase_func;
-use super::make_builtin;
+use crate::shell::get_build_mut;
 
-const LONG_DOC: &str = "\
-Runs the default pkg_nofetch implementation for a package's EAPI.";
+use super::{make_builtin, TryParseArgs};
 
-#[doc = stringify!(LONG_DOC)]
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "default_pkg_nofetch",
+    long_about = indoc::indoc! {"
+        Runs the default pkg_nofetch implementation for a package's EAPI.
+    "}
+)]
+struct Command;
+
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    default_phase_func(args)
+    let _cmd = Command::try_parse_args(args)?;
+    get_build_mut().phase().default()
 }
 
 const USAGE: &str = "default_pkg_nofetch";
@@ -22,14 +29,14 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, default_pkg_nofetch};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, default_pkg_nofetch};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(default_pkg_nofetch, &[1]);
+        assert_invalid_cmd(default_pkg_nofetch, &[1]);
     }
 
     #[test]
