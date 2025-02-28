@@ -66,7 +66,7 @@ mod tests {
             // verify conditional EAPI environment export
             let build_var = eapi.env().get(&INSDESTTREE).unwrap();
             let env_val = variables::optional("INSDESTTREE");
-            if build_var.is_exported(&build.scope) {
+            if build_var.is_allowed(&build.scope) {
                 assert_eq!(env_val.unwrap(), "/test/path");
             } else {
                 assert!(env_val.is_none());

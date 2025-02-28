@@ -312,7 +312,7 @@ impl BuildData {
     /// Cache and set build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
         for var in self.eapi().env() {
-            if var.is_exported(&self.scope) {
+            if var.is_allowed(&self.scope) {
                 if let Some(val) = self.env.get(var.borrow()) {
                     var.bind(val)?;
                 } else {
