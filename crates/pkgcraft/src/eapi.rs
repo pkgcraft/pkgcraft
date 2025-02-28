@@ -787,7 +787,13 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
         .update_incremental_keys(&[BDEPEND])
         .update_econf([EconfOption::new("--with-sysroot").value("${ESYSROOT:-/}")])
         .update_env([
-            BROOT.internal([Src, Phase(PkgSetup)]),
+            BROOT.internal([Src]).internal([
+                PkgSetup,
+                PkgPreinst,
+                PkgPostinst,
+                PkgPrerm,
+                PkgPostrm,
+            ]),
             ESYSROOT.internal([Src, Phase(PkgSetup)]),
             SYSROOT.internal([Src, Phase(PkgSetup)]),
         ])

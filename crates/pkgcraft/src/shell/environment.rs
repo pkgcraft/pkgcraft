@@ -187,6 +187,15 @@ impl From<Variable> for BuildVariable {
 }
 
 impl BuildVariable {
+    pub(crate) fn internal<I>(mut self, scopes: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<EbuildScope>,
+    {
+        self.allowed.extend(scopes.into_iter().map(Into::into));
+        self
+    }
+
     /// Enable externally exporting the variable.
     pub(crate) fn external(mut self) -> Self {
         self.external = true;
