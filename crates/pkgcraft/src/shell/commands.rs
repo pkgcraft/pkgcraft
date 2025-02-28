@@ -8,7 +8,6 @@ use std::sync::LazyLock;
 use std::{cmp, fmt};
 
 use indexmap::IndexSet;
-use scallop::builtins::Builtin;
 
 use super::get_build_mut;
 use super::phase::PhaseKind;
@@ -228,6 +227,44 @@ pub(crate) use _phases::SRC_PREPARE as src_prepare;
 pub(crate) use _phases::SRC_TEST as src_test;
 pub(crate) use _phases::SRC_UNPACK as src_unpack;
 
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Copy, Clone)]
+pub(crate) struct Builtin(scallop::builtins::Builtin);
+
+impl Builtin {
+    pub(crate) fn allowed<I>(self, scopes: I) -> Command
+    where
+        I: IntoIterator,
+        I::Item: Into<EbuildScope>,
+    {
+        Command {
+            builtin: self,
+            allowed: scopes.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<&Builtin> for scallop::builtins::Builtin {
+    fn from(value: &Builtin) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Display for Builtin {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+// TODO: replace with callable trait implementation if it's ever stabilized
+// https://github.com/rust-lang/rust/issues/29625
+impl Deref for Builtin {
+    type Target = scallop::builtins::BuiltinFn;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.func
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Command {
     builtin: Builtin,
@@ -268,19 +305,13 @@ impl Borrow<Builtin> for Command {
 
 impl Borrow<str> for Command {
     fn borrow(&self) -> &str {
-        self.builtin.borrow()
-    }
-}
-
-impl Borrow<str> for &Command {
-    fn borrow(&self) -> &str {
-        self.builtin.borrow()
+        self.builtin.0.borrow()
     }
 }
 
 impl AsRef<str> for Command {
     fn as_ref(&self) -> &str {
-        self.builtin.as_ref()
+        self.builtin.0.as_ref()
     }
 }
 
@@ -296,22 +327,11 @@ impl Deref for Command {
     type Target = scallop::builtins::BuiltinFn;
 
     fn deref(&self) -> &Self::Target {
-        &self.builtin.func
+        &self.builtin.0.func
     }
 }
 
 impl Command {
-    pub(crate) fn new<I>(builtin: Builtin, scopes: I) -> Self
-    where
-        I: IntoIterator,
-        I::Item: Into<EbuildScope>,
-    {
-        Self {
-            builtin,
-            allowed: scopes.into_iter().map(Into::into).collect(),
-        }
-    }
-
     /// Determine if the command is allowed in a given `Scope`.
     pub fn is_allowed<T>(&self, value: &T) -> bool
     where
@@ -574,14 +594,15 @@ macro_rules! make_builtin {
             i32::from($crate::shell::commands::run($name, args))
         }
 
-        pub(crate) static $builtin: scallop::builtins::Builtin = scallop::builtins::Builtin {
-            name: $name,
-            func: run,
-            flags: scallop::builtins::Attr::ENABLED.bits(),
-            cfunc: $func_name,
-            help: "",
-            usage: USAGE,
-        };
+        pub(crate) static $builtin: $crate::shell::commands::Builtin =
+            $crate::shell::commands::Builtin(scallop::builtins::Builtin {
+                name: $name,
+                func: run,
+                flags: scallop::builtins::Attr::ENABLED.bits(),
+                cfunc: $func_name,
+                help: "",
+                usage: USAGE,
+            });
     };
 }
 use make_builtin;

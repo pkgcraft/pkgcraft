@@ -1,12 +1,13 @@
 use std::fs::File;
 use std::{fs, io};
 
-use scallop::builtins::Builtin;
 use scallop::{Error, ExecStatus};
 use tempfile::tempdir;
 
 use crate::io::stdin;
 use crate::utils::is_single_component;
+
+use super::Builtin;
 
 // Underlying implementation for new* builtins.
 pub(super) fn new(args: &[&str], builtin: Builtin) -> scallop::Result<ExecStatus> {
