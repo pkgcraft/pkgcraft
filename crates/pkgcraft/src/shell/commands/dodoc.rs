@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use camino::Utf8PathBuf;
 use scallop::{Error, ExecStatus};
 
 use crate::files::NO_WALKDIR_FILTER;
@@ -7,9 +8,16 @@ use crate::macros::build_path;
 use crate::shell::environment::Variable::DOCDESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install documentation files.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "dodoc", long_about = "Install documentation files.")]
+struct Command {
+    #[arg(short = 'r')]
+    recursive: bool,
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
 /// Install document files from a given list of paths.
 pub(crate) fn install_docs<P: AsRef<Path>>(
@@ -38,19 +46,10 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
     Ok(ExecStatus::Success)
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (recursive, args) = match args {
-        ["-r", args @ ..] => (true, args),
-        _ => (false, args),
-    };
-
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".to_string()));
-    }
-
+    let cmd = Command::try_parse_args(args)?;
     let dest = get_build_mut().env(DOCDESTTREE);
-    install_docs(recursive, args, dest)
+    install_docs(cmd.recursive, &cmd.paths, dest)
 }
 
 const USAGE: &str = "dodoc doc_file";
@@ -65,18 +64,17 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, docinto, dodoc};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, docinto, dodoc};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(dodoc, &[0]);
+        assert_invalid_cmd(dodoc, &[0]);
 
         // missing args
-        let r = dodoc(&["-r"]);
-        assert_err_re!(r, "^requires 1 or more args, got 0");
+        assert!(dodoc(&["-r"]).is_err());
 
         let data = test_data();
         let repo = data.ebuild_repo("commands").unwrap();
