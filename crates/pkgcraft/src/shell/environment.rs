@@ -114,7 +114,7 @@ impl Variable {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct BuildVariable {
+pub struct BuildVariable {
     var: Variable,
     allowed: HashSet<EbuildScope>,
     external: bool,

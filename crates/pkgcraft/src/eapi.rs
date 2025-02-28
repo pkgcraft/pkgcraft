@@ -313,7 +313,7 @@ impl Eapi {
     }
 
     /// Return the set of all environment variables.
-    pub(crate) fn env(&self) -> &IndexSet<BuildVariable> {
+    pub fn env(&self) -> &IndexSet<BuildVariable> {
         &self.env
     }
 
