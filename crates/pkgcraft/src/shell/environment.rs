@@ -11,7 +11,7 @@ use strum::{AsRefStr, Display, EnumIter, EnumString};
 use super::get_build_mut;
 use super::scope::{EbuildScope, Scope};
 
-#[derive(AsRefStr, Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(AsRefStr, Display, EnumIter, EnumString, Debug, Copy, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
@@ -56,6 +56,20 @@ pub enum Variable {
     // internal only
     DOCDESTTREE,
     EXEDESTTREE,
+}
+
+impl PartialEq for Variable {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Eq for Variable {}
+
+impl Hash for Variable {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state);
+    }
 }
 
 impl Ord for Variable {
