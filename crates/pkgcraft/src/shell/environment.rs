@@ -85,7 +85,7 @@ impl PartialOrd for Variable {
 }
 
 impl Variable {
-    pub(crate) fn internal<I>(self, scopes: I) -> BuildVariable
+    pub(crate) fn allowed<I>(self, scopes: I) -> BuildVariable
     where
         I: IntoIterator,
         I::Item: Into<EbuildScope>,
@@ -187,7 +187,7 @@ impl From<Variable> for BuildVariable {
 }
 
 impl BuildVariable {
-    pub(crate) fn internal<I>(mut self, scopes: I) -> Self
+    pub(crate) fn allowed<I>(mut self, scopes: I) -> Self
     where
         I: IntoIterator,
         I::Item: Into<EbuildScope>,
