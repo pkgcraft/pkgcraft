@@ -81,9 +81,9 @@ impl PartialEq<Scope> for EbuildScope {
             (Self::Eclass, Scope::Eclass(_)) => true,
             (Self::Global, Scope::Global) => true,
             (Self::Phases, Scope::Phase(_)) => true,
-            (Self::Pkg, Scope::Phase(x)) if x.as_ref().starts_with("pkg_") => true,
-            (Self::Src, Scope::Phase(x)) if x.as_ref().starts_with("src_") => true,
-            (Self::Phase(x), Scope::Phase(y)) if x == y => true,
+            (Self::Pkg, Scope::Phase(x)) => x.as_ref().starts_with("pkg_"),
+            (Self::Src, Scope::Phase(x)) => x.as_ref().starts_with("src_"),
+            (Self::Phase(x), Scope::Phase(y)) => x == y,
             _ => false,
         }
     }
