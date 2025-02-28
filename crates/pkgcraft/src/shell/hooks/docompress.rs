@@ -8,7 +8,7 @@ pub(crate) fn pre(build: &mut BuildData) -> scallop::Result<ExecStatus> {
         .into_iter()
         .map(Into::into);
     let pf = build.cpv().pf();
-    let docompress_exclude_defaults = [format!("/usr/share/doc/{pf}/html")];
+    let docompress_exclude_defaults = [format!("/usr/share/doc/{pf}/html").into()];
     build.compress_include.extend(docompress_include_defaults);
     build.compress_exclude.extend(docompress_exclude_defaults);
     Ok(ExecStatus::Success)

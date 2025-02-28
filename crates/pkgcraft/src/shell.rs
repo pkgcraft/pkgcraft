@@ -90,8 +90,8 @@ pub(crate) struct BuildData {
     exeopts: IndexSet<String>,
     libopts: IndexSet<String>,
 
-    compress_include: IndexSet<String>,
-    compress_exclude: IndexSet<String>,
+    compress_include: IndexSet<Utf8PathBuf>,
+    compress_exclude: IndexSet<Utf8PathBuf>,
     strip_include: IndexSet<Utf8PathBuf>,
     strip_exclude: IndexSet<Utf8PathBuf>,
 
