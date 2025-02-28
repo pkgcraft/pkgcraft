@@ -567,6 +567,9 @@ pub enum ReportKind {
     /// unconditionally defined in global scope.
     VariableOrder,
 
+    /// An EAPI variable is used in an invalid scope.
+    VariableScopeInvalid,
+
     /// Whitespace usage that is invalid.
     WhitespaceInvalid,
 
@@ -688,6 +691,7 @@ impl ReportKind {
             Self::UseLocalUnsorted => Style,
             Self::UseLocalUnused => Warning,
             Self::VariableOrder => Style,
+            Self::VariableScopeInvalid => Error,
             Self::WhitespaceInvalid => Warning,
             Self::WhitespaceUnneeded => Style,
         }
@@ -755,6 +759,7 @@ impl ReportKind {
             Self::UseLocalUnsorted => Scope::Package,
             Self::UseLocalUnused => Scope::Package,
             Self::VariableOrder => Scope::Version,
+            Self::VariableScopeInvalid => Scope::Version,
             Self::WhitespaceInvalid => Scope::Version,
             Self::WhitespaceUnneeded => Scope::Version,
         }

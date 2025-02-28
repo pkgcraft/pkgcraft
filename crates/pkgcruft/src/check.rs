@@ -44,6 +44,7 @@ mod src_uri;
 mod unstable_only;
 mod use_local;
 mod variable_order;
+mod variables;
 mod whitespace;
 
 /// Check variants.
@@ -91,6 +92,7 @@ pub enum Check {
     UnstableOnly,
     UseLocal,
     VariableOrder,
+    Variables,
     Whitespace,
 }
 
@@ -146,6 +148,7 @@ impl Check {
                 &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnused, UseLocalUnsorted]
             }
             Self::VariableOrder => &[VariableOrder],
+            Self::Variables => &[VariableScopeInvalid],
             Self::Whitespace => &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
         }
     }
@@ -182,6 +185,7 @@ impl Check {
             Self::UnstableOnly => Scope::Package,
             Self::UseLocal => Scope::Package,
             Self::VariableOrder => Scope::Version,
+            Self::Variables => Scope::Version,
             Self::Whitespace => Scope::Version,
         }
     }
@@ -218,6 +222,7 @@ impl Check {
             Self::UnstableOnly => &[SourceKind::EbuildPkg],
             Self::UseLocal => &[SourceKind::EbuildPkg],
             Self::VariableOrder => &[SourceKind::EbuildRawPkg],
+            Self::Variables => &[SourceKind::EbuildRawPkg],
             Self::Whitespace => &[SourceKind::EbuildRawPkg],
         }
     }
@@ -466,6 +471,7 @@ impl ToRunner<EbuildRawPkgRunner> for Check {
             Self::EapiStatus => Box::new(eapi_status::create(run)),
             Self::Header => Box::new(header::create()),
             Self::VariableOrder => Box::new(variable_order::create()),
+            Self::Variables => Box::new(variables::create()),
             Self::Whitespace => Box::new(whitespace::create()),
             _ => unreachable!("unsupported check: {self}"),
         }
