@@ -203,6 +203,14 @@ impl BuildVariable {
         !matches!(self.var, Variable::EBUILD_PHASE | Variable::EBUILD_PHASE_FUNC)
     }
 
+    /// Determine if the variable is allowed in a given `Scope`.
+    pub fn is_allowed<T>(&self, value: &T) -> bool
+    where
+        EbuildScope: PartialEq<T>,
+    {
+        self.allowed.iter().any(|x| x == value)
+    }
+
     pub(crate) fn bind(&self, value: &str) -> scallop::Result<ExecStatus> {
         let attrs = if self.external {
             Some(Attr::EXPORTED)
