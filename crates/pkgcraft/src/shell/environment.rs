@@ -158,6 +158,12 @@ impl Borrow<Variable> for BuildVariable {
     }
 }
 
+impl Borrow<str> for BuildVariable {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
+
 impl AsRef<str> for BuildVariable {
     fn as_ref(&self) -> &str {
         self.var.as_ref()
