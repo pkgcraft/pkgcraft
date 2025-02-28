@@ -4,6 +4,9 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::LazyLock;
 
+use crate::shell::phase::PhaseKind;
+use crate::shell::scope::Scope;
+
 static CONDITIONALS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     ["test_command", "if_statement", "list"]
         .into_iter()
@@ -123,6 +126,27 @@ impl<'a> Node<'a> {
             node = x;
         }
         false
+    }
+
+    /// Return the function name the node is in if it exists.
+    pub fn in_function(&self) -> Option<String> {
+        let mut node = *self;
+        while let Some(x) = node.parent() {
+            if node.kind() == "function_definition" {
+                return node.name().map(Into::into);
+            }
+            node = x;
+        }
+        None
+    }
+
+    // TODO: handle nested functions
+    /// Return the node's scope if it exists.
+    pub fn in_scope(&self) -> Option<Scope> {
+        match self.in_function() {
+            None => Some(Scope::Global),
+            Some(func) => func.parse::<PhaseKind>().ok().map(Into::into),
+        }
     }
 
     /// Return this node's children.
