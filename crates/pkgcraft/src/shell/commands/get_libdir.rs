@@ -15,7 +15,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
     let libdir = get_libdir(Some("lib")).unwrap();
     write!(stdout(), "{libdir}")?;
-
     Ok(ExecStatus::Success)
 }
 

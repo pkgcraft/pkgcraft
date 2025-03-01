@@ -1,15 +1,24 @@
 use scallop::ExecStatus;
 use tracing::debug;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-If in a special debug mode, the arguments should be outputted or recorded using some kind of debug
-logging.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "debug-print",
+    long_about = indoc::indoc! {"
+        If in a special debug mode, the arguments should be outputted or recorded using
+        some kind of debug logging.
+    "}
+)]
+struct Command {
+    #[arg(required = true, allow_hyphen_values = true)]
+    args: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    debug!("{}", args.join(" "));
+    let cmd = Command::try_parse_args(args)?;
+    debug!("{}", cmd.args.join(" "));
     Ok(ExecStatus::Success)
 }
 
