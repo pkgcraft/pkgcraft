@@ -1,17 +1,33 @@
-use scallop::{Error, ExecStatus};
+use camino::Utf8PathBuf;
+use scallop::ExecStatus;
 
-use super::dolib::install_lib;
-use super::make_builtin;
+use crate::macros::build_path;
+use crate::shell::environment::Variable::DESTTREE;
+use crate::shell::get_build_mut;
+use crate::shell::utils::get_libdir;
 
-const LONG_DOC: &str = "Install static libraries.";
+use super::{make_builtin, TryParseArgs};
 
-#[doc = stringify!(LONG_DOC)]
+#[derive(clap::Parser, Debug)]
+#[command(name = "dolib.a", long_about = "Install static libraries.")]
+struct Command {
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
+
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
+    let cmd = Command::try_parse_args(args)?;
 
-    install_lib(args, Some(&["-m0644"]))
+    let build = get_build_mut();
+    let libdir = get_libdir(Some("lib")).unwrap();
+    let dest = build_path!(build.env(DESTTREE), &libdir);
+    build
+        .install()
+        .dest(dest)?
+        .file_options(["-m0644"])
+        .files(&cmd.paths)?;
+
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "dolib.a path/to/lib.a";
@@ -26,14 +42,14 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, dolib_a, into, libopts};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, dolib_a, into, libopts};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(dolib_a, &[0]);
+        assert_invalid_cmd(dolib_a, &[0]);
 
         let _file_tree = FileTree::new();
 
