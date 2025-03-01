@@ -5,7 +5,10 @@ use super::dobin::install_bin;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "dosbin", long_about = "Install executables into DESTTREE/sbin.")]
+#[command(
+    name = "dosbin",
+    long_about = "Install executables into DESTTREE/sbin."
+)]
 struct Command {
     #[arg(required = true, value_name = "PATH")]
     paths: Vec<Utf8PathBuf>,

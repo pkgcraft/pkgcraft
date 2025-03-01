@@ -1,19 +1,24 @@
+use camino::Utf8PathBuf;
 use itertools::Either;
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::eapi::Feature::ConsistentFileOpts;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install init scripts into /etc/init.d/.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "doinitd",
+    long_about = "Install init scripts into /etc/init.d/."
+)]
+struct Command {
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
+    let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let dest = "/etc/init.d";
     let opts = if build.eapi().has(ConsistentFileOpts) {
@@ -21,7 +26,11 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     } else {
         Either::Right(build.exeopts.iter().map(|s| s.as_str()))
     };
-    build.install().dest(dest)?.file_options(opts).files(args)?;
+    build
+        .install()
+        .dest(dest)?
+        .file_options(opts)
+        .files(&cmd.paths)?;
     Ok(ExecStatus::Success)
 }
 
@@ -37,14 +46,14 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, doinitd, exeopts};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, doinitd, exeopts};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(doinitd, &[0]);
+        assert_invalid_cmd(doinitd, &[0]);
 
         let _file_tree = FileTree::new();
 
