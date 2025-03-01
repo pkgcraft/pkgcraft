@@ -1,15 +1,21 @@
+use camino::Utf8PathBuf;
 use nix::unistd::geteuid;
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::macros::build_path;
 use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install executables into DESTTREE/bin.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "dobin", long_about = "Install executables into DESTTREE/bin.")]
+struct Command {
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
-pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStatus> {
+pub(super) fn install_bin(paths: &[Utf8PathBuf], dest: &str) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let dest = build_path!(build.env(DESTTREE), dest);
     let opts: &[&str] = if geteuid().is_root() {
@@ -17,17 +23,17 @@ pub(super) fn install_bin(args: &[&str], dest: &str) -> scallop::Result<ExecStat
     } else {
         &["-m0755"]
     };
-    build.install().dest(dest)?.file_options(opts).files(args)?;
+    build
+        .install()
+        .dest(dest)?
+        .file_options(opts)
+        .files(paths)?;
     Ok(ExecStatus::Success)
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    install_bin(args, "bin")
+    let cmd = Command::try_parse_args(args)?;
+    install_bin(&cmd.paths, "bin")
 }
 
 const USAGE: &str = "dobin path/to/executable";
@@ -40,14 +46,14 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, dobin, exeopts, into};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, dobin, exeopts, into};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(dobin, &[0]);
+        assert_invalid_cmd(dobin, &[0]);
 
         let _file_tree = FileTree::new();
 

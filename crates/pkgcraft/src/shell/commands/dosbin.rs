@@ -1,17 +1,19 @@
-use scallop::{Error, ExecStatus};
+use camino::Utf8PathBuf;
+use scallop::ExecStatus;
 
 use super::dobin::install_bin;
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Install executables into DESTTREE/sbin.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "dosbin", long_about = "Install executables into DESTTREE/sbin.")]
+struct Command {
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Utf8PathBuf>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    install_bin(args, "sbin")
+    let cmd = Command::try_parse_args(args)?;
+    install_bin(&cmd.paths, "sbin")
 }
 
 const USAGE: &str = "dosbin /path/to/executable";
@@ -24,14 +26,14 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, dosbin, exeopts, into};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, dosbin, exeopts, into};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(dosbin, &[0]);
+        assert_invalid_cmd(dosbin, &[0]);
 
         let _file_tree = FileTree::new();
 
