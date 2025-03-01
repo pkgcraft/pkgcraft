@@ -419,7 +419,7 @@ fn get_build_mut<'a>() -> &'a mut BuildData {
 fn update_build(state: BuildData) {
     let build = get_build_mut();
 
-    // TODO: handle resets in external process pool
+    // HACK: handle resets for builtin command tests
     if cfg!(test) && !matches!(build.state, BuildState::Empty(_)) {
         scallop::shell::reset(&["PATH"]);
     }
