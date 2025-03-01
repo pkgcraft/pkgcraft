@@ -1,20 +1,18 @@
 use std::io::Write;
 
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
 
 use crate::io::stdout;
 use crate::shell::utils::get_libdir;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Output the libdir name.";
+#[derive(clap::Parser, Debug)]
+#[command(name = "get_libdir", long_about = "Output the libdir name.")]
+struct Command;
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if !args.is_empty() {
-        return Err(Error::Base(format!("takes no args, got {}", args.len())));
-    }
-
+    let _cmd = Command::try_parse_args(args)?;
     let libdir = get_libdir(Some("lib")).unwrap();
     write!(stdout(), "{libdir}")?;
 
@@ -30,14 +28,14 @@ mod tests {
 
     use crate::io::stdout;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, get_libdir};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, get_libdir};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(get_libdir, &[1]);
+        assert_invalid_cmd(get_libdir, &[1]);
     }
 
     #[test]
