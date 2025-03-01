@@ -1,21 +1,26 @@
-use scallop::{Error, ExecStatus};
+use scallop::ExecStatus;
+use tracing::debug;
 
-use super::debug_print;
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Calls debug-print with `$1: entering function` as the first argument and the remaining arguments as
-additional arguments.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "debug-print-function",
+    long_about = indoc::indoc! {"
+        Calls debug-print with `$1: entering function` as the first argument and the
+        remaining arguments as additional arguments.
+    "}
+)]
+struct Command {
+    function: String,
+    #[arg(allow_hyphen_values = true)]
+    args: Vec<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
-
-    let s = format!("{}: entering function", args[0]);
-    let args = &[&[s.as_str()], &args[1..]].concat();
-    debug_print(args)
+    let cmd = Command::try_parse_args(args)?;
+    debug!("{}: entering function {}", cmd.function, cmd.args.join(" "));
+    Ok(ExecStatus::Success)
 }
 
 const USAGE: &str = "debug-print-function arg1 arg2";
@@ -30,14 +35,14 @@ mod tests {
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::assert_logs_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, debug_print_function};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, debug_print_function};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(debug_print_function, &[0]);
+        assert_invalid_cmd(debug_print_function, &[0]);
     }
 
     #[traced_test]
