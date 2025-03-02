@@ -6,24 +6,34 @@ use crate::eapi::Feature::UsevTwoArgs;
 use crate::io::stdout;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, use_};
+use super::{make_builtin, use_, TryParseArgs};
 
-const LONG_DOC: &str = "\
-The same as use, but also prints the flag name if the condition is met.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "usev",
+    long_about = "The same as use, but also prints the flag name if the condition is met."
+)]
+struct Command {
+    flag: String,
+    output: Option<String>,
+}
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let cmd = Command::try_parse_args(args)?;
     let eapi = get_build_mut().eapi();
-    let (flag, value) = match args[..] {
-        [flag] => (flag, flag.strip_prefix('!').unwrap_or(flag)),
-        [flag, value] if eapi.has(UsevTwoArgs) => (flag, value),
-        [_, _] => return Err(Error::Base("requires 1 arg, got 2".into())),
-        _ => return Err(Error::Base(format!("requires 1 or 2 args, got {}", args.len()))),
+    let flag = &cmd.flag;
+    let output = if let Some(value) = cmd.output.as_deref() {
+        if !eapi.has(UsevTwoArgs) {
+            return Err(Error::Base(format!("EAPI {eapi}: output argument unsupported")));
+        }
+        value
+    } else {
+        flag.strip_prefix('!').unwrap_or(flag)
     };
 
     let ret = use_(&[flag])?;
     if bool::from(&ret) {
-        write!(stdout(), "{value}")?;
+        write!(stdout(), "{output}")?;
     }
 
     Ok(ret)
@@ -41,18 +51,18 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, usev};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, usev};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(usev, &[0, 3]);
+        assert_invalid_cmd(usev, &[0, 3]);
 
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(UsevTwoArgs)) {
             BuildData::empty(eapi);
-            assert_invalid_args(usev, &[2]);
+            assert_invalid_cmd(usev, &[2]);
         }
     }
 
