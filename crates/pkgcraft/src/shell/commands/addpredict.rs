@@ -21,7 +21,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "addpredict /proc";
 make_builtin!("addpredict", addpredict_builtin);
 
 #[cfg(test)]
@@ -29,7 +28,7 @@ mod tests {
     use super::super::{addpredict, assert_invalid_cmd, cmd_scope_tests};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("addpredict /proc");
 
     #[test]
     fn invalid_args() {

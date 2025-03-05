@@ -15,7 +15,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "addread /sys";
 make_builtin!("addread", addread_builtin);
 
 #[cfg(test)]
@@ -23,7 +22,7 @@ mod tests {
     use super::super::{addread, assert_invalid_cmd, cmd_scope_tests};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("addread /sys");
 
     #[test]
     fn invalid_args() {
