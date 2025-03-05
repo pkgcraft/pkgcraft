@@ -141,9 +141,14 @@ impl From<Builtin> for bash::Builtin {
         let name = name_str.as_ptr() as *mut _;
         mem::forget(name_str);
 
-        let short_doc_str = CString::new(builtin.usage).unwrap();
-        let short_doc = short_doc_str.as_ptr();
-        mem::forget(short_doc_str);
+        let short_doc = if builtin.usage.is_empty() {
+            ptr::null_mut()
+        } else {
+            let short_doc_str = CString::new(builtin.usage).unwrap();
+            let ptr = short_doc_str.as_ptr();
+            mem::forget(short_doc_str);
+            ptr
+        };
 
         let long_docs = iter_to_array!(builtin.help.lines(), str_to_raw);
         let long_doc = if long_docs.is_empty() {
