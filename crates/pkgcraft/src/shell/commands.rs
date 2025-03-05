@@ -585,9 +585,12 @@ fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
 #[macro_export]
 macro_rules! make_builtin {
     ($name:expr, $func_name:ident) => {
-        make_builtin!($name, $func_name, BUILTIN);
+        make_builtin!($name, $func_name, BUILTIN, "");
     };
     ($name:expr, $func_name:ident, $builtin:ident) => {
+        make_builtin!($name, $func_name, $builtin, "");
+    };
+    ($name:expr, $func_name:ident, $builtin:ident, $usage:expr) => {
         #[no_mangle]
         extern "C" fn $func_name(args: *mut scallop::bash::WordList) -> std::ffi::c_int {
             i32::from($crate::shell::commands::run($name, args))
@@ -600,7 +603,7 @@ macro_rules! make_builtin {
                 flags: scallop::builtins::Attr::ENABLED.bits(),
                 cfunc: $func_name,
                 help: "",
-                usage: USAGE,
+                usage: $usage,
             });
     };
 }
