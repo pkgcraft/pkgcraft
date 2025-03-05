@@ -1,4 +1,5 @@
 use std::ops::BitOr;
+use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -13,10 +14,7 @@ use crate::shell::environment::Variable::DISTDIR;
 use crate::shell::get_build_mut;
 use crate::utils::{current_dir, is_single_component};
 
-use super::make_builtin;
-
-const LONG_DOC: &str = "\
-Unpacks one or more source archives, in order, into the current directory.";
+use super::{make_builtin, TryParseArgs};
 
 // TODO: Drop LazyLock usage once upstream BitOr is marked const (see
 // https://github.com/bitflags/bitflags/issues/180) requiring const trait impl support in
@@ -33,21 +31,21 @@ static FILE_MODE: LazyLock<Mode> = LazyLock::new(|| {
 static DIR_MODE: LazyLock<Mode> =
     LazyLock::new(|| *FILE_MODE | Mode::S_IXUSR | Mode::S_IXGRP | Mode::S_IXOTH);
 
-#[doc = stringify!(LONG_DOC)]
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    if args.is_empty() {
-        return Err(Error::Base("requires 1 or more args, got 0".into()));
-    }
+#[derive(Debug, Clone)]
+struct Archive(Utf8PathBuf);
 
-    let build = get_build_mut();
-    let current_dir = current_dir()?;
-    let eapi = build.eapi();
-    let distdir = build.env(DISTDIR);
+impl FromStr for Archive {
+    type Err = scallop::Error;
 
-    // Determine the source for a given archive target. Basic filenames are prefixed with
-    // DISTDIR while all other types are unprefixed including conditionally supported absolute
-    // and relative paths.
-    let determine_source = |path: &Utf8Path| -> scallop::Result<Utf8PathBuf> {
+    fn from_str(s: &str) -> scallop::Result<Self> {
+        let build = get_build_mut();
+        let eapi = build.eapi();
+        let distdir = build.env(DISTDIR);
+        let path = Utf8Path::new(s);
+
+        // Determine the source for a given archive target. Basic filenames are prefixed with
+        // DISTDIR while all other types are unprefixed including conditionally supported absolute
+        // and relative paths.
         let source = if is_single_component(path) {
             Utf8Path::new(distdir).join(path)
         } else if path.starts_with("./") || eapi.has(Feature::UnpackExtendedPath) {
@@ -65,14 +63,30 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             return Err(Error::Base(format!("nonexistent archive: {path}")));
         }
 
-        Ok(source)
-    };
+        Ok(Self(source))
+    }
+}
+
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "unpack",
+    long_about = "Unpacks one or more source archives, in order, into the current directory."
+)]
+struct Command {
+    #[arg(required = true, value_name = "PATH")]
+    paths: Vec<Archive>,
+}
+
+fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let cmd = Command::try_parse_args(args)?;
+    let build = get_build_mut();
+    let current_dir = current_dir()?;
+    let eapi = build.eapi();
 
     // unpack all specified archives
-    for path in args.iter().map(Utf8Path::new) {
-        let source = determine_source(path)?;
-        let (ext, archive) = eapi.archive_from_path(&source)?;
-        let base = source.file_name().expect("invalid archive file name");
+    for path in cmd.paths {
+        let (ext, archive) = eapi.archive_from_path(&path.0)?;
+        let base = path.0.file_name().expect("invalid archive file name");
         let base = &base[0..base.len() - 1 - ext.len()];
         let dest = &current_dir.join(base);
         archive.unpack(dest)?;
@@ -134,21 +148,21 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, unpack};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, unpack};
     use super::*;
 
     cmd_scope_tests!(USAGE);
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(unpack, &[0]);
+        assert_invalid_cmd(unpack, &[0]);
     }
 
     #[test]
     fn nonexistent() {
         let build = get_build_mut();
         build.env.insert(DISTDIR, "dist".to_string());
-        assert_err_re!(unpack(&["a.tar.gz"]), "^nonexistent archive: .*$");
+        assert_err_re!(unpack(&["a.tar.gz"]), "nonexistent archive: a.tar.gz");
     }
 
     #[test]
@@ -182,10 +196,7 @@ mod tests {
             if eapi.has(Feature::UnpackExtendedPath) {
                 result.unwrap();
             } else {
-                assert_err_re!(
-                    result,
-                    format!("^EAPI {eapi}: unsupported absolute path: .*$")
-                );
+                assert_err_re!(result, format!("EAPI {eapi}: unsupported absolute path: .*"));
             }
 
             // prefixed relative paths work everywhere
@@ -196,10 +207,7 @@ mod tests {
             if eapi.has(Feature::UnpackExtendedPath) {
                 result.unwrap();
             } else {
-                assert_err_re!(
-                    result,
-                    format!("^EAPI {eapi}: unsupported relative path: .*$")
-                );
+                assert_err_re!(result, format!("EAPI {eapi}: unsupported relative path: .*"));
             }
         }
     }
