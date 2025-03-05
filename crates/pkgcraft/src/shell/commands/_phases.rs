@@ -9,7 +9,6 @@ fn run(_args: &[&str]) -> scallop::Result<ExecStatus> {
     Err(Error::Base("direct phase call".to_string()))
 }
 
-const USAGE: &str = "for internal use only";
 make_builtin!("pkg_config", pkg_config, PKG_CONFIG);
 make_builtin!("pkg_info", pkg_info, PKG_INFO);
 make_builtin!("pkg_nofetch", pkg_nofetch, PKG_NOFETCH);
