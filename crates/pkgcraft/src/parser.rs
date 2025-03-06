@@ -100,8 +100,8 @@ fn use_deps(input: &mut &str) -> ModalResult<SortedSet<UseDep>> {
     trace("use_deps", delimited('[', separated(1.., use_dep, ','), ']')).parse_next(input)
 }
 
-fn repo_dep<'s>(eapi: &'static Eapi) -> impl ModalParser<&'s str, &'s str, ContextError> {
-    trace("repo_dep", move |input: &mut &'s str| {
+fn repo_dep<'i>(eapi: &'static Eapi) -> impl ModalParser<&'i str, &'i str, ContextError> {
+    trace("repo_dep", move |input: &mut &'i str| {
         let start = input.checkpoint();
         preceded("::", cond(eapi.has(Feature::RepoIds), repository_name))
             .parse_next(input)?
@@ -140,8 +140,8 @@ fn dep_pkg(input: &mut &str) -> ModalResult<Dep> {
     trace("dep_pkg", alt((cpn.map(Into::into), dep_op_pkg))).parse_next(input)
 }
 
-pub(crate) fn dep<'s>(eapi: &'static Eapi) -> impl ModalParser<&'s str, Dep, ContextError> {
-    trace("dep", move |input: &mut &'s str| {
+pub(crate) fn dep<'i>(eapi: &'static Eapi) -> impl ModalParser<&'i str, Dep, ContextError> {
+    trace("dep", move |input: &mut &'i str| {
         let (blocker, Dep { cpn, version, .. }, slot_dep, repo, use_deps) = (
             opt(blocker),
             dep_pkg,
@@ -337,15 +337,15 @@ pub(crate) fn restrict_dependency(input: &mut &str) -> ModalResult<Dependency<St
     .parse_next(input)
 }
 
-pub(crate) fn package_dependency_set<'s>(
+pub(crate) fn package_dependency_set<'i>(
     eapi: &'static Eapi,
-) -> impl ModalParser<&'s str, DependencySet<Dep>, ContextError> {
+) -> impl ModalParser<&'i str, DependencySet<Dep>, ContextError> {
     separated(0.., package_dependency(eapi), multispace1)
 }
 
-pub(crate) fn package_dependency<'s>(
+pub(crate) fn package_dependency<'i>(
     eapi: &'static Eapi,
-) -> impl ModalParser<&'s str, Dependency<Dep>, ContextError> {
+) -> impl ModalParser<&'i str, Dependency<Dep>, ContextError> {
     move |input: &mut &str| {
         alt((
             conditional(package_dependency(eapi)),
@@ -357,13 +357,13 @@ pub(crate) fn package_dependency<'s>(
     }
 }
 
-fn conditional<'s, O>(
-    mut parser: impl ModalParser<&'s str, Dependency<O>, ContextError>,
-) -> impl ModalParser<&'s str, Dependency<O>, ContextError>
+fn conditional<'i, O>(
+    mut parser: impl ModalParser<&'i str, Dependency<O>, ContextError>,
+) -> impl ModalParser<&'i str, Dependency<O>, ContextError>
 where
     O: Ordered,
 {
-    move |input: &mut &'s str| {
+    move |input: &mut &'i str| {
         let (disabled, flag, _, _) =
             (opt('!'), use_flag_name, '?', multispace1).parse_next(input)?;
         let use_dep = UseDep {
@@ -378,28 +378,28 @@ where
     }
 }
 
-fn all_of<'s, O, E>(
-    mut parser: impl Parser<&'s str, Dependency<O>, E>,
-) -> impl Parser<&'s str, Dependency<O>, E>
+fn all_of<'i, O, E>(
+    mut parser: impl Parser<&'i str, Dependency<O>, E>,
+) -> impl Parser<&'i str, Dependency<O>, E>
 where
     O: Ordered,
-    E: ParserError<&'s str>,
+    E: ParserError<&'i str>,
 {
-    move |input: &mut &'s str| {
+    move |input: &mut &'i str| {
         let dependencies = group(parser.by_ref()).parse_next(input)?;
         let dependencies = dependencies.into_iter().map(Box::new).collect();
         Ok(Dependency::AllOf(dependencies))
     }
 }
 
-fn any_of<'s, O, E>(
-    mut parser: impl Parser<&'s str, Dependency<O>, E>,
-) -> impl Parser<&'s str, Dependency<O>, E>
+fn any_of<'i, O, E>(
+    mut parser: impl Parser<&'i str, Dependency<O>, E>,
+) -> impl Parser<&'i str, Dependency<O>, E>
 where
     O: Ordered,
-    E: ParserError<&'s str>,
+    E: ParserError<&'i str>,
 {
-    move |input: &mut &'s str| {
+    move |input: &mut &'i str| {
         let dependencies =
             preceded(("||", multispace1), group(parser.by_ref())).parse_next(input)?;
         let dependencies = dependencies.into_iter().map(Box::new).collect();
@@ -407,14 +407,14 @@ where
     }
 }
 
-fn exactly_one_of<'s, O, E>(
-    mut parser: impl Parser<&'s str, Dependency<O>, E>,
-) -> impl Parser<&'s str, Dependency<O>, E>
+fn exactly_one_of<'i, O, E>(
+    mut parser: impl Parser<&'i str, Dependency<O>, E>,
+) -> impl Parser<&'i str, Dependency<O>, E>
 where
     O: Ordered,
-    E: ParserError<&'s str>,
+    E: ParserError<&'i str>,
 {
-    move |input: &mut &'s str| {
+    move |input: &mut &'i str| {
         let dependencies =
             preceded(("^^", multispace1), group(parser.by_ref())).parse_next(input)?;
         let dependencies = dependencies.into_iter().map(Box::new).collect();
@@ -422,14 +422,14 @@ where
     }
 }
 
-fn at_most_one_of<'s, O, E>(
-    mut parser: impl Parser<&'s str, Dependency<O>, E>,
-) -> impl Parser<&'s str, Dependency<O>, E>
+fn at_most_one_of<'i, O, E>(
+    mut parser: impl Parser<&'i str, Dependency<O>, E>,
+) -> impl Parser<&'i str, Dependency<O>, E>
 where
     O: Ordered,
-    E: ParserError<&'s str>,
+    E: ParserError<&'i str>,
 {
-    move |input: &mut &'s str| {
+    move |input: &mut &'i str| {
         let dependencies =
             preceded(("??", multispace1), group(parser.by_ref())).parse_next(input)?;
         let dependencies = dependencies.into_iter().map(Box::new).collect();
@@ -437,9 +437,9 @@ where
     }
 }
 
-fn group<'s, O, E>(parser: impl Parser<&'s str, O, E>) -> impl Parser<&'s str, Vec<O>, E>
+fn group<'i, O, E>(parser: impl Parser<&'i str, O, E>) -> impl Parser<&'i str, Vec<O>, E>
 where
-    E: ParserError<&'s str>,
+    E: ParserError<&'i str>,
 {
     trace(
         "group",
@@ -448,12 +448,12 @@ where
 }
 
 // 3.1.1 Category names
-pub(crate) fn category_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn category_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace("category_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+'))).parse_next(input)
 }
 
 // 3.1.2 Package names
-pub(crate) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn package_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace(
         "package_name",
         (
@@ -469,7 +469,6 @@ pub(crate) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
                             separated::<_, _, Vec<_>, _, _, _, _>(1.., version, '-').void(),
                             alt(("*", ":", "[", eof)),
                         )),
-                        "-",
                     ),
                 )),
             )
@@ -481,18 +480,18 @@ pub(crate) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 // 3.1.3 Slot names
-pub(crate) fn slot_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn slot_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace("slot_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+'))).parse_next(input)
 }
 
 // 3.1.4 USE flag names
-pub(crate) fn use_flag_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn use_flag_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace("use_flag_name", name(AsChar::is_alphanum, ('_', '-', '.', '+', '@')))
         .parse_next(input)
 }
 
 // 3.1.5 Repository names
-pub(crate) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn repository_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace(
         "repository_name",
         (
@@ -508,7 +507,6 @@ pub(crate) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
                             separated::<_, _, Vec<_>, _, _, _, _>(1.., version, '-').void(),
                             alt(("*", ":", "[", eof)),
                         )),
-                        "-",
                     ),
                 )),
             )
@@ -520,7 +518,7 @@ pub(crate) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 // 3.1.6 Eclass names
-pub(crate) fn eclass_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn eclass_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace(
         "eclass_name",
         preceded(
@@ -532,12 +530,12 @@ pub(crate) fn eclass_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 }
 
 // 3.1.7 License names
-pub(crate) fn license_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn license_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace("license_name", name((AsChar::is_alphanum, '_'), ('-', '.', '+'))).parse_next(input)
 }
 
 /// 3.1.8
-pub(crate) fn keyword_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
+pub(crate) fn keyword_name<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
     trace("keyword_name", name((AsChar::is_alphanum, '_'), '-')).parse_next(input)
 }
 
@@ -708,6 +706,11 @@ mod tests {
         assert_eq!(eapi_value.parse("8"), Ok("8"));
         assert_eq!(eapi_value.parse("_foo"), Ok("_foo"));
         assert_eq!(eapi_value.parse("Foo"), Ok("Foo"));
+    }
+
+    #[test]
+    fn package_names() {
+        assert_eq!(package_name.parse_peek("pkg-1::repo"), Ok(("-1::repo", "pkg")));
     }
 
     #[test]
