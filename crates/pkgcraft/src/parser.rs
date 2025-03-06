@@ -4,10 +4,10 @@
 use winnow::{
     ascii::{alpha1, digit1, multispace1},
     combinator::{
-        alt, delimited, dispatch, empty, eof, fail, not, opt, peek, preceded, repeat,
-        repeat_till, separated, seq, terminated, trace,
+        alt, cond, cut_err, delimited, dispatch, empty, eof, fail, not, opt, peek, preceded,
+        repeat, repeat_till, separated, seq, terminated, trace,
     },
-    error::{ContextError, ParserError},
+    error::{AddContext, ContextError, ErrMode, ParserError, StrContext, StrContextValue},
     prelude::*,
     stream::{AsChar, ContainsToken, ParseSlice, Stream, StreamIsPartial},
     token::{any, one_of, take_till, take_while},
@@ -102,11 +102,18 @@ fn use_deps(input: &mut &str) -> ModalResult<SortedSet<UseDep>> {
 
 fn repo_dep<'s>(eapi: &'static Eapi) -> impl ModalParser<&'s str, &'s str, ContextError> {
     trace("repo_dep", move |input: &mut &'s str| {
-        if eapi.has(Feature::RepoIds) {
-            preceded("::", repository_name).parse_next(input)
-        } else {
-            Err(ParserError::from_input(input))
-        }
+        let start = input.checkpoint();
+        preceded("::", cond(eapi.has(Feature::RepoIds), repository_name))
+            .parse_next(input)?
+            .ok_or_else(|| {
+                ErrMode::from_input(input).cut().add_context(
+                    input,
+                    &start,
+                    StrContext::Expected(StrContextValue::Description(
+                        "Eapi doesn't support repository ids",
+                    )),
+                )
+            })
     })
 }
 
