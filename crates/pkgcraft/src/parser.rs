@@ -463,23 +463,11 @@ pub(crate) fn package_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
                 alt((
                     one_of((AsChar::is_alphanum, '_', '+')).take(),
                     // TODO: investigate how this effects performance
-                    preceded(
-                        peek((
-                            '-',
-                            alt((
-                                // If the `-` is not followed by a version, take it.
-                                not(version).take(),
-                                // If the `-` is followed by version[-version]* followed by a
-                                // -!version, take it.
-                                (
-                                    separated::<_, _, Vec<_>, _, _, _, _>(1.., version, '-'),
-                                    not(preceded('-', version)),
-                                    not('*'),
-                                    not(slot_dep_str),
-                                    not(eof),
-                                )
-                                    .take(),
-                            )),
+                    terminated(
+                        "-",
+                        not((
+                            separated::<_, _, Vec<_>, _, _, _, _>(1.., version, '-').void(),
+                            alt(("*", ":", "[", eof)),
                         )),
                         "-",
                     ),
@@ -514,23 +502,11 @@ pub(crate) fn repository_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
                 alt((
                     one_of((AsChar::is_alphanum, '_')).take(),
                     // TODO: investigate how this effects performance
-                    preceded(
-                        peek((
-                            '-',
-                            alt((
-                                // If the `-` is not followed by a version, take it.
-                                not(version).take(),
-                                // If the `-` is followed by version[-version]* followed by a
-                                // -!version, take it.
-                                (
-                                    separated::<_, _, Vec<_>, _, _, _, _>(1.., version, '-'),
-                                    not(preceded('-', version)),
-                                    not('*'),
-                                    not(slot_dep_str),
-                                    not(eof),
-                                )
-                                    .take(),
-                            )),
+                    terminated(
+                        "-",
+                        not((
+                            separated::<_, _, Vec<_>, _, _, _, _>(1.., version, '-').void(),
+                            alt(("*", ":", "[", eof)),
                         )),
                         "-",
                     ),
