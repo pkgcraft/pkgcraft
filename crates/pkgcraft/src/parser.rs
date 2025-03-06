@@ -201,17 +201,17 @@ pub(crate) fn slot(input: &mut &str) -> ModalResult<Slot> {
 }
 
 pub(crate) fn keyword(input: &mut &str) -> ModalResult<Keyword> {
-    trace(
-        "keyword",
-        dispatch!(take_while(0..=2, ('~', '-', '*'));
-            "~" => (empty.value(KeywordStatus::Unstable), keyword_name.map(Into::into)),
-            "-" => (empty.value(KeywordStatus::Disabled), keyword_name.map(Into::into)),
-            "-*" => (empty.value(KeywordStatus::Disabled), empty.value("*".into())),
-            _ => (empty.value(KeywordStatus::Stable), keyword_name.map(Into::into)),
-        ),
-    )
+    trace("keyword", move |input: &mut &str| {
+        let status =
+            opt(alt(("-".value(KeywordStatus::Disabled), "~".value(KeywordStatus::Unstable))))
+                .map(|status| status.unwrap_or(KeywordStatus::Stable))
+                .parse_next(input)?;
+        let arch =
+            alt(("*".verify(|_: &str| status == KeywordStatus::Disabled), keyword_name))
+                .parse_next(input)?;
+        Ok(Keyword { status, arch: arch.into() })
+    })
     .parse_next(input)
-    .map(|(status, arch)| Keyword { status, arch })
 }
 
 pub(crate) fn eapi_value<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
