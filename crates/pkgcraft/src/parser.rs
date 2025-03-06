@@ -57,8 +57,8 @@ pub(crate) fn iuse(input: &mut &str) -> ModalResult<Iuse> {
     trace(
         "iuse",
         seq!(Iuse {
+            default: opt(alt(('+'.value(true), '-'.value(false)))),
             flag: use_flag_name.map(str::to_string),
-            default: opt(alt(('+'.value(true), '-'.value(false))))
         }),
     )
     .parse_next(input)
