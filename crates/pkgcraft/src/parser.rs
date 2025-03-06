@@ -10,7 +10,7 @@ use winnow::{
     error::{ContextError, ParserError},
     prelude::*,
     stream::{AsChar, ContainsToken, ParseSlice, Stream, StreamIsPartial},
-    token::{any, one_of, take_while},
+    token::{any, one_of, take_till, take_while},
 };
 
 use crate::{
@@ -249,23 +249,11 @@ pub(crate) fn src_uri_dependency(input: &mut &str) -> ModalResult<Dependency<Uri
 fn src_uri_dependency_(input: &mut &str) -> ModalResult<Dependency<Uri>> {
     trace("src_uri_dependency_", move |input: &mut &str| {
         (
-            repeat_till::<_, _, Vec<_>, _, _, _, _>(
-                1..,
-                any,
-                peek(alt((multispace1, "(", ")", eof))),
-            )
-            .take(),
-            opt((
-                multispace1.void(),
-                "->".void(),
-                multispace1.void(),
-                repeat_till::<_, _, Vec<_>, _, _, _, _>(
-                    1..,
-                    any,
-                    peek(alt((multispace1, "(", ")", eof))),
-                ),
-            )
-                .take()),
+            preceded(not(')'), take_till(1.., (AsChar::is_space, AsChar::is_newline))),
+            opt(preceded(
+                (multispace1, "->", multispace1),
+                take_till(1.., (AsChar::is_space, AsChar::is_newline)),
+            )),
         )
             .parse_next(input)
             .map(|(uri, rename)| Uri::new(uri, rename))
