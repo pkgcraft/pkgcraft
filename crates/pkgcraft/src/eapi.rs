@@ -25,56 +25,6 @@ use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::Phase;
 use crate::Error;
 
-pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
-    parser::eapi_value
-        .parse(s)
-        .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))
-}
-
-mod parser {
-    use winnow::{
-        combinator::{alt, delimited, trace},
-        prelude::*,
-        stream::AsChar,
-        token::{one_of, take_while},
-    };
-
-    pub(super) fn eapi_name<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "eapi_name",
-            (
-                one_of((AsChar::is_alphanum, '_')),
-                take_while(0.., (AsChar::is_alphanum, '_', '-', '.', '+')),
-            )
-                .take(),
-        )
-        .parse_next(input)
-    }
-
-    pub(super) fn eapi_value<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
-        trace(
-            "eapi_value",
-            alt((eapi_name, delimited('"', eapi_name, '"'), delimited('\'', eapi_name, '\''))),
-        )
-        .parse_next(input)
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn test_eapi() {
-            assert_eq!(eapi_value.parse("8").unwrap(), "8");
-            assert_eq!(eapi_value.parse("'8'").unwrap(), "8");
-            assert_eq!(eapi_value.parse(r#""8""#).unwrap(), "8");
-
-            assert!(eapi_value.parse("").is_err());
-            assert!(eapi_value.parse(" ").is_err());
-        }
-    }
-}
-
 /// Features that relate to differentiation between EAPIs as specified by PMS.
 #[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub enum Feature {
@@ -247,10 +197,9 @@ impl Eapi {
 
     /// Verify a string represents a valid EAPI.
     pub fn parse<S: AsRef<str>>(s: S) -> crate::Result<()> {
-        let s = s.as_ref();
-        parser::eapi_name
-            .parse(s)
-            .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
+        crate::parser::eapi_name
+            .parse(s.as_ref())
+            .map_err(|err| Error::ParseError(err.to_string()))?;
         Ok(())
     }
 
