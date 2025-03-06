@@ -126,7 +126,7 @@ fn dep_op_pkg(input: &mut &str) -> ModalResult<Dep> {
         }
         Ok(Dep {
             cpn,
-            version: Some(version.with_op(op).unwrap()),
+            version: version.with_op(op).ok(),
             blocker: None,
             slot_dep: None,
             use_deps: None,
