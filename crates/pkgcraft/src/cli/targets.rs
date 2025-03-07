@@ -185,7 +185,7 @@ impl<'a> Targets<'a> {
                     .map(|restrict| (repo.into(), restrict)),
                 (Ok(restrict), _, _) => self.dep_restriction(restrict),
                 (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
-                (_, Err(e), _) if s.contains('/') => Err(e),
+                (_, Err(e), _) if s.contains(std::path::MAIN_SEPARATOR) => Err(e),
                 (Err(e), _, _) => Err(e),
             }
         }?;
