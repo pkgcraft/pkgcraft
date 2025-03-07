@@ -3,8 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use indexmap::IndexMap;
-use itertools::Itertools;
-use pkgcraft::cli::target_ebuild_repo;
+use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::pkg::Package;
@@ -29,12 +28,9 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repos: Vec<_> = self
-            .repos
-            .iter()
-            .map(|x| target_ebuild_repo(config, x))
-            .try_collect()?;
-        config.finalize()?;
+        let repos = Targets::new(config)
+            .finalize_repos(&self.repos)?
+            .ebuild_repos()?;
 
         let mut failed = false;
         let mut stdout = io::stdout().lock();

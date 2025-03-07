@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::cli::target_ebuild_repo;
+use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::dep::{Cpv, Flatten};
 use pkgcraft::pkg::Package;
@@ -24,8 +24,9 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repo = target_ebuild_repo(config, &self.repo)?;
-        config.finalize()?;
+        let repo = Targets::new(config)
+            .finalize_repos([&self.repo])?
+            .ebuild_repo()?;
 
         let mut cpvs = vec![];
         let mut cache = HashMap::<_, HashSet<_>>::new();

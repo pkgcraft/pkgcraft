@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use clap::Args;
-use pkgcraft::cli::target_ebuild_repo;
+use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 
@@ -23,7 +23,10 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repo = target_ebuild_repo(config, &self.repo)?;
+        let repo = Targets::new(config)
+            .finalize_repos([&self.repo])?
+            .ebuild_repo()?;
+
         let format = self.format.unwrap_or(repo.metadata().cache().format());
 
         let cache = if let Some(path) = self.path.as_ref() {
