@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use colored::Colorize;
-use pkgcraft::cli::target_ebuild_repo;
+use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::restrict::Scope;
 use pkgcruft::report::{ReportKind, ReportTarget};
@@ -29,7 +29,9 @@ impl Subcommand {
             (true, None) => self.reports.replay().unwrap_or_default(),
             (selected, Some(repo)) => {
                 let mut config = Config::new("pkgcraft", "");
-                let repo = target_ebuild_repo(&mut config, repo)?;
+                let repo = Targets::new(&mut config)
+                    .finalize_repos([repo])?
+                    .ebuild_repo()?;
                 let defaults = ReportKind::defaults(&repo);
                 let supported = ReportKind::supported(&repo, Scope::Repo);
                 if selected {

@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use itertools::Itertools;
-use pkgcraft::cli::target_ebuild_repo;
+use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::restrict::Scope;
 use pkgcruft::check::Check;
@@ -23,9 +23,11 @@ pub(super) struct Subcommand {
 
 impl Subcommand {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let checks: Vec<_> = if let Some(value) = self.repo.as_deref() {
+        let checks: Vec<_> = if let Some(repo) = self.repo.as_deref() {
             let mut config = Config::new("pkgcraft", "");
-            let repo = target_ebuild_repo(&mut config, value)?;
+            let repo = Targets::new(&mut config)
+                .finalize_repos([repo])?
+                .ebuild_repo()?;
             Check::iter_supported(&repo, Scope::Repo).collect()
         } else {
             Check::iter().collect()
