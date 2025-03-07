@@ -21,30 +21,6 @@ use crate::types::OrderedMap;
 use crate::utils::current_dir;
 use crate::Error;
 
-/// Convert a target ebuild repo arg into an ebuild repo reference.
-pub fn target_ebuild_repo(config: &mut Config, target: &str) -> crate::Result<EbuildRepo> {
-    // load system config for repo alias support
-    if !target.contains(std::path::MAIN_SEPARATOR) {
-        config.load()?;
-    }
-
-    let id = if config.repos.get(target).is_some() {
-        target.to_string()
-    } else if let Ok(abspath) = Utf8Path::new(target).canonicalize_utf8() {
-        config.add_repo_path(&abspath, &abspath, 0, true)?;
-        abspath.to_string()
-    } else {
-        return Err(Error::InvalidValue(format!("unknown repo: {target}")));
-    };
-
-    config
-        .repos
-        .get(&id)
-        .and_then(|r| r.as_ebuild())
-        .cloned()
-        .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {target}")))
-}
-
 pub struct Targets<'a> {
     config: &'a mut Config,
     repo_set: RepoSet,
