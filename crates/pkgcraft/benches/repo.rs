@@ -1,5 +1,6 @@
 use criterion::Criterion;
 
+use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::dep::Cpv;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
@@ -12,12 +13,11 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
     for i in 0..100 {
         temp.create_ebuild(format!("cat/pkg-{i}"), &[]).unwrap();
     }
-    let repo = config
-        .add_repo(&temp, false)
+    let repo = Targets::new(&mut config)
+        .finalize_repos([temp.path()])
         .unwrap()
-        .into_ebuild()
+        .ebuild_repo()
         .unwrap();
-    config.finalize().unwrap();
 
     c.bench_function("repo-ebuild-iter", |b| {
         let mut pkgs = 0;

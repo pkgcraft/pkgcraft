@@ -63,6 +63,7 @@ impl EbuildRawPkgCheck for Check {
 mod tests {
     use std::fs;
 
+    use pkgcraft::cli::Targets;
     use pkgcraft::config::Config;
     use pkgcraft::eapi::EAPI7;
     use pkgcraft::repo::ebuild::EbuildRepoBuilder;
@@ -97,12 +98,11 @@ mod tests {
                 .unwrap();
         }
         let mut config = Config::new("pkgcraft", "");
-        let repo = config
-            .add_repo(&temp, false)
+        let repo = Targets::new(&mut config)
+            .finalize_repos([temp.path()])
             .unwrap()
-            .into_ebuild()
+            .ebuild_repo()
             .unwrap();
-        config.finalize().unwrap();
         let reports = scanner.run(&repo, &repo).unwrap();
         let expected = vec![Report::from_json(
             r#"{"kind":"EapiUnused","scope":{"Repo":"test"},"message":"7"}"#,
