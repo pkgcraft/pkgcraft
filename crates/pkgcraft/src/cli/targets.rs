@@ -260,6 +260,41 @@ impl<'a> Targets<'a> {
 
         Ok(PkgTargets(collapsed_targets))
     }
+
+    /// Determine target repos and finalize the config.
+    pub fn finalize_repos<I>(mut self, values: I) -> crate::Result<RepoTargets>
+    where
+        I: IntoIterator,
+        I::Item: std::fmt::Display,
+    {
+        let mut repos = vec![];
+
+        for value in values {
+            let target = value.to_string();
+
+            // load system config for repo alias support
+            if !target.contains(std::path::MAIN_SEPARATOR) {
+                self.config.load()?;
+            }
+
+            if let Some(repo) = self.config.repos.get(&target) {
+                repos.push((target, repo.clone()));
+            } else if let Ok(abspath) = Utf8Path::new(&target).canonicalize_utf8() {
+                repos.push((target, self.repo_from_path(&abspath)?));
+            } else {
+                return Err(Error::InvalidValue(format!("unknown repo: {target}")));
+            }
+        }
+
+        if repos.is_empty() {
+            return Err(Error::InvalidValue("no repo targets".to_string()));
+        }
+
+        // finalize the config after loading repos to start the build pool
+        self.config.finalize()?;
+
+        Ok(RepoTargets(repos))
+    }
 }
 
 pub struct PkgTargets(Vec<(RepoSet, Restrict)>);
@@ -328,5 +363,43 @@ impl PkgTargets {
                 .filter_map(|r| r.into_ebuild().ok())
                 .flat_map(move |r| r.iter_raw_restrict_ordered(&restrict))
         })
+    }
+}
+
+pub struct RepoTargets(Vec<(String, Repo)>);
+
+impl<'a> IntoIterator for &'a RepoTargets {
+    type Item = &'a (String, Repo);
+    type IntoIter = std::slice::Iter<'a, (String, Repo)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for RepoTargets {
+    type Item = (String, Repo);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl RepoTargets {
+    /// Collapse repos into a single ebuild repo.
+    pub fn ebuild_repo(self) -> crate::Result<EbuildRepo> {
+        self.ebuild_repos()
+            .map(|repos| repos.into_iter().next().expect("no repo targets"))
+    }
+
+    /// Convert repos into ebuild repos.
+    pub fn ebuild_repos(self) -> crate::Result<Vec<EbuildRepo>> {
+        self.into_iter()
+            .map(|(id, repo)| {
+                repo.into_ebuild()
+                    .map_err(|_| Error::InvalidValue(format!("non-ebuild repo: {id}")))
+            })
+            .try_collect()
     }
 }
