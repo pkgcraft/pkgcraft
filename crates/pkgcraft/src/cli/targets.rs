@@ -131,7 +131,7 @@ impl<'a> Targets<'a> {
             }
 
             match paths[..] {
-                [path] if path.contains('/') => {
+                [path] if path.contains(std::path::MAIN_SEPARATOR) => {
                     let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
                         Error::InvalidValue(format!("invalid repo: {path}: {e}"))
                     })?;
