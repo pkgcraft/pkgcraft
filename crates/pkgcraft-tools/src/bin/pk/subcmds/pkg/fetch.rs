@@ -9,7 +9,7 @@ use clap::{builder::ArgPredicate, Args};
 use futures::{stream, StreamExt};
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetcher;
@@ -97,10 +97,10 @@ impl Command {
         fs::create_dir_all(&self.dir)?;
 
         // convert targets to pkgs
-        let mut iter = TargetRestrictions::new(config)
+        let mut iter = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?
+            .finalize_pkgs(self.targets.iter().flatten())?
             .ebuild_pkgs()
             .log_errors(self.ignore);
 

@@ -45,14 +45,14 @@ pub fn target_ebuild_repo(config: &mut Config, target: &str) -> crate::Result<Eb
         .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {target}")))
 }
 
-pub struct TargetRestrictions<'a> {
+pub struct Targets<'a> {
     config: &'a mut Config,
     repo_set: RepoSet,
     repo_format: Option<RepoFormat>,
     scopes: Option<HashSet<Scope>>,
 }
 
-impl<'a> TargetRestrictions<'a> {
+impl<'a> Targets<'a> {
     /// Create a target restrictions parser.
     pub fn new(config: &'a mut Config) -> Self {
         Self {
@@ -225,8 +225,8 @@ impl<'a> TargetRestrictions<'a> {
         Ok((set, restrict))
     }
 
-    /// Determine target restrictions and finalize the config.
-    pub fn finalize_targets<I>(mut self, values: I) -> crate::Result<Targets>
+    /// Determine package restrictions and finalize the config.
+    pub fn finalize_pkgs<I>(mut self, values: I) -> crate::Result<PkgTargets>
     where
         I: IntoIterator,
         I::Item: std::fmt::Display,
@@ -258,13 +258,13 @@ impl<'a> TargetRestrictions<'a> {
             collapsed_targets.push((set, Restrict::or(restricts)));
         }
 
-        Ok(Targets(collapsed_targets))
+        Ok(PkgTargets(collapsed_targets))
     }
 }
 
-pub struct Targets(Vec<(RepoSet, Restrict)>);
+pub struct PkgTargets(Vec<(RepoSet, Restrict)>);
 
-impl<'a> IntoIterator for &'a Targets {
+impl<'a> IntoIterator for &'a PkgTargets {
     type Item = &'a (RepoSet, Restrict);
     type IntoIter = std::slice::Iter<'a, (RepoSet, Restrict)>;
 
@@ -273,7 +273,7 @@ impl<'a> IntoIterator for &'a Targets {
     }
 }
 
-impl IntoIterator for Targets {
+impl IntoIterator for PkgTargets {
     type Item = (RepoSet, Restrict);
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -282,7 +282,7 @@ impl IntoIterator for Targets {
     }
 }
 
-impl Targets {
+impl PkgTargets {
     /// Convert target restrictions into borrowed ebuild repo and restriction tuples.
     pub fn ebuild_repo_restricts(&self) -> impl Iterator<Item = (&EbuildRepo, &Restrict)> {
         self.into_iter()

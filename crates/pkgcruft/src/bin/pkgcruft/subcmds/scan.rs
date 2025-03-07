@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::builder::ArgPredicate;
 use clap::Args;
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcruft::report::ReportSet;
@@ -70,11 +70,11 @@ impl Command {
         // determine reporter
         let mut reporter = self.reporter.collapse();
 
-        // determine target restrictions
-        let targets = TargetRestrictions::new(&mut config)
+        // determine package restrictions
+        let targets = Targets::new(&mut config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?;
+            .finalize_pkgs(self.targets.iter().flatten())?;
 
         // create report scanner
         let scanner = Scanner::new()

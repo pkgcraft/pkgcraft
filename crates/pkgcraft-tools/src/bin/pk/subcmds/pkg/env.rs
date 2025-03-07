@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use clap::{builder::ArgPredicate, Args};
 use indexmap::IndexMap;
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
@@ -59,10 +59,10 @@ fn get_env(
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // convert targets to pkgs
-        let pkgs = TargetRestrictions::new(config)
+        let pkgs = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?
+            .finalize_pkgs(self.targets.iter().flatten())?
             .ebuild_raw_pkgs();
 
         let external: HashSet<_> = variables::visible().into_iter().collect();

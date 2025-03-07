@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::{builder::ArgPredicate, Args};
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
 use pkgcraft::repo::RepoFormat;
@@ -234,10 +234,10 @@ impl Command {
         let jobs = bounded_jobs(self.jobs);
 
         // convert targets to pkgs
-        let pkgs = TargetRestrictions::new(config)
+        let pkgs = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?
+            .finalize_pkgs(self.targets.iter().flatten())?
             .ebuild_raw_pkgs();
 
         let failed = if let Some(duration) = self.bench {

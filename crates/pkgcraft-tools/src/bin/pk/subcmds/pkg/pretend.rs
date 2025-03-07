@@ -2,7 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{builder::ArgPredicate, Args};
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::RepoFormat;
@@ -42,10 +42,10 @@ fn pretend(result: pkgcraft::Result<EbuildPkg>) -> pkgcraft::Result<Option<Strin
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // convert targets to pkgs
-        let pkgs = TargetRestrictions::new(config)
+        let pkgs = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?
+            .finalize_pkgs(self.targets.iter().flatten())?
             .ebuild_pkgs();
 
         // run pkg_pretend across selected pkgs

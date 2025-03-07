@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::builder::ArgPredicate;
 use clap::Args;
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;
 use pkgcruft::ignore::Ignore;
@@ -31,11 +31,11 @@ impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let mut config = Config::new("pkgcraft", "");
 
-        // determine target restrictions
-        let targets = TargetRestrictions::new(&mut config)
+        // determine package restrictions
+        let targets = Targets::new(&mut config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?;
+            .finalize_pkgs(self.targets.iter().flatten())?;
 
         let mut stdout = io::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {

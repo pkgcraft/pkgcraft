@@ -2,7 +2,7 @@ use std::io::{stdout, IsTerminal};
 use std::process::ExitCode;
 
 use clap::{builder::ArgPredicate, Args};
-use pkgcraft::cli::{MaybeStdinVec, TargetRestrictions};
+use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
@@ -62,10 +62,10 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // convert targets to restrictions
-        let targets = TargetRestrictions::new(config)
+        let targets = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_targets(self.targets.iter().flatten())?;
+            .finalize_pkgs(self.targets.iter().flatten())?;
 
         for (repo_set, restrict) in targets {
             for repo in repo_set.ebuild() {
