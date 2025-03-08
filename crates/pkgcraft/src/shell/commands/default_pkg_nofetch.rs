@@ -18,7 +18,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     get_build_mut().phase().default()
 }
 
-const USAGE: &str = "default_pkg_nofetch";
 make_builtin!("default_pkg_nofetch", default_pkg_nofetch_builtin);
 
 #[cfg(test)]
@@ -32,7 +31,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, default_pkg_nofetch};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("default_pkg_nofetch");
 
     #[test]
     fn invalid_args() {

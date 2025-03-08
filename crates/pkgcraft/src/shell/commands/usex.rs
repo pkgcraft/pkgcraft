@@ -35,7 +35,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "usex flag";
 make_builtin!("usex", usex_builtin);
 
 #[cfg(test)]
@@ -51,7 +50,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, usex};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("usex flag");
 
     #[test]
     fn invalid_args() {

@@ -26,7 +26,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Err(Error::Base(format!("{error}: {cmd}")))
 }
 
-const USAGE: &str = "for internal use only";
 make_builtin!("command_not_found_handle", command_not_found_handle_builtin);
 
 #[cfg(test)]

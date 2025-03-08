@@ -37,7 +37,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 }
 
-const USAGE: &str = "die \"error message\"";
 make_builtin!("die", die_builtin);
 
 #[cfg(test)]
@@ -56,7 +55,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, die};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("die \"error message\"");
 
     #[test]
     fn invalid_args() {

@@ -18,7 +18,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     get_build_mut().phase().default()
 }
 
-const USAGE: &str = "default_src_configure";
 make_builtin!("default_src_configure", default_src_configure_builtin);
 
 #[cfg(test)]
@@ -26,7 +25,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, default_src_configure};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("default_src_configure");
 
     #[test]
     fn invalid_args() {

@@ -38,7 +38,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "EXPORT_FUNCTIONS src_configure src_compile";
 make_builtin!("EXPORT_FUNCTIONS", export_functions_builtin);
 
 #[cfg(test)]
@@ -54,7 +53,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, export_functions};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("EXPORT_FUNCTIONS src_configure src_compile");
 
     #[test]
     fn invalid_args() {
