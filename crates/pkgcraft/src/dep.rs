@@ -85,6 +85,13 @@ pub trait Conditionals {
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals;
 }
 
+/// Flattened iterator support for dependency objects including conditionals.
+pub trait ConditionalFlatten {
+    type Item;
+    type IntoIterConditionalFlatten: Iterator<Item = Self::Item>;
+    fn into_iter_conditional_flatten(self) -> Self::IntoIterConditionalFlatten;
+}
+
 /// Convert iterator into a space-separated string of values.
 #[macro_export]
 macro_rules! p {

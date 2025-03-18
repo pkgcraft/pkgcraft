@@ -139,6 +139,96 @@ impl<T: Ordered> DoubleEndedIterator for IntoIterFlatten<T> {
 }
 
 #[derive(Debug)]
+pub struct IterConditionalFlatten<'a, T: Ordered>(Deque<(Vec<&'a UseDep>, &'a Dependency<T>)>);
+
+impl<'a, T: Ordered> FromIterator<&'a Dependency<T>> for IterConditionalFlatten<'a, T> {
+    fn from_iter<I: IntoIterator<Item = &'a Dependency<T>>>(iterable: I) -> Self {
+        Self(
+            iterable
+                .into_iter()
+                .map(|d| (Default::default(), d))
+                .collect(),
+        )
+    }
+}
+
+impl<'a, T: Ordered> Iterator for IterConditionalFlatten<'a, T> {
+    type Item = (Vec<&'a UseDep>, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use Dependency::*;
+        while let Some((mut use_deps, dep)) = self.0.pop_front() {
+            match dep {
+                Enabled(val) | Disabled(val) => return Some((use_deps, val)),
+                AllOf(vals) => self
+                    .0
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                AnyOf(vals) => self
+                    .0
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                ExactlyOneOf(vals) => self
+                    .0
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                AtMostOneOf(vals) => self
+                    .0
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                Conditional(u, vals) => {
+                    use_deps.push(u);
+                    self.0
+                        .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref())));
+                }
+            }
+        }
+        None
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoIterConditionalFlatten<T: Ordered>(Deque<(Vec<UseDep>, Dependency<T>)>);
+
+impl<T: Ordered> FromIterator<Dependency<T>> for IntoIterConditionalFlatten<T> {
+    fn from_iter<I: IntoIterator<Item = Dependency<T>>>(iterable: I) -> Self {
+        Self(
+            iterable
+                .into_iter()
+                .map(|d| (Default::default(), d))
+                .collect(),
+        )
+    }
+}
+
+impl<T: Ordered> Iterator for IntoIterConditionalFlatten<T> {
+    type Item = (Vec<UseDep>, T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use Dependency::*;
+        while let Some((mut use_deps, dep)) = self.0.pop_front() {
+            match dep {
+                Enabled(val) | Disabled(val) => return Some((use_deps, val)),
+                AllOf(vals) => self
+                    .0
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                AnyOf(vals) => self
+                    .0
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                ExactlyOneOf(vals) => self
+                    .0
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                AtMostOneOf(vals) => self
+                    .0
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                Conditional(u, vals) => {
+                    use_deps.push(u);
+                    self.0
+                        .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x)));
+                }
+            }
+        }
+        None
+    }
+}
+
+#[derive(Debug)]
 pub struct IterRecursive<'a, T: Ordered>(Deque<&'a Dependency<T>>);
 
 impl<'a, T: Ordered> FromIterator<&'a Dependency<T>> for IterRecursive<'a, T> {

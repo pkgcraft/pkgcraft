@@ -147,6 +147,10 @@ impl<T: Ordered> Dependency<T> {
         self.into_iter_conditionals()
     }
 
+    pub fn iter_conditional_flatten(&self) -> IterConditionalFlatten<T> {
+        self.into_iter_conditional_flatten()
+    }
+
     /// Recursively sort a `Dependency`.
     pub fn sort(&mut self) {
         match self {
@@ -358,6 +362,15 @@ impl<'a, T: Ordered> Conditionals for &'a Dependency<T> {
     }
 }
 
+impl<'a, T: Ordered> ConditionalFlatten for &'a Dependency<T> {
+    type Item = (Vec<&'a UseDep>, &'a T);
+    type IntoIterConditionalFlatten = IterConditionalFlatten<'a, T>;
+
+    fn into_iter_conditional_flatten(self) -> Self::IntoIterConditionalFlatten {
+        [self].into_iter().collect()
+    }
+}
+
 impl<T: Ordered> Flatten for Dependency<T> {
     type Item = T;
     type IntoIterFlatten = IntoIterFlatten<T>;
@@ -381,6 +394,15 @@ impl<T: Ordered> Conditionals for Dependency<T> {
     type IntoIterConditionals = IntoIterConditionals<T>;
 
     fn into_iter_conditionals(self) -> Self::IntoIterConditionals {
+        [self].into_iter().collect()
+    }
+}
+
+impl<T: Ordered> ConditionalFlatten for Dependency<T> {
+    type Item = (Vec<UseDep>, T);
+    type IntoIterConditionalFlatten = IntoIterConditionalFlatten<T>;
+
+    fn into_iter_conditional_flatten(self) -> Self::IntoIterConditionalFlatten {
         [self].into_iter().collect()
     }
 }
@@ -638,6 +660,50 @@ mod tests {
                 expected.iter().copied(),
                 s
             );
+        }
+    }
+
+    #[test]
+    fn dep_iter_conditional_flatten() {
+        for (s, expected) in [
+            ("u? ( a )", vec![(vec!["u?"], "a")]),
+            ("a", vec![(vec![], "a")]),
+            ("!a", vec![(vec![], "a")]),
+            ("( a b )", vec![(vec![], "a"), (vec![], "b")]),
+            ("( a !b )", vec![(vec![], "a"), (vec![], "b")]),
+            ("|| ( a b )", vec![(vec![], "a"), (vec![], "b")]),
+            ("^^ ( a b )", vec![(vec![], "a"), (vec![], "b")]),
+            ("?? ( a b )", vec![(vec![], "a"), (vec![], "b")]),
+            ("u? ( a b )", vec![(vec!["u?"], "a"), (vec!["u?"], "b")]),
+            ("u1? ( a !u2? ( b ) )", vec![(vec!["u1?"], "a"), (vec!["u1?", "!u2?"], "b")]),
+        ] {
+            let dep = Dependency::required_use(s).unwrap();
+
+            // borrowed
+            let test = dep.iter_conditional_flatten();
+            for ((test_use, test_dep), (expected_use, expected_dep)) in
+                test.zip(expected.iter())
+            {
+                assert_ordered_eq!(
+                    test_use.iter().map(|x| x.to_string()),
+                    expected_use.iter().map(|x| x.to_string()),
+                    s
+                );
+                assert_eq!(test_dep.to_string(), expected_dep.to_string(), "{s}");
+            }
+
+            // owned
+            let test = dep.into_iter_conditional_flatten();
+            for ((test_use, test_dep), (expected_use, expected_dep)) in
+                test.zip(expected.iter())
+            {
+                assert_ordered_eq!(
+                    test_use.iter().map(|x| x.to_string()),
+                    expected_use.iter().map(|x| x.to_string()),
+                    s
+                );
+                assert_eq!(test_dep.to_string(), expected_dep.to_string(), "{s}");
+            }
         }
     }
 
