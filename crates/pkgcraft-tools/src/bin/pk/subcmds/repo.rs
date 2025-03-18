@@ -8,6 +8,7 @@ mod leaf;
 mod license;
 mod metadata;
 mod mirror;
+mod revdeps;
 
 #[derive(clap::Args)]
 pub(crate) struct Command {
@@ -35,6 +36,8 @@ enum Subcommand {
     Metadata(Box<metadata::Command>),
     /// Output mirror statistics
     Mirror(Box<mirror::Command>),
+    /// Output revdeps cache
+    Revdeps(Box<revdeps::Command>),
 }
 
 impl Subcommand {
@@ -46,6 +49,7 @@ impl Subcommand {
             Self::License(cmd) => cmd.run(config),
             Self::Metadata(cmd) => cmd.run(config),
             Self::Mirror(cmd) => cmd.run(config),
+            Self::Revdeps(cmd) => cmd.run(config),
         }
     }
 }
