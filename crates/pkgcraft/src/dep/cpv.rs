@@ -25,6 +25,14 @@ impl CpvOrDep {
     pub fn try_new<S: AsRef<str>>(s: S) -> crate::Result<Self> {
         parse::cpv_or_dep(s.as_ref())
     }
+
+    /// Return the [`Cpn`].
+    pub fn cpn(&self) -> &Cpn {
+        match self {
+            Self::Cpv(cpv) => cpv.cpn(),
+            Self::Dep(dep) => dep.cpn(),
+        }
+    }
 }
 
 impl FromStr for CpvOrDep {
