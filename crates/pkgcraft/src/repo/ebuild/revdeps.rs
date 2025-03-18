@@ -4,6 +4,7 @@ use std::io::Write;
 
 use camino::Utf8Path;
 use itertools::Itertools;
+use rayon::prelude::*;
 
 use crate::dep::{ConditionalFlatten, Cpn, Cpv, Dep, UseDep};
 use crate::macros::build_path;
@@ -103,29 +104,32 @@ impl RevDepCache {
 
         // write entries to disk in the expected file layout and format
         for (key, revdeps) in mapping {
-            for (cpn, mut revdeps) in revdeps {
-                let path = build_path!(&dir, &key, cpn.category(), cpn.package());
-                fs::create_dir_all(path.parent().unwrap())?;
-                let mut f = File::create(path)?;
-                revdeps.sort_by(|a, b| a.cpv.cmp(&b.cpv));
-                for r in revdeps {
-                    let blocker = r.dep.blocker().map(|_| "[B]").unwrap_or_default();
-                    let cpv = &r.cpv;
-                    let flags = if !r.use_deps.is_empty() {
-                        format!(
-                            ":{}",
-                            r.use_deps
-                                .iter()
-                                .sorted()
-                                .map(|x| format!("{}{}", enabled(x), x.flag()))
-                                .join("+")
-                        )
-                    } else {
-                        Default::default()
-                    };
-                    writeln!(f, "{blocker}{cpv}{flags}")?;
-                }
-            }
+            revdeps.into_par_iter().try_for_each(
+                |(cpn, mut revdeps)| -> crate::Result<()> {
+                    let path = build_path!(&dir, &key, cpn.category(), cpn.package());
+                    fs::create_dir_all(path.parent().unwrap())?;
+                    let mut f = File::create(path)?;
+                    revdeps.sort_by(|a, b| a.cpv.cmp(&b.cpv));
+                    for r in revdeps {
+                        let blocker = r.dep.blocker().map(|_| "[B]").unwrap_or_default();
+                        let cpv = &r.cpv;
+                        let flags = if !r.use_deps.is_empty() {
+                            format!(
+                                ":{}",
+                                r.use_deps
+                                    .iter()
+                                    .sorted()
+                                    .map(|x| format!("{}{}", enabled(x), x.flag()))
+                                    .join("+")
+                            )
+                        } else {
+                            Default::default()
+                        };
+                        writeln!(f, "{blocker}{cpv}{flags}")?;
+                    }
+                    Ok(())
+                },
+            )?;
         }
 
         Ok(())
