@@ -30,6 +30,8 @@ mod eclass;
 pub use eclass::Eclass;
 mod metadata;
 pub use metadata::{Metadata, Mirror};
+pub mod revdeps;
+pub use revdeps::RevDepCache;
 mod temp;
 pub use temp::{EbuildRepoBuilder, EbuildTempRepo};
 
@@ -480,6 +482,11 @@ impl EbuildRepo {
         settings: T,
     ) -> configured::ConfiguredRepo {
         configured::ConfiguredRepo::new(self.clone(), settings.into())
+    }
+
+    /// Return the RevDepCache for the repo.
+    pub fn revdeps(&self, ignore: bool) -> crate::Result<RevDepCache> {
+        RevDepCache::from_repo(self, ignore)
     }
 }
 
