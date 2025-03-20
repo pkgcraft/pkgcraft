@@ -11,6 +11,7 @@ use crate::macros::build_path;
 use crate::pkg::ebuild::metadata::Key;
 use crate::pkg::Package;
 use crate::traits::LogErrors;
+use crate::Error;
 
 use super::EbuildRepo;
 
@@ -64,7 +65,11 @@ impl RevDepCache {
             }
         }
 
-        Ok(cache)
+        if iter.failed() {
+            Err(Error::InvalidValue("metadata failures occurred".to_string()))
+        } else {
+            Ok(cache)
+        }
     }
 
     /// Get the reverse dependencies for a Cpn.
