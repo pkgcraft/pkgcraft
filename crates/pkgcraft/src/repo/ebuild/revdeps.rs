@@ -79,9 +79,7 @@ impl RevDepCache {
 
     /// Serialize the cache to a directory using qa reports format.
     pub fn serialize_to_qa<P: AsRef<Utf8Path>>(&self, path: P) -> crate::Result<()> {
-        let path = path.as_ref();
-        let dir = path.join("revdeps");
-        fs::create_dir_all(&dir)?;
+        let dir = path.as_ref().join("revdeps");
 
         // convert cache into qa reports compatible mapping
         let mut mapping: HashMap<_, HashMap<_, Vec<_>>> = HashMap::new();
