@@ -26,7 +26,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "einfon \"a message\"";
 make_builtin!("einfon", einfon_builtin);
 
 #[cfg(test)]
@@ -34,7 +33,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, einfon};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!(r#"einfon "a message""#);
 
     #[test]
     fn invalid_args() {

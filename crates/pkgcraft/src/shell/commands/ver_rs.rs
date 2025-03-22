@@ -51,7 +51,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "ver_rs 2 - 1.2.3";
 make_builtin!("ver_rs", ver_rs_builtin);
 
 #[cfg(test)]
@@ -67,7 +66,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, ver_rs};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("ver_rs 2 - 1.2.3");
 
     #[test]
     fn invalid_args() {

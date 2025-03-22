@@ -20,7 +20,6 @@ make_builtin!("addread", addread_builtin);
 #[cfg(test)]
 mod tests {
     use super::super::{addread, assert_invalid_cmd, cmd_scope_tests};
-    use super::*;
 
     cmd_scope_tests!("addread /sys");
 

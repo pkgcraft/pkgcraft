@@ -26,7 +26,6 @@ make_builtin!("addpredict", addpredict_builtin);
 #[cfg(test)]
 mod tests {
     use super::super::{addpredict, assert_invalid_cmd, cmd_scope_tests};
-    use super::*;
 
     cmd_scope_tests!("addpredict /proc");
 

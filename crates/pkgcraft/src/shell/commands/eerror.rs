@@ -21,7 +21,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "eerror \"a message\"";
 make_builtin!("eerror", eerror_builtin);
 
 #[cfg(test)]
@@ -29,7 +28,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, eerror};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!(r#"eerror "a message""#);
 
     #[test]
     fn invalid_args() {

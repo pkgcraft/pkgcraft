@@ -20,7 +20,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "exeopts -m0755";
 make_builtin!("exeopts", exeopts_builtin);
 
 #[cfg(test)]
@@ -30,9 +29,8 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doexe, exeopts};
-    use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("exeopts -m0755");
 
     #[test]
     fn invalid_args() {

@@ -10,7 +10,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_(args)
 }
 
-const USAGE: &str = "useq flag";
 make_builtin!("useq", useq_builtin);
 
 #[cfg(test)]
@@ -24,7 +23,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, useq};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("useq flag");
 
     #[test]
     fn invalid_args() {

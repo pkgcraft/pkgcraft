@@ -39,7 +39,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ret)
 }
 
-const USAGE: &str = "usev flag";
 make_builtin!("usev", usev_builtin);
 
 #[cfg(test)]
@@ -54,7 +53,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, usev};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("usev flag");
 
     #[test]
     fn invalid_args() {

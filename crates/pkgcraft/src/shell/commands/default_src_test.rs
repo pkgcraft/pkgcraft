@@ -23,7 +23,6 @@ make_builtin!("default_src_test", default_src_test_builtin);
 #[cfg(test)]
 mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, default_src_test};
-    use super::*;
 
     cmd_scope_tests!("default_src_test");
 

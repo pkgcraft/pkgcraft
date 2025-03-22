@@ -21,7 +21,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(found))
 }
 
-const USAGE: &str = "has needle ${haystack}";
 make_builtin!("has", has_builtin);
 
 #[cfg(test)]
@@ -29,7 +28,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, has};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("has needle ${haystack}");
 
     #[test]
     fn invalid_args() {

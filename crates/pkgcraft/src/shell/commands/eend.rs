@@ -35,7 +35,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(cmd.status))
 }
 
-const USAGE: &str = "eend $?";
 make_builtin!("eend", eend_builtin);
 
 #[cfg(test)]
@@ -45,7 +44,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, eend};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("eend $?");
 
     #[test]
     fn invalid_args() {

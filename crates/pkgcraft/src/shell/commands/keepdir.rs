@@ -44,7 +44,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "keepdir path/to/kept/dir";
 make_builtin!("keepdir", keepdir_builtin);
 
 #[cfg(test)]
@@ -56,9 +55,8 @@ mod tests {
     use crate::shell::BuildData;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, keepdir};
-    use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("keepdir path/to/dir");
 
     #[test]
     fn invalid_args() {

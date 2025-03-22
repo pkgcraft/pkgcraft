@@ -27,7 +27,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "fowners user:group /path/to/file";
 make_builtin!("fowners", fowners_builtin);
 
 #[cfg(test)]
@@ -41,9 +40,8 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, fowners};
-    use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("fowners user:group /path/to/file");
 
     #[test]
     fn invalid_args() {

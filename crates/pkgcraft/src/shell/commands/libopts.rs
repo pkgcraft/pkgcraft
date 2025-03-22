@@ -20,7 +20,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "libopts -m0644";
 make_builtin!("libopts", libopts_builtin);
 
 #[cfg(test)]
@@ -30,9 +29,8 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, dolib, libopts};
-    use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("libopts -m0644");
 
     #[test]
     fn invalid_args() {

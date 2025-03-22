@@ -51,7 +51,6 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, export_functions};
-    use super::*;
 
     cmd_scope_tests!("EXPORT_FUNCTIONS src_configure src_compile");
 

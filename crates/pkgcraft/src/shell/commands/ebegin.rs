@@ -23,7 +23,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "ebegin \"a message\"";
 make_builtin!("ebegin", ebegin_builtin);
 
 #[cfg(test)]
@@ -31,7 +30,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, ebegin};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!(r#"ebegin "a message""#);
 
     #[test]
     fn invalid_args() {

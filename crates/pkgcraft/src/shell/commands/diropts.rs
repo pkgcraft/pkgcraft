@@ -20,7 +20,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "diropts -m0750";
 make_builtin!("diropts", diropts_builtin);
 
 #[cfg(test)]
@@ -28,9 +27,8 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, diropts, dodir};
-    use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("diropts -m0750");
 
     #[test]
     fn invalid_args() {

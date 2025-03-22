@@ -19,7 +19,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "insinto /install/path";
 make_builtin!("insinto", insinto_builtin);
 
 #[cfg(test)]
@@ -35,7 +34,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, insinto};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("insinto /install/path");
 
     #[test]
     fn invalid_args() {

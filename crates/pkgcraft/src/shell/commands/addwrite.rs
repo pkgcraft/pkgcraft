@@ -20,7 +20,6 @@ make_builtin!("addwrite", addwrite_builtin);
 #[cfg(test)]
 mod tests {
     use super::super::{addwrite, assert_invalid_cmd, cmd_scope_tests};
-    use super::*;
 
     cmd_scope_tests!("addwrite /dev");
 
