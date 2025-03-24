@@ -1,3 +1,8 @@
+# 0.0.24 (2025-03-23)
+
+## Added
+- `pk repo revdeps`: support serializing reverse dependency cache to QA report format (#273).
+
 # 0.0.23 (2025-01-28)
 
 ## Added
