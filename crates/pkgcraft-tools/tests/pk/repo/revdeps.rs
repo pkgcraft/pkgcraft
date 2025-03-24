@@ -77,15 +77,32 @@ fn empty_repo() {
 fn current_dir_repo() {
     let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
     repo.create_ebuild("a/b-1", &[]).unwrap();
-    repo.create_ebuild("cat/pkg-1", &["DEPEND=a/b"]).unwrap();
-    env::set_current_dir(repo.path()).unwrap();
+    repo.create_ebuild("c/d-1", &[]).unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with revdeps"
+        IUSE="u1 u2"
+        SLOT=0
+        DEPEND="a/b !c/d"
+        RDEPEND="u1? ( a/b )"
+        BDEPEND="!u1? ( a/b )"
+        IDEPEND="u2? ( c/d )"
+        PDEPEND="u1? ( a/b !u2? ( c/d ) )"
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
+    env::set_current_dir(repo.path()).unwrap();
     cmd("pk repo revdeps")
         .assert()
         .stdout("")
         .stderr("")
         .success();
 
-    let data = fs::read_to_string("revdeps/depend/a/b").unwrap();
-    assert_eq!(data.trim(), "cat/pkg-1");
+    assert_eq!(fs::read_to_string("revdeps/depend/a/b").unwrap().trim(), "cat/pkg-1");
+    assert_eq!(fs::read_to_string("revdeps/depend/c/d").unwrap().trim(), "[B]cat/pkg-1");
+    assert_eq!(fs::read_to_string("revdeps/rdepend/a/b").unwrap().trim(), "cat/pkg-1:u1");
+    assert_eq!(fs::read_to_string("revdeps/bdepend/a/b").unwrap().trim(), "cat/pkg-1:!u1");
+    assert_eq!(fs::read_to_string("revdeps/idepend/c/d").unwrap().trim(), "cat/pkg-1:u2");
+    assert_eq!(fs::read_to_string("revdeps/pdepend/a/b").unwrap().trim(), "cat/pkg-1:u1");
+    assert_eq!(fs::read_to_string("revdeps/pdepend/c/d").unwrap().trim(), "cat/pkg-1:u1+!u2");
 }
