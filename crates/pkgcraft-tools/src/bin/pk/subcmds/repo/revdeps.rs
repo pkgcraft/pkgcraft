@@ -12,14 +12,14 @@ pub(crate) struct Command {
     #[arg(short, long)]
     ignore: bool,
 
-    /// Target repository
+    /// Target directory
     #[arg(short, long, default_value = ".")]
-    repo: String,
+    dir: Utf8PathBuf,
 
     // positionals
-    /// Target path
+    /// Target repository
     #[arg(default_value = ".")]
-    path: Utf8PathBuf,
+    repo: String,
 }
 
 impl Command {
@@ -32,7 +32,7 @@ impl Command {
         let cache = repo.revdeps(self.ignore)?;
 
         // serialize cache to disk in qa reports format
-        cache.serialize_to_qa(&self.path)?;
+        cache.serialize_to_qa(&self.dir)?;
 
         Ok(ExitCode::SUCCESS)
     }
