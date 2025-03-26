@@ -39,7 +39,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ret)
 }
 
-make_builtin!("usev", usev_builtin);
+make_builtin!("usev", usev_builtin, false);
 
 #[cfg(test)]
 mod tests {

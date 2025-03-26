@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("into", into_builtin);
+make_builtin!("into", into_builtin, true);
 
 #[cfg(test)]
 mod tests {

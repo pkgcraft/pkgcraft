@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newconfd path/to/config/file new_filename";
-make_builtin!("newconfd", newconfd_builtin);
+make_builtin!("newconfd", newconfd_builtin, true);
 
 #[cfg(test)]
 mod tests {

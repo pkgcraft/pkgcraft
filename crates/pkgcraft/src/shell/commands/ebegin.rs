@@ -23,7 +23,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("ebegin", ebegin_builtin);
+make_builtin!("ebegin", ebegin_builtin, true);
 
 #[cfg(test)]
 mod tests {

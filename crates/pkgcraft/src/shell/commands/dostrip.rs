@@ -31,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "dostrip /path/to/strip";
-make_builtin!("dostrip", dostrip_builtin);
+make_builtin!("dostrip", dostrip_builtin, true);
 
 #[cfg(test)]
 mod tests {

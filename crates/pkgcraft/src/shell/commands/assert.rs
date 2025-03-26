@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 }
 
-make_builtin!("assert", assert_builtin);
+make_builtin!("assert", assert_builtin, true);
 
 #[cfg(test)]
 mod tests {

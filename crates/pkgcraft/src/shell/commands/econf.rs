@@ -177,7 +177,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "econf --enable-feature";
-make_builtin!("econf", econf_builtin);
+make_builtin!("econf", econf_builtin, true);
 
 #[cfg(test)]
 mod tests {

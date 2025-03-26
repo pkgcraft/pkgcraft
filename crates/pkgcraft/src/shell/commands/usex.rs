@@ -35,7 +35,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("usex", usex_builtin);
+make_builtin!("usex", usex_builtin, false);
 
 #[cfg(test)]
 mod tests {

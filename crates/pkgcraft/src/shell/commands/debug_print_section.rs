@@ -20,7 +20,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "debug-print-section arg1 arg2";
-make_builtin!("debug-print-section", debug_print_section_builtin);
+make_builtin!("debug-print-section", debug_print_section_builtin, true);
 
 #[cfg(test)]
 mod tests {

@@ -31,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "docompress /path/to/compress";
-make_builtin!("docompress", docompress_builtin);
+make_builtin!("docompress", docompress_builtin, true);
 
 #[cfg(test)]
 mod tests {

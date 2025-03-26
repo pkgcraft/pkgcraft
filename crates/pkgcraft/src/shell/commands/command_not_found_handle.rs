@@ -26,7 +26,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Err(Error::Base(format!("{error}: {cmd}")))
 }
 
-make_builtin!("command_not_found_handle", command_not_found_handle_builtin);
+make_builtin!("command_not_found_handle", command_not_found_handle_builtin, true);
 
 #[cfg(test)]
 mod tests {

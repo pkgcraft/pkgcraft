@@ -226,8 +226,37 @@ pub(crate) use _phases::SRC_PREPARE as src_prepare;
 pub(crate) use _phases::SRC_TEST as src_test;
 pub(crate) use _phases::SRC_UNPACK as src_unpack;
 
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Copy, Clone)]
-pub(crate) struct Builtin(scallop::builtins::Builtin);
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct Builtin {
+    inner: scallop::builtins::Builtin,
+    die_on_failure: bool,
+}
+
+impl PartialEq for Builtin {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl Eq for Builtin {}
+
+impl Hash for Builtin {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
+    }
+}
+
+impl Ord for Builtin {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.inner.cmp(&other.inner)
+    }
+}
+
+impl PartialOrd for Builtin {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 impl Builtin {
     pub(crate) fn allowed_in<I>(self, scopes: I) -> Command
@@ -244,13 +273,13 @@ impl Builtin {
 
 impl From<&Builtin> for scallop::builtins::Builtin {
     fn from(value: &Builtin) -> Self {
-        value.0
+        value.inner
     }
 }
 
 impl fmt::Display for Builtin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.inner)
     }
 }
 
@@ -260,7 +289,7 @@ impl Deref for Builtin {
     type Target = scallop::builtins::BuiltinFn;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.func
+        &self.inner.func
     }
 }
 
@@ -304,13 +333,13 @@ impl Borrow<Builtin> for Command {
 
 impl Borrow<str> for Command {
     fn borrow(&self) -> &str {
-        self.builtin.0.borrow()
+        self.builtin.inner.borrow()
     }
 }
 
 impl AsRef<str> for Command {
     fn as_ref(&self) -> &str {
-        self.builtin.0.as_ref()
+        self.builtin.inner.as_ref()
     }
 }
 
@@ -326,7 +355,7 @@ impl Deref for Command {
     type Target = scallop::builtins::BuiltinFn;
 
     fn deref(&self) -> &Self::Target {
-        &self.builtin.0.func
+        &self.builtin.inner.func
     }
 }
 
@@ -342,6 +371,11 @@ impl Command {
     /// Determine if the command is a phase stub.
     pub fn is_phase(&self) -> bool {
         PhaseKind::from_str(self.as_ref()).is_ok()
+    }
+
+    /// Determine if the command calls `die` on failure.
+    pub fn die_on_failure(&self) -> bool {
+        self.builtin.die_on_failure
     }
 }
 
@@ -584,27 +618,30 @@ fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
 /// Create a static [`Builtin`] object for registry in bash.
 #[macro_export]
 macro_rules! make_builtin {
-    ($name:expr, $func_name:ident) => {
-        make_builtin!($name, $func_name, BUILTIN, "");
+    ($name:expr, $func_name:ident, $die:expr) => {
+        make_builtin!($name, $func_name, BUILTIN, "", $die);
     };
-    ($name:expr, $func_name:ident, $builtin:ident) => {
-        make_builtin!($name, $func_name, $builtin, "");
+    ($name:expr, $func_name:ident, $builtin:ident, $die:expr) => {
+        make_builtin!($name, $func_name, $builtin, "", $die);
     };
-    ($name:expr, $func_name:ident, $builtin:ident, $usage:expr) => {
+    ($name:expr, $func_name:ident, $builtin:ident, $usage:expr, $die:expr) => {
         #[no_mangle]
         extern "C" fn $func_name(args: *mut scallop::bash::WordList) -> std::ffi::c_int {
             i32::from($crate::shell::commands::run($name, args))
         }
 
         pub(crate) static $builtin: $crate::shell::commands::Builtin =
-            $crate::shell::commands::Builtin(scallop::builtins::Builtin {
-                name: $name,
-                func: run,
-                flags: scallop::builtins::Attr::ENABLED.bits(),
-                cfunc: $func_name,
-                help: "",
-                usage: $usage,
-            });
+            $crate::shell::commands::Builtin {
+                inner: scallop::builtins::Builtin {
+                    name: $name,
+                    func: run,
+                    flags: scallop::builtins::Attr::ENABLED.bits(),
+                    cfunc: $func_name,
+                    help: "",
+                    usage: $usage,
+                },
+                die_on_failure: $die,
+            };
     };
 }
 use make_builtin;

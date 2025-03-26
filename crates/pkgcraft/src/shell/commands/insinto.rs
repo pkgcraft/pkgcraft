@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("insinto", insinto_builtin);
+make_builtin!("insinto", insinto_builtin, true);
 
 #[cfg(test)]
 mod tests {

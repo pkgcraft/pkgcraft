@@ -10,7 +10,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_(args)
 }
 
-make_builtin!("useq", useq_builtin);
+make_builtin!("useq", useq_builtin, false);
 
 #[cfg(test)]
 mod tests {

@@ -132,7 +132,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "unpack file.tar.gz";
-make_builtin!("unpack", unpack_builtin);
+make_builtin!("unpack", unpack_builtin, true);
 
 #[cfg(test)]
 mod tests {

@@ -37,7 +37,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "ver_test 1 -lt 2-r1";
-make_builtin!("ver_test", ver_test_builtin);
+make_builtin!("ver_test", ver_test_builtin, false);
 
 #[cfg(test)]
 mod tests {

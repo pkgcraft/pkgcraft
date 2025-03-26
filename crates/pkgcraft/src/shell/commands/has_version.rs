@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "has_version 'cat/pkg[use]'";
-make_builtin!("has_version", has_version_builtin);
+make_builtin!("has_version", has_version_builtin, false);
 
 #[cfg(test)]
 mod tests {

@@ -70,7 +70,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doman path/to/man/page";
-make_builtin!("doman", doman_builtin);
+make_builtin!("doman", doman_builtin, true);
 
 #[cfg(test)]
 mod tests {

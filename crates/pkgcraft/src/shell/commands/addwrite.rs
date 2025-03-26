@@ -15,7 +15,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("addwrite", addwrite_builtin);
+make_builtin!("addwrite", addwrite_builtin, true);
 
 #[cfg(test)]
 mod tests {

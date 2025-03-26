@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newheader path/to/header.h new_filename";
-make_builtin!("newheader", newheader_builtin);
+make_builtin!("newheader", newheader_builtin, true);
 
 #[cfg(test)]
 mod tests {

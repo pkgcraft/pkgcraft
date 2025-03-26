@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newman path/to/man/page new_filename";
-make_builtin!("newman", newman_builtin);
+make_builtin!("newman", newman_builtin, true);
 
 #[cfg(test)]
 mod tests {

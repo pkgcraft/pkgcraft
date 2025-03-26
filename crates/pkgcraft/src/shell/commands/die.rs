@@ -37,7 +37,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 }
 
-make_builtin!("die", die_builtin);
+make_builtin!("die", die_builtin, true);
 
 #[cfg(test)]
 mod tests {

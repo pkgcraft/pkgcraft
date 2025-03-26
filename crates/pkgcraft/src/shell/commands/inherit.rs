@@ -79,7 +79,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "inherit eclass1 eclass2";
-make_builtin!("inherit", inherit_builtin);
+make_builtin!("inherit", inherit_builtin, true);
 
 #[cfg(test)]
 mod tests {

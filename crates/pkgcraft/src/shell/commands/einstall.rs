@@ -26,7 +26,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "einstall";
-make_builtin!("einstall", einstall_builtin);
+make_builtin!("einstall", einstall_builtin, true);
 
 #[cfg(test)]
 mod tests {

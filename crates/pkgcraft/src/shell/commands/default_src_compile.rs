@@ -18,7 +18,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     get_build_mut().phase().default()
 }
 
-make_builtin!("default_src_compile", default_src_compile_builtin);
+make_builtin!("default_src_compile", default_src_compile_builtin, true);
 
 #[cfg(test)]
 mod tests {

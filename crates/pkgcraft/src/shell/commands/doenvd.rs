@@ -35,7 +35,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "doenvd path/to/env/file";
-make_builtin!("doenvd", doenvd_builtin);
+make_builtin!("doenvd", doenvd_builtin, true);
 
 #[cfg(test)]
 mod tests {

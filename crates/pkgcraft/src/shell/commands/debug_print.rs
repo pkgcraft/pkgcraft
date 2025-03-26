@@ -23,7 +23,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "debug-print msg";
-make_builtin!("debug-print", debug_print_builtin);
+make_builtin!("debug-print", debug_print_builtin, true);
 
 #[cfg(test)]
 mod tests {

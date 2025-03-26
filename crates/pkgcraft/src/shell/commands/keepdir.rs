@@ -44,7 +44,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("keepdir", keepdir_builtin);
+make_builtin!("keepdir", keepdir_builtin, true);
 
 #[cfg(test)]
 mod tests {

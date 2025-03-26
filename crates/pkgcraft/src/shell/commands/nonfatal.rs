@@ -45,7 +45,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "nonfatal cmd arg1 arg2";
-make_builtin!("nonfatal", nonfatal_builtin);
+make_builtin!("nonfatal", nonfatal_builtin, false);
 
 #[cfg(test)]
 mod tests {

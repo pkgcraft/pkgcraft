@@ -20,7 +20,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "in_iuse flag";
-make_builtin!("in_iuse", in_iuse_builtin);
+make_builtin!("in_iuse", in_iuse_builtin, false);
 
 #[cfg(test)]
 mod tests {

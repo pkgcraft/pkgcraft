@@ -96,7 +96,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("einstalldocs", einstalldocs_builtin);
+make_builtin!("einstalldocs", einstalldocs_builtin, true);
 
 #[cfg(test)]
 mod tests {

@@ -12,7 +12,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 }
 
 const USAGE: &str = "newsbin path/to/executable new_filename";
-make_builtin!("newsbin", newsbin_builtin);
+make_builtin!("newsbin", newsbin_builtin, true);
 
 #[cfg(test)]
 mod tests {
