@@ -397,6 +397,9 @@ pub enum ReportKind {
     /// Ebuild uses a bash builtin as an external command.
     Builtin,
 
+    /// An EAPI command uses `|| die` which is unneeded.
+    CommandDieUnneeded,
+
     /// An EAPI command is used in an invalid scope.
     CommandScopeInvalid,
 
@@ -637,6 +640,7 @@ impl ReportKind {
         match self {
             Self::ArchesUnused => Warning,
             Self::Builtin => Error,
+            Self::CommandDieUnneeded => Warning,
             Self::CommandScopeInvalid => Error,
             Self::DependencyDeprecated => Warning,
             Self::DependencyInvalid => Error,
@@ -705,6 +709,7 @@ impl ReportKind {
         match self {
             Self::ArchesUnused => Scope::Repo,
             Self::Builtin => Scope::Version,
+            Self::CommandDieUnneeded => Scope::Version,
             Self::CommandScopeInvalid => Scope::Version,
             Self::DependencyDeprecated => Scope::Version,
             Self::DependencyInvalid => Scope::Version,

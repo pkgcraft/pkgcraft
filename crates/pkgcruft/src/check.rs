@@ -106,7 +106,9 @@ impl Check {
     pub fn reports(&self) -> &'static [ReportKind] {
         use ReportKind::*;
         match self {
-            Self::Commands => &[Builtin, CommandScopeInvalid, Optfeature, PhaseCall],
+            Self::Commands => {
+                &[Builtin, CommandDieUnneeded, CommandScopeInvalid, Optfeature, PhaseCall]
+            }
             Self::Dependency => &[
                 DependencyDeprecated,
                 DependencyInvalid,

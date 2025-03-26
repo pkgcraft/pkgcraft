@@ -8,7 +8,9 @@ use pkgcraft::shell::phase::PhaseKind;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
 
-use crate::report::ReportKind::{Builtin, CommandScopeInvalid, Optfeature, PhaseCall};
+use crate::report::ReportKind::{
+    Builtin, CommandDieUnneeded, CommandScopeInvalid, Optfeature, PhaseCall,
+};
 use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
@@ -157,6 +159,28 @@ fn eapi_command<'a>(
                 .message(format!("{cmd}: disabled in {phase} scope"))
                 .location(cmd_node)
                 .report(run);
+        }
+    }
+
+    // flag unnecessary `die` usage for fatal EAPI commands
+    if eapi_cmd.die_on_failure() {
+        if let Some(node) = cmd_node.next_sibling() {
+            if node.kind() == "||" {
+                if let Some(node) = node.next_sibling() {
+                    if node
+                        .into_iter()
+                        .next()
+                        .map(|x| x.kind() == "command_name" && x.as_str() == "die")
+                        .unwrap_or_default()
+                    {
+                        CommandDieUnneeded
+                            .version(pkg)
+                            .message(cmd)
+                            .location(cmd_node)
+                            .report(run);
+                    }
+                }
+            }
         }
     }
 }
