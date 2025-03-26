@@ -117,6 +117,13 @@ impl<'a> Node<'a> {
             .map(|inner| Self { inner, data: self.data })
     }
 
+    /// Return the parent node if one exists.
+    pub fn next_sibling(&self) -> Option<Self> {
+        self.inner
+            .next_sibling()
+            .map(|inner| Self { inner, data: self.data })
+    }
+
     /// Return true if the node is location inside a conditional statement, otherwise false.
     pub fn in_conditional(&self) -> bool {
         let mut node = *self;
