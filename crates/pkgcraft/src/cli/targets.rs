@@ -62,7 +62,7 @@ impl<'a> Targets<'a> {
     pub fn repo(mut self, value: Option<&str>) -> crate::Result<Self> {
         if let Some(s) = value.as_ref() {
             // load system config for repo alias support
-            if !s.contains(std::path::MAIN_SEPARATOR) {
+            if !s.contains('/') {
                 self.config.load()?;
             }
 
@@ -131,7 +131,7 @@ impl<'a> Targets<'a> {
             }
 
             match paths[..] {
-                [path] if path.contains(std::path::MAIN_SEPARATOR) => {
+                [path] if path.contains('/') => {
                     let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
                         Error::InvalidValue(format!("invalid repo: {path}: {e}"))
                     })?;
@@ -185,7 +185,7 @@ impl<'a> Targets<'a> {
                     .map(|restrict| (repo.into(), restrict)),
                 (Ok(restrict), _, _) => self.dep_restriction(restrict),
                 (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
-                (_, Err(e), _) if s.contains(std::path::MAIN_SEPARATOR) => Err(e),
+                (_, Err(e), _) if s.contains('/') => Err(e),
                 (Err(e), _, _) => Err(e),
             }
         }?;
@@ -249,7 +249,7 @@ impl<'a> Targets<'a> {
             let target = value.to_string();
 
             // load system config for repo alias support
-            if !target.contains(std::path::MAIN_SEPARATOR) {
+            if !target.contains('/') {
                 self.config.load()?;
             }
 
