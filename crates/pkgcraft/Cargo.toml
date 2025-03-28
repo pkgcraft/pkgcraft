@@ -32,7 +32,7 @@ blake3 = { version = "1.7.0", features = ["traits-preview"] }
 cached = "0.55.1"
 camino = { version = "1.1.9", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.5.32", features = ["derive"] }
+clap = { version = "4.5.34", features = ["derive"] }
 crossbeam-channel = "0.5.14"
 dashmap = "6.1.0"
 digest = "0.10.7"
