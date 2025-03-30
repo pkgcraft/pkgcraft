@@ -8,9 +8,13 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "fowners",
+    disable_help_flag = true,
     long_about = "Run `chown` taking paths relative to the image directory."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     // can't easily split options from arguments without listing all supported options
     #[arg(required = true, allow_hyphen_values = true, num_args = 2..)]
     args: Vec<String>,
