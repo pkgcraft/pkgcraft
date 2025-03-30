@@ -166,22 +166,21 @@ fn eapi_command<'a>(
     if eapi_cmd.die_on_failure() {
         // Note that this only flags simple commands and not command lists, for example
         // `emake || die` is flagged, but not `true && emake || die`.
-        if let Some(node) = cmd_node.next_sibling() {
-            if node.kind() == "||" {
-                if let Some(node) = node.next_sibling() {
-                    if node
-                        .into_iter()
-                        .next()
-                        .map(|x| x.kind() == "command_name" && x.as_str() == "die")
-                        .unwrap_or_default()
-                    {
-                        CommandDieUnneeded
-                            .version(pkg)
-                            .message(cmd)
-                            .location(cmd_node)
-                            .report(run);
-                    }
-                }
+        if let Some(node) = cmd_node
+            .next_sibling()
+            .filter(|x| x.kind() == "||")
+            .and_then(|x| x.next_sibling())
+        {
+            if node
+                .into_iter()
+                .next()
+                .is_some_and(|x| x.kind() == "command_name" && x.as_str() == "die")
+            {
+                CommandDieUnneeded
+                    .version(pkg)
+                    .message(cmd)
+                    .location(cmd_node)
+                    .report(run);
             }
         }
     }
