@@ -12,7 +12,9 @@ use super::{make_builtin, TryParseArgs};
     long_about = "The same as has, but also prints the first argument if found."
 )]
 struct Command {
+    #[arg(allow_hyphen_values = true)]
     needle: String,
+    #[arg(allow_hyphen_values = true)]
     haystack: Vec<String>,
 }
 
@@ -53,5 +55,7 @@ mod tests {
         assert_eq!(hasv(&["5", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Success);
         assert_eq!(stdout().get(), "5");
         assert_eq!(hasv(&["6", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Failure(1));
+        assert_eq!(hasv(&["-a", "1", "2", "3", "4", "-a"]).unwrap(), ExecStatus::Success);
+        assert_eq!(stdout().get(), "-a");
     }
 }

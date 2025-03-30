@@ -11,7 +11,9 @@ use super::{make_builtin, TryParseArgs};
     "}
 )]
 struct Command {
+    #[arg(allow_hyphen_values = true)]
     needle: String,
+    #[arg(allow_hyphen_values = true)]
     haystack: Vec<String>,
 }
 
@@ -44,5 +46,6 @@ mod tests {
         // multiple elements
         assert_eq!(has(&["5", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Success);
         assert_eq!(has(&["6", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Failure(1));
+        assert_eq!(has(&["-a", "1", "2", "3", "4", "-a"]).unwrap(), ExecStatus::Success);
     }
 }
