@@ -7,9 +7,13 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "exeopts",
+    disable_help_flag = true,
     long_about = "Sets the options for installing executables via `doexe` and similar commands."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(required = true, allow_hyphen_values = true, value_name = "OPTION")]
     options: Vec<String>,
 }
