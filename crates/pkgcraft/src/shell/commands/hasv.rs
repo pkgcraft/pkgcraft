@@ -9,9 +9,13 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "hasv",
+    disable_help_flag = true,
     long_about = "The same as has, but also prints the first argument if found."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(allow_hyphen_values = true)]
     needle: String,
     #[arg(allow_hyphen_values = true)]

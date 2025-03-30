@@ -3,8 +3,15 @@ use scallop::ExecStatus;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "hasq", long_about = "Deprecated synonym for has.")]
+#[command(
+    name = "hasq",
+    disable_help_flag = true,
+    long_about = "Deprecated synonym for has."
+)]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(allow_hyphen_values = true)]
     needle: String,
     #[arg(allow_hyphen_values = true)]

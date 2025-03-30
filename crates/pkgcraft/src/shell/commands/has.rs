@@ -5,12 +5,16 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "has",
+    disable_help_flag = true,
     long_about = indoc::indoc! {"
         Returns success if the first argument is found in subsequent arguments, failure
         otherwise.
     "}
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(allow_hyphen_values = true)]
     needle: String,
     #[arg(allow_hyphen_values = true)]
