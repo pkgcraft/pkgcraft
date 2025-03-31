@@ -84,7 +84,7 @@ impl Command {
                     }
                 } else {
                     // build custom, global thread pool when limiting jobs
-                    bounded_thread_pool(self.jobs)?;
+                    bounded_thread_pool(self.jobs);
 
                     cache
                         .regen(repo)
