@@ -4,8 +4,16 @@ use scallop::ExecStatus;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "adddeny", long_about = "Add a path to the sandbox deny list.")]
+#[command(
+    name = "adddeny",
+    disable_help_flag = true,
+    long_about = "Add a path to the sandbox deny list."
+)]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     path: Utf8PathBuf,
 }
 
