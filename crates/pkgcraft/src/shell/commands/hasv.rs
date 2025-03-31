@@ -59,7 +59,7 @@ mod tests {
         assert_eq!(hasv(&["5", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Success);
         assert_eq!(stdout().get(), "5");
         assert_eq!(hasv(&["6", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Failure(1));
-        assert_eq!(hasv(&["-a", "1", "2", "3", "4", "-a"]).unwrap(), ExecStatus::Success);
-        assert_eq!(stdout().get(), "-a");
+        assert_eq!(hasv(&["-", "1", "2", "3", "4", "-"]).unwrap(), ExecStatus::Success);
+        assert_eq!(stdout().get(), "-");
     }
 }

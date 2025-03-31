@@ -47,6 +47,6 @@ mod tests {
         // multiple elements
         assert_eq!(hasq(&["5", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Success);
         assert_eq!(hasq(&["6", "1", "2", "3", "4", "5"]).unwrap(), ExecStatus::Failure(1));
-        assert_eq!(hasq(&["-a", "1", "2", "3", "4", "-a"]).unwrap(), ExecStatus::Success);
+        assert_eq!(hasq(&["-", "1", "2", "3", "4", "-"]).unwrap(), ExecStatus::Success);
     }
 }
