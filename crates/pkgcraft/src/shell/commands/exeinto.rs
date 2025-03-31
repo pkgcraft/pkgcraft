@@ -28,10 +28,11 @@ make_builtin!("exeinto", exeinto_builtin, true);
 
 #[cfg(test)]
 mod tests {
-    use crate::shell::get_build_mut;
+    use std::fs;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, exeinto};
-    use super::*;
+    use crate::shell::test::FileTree;
+
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, doexe, exeinto};
 
     cmd_scope_tests!("exeinto /install/path");
 
@@ -42,9 +43,27 @@ mod tests {
 
     #[test]
     fn set_path() {
+        let file_tree = FileTree::new();
+        fs::File::create("file").unwrap();
+
         exeinto(&["/test/path"]).unwrap();
-        assert_eq!(get_build_mut().env(EXEDESTTREE), "/test/path");
+        doexe(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/test/path/file"
+            mode = 0o100755
+        "#,
+        );
+
         exeinto(&["-hyphen"]).unwrap();
-        assert_eq!(get_build_mut().env(EXEDESTTREE), "-hyphen");
+        doexe(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/-hyphen/file"
+            mode = 0o100755
+        "#,
+        );
     }
 }

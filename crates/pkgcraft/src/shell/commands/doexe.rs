@@ -55,7 +55,6 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
-
         fs::File::create("pkgcraft").unwrap();
 
         doexe(&["pkgcraft"]).unwrap();
