@@ -18,6 +18,7 @@ struct Command {
 
     #[arg(allow_hyphen_values = true)]
     needle: String,
+
     #[arg(allow_hyphen_values = true)]
     haystack: Vec<String>,
 }
