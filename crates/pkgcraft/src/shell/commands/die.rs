@@ -11,12 +11,17 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "die",
+    disable_help_flag = true,
     long_about = "Displays a failure message provided in an optional argument and then aborts the build process."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(short = 'n')]
     nonfatal: bool,
-    #[arg(default_value = "(no error message)")]
+
+    #[arg(allow_hyphen_values = true, default_value = "(no error message)")]
     message: String,
 }
 
