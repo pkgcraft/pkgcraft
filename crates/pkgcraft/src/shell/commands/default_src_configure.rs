@@ -7,11 +7,15 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "default_src_configure",
+    disable_help_flag = true,
     long_about = indoc::indoc! {"
         Runs the default src_configure implementation for a package's EAPI.
     "}
 )]
-struct Command;
+struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+}
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;

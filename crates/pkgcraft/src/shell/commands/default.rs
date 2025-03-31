@@ -7,9 +7,13 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "default",
+    disable_help_flag = true,
     long_about = "Calls the default_* function for the current phase."
 )]
-struct Command;
+struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+}
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
