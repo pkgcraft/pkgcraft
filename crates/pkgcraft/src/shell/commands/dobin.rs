@@ -65,13 +65,23 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
+        fs::File::create("file").unwrap();
 
-        fs::File::create("pkgcraft").unwrap();
-        dobin(&["pkgcraft"]).unwrap();
+        dobin(&["file"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/bin/pkgcraft"
+            path = "/usr/bin/file"
+            mode = 0o100755
+        "#,
+        );
+
+        into(&["-"]).unwrap();
+        dobin(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/-/bin/file"
             mode = 0o100755
         "#,
         );
@@ -79,11 +89,11 @@ mod tests {
         // custom install dir with libopts ignored
         into(&["/"]).unwrap();
         exeopts(&["-m0777"]).unwrap();
-        dobin(&["pkgcraft"]).unwrap();
+        dobin(&["file"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/bin/pkgcraft"
+            path = "/bin/file"
             mode = 0o100755
         "#,
         );

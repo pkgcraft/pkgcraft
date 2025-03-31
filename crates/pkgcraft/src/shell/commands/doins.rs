@@ -75,9 +75,9 @@ mod tests {
     #[test]
     fn creation() {
         let file_tree = FileTree::new();
+        fs::File::create("file").unwrap();
 
         // simple file
-        fs::File::create("file").unwrap();
         doins(&["file"]).unwrap();
         file_tree.assert(
             r#"
@@ -94,6 +94,16 @@ mod tests {
             r#"
             [[files]]
             path = "/file"
+            mode = 0o100644
+        "#,
+        );
+
+        insinto(&["-"]).unwrap();
+        doins(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/-/file"
             mode = 0o100644
         "#,
         );
