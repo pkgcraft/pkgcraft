@@ -7,9 +7,16 @@ use crate::shell::get_build_mut;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "doexe", long_about = "Install executables.")]
+#[command(
+    name = "doexe",
+    disable_help_flag = true,
+    long_about = "Install executables."
+)]
 struct Command {
-    #[arg(required = true, value_name = "PATH")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PATH")]
     paths: Vec<Utf8PathBuf>,
 }
 
@@ -26,7 +33,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "doexe path/to/executable";
 make_builtin!("doexe", doexe_builtin, true);
 
 #[cfg(test)]
@@ -37,9 +43,8 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doexe, exeinto, exeopts};
-    use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("doexe path/to/executable");
 
     #[test]
     fn invalid_args() {
