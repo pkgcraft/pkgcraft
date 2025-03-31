@@ -11,9 +11,16 @@ use crate::shell::get_build_mut;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "domo", long_about = "Install gettext *.mo files.")]
+#[command(
+    name = "domo",
+    disable_help_flag = true,
+    long_about = "Install gettext *.mo files."
+)]
 struct Command {
-    #[arg(required = true, value_name = "PATH")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PATH")]
     paths: Vec<Utf8PathBuf>,
 }
 
