@@ -6,6 +6,7 @@ use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
+use pkgcraft::utils::bounded_jobs;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Metadata options")]
@@ -82,9 +83,15 @@ impl Command {
                         cache.remove_entry(&cpv)?;
                     }
                 } else {
+                    // build custom, global thread pool when limiting jobs
+                    if self.jobs != num_cpus::get() {
+                        rayon::ThreadPoolBuilder::new()
+                            .num_threads(bounded_jobs(self.jobs))
+                            .build_global()?;
+                    }
+
                     cache
                         .regen(repo)
-                        .jobs(self.jobs)
                         .force(self.force)
                         .progress(stdout().is_terminal() && !self.no_progress && !self.output)
                         .output(self.output)
