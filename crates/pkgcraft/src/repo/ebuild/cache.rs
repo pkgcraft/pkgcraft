@@ -14,7 +14,6 @@ use crate::repo::PkgRepository;
 use crate::restrict::Restrict;
 use crate::shell::pool::MetadataTaskBuilder;
 use crate::traits::Contains;
-use crate::utils::bounded_jobs;
 
 use super::EbuildRepo;
 
@@ -201,7 +200,6 @@ impl MetadataCache {
     pub fn regen(&self, repo: &EbuildRepo) -> MetadataCacheRegen {
         MetadataCacheRegen {
             cache: self,
-            jobs: num_cpus::get(),
             progress: ProgressBar::hidden(),
             clean: true,
             regen: repo.pool().metadata_task(repo).cache(self),
@@ -214,7 +212,6 @@ impl MetadataCache {
 #[derive(Debug)]
 pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
-    jobs: usize,
     progress: ProgressBar,
     clean: bool,
     regen: MetadataTaskBuilder,
@@ -223,12 +220,6 @@ pub struct MetadataCacheRegen<'a> {
 }
 
 impl MetadataCacheRegen<'_> {
-    /// Set the number of parallel jobs to run.
-    pub fn jobs(mut self, jobs: usize) -> Self {
-        self.jobs = bounded_jobs(jobs);
-        self
-    }
-
     /// Force metadata regeneration across all packages.
     pub fn force(mut self, value: bool) -> Self {
         self.regen = self.regen.force(value);
