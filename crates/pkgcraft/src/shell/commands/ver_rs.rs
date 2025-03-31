@@ -10,9 +10,13 @@ use super::{make_builtin, parse, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "ver_rs",
+    disable_help_flag = true,
     long_about = "Perform string substitution on package version strings."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(required = true, allow_hyphen_values = true, num_args = 2..)]
     args: Vec<String>,
 }

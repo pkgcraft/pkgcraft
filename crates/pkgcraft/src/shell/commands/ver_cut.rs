@@ -11,9 +11,13 @@ use super::{make_builtin, parse, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "ver_cut",
+    disable_help_flag = true,
     long_about = "Output substring from package version string and range arguments."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(allow_hyphen_values = true)]
     range: String,
     version: Option<String>,
