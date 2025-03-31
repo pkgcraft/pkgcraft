@@ -8,12 +8,17 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "docompress",
+    disable_help_flag = true,
     long_about = "Include or exclude paths for compression."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(short = 'x')]
     exclude: bool,
-    #[arg(required = true, value_name = "PATH")]
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PATH")]
     paths: Vec<Utf8PathBuf>,
 }
 
@@ -54,19 +59,17 @@ mod tests {
 
     #[test]
     fn include() {
-        docompress(&["/test/path"]).unwrap();
-        assert!(get_build_mut()
-            .compress_include
-            .iter()
-            .any(|x| x == "/test/path"));
+        for path in ["/test/path", "-"] {
+            docompress(&[path]).unwrap();
+            assert!(get_build_mut().compress_include.iter().any(|x| x == path));
+        }
     }
 
     #[test]
     fn exclude() {
-        docompress(&["-x", "/test/path"]).unwrap();
-        assert!(get_build_mut()
-            .compress_exclude
-            .iter()
-            .any(|x| x == "/test/path"));
+        for path in ["/test/path", "-"] {
+            docompress(&["-x", path]).unwrap();
+            assert!(get_build_mut().compress_exclude.iter().any(|x| x == path));
+        }
     }
 }
