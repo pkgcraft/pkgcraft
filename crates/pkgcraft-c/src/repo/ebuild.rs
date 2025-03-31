@@ -121,7 +121,6 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_licenses(
 #[no_mangle]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
     r: *mut Repo,
-    jobs: usize,
     force: bool,
     path: *mut c_char,
 ) -> bool {
@@ -135,7 +134,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
             format.from_repo(repo)
         };
 
-        unwrap_or_panic!(cache.regen(repo).jobs(jobs).force(force).run());
+        unwrap_or_panic!(cache.regen(repo).force(force).run());
         true
     }
 }
