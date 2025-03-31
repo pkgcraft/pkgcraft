@@ -35,7 +35,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "dostrip /path/to/strip";
 make_builtin!("dostrip", dostrip_builtin, true);
 
 #[cfg(test)]
@@ -45,7 +44,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, dostrip};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("dostrip /path/to/strip");
 
     #[test]
     fn invalid_args() {

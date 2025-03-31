@@ -35,7 +35,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "docompress /path/to/compress";
 make_builtin!("docompress", docompress_builtin, true);
 
 #[cfg(test)]
@@ -45,7 +44,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, docompress};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("docompress /path/to/compress");
 
     #[test]
     fn invalid_args() {
