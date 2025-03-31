@@ -9,17 +9,26 @@ use super::{make_builtin, use_, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "usex",
+    disable_help_flag = true,
     long_about = "Tests if a given USE flag is enabled and outputs a string related to its status."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     flag: String,
-    #[arg(required = false, default_value = "yes")]
+
+    #[arg(required = false, allow_hyphen_values = true, default_value = "yes")]
     enabled: String,
-    #[arg(required = false, default_value = "no")]
+
+    #[arg(required = false, allow_hyphen_values = true, default_value = "no")]
     disabled: String,
-    #[arg(required = false, default_value = "")]
+
+    #[arg(required = false, allow_hyphen_values = true, default_value = "")]
     enabled_output: String,
-    #[arg(required = false, default_value = "")]
+
+    #[arg(required = false, allow_hyphen_values = true, default_value = "")]
     disabled_output: String,
 }
 
@@ -85,8 +94,10 @@ mod tests {
         for (args, expected) in [
             (vec!["use"], "no"),
             (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+            (vec!["use", "", "--with-foo=2"], "--with-foo=2"),
             (vec!["!use"], "yes"),
             (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+            (vec!["!use", "--with-foo=1", ""], "--with-foo=1"),
         ] {
             usex(&args).unwrap();
             assert_eq!(stdout().get(), expected);
@@ -97,8 +108,10 @@ mod tests {
         for (args, expected) in [
             (vec!["use"], "yes"),
             (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
+            (vec!["use", "--with-foo=1", ""], "--with-foo=1"),
             (vec!["!use"], "no"),
             (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
+            (vec!["!use", "", "--with-foo=2"], "--with-foo=2"),
         ] {
             usex(&args).unwrap();
             assert_eq!(stdout().get(), expected);
