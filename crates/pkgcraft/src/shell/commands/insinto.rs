@@ -44,6 +44,10 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_cmd(insinto, &[0]);
+
+        // -- signifies an end of options
+        assert!(insinto(&["--"]).is_err());
+        assert!(insinto(&["--", "--"]).is_ok());
     }
 
     #[test]
@@ -76,8 +80,8 @@ mod tests {
                 assert!(env_val.is_none());
             }
 
-            insinto(&["-hyphen"]).unwrap();
-            assert_eq!(build.env(INSDESTTREE), "-hyphen");
+            insinto(&["-"]).unwrap();
+            assert_eq!(build.env(INSDESTTREE), "-");
         }
     }
 }

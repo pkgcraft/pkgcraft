@@ -39,6 +39,10 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_cmd(exeinto, &[0, 2]);
+
+        // -- signifies an end of options
+        assert!(exeinto(&["--"]).is_err());
+        assert!(exeinto(&["--", "--"]).is_ok());
     }
 
     #[test]
@@ -56,12 +60,12 @@ mod tests {
         "#,
         );
 
-        exeinto(&["-hyphen"]).unwrap();
+        exeinto(&["-"]).unwrap();
         doexe(&["file"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/-hyphen/file"
+            path = "/-/file"
             mode = 0o100755
         "#,
         );

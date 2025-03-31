@@ -47,6 +47,10 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_cmd(docinto, &[0, 2]);
+
+        // -- signifies an end of options
+        assert!(docinto(&["--"]).is_err());
+        assert!(docinto(&["--", "--"]).is_ok());
     }
 
     #[test]
@@ -77,12 +81,12 @@ mod tests {
         "#,
         );
 
-        docinto(&["-hyphen"]).unwrap();
+        docinto(&["-"]).unwrap();
         dodoc(&["file"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkg-1/-hyphen/file"
+            path = "/usr/share/doc/pkg-1/-/file"
         "#,
         );
     }
