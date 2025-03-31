@@ -10,6 +10,7 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "keepdir",
+    disable_help_flag = true,
     long_about = indoc::indoc! {"
         For each argument, creates a directory as for dodir, and an empty file whose name
         starts with .keep in that directory to ensure that the directory does not get
@@ -17,7 +18,10 @@ use super::{make_builtin, TryParseArgs};
     "}
 )]
 struct Command {
-    #[arg(required = true, value_name = "PATH")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PATH")]
     paths: Vec<Utf8PathBuf>,
 }
 
@@ -80,6 +84,7 @@ mod tests {
             vec!["/etc"],
             vec!["/usr/bin"],
             vec!["dir", "/usr/bin"],
+            vec!["-"],
         ] {
             let args = dirs.join(" ");
             let data = indoc::formatdoc! {r#"
