@@ -7,9 +7,14 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "in_iuse",
+    disable_help_flag = true,
     long_about = "Returns success if the USE flag argument is found in IUSE_EFFECTIVE."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     flag: String,
 }
 
