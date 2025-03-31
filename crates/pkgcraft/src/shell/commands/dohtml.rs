@@ -14,22 +14,36 @@ use crate::shell::get_build_mut;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug, Default)]
-#[command(name = "dohtml", long_about = "Install HTML documentation files.")]
+#[command(
+    name = "dohtml",
+    disable_help_flag = true,
+    long_about = "Install HTML documentation files."
+)]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(short = 'r')]
     recursive: bool,
+
     #[arg(short = 'V')]
     verbose: bool,
+
     #[arg(short = 'A')]
     extra_file_exts: Vec<String>,
+
     #[arg(short = 'a', default_value = "css,gif,htm,html,jpeg,jpg,js,png")]
     allowed_file_exts: Vec<String>,
+
     #[arg(short = 'f')]
     allowed_files: Vec<String>,
+
     #[arg(short = 'x')]
     excluded_dirs: Vec<String>,
+
     #[arg(short = 'p')]
     doc_prefix: Option<String>,
+
     #[arg(required = true, value_name = "TARGET")]
     targets: Vec<String>,
 }
