@@ -8,11 +8,19 @@ use crate::shell::get_build_mut;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "doins", long_about = "Install files into INSDESTTREE.")]
+#[command(
+    name = "doins",
+    disable_help_flag = true,
+    long_about = "Install files into INSDESTTREE."
+)]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(short = 'r')]
     recursive: bool,
-    #[arg(required = true, value_name = "PATH")]
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PATH")]
     paths: Vec<Utf8PathBuf>,
 }
 
