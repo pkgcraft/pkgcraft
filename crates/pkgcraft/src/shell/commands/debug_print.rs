@@ -6,12 +6,16 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "debug-print",
+    disable_help_flag = true,
     long_about = indoc::indoc! {"
         If in a special debug mode, the arguments should be outputted or recorded using
         some kind of debug logging.
     "}
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(required = true, allow_hyphen_values = true)]
     args: Vec<String>,
 }

@@ -6,9 +6,13 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "debug-print-section",
+    disable_help_flag = true,
     long_about = "Calls debug-print with `now in section $*`."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(required = true, allow_hyphen_values = true)]
     args: Vec<String>,
 }

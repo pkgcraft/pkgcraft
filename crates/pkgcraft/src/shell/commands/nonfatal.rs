@@ -7,6 +7,7 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "nonfatal",
+    disable_help_flag = true,
     long_about = indoc::indoc! {"
         Takes one or more arguments and executes them as a command, preserving the exit
         status. If this results in a command being called that would normally abort the
@@ -15,6 +16,9 @@ use super::{make_builtin, TryParseArgs};
     "}
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     command: String,
     #[arg(allow_hyphen_values = true)]
     args: Vec<String>,
