@@ -10,10 +10,14 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "elog",
+    disable_help_flag = true,
     long_about = "Display informational message of higher importance."
 )]
 struct Command {
-    #[arg(required = false, default_value = "")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = false, allow_hyphen_values = true, default_value = "")]
     message: String,
 }
 

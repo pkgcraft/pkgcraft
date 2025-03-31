@@ -8,9 +8,16 @@ use crate::shell::unescape::unescape;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "einfo", long_about = "Display informational message.")]
+#[command(
+    name = "einfo",
+    disable_help_flag = true,
+    long_about = "Display informational message."
+)]
 struct Command {
-    #[arg(required = false, default_value = "")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = false, allow_hyphen_values = true, default_value = "")]
     message: String,
 }
 

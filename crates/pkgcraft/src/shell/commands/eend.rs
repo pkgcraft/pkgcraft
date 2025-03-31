@@ -10,11 +10,15 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "eend",
+    disable_help_flag = true,
     long_about = "Indicates that the process begun with an ebegin message has completed."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     status: i32,
-    #[arg(required = false, default_value = "")]
+    #[arg(required = false, allow_hyphen_values = true, default_value = "")]
     message: String,
 }
 

@@ -10,9 +10,14 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "ebegin",
+    disable_help_flag = true,
     long_about = "Display information message when starting a process."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     message: String,
 }
 
