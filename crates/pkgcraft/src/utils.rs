@@ -17,6 +17,20 @@ pub fn bounded_jobs(jobs: usize) -> usize {
     }
 }
 
+/// Create a custom, global thread pool when limiting threads.
+pub fn bounded_thread_pool(threads: usize) -> crate::Result<()> {
+    let threads = bounded_jobs(threads);
+
+    if threads != num_cpus::get() {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build_global()
+            .map_err(|e| Error::InvalidValue(format!("failed creating thread pool: {e}")))?;
+    }
+
+    Ok(())
+}
+
 /// Return the hash of a given hashable object.
 pub fn hash<T: Hash>(obj: T) -> u64 {
     let mut hasher = DefaultHasher::new();

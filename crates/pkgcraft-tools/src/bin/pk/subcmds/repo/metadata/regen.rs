@@ -5,7 +5,7 @@ use clap::Args;
 use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
-use pkgcraft::utils::bounded_jobs;
+use pkgcraft::utils::bounded_thread_pool;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Regen options")]
@@ -54,11 +54,7 @@ impl Command {
         };
 
         // build custom, global thread pool when limiting jobs
-        if self.jobs != num_cpus::get() {
-            rayon::ThreadPoolBuilder::new()
-                .num_threads(bounded_jobs(self.jobs))
-                .build_global()?;
-        }
+        bounded_thread_pool(self.jobs)?;
 
         cache
             .regen(&repo)
