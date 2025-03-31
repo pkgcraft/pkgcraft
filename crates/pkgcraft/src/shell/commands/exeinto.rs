@@ -7,9 +7,14 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "exeinto",
+    disable_help_flag = true,
     long_about = "Takes exactly one argument and sets the install path for doexe and newexe."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     path: String,
 }
 
@@ -39,5 +44,7 @@ mod tests {
     fn set_path() {
         exeinto(&["/test/path"]).unwrap();
         assert_eq!(get_build_mut().env(EXEDESTTREE), "/test/path");
+        exeinto(&["-hyphen"]).unwrap();
+        assert_eq!(get_build_mut().env(EXEDESTTREE), "-hyphen");
     }
 }

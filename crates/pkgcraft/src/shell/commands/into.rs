@@ -7,9 +7,14 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "into",
+    disable_help_flag = true,
     long_about = "Takes exactly one argument and sets the value of DESTTREE."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     path: String,
 }
 
@@ -70,6 +75,9 @@ mod tests {
             } else {
                 assert!(env_val.is_none())
             }
+
+            into(&["-hyphen"]).unwrap();
+            assert_eq!(build.env(DESTTREE), "-hyphen");
         }
     }
 }

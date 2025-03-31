@@ -7,12 +7,17 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "docinto",
+    disable_help_flag = true,
     long_about = indoc::indoc! {"
         Takes exactly one argument and sets the install path for dodoc and other
         doc-related commands.
     "}
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     path: String,
 }
 
@@ -69,6 +74,15 @@ mod tests {
             r#"
             [[files]]
             path = "/usr/share/doc/pkg-1/file"
+        "#,
+        );
+
+        docinto(&["-hyphen"]).unwrap();
+        dodoc(&["file"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkg-1/-hyphen/file"
         "#,
         );
     }

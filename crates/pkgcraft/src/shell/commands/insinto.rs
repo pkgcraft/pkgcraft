@@ -7,9 +7,14 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "insinto",
+    disable_help_flag = true,
     long_about = "Takes exactly one argument and sets the value of INSDESTTREE."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     path: String,
 }
 
@@ -70,6 +75,9 @@ mod tests {
             } else {
                 assert!(env_val.is_none());
             }
+
+            insinto(&["-hyphen"]).unwrap();
+            assert_eq!(build.env(INSDESTTREE), "-hyphen");
         }
     }
 }
