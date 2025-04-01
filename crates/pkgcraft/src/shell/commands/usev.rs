@@ -11,10 +11,17 @@ use super::{make_builtin, use_, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "usev",
+    disable_help_flag = true,
     long_about = "The same as use, but also prints the flag name if the condition is met."
 )]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
     flag: String,
+
+    #[arg(allow_hyphen_values = true)]
     output: Option<String>,
 }
 
