@@ -8,6 +8,7 @@ use super::{make_builtin, TryParseArgs};
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "EXPORT_FUNCTIONS",
+    disable_help_flag = true,
     long_about = indoc::indoc! {"
         Export stub functions that call the eclass's functions, thereby making them default.
         For example, if ECLASS=base and `EXPORT_FUNCTIONS src_unpack` is called the following
@@ -17,7 +18,10 @@ use super::{make_builtin, TryParseArgs};
     "}
 )]
 struct Command {
-    #[arg(required = true, value_name = "PHASE")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PHASE")]
     phases: Vec<PhaseKind>,
 }
 
