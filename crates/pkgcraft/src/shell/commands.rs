@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
-use std::ffi::OsString;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
@@ -381,48 +380,41 @@ impl Command {
 
 /// Try to parse the arguments for a given command.
 trait TryParseArgs: Sized {
-    fn try_parse_args<'a, I>(args: I) -> scallop::Result<Self>
-    where
-        I: IntoIterator + 'a,
-        I::Item: Into<OsString>;
+    fn try_parse_args(args: &[&str]) -> scallop::Result<Self>;
 }
 
 impl<P: clap::Parser> TryParseArgs for P {
-    fn try_parse_args<'a, I>(args: I) -> scallop::Result<Self>
-    where
-        I: IntoIterator + 'a,
-        I::Item: Into<OsString>,
-    {
+    fn try_parse_args(args: &[&str]) -> scallop::Result<Self> {
         let cmd = Self::command();
         let name = cmd.get_name();
 
         // HACK: work around clap parsing always treating -- as a delimiter
         // See https://github.com/clap-rs/clap/issues/5055.
         let args = RawArgsIter {
-            args: Box::new(args.into_iter().map(Into::into)),
+            args: args.iter(),
             injected_arg: None,
             seen: false,
         };
 
-        let args = [name.into()].into_iter().chain(args);
+        let args = [name].into_iter().chain(args);
         Self::try_parse_from(args).map_err(|e| scallop::Error::Base(format!("{name}: {e}")))
     }
 }
 
 struct RawArgsIter<'a> {
-    args: Box<dyn Iterator<Item = OsString> + 'a>,
-    injected_arg: Option<OsString>,
+    args: std::slice::Iter<'a, &'a str>,
+    injected_arg: Option<&'a str>,
     seen: bool,
 }
 
-impl Iterator for RawArgsIter<'_> {
-    type Item = OsString;
+impl<'a> Iterator for RawArgsIter<'a> {
+    type Item = &'a str;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.injected_arg.take().or_else(|| {
-            self.args.next().inspect(|x| {
-                if x == "--" && !self.seen {
-                    let _ = self.injected_arg.insert(OsString::from("--"));
+            self.args.next().copied().inspect(|x| {
+                if *x == "--" && !self.seen {
+                    let _ = self.injected_arg.insert(x);
                     self.seen = true;
                 }
             })
