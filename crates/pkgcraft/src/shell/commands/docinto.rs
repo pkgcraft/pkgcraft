@@ -47,10 +47,6 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_cmd(docinto, &[0, 2]);
-
-        // -- signifies an end of options
-        assert!(docinto(&["--"]).is_err());
-        assert!(docinto(&["--", "--"]).is_ok());
     }
 
     #[test]

@@ -44,10 +44,6 @@ mod tests {
     #[test]
     fn invalid_args() {
         assert_invalid_cmd(into, &[0]);
-
-        // -- signifies an end of options
-        assert!(into(&["--"]).is_err());
-        assert!(into(&["--", "--"]).is_ok());
     }
 
     #[test]

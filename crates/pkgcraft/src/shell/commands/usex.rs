@@ -94,10 +94,10 @@ mod tests {
         for (args, expected) in [
             (vec!["use"], "no"),
             (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
-            (vec!["use", "", "--with-foo=2"], "--with-foo=2"),
+            (vec!["use", "--", "--with-foo=1"], "--with-foo=1"),
             (vec!["!use"], "yes"),
             (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
-            (vec!["!use", "--with-foo=1", ""], "--with-foo=1"),
+            (vec!["!use", "--", "--with-foo=2"], "--"),
         ] {
             usex(&args).unwrap();
             assert_eq!(stdout().get(), expected);
@@ -108,10 +108,10 @@ mod tests {
         for (args, expected) in [
             (vec!["use"], "yes"),
             (vec!["use", "arg2", "arg3", "arg4", "arg5"], "arg2arg4"),
-            (vec!["use", "--with-foo=1", ""], "--with-foo=1"),
+            (vec!["use", "--", "--with-foo=1"], "--"),
             (vec!["!use"], "no"),
             (vec!["!use", "arg2", "arg3", "arg4", "arg5"], "arg3arg5"),
-            (vec!["!use", "", "--with-foo=2"], "--with-foo=2"),
+            (vec!["!use", "--", "--with-foo=2"], "--with-foo=2"),
         ] {
             usex(&args).unwrap();
             assert_eq!(stdout().get(), expected);

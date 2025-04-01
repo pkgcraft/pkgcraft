@@ -381,24 +381,49 @@ impl Command {
 
 /// Try to parse the arguments for a given command.
 trait TryParseArgs: Sized {
-    fn try_parse_args<I>(args: I) -> scallop::Result<Self>
+    fn try_parse_args<'a, I>(args: I) -> scallop::Result<Self>
     where
-        I: IntoIterator,
+        I: IntoIterator + 'a,
         I::Item: Into<OsString>;
 }
 
 impl<P: clap::Parser> TryParseArgs for P {
-    fn try_parse_args<I>(args: I) -> scallop::Result<Self>
+    fn try_parse_args<'a, I>(args: I) -> scallop::Result<Self>
     where
-        I: IntoIterator,
+        I: IntoIterator + 'a,
         I::Item: Into<OsString>,
     {
         let cmd = Self::command();
         let name = cmd.get_name();
-        let args = [name.into()]
-            .into_iter()
-            .chain(args.into_iter().map(Into::into));
+
+        // HACK: work around clap parsing always treating -- as a delimiter
+        // See https://github.com/clap-rs/clap/issues/5055.
+        let args = RawArgsIter {
+            args: Box::new(args.into_iter().map(Into::into)),
+            injected_arg: None,
+        };
+
+        let args = [name.into()].into_iter().chain(args.into_iter());
         Self::try_parse_from(args).map_err(|e| scallop::Error::Base(format!("{name}: {e}")))
+    }
+}
+
+struct RawArgsIter<'a> {
+    args: Box<dyn Iterator<Item = OsString> + 'a>,
+    injected_arg: Option<OsString>,
+}
+
+impl Iterator for RawArgsIter<'_> {
+    type Item = OsString;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.injected_arg.take().or_else(|| {
+            let arg = self.args.next();
+            if arg.as_ref().map(|x| x == "--").unwrap_or_default() {
+                let _ = self.injected_arg.insert(OsString::from("--"));
+            }
+            arg
+        })
     }
 }
 
