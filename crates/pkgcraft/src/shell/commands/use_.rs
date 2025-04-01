@@ -2,22 +2,34 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "\
-Returns success if the USE flag argument is enabled, failure otherwise.
-The return values are inverted if the flag name is prefixed with !.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "use",
+    disable_help_flag = true,
+    long_about = indoc::indoc! {"
+        Returns success if the USE flag argument is enabled, failure otherwise.
+        The return values are inverted if the flag name is prefixed with !.
+    "}
+)]
+struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
 
-#[doc = stringify!(LONG_DOC)]
+    // TODO: use custom use flag type
+    #[arg(allow_hyphen_values = true)]
+    flag: String,
+}
+
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let [arg] = args else {
-        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
-    };
+    let cmd = Command::try_parse_args(args)?;
 
-    let (negated, flag) = arg
+    let (negated, flag) = cmd
+        .flag
         .strip_prefix('!')
         .map(|s| (true, s))
-        .unwrap_or((false, *arg));
+        .unwrap_or((false, &cmd.flag));
 
     let build = get_build_mut();
     let pkg = build.ebuild_pkg();
@@ -30,7 +42,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(ret))
 }
 
-const USAGE: &str = "use flag";
 make_builtin!("use", use_builtin, false);
 
 #[cfg(test)]
@@ -41,14 +52,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, use_};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, use_};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("use flag");
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(use_, &[0, 2]);
+        assert_invalid_cmd(use_, &[0, 2]);
     }
 
     #[test]

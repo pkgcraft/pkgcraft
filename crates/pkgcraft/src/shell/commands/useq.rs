@@ -20,14 +20,14 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, useq};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, useq};
     use super::*;
 
     cmd_scope_tests!("useq flag");
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(useq, &[0, 2]);
+        assert_invalid_cmd(useq, &[0, 2]);
     }
 
     #[test]
