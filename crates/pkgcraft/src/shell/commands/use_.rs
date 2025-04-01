@@ -2,7 +2,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, TryParseArgs};
+use super::{make_builtin, TryParseArgs, UseFlag};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -17,20 +17,12 @@ struct Command {
     #[arg(long, action = clap::ArgAction::HelpLong)]
     help: Option<bool>,
 
-    // TODO: use custom use flag type
-    #[arg(allow_hyphen_values = true)]
-    flag: String,
+    use_flag: UseFlag,
 }
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-
-    let (negated, flag) = cmd
-        .flag
-        .strip_prefix('!')
-        .map(|s| (true, s))
-        .unwrap_or((false, &cmd.flag));
-
+    let flag = &cmd.use_flag.flag;
     let build = get_build_mut();
     let pkg = build.ebuild_pkg();
 
@@ -38,7 +30,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         return Err(Error::Base(format!("USE flag not in IUSE: {flag}")));
     }
 
-    let ret = build.use_.contains(flag) ^ negated;
+    let ret = build.use_.contains(flag) ^ cmd.use_flag.inverted;
     Ok(ExecStatus::from(ret))
 }
 

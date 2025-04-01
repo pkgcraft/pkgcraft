@@ -541,6 +541,26 @@ pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
     .collect()
 });
 
+/// USE flag variant for `use` and `usev` commands.
+#[derive(Debug, Clone)]
+struct UseFlag {
+    flag: String,
+    inverted: bool,
+}
+
+impl FromStr for UseFlag {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let (inverted, flag) = s.strip_prefix('!').map(|x| (true, x)).unwrap_or((false, s));
+
+        crate::dep::parse::use_flag(flag).map(|value| Self {
+            flag: value.to_string(),
+            inverted,
+        })
+    }
+}
+
 peg::parser! {
     grammar cmd() for str {
         rule version_separator() -> &'input str
