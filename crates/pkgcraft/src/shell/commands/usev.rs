@@ -6,7 +6,7 @@ use crate::eapi::Feature::UsevTwoArgs;
 use crate::io::stdout;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, use_, TryParseArgs};
+use super::{make_builtin, TryParseArgs, UseFlag};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -18,8 +18,7 @@ struct Command {
     #[arg(long, action = clap::ArgAction::HelpLong)]
     help: Option<bool>,
 
-    #[arg(allow_hyphen_values = true)]
-    flag: String,
+    use_flag: UseFlag,
 
     #[arg(allow_hyphen_values = true)]
     output: Option<String>,
@@ -27,23 +26,32 @@ struct Command {
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
+    let flag = &cmd.use_flag.flag;
     let eapi = get_build_mut().eapi();
-    let flag = &cmd.flag;
+
     let output = if let Some(value) = cmd.output.as_deref() {
         if !eapi.has(UsevTwoArgs) {
             return Err(Error::Base(format!("EAPI {eapi}: output argument unsupported")));
         }
         value
     } else {
-        flag.strip_prefix('!').unwrap_or(flag)
+        flag
     };
 
-    let ret = use_(&[flag])?;
-    if bool::from(&ret) {
+    let build = get_build_mut();
+    let pkg = build.ebuild_pkg();
+
+    if !pkg.iuse_effective().contains(flag) {
+        return Err(Error::Base(format!("USE flag not in IUSE: {flag}")));
+    }
+
+    let ret = build.use_.contains(flag) ^ cmd.use_flag.inverted;
+
+    if ret {
         write!(stdout(), "{output}")?;
     }
 
-    Ok(ret)
+    Ok(ExecStatus::from(ret))
 }
 
 make_builtin!("usev", usev_builtin, false);
