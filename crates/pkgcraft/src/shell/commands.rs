@@ -401,9 +401,10 @@ impl<P: clap::Parser> TryParseArgs for P {
         let args = RawArgsIter {
             args: Box::new(args.into_iter().map(Into::into)),
             injected_arg: None,
+            seen: false,
         };
 
-        let args = [name.into()].into_iter().chain(args.into_iter());
+        let args = [name.into()].into_iter().chain(args);
         Self::try_parse_from(args).map_err(|e| scallop::Error::Base(format!("{name}: {e}")))
     }
 }
@@ -411,6 +412,7 @@ impl<P: clap::Parser> TryParseArgs for P {
 struct RawArgsIter<'a> {
     args: Box<dyn Iterator<Item = OsString> + 'a>,
     injected_arg: Option<OsString>,
+    seen: bool,
 }
 
 impl Iterator for RawArgsIter<'_> {
@@ -418,11 +420,12 @@ impl Iterator for RawArgsIter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.injected_arg.take().or_else(|| {
-            let arg = self.args.next();
-            if arg.as_ref().map(|x| x == "--").unwrap_or_default() {
-                let _ = self.injected_arg.insert(OsString::from("--"));
-            }
-            arg
+            self.args.next().inspect(|x| {
+                if x == "--" && !self.seen {
+                    let _ = self.injected_arg.insert(OsString::from("--"));
+                    self.seen = true;
+                }
+            })
         })
     }
 }
