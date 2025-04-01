@@ -9,11 +9,19 @@ use crate::shell::get_build_mut;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "dodoc", long_about = "Install header files into /usr/include.")]
+#[command(
+    name = "doheader",
+    disable_help_flag = true,
+    long_about = "Install header files into /usr/include."
+)]
 struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
     #[arg(short = 'r')]
     recursive: bool,
-    #[arg(required = true, value_name = "PATH")]
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PATH")]
     paths: Vec<Utf8PathBuf>,
 }
 
@@ -43,7 +51,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "doheader path/to/header.h";
 make_builtin!("doheader", doheader_builtin, true);
 
 #[cfg(test)]
@@ -58,7 +65,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doheader, insopts};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("doheader path/to/header.h");
 
     #[test]
     fn invalid_args() {
