@@ -7,9 +7,16 @@ use crate::traits::SourceBash;
 use super::{make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "inherit", long_about = "Sources the given list of eclasses.")]
+#[command(
+    name = "inherit",
+    disable_help_flag = true,
+    long_about = "Sources the given list of eclasses."
+)]
 struct Command {
-    #[arg(required = true, value_name = "ECLASS")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "ECLASS")]
     eclasses: Vec<String>,
 }
 
@@ -78,7 +85,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "inherit eclass1 eclass2";
 make_builtin!("inherit", inherit_builtin, true);
 
 #[cfg(test)]
@@ -95,7 +101,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, inherit};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("inherit eclass1 eclass2");
 
     #[test]
     fn invalid_args() {
