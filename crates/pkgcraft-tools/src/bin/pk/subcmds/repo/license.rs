@@ -3,6 +3,7 @@ use std::process::ExitCode;
 
 use clap::Args;
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::pkg::Package;
@@ -11,9 +12,9 @@ use pkgcraft::traits::LogErrors;
 #[derive(Args)]
 #[clap(next_help_heading = "License options")]
 pub(crate) struct Command {
-    /// Output packages for a target license
-    #[arg(long)]
-    license: Option<String>,
+    /// Output packages for target licenses
+    #[arg(long, value_name = "LICENSE", value_delimiter = ',')]
+    licenses: Vec<String>,
 
     /// Ignore invalid packages
     #[arg(short, long)]
@@ -35,14 +36,17 @@ impl Command {
         let mut stdout = io::stdout().lock();
         for repo in &repos {
             // fail fast for nonexistent license selection
-            let selected = if let Some(name) = self.license.as_deref() {
-                let license = repo
-                    .licenses()
-                    .get(name)
-                    .ok_or_else(|| anyhow::anyhow!("unknown license: {name}"))?;
-                Some(license)
+            let selected: IndexSet<_> = if !self.licenses.is_empty() {
+                self.licenses
+                    .iter()
+                    .map(|x| {
+                        repo.licenses()
+                            .get(x)
+                            .ok_or_else(|| anyhow::anyhow!("unknown license: {x}"))
+                    })
+                    .try_collect()?
             } else {
-                None
+                Default::default()
             };
 
             let mut licenses = IndexMap::<_, IndexSet<_>>::new();
@@ -60,12 +64,16 @@ impl Command {
             }
             failed |= iter.failed();
 
-            if let Some(license) = selected {
-                // ouput all packages using a selected license
-                if let Some(cpvs) = licenses.get(license) {
-                    for cpv in cpvs {
-                        writeln!(stdout, "{cpv}")?;
-                    }
+            if !selected.is_empty() {
+                // ouput all packages using selected licenses
+                let mut cpvs: IndexSet<_> = selected
+                    .iter()
+                    .filter_map(|x| licenses.get(x.as_str()))
+                    .flatten()
+                    .collect();
+                cpvs.sort();
+                for cpv in cpvs {
+                    writeln!(stdout, "{cpv}")?;
                 }
             } else if !licenses.is_empty() {
                 // ouput all licenses with the number of packages that use them

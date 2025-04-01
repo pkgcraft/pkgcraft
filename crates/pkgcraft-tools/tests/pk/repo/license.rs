@@ -132,7 +132,7 @@ fn single_repo() {
         .success();
 
     // invalid, selected license
-    cmd("pk repo license --license nonexistent")
+    cmd("pk repo license --licenses nonexistent")
         .arg(&repo)
         .assert()
         .stdout("")
@@ -141,7 +141,18 @@ fn single_repo() {
         .code(2);
 
     // matching packages for license
-    cmd("pk repo license --license l1")
+    cmd("pk repo license --licenses l1")
+        .arg(&repo)
+        .assert()
+        .stdout(indoc::indoc! {"
+            cat/pkg-1
+            cat/pkg-2
+        "})
+        .stderr("")
+        .success();
+
+    // matching packages for multiple licenses
+    cmd("pk repo license --licenses l1,l2")
         .arg(&repo)
         .assert()
         .stdout(indoc::indoc! {"
@@ -152,7 +163,7 @@ fn single_repo() {
         .success();
 
     // unused license
-    cmd("pk repo license --license l3")
+    cmd("pk repo license --licenses l3")
         .arg(&repo)
         .assert()
         .stdout("")
