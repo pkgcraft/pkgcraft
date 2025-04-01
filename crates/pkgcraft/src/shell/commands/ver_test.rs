@@ -3,13 +3,25 @@ use scallop::{Error, ExecStatus};
 use crate::dep::Version;
 use crate::shell::get_build_mut;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Perform comparisons on package version strings.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "ver_test",
+    disable_help_flag = true,
+    long_about = "Perform comparisons on package version strings."
+)]
+struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
 
-#[doc = stringify!(LONG_DOC)]
+    #[arg(required = true, allow_hyphen_values = true, num_args = 2..=3)]
+    args: Vec<String>,
+}
+
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
-    let (op, cmp) = match args[..] {
+    let cmd = Command::try_parse_args(args)?;
+    let (op, cmp) = match &cmd.args[..] {
         [op, rhs] => {
             let lhs = get_build_mut().cpv().version();
             let rhs = Version::try_new_without_op(rhs)?;
@@ -20,10 +32,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             let rhs = Version::try_new_without_op(rhs)?;
             (op, lhs.cmp(&rhs))
         }
-        _ => return Err(Error::Base(format!("only accepts 2 or 3 args, got {}", args.len()))),
+        _ => unreachable!("invalid args"),
     };
 
-    let ret = match op {
+    let ret = match op.as_ref() {
         "-eq" => cmp.is_eq(),
         "-ne" => cmp.is_ne(),
         "-lt" => cmp.is_lt(),
@@ -36,7 +48,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(ret))
 }
 
-const USAGE: &str = "ver_test 1 -lt 2-r1";
 make_builtin!("ver_test", ver_test_builtin, false);
 
 #[cfg(test)]
@@ -49,10 +60,10 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, ver_test};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, ver_test};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("ver_test 1 -lt 2-r1");
 
     #[test]
     fn invalid_args() {
@@ -60,7 +71,7 @@ mod tests {
         let repo = data.ebuild_repo("commands").unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         BuildData::from_raw_pkg(&raw_pkg);
-        assert_invalid_args(ver_test, &[0, 1, 4]);
+        assert_invalid_cmd(ver_test, &[0, 1, 4]);
     }
 
     #[test]
