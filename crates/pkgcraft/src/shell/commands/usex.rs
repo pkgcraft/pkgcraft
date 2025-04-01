@@ -20,24 +20,24 @@ struct Command {
     flag: String,
 
     #[arg(required = false, allow_hyphen_values = true, default_value = "yes")]
-    enabled: String,
+    enabled1: String,
 
     #[arg(required = false, allow_hyphen_values = true, default_value = "no")]
-    disabled: String,
+    disabled1: String,
 
     #[arg(required = false, allow_hyphen_values = true, default_value = "")]
-    enabled_output: String,
+    enabled2: String,
 
     #[arg(required = false, allow_hyphen_values = true, default_value = "")]
-    disabled_output: String,
+    disabled2: String,
 }
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let mut stdout = stdout();
     match use_(&[&cmd.flag])? {
-        ExecStatus::Success => write!(stdout, "{}{}", cmd.enabled, cmd.enabled_output)?,
-        ExecStatus::Failure(_) => write!(stdout, "{}{}", cmd.disabled, cmd.disabled_output)?,
+        ExecStatus::Success => write!(stdout, "{}{}", cmd.enabled1, cmd.enabled2)?,
+        ExecStatus::Failure(_) => write!(stdout, "{}{}", cmd.disabled1, cmd.disabled2)?,
     }
     stdout.flush()?;
 
