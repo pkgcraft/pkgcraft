@@ -16,8 +16,8 @@ Compatibility with the official [package management specification][pmspec] is
 aimed for, but not always adhered to. See the list of known [deviations] for
 details.
 
-Repos using custom profile-formats extensions are not supported, see the
-[related issue][profile-formats] for details.
+Repos using custom profile-formats extensions are not supported for tools that
+deal with profiles, see the [related issue][profile-formats] for details.
 
 More information about the project can be found on its [FAQ] and
 [development blog][blog].
