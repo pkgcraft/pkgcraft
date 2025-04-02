@@ -157,10 +157,7 @@ impl TestData {
     }
 
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
-        self.config
-            .repos
-            .get(name)
-            .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
+        self.config.get_repo(name)
     }
 
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
@@ -219,10 +216,7 @@ impl TestDataPatched {
     }
 
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
-        self.config
-            .repos
-            .get(name)
-            .ok_or_else(|| Error::InvalidValue(format!("nonexistent test data repo: {name}")))
+        self.config.get_repo(name)
     }
 
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
