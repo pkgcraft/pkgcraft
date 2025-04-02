@@ -253,12 +253,15 @@ impl<'a> Targets<'a> {
                 self.config.load()?;
             }
 
-            if let Some(repo) = self.config.repos.get(&target) {
-                repos.push((target, repo.clone()));
-            } else if let Ok(abspath) = Utf8Path::new(&target).canonicalize_utf8() {
-                repos.push((target, self.repo_from_path(&abspath)?));
-            } else {
-                return Err(Error::InvalidValue(format!("unknown repo: {target}")));
+            match self.config.get_repo(&target) {
+                Ok(repo) => repos.push((target, repo.clone())),
+                Err(e) => {
+                    if let Ok(abspath) = Utf8Path::new(&target).canonicalize_utf8() {
+                        repos.push((target, self.repo_from_path(&abspath)?));
+                    } else {
+                        return Err(e);
+                    }
+                }
             }
         }
 
