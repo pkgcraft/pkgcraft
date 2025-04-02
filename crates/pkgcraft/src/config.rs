@@ -328,6 +328,20 @@ impl Config {
         Ok(repo)
     }
 
+    /// Get a repo from the config.
+    pub fn get_repo<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
+        let key = key.as_ref();
+        let repo = self
+            .repos
+            .get(key)
+            .ok_or_else(|| Error::InvalidValue(format!("unknown repo: {key}")))?;
+
+        // finalize the repo so cloning works as expected
+        repo.finalize(self)?;
+
+        Ok(repo)
+    }
+
     /// Determine if the config has all named repos loaded.
     fn has_repos<I>(&self, repos: I) -> bool
     where
