@@ -24,8 +24,8 @@ use crate::repo::Repository;
 fn get_ebuild_repo(config: &Config, repo: String) -> crate::Result<&EbuildRepo> {
     config
         .repos
-        .get(&repo)
-        .and_then(|r| r.as_ebuild())
+        .get(&repo)?
+        .as_ebuild()
         .ok_or_else(|| Error::InvalidValue(format!("unknown ebuild repo: {repo}")))
 }
 

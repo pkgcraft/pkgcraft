@@ -247,8 +247,11 @@ impl Config {
     }
 
     /// Get a repo.
-    pub(crate) fn get<S: AsRef<str>>(&self, key: S) -> Option<&Repo> {
-        self.repos.get(key.as_ref())
+    pub(crate) fn get<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
+        let key = key.as_ref();
+        self.repos
+            .get(key)
+            .ok_or_else(|| Error::InvalidValue(format!("unknown repo: {key}")))
     }
 
     /// Returns true if no repos exist and false otherwise.

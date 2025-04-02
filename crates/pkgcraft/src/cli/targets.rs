@@ -67,7 +67,7 @@ impl<'a> Targets<'a> {
             }
 
             let path = Utf8Path::new(s);
-            let repo = if let Some(repo) = self.config.repos.get(s) {
+            let repo = if let Ok(repo) = self.config.get_repo(s) {
                 Ok(repo.clone())
             } else if path.exists() {
                 self.repo_from_path(path)

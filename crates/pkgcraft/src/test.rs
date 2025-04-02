@@ -157,7 +157,7 @@ impl TestData {
     }
 
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
-        self.config.get_repo(name)
+        self.config.repos.get(name)
     }
 
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
@@ -216,7 +216,7 @@ impl TestDataPatched {
     }
 
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
-        self.config.get_repo(name)
+        self.config.repos.get(name)
     }
 
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
