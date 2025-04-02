@@ -247,7 +247,7 @@ impl Config {
     }
 
     /// Get a repo.
-    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&Repo> {
+    pub(crate) fn get<S: AsRef<str>>(&self, key: S) -> Option<&Repo> {
         self.repos.get(key.as_ref())
     }
 
