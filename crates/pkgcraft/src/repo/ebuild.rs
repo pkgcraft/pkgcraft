@@ -1287,16 +1287,6 @@ mod tests {
             r,
             format!("^invalid repo: {path}: profiles/repo_name: No such file or directory")
         );
-
-        // custom profile-formats
-        let path = repos.join("invalid/profile-formats");
-        let r = EbuildRepo::from_path(&path, 0, &path);
-        assert_err_re!(
-            r,
-            format!(
-                "^invalid repo: {path}: metadata/layout.conf: unsupported profile-formats"
-            )
-        );
     }
 
     #[test]

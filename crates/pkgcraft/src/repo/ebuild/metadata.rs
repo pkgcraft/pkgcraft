@@ -88,6 +88,9 @@ pub struct Config {
     /// The ordered set of inherited repo ids.
     pub masters: OrderedSet<String>,
 
+    /// The ordered set of custom extensions enabled for profiles.
+    pub profile_formats: OrderedSet<String>,
+
     /// Allowed values for ebuild PROPERTIES.
     pub properties_allowed: OrderedSet<String>,
 
@@ -129,11 +132,6 @@ impl Config {
         let path = repo_path.join("metadata/layout.conf");
         let ini = Ini::load(&path)?;
 
-        // bail if profile-formats is defined
-        if ini.iter("profile-formats").next().is_some() {
-            return Err(Error::InvalidValue("unsupported profile-formats".to_string()));
-        }
-
         Ok(Self {
             path,
             cache_formats: parse_iter!(ini, "cache-formats")?,
@@ -143,6 +141,7 @@ impl Config {
             manifest_hashes: parse_iter!(ini, "manifest-hashes")?,
             manifest_required_hashes: parse_iter!(ini, "manifest-required-hashes")?,
             masters: parse_iter!(ini, "masters")?,
+            profile_formats: parse_iter!(ini, "profile-formats")?,
             properties_allowed: parse_iter!(ini, "properties-allowed")?,
             restrict_allowed: parse_iter!(ini, "restrict-allowed")?,
             thin_manifests: parse!(ini, "thin-manifests")?.unwrap_or(false),
@@ -194,6 +193,10 @@ impl fmt::Display for Config {
         if !self.masters.is_empty() {
             let values = self.masters.iter().join(" ");
             writeln!(f, "masters: {values}")?;
+        }
+        if !self.profile_formats.is_empty() {
+            let values = self.profile_formats.iter().join(" ");
+            writeln!(f, "profile-formats: {values}")?;
         }
         if !self.properties_allowed.is_empty() {
             let values = self.properties_allowed.iter().join(" ");
