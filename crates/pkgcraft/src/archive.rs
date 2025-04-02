@@ -6,14 +6,14 @@ use camino::{Utf8Path, Utf8PathBuf};
 use crate::command::RunCommand;
 use crate::Error;
 
-pub(super) trait ArchiveFormat {
+pub(crate) trait ArchiveFormat {
     const EXTS: &'static [&'static str];
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()>;
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()>;
 }
 
 #[derive(Debug)]
-pub(super) struct Tar {
+pub(crate) struct Tar {
     path: Utf8PathBuf,
 }
 
@@ -36,7 +36,7 @@ impl ArchiveFormat for Tar {
 }
 
 #[derive(Debug)]
-pub(super) struct TarGz {
+pub(crate) struct TarGz {
     path: Utf8PathBuf,
 }
 
@@ -59,7 +59,7 @@ impl ArchiveFormat for TarGz {
 }
 
 #[derive(Debug)]
-pub(super) struct TarBz2 {
+pub(crate) struct TarBz2 {
     path: Utf8PathBuf,
 }
 
@@ -82,7 +82,7 @@ impl ArchiveFormat for TarBz2 {
 }
 
 #[derive(Debug)]
-pub(super) struct TarLzma {
+pub(crate) struct TarLzma {
     path: Utf8PathBuf,
 }
 
@@ -105,7 +105,7 @@ impl ArchiveFormat for TarLzma {
 }
 
 #[derive(Debug)]
-pub(super) struct TarXz {
+pub(crate) struct TarXz {
     path: Utf8PathBuf,
 }
 
@@ -128,7 +128,7 @@ impl ArchiveFormat for TarXz {
 }
 
 #[derive(Debug)]
-pub(super) struct Zip {
+pub(crate) struct Zip {
     path: Utf8PathBuf,
 }
 
@@ -147,7 +147,7 @@ impl ArchiveFormat for Zip {
 }
 
 #[derive(Debug)]
-pub(super) struct Gz {
+pub(crate) struct Gz {
     path: Utf8PathBuf,
 }
 
@@ -184,7 +184,7 @@ impl ArchiveFormat for Gz {
 }
 
 #[derive(Debug)]
-pub(super) struct Bz2 {
+pub(crate) struct Bz2 {
     path: Utf8PathBuf,
 }
 
@@ -221,7 +221,7 @@ impl ArchiveFormat for Bz2 {
 }
 
 #[derive(Debug)]
-pub(super) struct Xz {
+pub(crate) struct Xz {
     path: Utf8PathBuf,
 }
 
@@ -258,7 +258,7 @@ impl ArchiveFormat for Xz {
 }
 
 #[derive(Debug)]
-pub(super) struct _7z {
+pub(crate) struct _7z {
     path: Utf8PathBuf,
 }
 
@@ -277,7 +277,7 @@ impl ArchiveFormat for _7z {
 }
 
 #[derive(Debug)]
-pub(super) struct Rar {
+pub(crate) struct Rar {
     path: Utf8PathBuf,
 }
 
@@ -296,7 +296,7 @@ impl ArchiveFormat for Rar {
 }
 
 #[derive(Debug)]
-pub(super) struct Lha {
+pub(crate) struct Lha {
     path: Utf8PathBuf,
 }
 
@@ -315,7 +315,7 @@ impl ArchiveFormat for Lha {
 }
 
 #[derive(Debug)]
-pub(super) struct Ar {
+pub(crate) struct Ar {
     path: Utf8PathBuf,
 }
 
@@ -334,7 +334,7 @@ impl ArchiveFormat for Ar {
 }
 
 #[derive(Debug)]
-pub(super) struct Lzma {
+pub(crate) struct Lzma {
     path: Utf8PathBuf,
 }
 
@@ -359,7 +359,7 @@ impl ArchiveFormat for Lzma {
 macro_rules! make_archive {
     ($($x:ident),+) => {
         #[derive(Debug)]
-        pub(super) enum Archive {
+        pub(crate) enum Archive {
             $($x($x),)+
         }
 
@@ -381,7 +381,7 @@ macro_rules! make_archive {
         }
 
         impl Archive {
-            pub(super) fn from_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Archive> {
+            pub(crate) fn from_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Archive> {
                 let path = path.as_ref();
                 let path = Utf8PathBuf::from(path);
                 let filename = path.file_name().ok_or_else(||

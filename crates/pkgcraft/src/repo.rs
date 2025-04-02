@@ -235,7 +235,7 @@ impl Repo {
         Err(Error::RepoInit(err.to_string()))
     }
 
-    pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
+    pub(crate) fn finalize(&self, config: &Config) -> crate::Result<()> {
         if let Self::Ebuild(repo) = self {
             repo.finalize(config)
         } else {
@@ -243,7 +243,7 @@ impl Repo {
         }
     }
 
-    pub(super) fn repo_config(&self) -> &RepoConfig {
+    pub(crate) fn repo_config(&self) -> &RepoConfig {
         match self {
             Self::Configured(repo) => repo.repo_config(),
             Self::Ebuild(repo) => repo.repo_config(),
