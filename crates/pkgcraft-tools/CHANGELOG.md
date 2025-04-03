@@ -1,3 +1,10 @@
+# 0.0.25 (2025-??-??)
+
+## Fixed
+- Respect jobs setting for metadata generation.
+- Ignore custom profile-formats extensions for tools that don't use profiles.
+- Fix repo initialization for tools that accept multiple alias targets.
+
 # 0.0.24 (2025-03-23)
 
 ## Added
