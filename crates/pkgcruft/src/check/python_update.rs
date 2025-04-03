@@ -117,24 +117,19 @@ impl EbuildPkgCheck for Check {
             .filter(|x| x.blocker().is_none())
             .collect::<IndexSet<_>>();
 
-        // determine the latest supported implementation
-        let Some(latest) = deps
+        // determine supported implementations
+        let supported = deps
             .iter()
             .filter(|x| x.cpn() == IMPL_PKG)
             .filter_map(|x| x.slot().map(|s| format!("python{}", s.replace('.', "_"))))
-            .sorted_by_key(|x| self.targets(&eclass).get_index_of(x))
-            .next_back()
-        else {
-            // missing deps
-            return;
-        };
+            .collect::<HashSet<_>>();
 
-        // determine potential targets
+        // determine target implementations
         let mut targets = self
             .targets(&eclass)
             .into_iter()
             .rev()
-            .take_while(|x| *x != &latest)
+            .take_while(|&x| !supported.contains(x))
             .collect::<Vec<_>>();
 
         if targets.is_empty() {
