@@ -1,3 +1,5 @@
+use std::io;
+
 use camino::Utf8Path;
 use ini::Ini;
 use itertools::Itertools;
@@ -16,9 +18,7 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
             .filter_map(Result::ok)
             .map(|d| d.path().to_path_buf())
             .collect(),
-        // TODO: switch to `e.kind() == ErrorKind::NotADirectory` on rust stabilization
-        // https://github.com/rust-lang/rust/issues/86442
-        Err(e) if e.raw_os_error() == Some(20) => vec![path.to_path_buf()],
+        Err(e) if e.kind() == io::ErrorKind::NotADirectory => vec![path.to_path_buf()],
         Err(e) => {
             return Err(Error::Config(format!("failed reading repos.conf: {path}: {e}")))
         }
