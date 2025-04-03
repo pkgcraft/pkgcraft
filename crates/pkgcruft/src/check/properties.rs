@@ -32,7 +32,7 @@ impl EbuildPkgCheck for Check {
             let vals = pkg
                 .properties()
                 .iter_flatten()
-                .filter(|x| !self.allowed.contains(x.as_str()))
+                .filter(|&x| !self.allowed.contains(x))
                 .collect::<HashSet<_>>();
 
             if !vals.is_empty() {
