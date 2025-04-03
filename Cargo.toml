@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 authors = ["Tim Harder <radhermit@gmail.com>"]
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.84"
 
 [workspace.lints.rust]
 unreachable_pub = "warn"
