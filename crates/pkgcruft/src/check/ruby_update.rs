@@ -27,7 +27,7 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
 static CHECK: super::Check = super::Check::RubyUpdate;
 
 struct Check {
-    targets: IndexSet<String>,
+    targets: Vec<String>,
     dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
 

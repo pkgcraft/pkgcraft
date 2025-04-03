@@ -60,7 +60,7 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
 static CHECK: super::Check = super::Check::PythonUpdate;
 
 struct Check {
-    targets: HashMap<Eclass, IndexSet<String>>,
+    targets: HashMap<Eclass, Vec<String>>,
     dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
 
@@ -77,7 +77,7 @@ fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {
 
 impl Check {
     /// Get the USE_EXPAND targets for an eclass.
-    fn targets(&self, eclass: &Eclass) -> &IndexSet<String> {
+    fn targets(&self, eclass: &Eclass) -> &[String] {
         self.targets
             .get(eclass)
             .unwrap_or_else(|| unreachable!("missing eclass targets: {eclass}"))
@@ -127,7 +127,7 @@ impl EbuildPkgCheck for Check {
         // determine target implementations
         let mut targets = self
             .targets(&eclass)
-            .into_iter()
+            .iter()
             .rev()
             .take_while(|&x| !supported.contains(x))
             .collect::<Vec<_>>();
