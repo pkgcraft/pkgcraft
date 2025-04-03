@@ -1,5 +1,8 @@
 # 0.0.25 (2025-??-??)
 
+## Changed
+- Bumped MSRV to 1.84.
+
 ## Fixed
 - Respect jobs setting for metadata generation.
 - Ignore custom profile-formats extensions for tools that don't use profiles.
