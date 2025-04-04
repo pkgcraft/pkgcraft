@@ -101,14 +101,11 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let mut dirs = HashSet::new();
     let mut files = vec![];
-    let opt_lang = cmd.lang.as_ref().map(|x| x.0.as_str());
+    let lang = cmd.lang.as_ref().map(|x| x.0.as_str());
 
     for man in &cmd.manpages {
-        // determine man page language
-        let lang = opt_lang.or(man.lang.as_deref()).unwrap_or_default();
-
-        // construct man page subdirectory
-        let mut dir = Utf8PathBuf::from(lang);
+        // determine man page subdirectory
+        let mut dir = Utf8PathBuf::from(lang.or(man.lang.as_deref()).unwrap_or_default());
         dir.push(man.dir());
 
         files.push((&man.path, dir.join(man.name())));
