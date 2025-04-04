@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use camino::{Utf8Path, Utf8PathBuf};
+use indexmap::IndexSet;
 use scallop::ExecStatus;
 
 use crate::eapi::Feature::DomoUsesDesttree;
@@ -38,7 +37,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .dest(build_path!(dest, "share/locale"))?
         .file_options(opts);
 
-    let mut dirs = HashSet::new();
+    let mut dirs = IndexSet::new();
     let mut files = vec![];
     let filename = format!("{}.mo", build.cpv().package());
 
