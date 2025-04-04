@@ -364,10 +364,12 @@ impl Install {
         for (dest, files_group) in &files_to_install.iter().chunk_by(|x| x.1) {
             let sources = files_group.map(|x| x.0);
             let mut install = Command::new("install");
-            install.args(opts);
-            install.args(sources);
-            install.arg(dest);
-            install.run().map(|_| ())?;
+            install
+                .args(opts)
+                .args(sources)
+                .arg(dest)
+                .run()
+                .map(|_| ())?;
         }
         Ok(())
     }
