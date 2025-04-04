@@ -169,8 +169,8 @@ impl Install {
         <I as IntoIterator>::Item: AsRef<Path>,
         <I as IntoParallelIterator>::Item: AsRef<Path>,
     {
-        if let Some(InstallOpts::Cmd(_)) = self.dir_options {
-            self.dirs_cmd(paths)
+        if let Some(InstallOpts::Cmd(opts)) = &self.dir_options {
+            self.dirs_cmd(opts, paths)
         } else {
             self.dirs_internal(paths)
         }
@@ -196,16 +196,13 @@ impl Install {
     }
 
     /// Create directories using the `install` command.
-    fn dirs_cmd<I>(&self, paths: I) -> scallop::Result<()>
+    fn dirs_cmd<I>(&self, opts: &[String], paths: I) -> scallop::Result<()>
     where
         I: IntoIterator,
         I::Item: AsRef<Path>,
     {
         let mut install = Command::new("install");
-        install.arg("-d");
-        if let Some(InstallOpts::Cmd(opts)) = &self.dir_options {
-            install.args(opts);
-        }
+        install.args(opts).arg("-d");
         install.args(paths.into_iter().map(|p| self.prefix(p)));
         install
             .run()
@@ -272,8 +269,8 @@ impl Install {
             .map(|p| p.as_ref())
             .filter_map(|p| p.file_name().map(|name| (p, name)));
 
-        if let Some(InstallOpts::Cmd(_)) = self.file_options {
-            self.files_cmd(files)
+        if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
+            self.files_cmd(opts, files)
         } else {
             self.files_internal(files)
         }
@@ -286,8 +283,8 @@ impl Install {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        if let Some(InstallOpts::Cmd(_)) = self.file_options {
-            self.files_cmd(paths)
+        if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
+            self.files_cmd(opts, paths)
         } else {
             self.files_internal(paths)
         }
@@ -331,7 +328,7 @@ impl Install {
     }
 
     // Install files using the `install` command.
-    fn files_cmd<I, P, Q>(&self, paths: I) -> scallop::Result<()>
+    fn files_cmd<I, P, Q>(&self, opts: &[String], paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
         P: AsRef<Path>,
@@ -359,9 +356,7 @@ impl Install {
         for (dest, files_group) in &files_to_install.iter().chunk_by(|x| x.1) {
             let sources = files_group.map(|x| x.0);
             let mut install = Command::new("install");
-            if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
-                install.args(opts);
-            }
+            install.args(opts);
             install.args(sources);
             install.arg(dest);
             install.run().map(|_| ())?;
@@ -410,7 +405,7 @@ mod tests {
 
         install.dirs(["dir"]).unwrap();
         let cmd = commands().pop().unwrap();
-        assert_eq!(cmd[..3], ["install", "-d", "-v"]);
+        assert_eq!(cmd[..3], ["install", "-v", "-d"]);
     }
 
     #[test]
@@ -449,7 +444,7 @@ mod tests {
 
         run_commands(|| {
             // single dir
-            install.dirs_cmd(["dir"]).unwrap();
+            install.dirs_cmd(&[], ["dir"]).unwrap();
             file_tree.assert(format!(
                 r#"
                 [[files]]
@@ -459,7 +454,7 @@ mod tests {
             ));
 
             // multiple dirs
-            install.dirs_cmd(["a", "b"]).unwrap();
+            install.dirs_cmd(&[], ["a", "b"]).unwrap();
             file_tree.assert(
                 r#"
                 [[files]]
@@ -558,7 +553,7 @@ mod tests {
         run_commands(|| {
             // single file
             fs::File::create("src").unwrap();
-            install.files_cmd([("src", "dest")]).unwrap();
+            install.files_cmd(&[], [("src", "dest")]).unwrap();
             file_tree.assert(format!(
                 r#"
                 [[files]]
@@ -571,7 +566,7 @@ mod tests {
             fs::File::create("src1").unwrap();
             fs::File::create("src2").unwrap();
             install
-                .files_cmd([("src1", "dest1"), ("src2", "dest2")])
+                .files_cmd(&[], [("src1", "dest1"), ("src2", "dest2")])
                 .unwrap();
             file_tree.assert(
                 r#"
