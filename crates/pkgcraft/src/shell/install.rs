@@ -7,6 +7,7 @@ use clap::Parser;
 use filetime::{set_file_times, FileTime};
 use itertools::{Either, Itertools};
 use nix::{fcntl::AtFlags, sys::stat, unistd};
+use rayon::prelude::*;
 use scallop::Error;
 use walkdir::{DirEntry, WalkDir};
 
@@ -163,8 +164,9 @@ impl Install {
     /// Create given directories under the target directory.
     pub(super) fn dirs<I>(&self, paths: I) -> scallop::Result<()>
     where
-        I: IntoIterator,
-        I::Item: AsRef<Path>,
+        I: IntoIterator + IntoParallelIterator,
+        <I as IntoIterator>::Item: AsRef<Path>,
+        <I as IntoParallelIterator>::Item: AsRef<Path>,
     {
         match self.dir_options {
             InstallOpts::Cmd(_) => self.dirs_cmd(paths),
@@ -172,24 +174,26 @@ impl Install {
         }
     }
 
-    // Create directories using internal functionality.
+    /// Create directories in parallel using internal functionality.
     fn dirs_internal<I>(&self, paths: I) -> scallop::Result<()>
     where
-        I: IntoIterator,
+        I: IntoParallelIterator,
         I::Item: AsRef<Path>,
     {
-        for p in paths {
-            let path = self.prefix(p);
-            fs::create_dir_all(&path)
-                .map_err(|e| Error::Base(format!("failed creating dir: {path:?}: {e}")))?;
-            if let InstallOpts::Internal(opts) = &self.dir_options {
-                self.set_attributes(opts, path)?;
-            }
-        }
-        Ok(())
+        paths
+            .into_par_iter()
+            .try_for_each(|path| -> scallop::Result<()> {
+                let path = self.prefix(path);
+                fs::create_dir_all(&path)
+                    .map_err(|e| Error::Base(format!("failed creating dir: {path:?}: {e}")))?;
+                if let InstallOpts::Internal(opts) = &self.dir_options {
+                    self.set_attributes(opts, path)?;
+                }
+                Ok(())
+            })
     }
 
-    // Create directories using the `install` command.
+    /// Create directories using the `install` command.
     fn dirs_cmd<I>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator,
