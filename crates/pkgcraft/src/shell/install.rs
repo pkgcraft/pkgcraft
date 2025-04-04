@@ -29,10 +29,7 @@ struct InstallOptions {
     preserve_timestamps: bool,
 }
 
-#[derive(Default)]
 enum InstallOpts {
-    #[default]
-    None,
     Internal(InstallOptions),
     Cmd(Vec<String>),
 }
@@ -40,8 +37,8 @@ enum InstallOpts {
 #[derive(Default)]
 pub(super) struct Install {
     destdir: PathBuf,
-    file_options: InstallOpts,
-    dir_options: InstallOpts,
+    file_options: Option<InstallOpts>,
+    dir_options: Option<InstallOpts>,
 }
 
 impl Install {
@@ -60,19 +57,23 @@ impl Install {
         Ok(self)
     }
 
-    fn parse_options<I>(&self, options: I) -> InstallOpts
+    fn parse_options<I>(&self, options: I) -> Option<InstallOpts>
     where
         I: IntoIterator,
         I::Item: fmt::Display,
     {
         let options: Vec<_> = options.into_iter().map(|s| s.to_string()).collect();
-        let cmd = ["install"]
-            .into_iter()
-            .chain(options.iter().map(|s| s.as_str()));
+        if options.is_empty() {
+            None
+        } else {
+            let cmd = ["install"]
+                .into_iter()
+                .chain(options.iter().map(|s| s.as_str()));
 
-        match InstallOptions::try_parse_from(cmd) {
-            Ok(opts) => InstallOpts::Internal(opts),
-            Err(_) => InstallOpts::Cmd(options),
+            match InstallOptions::try_parse_from(cmd) {
+                Ok(opts) => Some(InstallOpts::Internal(opts)),
+                Err(_) => Some(InstallOpts::Cmd(options)),
+            }
         }
     }
 
@@ -168,9 +169,10 @@ impl Install {
         <I as IntoIterator>::Item: AsRef<Path>,
         <I as IntoParallelIterator>::Item: AsRef<Path>,
     {
-        match self.dir_options {
-            InstallOpts::Cmd(_) => self.dirs_cmd(paths),
-            _ => self.dirs_internal(paths),
+        if let Some(InstallOpts::Cmd(_)) = self.dir_options {
+            self.dirs_cmd(paths)
+        } else {
+            self.dirs_internal(paths)
         }
     }
 
@@ -186,7 +188,7 @@ impl Install {
                 let path = self.prefix(path);
                 fs::create_dir_all(&path)
                     .map_err(|e| Error::Base(format!("failed creating dir: {path:?}: {e}")))?;
-                if let InstallOpts::Internal(opts) = &self.dir_options {
+                if let Some(InstallOpts::Internal(opts)) = &self.dir_options {
                     self.set_attributes(opts, path)?;
                 }
                 Ok(())
@@ -201,7 +203,7 @@ impl Install {
     {
         let mut install = Command::new("install");
         install.arg("-d");
-        if let InstallOpts::Cmd(opts) = &self.dir_options {
+        if let Some(InstallOpts::Cmd(opts)) = &self.dir_options {
             install.args(opts);
         }
         install.args(paths.into_iter().map(|p| self.prefix(p)));
@@ -270,9 +272,10 @@ impl Install {
             .map(|p| p.as_ref())
             .filter_map(|p| p.file_name().map(|name| (p, name)));
 
-        match self.file_options {
-            InstallOpts::Cmd(_) => self.files_cmd(files),
-            _ => self.files_internal(files),
+        if let Some(InstallOpts::Cmd(_)) = self.file_options {
+            self.files_cmd(files)
+        } else {
+            self.files_internal(files)
         }
     }
 
@@ -283,9 +286,10 @@ impl Install {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        match self.file_options {
-            InstallOpts::Cmd(_) => self.files_cmd(paths),
-            _ => self.files_internal(paths),
+        if let Some(InstallOpts::Cmd(_)) = self.file_options {
+            self.files_cmd(paths)
+        } else {
+            self.files_internal(paths)
         }
     }
 
@@ -313,7 +317,7 @@ impl Install {
             fs::copy(source, &dest).map_err(|e| {
                 Error::Base(format!("failed copying file: {source:?} to {dest:?}: {e}"))
             })?;
-            if let InstallOpts::Internal(opts) = &self.file_options {
+            if let Some(InstallOpts::Internal(opts)) = &self.file_options {
                 self.set_attributes(opts, &dest)?;
                 if opts.preserve_timestamps {
                     let atime = FileTime::from_last_access_time(&meta);
@@ -355,7 +359,7 @@ impl Install {
         for (dest, files_group) in &files_to_install.iter().chunk_by(|x| x.1) {
             let sources = files_group.map(|x| x.0);
             let mut install = Command::new("install");
-            if let InstallOpts::Cmd(opts) = &self.file_options {
+            if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
                 install.args(opts);
             }
             install.args(sources);
