@@ -17,32 +17,34 @@ on:
       - "crates/*/src/**"
 
 jobs:
-  setup:
+  msrv:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     outputs:
-      rust-version: ${{ steps.vars.outputs.rust-version }}
+      version: ${{ steps.msrv.outputs.version }}
     steps:
-    - name: Checkout code to determine the minimum supported rust version
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set rust versions to test against
-      id: vars
+    - name: Get the minimum supported rust version (MSRV)
+      id: msrv
       run: |
-        min_ver=$(sed -rn '/^rust-version\s*=/ s/^.*=\s*"([0-9](\.[0-9]+)+)(.*)/\1/p' Cargo.toml)
-        if [[ -n ${min_ver} ]]; then
-          echo "rust-version=['${min_ver}', 'stable']" >> $GITHUB_OUTPUT
+        version=$(sed -rn '/^rust-version\s*=/ s/^.*=\s*"([0-9](\.[0-9]+)+)(.*)/\1/p' Cargo.toml)
+        if [[ -n ${version} ]]; then
+          echo "version=${version}" >> $GITHUB_OUTPUT
         else
           exit 1
         fi
 
   test:
-    needs: setup
+    needs: msrv
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        rust-version: ${{ fromJson(needs.setup.outputs.rust-version) }}
+        include:
+          - os: ubuntu-latest
+            rust-version: ${{ needs.msrv.outputs.version }}
+          - os: ubuntu-latest
+            rust-version: stable
 
     steps:
     - name: Free disk space for coverage data
