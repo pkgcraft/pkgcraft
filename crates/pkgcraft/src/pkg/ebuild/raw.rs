@@ -3,10 +3,11 @@ use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use indexmap::IndexMap;
+use winnow::prelude::*;
 
 use crate::bash;
 use crate::dep::{Cpv, Dep};
-use crate::eapi::{self, Eapi};
+use crate::eapi::Eapi;
 use crate::error::Error;
 use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
@@ -81,7 +82,10 @@ impl EbuildRawPkg {
             })
             .unwrap_or("0");
 
-        eapi::parse_value(s)?.parse()
+        crate::parser::eapi_value
+            .parse_to()
+            .parse(s)
+            .map_err(|err| crate::Error::ParseError(err.to_string()))
     }
 
     /// Return the path of the package's ebuild relative to the repository root.

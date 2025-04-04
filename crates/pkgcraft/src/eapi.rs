@@ -10,6 +10,7 @@ use camino::Utf8Path;
 use indexmap::{set::MutableValues, IndexSet};
 use itertools::Either;
 use strum::EnumString;
+use winnow::prelude::*;
 
 use crate::archive::Archive;
 use crate::dep;
@@ -23,34 +24,6 @@ use crate::shell::hooks::HookBuilder;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::Phase;
 use crate::Error;
-
-peg::parser!(grammar parse() for str {
-    // EAPIs must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule eapi() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("EAPI"))
-        { s }
-
-    rule single_quotes<T>(expr: rule<T>) -> T
-        = "\'" v:expr() "\'" { v }
-
-    rule double_quotes<T>(expr: rule<T>) -> T
-        = "\"" v:expr() "\"" { v }
-
-    rule optionally_quoted<T>(expr: rule<T>) -> T
-        = s:expr() { s }
-        / s:double_quotes(<expr()>) { s }
-        / s:single_quotes(<expr()>) { s }
-
-    pub(super) rule eapi_value() -> &'input str
-        = s:optionally_quoted(<eapi()>) { s }
-});
-
-pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
-    parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))
-}
 
 /// Features that relate to differentiation between EAPIs as specified by PMS.
 #[derive(EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -224,8 +197,9 @@ impl Eapi {
 
     /// Verify a string represents a valid EAPI.
     pub fn parse<S: AsRef<str>>(s: S) -> crate::Result<()> {
-        let s = s.as_ref();
-        parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
+        crate::parser::eapi_name
+            .parse(s.as_ref())
+            .map_err(|err| Error::ParseError(err.to_string()))?;
         Ok(())
     }
 
