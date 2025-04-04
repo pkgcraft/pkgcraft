@@ -147,7 +147,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let dest = build_path!("/usr/share/doc", build.cpv().pf(), subdir, doc_prefix);
     let install = build.install().dest(dest)?;
 
-    let (dirs, files): (Vec<_>, Vec<_>) = cmd
+    let (dirs, mut files): (Vec<_>, Vec<_>) = cmd
         .targets
         .iter()
         .map(Utf8Path::new)
@@ -161,7 +161,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     }
 
-    let files = files.iter().filter(|f| allowed_file(f));
+    files.retain(|f| allowed_file(f));
     install.files(files)?;
 
     Ok(ExecStatus::Success)

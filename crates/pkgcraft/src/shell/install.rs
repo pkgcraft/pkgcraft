@@ -264,10 +264,11 @@ impl Install {
         I: IntoIterator<Item = &'a P>,
         P: AsRef<Path> + 'a + ?Sized,
     {
-        let files = paths
+        let files: Vec<_> = paths
             .into_iter()
             .map(|p| p.as_ref())
-            .filter_map(|p| p.file_name().map(|name| (p, name)));
+            .filter_map(|p| p.file_name().map(|name| (p, name)))
+            .collect();
 
         if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
             self.files_cmd(opts, files)
@@ -280,6 +281,7 @@ impl Install {
     pub(super) fn files_map<I, P, Q>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
+        I: IntoParallelIterator<Item = (P, Q)>,
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
@@ -293,38 +295,44 @@ impl Install {
     // Install files using internal functionality.
     fn files_internal<I, P, Q>(&self, paths: I) -> scallop::Result<()>
     where
-        I: IntoIterator<Item = (P, Q)>,
+        I: IntoParallelIterator<Item = (P, Q)>,
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        for (source, dest) in paths {
-            let source = source.as_ref();
-            let dest = self.prefix(dest.as_ref());
-            let meta = fs::metadata(source)
-                .map_err(|e| Error::Base(format!("invalid file {source:?}: {e}")))?;
+        paths
+            .into_par_iter()
+            .try_for_each(|(source, dest)| -> scallop::Result<()> {
+                let source = source.as_ref();
+                let dest = self.prefix(dest.as_ref());
+                let meta = fs::metadata(source)
+                    .map_err(|e| Error::Base(format!("invalid file {source:?}: {e}")))?;
 
-            // matching `install` command, remove dest before install
-            match fs::remove_file(&dest) {
-                Err(e) if e.kind() != io::ErrorKind::NotFound => {
-                    return Err(Error::Base(format!("failed removing file: {dest:?}: {e}")));
+                // matching `install` command, remove dest before install
+                match fs::remove_file(&dest) {
+                    Err(e) if e.kind() != io::ErrorKind::NotFound => {
+                        return Err(Error::Base(format!(
+                            "failed removing file: {dest:?}: {e}"
+                        )));
+                    }
+                    _ => (),
                 }
-                _ => (),
-            }
 
-            fs::copy(source, &dest).map_err(|e| {
-                Error::Base(format!("failed copying file: {source:?} to {dest:?}: {e}"))
-            })?;
-            if let Some(InstallOpts::Internal(opts)) = &self.file_options {
-                self.set_attributes(opts, &dest)?;
-                if opts.preserve_timestamps {
-                    let atime = FileTime::from_last_access_time(&meta);
-                    let mtime = FileTime::from_last_modification_time(&meta);
-                    set_file_times(&dest, atime, mtime)
-                        .map_err(|e| Error::Base(format!("failed setting file time: {e}")))?;
+                fs::copy(source, &dest).map_err(|e| {
+                    Error::Base(format!("failed copying file: {source:?} to {dest:?}: {e}"))
+                })?;
+                if let Some(InstallOpts::Internal(opts)) = &self.file_options {
+                    self.set_attributes(opts, &dest)?;
+                    if opts.preserve_timestamps {
+                        let atime = FileTime::from_last_access_time(&meta);
+                        let mtime = FileTime::from_last_modification_time(&meta);
+                        set_file_times(&dest, atime, mtime).map_err(|e| {
+                            Error::Base(format!("failed setting file time: {e}"))
+                        })?;
+                    }
                 }
-            }
-        }
-        Ok(())
+
+                Ok(())
+            })
     }
 
     // Install files using the `install` command.
