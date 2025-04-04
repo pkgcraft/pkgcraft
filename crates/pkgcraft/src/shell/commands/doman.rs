@@ -1,8 +1,8 @@
-use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::Utf8PathBuf;
+use indexmap::IndexSet;
 use regex::Regex;
 use scallop::{Error, ExecStatus};
 
@@ -99,7 +99,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .dest("/usr/share/man")?
         .file_options(["-m0644"]);
 
-    let mut dirs = HashSet::new();
+    let mut dirs = IndexSet::new();
     let mut files = vec![];
     let lang = cmd.lang.as_ref().map(|x| x.0.as_str());
 
