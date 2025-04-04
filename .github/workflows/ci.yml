@@ -59,7 +59,7 @@ jobs:
         large-packages: false
         swap-storage: false
 
-    - name: Checkout pkgcraft workspace
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
         submodules: true
