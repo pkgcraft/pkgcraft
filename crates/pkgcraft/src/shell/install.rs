@@ -492,11 +492,26 @@ mod tests {
     #[test]
     fn files() {
         let file_tree = FileTree::new();
-        // internal file creation is used for supported `install` options
-        let install = get_build_mut().install().file_options(["-m0750", "-p"]);
-        let mode = 0o100750;
         fs::File::create("file1").unwrap();
         fs::File::create("file2").unwrap();
+
+        // no `install` options
+        let mut install = get_build_mut().install();
+        let mode = 0o100644;
+
+        // single file
+        install.files(["file1"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/file1"
+            mode = {mode}
+        "#
+        ));
+
+        // internal file creation is used for supported `install` options
+        let install = install.file_options(["-m0750", "-p"]);
+        let mode = 0o100750;
 
         // single file
         install.files(["file1"]).unwrap();
