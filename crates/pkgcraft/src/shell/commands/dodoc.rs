@@ -40,12 +40,11 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
     let (dirs, files): (Vec<_>, Vec<_>) =
         paths.iter().map(|p| p.as_ref()).partition(|p| p.is_dir());
 
-    if !dirs.is_empty() {
+    if let Some(dir) = dirs.first() {
         if recursive {
             install.recursive(dirs, NO_WALKDIR_FILTER)?;
         } else {
-            let dir = dirs[0].to_string_lossy();
-            return Err(Error::Base(format!("installing directory without -r: {dir}")));
+            return Err(Error::Base(format!("installing directory without -r: {dir:?}")));
         }
     }
 

@@ -33,11 +33,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let (dirs, files): (Vec<_>, Vec<_>) = cmd.paths.into_iter().partition(|p| p.is_dir());
 
-    if !dirs.is_empty() {
+    if let Some(dir) = dirs.first() {
         if cmd.recursive {
             install.recursive(dirs, NO_WALKDIR_FILTER)?;
         } else {
-            let dir = &dirs[0];
             return Err(Error::Base(format!("installing directory without -r: {dir}")));
         }
     }
