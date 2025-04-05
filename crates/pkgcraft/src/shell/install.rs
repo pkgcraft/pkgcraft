@@ -36,11 +36,17 @@ enum InstallOpts {
     Cmd(Vec<String>),
 }
 
+impl Default for InstallOpts {
+    fn default() -> Self {
+        Self::Internal(Default::default())
+    }
+}
+
 #[derive(Default)]
 pub(super) struct Install {
     destdir: PathBuf,
-    file_options: Option<InstallOpts>,
-    dir_options: Option<InstallOpts>,
+    file_options: InstallOpts,
+    dir_options: InstallOpts,
 }
 
 impl Install {
@@ -59,24 +65,19 @@ impl Install {
         Ok(self)
     }
 
-    fn parse_options<I>(&self, options: I) -> Option<InstallOpts>
+    fn parse_options<I>(&self, options: I) -> InstallOpts
     where
         I: IntoIterator,
         I::Item: fmt::Display,
     {
         let options: Vec<_> = options.into_iter().map(|s| s.to_string()).collect();
-        if options.is_empty() {
-            None
-        } else {
-            let cmd = ["install"]
-                .into_iter()
-                .chain(options.iter().map(|s| s.as_str()));
+        let cmd = ["install"]
+            .into_iter()
+            .chain(options.iter().map(|s| s.as_str()));
 
-            match InstallOptions::try_parse_from(cmd) {
-                Ok(opts) => Some(InstallOpts::Internal(opts)),
-                Err(_) => Some(InstallOpts::Cmd(options)),
-            }
-        }
+        InstallOptions::try_parse_from(cmd)
+            .map(InstallOpts::Internal)
+            .unwrap_or(InstallOpts::Cmd(options))
     }
 
     /// Parse options to use for file attributes during install.
@@ -184,15 +185,14 @@ impl Install {
         <I as IntoIterator>::Item: AsRef<Path>,
         <I as IntoParallelIterator>::Item: AsRef<Path>,
     {
-        if let Some(InstallOpts::Cmd(opts)) = &self.dir_options {
-            self.dirs_cmd(opts, paths)
-        } else {
-            self.dirs_internal(paths)
+        match &self.dir_options {
+            InstallOpts::Cmd(opts) => self.dirs_cmd(opts, paths),
+            InstallOpts::Internal(opts) => self.dirs_internal(opts, paths),
         }
     }
 
     /// Create directories in parallel using internal functionality.
-    fn dirs_internal<I>(&self, paths: I) -> scallop::Result<()>
+    fn dirs_internal<I>(&self, opts: &InstallOptions, paths: I) -> scallop::Result<()>
     where
         I: IntoParallelIterator,
         I::Item: AsRef<Path>,
@@ -207,9 +207,7 @@ impl Install {
                         path.to_string_lossy()
                     ))
                 })?;
-                if let Some(InstallOpts::Internal(opts)) = &self.dir_options {
-                    self.set_attributes(opts, path)?;
-                }
+                self.set_attributes(opts, path)?;
                 Ok(())
             })
     }
@@ -293,10 +291,9 @@ impl Install {
             .filter_map(|p| p.file_name().map(|name| (p, name)))
             .collect();
 
-        if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
-            self.files_cmd(opts, files)
-        } else {
-            self.files_internal(files)
+        match &self.file_options {
+            InstallOpts::Cmd(opts) => self.files_cmd(opts, files),
+            InstallOpts::Internal(opts) => self.files_internal(opts, files),
         }
     }
 
@@ -308,15 +305,14 @@ impl Install {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
-            self.files_cmd(opts, paths)
-        } else {
-            self.files_internal(paths)
+        match &self.file_options {
+            InstallOpts::Cmd(opts) => self.files_cmd(opts, paths),
+            InstallOpts::Internal(opts) => self.files_internal(opts, paths),
         }
     }
 
     // Install files using internal functionality.
-    fn files_internal<I, P, Q>(&self, paths: I) -> scallop::Result<()>
+    fn files_internal<I, P, Q>(&self, opts: &InstallOptions, paths: I) -> scallop::Result<()>
     where
         I: IntoParallelIterator<Item = (P, Q)>,
         P: AsRef<Path>,
@@ -349,15 +345,13 @@ impl Install {
                         dest.to_string_lossy()
                     ))
                 })?;
-                if let Some(InstallOpts::Internal(opts)) = &self.file_options {
-                    self.set_attributes(opts, &dest)?;
-                    if opts.preserve_timestamps {
-                        let atime = FileTime::from_last_access_time(&meta);
-                        let mtime = FileTime::from_last_modification_time(&meta);
-                        set_file_times(&dest, atime, mtime).map_err(|e| {
-                            Error::Base(format!("failed setting file time: {e}"))
-                        })?;
-                    }
+
+                self.set_attributes(opts, &dest)?;
+                if opts.preserve_timestamps {
+                    let atime = FileTime::from_last_access_time(&meta);
+                    let mtime = FileTime::from_last_modification_time(&meta);
+                    set_file_times(&dest, atime, mtime)
+                        .map_err(|e| Error::Base(format!("failed setting file time: {e}")))?;
                 }
 
                 Ok(())
@@ -414,9 +408,7 @@ mod tests {
     #[test]
     fn nonexistent() {
         let _file_tree = FileTree::new();
-        let r = get_build_mut()
-            .install()
-            .files_internal([("source", "dest")]);
+        let r = get_build_mut().install().files(["source"]);
         assert_err_re!(r, "^invalid file: source: No such file or directory .*$");
     }
 
@@ -496,7 +488,7 @@ mod tests {
         fs::File::create("file2").unwrap();
 
         // no `install` options
-        let mut install = get_build_mut().install();
+        let install = get_build_mut().install();
         let mode = 0o100644;
 
         // single file
