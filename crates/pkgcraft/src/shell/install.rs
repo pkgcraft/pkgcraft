@@ -493,7 +493,7 @@ mod tests {
     fn files() {
         let file_tree = FileTree::new();
         // internal file creation is used for supported `install` options
-        let install = get_build_mut().install().file_options(["-m0750"]);
+        let install = get_build_mut().install().file_options(["-m0750", "-p"]);
         let mode = 0o100750;
         fs::File::create("file1").unwrap();
         fs::File::create("file2").unwrap();
