@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{fmt, fs, io};
 
+use camino::Utf8Path;
 use clap::Parser;
 use filetime::{set_file_times, FileTime};
 use indexmap::IndexMap;
@@ -216,7 +217,7 @@ impl Install {
     pub(super) fn recursive<I, F>(&self, paths: I, predicate: Option<F>) -> scallop::Result<()>
     where
         I: IntoIterator,
-        I::Item: AsRef<Path>,
+        I::Item: AsRef<Utf8Path>,
         F: Fn(&DirEntry) -> bool,
     {
         let mut dirs = vec![];
@@ -226,11 +227,7 @@ impl Install {
             let path = path.as_ref();
             // Determine whether to skip the base directory, path.components() can't be used
             // because it normalizes all occurrences of '.' away.
-            let depth = if path.to_string_lossy().ends_with("/.") {
-                1
-            } else {
-                0
-            };
+            let depth = if path.as_str().ends_with("/.") { 1 } else { 0 };
 
             // optionally apply directory filtering
             let entries = WalkDir::new(path).min_depth(depth);
@@ -241,7 +238,7 @@ impl Install {
 
             for entry in entries {
                 let entry =
-                    entry.map_err(|e| Error::Base(format!("error walking {path:?}: {e}")))?;
+                    entry.map_err(|e| Error::Base(format!("error walking {path}: {e}")))?;
                 let path = entry.path();
                 // TODO: replace with advance_by() once it's stable
                 let dest = match depth {
