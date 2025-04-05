@@ -1,9 +1,8 @@
 use std::os::unix::fs::symlink;
-use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{fmt, fs, io};
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
 use filetime::{set_file_times, FileTime};
 use indexmap::IndexMap;
@@ -38,7 +37,7 @@ enum InstallOpts {
 
 #[derive(Default)]
 pub(super) struct Install {
-    destdir: PathBuf,
+    destdir: Utf8PathBuf,
     file_options: Option<InstallOpts>,
     dir_options: Option<InstallOpts>,
 }
@@ -46,13 +45,13 @@ pub(super) struct Install {
 impl Install {
     pub(super) fn new(build: &BuildData) -> Self {
         Install {
-            destdir: PathBuf::from(build.destdir()),
+            destdir: Utf8PathBuf::from(build.destdir()),
             ..Default::default()
         }
     }
 
     /// Set the target directory to install files into.
-    pub(super) fn dest<P: AsRef<Path>>(mut self, dest: P) -> scallop::Result<Self> {
+    pub(super) fn dest<P: AsRef<Utf8Path>>(mut self, dest: P) -> scallop::Result<Self> {
         let dest = dest.as_ref();
         self.dirs([dest])?;
         self.destdir.push(dest.strip_prefix("/").unwrap_or(dest));
@@ -100,7 +99,7 @@ impl Install {
     }
 
     /// Prefix a given path with the target directory.
-    pub(super) fn prefix<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+    pub(super) fn prefix<P: AsRef<Utf8Path>>(&self, path: P) -> Utf8PathBuf {
         let path = path.as_ref();
         self.destdir.join(path.strip_prefix("/").unwrap_or(path))
     }
@@ -108,9 +107,9 @@ impl Install {
     /// Create a soft or hardlink between a given source and target.
     pub(super) fn link<F, P, Q>(&self, link: F, source: P, target: Q) -> scallop::Result<()>
     where
-        F: Fn(&Path, &Path) -> io::Result<()>,
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
+        F: Fn(&Utf8Path, &Utf8Path) -> io::Result<()>,
+        P: AsRef<Utf8Path>,
+        Q: AsRef<Utf8Path>,
     {
         let (source, target) = (source.as_ref(), target.as_ref());
 
@@ -121,7 +120,7 @@ impl Install {
 
         // capture target value before it's prefixed
         let failed = |e: io::Error| -> Error {
-            Error::Base(format!("failed creating link: {source:?} -> {target:?}: {e}"))
+            Error::Base(format!("failed creating link: {source} -> {target}: {e}"))
         };
 
         let target = self.prefix(target);
@@ -139,7 +138,7 @@ impl Install {
     }
 
     /// Set the attributes of a file.
-    fn set_attributes<P: AsRef<Path>>(
+    fn set_attributes<P: AsRef<Utf8Path>>(
         &self,
         opts: &InstallOptions,
         path: P,
@@ -148,17 +147,21 @@ impl Install {
         let uid = opts.owner.as_ref().map(|o| o.uid);
         let gid = opts.group.as_ref().map(|g| g.gid);
         if uid.is_some() || gid.is_some() {
-            unistd::fchownat(None, path, uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW).map_err(
-                |e| Error::Base(format!("failed setting file uid/gid: {path:?}: {e}")),
-            )?;
+            unistd::fchownat(None, path.as_std_path(), uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW)
+                .map_err(|e| {
+                    Error::Base(format!("failed setting file uid/gid: {path}: {e}"))
+                })?;
         }
 
         if let Some(mode) = &opts.mode {
             if !path.is_symlink() {
-                stat::fchmodat(None, path, **mode, stat::FchmodatFlags::FollowSymlink)
-                    .map_err(|e| {
-                        Error::Base(format!("failed setting file mode: {path:?}: {e}"))
-                    })?;
+                stat::fchmodat(
+                    None,
+                    path.as_std_path(),
+                    **mode,
+                    stat::FchmodatFlags::FollowSymlink,
+                )
+                .map_err(|e| Error::Base(format!("failed setting file mode: {path}: {e}")))?;
             }
         }
 
@@ -169,8 +172,8 @@ impl Install {
     pub(super) fn dirs<I>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator + IntoParallelIterator,
-        <I as IntoIterator>::Item: AsRef<Path>,
-        <I as IntoParallelIterator>::Item: AsRef<Path>,
+        <I as IntoIterator>::Item: AsRef<Utf8Path>,
+        <I as IntoParallelIterator>::Item: AsRef<Utf8Path>,
     {
         if let Some(InstallOpts::Cmd(opts)) = &self.dir_options {
             self.dirs_cmd(opts, paths)
@@ -183,14 +186,14 @@ impl Install {
     fn dirs_internal<I>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoParallelIterator,
-        I::Item: AsRef<Path>,
+        I::Item: AsRef<Utf8Path>,
     {
         paths
             .into_par_iter()
             .try_for_each(|path| -> scallop::Result<()> {
                 let path = self.prefix(path);
                 fs::create_dir_all(&path)
-                    .map_err(|e| Error::Base(format!("failed creating dir: {path:?}: {e}")))?;
+                    .map_err(|e| Error::Base(format!("failed creating dir: {path}: {e}")))?;
                 if let Some(InstallOpts::Internal(opts)) = &self.dir_options {
                     self.set_attributes(opts, path)?;
                 }
@@ -202,7 +205,7 @@ impl Install {
     fn dirs_cmd<I>(&self, opts: &[String], paths: I) -> scallop::Result<()>
     where
         I: IntoIterator,
-        I::Item: AsRef<Path>,
+        I::Item: AsRef<Utf8Path>,
     {
         let mut install = Command::new("install");
         install
@@ -240,6 +243,8 @@ impl Install {
                 let entry =
                     entry.map_err(|e| Error::Base(format!("error walking {path}: {e}")))?;
                 let path = entry.path();
+                let path = Utf8Path::from_path(path)
+                    .ok_or_else(|| Error::Base(format!("invalid unicode path: {path:?}")))?;
                 // TODO: replace with advance_by() once it's stable
                 let dest = match depth {
                     0 => path,
@@ -269,7 +274,7 @@ impl Install {
     pub(super) fn files<'a, I, P>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = &'a P>,
-        P: AsRef<Path> + 'a + ?Sized,
+        P: AsRef<Utf8Path> + 'a + ?Sized,
     {
         let files: Vec<_> = paths
             .into_iter()
@@ -289,8 +294,8 @@ impl Install {
     where
         I: IntoIterator<Item = (P, Q)>,
         I: IntoParallelIterator<Item = (P, Q)>,
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
+        P: AsRef<Utf8Path>,
+        Q: AsRef<Utf8Path>,
     {
         if let Some(InstallOpts::Cmd(opts)) = &self.file_options {
             self.files_cmd(opts, paths)
@@ -303,8 +308,8 @@ impl Install {
     fn files_internal<I, P, Q>(&self, paths: I) -> scallop::Result<()>
     where
         I: IntoParallelIterator<Item = (P, Q)>,
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
+        P: AsRef<Utf8Path>,
+        Q: AsRef<Utf8Path>,
     {
         paths
             .into_par_iter()
@@ -312,20 +317,18 @@ impl Install {
                 let source = source.as_ref();
                 let dest = self.prefix(dest.as_ref());
                 let meta = fs::metadata(source)
-                    .map_err(|e| Error::Base(format!("invalid file {source:?}: {e}")))?;
+                    .map_err(|e| Error::Base(format!("invalid file: {source}: {e}")))?;
 
                 // matching `install` command, remove dest before install
                 match fs::remove_file(&dest) {
                     Err(e) if e.kind() != io::ErrorKind::NotFound => {
-                        return Err(Error::Base(format!(
-                            "failed removing file: {dest:?}: {e}"
-                        )));
+                        return Err(Error::Base(format!("failed removing file: {dest}: {e}")));
                     }
                     _ => (),
                 }
 
                 fs::copy(source, &dest).map_err(|e| {
-                    Error::Base(format!("failed copying file: {source:?} to {dest:?}: {e}"))
+                    Error::Base(format!("failed copying file: {source} to {dest}: {e}"))
                 })?;
                 if let Some(InstallOpts::Internal(opts)) = &self.file_options {
                     self.set_attributes(opts, &dest)?;
@@ -346,17 +349,17 @@ impl Install {
     fn files_cmd<I, P, Q>(&self, opts: &[String], paths: I) -> scallop::Result<()>
     where
         I: IntoIterator<Item = (P, Q)>,
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
+        P: AsRef<Utf8Path>,
+        Q: AsRef<Utf8Path>,
     {
         let mut files = IndexMap::<_, Vec<_>>::new();
 
         for (source, dest) in paths {
             let source = source.as_ref();
             let dest = dest.as_ref();
-            if let Ok(source) = fs::read_link(source) {
+            if let Ok(source) = source.read_link_utf8() {
                 // install symlinks separately since `install` forcibly resolves them
-                self.link(|p, q| symlink(p, q), source, dest)?;
+                self.link(|p, q| symlink(p, q), &source, dest)?;
             } else {
                 // group files by destination to decrease `install` calls
                 files
@@ -395,7 +398,7 @@ mod tests {
         let r = get_build_mut()
             .install()
             .files_internal([("source", "dest")]);
-        assert_err_re!(r, "^invalid file \"source\": No such file or directory .*$");
+        assert_err_re!(r, "^invalid file: source: No such file or directory .*$");
     }
 
     #[test]

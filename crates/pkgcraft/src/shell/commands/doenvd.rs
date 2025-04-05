@@ -59,7 +59,7 @@ mod tests {
 
         // nonexistent
         let r = doenvd(&["nonexistent"]);
-        assert_err_re!(r, "^invalid file \"nonexistent\": No such file or directory .*$");
+        assert_err_re!(r, "^invalid file: nonexistent: No such file or directory .*$");
     }
 
     #[test]
