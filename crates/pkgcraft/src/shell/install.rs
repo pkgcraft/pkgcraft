@@ -212,25 +212,28 @@ impl Install {
             .map_err(|e| Error::Base(e.to_string()))
     }
 
-    /// Copy file trees under given directories to the target directory.
-    pub(super) fn recursive<I, F>(&self, dirs: I, predicate: Option<F>) -> scallop::Result<()>
+    /// Copy file trees under given paths to the target directory.
+    pub(super) fn recursive<I, F>(&self, paths: I, predicate: Option<F>) -> scallop::Result<()>
     where
         I: IntoIterator,
         I::Item: AsRef<Path>,
         F: Fn(&DirEntry) -> bool,
     {
-        for dir in dirs {
-            let dir = dir.as_ref();
+        let mut dirs = vec![];
+        let mut files = vec![];
+
+        for path in paths {
+            let path = path.as_ref();
             // Determine whether to skip the base directory, path.components() can't be used
             // because it normalizes all occurrences of '.' away.
-            let depth = if dir.to_string_lossy().ends_with("/.") {
+            let depth = if path.to_string_lossy().ends_with("/.") {
                 1
             } else {
                 0
             };
 
             // optionally apply directory filtering
-            let entries = WalkDir::new(dir).min_depth(depth);
+            let entries = WalkDir::new(path).min_depth(depth);
             let entries = match predicate.as_ref() {
                 None => Either::Left(entries.into_iter()),
                 Some(func) => Either::Right(entries.into_iter().filter_entry(func)),
@@ -238,7 +241,7 @@ impl Install {
 
             for entry in entries {
                 let entry =
-                    entry.map_err(|e| Error::Base(format!("error walking {dir:?}: {e}")))?;
+                    entry.map_err(|e| Error::Base(format!("error walking {path:?}: {e}")))?;
                 let path = entry.path();
                 // TODO: replace with advance_by() once it's stable
                 let dest = match depth {
@@ -252,12 +255,16 @@ impl Install {
                     }
                 };
                 if path.is_dir() {
-                    self.dirs([dest])?;
+                    dirs.push(dest.to_path_buf());
                 } else {
-                    self.files_map([(path, dest)])?;
+                    files.push((path.to_path_buf(), dest.to_path_buf()));
                 }
             }
         }
+
+        self.dirs(dirs)?;
+        self.files_map(files)?;
+
         Ok(())
     }
 
