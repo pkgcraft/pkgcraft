@@ -165,10 +165,11 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // add options as command args
     let mut econf = Command::new(&configure);
     for (opt, val) in options {
-        match val {
-            None => econf.arg(opt),
-            Some(value) => econf.arg(format!("{opt}={value}")),
-        };
+        if let Some(value) = val {
+            econf.arg(format!("{opt}={value}"));
+        } else {
+            econf.arg(opt);
+        }
     }
 
     write!(stdout(), "{}", econf.to_vec().join(" "))?;
