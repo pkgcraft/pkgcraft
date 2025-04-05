@@ -350,9 +350,8 @@ impl Install {
         for (source, dest) in paths {
             let source = source.as_ref();
             let dest = dest.as_ref();
-            if source.is_symlink() {
+            if let Ok(source) = fs::read_link(source) {
                 // install symlinks separately since `install` forcibly resolves them
-                let source = fs::read_link(source).unwrap();
                 self.link(|p, q| symlink(p, q), source, dest)?;
             } else {
                 // group files by destination to decrease `install` calls
