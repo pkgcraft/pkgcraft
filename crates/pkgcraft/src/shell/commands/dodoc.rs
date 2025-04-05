@@ -63,7 +63,10 @@ make_builtin!("dodoc", dodoc_builtin, true);
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsStr;
     use std::fs;
+    use std::os::unix::ffi::OsStrExt;
+    use std::path::PathBuf;
 
     use crate::shell::test::FileTree;
     use crate::shell::BuildData;
@@ -118,24 +121,37 @@ mod tests {
         );
 
         // recursive using `docinto`
-        fs::create_dir_all("doc/subdir").unwrap();
-        fs::File::create("doc/subdir/file").unwrap();
+        fs::create_dir_all("doc1/subdir").unwrap();
+        fs::File::create("doc1/subdir/file").unwrap();
         docinto(&["newdir"]).unwrap();
-        dodoc(&["-r", "doc"]).unwrap();
+        dodoc(&["-r", "doc1"]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
-            path = "/usr/share/doc/pkg-1/newdir/doc/subdir/file"
+            path = "/usr/share/doc/pkg-1/newdir/doc1/subdir/file"
         "#,
         );
 
         // handling for paths ending in '/.'
         docinto(&["/newdir"]).unwrap();
-        dodoc(&["-r", "doc/."]).unwrap();
+        dodoc(&["-r", "doc1/."]).unwrap();
         file_tree.assert(
             r#"
             [[files]]
             path = "/usr/share/doc/pkg-1/newdir/subdir/file"
+        "#,
+        );
+
+        // non-unicode nested path
+        fs::create_dir_all("doc2/subdir").unwrap();
+        let mut path = PathBuf::from("doc2/subdir");
+        path.push(OsStr::from_bytes(&[0x66, 0x6f, 0x80, 0x6f]));
+        fs::File::create(path).unwrap();
+        dodoc(&["-r", "doc2"]).unwrap();
+        file_tree.assert(
+            r#"
+            [[files]]
+            path = "/usr/share/doc/pkg-1/newdir/doc2/subdir/fo�o"
         "#,
         );
     }

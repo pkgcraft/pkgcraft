@@ -53,7 +53,10 @@ make_builtin!("doins", doins_builtin, true);
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsStr;
     use std::fs;
+    use std::os::unix::ffi::OsStrExt;
+    use std::path::PathBuf;
 
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
@@ -120,15 +123,29 @@ mod tests {
 
         for dir in ["newdir", "/newdir"] {
             // recursive using `insinto` and `insopts`
-            fs::create_dir_all("dir/subdir").unwrap();
-            fs::File::create("dir/subdir/file").unwrap();
+            fs::create_dir_all("dir1/subdir").unwrap();
+            fs::File::create("dir1/subdir/file").unwrap();
             insinto(&[dir]).unwrap();
             insopts(&["-m0755"]).unwrap();
-            doins(&["-r", "dir"]).unwrap();
+            doins(&["-r", "dir1"]).unwrap();
             file_tree.assert(
                 r#"
                 [[files]]
-                path = "/newdir/dir/subdir/file"
+                path = "/newdir/dir1/subdir/file"
+                mode = 0o100755
+            "#,
+            );
+
+            // non-unicode nested path
+            fs::create_dir_all("dir2/subdir").unwrap();
+            let mut path = PathBuf::from("dir2/subdir");
+            path.push(OsStr::from_bytes(&[0x66, 0x6f, 0x80, 0x6f]));
+            fs::File::create(path).unwrap();
+            doins(&["-r", "dir2"]).unwrap();
+            file_tree.assert(
+                r#"
+                [[files]]
+                path = "/newdir/dir2/subdir/fo�o"
                 mode = 0o100755
             "#,
             );
