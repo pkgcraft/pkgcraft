@@ -46,7 +46,9 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     }
 
-    install.files(files)?;
+    if !files.is_empty() {
+        install.files(files)?;
+    }
 
     Ok(ExecStatus::Success)
 }
