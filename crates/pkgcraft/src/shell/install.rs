@@ -403,6 +403,7 @@ mod tests {
         let install = get_build_mut().install().dir_options(["-m0750"]);
         let mode = 0o40750;
 
+        // single dir
         install.dirs(["dir"]).unwrap();
         file_tree.assert(format!(
             r#"
@@ -412,51 +413,29 @@ mod tests {
         "#
         ));
 
-        // use unhandled '-v' option to force `install` command usage
-        let install = get_build_mut().install().dir_options(["-v"]);
-
-        install.dirs(["dir"]).unwrap();
-        let cmd = commands().pop().unwrap();
-        assert_eq!(cmd[..3], ["install", "-v", "-d"]);
-    }
-
-    #[test]
-    fn dirs_internal() {
-        let file_tree = FileTree::new();
-        let install = get_build_mut().install();
-        let default_mode = 0o40755;
-
-        // single dir
-        install.dirs_internal(["dir"]).unwrap();
+        // multiple dirs
+        install.dirs(["a", "b"]).unwrap();
         file_tree.assert(format!(
             r#"
             [[files]]
-            path = "/dir"
-            mode = {default_mode}
-        "#
-        ));
-
-        // multiple dirs
-        install.dirs_internal(["a", "b"]).unwrap();
-        file_tree.assert(
-            r#"
-            [[files]]
             path = "/a"
+            mode = {mode}
             [[files]]
             path = "/b"
+            mode = {mode}
         "#,
-        );
-    }
+        ));
 
-    #[test]
-    fn dirs_cmd() {
-        let file_tree = FileTree::new();
-        let install = get_build_mut().install();
+        // use unhandled '-v' option to force `install` command usage
+        let install = get_build_mut().install().dir_options(["-v"]);
         let default_mode = 0o40755;
 
+        // single dir
+        install.dirs(["dir"]).unwrap();
+        let cmd = commands().pop().unwrap();
+        assert_eq!(cmd[..3], ["install", "-v", "-d"]);
         run_commands(|| {
-            // single dir
-            install.dirs_cmd(&[], ["dir"]).unwrap();
+            install.dirs(["dir"]).unwrap();
             file_tree.assert(format!(
                 r#"
                 [[files]]
@@ -464,17 +443,24 @@ mod tests {
                 mode = {default_mode}
             "#
             ));
+        });
 
-            // multiple dirs
-            install.dirs_cmd(&[], ["a", "b"]).unwrap();
-            file_tree.assert(
+        // multiple dirs
+        install.dirs(["a", "b"]).unwrap();
+        let cmd = commands().pop().unwrap();
+        assert_eq!(cmd[..3], ["install", "-v", "-d"]);
+        run_commands(|| {
+            install.dirs(["a", "b"]).unwrap();
+            file_tree.assert(format!(
                 r#"
                 [[files]]
                 path = "/a"
+                mode = {default_mode}
                 [[files]]
                 path = "/b"
-            "#,
-            );
+                mode = {default_mode}
+            "#
+            ));
         });
     }
 
@@ -571,74 +557,6 @@ mod tests {
                 mode = {default_mode}
             "#
             ));
-        });
-    }
-
-    #[test]
-    fn files_internal() {
-        let file_tree = FileTree::new();
-        let install = get_build_mut().install();
-        let default_mode = 0o100644;
-
-        // single file
-        fs::File::create("src").unwrap();
-        install.files_internal([("src", "dest")]).unwrap();
-        file_tree.assert(format!(
-            r#"
-            [[files]]
-            path = "/dest"
-            mode = {default_mode}
-        "#
-        ));
-
-        // multiple files
-        fs::File::create("src1").unwrap();
-        fs::File::create("src2").unwrap();
-        install
-            .files_internal([("src1", "dest1"), ("src2", "dest2")])
-            .unwrap();
-        file_tree.assert(
-            r#"
-            [[files]]
-            path = "/dest1"
-            [[files]]
-            path = "/dest2"
-        "#,
-        );
-    }
-
-    #[test]
-    fn files_cmd() {
-        let file_tree = FileTree::new();
-        let install = get_build_mut().install();
-        let default_mode = 0o100755;
-
-        run_commands(|| {
-            // single file
-            fs::File::create("src").unwrap();
-            install.files_cmd(&[], [("src", "dest")]).unwrap();
-            file_tree.assert(format!(
-                r#"
-                [[files]]
-                path = "/dest"
-                mode = {default_mode}
-            "#
-            ));
-
-            // multiple files
-            fs::File::create("src1").unwrap();
-            fs::File::create("src2").unwrap();
-            install
-                .files_cmd(&[], [("src1", "dest1"), ("src2", "dest2")])
-                .unwrap();
-            file_tree.assert(
-                r#"
-                [[files]]
-                path = "/dest1"
-                [[files]]
-                path = "/dest2"
-            "#,
-            );
         });
     }
 }
