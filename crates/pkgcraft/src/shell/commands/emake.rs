@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::process::Command;
 
 use scallop::variables::{self, string_vec};
 use scallop::{Error, ExecStatus};
@@ -8,12 +7,26 @@ use crate::command::RunCommand;
 use crate::io::stdout;
 use crate::shell::utils::makefile_exists;
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
-const LONG_DOC: &str = "Run the make command for a package.";
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "emake",
+    disable_help_flag = true,
+    long_about = "Run the make command for a package."
+)]
+struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
+    args: Vec<String>,
+}
 
 #[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let cmd = Command::try_parse_args(args)?;
+
     if !makefile_exists() {
         return Err(Error::Base("nonexistent makefile".to_string()));
     }
@@ -21,7 +34,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // determine make program to run
     let make_prog = variables::optional("MAKE");
     let make_prog = make_prog.as_deref().unwrap_or("make");
-    let mut emake = Command::new(make_prog);
+    let mut emake = std::process::Command::new(make_prog);
 
     // inject user options
     if let Some(opts) = string_vec("MAKEOPTS") {
@@ -29,14 +42,13 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     // arguments override user options
-    emake.args(args);
+    emake.args(&cmd.args);
 
     write!(stdout(), "{}", emake.to_vec().join(" "))?;
     emake.run()?;
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "emake -C builddir";
 make_builtin!("emake", emake_builtin, true);
 
 #[cfg(test)]
@@ -51,9 +63,8 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{cmd_scope_tests, emake};
-    use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("emake -C builddir");
 
     #[test]
     fn nonexistent() {
