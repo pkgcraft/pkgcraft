@@ -70,10 +70,14 @@ impl FromStr for Archive {
 #[derive(clap::Parser, Debug)]
 #[command(
     name = "unpack",
+    disable_help_flag = true,
     long_about = "Unpacks one or more source archives, in order, into the current directory."
 )]
 struct Command {
-    #[arg(required = true, value_name = "PATH")]
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(required = true, allow_hyphen_values = true, value_name = "PATH")]
     paths: Vec<Archive>,
 }
 
@@ -131,7 +135,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "unpack file.tar.gz";
 make_builtin!("unpack", unpack_builtin, true);
 
 #[cfg(test)]
@@ -151,7 +154,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, unpack};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("unpack file.tar.gz");
 
     #[test]
     fn invalid_args() {
