@@ -209,7 +209,7 @@ impl Install {
             .arg("-d")
             .args(paths.into_iter().map(|p| self.prefix(p)))
             .run()
-            .map_or_else(|e| Err(Error::Base(e.to_string())), |_| Ok(()))
+            .map_err(|e| Error::Base(e.to_string()))
     }
 
     /// Copy file trees under given directories to the target directory.
