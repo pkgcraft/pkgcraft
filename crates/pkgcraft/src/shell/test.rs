@@ -17,10 +17,10 @@ struct Files {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct FileData {
-    pub(crate) path: PathBuf,
+    pub(crate) path: String,
     mode: Option<u32>,
     data: Option<String>,
-    link: Option<PathBuf>,
+    link: Option<String>,
 }
 
 #[derive(Debug)]
@@ -76,7 +76,7 @@ impl FileTree {
             let expected = files
                 .pop()
                 .unwrap_or_else(|| panic!("unknown path: {}", path.to_string_lossy()));
-            assert_eq!(file_path.to_string_lossy(), expected.path.to_string_lossy());
+            assert_eq!(file_path.to_string_lossy(), expected.path);
 
             if let Some(expected) = expected.mode {
                 let file_mode = meta.mode();
@@ -91,9 +91,9 @@ impl FileTree {
                 assert_eq!(file_data, expected.as_str());
             }
 
-            if let Some(expected) = &expected.link {
-                let target = fs::read_link(path).unwrap();
-                assert_eq!(&target, expected);
+            if let Some(expected) = expected.link.as_deref() {
+                let target = path.read_link().unwrap();
+                assert_eq!(target.to_string_lossy(), expected);
             }
         }
 
