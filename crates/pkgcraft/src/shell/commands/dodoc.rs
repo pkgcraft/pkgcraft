@@ -1,6 +1,4 @@
-use std::path::Path;
-
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use scallop::{Error, ExecStatus};
 
 use crate::files::NO_WALKDIR_FILTER;
@@ -28,7 +26,7 @@ struct Command {
 }
 
 /// Install document files from a given list of paths.
-pub(crate) fn install_docs<P: AsRef<Path>>(
+pub(crate) fn install_docs<P: AsRef<Utf8Path>>(
     recursive: bool,
     paths: &[P],
     dest: &str,
@@ -44,7 +42,7 @@ pub(crate) fn install_docs<P: AsRef<Path>>(
         if recursive {
             install.recursive(dirs, NO_WALKDIR_FILTER)?;
         } else {
-            return Err(Error::Base(format!("installing directory without -r: {dir:?}")));
+            return Err(Error::Base(format!("installing directory without -r: {dir}")));
         }
     }
 

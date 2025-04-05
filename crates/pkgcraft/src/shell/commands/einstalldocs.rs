@@ -1,6 +1,6 @@
 use std::fs;
-use std::path::{Path, PathBuf};
 
+use camino::{Utf8Path, Utf8PathBuf};
 use glob::glob;
 use itertools::Itertools;
 use scallop::variables::var_to_vec;
@@ -33,7 +33,7 @@ const DOCS_DEFAULTS: &[&str] = &[
 ];
 
 /// Determine if a given path contains data or is empty.
-fn has_data(recursive: bool, path: &Path) -> bool {
+fn has_data(recursive: bool, path: &Utf8Path) -> bool {
     if let Ok(m) = fs::metadata(path) {
         m.len() > 0 && (recursive || !m.file_type().is_dir())
     } else {
@@ -44,14 +44,21 @@ fn has_data(recursive: bool, path: &Path) -> bool {
 // Perform file expansion on doc strings.
 // TODO: replace glob usage with native bash pathname expansion?
 // TODO: need to perform word expansion on each string as well
-fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<PathBuf>> {
+fn expand_docs<S: AsRef<str>>(globs: &[S], force: bool) -> scallop::Result<Vec<Utf8PathBuf>> {
     let mut files = vec![];
 
     for f in globs.iter().map(|s| s.as_ref()) {
         let paths = glob(f)
             .map_err(|e| Error::Base(format!("invalid docs glob pattern: {f}: {e}")))?;
         let paths: Vec<_> = paths
-            .map(|r| r.map_err(|e| Error::Base(format!("failed reading docs file: {e}"))))
+            .into_iter()
+            .map(|r| {
+                r.map_err(|e| Error::Base(format!("failed reading docs file: {e}")))
+                    .and_then(|p| {
+                        Utf8PathBuf::from_path_buf(p)
+                            .map_err(|p| Error::Base(format!("invalid unicode path: {p:?}")))
+                    })
+            })
             .try_collect()?;
 
         // unmatched patterns cause errors for non-default input
