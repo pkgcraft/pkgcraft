@@ -484,21 +484,34 @@ mod tests {
         // internal file creation is used for supported `install` options
         let install = get_build_mut().install().file_options(["-m0750"]);
         let mode = 0o100750;
+        fs::File::create("file1").unwrap();
+        fs::File::create("file2").unwrap();
 
         // single file
-        fs::File::create("file").unwrap();
-        install.files(["file"]).unwrap();
+        install.files(["file1"]).unwrap();
         file_tree.assert(format!(
             r#"
             [[files]]
-            path = "/file"
+            path = "/file1"
+            mode = {mode}
+        "#
+        ));
+
+        // multiple files
+        install.files(["file1", "file2"]).unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/file1"
+            mode = {mode}
+            [[files]]
+            path = "/file2"
             mode = {mode}
         "#
         ));
 
         // single file mapping
-        fs::File::create("src").unwrap();
-        install.files_map([("src", "dest")]).unwrap();
+        install.files_map([("file1", "dest")]).unwrap();
         file_tree.assert(format!(
             r#"
             [[files]]
@@ -507,20 +520,58 @@ mod tests {
         "#
         ));
 
+        // multiple file mapping
+        install
+            .files_map([("file1", "dest1"), ("file2", "dest2")])
+            .unwrap();
+        file_tree.assert(format!(
+            r#"
+            [[files]]
+            path = "/dest1"
+            mode = {mode}
+            [[files]]
+            path = "/dest2"
+            mode = {mode}
+        "#
+        ));
+
         // use unhandled '-v' option to force `install` command usage
         let install = get_build_mut().install().file_options(["-v"]);
+        let default_mode = 0o100755;
 
-        // single file
-        fs::File::create("file").unwrap();
-        install.files(["file"]).unwrap();
+        // single file target
+        install.files(["file1"]).unwrap();
         let cmd = commands().pop().unwrap();
-        assert_eq!(cmd[..3], ["install", "-v", "file"]);
+        // verify `install` command
+        assert_eq!(cmd[..3], ["install", "-v", "file1"]);
+        // verify installed files
+        run_commands(|| {
+            install.files(["file1"]).unwrap();
+            file_tree.assert(format!(
+                r#"
+                [[files]]
+                path = "/file1"
+                mode = {default_mode}
+            "#
+            ));
+        });
 
         // single file mapping
-        fs::File::create("src").unwrap();
-        install.files_map([("src", "dest")]).unwrap();
+        install.files_map([("file1", "dest1")]).unwrap();
         let cmd = commands().pop().unwrap();
-        assert_eq!(cmd[..3], ["install", "-v", "src"]);
+        // verify `install` command
+        assert_eq!(cmd[..3], ["install", "-v", "file1"]);
+        // verify installed files
+        run_commands(|| {
+            install.files_map([("file1", "dest1")]).unwrap();
+            file_tree.assert(format!(
+                r#"
+                [[files]]
+                path = "/dest1"
+                mode = {default_mode}
+            "#
+            ));
+        });
     }
 
     #[test]
