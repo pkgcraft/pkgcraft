@@ -136,6 +136,7 @@ impl Install {
         Ok(())
     }
 
+    /// Set the attributes of a file.
     fn set_attributes<P: AsRef<Path>>(
         &self,
         opts: &InstallOptions,
@@ -202,9 +203,10 @@ impl Install {
         I::Item: AsRef<Path>,
     {
         let mut install = Command::new("install");
-        install.args(opts).arg("-d");
-        install.args(paths.into_iter().map(|p| self.prefix(p)));
         install
+            .args(opts)
+            .arg("-d")
+            .args(paths.into_iter().map(|p| self.prefix(p)))
             .run()
             .map_or_else(|e| Err(Error::Base(e.to_string())), |_| Ok(()))
     }
