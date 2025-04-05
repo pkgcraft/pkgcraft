@@ -5,7 +5,8 @@ use std::{fmt, fs, io};
 
 use clap::Parser;
 use filetime::{set_file_times, FileTime};
-use itertools::{Either, Itertools};
+use indexmap::IndexMap;
+use itertools::Either;
 use nix::{fcntl::AtFlags, sys::stat, unistd};
 use rayon::prelude::*;
 use scallop::Error;
@@ -344,7 +345,8 @@ impl Install {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        let mut files = vec![];
+        let mut files = IndexMap::<_, Vec<_>>::new();
+
         for (source, dest) in paths {
             let source = source.as_ref();
             let dest = dest.as_ref();
@@ -353,18 +355,15 @@ impl Install {
                 let source = fs::read_link(source).unwrap();
                 self.link(|p, q| symlink(p, q), source, dest)?;
             } else {
-                files.push((source.to_path_buf(), self.prefix(dest)));
+                // group files by destination to decrease `install` calls
+                files
+                    .entry(self.prefix(dest))
+                    .or_default()
+                    .push(source.to_path_buf());
             }
         }
 
-        // group and install sets of files by destination to decrease `install` calls
-        let files_to_install: Vec<_> = files
-            .iter()
-            .map(|(p, q)| (p.as_path(), q.as_path()))
-            .sorted_by_key(|x| x.1)
-            .collect();
-        for (dest, files_group) in &files_to_install.iter().chunk_by(|x| x.1) {
-            let sources = files_group.map(|x| x.0);
+        for (dest, sources) in files {
             let mut install = Command::new("install");
             install
                 .args(opts)
@@ -373,6 +372,7 @@ impl Install {
                 .run()
                 .map(|_| ())?;
         }
+
         Ok(())
     }
 }
