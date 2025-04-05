@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::io::Write;
-use std::process::Command;
 use std::sync::LazyLock;
 
 use indexmap::{IndexMap, IndexSet};
@@ -14,7 +13,7 @@ use crate::io::stdout;
 use crate::shell::get_build_mut;
 use crate::shell::utils::{configure, get_libdir};
 
-use super::make_builtin;
+use super::{make_builtin, TryParseArgs};
 
 #[derive(Debug, Clone)]
 pub(crate) struct EconfOption {
@@ -83,10 +82,23 @@ impl EconfOption {
 
 static CONFIG_OPT_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(?P<opt>--[\w\+_\.-]+)").unwrap());
-const LONG_DOC: &str = "Run a package's configure script.";
 
-#[doc = stringify!(LONG_DOC)]
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "econf",
+    disable_help_flag = true,
+    long_about = "Run a package's configure script."
+)]
+struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+
+    #[arg(allow_hyphen_values = true)]
+    args: Vec<String>,
+}
+
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let cmd = Command::try_parse_args(args)?;
     let configure = configure();
     if !configure.is_executable() {
         let msg = if configure.exists() {
@@ -98,6 +110,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     // convert args to options mapping
+    let args: Vec<_> = cmd.args.iter().map(|x| x.as_str()).collect();
     let args: IndexMap<_, _> = args
         .iter()
         .map(|&s| {
@@ -107,7 +120,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         .collect();
 
     // parse `./configure --help` output to determine supported options
-    let conf_help = Command::new(&configure)
+    let conf_help = std::process::Command::new(&configure)
         .arg("--help")
         .output()
         .map_err(|e| Error::Base(format!("failed running: {e}")))?;
@@ -163,7 +176,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     options.extend(args);
 
     // add options as command args
-    let mut econf = Command::new(&configure);
+    let mut econf = std::process::Command::new(&configure);
     for (opt, val) in options {
         if let Some(value) = val {
             econf.arg(format!("{opt}={value}"));
@@ -177,7 +190,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "econf --enable-feature";
 make_builtin!("econf", econf_builtin, true);
 
 #[cfg(test)]
@@ -198,7 +210,7 @@ mod tests {
     use super::super::{cmd_scope_tests, econf};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("econf --enable-feature");
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
         econf(args).unwrap();

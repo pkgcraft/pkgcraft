@@ -23,7 +23,6 @@ struct Command {
     args: Vec<String>,
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
 
