@@ -363,17 +363,17 @@ impl Install {
             }
         }
 
-        for (dest, sources) in files {
-            let mut install = Command::new("install");
-            install
-                .args(opts)
-                .args(sources)
-                .arg(dest)
-                .run()
-                .map(|_| ())?;
-        }
-
-        Ok(())
+        files
+            .into_par_iter()
+            .try_for_each(|(dest, sources)| -> scallop::Result<()> {
+                let mut install = Command::new("install");
+                install
+                    .args(opts)
+                    .args(sources)
+                    .arg(dest)
+                    .run()
+                    .map_err(|e| Error::Base(e.to_string()))
+            })
     }
 }
 
