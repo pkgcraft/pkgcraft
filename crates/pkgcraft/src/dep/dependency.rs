@@ -97,7 +97,13 @@ impl<T: Ordered> Dependency<T> {
     /// Return the `Dependency` for a given index if it exists.
     pub fn get_index(&self, index: usize) -> Option<&Dependency<T>> {
         match self {
-            Self::Enabled(_) | Self::Disabled(_) => None,
+            Self::Enabled(_) | Self::Disabled(_) => {
+                if index == 0 {
+                    Some(self)
+                } else {
+                    None
+                }
+            }
             Self::AllOf(vals) => vals.get_index(index).map(AsRef::as_ref),
             Self::AnyOf(vals) => vals.get_index(index).map(AsRef::as_ref),
             Self::ExactlyOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
