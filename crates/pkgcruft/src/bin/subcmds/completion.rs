@@ -5,8 +5,6 @@ use camino::Utf8PathBuf;
 use clap::{Args, CommandFactory, ValueEnum};
 use clap_complete::{generate, generate_to, Shell};
 
-use crate::command;
-
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Completion options")]
 pub(crate) struct Command {
@@ -21,7 +19,7 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
-        let mut cmd = command::Command::command();
+        let mut cmd = crate::Command::command();
         let name = cmd.get_name().to_string();
 
         if let Some(dir) = &self.dir {
