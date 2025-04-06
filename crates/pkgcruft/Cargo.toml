@@ -6,6 +6,7 @@ homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
 readme = "README.md"
 license = "MIT"
+autobins = false
 autotests = false
 authors.workspace = true
 edition.workspace = true
@@ -24,6 +25,7 @@ name = "pkgcruft"
 
 [[bin]]
 name = "pkgcruft"
+path = "src/bin/main.rs"
 
 [[test]]
 name = "pkgcruft"
