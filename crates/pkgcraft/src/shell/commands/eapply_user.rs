@@ -5,8 +5,15 @@ use crate::shell::get_build_mut;
 use super::{eapply, make_builtin, TryParseArgs};
 
 #[derive(clap::Parser, Debug)]
-#[command(name = "eapply_user", long_about = "Apply user patches.")]
-struct Command;
+#[command(
+    name = "eapply_user",
+    disable_help_flag = true,
+    long_about = "Apply user patches."
+)]
+struct Command {
+    #[arg(long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
+}
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
@@ -24,7 +31,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "eapply_user";
 make_builtin!("eapply_user", eapply_user_builtin, true);
 
 #[cfg(test)]
@@ -40,7 +46,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, eapply_user};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("eapply_user");
 
     #[test]
     fn invalid_args() {
