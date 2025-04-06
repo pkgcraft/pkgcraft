@@ -327,6 +327,7 @@ mod tests {
     fn cpv_or_dep() {
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let dep = Dep::try_new(">=cat/pkg-1").unwrap();
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
         let dep_cow = dep.without([]).unwrap();
 
         // valid
@@ -334,6 +335,7 @@ mod tests {
             let cpv_or_dep = CpvOrDep::try_new(s).unwrap();
             assert_eq!(cpv_or_dep.to_string(), s);
             assert_eq!(cpv_or_dep, s.parse().unwrap());
+            assert_eq!(cpv_or_dep.cpn(), &cpn);
 
             // intersects with itself
             assert!(cpv_or_dep.intersects(&cpv_or_dep));
