@@ -3,10 +3,11 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use itertools::Itertools;
 use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
 use rayon::prelude::*;
 use scallop::{Error, ExecStatus};
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 use crate::archive::ArchiveFormat;
 use crate::eapi::Feature;
@@ -96,52 +97,53 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // TODO: parallelize walking fs
     // gather all unpacked files
-    let entries: Vec<_> = WalkDir::new(".").min_depth(1).into_iter().collect();
+    let entries: Vec<_> = WalkDir::new(".")
+        .min_depth(1)
+        .into_iter()
+        .map(|r| r.map_err(|e| Error::Base(format!("failed walking fs: {e}"))))
+        .try_collect()?;
 
-    // ensure proper permissions on unpacked files with minimal syscalls in parallel
-    entries
-        .into_par_iter()
-        .try_for_each(|entry| -> scallop::Result<()> {
-            let entry = entry.map_err(|e| Error::Base(format!("failed walking fs: {e}")))?;
-            let path = entry.path();
-            let stat = lstat(path).map_err(|e| {
-                Error::Base(format!(
-                    "failed getting file status: {}: {e}",
-                    path.to_string_lossy()
-                ))
-            })?;
-            let mode = Mode::from_bits_truncate(stat.st_mode);
-
-            // alter file permissions if necessary
-            if let Some(new_mode) = match SFlag::from_bits_truncate(stat.st_mode) {
-                flags if flags.contains(SFlag::S_IFLNK) => None,
-                flags if flags.contains(SFlag::S_IFDIR) => {
-                    if !mode.contains(*DIR_MODE) {
-                        Some(mode.bitor(*DIR_MODE))
-                    } else {
-                        None
-                    }
-                }
-                _ => {
-                    if !mode.contains(*FILE_MODE) {
-                        Some(mode.bitor(*FILE_MODE))
-                    } else {
-                        None
-                    }
-                }
-            } {
-                fchmodat(None, path, new_mode, FollowSymlink).map_err(|e| {
-                    Error::Base(format!(
-                        "failed changing permissions: {}: {e}",
-                        path.to_string_lossy()
-                    ))
-                })?;
-            }
-
-            Ok(())
-        })?;
+    // correct unpacked file permissions in parallel
+    entries.into_par_iter().try_for_each(correct_permissions)?;
 
     Ok(ExecStatus::Success)
+}
+
+/// Ensure proper permissions on unpacked file.
+fn correct_permissions(entry: DirEntry) -> scallop::Result<()> {
+    let path = entry.path();
+    let stat = lstat(path).map_err(|e| {
+        Error::Base(format!("failed getting file status: {}: {e}", path.to_string_lossy()))
+    })?;
+    let mode = Mode::from_bits_truncate(stat.st_mode);
+
+    // alter file permissions if necessary
+    if let Some(new_mode) = match SFlag::from_bits_truncate(stat.st_mode) {
+        flags if flags.contains(SFlag::S_IFLNK) => None,
+        flags if flags.contains(SFlag::S_IFDIR) => {
+            if !mode.contains(*DIR_MODE) {
+                Some(mode.bitor(*DIR_MODE))
+            } else {
+                None
+            }
+        }
+        _ => {
+            if !mode.contains(*FILE_MODE) {
+                Some(mode.bitor(*FILE_MODE))
+            } else {
+                None
+            }
+        }
+    } {
+        fchmodat(None, path, new_mode, FollowSymlink).map_err(|e| {
+            Error::Base(format!(
+                "failed changing permissions: {}: {e}",
+                path.to_string_lossy()
+            ))
+        })?;
+    }
+
+    Ok(())
 }
 
 make_builtin!("unpack", unpack_builtin, true);
