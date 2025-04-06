@@ -16,7 +16,7 @@ workspace = true
 
 [[bin]]
 name = "pk"
-bench = false
+path = "src/main.rs"
 
 [features]
 # flaky tests that aren't run by default
