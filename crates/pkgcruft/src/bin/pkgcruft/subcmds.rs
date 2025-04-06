@@ -2,16 +2,18 @@ use std::process::ExitCode;
 
 use strum::AsRefStr;
 
+mod completion;
 mod diff;
 mod ignore;
 mod replay;
 mod scan;
-mod shellcomp;
 mod show;
 
 #[derive(Debug, AsRefStr, clap::Subcommand)]
 #[strum(serialize_all = "kebab-case")]
 pub(crate) enum Subcommand {
+    /// Generate shell completion
+    Completion(completion::Command),
     /// Compare reports
     Diff(diff::Command),
     /// Show ignore information
@@ -20,8 +22,6 @@ pub(crate) enum Subcommand {
     Replay(replay::Command),
     /// Scan for QA issues
     Scan(scan::Command),
-    /// Generate shell completion
-    ShellComp(shellcomp::Command),
     /// Show various information
     Show(show::Command),
 }
@@ -35,11 +35,11 @@ impl Subcommand {
 impl Subcommand {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         match self {
+            Self::Completion(cmd) => cmd.run(),
             Self::Diff(cmd) => cmd.run(),
             Self::Ignore(cmd) => cmd.run(),
             Self::Replay(cmd) => cmd.run(),
             Self::Scan(cmd) => cmd.run(),
-            Self::ShellComp(cmd) => cmd.run(),
             Self::Show(cmd) => cmd.run(),
         }
     }
