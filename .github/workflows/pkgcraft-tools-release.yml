@@ -27,9 +27,34 @@ jobs:
           exit 1
         fi
 
+  shell:
+    needs: msrv
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Set up rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ needs.msrv.outputs.version }}
+
+    - name: Generate files
+      run: cargo run --bin pk completion --dir shell
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: shell
+        path: shell
+        if-no-files-found: error
+        retention-days: 3
+
   source:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: msrv
+    needs: [msrv, shell]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -45,8 +70,16 @@ jobs:
     - name: Create vendored release
       run: .ci/vendor-release pkgcraft-tools
 
+    - name: Download shell completion
+      uses: actions/download-artifact@v4
+      with:
+        name: shell
+        path: shell
+
     - name: Create archive
       run: |
+        # move shell completion files into the release
+        mv shell ${{ github.ref_name }}
         # create the release tarball
         tar -cv -I "xz -9 -T0" -f ${{ github.ref_name }}.tar.xz ${{ github.ref_name }}
 
