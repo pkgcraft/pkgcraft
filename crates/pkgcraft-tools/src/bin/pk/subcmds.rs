@@ -6,6 +6,7 @@ mod cpv;
 mod dep;
 mod pkg;
 mod repo;
+mod shellcomp;
 mod version;
 
 #[derive(clap::Subcommand)]
@@ -18,6 +19,8 @@ pub(crate) enum Subcommand {
     Pkg(pkg::Command),
     /// Repository commands
     Repo(repo::Command),
+    /// Generate shell completion
+    ShellComp(shellcomp::Command),
     /// Version commands
     Version(version::Command),
 }
@@ -29,6 +32,7 @@ impl Subcommand {
             Self::Dep(cmd) => cmd.run(),
             Self::Pkg(cmd) => cmd.run(args.load_config()?),
             Self::Repo(cmd) => cmd.run(args.load_config()?),
+            Self::ShellComp(cmd) => cmd.run(),
             Self::Version(cmd) => cmd.run(),
         }
     }
