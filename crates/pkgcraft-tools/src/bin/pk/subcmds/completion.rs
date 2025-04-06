@@ -22,14 +22,15 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let mut cmd = command::Command::command();
+        let name = cmd.get_name().to_string();
 
         if let Some(dir) = &self.dir {
             fs::create_dir_all(dir)?;
             for &shell in Shell::value_variants() {
-                generate_to(shell, &mut cmd, "pk", dir)?;
+                generate_to(shell, &mut cmd, &name, dir)?;
             }
         } else if let Some(shell) = self.shell {
-            generate(shell, &mut cmd, "pk", &mut io::stdout());
+            generate(shell, &mut cmd, &name, &mut io::stdout());
         }
 
         Ok(ExitCode::SUCCESS)
