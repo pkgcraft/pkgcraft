@@ -6,6 +6,7 @@ mod diff;
 mod ignore;
 mod replay;
 mod scan;
+mod shellcomp;
 mod show;
 
 #[derive(Debug, AsRefStr, clap::Subcommand)]
@@ -19,6 +20,8 @@ pub(crate) enum Subcommand {
     Replay(replay::Command),
     /// Scan for QA issues
     Scan(scan::Command),
+    /// Generate shell completion
+    ShellComp(shellcomp::Command),
     /// Show various information
     Show(show::Command),
 }
@@ -36,6 +39,7 @@ impl Subcommand {
             Self::Ignore(cmd) => cmd.run(),
             Self::Replay(cmd) => cmd.run(),
             Self::Scan(cmd) => cmd.run(),
+            Self::ShellComp(cmd) => cmd.run(),
             Self::Show(cmd) => cmd.run(),
         }
     }
