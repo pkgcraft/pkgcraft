@@ -10,7 +10,12 @@ use tracing_log::AsTrace;
 use crate::subcmds::Subcommand;
 
 #[derive(Parser)]
-#[command(version, long_about = None, disable_help_subcommand = true)]
+#[command(
+    name = env!("CARGO_BIN_NAME"),
+    version,
+    long_about = None,
+    disable_help_subcommand = true,
+)]
 /// pkgcraft command-line tool
 pub(crate) struct Command {
     #[command(flatten)]
