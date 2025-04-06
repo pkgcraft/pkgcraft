@@ -99,32 +99,47 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let entries: Vec<_> = WalkDir::new(".").min_depth(1).into_iter().collect();
 
     // ensure proper permissions on unpacked files with minimal syscalls in parallel
-    entries.into_par_iter().try_for_each(|entry| {
-        let entry = entry.map_err(|e| Error::Base(format!("failed walking fs: {e}")))?;
-        let path = entry.path();
-        let stat =
-            lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
-        let mode = Mode::from_bits_truncate(stat.st_mode);
-        let new_mode = match SFlag::from_bits_truncate(stat.st_mode) {
-            flags if flags.contains(SFlag::S_IFLNK) => return Ok(()),
-            flags if flags.contains(SFlag::S_IFDIR) => {
-                if !mode.contains(*DIR_MODE) {
-                    mode.bitor(*DIR_MODE)
-                } else {
-                    return Ok(());
+    entries
+        .into_par_iter()
+        .try_for_each(|entry| -> scallop::Result<()> {
+            let entry = entry.map_err(|e| Error::Base(format!("failed walking fs: {e}")))?;
+            let path = entry.path();
+            let stat = lstat(path).map_err(|e| {
+                Error::Base(format!(
+                    "failed getting file status: {}: {e}",
+                    path.to_string_lossy()
+                ))
+            })?;
+            let mode = Mode::from_bits_truncate(stat.st_mode);
+
+            // alter file permissions if necessary
+            if let Some(new_mode) = match SFlag::from_bits_truncate(stat.st_mode) {
+                flags if flags.contains(SFlag::S_IFLNK) => None,
+                flags if flags.contains(SFlag::S_IFDIR) => {
+                    if !mode.contains(*DIR_MODE) {
+                        Some(mode.bitor(*DIR_MODE))
+                    } else {
+                        None
+                    }
                 }
-            }
-            _ => {
-                if !mode.contains(*FILE_MODE) {
-                    mode.bitor(*FILE_MODE)
-                } else {
-                    return Ok(());
+                _ => {
+                    if !mode.contains(*FILE_MODE) {
+                        Some(mode.bitor(*FILE_MODE))
+                    } else {
+                        None
+                    }
                 }
+            } {
+                fchmodat(None, path, new_mode, FollowSymlink).map_err(|e| {
+                    Error::Base(format!(
+                        "failed changing permissions: {}: {e}",
+                        path.to_string_lossy()
+                    ))
+                })?;
             }
-        };
-        fchmodat(None, path, new_mode, FollowSymlink)
-            .map_err(|e| Error::Base(format!("failed file chmod {path:?}: {e}")))
-    })?;
+
+            Ok(())
+        })?;
 
     Ok(ExecStatus::Success)
 }
