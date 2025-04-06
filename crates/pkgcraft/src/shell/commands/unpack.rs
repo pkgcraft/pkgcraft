@@ -145,9 +145,9 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use crate::archive::{Archive, ArchiveFormat};
+    use crate::archive::Archive;
     use crate::command::run_commands;
-    use crate::eapi::{Feature, EAPIS_OFFICIAL};
+    use crate::eapi::EAPIS_OFFICIAL;
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
