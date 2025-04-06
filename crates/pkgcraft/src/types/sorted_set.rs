@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 
-use indexmap::IndexSet;
+use indexmap::{Equivalent, IndexSet};
 use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
 use serde::{Deserialize, Deserializer};
@@ -32,6 +32,66 @@ impl<T: Ordered> SortedSet<T> {
     /// Construct a new, empty SortedSet<T>.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Replace a value with another value, returning the replaced value.
+    ///
+    /// This removes the given element if its replacement value already exists by shifting all of
+    /// the elements that follow it, preserving their relative order. **This perturbs the index of
+    /// all of those elements!**
+    pub fn shift_replace<Q>(&mut self, key: &Q, value: T) -> Option<T>
+    where
+        Q: ?Sized + Hash + Equivalent<T>,
+    {
+        self.get_index_of(key)
+            .and_then(|i| self.shift_replace_index(i, value))
+    }
+
+    /// Replace a value with another value, returning the replaced value.
+    ///
+    /// This removes the given element if its replacement value already exists by swapping it with
+    /// the last element of the set and popping it off. **This perturbs the position of what used
+    /// to be the last element!**
+    pub fn swap_replace<Q>(&mut self, key: &Q, value: T) -> Option<T>
+    where
+        Q: ?Sized + Hash + Equivalent<T>,
+    {
+        self.get_index_of(key)
+            .and_then(|i| self.swap_replace_index(i, value))
+    }
+
+    /// Replace a value for a given index in the set, returning the replaced value.
+    ///
+    /// This removes the element at the given index if its replacement value already exists by
+    /// shifting all of the elements that follow it, preserving their relative order. **This
+    /// perturbs the index of all of those elements!**
+    pub fn shift_replace_index(&mut self, index: usize, value: T) -> Option<T> {
+        if index < self.len() {
+            match self.insert_full(value) {
+                (_, true) => return self.swap_remove_index(index),
+                (idx, false) if idx != index => return self.shift_remove_index(index),
+                _ => (),
+            }
+        }
+
+        None
+    }
+
+    /// Replace a value for a given index in a set, returning the replaced value.
+    ///
+    /// This removes the element at the given index if its replacement value already exists by
+    /// swapping it with the last element of the set and popping it off. **This perturbs the
+    /// position of what used to be the last element!**
+    pub fn swap_replace_index(&mut self, index: usize, value: T) -> Option<T> {
+        if index < self.len() {
+            match self.insert_full(value) {
+                (_, true) => return self.swap_remove_index(index),
+                (idx, false) if idx != index => return self.swap_remove_index(index),
+                _ => (),
+            }
+        }
+
+        None
     }
 }
 
