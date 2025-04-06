@@ -1,6 +1,6 @@
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::Write;
-use std::process::Command;
 
 use camino::{Utf8DirEntry, Utf8Path};
 use itertools::Itertools;
@@ -13,11 +13,15 @@ use super::make_builtin;
 const LONG_DOC: &str = "Apply patches to a package's source code.";
 
 /// Try to apply a path as a patch.
-fn apply_patch(path: &Utf8Path, options: &[&str]) -> scallop::Result<()> {
+fn apply_patch<I>(path: &Utf8Path, options: I) -> scallop::Result<()>
+where
+    I: IntoIterator,
+    I::Item: AsRef<OsStr>,
+{
     let data =
         File::open(path).map_err(|e| Error::Base(format!("invalid patch: {path}: {e}")))?;
 
-    let patch = Command::new("patch")
+    let patch = std::process::Command::new("patch")
         .args(["-p1", "-f", "-g0", "--no-backup-if-mismatch"])
         .args(options)
         .stdin(data)
