@@ -1,4 +1,5 @@
 use std::ops::BitOr;
+use std::path::Path;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
@@ -109,6 +110,13 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
+/// Alter file permissions.
+fn chmod(path: &Path, mode: Mode) -> scallop::Result<()> {
+    fchmodat(None, path, mode, FollowSymlink).map_err(|e| {
+        Error::Base(format!("failed changing permissions: {}: {e}", path.to_string_lossy()))
+    })
+}
+
 /// Ensure proper permissions on unpacked file.
 fn correct_permissions(entry: DirEntry) -> scallop::Result<()> {
     let path = entry.path();
@@ -118,29 +126,11 @@ fn correct_permissions(entry: DirEntry) -> scallop::Result<()> {
     let mode = Mode::from_bits_truncate(stat.st_mode);
 
     // alter file permissions if necessary
-    if let Some(new_mode) = match SFlag::from_bits_truncate(stat.st_mode) {
-        flags if flags.contains(SFlag::S_IFLNK) => None,
-        flags if flags.contains(SFlag::S_IFDIR) => {
-            if !mode.contains(*DIR_MODE) {
-                Some(mode.bitor(*DIR_MODE))
-            } else {
-                None
-            }
-        }
-        _ => {
-            if !mode.contains(*FILE_MODE) {
-                Some(mode.bitor(*FILE_MODE))
-            } else {
-                None
-            }
-        }
-    } {
-        fchmodat(None, path, new_mode, FollowSymlink).map_err(|e| {
-            Error::Base(format!(
-                "failed changing permissions: {}: {e}",
-                path.to_string_lossy()
-            ))
-        })?;
+    let flags = SFlag::from_bits_truncate(stat.st_mode);
+    if flags.contains(SFlag::S_IFDIR) && !mode.contains(*DIR_MODE) {
+        chmod(path, mode.bitor(*DIR_MODE))?;
+    } else if !flags.contains(SFlag::S_IFLNK) && !mode.contains(*FILE_MODE) {
+        chmod(path, mode.bitor(*FILE_MODE))?;
     }
 
     Ok(())
@@ -153,7 +143,6 @@ mod tests {
     use std::ops::BitXor;
     use std::{env, fs};
 
-    use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode};
     use tempfile::tempdir;
 
     use crate::archive::{Archive, ArchiveFormat};
