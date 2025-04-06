@@ -491,6 +491,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn new() {
+        let mut set = DependencySet::<Dep>::new();
+        assert!(set.is_empty());
+        let dep = Dependency::package("cat/pkg", Default::default()).unwrap();
+        set.insert(dep);
+        assert_eq!(set.to_string(), "cat/pkg");
+    }
+
+    #[test]
     fn dep_set_variants() {
         // DependencySet<Dep>
         DependencySet::package("a/b c/d", Default::default()).unwrap();
