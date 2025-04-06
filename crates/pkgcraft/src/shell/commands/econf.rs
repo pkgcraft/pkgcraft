@@ -99,6 +99,8 @@ struct Command {
 
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
+
+    // verify configure scripts is executable
     let configure = configure();
     if !configure.is_executable() {
         let msg = if configure.exists() {
@@ -133,6 +135,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let eprefix = variables::required("EPREFIX")?;
     let chost = variables::required("CHOST")?;
 
+    // set default options
     let mut options: IndexMap<_, _> = [
         ("--prefix", Some(format!("{eprefix}/usr"))),
         ("--mandir", Some(format!("{eprefix}/usr/share/man"))),
@@ -159,13 +162,14 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     }
 
+    // inject cross-compile options if enabled
     for (opt, var) in [("--build", "CBUILD"), ("--target", "CTARGET")] {
         if let Some(val) = variables::optional(var) {
             options.insert(opt, Some(val));
         }
     }
 
-    // add EAPI specific options if found
+    // inject EAPI options
     for opt in get_build_mut().eapi().econf_options() {
         if !known_opts.is_disjoint(&opt.markers) {
             options.insert(&opt.option, opt.expand());
@@ -185,8 +189,10 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
     }
 
+    // run configure script
     write!(stdout(), "{}", econf.to_vec().join(" "))?;
     econf.run()?;
+
     Ok(ExecStatus::Success)
 }
 
