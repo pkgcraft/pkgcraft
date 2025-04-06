@@ -515,6 +515,10 @@ mod tests {
             let dep_owned = dep_ref.into_owned();
             assert_eq!(&dep, &dep_owned);
 
+            // verify indexing
+            assert!(dep.get_index(0).unwrap().to_string().contains("a"));
+            assert!(dep.get_index(100).is_none());
+
             // option wrapped values
             let value = Some(dep.clone());
             let value_ref = value.to_ref();
