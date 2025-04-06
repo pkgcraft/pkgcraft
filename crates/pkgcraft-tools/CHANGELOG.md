@@ -1,4 +1,4 @@
-# 0.0.25 (2025-04-03)
+# 0.0.25
 
 ## Changed
 - Bumped MSRV to 1.84.
@@ -8,12 +8,12 @@
 - Ignore custom profile-formats extensions for tools that don't use profiles.
 - Fix repo initialization for tools that accept multiple alias targets.
 
-# 0.0.24 (2025-03-23)
+# 0.0.24
 
 ## Added
 - `pk repo revdeps`: support serializing reverse dependency cache to QA report format (#273).
 
-# 0.0.23 (2025-01-28)
+# 0.0.23
 
 ## Added
 - Add -i/--ignore option to ignore invalid packages for relevant subcommands.
@@ -21,7 +21,7 @@
 ## Fixed
 - `pk pkg env`: Fix populating the external variables set.
 
-# 0.0.22 (2025-01-13)
+# 0.0.22
 
 ## Added
 - `pk pkg`: add short option -r/--repo for all subcommands
@@ -34,7 +34,7 @@
 ## Fixed
 - `pk pkg metadata`: fix -o/--output handling with global task queue
 
-# 0.0.21 (2024-12-30)
+# 0.0.21
 
 ## Added
 - `pk repo eclass`: add repo eclass usage stats support
@@ -52,7 +52,7 @@
 - Lazily load the system config for subcommands that may use it.
 - `pk repo eapi`: subcommand rename from `eapis`
 
-# 0.0.20 (2024-12-18)
+# 0.0.20
 
 ## Added
 - `pk pkg fetch`: add initial support to download package distfiles in parallel
@@ -63,13 +63,13 @@
 ## Changed
 - Bumped MSRV to 1.82.
 
-# 0.0.19 (2024-11-28)
+# 0.0.19
 
 ## Fixed
 - Fix global threadpool usage issues causing metadata generation to be roughly
   3x slower on machines with high core counts.
 
-# 0.0.18 (2024-11-28)
+# 0.0.18
 
 ## Changed
 - Parallelize package creation for relevant commands. This allows metadata
@@ -79,7 +79,7 @@
 - Most tools that iterate over a repo now log invalid package errors and will
   return an error code on exit if any package errors occur.
 
-# 0.0.17 (2024-11-21)
+# 0.0.17
 
 ## Added
 - `pk repo metadata regen`: --use-local option generates profiles/use.local.desc
@@ -91,19 +91,19 @@
 - Generate ebuild metadata in separate processes during package iteration to
   fix crash issues.
 
-# 0.0.16 (2024-07-29)
+# 0.0.16
 
 ## Fixed
 - Fix file descriptor handling in pkgcraft for rust-1.80.0 support.
 
-# 0.0.15 (2024-06-21)
+# 0.0.15
 
 ## Changed
 - Bumped MSRV to 1.76.
 - Various documentation updates for subcommands and options.
 - `pk pkg metadata`: Don't use internal targets when performing full repo scans.
 
-# 0.0.14 (2024-02-01)
+# 0.0.14
 
 ## Added
 - `pk cpv`: Add CPV-related support separate from `pk dep`. This provides much
@@ -133,12 +133,12 @@
   cleaning and removal are supported via the `clean` and `remove` subcommands,
   respectively.
 
-# 0.0.13 (2023-11-06)
+# 0.0.13
 
 ## Fixed
 - `pk repo metadata`: use proper package prefixes for failure messages
 
-# 0.0.12 (2023-09-29)
+# 0.0.12
 
 ## Changed
 - `pk dep parse`: convert --eapi value during arg parsing
@@ -149,7 +149,7 @@
 - Skip loading system config files during tests.
 - Fix error propagation for utilities running in parallel across process pools.
 
-# 0.0.11 (2023-09-06)
+# 0.0.11
 
 ## Added
 - `pk pkg revdeps`: initial support for querying reverse dependencies
@@ -160,7 +160,7 @@
 ## Fixed
 - `pk repo metadata`: remove outdated cache entries
 
-# 0.0.10 (2023-06-23)
+# 0.0.10
 
 ## Added
 - Support loading the config from a custom path and disabling config loading
@@ -169,7 +169,7 @@
 ## Fixed
 - `pk repo metadata`: ignore `declare` errors with unset variables
 
-# 0.0.9 (2023-06-17)
+# 0.0.9
 
 ## Added
 - `pk pkg`: add support for path-based targets
@@ -189,7 +189,7 @@
 ## Fixed
 - Exit as expected when a SIGPIPE occurs (#112).
 
-# 0.0.8 (2023-06-11)
+# 0.0.8
 
 ## Added
 - `pk pkg source`: support multiple `-b/--bound` args
@@ -203,6 +203,6 @@
 - `pk pkg source`: match against all configured ebuild repos by default
 - `pk repo metadata: change `-r/--repo` option into a positional argument
 
-# 0.0.7 (2023-06-04)
+# 0.0.7
 
 - initial release
