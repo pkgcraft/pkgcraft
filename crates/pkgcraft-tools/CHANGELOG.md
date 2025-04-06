@@ -1,9 +1,7 @@
 # Unreleased
 
 ## Added
-- pk shell-comp: Add shell completion generation support. Also, release
-  tarballs no longer bundle shell completion files since they can now be
-  generated on demand.
+- pk completion: add shell completion generation support
 
 # 0.0.25
 
