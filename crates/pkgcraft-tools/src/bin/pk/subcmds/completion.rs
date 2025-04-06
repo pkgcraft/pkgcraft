@@ -1,5 +1,5 @@
-use std::{fs, io};
 use std::process::ExitCode;
+use std::{fs, io};
 
 use camino::Utf8PathBuf;
 use clap::{Args, CommandFactory, ValueEnum};
