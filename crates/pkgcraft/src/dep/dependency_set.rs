@@ -500,6 +500,19 @@ mod tests {
     }
 
     #[test]
+    fn from_iter() {
+        let set1 = DependencySet::required_use("a b c").unwrap();
+
+        // owned
+        let set2: DependencySet<String> = set1.clone().into_iter().collect();
+        assert_eq!(&set1, &set2);
+
+        // borrowed
+        let set2: DependencySet<&String> = set1.iter().collect();
+        assert_eq!(&set1, &set2);
+    }
+
+    #[test]
     fn dep_set_variants() {
         // DependencySet<Dep>
         DependencySet::package("a/b c/d", Default::default()).unwrap();
