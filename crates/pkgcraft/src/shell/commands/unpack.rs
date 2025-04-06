@@ -12,7 +12,7 @@ use crate::archive::ArchiveFormat;
 use crate::eapi::Feature;
 use crate::shell::environment::Variable::DISTDIR;
 use crate::shell::get_build_mut;
-use crate::utils::{current_dir, is_single_component};
+use crate::utils::is_single_component;
 
 use super::{make_builtin, TryParseArgs};
 
@@ -84,7 +84,6 @@ struct Command {
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
-    let current_dir = current_dir()?;
     let eapi = build.eapi();
 
     // unpack all specified archives
@@ -92,21 +91,16 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         let (ext, archive) = eapi.archive_from_path(&path.0)?;
         let base = path.0.file_name().expect("invalid archive file name");
         let base = &base[0..base.len() - 1 - ext.len()];
-        let dest = &current_dir.join(base);
-        archive.unpack(dest)?;
+        archive.unpack(base)?;
     }
 
     // TODO: parallelize walking fs
     // gather all unpacked files
-    let entries: Vec<_> = WalkDir::new(&current_dir)
-        .min_depth(1)
-        .into_iter()
-        .collect();
+    let entries: Vec<_> = WalkDir::new(".").min_depth(1).into_iter().collect();
 
     // ensure proper permissions on unpacked files with minimal syscalls in parallel
     entries.into_par_iter().try_for_each(|entry| {
-        let entry =
-            entry.map_err(|e| Error::Base(format!("failed walking {current_dir:?}: {e}")))?;
+        let entry = entry.map_err(|e| Error::Base(format!("failed walking fs: {e}")))?;
         let path = entry.path();
         let stat =
             lstat(path).map_err(|e| Error::Base(format!("failed file stat {path:?}: {e}")))?;
