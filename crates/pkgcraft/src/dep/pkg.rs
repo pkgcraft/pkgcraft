@@ -912,6 +912,12 @@ mod tests {
                 assert!(d2.intersects(&d2_cow), "{s2} doesn't intersect {s2}");
                 assert!(d2_cow.intersects(&d2), "{s2} doesn't intersect {s2}");
 
+                // intersects with Cpn
+                assert!(d1.intersects(d1.cpn()));
+                assert!(d1.cpn().intersects(&d1));
+                assert!(d1_cow.intersects(d1_cow.cpn()));
+                assert!(d1_cow.cpn().intersects(&d1_cow));
+
                 // intersects depending on status
                 if d.status {
                     assert!(d1.intersects(&d2), "{s1} doesn't intersect {s2}");

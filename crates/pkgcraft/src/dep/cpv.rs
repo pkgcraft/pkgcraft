@@ -357,6 +357,10 @@ mod tests {
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         let dep_cow = dep.without([]).unwrap();
 
+        // Cpv and Cpn intersect
+        assert!(cpv.intersects(&cpn));
+        assert!(cpn.intersects(&cpv));
+
         // Cpv and Dep intersect
         assert!(dep.intersects(&cpv));
         assert!(cpv.intersects(&dep));
@@ -372,6 +376,10 @@ mod tests {
 
             // intersects with itself
             assert!(cpv_or_dep.intersects(&cpv_or_dep));
+
+            // intersects with Cpn
+            assert!(cpv_or_dep.intersects(&cpn));
+            assert!(cpn.intersects(&cpv_or_dep));
 
             // intersects with Cpv
             assert!(cpv_or_dep.intersects(&cpv));
