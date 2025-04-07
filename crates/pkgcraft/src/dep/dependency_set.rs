@@ -161,6 +161,12 @@ impl<'a, T: Ordered> BitAnd<DependencySet<&'a T>> for &'a DependencySet<T> {
     }
 }
 
+impl<T: Ordered> BitAndAssign<DependencySet<T>> for DependencySet<T> {
+    fn bitand_assign(&mut self, other: DependencySet<T>) {
+        self.retain(|x| other.contains(x))
+    }
+}
+
 impl<T: Ordered> BitAndAssign<&DependencySet<T>> for DependencySet<T> {
     fn bitand_assign(&mut self, other: &DependencySet<T>) {
         self.retain(|x| other.contains(x))
@@ -208,6 +214,12 @@ impl<'a, T: Ordered> BitOr<DependencySet<&'a T>> for &'a DependencySet<T> {
 
     fn bitor(self, other: DependencySet<&'a T>) -> Self::Output {
         self.to_ref().union(&other).cloned().collect()
+    }
+}
+
+impl<T: Ordered> BitOrAssign<DependencySet<T>> for DependencySet<T> {
+    fn bitor_assign(&mut self, other: DependencySet<T>) {
+        self.extend(other)
     }
 }
 
@@ -268,6 +280,14 @@ impl<'a, T: Ordered> BitXor<DependencySet<&'a T>> for &'a DependencySet<T> {
     }
 }
 
+impl<T: Ordered> BitXorAssign<DependencySet<T>> for DependencySet<T> {
+    fn bitxor_assign(&mut self, other: DependencySet<T>) {
+        let diff1 = &self.0 - &other.0;
+        let diff2 = &other.0 - &self.0;
+        self.0 = diff1.into_iter().chain(diff2).collect()
+    }
+}
+
 impl<T: Ordered> BitXorAssign<&DependencySet<T>> for DependencySet<T> {
     fn bitxor_assign(&mut self, other: &DependencySet<T>) {
         self.0 ^= &other.0;
@@ -315,6 +335,12 @@ impl<'a, T: Ordered> Sub<DependencySet<&'a T>> for &'a DependencySet<T> {
 
     fn sub(self, other: DependencySet<&'a T>) -> Self::Output {
         self.to_ref().difference(&other).cloned().collect()
+    }
+}
+
+impl<T: Ordered> SubAssign<DependencySet<T>> for DependencySet<T> {
+    fn sub_assign(&mut self, other: DependencySet<T>) {
+        self.retain(|x| !other.contains(x))
     }
 }
 
@@ -945,9 +971,6 @@ mod tests {
         assert!(set.is_empty());
         let set = &set1 & (&set2 & &set3);
         assert!(set.is_empty());
-        // owned
-        let set = set1.clone() & set2.clone();
-        assert_eq!(set.to_string(), "2");
         // assign
         let mut set = set1.clone();
         set &= &set2;
@@ -957,6 +980,11 @@ mod tests {
         let mut set = &set1 & &set2;
         set &= &set2;
         assert_eq!(set.to_string(), "2");
+        // owned
+        let mut set = set1.clone() & set2.clone();
+        assert_eq!(set.to_string(), "2");
+        set &= set2.clone();
+        assert_eq!(set.to_string(), "2");
 
         // union
         let set = &set1 | &set2;
@@ -965,9 +993,6 @@ mod tests {
         assert_eq!(set.to_string(), "1 2 3 4");
         let set = &set1 | (&set2 | &set3);
         assert_eq!(set.to_string(), "1 2 3 4");
-        // owned
-        let set = set1.clone() | set2.clone();
-        assert_eq!(set.to_string(), "1 2 3");
         // assign
         let mut set = set1.clone();
         set |= &set2;
@@ -976,6 +1001,11 @@ mod tests {
         assert_eq!(set.to_string(), "1 2 3 4 5");
         let mut set = &set1 | &set2;
         set |= &set2;
+        assert_eq!(set.to_string(), "1 2 3");
+        // owned
+        let mut set = set1.clone() | set2.clone();
+        assert_eq!(set.to_string(), "1 2 3");
+        set |= set2.clone();
         assert_eq!(set.to_string(), "1 2 3");
 
         // difference
@@ -987,9 +1017,6 @@ mod tests {
         assert_eq!(set.to_string(), "1");
         let set = &set1 - &set1;
         assert!(set.is_empty());
-        // owned
-        let set = set1.clone() - set2.clone();
-        assert_eq!(set.to_string(), "1");
         // assign
         let mut set = set1.clone();
         set -= &set2;
@@ -999,6 +1026,11 @@ mod tests {
         let mut set = &set1 - &set2;
         set -= &set1;
         assert!(set.is_empty());
+        // owned
+        let mut set = set1.clone() - set2.clone();
+        assert_eq!(set.to_string(), "1");
+        set -= set2.clone();
+        assert_eq!(set.to_string(), "1");
 
         // exclusive or
         let set = &set1 ^ &set2;
@@ -1007,9 +1039,6 @@ mod tests {
         assert_eq!(set.to_string(), "1 4");
         let set = &set1 ^ (&set2 ^ &set3);
         assert_eq!(set.to_string(), "1 4");
-        // owned
-        let set = set1.clone() ^ set2.clone();
-        assert_eq!(set.to_string(), "1 3");
         // assign
         let mut set = set1.clone();
         set ^= &set2;
@@ -1019,5 +1048,10 @@ mod tests {
         let mut set = &set1 ^ &set2;
         set ^= &set1;
         assert_eq!(set.to_string(), "3 2");
+        // owned
+        let mut set = set1.clone() ^ set2.clone();
+        assert_eq!(set.to_string(), "1 3");
+        set ^= set2.clone();
+        assert_eq!(set.to_string(), "1 2");
     }
 }
