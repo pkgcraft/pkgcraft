@@ -129,6 +129,14 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<T>> for DependencySet<&'a 
     }
 }
 
+impl<T: Ordered> BitAnd<DependencySet<T>> for DependencySet<T> {
+    type Output = DependencySet<T>;
+
+    fn bitand(self, other: DependencySet<T>) -> Self::Output {
+        self.into_iter().filter(|x| other.contains(x)).collect()
+    }
+}
+
 impl<'a, T: Ordered> BitAnd<&'a DependencySet<T>> for &'a DependencySet<T> {
     type Output = DependencySet<&'a T>;
 
@@ -171,6 +179,14 @@ impl<T: Ordered> BitAndAssign<&DependencySet<T>> for DependencySet<&T> {
     }
 }
 
+impl<T: Ordered> BitOr<DependencySet<T>> for DependencySet<T> {
+    type Output = DependencySet<T>;
+
+    fn bitor(self, other: DependencySet<T>) -> Self::Output {
+        self.into_iter().chain(other).collect()
+    }
+}
+
 impl<'a, T: Ordered> BitOr<&'a DependencySet<T>> for &'a DependencySet<T> {
     type Output = DependencySet<&'a T>;
 
@@ -210,6 +226,16 @@ impl<T: Ordered> BitOrAssign<DependencySet<&T>> for DependencySet<T> {
 impl<'a, T: Ordered> BitOrAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
     fn bitor_assign(&mut self, other: &'a DependencySet<T>) {
         self.extend(other.to_ref())
+    }
+}
+
+impl<T: Ordered> BitXor<DependencySet<T>> for DependencySet<T> {
+    type Output = DependencySet<T>;
+
+    fn bitxor(self, other: DependencySet<T>) -> Self::Output {
+        let diff1 = &self.0 - &other.0;
+        let diff2 = &other.0 - &self.0;
+        diff1.into_iter().chain(diff2).collect()
     }
 }
 
@@ -257,6 +283,14 @@ impl<T: Ordered> BitXorAssign<DependencySet<&T>> for DependencySet<T> {
 impl<'a, T: Ordered> BitXorAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
     fn bitxor_assign(&mut self, other: &'a DependencySet<T>) {
         self.0 = &self.0 ^ &other.to_ref().0;
+    }
+}
+
+impl<T: Ordered> Sub<DependencySet<T>> for DependencySet<T> {
+    type Output = DependencySet<T>;
+
+    fn sub(self, other: DependencySet<T>) -> Self::Output {
+        self.into_iter().filter(|x| !other.contains(x)).collect()
     }
 }
 
@@ -911,6 +945,9 @@ mod tests {
         assert!(set.is_empty());
         let set = &set1 & (&set2 & &set3);
         assert!(set.is_empty());
+        // owned
+        let set = set1.clone() & set2.clone();
+        assert_eq!(set.to_string(), "2");
         // assign
         let mut set = set1.clone();
         set &= &set2;
@@ -928,6 +965,9 @@ mod tests {
         assert_eq!(set.to_string(), "1 2 3 4");
         let set = &set1 | (&set2 | &set3);
         assert_eq!(set.to_string(), "1 2 3 4");
+        // owned
+        let set = set1.clone() | set2.clone();
+        assert_eq!(set.to_string(), "1 2 3");
         // assign
         let mut set = set1.clone();
         set |= &set2;
@@ -947,6 +987,9 @@ mod tests {
         assert_eq!(set.to_string(), "1");
         let set = &set1 - &set1;
         assert!(set.is_empty());
+        // owned
+        let set = set1.clone() - set2.clone();
+        assert_eq!(set.to_string(), "1");
         // assign
         let mut set = set1.clone();
         set -= &set2;
@@ -964,6 +1007,9 @@ mod tests {
         assert_eq!(set.to_string(), "1 4");
         let set = &set1 ^ (&set2 ^ &set3);
         assert_eq!(set.to_string(), "1 4");
+        // owned
+        let set = set1.clone() ^ set2.clone();
+        assert_eq!(set.to_string(), "1 3");
         // assign
         let mut set = set1.clone();
         set ^= &set2;
