@@ -636,9 +636,9 @@ mod tests {
     #[test]
     fn dep_set_iter() {
         for (s, expected) in [
-            ("( a ) b", vec!["( a )", "b"]),
             ("a", vec!["a"]),
             ("!a", vec!["!a"]),
+            ("( a ) b", vec!["( a )", "b"]),
             ("( a b ) c", vec!["( a b )", "c"]),
             ("( a !b ) c", vec!["( a !b )", "c"]),
             ("|| ( a b ) c", vec!["|| ( a b )", "c"]),
@@ -678,9 +678,9 @@ mod tests {
     #[test]
     fn dep_set_iter_flatten() {
         for (s, expected) in [
-            ("( a ) b", vec!["a", "b"]),
             ("a", vec!["a"]),
             ("!a", vec!["a"]),
+            ("( a ) b", vec!["a", "b"]),
             ("( a b ) c", vec!["a", "b", "c"]),
             ("( a !b ) c", vec!["a", "b", "c"]),
             ("|| ( a b ) c", vec!["a", "b", "c"]),
@@ -724,9 +724,9 @@ mod tests {
     #[test]
     fn dep_set_iter_recursive() {
         for (s, expected) in [
-            ("( a ) b", vec!["( a )", "a", "b"]),
             ("a", vec!["a"]),
             ("!a", vec!["!a"]),
+            ("( a ) b", vec!["( a )", "a", "b"]),
             ("( a b ) c", vec!["( a b )", "a", "b", "c"]),
             ("( a !b ) c", vec!["( a !b )", "a", "!b", "c"]),
             ("|| ( a b ) c", vec!["|| ( a b )", "a", "b", "c"]),
@@ -757,9 +757,9 @@ mod tests {
     #[test]
     fn dep_set_iter_conditionals() {
         for (s, expected) in [
-            ("u? ( a ) b", vec!["u?"]),
             ("a", vec![]),
             ("!a", vec![]),
+            ("( a ) b", vec![]),
             ("( a b ) c", vec![]),
             ("( a !b ) c", vec![]),
             ("|| ( a b ) c", vec![]),
@@ -787,9 +787,9 @@ mod tests {
     #[test]
     fn dep_iter_conditional_flatten() {
         for (s, expected) in [
-            ("u? ( a ) b", vec![(vec!["u?"], "a"), (vec![], "b")]),
             ("a", vec![(vec![], "a")]),
             ("!a", vec![(vec![], "a")]),
+            ("( a ) b", vec![(vec![], "a"), (vec![], "b")]),
             ("( a b ) c", vec![(vec![], "a"), (vec![], "b"), (vec![], "c")]),
             ("( a !b ) c", vec![(vec![], "a"), (vec![], "b"), (vec![], "c")]),
             ("|| ( a b ) c", vec![(vec![], "a"), (vec![], "b"), (vec![], "c")]),
