@@ -330,6 +330,12 @@ mod tests {
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         let dep_cow = dep.without([]).unwrap();
 
+        // Cpv and Dep intersect
+        assert!(dep.intersects(&cpv));
+        assert!(cpv.intersects(&dep));
+        assert!(dep_cow.intersects(&cpv));
+        assert!(cpv.intersects(&dep_cow));
+
         // valid
         for s in ["cat/pkg", "cat/pkg-1", ">=cat/pkg-1"] {
             let cpv_or_dep = CpvOrDep::try_new(s).unwrap();
