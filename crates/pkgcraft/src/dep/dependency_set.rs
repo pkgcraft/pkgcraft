@@ -153,9 +153,21 @@ impl<'a, T: Ordered> BitAnd<DependencySet<&'a T>> for &'a DependencySet<T> {
     }
 }
 
-impl<T: Ordered> BitAndAssign<&Self> for DependencySet<T> {
-    fn bitand_assign(&mut self, other: &Self) {
-        self.0 &= &other.0;
+impl<T: Ordered> BitAndAssign<&DependencySet<T>> for DependencySet<T> {
+    fn bitand_assign(&mut self, other: &DependencySet<T>) {
+        self.0.retain(|x| other.contains(x))
+    }
+}
+
+impl<T: Ordered> BitAndAssign<DependencySet<&T>> for DependencySet<T> {
+    fn bitand_assign(&mut self, other: DependencySet<&T>) {
+        self.0.retain(|x| other.contains(x))
+    }
+}
+
+impl<T: Ordered> BitAndAssign<&DependencySet<T>> for DependencySet<&T> {
+    fn bitand_assign(&mut self, other: &DependencySet<T>) {
+        self.0.retain(|x| other.contains(x))
     }
 }
 
@@ -183,9 +195,21 @@ impl<'a, T: Ordered> BitOr<DependencySet<&'a T>> for &'a DependencySet<T> {
     }
 }
 
-impl<T: Ordered> BitOrAssign<&Self> for DependencySet<T> {
-    fn bitor_assign(&mut self, other: &Self) {
-        self.0 |= &other.0;
+impl<T: Ordered> BitOrAssign<&DependencySet<T>> for DependencySet<T> {
+    fn bitor_assign(&mut self, other: &DependencySet<T>) {
+        self.0.extend(other.clone())
+    }
+}
+
+impl<T: Ordered> BitOrAssign<DependencySet<&T>> for DependencySet<T> {
+    fn bitor_assign(&mut self, other: DependencySet<&T>) {
+        self.0.extend(other.into_owned())
+    }
+}
+
+impl<'a, T: Ordered> BitOrAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
+    fn bitor_assign(&mut self, other: &'a DependencySet<T>) {
+        self.0.extend(other.to_ref())
     }
 }
 
@@ -218,9 +242,21 @@ impl<'a, T: Ordered> BitXor<DependencySet<&'a T>> for &'a DependencySet<T> {
     }
 }
 
-impl<T: Ordered> BitXorAssign<&Self> for DependencySet<T> {
-    fn bitxor_assign(&mut self, other: &Self) {
-        self.0 ^= &other.0;
+impl<T: Ordered> BitXorAssign<&DependencySet<T>> for DependencySet<T> {
+    fn bitxor_assign(&mut self, other: &DependencySet<T>) {
+        self.0 = &self.0 ^ &other.0;
+    }
+}
+
+impl<T: Ordered> BitXorAssign<DependencySet<&T>> for DependencySet<T> {
+    fn bitxor_assign(&mut self, other: DependencySet<&T>) {
+        self.0 = &self.0 ^ &other.into_owned().0;
+    }
+}
+
+impl<'a, T: Ordered> BitXorAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
+    fn bitxor_assign(&mut self, other: &'a DependencySet<T>) {
+        self.0 = &self.0 ^ &other.to_ref().0;
     }
 }
 
@@ -248,9 +284,21 @@ impl<'a, T: Ordered> Sub<DependencySet<&'a T>> for &'a DependencySet<T> {
     }
 }
 
-impl<T: Ordered> SubAssign<&Self> for DependencySet<T> {
-    fn sub_assign(&mut self, other: &Self) {
-        self.0 -= &other.0;
+impl<T: Ordered> SubAssign<&DependencySet<T>> for DependencySet<T> {
+    fn sub_assign(&mut self, other: &DependencySet<T>) {
+        self.0.retain(|x| !other.contains(x))
+    }
+}
+
+impl<T: Ordered> SubAssign<DependencySet<&T>> for DependencySet<T> {
+    fn sub_assign(&mut self, other: DependencySet<&T>) {
+        self.0.retain(|x| !other.contains(x))
+    }
+}
+
+impl<'a, T: Ordered> SubAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
+    fn sub_assign(&mut self, other: &'a DependencySet<T>) {
+        self.0.retain(|x| !other.contains(x))
     }
 }
 
@@ -854,6 +902,7 @@ mod tests {
         let set1 = DependencySet::required_use("1 2").unwrap();
         let set2 = DependencySet::required_use("2 3").unwrap();
         let set3 = DependencySet::required_use("3 4").unwrap();
+        let set4 = DependencySet::required_use("4 5").unwrap();
 
         // intersection
         let set = &set1 & &set2;
@@ -862,6 +911,15 @@ mod tests {
         assert!(set.is_empty());
         let set = &set1 & (&set2 & &set3);
         assert!(set.is_empty());
+        // assign
+        let mut set = set1.clone();
+        set &= &set2;
+        assert_eq!(set.to_string(), "2");
+        set &= &set3 & &set4;
+        assert!(set.is_empty());
+        let mut set = &set1 & &set2;
+        set &= &set2;
+        assert_eq!(set.to_string(), "2");
 
         // union
         let set = &set1 | &set2;
@@ -870,6 +928,15 @@ mod tests {
         assert_eq!(set.to_string(), "1 2 3 4");
         let set = &set1 | (&set2 | &set3);
         assert_eq!(set.to_string(), "1 2 3 4");
+        // assign
+        let mut set = set1.clone();
+        set |= &set2;
+        assert_eq!(set.to_string(), "1 2 3");
+        set |= &set3 | &set4;
+        assert_eq!(set.to_string(), "1 2 3 4 5");
+        let mut set = &set1 | &set2;
+        set |= &set2;
+        assert_eq!(set.to_string(), "1 2 3");
 
         // difference
         let set = &set1 - &set2;
@@ -880,6 +947,15 @@ mod tests {
         assert_eq!(set.to_string(), "1");
         let set = &set1 - &set1;
         assert!(set.is_empty());
+        // assign
+        let mut set = set1.clone();
+        set -= &set2;
+        assert_eq!(set.to_string(), "1");
+        set -= &set3 - &set4;
+        assert_eq!(set.to_string(), "1");
+        let mut set = &set1 - &set2;
+        set -= &set1;
+        assert!(set.is_empty());
 
         // exclusive or
         let set = &set1 ^ &set2;
@@ -888,5 +964,14 @@ mod tests {
         assert_eq!(set.to_string(), "1 4");
         let set = &set1 ^ (&set2 ^ &set3);
         assert_eq!(set.to_string(), "1 4");
+        // assign
+        let mut set = set1.clone();
+        set ^= &set2;
+        assert_eq!(set.to_string(), "1 3");
+        set ^= &set3 ^ &set4;
+        assert_eq!(set.to_string(), "1 5");
+        let mut set = &set1 ^ &set2;
+        set ^= &set1;
+        assert_eq!(set.to_string(), "3 2");
     }
 }
