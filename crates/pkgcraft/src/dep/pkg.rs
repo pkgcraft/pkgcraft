@@ -810,23 +810,15 @@ mod tests {
                 let op = op_map[op];
                 // like types
                 assert_eq!(d1.cmp(&d2), op, "failed: {expr}");
-                assert_eq!(d2.cmp(&d1), op.reverse(), "failed inverted: {expr}");
+                assert_eq!(d2.cmp(&d1), op.reverse(), "failed: {expr}");
                 assert_eq!(d1_cow.cmp(&d2_cow), op, "failed: {expr}");
-                assert_eq!(d2_cow.cmp(&d1_cow), op.reverse(), "failed inverted: {expr}");
+                assert_eq!(d2_cow.cmp(&d1_cow), op.reverse(), "failed: {expr}");
 
                 // different types
                 assert_eq!(d1.partial_cmp(&d2_cow), Some(op), "failed: {expr}");
                 assert_eq!(d1_cow.partial_cmp(&d2), Some(op), "failed: {expr}");
-                assert_eq!(
-                    d2.partial_cmp(&d1_cow),
-                    Some(op.reverse()),
-                    "failed inverted: {expr}"
-                );
-                assert_eq!(
-                    d2_cow.partial_cmp(&d1),
-                    Some(op.reverse()),
-                    "failed inverted: {expr}"
-                );
+                assert_eq!(d2.partial_cmp(&d1_cow), Some(op.reverse()), "failed: {expr}");
+                assert_eq!(d2_cow.partial_cmp(&d1), Some(op.reverse()), "failed: {expr}");
 
                 // verify the following property holds since both Hash and Eq are implemented:
                 // k1 == k2 -> hash(k1) == hash(k2)
