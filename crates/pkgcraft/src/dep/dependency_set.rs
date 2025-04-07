@@ -129,12 +129,27 @@ impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<T>> for DependencySet<&'a 
     }
 }
 
-impl<T: Ordered> BitAnd<&Self> for DependencySet<T> {
-    type Output = Self;
+impl<'a, T: Ordered> BitAnd<&'a DependencySet<T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
 
-    fn bitand(mut self, other: &Self) -> Self::Output {
-        self &= other;
-        self
+    fn bitand(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.intersection(other).collect()
+    }
+}
+
+impl<'a, T: Ordered> BitAnd<&'a DependencySet<T>> for DependencySet<&'a T> {
+    type Output = DependencySet<&'a T>;
+
+    fn bitand(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.intersection(&other.to_ref()).cloned().collect()
+    }
+}
+
+impl<'a, T: Ordered> BitAnd<DependencySet<&'a T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
+
+    fn bitand(self, other: DependencySet<&'a T>) -> Self::Output {
+        self.to_ref().intersection(&other).cloned().collect()
     }
 }
 
@@ -144,12 +159,27 @@ impl<T: Ordered> BitAndAssign<&Self> for DependencySet<T> {
     }
 }
 
-impl<T: Ordered> BitOr<&Self> for DependencySet<T> {
-    type Output = Self;
+impl<'a, T: Ordered> BitOr<&'a DependencySet<T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
 
-    fn bitor(mut self, other: &Self) -> Self::Output {
-        self |= other;
-        self
+    fn bitor(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.union(other).collect()
+    }
+}
+
+impl<'a, T: Ordered> BitOr<&'a DependencySet<T>> for DependencySet<&'a T> {
+    type Output = DependencySet<&'a T>;
+
+    fn bitor(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.union(&other.to_ref()).cloned().collect()
+    }
+}
+
+impl<'a, T: Ordered> BitOr<DependencySet<&'a T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
+
+    fn bitor(self, other: DependencySet<&'a T>) -> Self::Output {
+        self.to_ref().union(&other).cloned().collect()
     }
 }
 
@@ -159,12 +189,32 @@ impl<T: Ordered> BitOrAssign<&Self> for DependencySet<T> {
     }
 }
 
-impl<T: Ordered> BitXor<&Self> for DependencySet<T> {
-    type Output = Self;
+impl<'a, T: Ordered> BitXor<&'a DependencySet<T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
 
-    fn bitxor(mut self, other: &Self) -> Self::Output {
-        self ^= other;
-        self
+    fn bitxor(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.symmetric_difference(other).collect()
+    }
+}
+
+impl<'a, T: Ordered> BitXor<&'a DependencySet<T>> for DependencySet<&'a T> {
+    type Output = DependencySet<&'a T>;
+
+    fn bitxor(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.symmetric_difference(&other.to_ref())
+            .cloned()
+            .collect()
+    }
+}
+
+impl<'a, T: Ordered> BitXor<DependencySet<&'a T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
+
+    fn bitxor(self, other: DependencySet<&'a T>) -> Self::Output {
+        self.to_ref()
+            .symmetric_difference(&other)
+            .cloned()
+            .collect()
     }
 }
 
@@ -174,12 +224,27 @@ impl<T: Ordered> BitXorAssign<&Self> for DependencySet<T> {
     }
 }
 
-impl<T: Ordered> Sub<&Self> for DependencySet<T> {
-    type Output = Self;
+impl<'a, T: Ordered> Sub<&'a DependencySet<T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
 
-    fn sub(mut self, other: &Self) -> Self::Output {
-        self -= other;
-        self
+    fn sub(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.difference(other).collect()
+    }
+}
+
+impl<'a, T: Ordered> Sub<&'a DependencySet<T>> for DependencySet<&'a T> {
+    type Output = DependencySet<&'a T>;
+
+    fn sub(self, other: &'a DependencySet<T>) -> Self::Output {
+        self.difference(&other.to_ref()).cloned().collect()
+    }
+}
+
+impl<'a, T: Ordered> Sub<DependencySet<&'a T>> for &'a DependencySet<T> {
+    type Output = DependencySet<&'a T>;
+
+    fn sub(self, other: DependencySet<&'a T>) -> Self::Output {
+        self.to_ref().difference(&other).cloned().collect()
     }
 }
 
@@ -782,5 +847,46 @@ mod tests {
             set.sort_recursive();
             assert_eq!(set.to_string(), expected);
         }
+    }
+
+    #[test]
+    fn set_ops() {
+        let set1 = DependencySet::required_use("1 2").unwrap();
+        let set2 = DependencySet::required_use("2 3").unwrap();
+        let set3 = DependencySet::required_use("3 4").unwrap();
+
+        // intersection
+        let set = &set1 & &set2;
+        assert_eq!(set.to_string(), "2");
+        let set = &set1 & &set2 & &set3;
+        assert!(set.is_empty());
+        let set = &set1 & (&set2 & &set3);
+        assert!(set.is_empty());
+
+        // union
+        let set = &set1 | &set2;
+        assert_eq!(set.to_string(), "1 2 3");
+        let set = &set1 | &set2 | &set3;
+        assert_eq!(set.to_string(), "1 2 3 4");
+        let set = &set1 | (&set2 | &set3);
+        assert_eq!(set.to_string(), "1 2 3 4");
+
+        // difference
+        let set = &set1 - &set2;
+        assert_eq!(set.to_string(), "1");
+        let set = &set1 - &set2 - &set3;
+        assert_eq!(set.to_string(), "1");
+        let set = &set1 - (&set2 - &set3);
+        assert_eq!(set.to_string(), "1");
+        let set = &set1 - &set1;
+        assert!(set.is_empty());
+
+        // exclusive or
+        let set = &set1 ^ &set2;
+        assert_eq!(set.to_string(), "1 3");
+        let set = &set1 ^ &set2 ^ &set3;
+        assert_eq!(set.to_string(), "1 4");
+        let set = &set1 ^ (&set2 ^ &set3);
+        assert_eq!(set.to_string(), "1 4");
     }
 }
