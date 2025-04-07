@@ -631,41 +631,38 @@ mod tests {
     #[test]
     fn dep_set_contains() {
         let d = Dep::try_new("a/b").unwrap();
-        let target_dep = Dependency::package("c/d", Default::default()).unwrap();
-        let dep_set = DependencySet::package("a/b !u? ( c/d )", Default::default()).unwrap();
-        let dep_set_ref = dep_set.to_ref();
+        let dep = Dependency::package("c/d", Default::default()).unwrap();
+        let set = DependencySet::package("a/b !u? ( c/d )", Default::default()).unwrap();
+        let set_ref = set.to_ref();
 
         // Dependency objects
-        assert!(dep_set.contains(&target_dep), "{dep_set} doesn't contain {target_dep}");
-        assert!(
-            dep_set_ref.contains(&target_dep),
-            "{dep_set_ref} doesn't contain {target_dep}"
-        );
+        assert!(set.contains(&dep), "{set} doesn't contain {dep}");
+        assert!(set_ref.contains(&dep), "{set_ref} doesn't contain {dep}");
 
         // contains string types
         let s = "c/d".to_string();
-        assert!(dep_set.contains(s.as_str()), "{dep_set} doesn't contain {s}");
-        assert!(dep_set_ref.contains(s.as_str()), "{dep_set_ref} doesn't contain {s}");
-        assert!(dep_set.contains(s.clone()), "{dep_set} doesn't contain {s}");
-        assert!(dep_set_ref.contains(s.clone()), "{dep_set_ref} doesn't contain {s}");
+        assert!(set.contains(s.as_str()), "{set} doesn't contain {s}");
+        assert!(set_ref.contains(s.as_str()), "{set_ref} doesn't contain {s}");
+        assert!(set.contains(s.clone()), "{set} doesn't contain {s}");
+        assert!(set_ref.contains(s.clone()), "{set_ref} doesn't contain {s}");
 
         // Dep objects
-        assert!(dep_set.contains(&d), "{dep_set} doesn't contain {d}");
-        assert!(dep_set_ref.contains(&d), "{dep_set_ref} doesn't contain {d}");
+        assert!(set.contains(&d), "{set} doesn't contain {d}");
+        assert!(set_ref.contains(&d), "{set_ref} doesn't contain {d}");
 
         // UseDep objects
         let use_dep = UseDep::try_new("!u?").unwrap();
-        assert!(dep_set.contains(&use_dep), "{dep_set} doesn't contain {use_dep}");
-        assert!(dep_set_ref.contains(&use_dep), "{dep_set_ref} doesn't contain {use_dep}");
+        assert!(set.contains(&use_dep), "{set} doesn't contain {use_dep}");
+        assert!(set_ref.contains(&use_dep), "{set_ref} doesn't contain {use_dep}");
 
         // string-based DependencySet
-        let dep_set = DependencySet::required_use("a !u? ( b )").unwrap();
-        let dep_set_ref = dep_set.to_ref();
+        let set = DependencySet::required_use("a !u? ( b )").unwrap();
+        let set_ref = set.to_ref();
         let s = "b".to_string();
-        assert!(dep_set.contains(s.as_str()), "{dep_set} doesn't contain {s}");
-        assert!(dep_set_ref.contains(s.as_str()), "{dep_set_ref} doesn't contain {s}");
-        assert!(dep_set.contains(s.clone()), "{dep_set} doesn't contain {s}");
-        assert!(dep_set_ref.contains(s.clone()), "{dep_set_ref} doesn't contain {s}");
+        assert!(set.contains(s.as_str()), "{set} doesn't contain {s}");
+        assert!(set_ref.contains(s.as_str()), "{set_ref} doesn't contain {s}");
+        assert!(set.contains(s.clone()), "{set} doesn't contain {s}");
+        assert!(set_ref.contains(s.clone()), "{set_ref} doesn't contain {s}");
     }
 
     #[test]
@@ -682,14 +679,14 @@ mod tests {
             ("u? ( a b ) c", 2),
             ("!u? ( a b ) c", 2),
         ] {
-            let dep_set = DependencySet::required_use(s).unwrap();
-            assert_eq!(dep_set.is_empty(), s.is_empty());
-            assert_eq!(dep_set.len(), len);
-            let dep_set_ref = dep_set.to_ref();
-            assert_eq!(&dep_set, &dep_set_ref);
-            assert_eq!(&dep_set_ref, &dep_set);
-            let dep_set_owned = dep_set_ref.into_owned();
-            assert_eq!(&dep_set, &dep_set_owned);
+            let set = DependencySet::required_use(s).unwrap();
+            assert_eq!(set.is_empty(), s.is_empty());
+            assert_eq!(set.len(), len);
+            let set_ref = set.to_ref();
+            assert_eq!(&set, &set_ref);
+            assert_eq!(&set_ref, &set);
+            let set_owned = set_ref.into_owned();
+            assert_eq!(&set, &set_owned);
         }
     }
 
