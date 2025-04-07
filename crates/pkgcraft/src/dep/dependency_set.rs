@@ -270,19 +270,19 @@ impl<'a, T: Ordered> BitXor<DependencySet<&'a T>> for &'a DependencySet<T> {
 
 impl<T: Ordered> BitXorAssign<&DependencySet<T>> for DependencySet<T> {
     fn bitxor_assign(&mut self, other: &DependencySet<T>) {
-        self.0 = &self.0 ^ &other.0;
+        self.0 ^= &other.0;
     }
 }
 
 impl<T: Ordered> BitXorAssign<DependencySet<&T>> for DependencySet<T> {
     fn bitxor_assign(&mut self, other: DependencySet<&T>) {
-        self.0 = &self.0 ^ &other.into_owned().0;
+        self.0 ^= &other.into_owned().0;
     }
 }
 
 impl<'a, T: Ordered> BitXorAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
     fn bitxor_assign(&mut self, other: &'a DependencySet<T>) {
-        self.0 = &self.0 ^ &other.to_ref().0;
+        self.0 ^= &other.to_ref().0;
     }
 }
 
