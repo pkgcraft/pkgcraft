@@ -80,9 +80,9 @@ impl Intersects<CpvOrDep> for Cpn {
 
 impl Intersects<Cpv> for CpvOrDep {
     fn intersects(&self, other: &Cpv) -> bool {
-        match (self, other) {
-            (Self::Cpv(obj1), obj2) => obj1.intersects(obj2),
-            (Self::Dep(obj1), obj2) => obj1.intersects(obj2),
+        match self {
+            Self::Cpv(obj) => obj.intersects(other),
+            Self::Dep(obj) => obj.intersects(other),
         }
     }
 }
@@ -95,9 +95,9 @@ impl Intersects<CpvOrDep> for Cpv {
 
 impl Intersects<Dep> for CpvOrDep {
     fn intersects(&self, other: &Dep) -> bool {
-        match (self, other) {
-            (Self::Cpv(obj1), obj2) => obj1.intersects(obj2),
-            (Self::Dep(obj1), obj2) => obj1.intersects(obj2),
+        match self {
+            Self::Cpv(obj) => obj.intersects(other),
+            Self::Dep(obj) => obj.intersects(other),
         }
     }
 }
@@ -110,9 +110,9 @@ impl Intersects<CpvOrDep> for Dep {
 
 impl Intersects<Cow<'_, Dep>> for CpvOrDep {
     fn intersects(&self, other: &Cow<'_, Dep>) -> bool {
-        match (self, other) {
-            (Self::Cpv(obj1), obj2) => obj1.intersects(obj2),
-            (Self::Dep(obj1), obj2) => obj1.intersects(obj2),
+        match self {
+            Self::Cpv(obj) => obj.intersects(other),
+            Self::Dep(obj) => obj.intersects(other),
         }
     }
 }
