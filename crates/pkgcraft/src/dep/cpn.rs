@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
+use crate::traits::Intersects;
 use crate::Error;
 
 use super::parse;
@@ -83,6 +84,13 @@ impl Cpn {
     }
 }
 
+/// Determine if two Cpns intersect.
+impl Intersects for Cpn {
+    fn intersects(&self, other: &Self) -> bool {
+        self == other
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,6 +107,8 @@ mod tests {
             let cpn = Cpn::try_new(s);
             assert!(cpn.is_ok(), "{s} isn't valid");
             assert!(format!("{cpn:?}").contains(s));
+            let cpn = cpn.unwrap();
+            assert!(cpn.intersects(&cpn));
         }
     }
 }

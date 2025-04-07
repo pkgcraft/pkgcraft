@@ -563,6 +563,30 @@ impl Intersects<Cpv> for Cow<'_, Dep> {
     }
 }
 
+impl Intersects<Cpn> for Dep {
+    fn intersects(&self, other: &Cpn) -> bool {
+        self.cpn() == other
+    }
+}
+
+impl Intersects<Dep> for Cpn {
+    fn intersects(&self, other: &Dep) -> bool {
+        other.intersects(self)
+    }
+}
+
+impl Intersects<Cpn> for Cow<'_, Dep> {
+    fn intersects(&self, other: &Cpn) -> bool {
+        other.intersects(self.as_ref())
+    }
+}
+
+impl Intersects<Cow<'_, Dep>> for Cpn {
+    fn intersects(&self, other: &Cow<'_, Dep>) -> bool {
+        self.intersects(other.as_ref())
+    }
+}
+
 // Determine if any use dependency differences with matching flags are
 // requested to be both enabled and disabled.
 impl Intersects for SortedSet<UseDep> {

@@ -63,6 +63,21 @@ impl Intersects for CpvOrDep {
     }
 }
 
+impl Intersects<Cpn> for CpvOrDep {
+    fn intersects(&self, other: &Cpn) -> bool {
+        match self {
+            Self::Cpv(obj) => obj.intersects(other),
+            Self::Dep(obj) => obj.intersects(other),
+        }
+    }
+}
+
+impl Intersects<CpvOrDep> for Cpn {
+    fn intersects(&self, other: &CpvOrDep) -> bool {
+        other.intersects(self)
+    }
+}
+
 impl Intersects<Cpv> for CpvOrDep {
     fn intersects(&self, other: &Cpv) -> bool {
         match (self, other) {
@@ -234,6 +249,18 @@ impl fmt::Display for Cpv {
 impl Intersects for Cpv {
     fn intersects(&self, other: &Self) -> bool {
         self == other
+    }
+}
+
+impl Intersects<Cpn> for Cpv {
+    fn intersects(&self, other: &Cpn) -> bool {
+        self.cpn() == other
+    }
+}
+
+impl Intersects<Cpv> for Cpn {
+    fn intersects(&self, other: &Cpv) -> bool {
+        other.intersects(self)
     }
 }
 
