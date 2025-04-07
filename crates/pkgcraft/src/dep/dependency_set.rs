@@ -155,19 +155,19 @@ impl<'a, T: Ordered> BitAnd<DependencySet<&'a T>> for &'a DependencySet<T> {
 
 impl<T: Ordered> BitAndAssign<&DependencySet<T>> for DependencySet<T> {
     fn bitand_assign(&mut self, other: &DependencySet<T>) {
-        self.0.retain(|x| other.contains(x))
+        self.retain(|x| other.contains(x))
     }
 }
 
 impl<T: Ordered> BitAndAssign<DependencySet<&T>> for DependencySet<T> {
     fn bitand_assign(&mut self, other: DependencySet<&T>) {
-        self.0.retain(|x| other.contains(x))
+        self.retain(|x| other.contains(x))
     }
 }
 
 impl<T: Ordered> BitAndAssign<&DependencySet<T>> for DependencySet<&T> {
     fn bitand_assign(&mut self, other: &DependencySet<T>) {
-        self.0.retain(|x| other.contains(x))
+        self.retain(|x| other.contains(x))
     }
 }
 
@@ -197,19 +197,19 @@ impl<'a, T: Ordered> BitOr<DependencySet<&'a T>> for &'a DependencySet<T> {
 
 impl<T: Ordered> BitOrAssign<&DependencySet<T>> for DependencySet<T> {
     fn bitor_assign(&mut self, other: &DependencySet<T>) {
-        self.0.extend(other.clone())
+        self.extend(other.clone())
     }
 }
 
 impl<T: Ordered> BitOrAssign<DependencySet<&T>> for DependencySet<T> {
     fn bitor_assign(&mut self, other: DependencySet<&T>) {
-        self.0.extend(other.into_owned())
+        self.extend(other.into_owned())
     }
 }
 
 impl<'a, T: Ordered> BitOrAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
     fn bitor_assign(&mut self, other: &'a DependencySet<T>) {
-        self.0.extend(other.to_ref())
+        self.extend(other.to_ref())
     }
 }
 
@@ -286,19 +286,19 @@ impl<'a, T: Ordered> Sub<DependencySet<&'a T>> for &'a DependencySet<T> {
 
 impl<T: Ordered> SubAssign<&DependencySet<T>> for DependencySet<T> {
     fn sub_assign(&mut self, other: &DependencySet<T>) {
-        self.0.retain(|x| !other.contains(x))
+        self.retain(|x| !other.contains(x))
     }
 }
 
 impl<T: Ordered> SubAssign<DependencySet<&T>> for DependencySet<T> {
     fn sub_assign(&mut self, other: DependencySet<&T>) {
-        self.0.retain(|x| !other.contains(x))
+        self.retain(|x| !other.contains(x))
     }
 }
 
 impl<'a, T: Ordered> SubAssign<&'a DependencySet<T>> for DependencySet<&'a T> {
     fn sub_assign(&mut self, other: &'a DependencySet<T>) {
-        self.0.retain(|x| !other.contains(x))
+        self.retain(|x| !other.contains(x))
     }
 }
 
