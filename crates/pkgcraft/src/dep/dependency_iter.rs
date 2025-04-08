@@ -1,5 +1,3 @@
-use ordermap::OrderSet;
-
 use crate::types::{Deque, Ordered};
 
 use super::*;
@@ -141,9 +139,7 @@ impl<T: Ordered> DoubleEndedIterator for IntoIterFlatten<T> {
 }
 
 #[derive(Debug)]
-pub struct IterConditionalFlatten<'a, T: Ordered>(
-    Deque<(OrderSet<&'a UseDep>, &'a Dependency<T>)>,
-);
+pub struct IterConditionalFlatten<'a, T: Ordered>(Deque<(Vec<&'a UseDep>, &'a Dependency<T>)>);
 
 impl<'a, T: Ordered> FromIterator<&'a Dependency<T>> for IterConditionalFlatten<'a, T> {
     fn from_iter<I: IntoIterator<Item = &'a Dependency<T>>>(iterable: I) -> Self {
@@ -157,7 +153,7 @@ impl<'a, T: Ordered> FromIterator<&'a Dependency<T>> for IterConditionalFlatten<
 }
 
 impl<'a, T: Ordered> Iterator for IterConditionalFlatten<'a, T> {
-    type Item = (OrderSet<&'a UseDep>, &'a T);
+    type Item = (Vec<&'a UseDep>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -177,7 +173,7 @@ impl<'a, T: Ordered> Iterator for IterConditionalFlatten<'a, T> {
                     .0
                     .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
                 Conditional(u, vals) => {
-                    use_deps.insert(u);
+                    use_deps.push(u);
                     self.0
                         .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref())));
                 }
@@ -188,7 +184,7 @@ impl<'a, T: Ordered> Iterator for IterConditionalFlatten<'a, T> {
 }
 
 #[derive(Debug)]
-pub struct IntoIterConditionalFlatten<T: Ordered>(Deque<(OrderSet<UseDep>, Dependency<T>)>);
+pub struct IntoIterConditionalFlatten<T: Ordered>(Deque<(Vec<UseDep>, Dependency<T>)>);
 
 impl<T: Ordered> FromIterator<Dependency<T>> for IntoIterConditionalFlatten<T> {
     fn from_iter<I: IntoIterator<Item = Dependency<T>>>(iterable: I) -> Self {
@@ -202,7 +198,7 @@ impl<T: Ordered> FromIterator<Dependency<T>> for IntoIterConditionalFlatten<T> {
 }
 
 impl<T: Ordered> Iterator for IntoIterConditionalFlatten<T> {
-    type Item = (OrderSet<UseDep>, T);
+    type Item = (Vec<UseDep>, T);
 
     fn next(&mut self) -> Option<Self::Item> {
         use Dependency::*;
@@ -222,7 +218,7 @@ impl<T: Ordered> Iterator for IntoIterConditionalFlatten<T> {
                     .0
                     .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
                 Conditional(u, vals) => {
-                    use_deps.insert(u);
+                    use_deps.push(u);
                     self.0
                         .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x)));
                 }
