@@ -1,6 +1,7 @@
 use std::fmt;
 
 use itertools::Itertools;
+use ordermap::OrderSet;
 
 use crate::eapi::Eapi;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
@@ -369,7 +370,7 @@ impl<'a, T: Ordered> Conditionals for &'a Dependency<T> {
 }
 
 impl<'a, T: Ordered> ConditionalFlatten for &'a Dependency<T> {
-    type Item = (Vec<&'a UseDep>, &'a T);
+    type Item = (OrderSet<&'a UseDep>, &'a T);
     type IntoIterConditionalFlatten = IterConditionalFlatten<'a, T>;
 
     fn into_iter_conditional_flatten(self) -> Self::IntoIterConditionalFlatten {
@@ -405,7 +406,7 @@ impl<T: Ordered> Conditionals for Dependency<T> {
 }
 
 impl<T: Ordered> ConditionalFlatten for Dependency<T> {
-    type Item = (Vec<UseDep>, T);
+    type Item = (OrderSet<UseDep>, T);
     type IntoIterConditionalFlatten = IntoIterConditionalFlatten<T>;
 
     fn into_iter_conditional_flatten(self) -> Self::IntoIterConditionalFlatten {

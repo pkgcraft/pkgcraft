@@ -111,7 +111,7 @@ impl RevDepCache {
                         .or_default()
                         .entry(RevDep {
                             cpv: pkg.cpv().clone(),
-                            use_deps: use_deps.into_iter().collect(),
+                            use_deps,
                             dep: dep.clone(),
                         })
                         .or_default()
