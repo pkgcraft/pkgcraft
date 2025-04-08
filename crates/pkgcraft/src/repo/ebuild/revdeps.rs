@@ -162,6 +162,7 @@ impl RevDepCache {
                     for revdep in revdeps {
                         writeln!(f, "{revdep}")?;
                     }
+                    f.flush()?;
                     Ok(())
                 },
             )?;
