@@ -6,6 +6,7 @@ use std::io::Write;
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use ordermap::OrderSet;
 use rayon::prelude::*;
 
 use crate::dep::{ConditionalFlatten, Cpn, Cpv, Dep, UseDep};
@@ -21,7 +22,7 @@ use super::EbuildRepo;
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct RevDep {
     cpv: Cpv,
-    use_deps: Vec<UseDep>,
+    use_deps: OrderSet<UseDep>,
     dep: Dep,
 }
 
@@ -42,7 +43,7 @@ impl RevDep {
 pub struct QaRevDep<'a> {
     cpv: &'a Cpv,
     blocker: bool,
-    use_deps: &'a [UseDep],
+    use_deps: &'a OrderSet<UseDep>,
 }
 
 impl<'a> From<&'a RevDep> for QaRevDep<'a> {
@@ -110,7 +111,7 @@ impl RevDepCache {
                         .or_default()
                         .entry(RevDep {
                             cpv: pkg.cpv().clone(),
-                            use_deps,
+                            use_deps: use_deps.into_iter().collect(),
                             dep: dep.clone(),
                         })
                         .or_default()
