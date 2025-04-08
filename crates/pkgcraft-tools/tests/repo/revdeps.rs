@@ -1,10 +1,9 @@
 use std::{env, fs};
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::{assert_ordered_eq, cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
-use pretty_assertions::assert_eq;
 use tempfile::tempdir;
 
 #[test]
@@ -86,7 +85,7 @@ fn current_dir_repo() {
         DEPEND="a/b !c/d"
         RDEPEND="u1? ( a/b )"
         BDEPEND="!u1? ( a/b )"
-        IDEPEND="u2? ( c/d )"
+        IDEPEND="u1? ( c/d ) u2? ( c/d )"
         PDEPEND="u1? ( a/b !u2? ( c/d ) )"
     "#};
     repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
@@ -98,11 +97,20 @@ fn current_dir_repo() {
         .stderr("")
         .success();
 
-    assert_eq!(fs::read_to_string("revdeps/depend/a/b").unwrap().trim(), "cat/pkg-1");
-    assert_eq!(fs::read_to_string("revdeps/depend/c/d").unwrap().trim(), "[B]cat/pkg-1");
-    assert_eq!(fs::read_to_string("revdeps/rdepend/a/b").unwrap().trim(), "cat/pkg-1:u1");
-    assert_eq!(fs::read_to_string("revdeps/bdepend/a/b").unwrap().trim(), "cat/pkg-1:!u1");
-    assert_eq!(fs::read_to_string("revdeps/idepend/c/d").unwrap().trim(), "cat/pkg-1:u2");
-    assert_eq!(fs::read_to_string("revdeps/pdepend/a/b").unwrap().trim(), "cat/pkg-1:u1");
-    assert_eq!(fs::read_to_string("revdeps/pdepend/c/d").unwrap().trim(), "cat/pkg-1:u1+!u2");
+    // pull content from revdep files
+    let file_to_list = |path: &str| -> Vec<String> {
+        fs::read_to_string(path)
+            .unwrap()
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect()
+    };
+
+    assert_ordered_eq!(file_to_list("revdeps/depend/a/b"), ["cat/pkg-1"]);
+    assert_ordered_eq!(file_to_list("revdeps/depend/c/d"), ["[B]cat/pkg-1"]);
+    assert_ordered_eq!(file_to_list("revdeps/rdepend/a/b"), ["cat/pkg-1:u1"]);
+    assert_ordered_eq!(file_to_list("revdeps/bdepend/a/b"), ["cat/pkg-1:!u1"]);
+    assert_ordered_eq!(file_to_list("revdeps/idepend/c/d"), ["cat/pkg-1:u1", "cat/pkg-1:u2"]);
+    assert_ordered_eq!(file_to_list("revdeps/pdepend/a/b"), ["cat/pkg-1:u1"]);
+    assert_ordered_eq!(file_to_list("revdeps/pdepend/c/d"), ["cat/pkg-1:u1+!u2"]);
 }
