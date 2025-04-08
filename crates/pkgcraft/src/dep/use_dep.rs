@@ -23,9 +23,9 @@ pub enum UseDepKind {
     DeserializeFromStr, SerializeDisplay, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone,
 )]
 pub struct UseDep {
+    pub(crate) enabled: bool,
     pub(crate) flag: String,
     pub(crate) kind: UseDepKind,
-    pub(crate) enabled: bool,
     pub(crate) default: Option<bool>,
 }
 
