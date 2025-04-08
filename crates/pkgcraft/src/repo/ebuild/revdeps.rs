@@ -78,7 +78,6 @@ impl fmt::Display for QaRevDep<'_> {
                 ":{}",
                 self.use_deps
                     .iter()
-                    .sorted()
                     .map(|x| format!("{}{}", enabled(x), x.flag()))
                     .join("+")
             )?;
@@ -101,8 +100,10 @@ impl RevDepCache {
         let mut iter = repo.iter_unordered().log_errors(ignore);
         for pkg in &mut iter {
             for key in pkg.eapi().dep_keys().iter().copied() {
-                for (use_deps, dep) in pkg.dependencies([key]).into_iter_conditional_flatten()
+                for (mut use_deps, dep) in
+                    pkg.dependencies([key]).into_iter_conditional_flatten()
                 {
+                    use_deps.sort();
                     cache
                         .0
                         .entry(dep.cpn.clone())
