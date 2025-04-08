@@ -362,9 +362,9 @@ impl Config {
     /// Finalize the config repos and start the build pool.
     pub fn finalize(&self) -> crate::Result<()> {
         // finalize repos
-        for (_, repo) in &self.repos {
+        for (id, repo) in &self.repos {
             repo.finalize(self)
-                .map_err(|e| Error::Config(format!("{repo}: {e}")))?;
+                .map_err(|e| Error::Config(format!("{id}: {e}")))?;
         }
 
         // start the build pool
