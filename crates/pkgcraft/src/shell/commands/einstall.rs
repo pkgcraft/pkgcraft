@@ -30,7 +30,6 @@ make_builtin!("einstall", einstall_builtin, true);
 #[cfg(test)]
 mod tests {
     use super::super::cmd_scope_tests;
-    use super::*;
 
     cmd_scope_tests!("einstall");
 

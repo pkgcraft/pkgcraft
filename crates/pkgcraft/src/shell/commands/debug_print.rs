@@ -38,7 +38,6 @@ mod tests {
     use crate::test::assert_logs_re;
 
     use super::super::cmd_scope_tests;
-    use super::*;
 
     cmd_scope_tests!("debug-print msg");
 

@@ -21,7 +21,6 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, into, newbin};
-    use super::*;
 
     cmd_scope_tests!("newbin path/to/executable new_filename");
 

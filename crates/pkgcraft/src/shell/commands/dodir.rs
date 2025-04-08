@@ -27,7 +27,6 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, diropts, dodir};
-    use super::*;
 
     cmd_scope_tests!("dodir path/to/dir");
 

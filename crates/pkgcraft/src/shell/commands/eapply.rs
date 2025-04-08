@@ -114,7 +114,6 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, eapply};
-    use super::*;
 
     cmd_scope_tests!("eapply file.patch");
 

@@ -38,7 +38,6 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doinfo};
-    use super::*;
 
     cmd_scope_tests!("doinfo path/to/info/file");
 

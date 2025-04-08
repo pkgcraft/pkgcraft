@@ -42,7 +42,6 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, dolib, into, libopts};
-    use super::*;
 
     cmd_scope_tests!("dolib path/to/lib");
 

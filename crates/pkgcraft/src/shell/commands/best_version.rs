@@ -26,7 +26,6 @@ make_builtin!("best_version", best_version_builtin, false);
 #[cfg(test)]
 mod tests {
     use super::super::cmd_scope_tests;
-    use super::*;
 
     cmd_scope_tests!("best_version cat/pkg");
 

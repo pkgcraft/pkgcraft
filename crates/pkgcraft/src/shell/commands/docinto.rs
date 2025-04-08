@@ -39,7 +39,6 @@ mod tests {
     use crate::test::test_data;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, docinto, dodoc};
-    use super::*;
 
     cmd_scope_tests!("docinto /install/path");
 

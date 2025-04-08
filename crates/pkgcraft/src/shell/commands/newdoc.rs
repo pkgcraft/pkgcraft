@@ -23,7 +23,6 @@ mod tests {
     use crate::test::test_data;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, newdoc};
-    use super::*;
 
     cmd_scope_tests!("newdoc path/to/doc/file new_filename");
 

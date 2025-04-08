@@ -61,7 +61,6 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doins, insinto, insopts};
-    use super::*;
 
     cmd_scope_tests!("doins path/to/file");
 

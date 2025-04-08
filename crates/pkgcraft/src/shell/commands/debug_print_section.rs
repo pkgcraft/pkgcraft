@@ -35,7 +35,6 @@ mod tests {
     use crate::test::assert_logs_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, debug_print_section};
-    use super::*;
 
     cmd_scope_tests!("debug-print-section arg1 arg2");
 

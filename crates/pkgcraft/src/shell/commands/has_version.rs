@@ -16,7 +16,6 @@ make_builtin!("has_version", has_version_builtin, false);
 #[cfg(test)]
 mod tests {
     use super::super::cmd_scope_tests;
-    use super::*;
 
     cmd_scope_tests!("has_version 'cat/pkg[use]'");
 

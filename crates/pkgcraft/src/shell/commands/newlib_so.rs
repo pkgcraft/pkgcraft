@@ -21,7 +21,6 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, into, newlib_so};
-    use super::*;
 
     cmd_scope_tests!("newlib.so path/to/lib.so new_filename");
 

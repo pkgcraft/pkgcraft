@@ -21,7 +21,6 @@ mod tests {
     use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, newinitd};
-    use super::*;
 
     cmd_scope_tests!("newinitd path/to/init/file new_filename");
 
