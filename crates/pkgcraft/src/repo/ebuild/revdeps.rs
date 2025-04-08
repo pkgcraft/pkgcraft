@@ -4,7 +4,7 @@ use std::fs::{self, File};
 use std::io::Write;
 
 use camino::Utf8Path;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use itertools::Itertools;
 use ordermap::OrderSet;
 use rayon::prelude::*;
@@ -43,6 +43,7 @@ impl RevDep {
 pub struct QaRevDep<'a> {
     cpv: &'a Cpv,
     blocker: bool,
+    use_deps: &'a OrderSet<UseDep>,
 }
 
 impl<'a> From<&'a RevDep> for QaRevDep<'a> {
@@ -50,6 +51,7 @@ impl<'a> From<&'a RevDep> for QaRevDep<'a> {
         Self {
             cpv: &value.cpv,
             blocker: value.dep.blocker().is_some(),
+            use_deps: &value.use_deps,
         }
     }
 }
@@ -59,7 +61,30 @@ impl fmt::Display for QaRevDep<'_> {
         if self.blocker {
             write!(f, "[B]")?;
         }
-        write!(f, "{}", self.cpv)
+
+        write!(f, "{}", self.cpv)?;
+
+        // return the prefix for the USE dependency
+        let enabled = |use_dep: &UseDep| -> &str {
+            if use_dep.enabled() {
+                ""
+            } else {
+                "!"
+            }
+        };
+
+        if !self.use_deps.is_empty() {
+            write!(
+                f,
+                ":{}",
+                self.use_deps
+                    .iter()
+                    .map(|x| format!("{}{}", enabled(x), x.flag()))
+                    .join("+")
+            )?;
+        }
+
+        Ok(())
     }
 }
 
@@ -112,8 +137,7 @@ impl RevDepCache {
         let dir = path.as_ref().join("revdeps");
 
         // convert cache into qa reports compatible mapping
-        let mut mapping: HashMap<_, HashMap<_, IndexMap<QaRevDep, IndexSet<_>>>> =
-            HashMap::new();
+        let mut mapping: HashMap<_, HashMap<_, IndexSet<QaRevDep>>> = HashMap::new();
         for (cpn, revdeps) in &self.0 {
             for (revdep, keys) in revdeps {
                 for key in keys {
@@ -122,21 +146,10 @@ impl RevDepCache {
                         .or_default()
                         .entry(cpn)
                         .or_default()
-                        .entry(revdep.into())
-                        .or_default()
-                        .extend(&revdep.use_deps);
+                        .insert(revdep.into());
                 }
             }
         }
-
-        // return the prefix for the USE dependency
-        let enabled = |use_dep: &UseDep| -> &str {
-            if use_dep.enabled() {
-                ""
-            } else {
-                "!"
-            }
-        };
 
         // write entries to disk in the expected file layout and format
         for (key, revdeps) in mapping {
@@ -145,20 +158,9 @@ impl RevDepCache {
                     let path = build_path!(&dir, &key, cpn.category(), cpn.package());
                     fs::create_dir_all(path.parent().unwrap())?;
                     let mut f = File::create(path)?;
-                    revdeps.sort_keys();
-                    for (revdep, use_deps) in revdeps {
-                        let flags = if !use_deps.is_empty() {
-                            format!(
-                                ":{}",
-                                use_deps
-                                    .iter()
-                                    .map(|x| format!("{}{}", enabled(x), x.flag()))
-                                    .join("+")
-                            )
-                        } else {
-                            Default::default()
-                        };
-                        writeln!(f, "{revdep}{flags}")?;
+                    revdeps.sort();
+                    for revdep in revdeps {
+                        writeln!(f, "{revdep}")?;
                     }
                     f.flush()?;
                     Ok(())
