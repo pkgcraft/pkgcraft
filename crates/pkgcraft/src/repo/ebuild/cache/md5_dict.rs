@@ -286,29 +286,50 @@ impl Cache for Md5Dict {
             .into_iter()
             .collect();
 
-        // Remove outdated, invalid, and unrelated files as well as their parent directories if
-        // empty while ignoring I/O errors.
+        // Remove outdated, invalid, and unrelated files as well as their parent
+        // directories if empty.
         entries
             .into_par_iter()
             .filter_map(Result::ok)
             .filter(is_file)
-            .for_each(|e| {
-                if let Some(path) = Utf8Path::from_path(e.path()) {
-                    if let Ok(relpath) = path.strip_prefix(self.path()) {
-                        // determine if a cache file is valid, relating to an existing pkg
-                        let valid = Cpv::try_new(relpath.as_str())
-                            .ok()
-                            .map(|cpv| collection.contains(&cpv))
-                            .unwrap_or_default();
-                        if !valid {
-                            fs::remove_file(path).ok();
-                            fs::remove_dir(path.parent().unwrap()).ok();
+            .try_for_each(|e| -> crate::Result<()> {
+                // convert entry to utf8 path
+                let Some(path) = Utf8Path::from_path(e.path()) else {
+                    return Ok(());
+                };
+
+                // convert to relative path
+                let Ok(relpath) = path.strip_prefix(self.path()) else {
+                    return Ok(());
+                };
+
+                // determine if a cache file is valid, relating to an existing pkg
+                let valid = Cpv::try_new(relpath.as_str())
+                    .ok()
+                    .map(|cpv| collection.contains(&cpv))
+                    .unwrap_or_default();
+
+                let mut status = Ok(());
+
+                if !valid {
+                    // remove invalid file
+                    fs::remove_file(path).map_err(|e| {
+                        Error::IO(format!("failed removing old cache entry: {path}: {e}"))
+                    })?;
+
+                    // remove parent directory if empty
+                    let dir = path.parent().unwrap();
+                    if let Err(e) = fs::remove_dir(dir) {
+                        if e.kind() != io::ErrorKind::DirectoryNotEmpty {
+                            status = Err(Error::IO(format!(
+                                "failed removing cache dir: {dir}: {e}"
+                            )));
                         }
                     }
                 }
-            });
 
-        Ok(())
+                status
+            })
     }
 }
 
