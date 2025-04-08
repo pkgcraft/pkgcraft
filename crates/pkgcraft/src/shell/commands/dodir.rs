@@ -20,7 +20,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "dodir path/to/dir";
 make_builtin!("dodir", dodir_builtin, true);
 
 #[cfg(test)]
@@ -30,7 +29,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, diropts, dodir};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("dodir path/to/dir");
 
     #[test]
     fn invalid_args() {

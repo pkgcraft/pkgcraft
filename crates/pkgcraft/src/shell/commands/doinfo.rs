@@ -28,7 +28,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "doinfo path/to/info/file";
 make_builtin!("doinfo", doinfo_builtin, true);
 
 #[cfg(test)]
@@ -41,7 +40,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doinfo};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("doinfo path/to/info/file");
 
     #[test]
     fn invalid_args() {

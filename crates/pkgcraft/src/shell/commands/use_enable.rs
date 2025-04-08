@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_conf(args, "enable", "disable")
 }
 
-const USAGE: &str = "use_enable flag";
 make_builtin!("use_enable", use_enable_builtin, false);
 
 #[cfg(test)]
@@ -27,7 +26,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, use_enable};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("use_enable flag");
 
     #[test]
     fn invalid_args() {

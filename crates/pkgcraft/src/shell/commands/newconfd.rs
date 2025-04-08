@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doconfd)
 }
 
-const USAGE: &str = "newconfd path/to/config/file new_filename";
 make_builtin!("newconfd", newconfd_builtin, true);
 
 #[cfg(test)]
@@ -24,7 +23,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, newconfd};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("newconfd path/to/config/file new_filename");
 
     #[test]
     fn invalid_args() {

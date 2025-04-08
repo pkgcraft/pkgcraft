@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doman)
 }
 
-const USAGE: &str = "newman path/to/man/page new_filename";
 make_builtin!("newman", newman_builtin, true);
 
 #[cfg(test)]
@@ -24,7 +23,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, newman};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("newman path/to/man/page new_filename");
 
     #[test]
     fn invalid_args() {

@@ -167,7 +167,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "dohtml path/to/html/files";
 make_builtin!("dohtml", dohtml_builtin, true);
 
 #[cfg(test)]
@@ -182,7 +181,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, docinto, dohtml};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("dohtml path/to/html/files");
 
     #[test]
     fn invalid_args() {

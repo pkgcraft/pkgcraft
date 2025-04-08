@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doheader)
 }
 
-const USAGE: &str = "newheader path/to/header.h new_filename";
 make_builtin!("newheader", newheader_builtin, true);
 
 #[cfg(test)]
@@ -24,7 +23,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, newheader};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("newheader path/to/header.h new_filename");
 
     #[test]
     fn invalid_args() {

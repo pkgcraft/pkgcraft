@@ -34,7 +34,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "doenvd path/to/env/file";
 make_builtin!("doenvd", doenvd_builtin, true);
 
 #[cfg(test)]
@@ -49,7 +48,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doenvd, insopts};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("doenvd path/to/env/file");
 
     #[test]
     fn invalid_args() {

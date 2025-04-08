@@ -24,7 +24,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(pkg.iuse_effective().contains(&cmd.flag)))
 }
 
-const USAGE: &str = "in_iuse flag";
 make_builtin!("in_iuse", in_iuse_builtin, false);
 
 #[cfg(test)]
@@ -36,7 +35,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, in_iuse};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("in_iuse flag");
 
     #[test]
     fn invalid_args() {

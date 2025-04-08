@@ -103,7 +103,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "eapply file.patch";
 make_builtin!("eapply", eapply_builtin, true);
 
 #[cfg(test)]
@@ -117,7 +116,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, eapply};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("eapply file.patch");
 
     #[test]
     fn invalid_args() {

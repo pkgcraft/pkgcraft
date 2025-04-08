@@ -19,7 +19,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     install_bin(&cmd.paths, "sbin")
 }
 
-const USAGE: &str = "dosbin /path/to/executable";
 make_builtin!("dosbin", dosbin_builtin, true);
 
 #[cfg(test)]
@@ -32,7 +31,7 @@ mod tests {
     use super::super::{assert_invalid_cmd, cmd_scope_tests, dosbin, exeopts, into};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("dosbin /path/to/executable");
 
     #[test]
     fn invalid_args() {

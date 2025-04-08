@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_conf(args, "with", "without")
 }
 
-const USAGE: &str = "use_with flag";
 make_builtin!("use_with", use_with_builtin, false);
 
 #[cfg(test)]
@@ -27,7 +26,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, use_with};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("use_with flag");
 
     #[test]
     fn invalid_args() {

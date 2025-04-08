@@ -26,7 +26,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-const USAGE: &str = "debug-print msg";
 make_builtin!("debug-print", debug_print_builtin, true);
 
 #[cfg(test)]
@@ -41,7 +40,7 @@ mod tests {
     use super::super::cmd_scope_tests;
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("debug-print msg");
 
     #[traced_test]
     #[test]

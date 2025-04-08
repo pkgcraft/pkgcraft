@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doenvd)
 }
 
-const USAGE: &str = "newenvd path/to/env_file new_filename";
 make_builtin!("newenvd", newenvd_builtin, true);
 
 #[cfg(test)]
@@ -24,7 +23,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, newenvd};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("newenvd path/to/env_file new_filename");
 
     #[test]
     fn invalid_args() {

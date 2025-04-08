@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dolib_so)
 }
 
-const USAGE: &str = "newlib.so path/to/lib.so new_filename";
 make_builtin!("newlib.so", newlib_so_builtin, true);
 
 #[cfg(test)]
@@ -24,7 +23,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, into, newlib_so};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("newlib.so path/to/lib.so new_filename");
 
     #[test]
     fn invalid_args() {

@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doexe)
 }
 
-const USAGE: &str = "newexe path/to/executable new_filename";
 make_builtin!("newexe", newexe_builtin, true);
 
 #[cfg(test)]
@@ -24,7 +23,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, exeinto, exeopts, newexe};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("newexe path/to/executable new_filename");
 
     #[test]
     fn invalid_args() {

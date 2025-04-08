@@ -21,7 +21,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 }
 
-const USAGE: &str = "best_version cat/pkg";
 make_builtin!("best_version", best_version_builtin, false);
 
 #[cfg(test)]
@@ -29,7 +28,7 @@ mod tests {
     use super::super::cmd_scope_tests;
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("best_version cat/pkg");
 
     // TODO: add usage tests
 }

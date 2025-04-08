@@ -25,7 +25,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     emake(&[paths, &["-j1"], args, &["install"]].concat())
 }
 
-const USAGE: &str = "einstall";
 make_builtin!("einstall", einstall_builtin, true);
 
 #[cfg(test)]
@@ -33,7 +32,7 @@ mod tests {
     use super::super::cmd_scope_tests;
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("einstall");
 
     // TODO: add usage tests
 }

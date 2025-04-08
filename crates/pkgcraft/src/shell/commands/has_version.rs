@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok((!cpvs.is_empty()).into())
 }
 
-const USAGE: &str = "has_version 'cat/pkg[use]'";
 make_builtin!("has_version", has_version_builtin, false);
 
 #[cfg(test)]
@@ -19,7 +18,7 @@ mod tests {
     use super::super::cmd_scope_tests;
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("has_version 'cat/pkg[use]'");
 
     // TODO: add usage tests
 }

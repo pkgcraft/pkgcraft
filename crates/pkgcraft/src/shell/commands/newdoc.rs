@@ -11,7 +11,6 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dodoc)
 }
 
-const USAGE: &str = "newdoc path/to/doc/file new_filename";
 make_builtin!("newdoc", newdoc_builtin, true);
 
 #[cfg(test)]
@@ -26,7 +25,7 @@ mod tests {
     use super::super::{assert_invalid_args, cmd_scope_tests, newdoc};
     use super::*;
 
-    cmd_scope_tests!(USAGE);
+    cmd_scope_tests!("newdoc path/to/doc/file new_filename");
 
     #[test]
     fn invalid_args() {
