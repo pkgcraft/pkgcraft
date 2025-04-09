@@ -377,4 +377,31 @@ mod tests {
             assert_eq!(new_meta, old_meta);
         }
     }
+
+    #[test]
+    fn invalid_cache_entry() {
+        let data = indoc::indoc! {"
+            DEFINED_PHASES=-
+            DESCRIPTION=ebuild with no subslot
+            EAPI=8
+            SLOT=1
+            _md5_=e9b0c6b982420006ac4ca3ab1195a563
+            invalid data
+        "};
+
+        let r = Md5DictEntry::from_str(data);
+        assert_err_re!(r, format!("^invalid md5-dict cache line: invalid data$"));
+
+        let data = indoc::indoc! {"
+            DEFINED_PHASES=-
+            DESCRIPTION=ebuild with no subslot
+            EAPI=8
+            SLOT=1
+            _md5_=e9b0c6b982420006ac4ca3ab1195a563
+            INVALID=data
+        "};
+
+        let r = Md5DictEntry::from_str(data);
+        assert_err_re!(r, format!("^invalid md5-dict cache key: INVALID$"));
+    }
 }
