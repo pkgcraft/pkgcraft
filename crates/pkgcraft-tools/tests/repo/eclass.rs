@@ -11,14 +11,14 @@ fn nonexistent_repo() {
     cmd("pk repo eclass path/to/nonexistent/repo")
         .assert()
         .stdout("")
-        .stderr(contains("unknown repo: path/to/nonexistent/repo"))
+        .stderr(contains("nonexistent repo: path/to/nonexistent/repo"))
         .failure()
         .code(2);
 
     cmd("pk repo eclass nonexistent-repo-alias")
         .assert()
         .stdout("")
-        .stderr(contains("unknown repo: nonexistent-repo-alias"))
+        .stderr(contains("nonexistent repo: nonexistent-repo-alias"))
         .failure()
         .code(2);
 }

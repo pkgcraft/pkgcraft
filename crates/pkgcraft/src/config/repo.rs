@@ -251,7 +251,7 @@ impl Config {
         let key = key.as_ref();
         self.repos
             .get(key)
-            .ok_or_else(|| Error::InvalidValue(format!("unknown repo: {key}")))
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent repo: {key}")))
     }
 
     /// Returns true if no repos exist and false otherwise.

@@ -72,7 +72,7 @@ impl<'a> Targets<'a> {
             } else if path.exists() {
                 self.repo_from_path(path)
             } else {
-                Err(Error::InvalidValue(format!("unknown repo: {s}")))
+                Err(Error::InvalidValue(format!("nonexistent repo: {s}")))
             }?;
             self.repo_set = repo.into();
         } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(&x)) {
@@ -147,7 +147,7 @@ impl<'a> Targets<'a> {
                     return Ok((repo.into(), Restrict::and(restricts)));
                 }
                 [id] if !repo_set.repos.iter().any(|r| r.id() == id) => {
-                    return Err(Error::InvalidValue(format!("unknown repo: {id}")));
+                    return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
                 }
                 _ => (),
             }
