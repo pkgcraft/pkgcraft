@@ -214,7 +214,7 @@ impl Repo {
             }
         }
 
-        Err(Error::RepoInit("invalid format".to_string()))
+        Err(Error::InvalidValue(format!("invalid repo: {path}")))
     }
 
     /// Try to load a repo from a potentially nested path.
@@ -232,7 +232,7 @@ impl Repo {
             }
         }
 
-        Err(Error::RepoInit("invalid format".to_string()))
+        Err(Error::InvalidValue(format!("invalid repo: {path}")))
     }
 
     pub(crate) fn finalize(&self, config: &Config) -> crate::Result<()> {
@@ -908,7 +908,7 @@ mod tests {
 
         // invalid repo
         let r = Repo::from_path("test", path, 0);
-        assert_err_re!(r, "^invalid format$");
+        assert_err_re!(r, format!("^invalid repo: {path}$"));
 
         // nonexistent repo
         let r = Repo::from_path("test", path.join("nonexistent"), 0);

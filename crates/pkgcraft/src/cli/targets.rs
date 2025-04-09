@@ -256,8 +256,10 @@ impl<'a> Targets<'a> {
             match self.config.get_repo(&target) {
                 Ok(repo) => repos.push((target, repo.clone())),
                 Err(e) => {
-                    if let Ok(abspath) = Utf8Path::new(&target).canonicalize_utf8() {
-                        repos.push((target, self.repo_from_path(&abspath)?));
+                    let path = Utf8Path::new(&target);
+                    if path.exists() {
+                        let repo = self.repo_from_path(path)?;
+                        repos.push((target, repo));
                     } else {
                         return Err(e);
                     }

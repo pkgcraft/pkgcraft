@@ -53,7 +53,7 @@ fn default_current_directory() {
     cmd("pk repo metadata regen")
         .assert()
         .stdout("")
-        .stderr(contains("non-ebuild repo: ."))
+        .stderr(contains("invalid repo: ."))
         .failure()
         .code(2);
 
