@@ -47,18 +47,6 @@ jobs:
             rust-version: stable
 
     steps:
-    - name: Free disk space for coverage data
-      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
-      uses: jlumbroso/free-disk-space@main
-      with:
-        android: true
-        dotnet: true
-        haskell: true
-        docker-images: false
-        tool-cache: false
-        large-packages: false
-        swap-storage: false
-
     - name: Checkout code
       uses: actions/checkout@v4
       with:
