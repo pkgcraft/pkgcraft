@@ -305,13 +305,13 @@ mod tests {
                 DESCRIPTION="testing metadata generation error handling"
                 SLOT=0
                 VAR=$(best_version cat/pkg)
-        /   "#};
+            "#};
             temp.create_ebuild_from_str(format!("cat/pkg-{pv}"), data)
                 .unwrap();
         }
 
         // run regen asserting that errors occurred
-        let r = repo.metadata().cache().regen(&repo).run();
+        let r = repo.metadata().cache().regen(&repo).progress(true).run();
         assert!(r.is_err());
 
         // verify all pkgs caused logged errors
