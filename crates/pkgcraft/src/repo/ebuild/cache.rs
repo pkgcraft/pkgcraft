@@ -156,45 +156,6 @@ impl Cache for MetadataCache {
     }
 }
 
-impl<T> Cache for &T
-where
-    T: Cache,
-{
-    type Entry = T::Entry;
-
-    fn chksum<S: AsRef<[u8]>>(&self, data: S) -> String {
-        (*self).chksum(data)
-    }
-
-    fn format(&self) -> CacheFormat {
-        (*self).format()
-    }
-
-    fn path(&self) -> &Utf8Path {
-        (*self).path()
-    }
-
-    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>> {
-        (*self).get(pkg)
-    }
-
-    fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()> {
-        (*self).update(pkg, meta)
-    }
-
-    fn remove(&self, repo: &EbuildRepo) -> crate::Result<()> {
-        (*self).remove(repo)
-    }
-
-    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
-        (*self).remove_entry(cpv)
-    }
-
-    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
-        (*self).clean(collection)
-    }
-}
-
 impl MetadataCache {
     /// Create a regeneration builder for the cache.
     pub fn regen(&self, repo: &EbuildRepo) -> MetadataCacheRegen {
