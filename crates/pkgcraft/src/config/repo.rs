@@ -240,9 +240,9 @@ impl Config {
             }
             Some(RepoFormat::Configured) => self.configured.iter().collect(),
             Some(RepoFormat::Fake) => repos.filter(|r| matches!(r, Repo::Fake(_))).collect(),
-            Some(RepoFormat::Empty) => {
-                repos.filter(|r| matches!(r, Repo::Unsynced(_))).collect()
-            }
+            Some(RepoFormat::Nonexistent) => repos
+                .filter(|r| matches!(r, Repo::Nonexistent(_)))
+                .collect(),
         }
     }
 

@@ -13,33 +13,34 @@ use crate::Error;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
+/// Nonexistent repo only defined via the config.
 #[derive(Debug)]
-pub struct EmptyRepo {
+pub struct NonexistentRepo {
     id: String,
     repo_config: RepoConfig,
 }
 
-impl PartialEq for EmptyRepo {
+impl PartialEq for NonexistentRepo {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl Eq for EmptyRepo {}
+impl Eq for NonexistentRepo {}
 
-impl Hash for EmptyRepo {
+impl Hash for NonexistentRepo {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
 
-make_repo_traits!(EmptyRepo);
+make_repo_traits!(NonexistentRepo);
 
-impl EmptyRepo {
+impl NonexistentRepo {
     pub(crate) fn new(id: &str, priority: i32) -> Self {
         let repo_config = RepoConfig {
             priority,
-            ..RepoFormat::Empty.into()
+            ..RepoFormat::Nonexistent.into()
         };
 
         Self {
@@ -59,7 +60,7 @@ impl EmptyRepo {
             Ok(Self::new(id, priority))
         } else {
             Err(Error::NotARepo {
-                kind: RepoFormat::Empty,
+                kind: RepoFormat::Nonexistent,
                 id: id.to_string(),
                 err: "repo dir exists".to_string(),
             })
@@ -71,13 +72,13 @@ impl EmptyRepo {
     }
 }
 
-impl fmt::Display for EmptyRepo {
+impl fmt::Display for NonexistentRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.id)
     }
 }
 
-impl PkgRepository for EmptyRepo {
+impl PkgRepository for NonexistentRepo {
     type Pkg = Pkg;
     type IterCpn = iter::Empty<Cpn>;
     type IterCpnRestrict = iter::Empty<Cpn>;
@@ -127,25 +128,25 @@ impl PkgRepository for EmptyRepo {
     }
 }
 
-impl Contains<&Cpn> for EmptyRepo {
+impl Contains<&Cpn> for NonexistentRepo {
     fn contains(&self, _: &Cpn) -> bool {
         false
     }
 }
 
-impl Contains<&Cpv> for EmptyRepo {
+impl Contains<&Cpv> for NonexistentRepo {
     fn contains(&self, _: &Cpv) -> bool {
         false
     }
 }
 
-impl Contains<&Dep> for EmptyRepo {
+impl Contains<&Dep> for NonexistentRepo {
     fn contains(&self, _: &Dep) -> bool {
         false
     }
 }
 
-impl Repository for EmptyRepo {
+impl Repository for NonexistentRepo {
     fn format(&self) -> RepoFormat {
         self.repo_config.format
     }
@@ -173,7 +174,7 @@ mod tests {
 
     #[test]
     fn contains() {
-        let repo = EmptyRepo::new("empty", 0);
+        let repo = NonexistentRepo::new("nonexistent", 0);
 
         // path
         assert!(!repo.contains("cat/pkg"));
@@ -189,7 +190,7 @@ mod tests {
 
     #[test]
     fn iter() {
-        let repo = EmptyRepo::new("empty", 0);
+        let repo = NonexistentRepo::new("nonexistent", 0);
         assert!(repo.iter().next().is_none());
     }
 }

@@ -18,8 +18,8 @@ use crate::Error;
 
 pub mod ebuild;
 use ebuild::EbuildRepo;
-pub(crate) mod empty;
-use empty::EmptyRepo;
+pub(crate) mod nonexistent;
+use nonexistent::NonexistentRepo;
 pub mod fake;
 use fake::FakeRepo;
 pub mod set;
@@ -46,7 +46,7 @@ pub enum RepoFormat {
     Ebuild,
     Configured,
     Fake,
-    Empty,
+    Nonexistent,
 }
 
 impl RepoFormat {
@@ -78,7 +78,9 @@ impl RepoFormat {
         match self {
             Self::Ebuild => Ok(EbuildRepo::from_path(id, priority, &abspath)?.into()),
             Self::Fake => Ok(FakeRepo::from_path(id, priority, &abspath)?.into()),
-            Self::Empty => Ok(EmptyRepo::from_path(id, priority, &abspath)?.into()),
+            Self::Nonexistent => {
+                Ok(NonexistentRepo::from_path(id, priority, &abspath)?.into())
+            }
             _ => Err(Error::LoadRepo { kind: self, id: id.to_string() }),
         }
     }
@@ -123,7 +125,7 @@ pub enum Repo {
     Configured(ebuild::configured::ConfiguredRepo),
     Ebuild(EbuildRepo),
     Fake(FakeRepo),
-    Unsynced(Arc<EmptyRepo>),
+    Nonexistent(Arc<NonexistentRepo>),
 }
 
 impl From<&Repo> for Repo {
@@ -150,9 +152,9 @@ impl From<FakeRepo> for Repo {
     }
 }
 
-impl From<EmptyRepo> for Repo {
-    fn from(repo: EmptyRepo) -> Self {
-        Self::Unsynced(Arc::new(repo))
+impl From<NonexistentRepo> for Repo {
+    fn from(repo: NonexistentRepo) -> Self {
+        Self::Nonexistent(Arc::new(repo))
     }
 }
 
@@ -168,12 +170,12 @@ impl PartialEq for Repo {
             (Self::Ebuild(r1), Self::Ebuild(r2)) => r1.eq(r2),
             (Self::Configured(r1), Self::Configured(r2)) => r1.eq(r2),
             (Self::Fake(r1), Self::Fake(r2)) => r1.eq(r2),
-            (Self::Unsynced(r1), Self::Unsynced(r2)) => r1.eq(r2),
+            (Self::Nonexistent(r1), Self::Nonexistent(r2)) => r1.eq(r2),
             // list unmatched formats for compile failure visibility when adding types
             (Self::Ebuild(_), _) => false,
             (Self::Configured(_), _) => false,
             (Self::Fake(_), _) => false,
-            (Self::Unsynced(_), _) => false,
+            (Self::Nonexistent(_), _) => false,
         }
     }
 }
@@ -187,7 +189,7 @@ impl Hash for Repo {
             Self::Ebuild(r) => r.hash(state),
             Self::Configured(r) => r.hash(state),
             Self::Fake(r) => r.hash(state),
-            Self::Unsynced(r) => r.hash(state),
+            Self::Nonexistent(r) => r.hash(state),
         }
     }
 }
@@ -246,7 +248,7 @@ impl Repo {
             Self::Configured(repo) => repo.repo_config(),
             Self::Ebuild(repo) => repo.repo_config(),
             Self::Fake(repo) => repo.repo_config(),
-            Self::Unsynced(repo) => repo.repo_config(),
+            Self::Nonexistent(repo) => repo.repo_config(),
         }
     }
 }
@@ -255,7 +257,7 @@ pub enum IterCpn {
     Configured(ebuild::IterCpn),
     Ebuild(ebuild::IterCpn),
     Fake(fake::IterCpn),
-    Empty,
+    Nonexistent,
 }
 
 impl Iterator for IterCpn {
@@ -266,7 +268,7 @@ impl Iterator for IterCpn {
             Self::Configured(iter) => iter.next(),
             Self::Ebuild(iter) => iter.next(),
             Self::Fake(iter) => iter.next(),
-            Self::Empty => None,
+            Self::Nonexistent => None,
         }
     }
 }
@@ -275,7 +277,7 @@ pub enum IterCpnRestrict {
     Configured(ebuild::IterCpnRestrict),
     Ebuild(ebuild::IterCpnRestrict),
     Fake(fake::IterCpnRestrict),
-    Empty,
+    Nonexistent,
 }
 
 impl Iterator for IterCpnRestrict {
@@ -286,7 +288,7 @@ impl Iterator for IterCpnRestrict {
             Self::Configured(iter) => iter.next(),
             Self::Ebuild(iter) => iter.next(),
             Self::Fake(iter) => iter.next(),
-            Self::Empty => None,
+            Self::Nonexistent => None,
         }
     }
 }
@@ -295,7 +297,7 @@ pub enum IterCpv {
     Configured(ebuild::IterCpv),
     Ebuild(ebuild::IterCpv),
     Fake(fake::IterCpv),
-    Empty,
+    Nonexistent,
 }
 
 impl Iterator for IterCpv {
@@ -306,7 +308,7 @@ impl Iterator for IterCpv {
             Self::Configured(iter) => iter.next(),
             Self::Ebuild(iter) => iter.next(),
             Self::Fake(iter) => iter.next(),
-            Self::Empty => None,
+            Self::Nonexistent => None,
         }
     }
 }
@@ -315,7 +317,7 @@ pub enum IterCpvRestrict {
     Configured(ebuild::IterCpvRestrict),
     Ebuild(ebuild::IterCpvRestrict),
     Fake(fake::IterCpvRestrict),
-    Empty,
+    Nonexistent,
 }
 
 impl Iterator for IterCpvRestrict {
@@ -326,7 +328,7 @@ impl Iterator for IterCpvRestrict {
             Self::Configured(iter) => iter.next(),
             Self::Ebuild(iter) => iter.next(),
             Self::Fake(iter) => iter.next(),
-            Self::Empty => None,
+            Self::Nonexistent => None,
         }
     }
 }
@@ -336,7 +338,7 @@ pub enum Iter {
     Ebuild(ebuild::Iter),
     Configured(ebuild::configured::Iter),
     Fake(fake::Iter),
-    Empty,
+    Nonexistent,
 }
 
 impl IntoIterator for &Repo {
@@ -348,7 +350,7 @@ impl IntoIterator for &Repo {
             Repo::Ebuild(repo) => Iter::Ebuild(repo.into_iter()),
             Repo::Configured(repo) => Iter::Configured(repo.into_iter()),
             Repo::Fake(repo) => Iter::Fake(repo.into_iter()),
-            Repo::Unsynced(_) => Iter::Empty,
+            Repo::Nonexistent(_) => Iter::Nonexistent,
         }
     }
 }
@@ -361,7 +363,7 @@ impl Iterator for Iter {
             Self::Ebuild(iter) => iter.next().map(|x| x.map(Pkg::Ebuild)),
             Self::Configured(iter) => iter.next().map(|x| x.map(Pkg::Configured)),
             Self::Fake(iter) => iter.next().map(|x| x.map(Pkg::Fake)),
-            Self::Empty => None,
+            Self::Nonexistent => None,
         }
     }
 }
@@ -371,7 +373,7 @@ pub enum IterRestrict {
     Configured(ebuild::configured::IterRestrict),
     Ebuild(ebuild::IterRestrict),
     Fake(fake::IterRestrict),
-    Empty,
+    Nonexistent,
 }
 
 impl Iterator for IterRestrict {
@@ -382,7 +384,7 @@ impl Iterator for IterRestrict {
             Self::Configured(iter) => iter.next().map(|x| x.map(Pkg::Configured)),
             Self::Ebuild(iter) => iter.next().map(|x| x.map(Pkg::Ebuild)),
             Self::Fake(iter) => iter.next().map(|x| x.map(Pkg::Fake)),
-            Self::Empty => None,
+            Self::Nonexistent => None,
         }
     }
 }
@@ -538,7 +540,7 @@ impl fmt::Display for Repo {
             Self::Configured(repo) => write!(f, "{repo}"),
             Self::Ebuild(repo) => write!(f, "{repo}"),
             Self::Fake(repo) => write!(f, "{repo}"),
-            Self::Unsynced(repo) => write!(f, "{repo}"),
+            Self::Nonexistent(repo) => write!(f, "{repo}"),
         }
     }
 }
@@ -557,7 +559,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => repo.categories(),
             Self::Ebuild(repo) => repo.categories(),
             Self::Fake(repo) => repo.categories(),
-            Self::Unsynced(repo) => repo.categories(),
+            Self::Nonexistent(repo) => repo.categories(),
         }
     }
 
@@ -566,7 +568,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => repo.packages(cat),
             Self::Ebuild(repo) => repo.packages(cat),
             Self::Fake(repo) => repo.packages(cat),
-            Self::Unsynced(repo) => repo.packages(cat),
+            Self::Nonexistent(repo) => repo.packages(cat),
         }
     }
 
@@ -575,7 +577,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => repo.versions(cat, pkg),
             Self::Ebuild(repo) => repo.versions(cat, pkg),
             Self::Fake(repo) => repo.versions(cat, pkg),
-            Self::Unsynced(repo) => repo.versions(cat, pkg),
+            Self::Nonexistent(repo) => repo.versions(cat, pkg),
         }
     }
 
@@ -584,7 +586,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => repo.len(),
             Self::Ebuild(repo) => repo.len(),
             Self::Fake(repo) => repo.len(),
-            Self::Unsynced(repo) => repo.len(),
+            Self::Nonexistent(repo) => repo.len(),
         }
     }
 
@@ -593,7 +595,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => IterCpn::Ebuild(repo.iter_cpn()),
             Self::Ebuild(repo) => IterCpn::Ebuild(repo.iter_cpn()),
             Self::Fake(repo) => IterCpn::Fake(repo.iter_cpn()),
-            Self::Unsynced(_) => IterCpn::Empty,
+            Self::Nonexistent(_) => IterCpn::Nonexistent,
         }
     }
 
@@ -602,7 +604,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => IterCpnRestrict::Ebuild(repo.iter_cpn_restrict(value)),
             Self::Ebuild(repo) => IterCpnRestrict::Ebuild(repo.iter_cpn_restrict(value)),
             Self::Fake(repo) => IterCpnRestrict::Fake(repo.iter_cpn_restrict(value)),
-            Self::Unsynced(_) => IterCpnRestrict::Empty,
+            Self::Nonexistent(_) => IterCpnRestrict::Nonexistent,
         }
     }
 
@@ -611,7 +613,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => IterCpv::Ebuild(repo.iter_cpv()),
             Self::Ebuild(repo) => IterCpv::Ebuild(repo.iter_cpv()),
             Self::Fake(repo) => IterCpv::Fake(repo.iter_cpv()),
-            Self::Unsynced(_) => IterCpv::Empty,
+            Self::Nonexistent(_) => IterCpv::Nonexistent,
         }
     }
 
@@ -620,7 +622,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => IterCpvRestrict::Ebuild(repo.iter_cpv_restrict(value)),
             Self::Ebuild(repo) => IterCpvRestrict::Ebuild(repo.iter_cpv_restrict(value)),
             Self::Fake(repo) => IterCpvRestrict::Fake(repo.iter_cpv_restrict(value)),
-            Self::Unsynced(_) => IterCpvRestrict::Empty,
+            Self::Nonexistent(_) => IterCpvRestrict::Nonexistent,
         }
     }
 
@@ -633,7 +635,7 @@ impl PkgRepository for Repo {
             Self::Configured(repo) => IterRestrict::Configured(repo.iter_restrict(val)),
             Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val)),
             Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val)),
-            Self::Unsynced(_) => IterRestrict::Empty,
+            Self::Nonexistent(_) => IterRestrict::Nonexistent,
         }
     }
 }
@@ -644,7 +646,7 @@ impl Contains<&Cpn> for Repo {
             Self::Configured(repo) => repo.contains(value),
             Self::Ebuild(repo) => repo.contains(value),
             Self::Fake(repo) => repo.contains(value),
-            Self::Unsynced(repo) => repo.contains(value),
+            Self::Nonexistent(repo) => repo.contains(value),
         }
     }
 }
@@ -655,7 +657,7 @@ impl Contains<&Cpv> for Repo {
             Self::Configured(repo) => repo.contains(value),
             Self::Ebuild(repo) => repo.contains(value),
             Self::Fake(repo) => repo.contains(value),
-            Self::Unsynced(repo) => repo.contains(value),
+            Self::Nonexistent(repo) => repo.contains(value),
         }
     }
 }
@@ -666,7 +668,7 @@ impl Contains<&Dep> for Repo {
             Self::Configured(repo) => repo.contains(value),
             Self::Ebuild(repo) => repo.contains(value),
             Self::Fake(repo) => repo.contains(value),
-            Self::Unsynced(repo) => repo.contains(value),
+            Self::Nonexistent(repo) => repo.contains(value),
         }
     }
 }
@@ -677,7 +679,7 @@ impl Repository for Repo {
             Self::Configured(repo) => repo.format(),
             Self::Ebuild(repo) => repo.format(),
             Self::Fake(repo) => repo.format(),
-            Self::Unsynced(repo) => repo.format(),
+            Self::Nonexistent(repo) => repo.format(),
         }
     }
 
@@ -686,7 +688,7 @@ impl Repository for Repo {
             Self::Configured(repo) => repo.id(),
             Self::Ebuild(repo) => repo.id(),
             Self::Fake(repo) => repo.id(),
-            Self::Unsynced(repo) => repo.id(),
+            Self::Nonexistent(repo) => repo.id(),
         }
     }
 
@@ -695,7 +697,7 @@ impl Repository for Repo {
             Self::Configured(repo) => repo.name(),
             Self::Ebuild(repo) => repo.name(),
             Self::Fake(repo) => repo.id(),
-            Self::Unsynced(repo) => repo.id(),
+            Self::Nonexistent(repo) => repo.id(),
         }
     }
 
@@ -704,7 +706,7 @@ impl Repository for Repo {
             Self::Configured(repo) => repo.priority(),
             Self::Ebuild(repo) => repo.priority(),
             Self::Fake(repo) => repo.priority(),
-            Self::Unsynced(repo) => repo.priority(),
+            Self::Nonexistent(repo) => repo.priority(),
         }
     }
 
@@ -713,7 +715,7 @@ impl Repository for Repo {
             Self::Configured(repo) => repo.path(),
             Self::Ebuild(repo) => repo.path(),
             Self::Fake(repo) => repo.path(),
-            Self::Unsynced(repo) => repo.path(),
+            Self::Nonexistent(repo) => repo.path(),
         }
     }
 
@@ -722,7 +724,7 @@ impl Repository for Repo {
             Self::Configured(repo) => repo.restrict_from_path(path),
             Self::Ebuild(repo) => repo.restrict_from_path(path),
             Self::Fake(repo) => repo.restrict_from_path(path),
-            Self::Unsynced(repo) => repo.restrict_from_path(path),
+            Self::Nonexistent(repo) => repo.restrict_from_path(path),
         }
     }
 
@@ -731,7 +733,7 @@ impl Repository for Repo {
             Self::Configured(repo) => repo.sync(),
             Self::Ebuild(repo) => repo.sync(),
             Self::Fake(repo) => repo.sync(),
-            Self::Unsynced(repo) => repo.sync(),
+            Self::Nonexistent(repo) => repo.sync(),
         }
     }
 }
@@ -904,12 +906,12 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = Utf8Path::from_path(dir.path()).unwrap();
 
-        // nonexistent repo
+        // invalid repo
         let r = Repo::from_path("test", path, 0);
         assert_err_re!(r, "^invalid format$");
 
-        // unsynced repo
-        let r = Repo::from_path("test", path.join("nonexistent"), 0).unwrap();
-        assert!(r.into_unsynced().is_ok());
+        // nonexistent repo
+        let r = Repo::from_path("test", path.join("nonexistent"), 0);
+        assert!(r.is_ok());
     }
 }
