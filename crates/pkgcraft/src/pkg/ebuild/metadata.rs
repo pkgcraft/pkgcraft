@@ -61,7 +61,7 @@ pub enum Key {
 ///
 /// This is created via deserializing metadata cache entries or pulled directly from the
 /// environment after sourcing an ebuild.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Metadata {
     pub(crate) eapi: &'static Eapi,
     pub(crate) description: String,
