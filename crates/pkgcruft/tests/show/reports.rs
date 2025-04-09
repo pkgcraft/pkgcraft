@@ -90,7 +90,7 @@ fn repo() {
     cmd("pkgcruft show reports --repo nonexistent")
         .assert()
         .stdout("")
-        .stderr(contains("unknown repo: nonexistent"))
+        .stderr(contains("nonexistent repo: nonexistent"))
         .failure()
         .code(2);
 
