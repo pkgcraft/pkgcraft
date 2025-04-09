@@ -55,7 +55,7 @@ impl EmptyRepo {
     ) -> crate::Result<Self> {
         let id = id.as_ref();
         let path = path.as_ref();
-        if path.exists() {
+        if !path.exists() {
             Ok(Self::new(id, priority))
         } else {
             Err(Error::NotARepo {
