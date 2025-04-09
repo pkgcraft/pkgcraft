@@ -359,29 +359,22 @@ mod tests {
     }
 
     #[test]
-    fn serialize() {
-        let data = test_data();
-        let repo = data.ebuild_repo("metadata").unwrap();
-        let cache = Md5Dict::from_repo(repo);
-        for pkg in repo.iter_raw() {
-            let pkg = pkg.unwrap();
-            let meta = pkg.metadata(false).unwrap();
-            let new_entry = Md5DictEntry::from(&meta);
-            let cache_entry = cache.get(&pkg).unwrap().unwrap();
-            assert_eq!(new_entry, cache_entry);
-        }
-    }
-
-    #[test]
     fn update_and_get() {
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
+        let repo_cache = Md5Dict::from_repo(repo);
         let dir = tempdir().unwrap();
-        let cache = Md5Dict::from_path(Utf8Path::from_path(dir.path()).unwrap());
-        let pkg = repo.get_pkg_raw("slot/slot-8").unwrap();
-        let meta = pkg.metadata(false).unwrap();
-        cache.update(&pkg, &meta).unwrap();
-        let new = cache.get(&pkg).unwrap().unwrap().to_metadata(&pkg).unwrap();
-        assert_eq!(meta, new);
+        let new_cache = Md5Dict::from_path(Utf8Path::from_path(dir.path()).unwrap());
+        for pkg in repo.iter_raw() {
+            let pkg = pkg.unwrap();
+            let meta = pkg.metadata(false).unwrap();
+            new_cache.update(&pkg, &meta).unwrap();
+            let new_entry = new_cache.get(&pkg).unwrap().unwrap();
+            let old_entry = repo_cache.get(&pkg).unwrap().unwrap();
+            assert_eq!(new_entry, old_entry);
+            let new_meta = new_entry.to_metadata(&pkg).unwrap();
+            let old_meta = old_entry.to_metadata(&pkg).unwrap();
+            assert_eq!(new_meta, old_meta);
+        }
     }
 }
