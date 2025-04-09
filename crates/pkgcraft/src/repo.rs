@@ -1,6 +1,6 @@
-use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
+use std::{fmt, io};
 
 use camino::Utf8Path;
 use enum_as_inner::EnumAsInner;
@@ -58,10 +58,16 @@ impl RepoFormat {
         priority: i32,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
-            id: path.to_string(),
-            err: e.to_string(),
-        })?;
+        let abspath = match path.canonicalize_utf8() {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => {
+                return Err(Error::InvalidRepo {
+                    id: path.to_string(),
+                    err: e.to_string(),
+                });
+            }
+            Err(_) => path.to_path_buf(),
+            Ok(path) => path,
+        };
 
         // don't use relative paths for repo ids
         let mut id = id.as_ref();
@@ -84,10 +90,16 @@ impl RepoFormat {
         priority: i32,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        let abspath = path.canonicalize_utf8().map_err(|e| Error::InvalidRepo {
-            id: path.to_string(),
-            err: e.to_string(),
-        })?;
+        let abspath = match path.canonicalize_utf8() {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => {
+                return Err(Error::InvalidRepo {
+                    id: path.to_string(),
+                    err: e.to_string(),
+                });
+            }
+            Err(_) => path.to_path_buf(),
+            Ok(path) => path,
+        };
 
         let mut path = abspath.as_path();
         while let Some(parent) = path.parent() {
@@ -196,18 +208,11 @@ impl Repo {
             match format.load_from_path(id, path, priority) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
-                Err(e) => return Err(e),
                 result => return result,
             }
         }
 
-        let err = if path.exists() {
-            "unknown or invalid format"
-        } else {
-            "nonexistent repo path"
-        };
-
-        Err(Error::RepoInit(err.to_string()))
+        Err(Error::RepoInit("invalid format".to_string()))
     }
 
     /// Try to load a repo from a potentially nested path.
@@ -221,18 +226,11 @@ impl Repo {
             match format.load_from_nested_path(path, priority) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
-                Err(e) => return Err(e),
                 result => return result,
             }
         }
 
-        let err = if path.exists() {
-            "unknown or invalid format"
-        } else {
-            "nonexistent repo path"
-        };
-
-        Err(Error::RepoInit(err.to_string()))
+        Err(Error::RepoInit("invalid format".to_string()))
     }
 
     pub(crate) fn finalize(&self, config: &Config) -> crate::Result<()> {
@@ -877,7 +875,10 @@ use make_contains_path;
 mod tests {
     use std::collections::HashSet;
 
+    use tempfile::tempdir;
+
     use crate::repo::ebuild::EbuildRepoBuilder;
+    use crate::test::assert_err_re;
 
     use super::*;
 
@@ -896,5 +897,19 @@ mod tests {
         assert!(e_repo != f_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
+    }
+
+    #[test]
+    fn from_path() {
+        let dir = tempdir().unwrap();
+        let path = Utf8Path::from_path(dir.path()).unwrap();
+
+        // nonexistent repo
+        let r = Repo::from_path("test", path, 0);
+        assert_err_re!(r, "^invalid format$");
+
+        // unsynced repo
+        let r = Repo::from_path("test", path.join("nonexistent"), 0).unwrap();
+        assert!(r.into_unsynced().is_ok());
     }
 }
