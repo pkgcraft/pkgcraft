@@ -161,7 +161,7 @@ impl MetadataCache {
     pub fn regen(&self, repo: &EbuildRepo) -> MetadataCacheRegen {
         MetadataCacheRegen {
             cache: self,
-            progress: ProgressBar::hidden(),
+            progress: false,
             clean: true,
             regen: repo.pool().metadata_task(repo).cache(self),
             repo: repo.clone(),
@@ -173,7 +173,7 @@ impl MetadataCache {
 #[derive(Debug)]
 pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
-    progress: ProgressBar,
+    progress: bool,
     clean: bool,
     regen: MetadataTaskBuilder,
     repo: EbuildRepo,
@@ -189,12 +189,7 @@ impl MetadataCacheRegen<'_> {
 
     /// Show a progress bar during cache regeneration.
     pub fn progress(mut self, value: bool) -> Self {
-        if value {
-            self.progress = ProgressBar::new(0);
-            self.progress.set_style(
-                ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap(),
-            );
-        }
+        self.progress = value;
         self
     }
 
@@ -234,8 +229,14 @@ impl MetadataCacheRegen<'_> {
                 .collect()
         });
 
-        // set progression length encompassing all targets
-        self.progress.set_length(cpvs.len().try_into().unwrap());
+        // track progress encompassing all targets
+        let progress = if self.progress {
+            ProgressBar::new(cpvs.len().try_into().unwrap()).with_style(
+                ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap(),
+            )
+        } else {
+            ProgressBar::hidden()
+        };
 
         // remove outdated cache entries
         if self.clean {
@@ -252,7 +253,7 @@ impl MetadataCacheRegen<'_> {
         let errors = cpvs
             .into_par_iter()
             .filter_map(|cpv| {
-                self.progress.inc(1);
+                progress.inc(1);
                 self.regen.run(cpv).err()
             })
             .inspect(|err| {
@@ -262,13 +263,13 @@ impl MetadataCacheRegen<'_> {
                 let _entered = thread_span.clone().entered();
 
                 // log errors
-                self.progress.suspend(|| {
+                progress.suspend(|| {
                     error!("{err}");
                 });
             })
             .count();
 
-        self.progress.finish_and_clear();
+        progress.finish_and_clear();
         if errors > 0 {
             Err(Error::InvalidValue("metadata failures occurred".to_string()))
         } else {
