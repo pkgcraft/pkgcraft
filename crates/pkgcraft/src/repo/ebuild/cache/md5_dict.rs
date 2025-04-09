@@ -288,7 +288,7 @@ impl Cache for Md5Dict {
 
         // remove invalid file and parent directory if empty
         let remove_file = |path: &Utf8Path| -> crate::Result<()> {
-            fs::remove_file(&path).map_err(|e| {
+            fs::remove_file(path).map_err(|e| {
                 Error::IO(format!("failed removing old cache entry: {path}: {e}"))
             })?;
 
@@ -330,6 +330,8 @@ impl Cache for Md5Dict {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::tempdir;
+
     use crate::test::*;
 
     use super::*;
@@ -368,5 +370,18 @@ mod tests {
             let cache_entry = cache.get(&pkg).unwrap().unwrap();
             assert_eq!(new_entry, cache_entry);
         }
+    }
+
+    #[test]
+    fn update_and_get() {
+        let data = test_data();
+        let repo = data.ebuild_repo("metadata").unwrap();
+        let dir = tempdir().unwrap();
+        let cache = Md5Dict::from_path(Utf8Path::from_path(dir.path()).unwrap());
+        let pkg = repo.get_pkg_raw("slot/slot-8").unwrap();
+        let meta = pkg.metadata(false).unwrap();
+        cache.update(&pkg, &meta).unwrap();
+        let new = cache.get(&pkg).unwrap().unwrap().to_metadata(&pkg).unwrap();
+        assert_eq!(meta, new);
     }
 }
