@@ -38,14 +38,18 @@ impl FromStr for Bound {
     fn from_str(s: &str) -> anyhow::Result<Self> {
         let (bound, val): (fn(Duration) -> Self, &str) = {
             // TODO: use an actual parser
-            if let Some(v) = s.strip_prefix(">=") {
-                (Self::GreaterOrEqual, v)
-            } else if let Some(v) = s.strip_prefix('>') {
-                (Self::Greater, v)
-            } else if let Some(v) = s.strip_prefix("<=") {
-                (Self::LessOrEqual, v)
+            if let Some(v) = s.strip_prefix('>') {
+                if let Some(v) = v.strip_prefix('=') {
+                    (Self::GreaterOrEqual, v)
+                } else {
+                    (Self::Greater, v)
+                }
             } else if let Some(v) = s.strip_prefix('<') {
-                (Self::Less, v)
+                if let Some(v) = v.strip_prefix('=') {
+                    (Self::LessOrEqual, v)
+                } else {
+                    (Self::Less, v)
+                }
             } else {
                 (Self::GreaterOrEqual, s)
             }
