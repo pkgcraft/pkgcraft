@@ -914,4 +914,28 @@ mod tests {
         let r = Repo::from_path("test", path.join("nonexistent"), 0);
         assert!(r.is_ok());
     }
+
+    #[test]
+    fn from_nested_path() {
+        let dir = tempdir().unwrap();
+        let path = Utf8Path::from_path(dir.path()).unwrap();
+
+        // invalid repo
+        let r = Repo::from_nested_path(path, 0);
+        assert_err_re!(r, format!("^invalid repo: {path}$"));
+
+        // nonexistent repo
+        let r = Repo::from_nested_path(path.join("nonexistent"), 0);
+        assert!(r.is_ok());
+
+        // ebuild repo
+        let mut temp = EbuildRepoBuilder::new().name("test").build().unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let r = Repo::from_nested_path(temp.path().join("cat"), 0);
+        assert!(r.is_ok());
+        let r = Repo::from_nested_path(temp.path().join("cat/pkg"), 0);
+        assert!(r.is_ok());
+        let r = Repo::from_nested_path(temp.path().join("cat/pkg/pkg-1.ebuild"), 0);
+        assert!(r.is_ok());
+    }
 }
