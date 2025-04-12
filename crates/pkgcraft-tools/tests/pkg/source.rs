@@ -129,7 +129,7 @@ fn bound_and_sort() {
     "#};
     repo.create_ebuild_from_str("cat/slow-1", &data).unwrap();
 
-    for opt in ["-b", "--bound"] {
+    for opt in ["-B", "--bound"] {
         for (val, pkg) in [
             ("25ms", "cat/slow"),
             (">25ms", "cat/slow"),
