@@ -67,7 +67,7 @@ pub(crate) struct Command {
     #[arg(short, long, value_name = "DURATION")]
     bench: Option<humantime::Duration>,
 
-    /// Bounds applied to elapsed time
+    /// Apply bounds to elapsed time
     #[arg(short = 'B', long)]
     bound: Vec<Bound>,
 
