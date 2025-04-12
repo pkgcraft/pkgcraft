@@ -64,11 +64,11 @@ pub(crate) struct Command {
     jobs: usize,
 
     /// Benchmark for a duration
-    #[arg(long, value_name = "DURATION")]
+    #[arg(short, long, value_name = "DURATION")]
     bench: Option<humantime::Duration>,
 
     /// Bounds applied to elapsed time
-    #[arg(short, long)]
+    #[arg(short = 'B', long)]
     bound: Vec<Bound>,
 
     /// Target repo
