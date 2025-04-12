@@ -63,8 +63,8 @@ pub(crate) struct Command {
     #[arg(short, long, default_value_t = num_cpus::get_physical())]
     jobs: usize,
 
-    /// Benchmark sourcing for a given duration per package
-    #[arg(long)]
+    /// Benchmark for a duration
+    #[arg(long, value_name = "DURATION")]
     bench: Option<humantime::Duration>,
 
     /// Bounds applied to elapsed time
