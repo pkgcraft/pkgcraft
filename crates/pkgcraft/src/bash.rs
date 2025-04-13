@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 
 use crate::shell::phase::PhaseKind;
 use crate::shell::scope::Scope;
+use crate::Error;
 
 static CONDITIONALS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     ["test_command", "if_statement", "list"]
@@ -136,26 +137,25 @@ impl<'a> Node<'a> {
     }
 
     /// Return the function name the node is in if it exists.
-    ///
-    /// Parsing errors found during iteration are ignored.
-    pub fn in_function(&self) -> Option<String> {
+    pub fn in_function(&self) -> crate::Result<Option<String>> {
         let mut node = *self;
         while let Some(x) = node.parent() {
-            if x.kind() == "function_definition" {
-                return x.name().map(Into::into);
+            match x.kind() {
+                "function_definition" => return Ok(x.name().map(Into::into)),
+                "ERROR" => return Err(Error::InvalidValue(format!("failed parsing: {x}"))),
+                _ => node = x,
             }
-            node = x;
         }
-        None
+        Ok(None)
     }
 
     // TODO: handle nested functions
     /// Return the node's scope if it exists.
-    pub fn in_scope(&self) -> Option<Scope> {
-        match self.in_function() {
+    pub fn in_scope(&self) -> crate::Result<Option<Scope>> {
+        self.in_function().map(|x| match x {
             None => Some(Scope::Global),
             Some(func) => func.parse::<PhaseKind>().ok().map(Into::into),
-        }
+        })
     }
 
     /// Return this node's children.
