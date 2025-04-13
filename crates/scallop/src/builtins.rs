@@ -200,12 +200,14 @@ where
     Ok(())
 }
 
-// Enable or disable an iterable of builtins.
-fn toggle_status<I>(builtins: I, enable: bool) -> crate::Result<()>
+/// Toggle an iterable of builtins, returning those were.
+fn toggle_status<I>(builtins: I, enable: bool) -> crate::Result<Vec<String>>
 where
     I: IntoIterator,
     I::Item: AsRef<str>,
 {
+    let mut toggled = vec![];
+
     for name in builtins {
         let name = name.as_ref();
         let builtin_name = CString::new(name).unwrap();
@@ -219,17 +221,18 @@ where
                     } else {
                         b.flags &= !Attr::ENABLED.bits() as i32;
                     }
+                    toggled.push(name.to_string());
                 }
             }
             None => return Err(Error::Base(format!("unknown builtin: {name}"))),
         }
     }
 
-    Ok(())
+    Ok(toggled)
 }
 
 /// Disable a given list of builtins by name.
-pub fn disable<I>(builtins: I) -> crate::Result<()>
+pub fn disable<I>(builtins: I) -> crate::Result<Vec<String>>
 where
     I: IntoIterator,
     I::Item: AsRef<str>,
@@ -238,7 +241,7 @@ where
 }
 
 /// Enable a given list of builtins by name.
-pub fn enable<I>(builtins: I) -> crate::Result<()>
+pub fn enable<I>(builtins: I) -> crate::Result<Vec<String>>
 where
     I: IntoIterator,
     I::Item: AsRef<str>,
@@ -303,27 +306,23 @@ impl ScopedBuiltins {
     pub fn disable<I>(values: I) -> crate::Result<Self>
     where
         I: IntoIterator,
-        I::Item: fmt::Display,
+        I::Item: AsRef<str>,
     {
-        let builtins = Self {
-            names: values.into_iter().map(|s| s.to_string()).collect(),
+        Ok(Self {
+            names: disable(values)?,
             enabled: false,
-        };
-        disable(&builtins.names)?;
-        Ok(builtins)
+        })
     }
 
     pub fn enable<I>(values: I) -> crate::Result<Self>
     where
         I: IntoIterator,
-        I::Item: fmt::Display,
+        I::Item: AsRef<str>,
     {
-        let builtins = Self {
-            names: values.into_iter().map(|s| s.to_string()).collect(),
+        Ok(Self {
+            names: enable(values)?,
             enabled: true,
-        };
-        enable(&builtins.names)?;
-        Ok(builtins)
+        })
     }
 }
 
