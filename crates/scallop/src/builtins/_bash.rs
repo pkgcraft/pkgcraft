@@ -1,4 +1,3 @@
-use crate::command::cmd_scope;
 use crate::error::{ok_or_error, Error};
 use crate::traits::*;
 use crate::{bash, ExecStatus};
@@ -7,21 +6,19 @@ use crate::{bash, ExecStatus};
 pub fn declare<I>(args: I) -> crate::Result<ExecStatus>
 where
     I: IntoIterator,
-    I::Item: AsRef<str>,
+    I::Item: Into<String>,
 {
+    let args = [String::from("declare")]
+        .into_iter()
+        .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
     ok_or_error(|| {
-        cmd_scope("declare", || {
-            let ret = unsafe { bash::declare_builtin((&args).into()) };
-            if ret == 0 {
-                Ok(ExecStatus::Success)
-            } else {
-                Err(Error::Base(format!(
-                    "failed running declare builtin: exit status {}",
-                    ret
-                )))
-            }
-        })
+        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+        if ret == 0 {
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed running declare builtin: exit status {}", ret)))
+        }
     })
 }
 
@@ -29,18 +26,19 @@ where
 pub fn local<I>(args: I) -> crate::Result<ExecStatus>
 where
     I: IntoIterator,
-    I::Item: AsRef<str>,
+    I::Item: Into<String>,
 {
+    let args = [String::from("local")]
+        .into_iter()
+        .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
     ok_or_error(|| {
-        cmd_scope("local", || {
-            let ret = unsafe { bash::local_builtin((&args).into()) };
-            if ret == 0 {
-                Ok(ExecStatus::Success)
-            } else {
-                Err(Error::Base(format!("failed running local builtin: exit status {}", ret)))
-            }
-        })
+        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+        if ret == 0 {
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed running local builtin: exit status {}", ret)))
+        }
     })
 }
 
@@ -48,18 +46,19 @@ where
 pub fn set<I>(args: I) -> crate::Result<ExecStatus>
 where
     I: IntoIterator,
-    I::Item: AsRef<str>,
+    I::Item: Into<String>,
 {
+    let args = [String::from("set")]
+        .into_iter()
+        .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
     ok_or_error(|| {
-        cmd_scope("set", || {
-            let ret = unsafe { bash::set_builtin((&args).into()) };
-            if ret == 0 {
-                Ok(ExecStatus::Success)
-            } else {
-                Err(Error::Base(format!("failed running set builtin: exit status {}", ret)))
-            }
-        })
+        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+        if ret == 0 {
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed running set builtin: exit status {}", ret)))
+        }
     })
 }
 
@@ -67,18 +66,19 @@ where
 pub fn shopt<I>(args: I) -> crate::Result<ExecStatus>
 where
     I: IntoIterator,
-    I::Item: AsRef<str>,
+    I::Item: Into<String>,
 {
+    let args = [String::from("shopt")]
+        .into_iter()
+        .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
     ok_or_error(|| {
-        cmd_scope("shopt", || {
-            let ret = unsafe { bash::shopt_builtin((&args).into()) };
-            if ret == 0 {
-                Ok(ExecStatus::Success)
-            } else {
-                Err(Error::Base(format!("failed running shopt builtin: exit status {}", ret)))
-            }
-        })
+        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+        if ret == 0 {
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed running shopt builtin: exit status {}", ret)))
+        }
     })
 }
 
@@ -86,18 +86,19 @@ where
 pub fn source<I>(args: I) -> crate::Result<ExecStatus>
 where
     I: IntoIterator,
-    I::Item: AsRef<str>,
+    I::Item: Into<String>,
 {
+    let args = [String::from("source")]
+        .into_iter()
+        .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
     ok_or_error(|| {
-        cmd_scope("source", || {
-            let ret = unsafe { bash::source_builtin((&args).into()) };
-            if ret == 0 {
-                Ok(ExecStatus::Success)
-            } else {
-                Err(Error::Base(format!("failed running source builtin: exit status {}", ret)))
-            }
-        })
+        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+        if ret == 0 {
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed running source builtin: exit status {}", ret)))
+        }
     })
 }
 
