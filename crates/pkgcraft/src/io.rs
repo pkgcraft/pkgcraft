@@ -34,7 +34,7 @@ impl Stdin {
             f.set_position(0);
             result
         } else {
-            Err(Error::new(ErrorKind::Other, "stdin injection only valid during testing"))
+            unreachable!("stdin injection only valid during testing");
         }
     }
 }
@@ -101,7 +101,7 @@ impl Stdout {
             f.set_position(0);
             String::from_utf8(std::mem::take(f.get_mut())).unwrap()
         } else {
-            panic!("stdout assertion only valid during testing")
+            unreachable!("stdout assertion only valid during testing");
         }
     }
 }
@@ -163,7 +163,7 @@ impl Stderr {
             f.set_position(0);
             String::from_utf8(std::mem::take(f.get_mut())).unwrap()
         } else {
-            panic!("stderr assertion only valid during testing")
+            unreachable!("stderr assertion only valid during testing");
         }
     }
 }
