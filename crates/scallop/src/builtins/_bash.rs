@@ -82,26 +82,6 @@ where
     })
 }
 
-/// Run the `source` builtin with the given arguments.
-pub fn source<I>(args: I) -> crate::Result<ExecStatus>
-where
-    I: IntoIterator,
-    I::Item: Into<String>,
-{
-    let args = [String::from("source")]
-        .into_iter()
-        .chain(args.into_iter().map(Into::into));
-    let args = Words::from_iter(args);
-    ok_or_error(|| {
-        let ret = unsafe { bash::builtin_builtin((&args).into()) };
-        if ret == 0 {
-            Ok(ExecStatus::Success)
-        } else {
-            Err(Error::Base(format!("failed running source builtin: exit status {}", ret)))
-        }
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use crate::functions::bash_func;
