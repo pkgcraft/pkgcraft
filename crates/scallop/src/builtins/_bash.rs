@@ -106,14 +106,12 @@ mod tests {
     use crate::functions::bash_func;
     use crate::variables::{bind, optional};
 
-    use super::*;
-
     #[test]
-    fn test_local() {
+    fn local() {
         // verify local function variable scope
         bind("VAR", "outer", None, None).unwrap();
         bash_func("func_name", || {
-            let result = local(["VAR=inner"]);
+            let result = super::local(["VAR=inner"]);
             assert_eq!(optional("VAR").unwrap(), "inner");
             result
         })
@@ -121,6 +119,16 @@ mod tests {
         assert_eq!(optional("VAR").unwrap(), "outer");
 
         // local doesn't work in global scope
-        assert!(local(["VAR=inner"]).is_err());
+        assert!(super::local(["VAR=inner"]).is_err());
+    }
+
+    #[test]
+    fn set() {
+        // invalid args
+        assert!(super::set(["-o", "foo"]).is_err());
+
+        // valid args
+        assert!(super::set(["-o", "errexit"]).is_ok());
+        assert!(super::set(["+e"]).is_ok());
     }
 }
