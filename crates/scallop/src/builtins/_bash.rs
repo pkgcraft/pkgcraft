@@ -108,6 +108,15 @@ mod tests {
     use crate::variables::{bind, optional};
 
     #[test]
+    fn declare() {
+        // invalid args
+        assert!(super::declare(["-Z", "foo"]).is_err());
+
+        // valid args
+        assert!(super::declare(["-a", "foo"]).is_ok());
+    }
+
+    #[test]
     fn local() {
         // verify local function variable scope
         bind("VAR", "outer", None, None).unwrap();
