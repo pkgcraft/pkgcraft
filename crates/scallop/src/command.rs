@@ -156,18 +156,6 @@ pub fn current<'a>() -> Option<&'a str> {
     }
 }
 
-/// Run a function under a named bash command scope.
-pub(crate) fn cmd_scope<F>(name: &str, func: F) -> crate::Result<ExecStatus>
-where
-    F: FnOnce() -> crate::Result<ExecStatus>,
-{
-    let name = CString::new(name).unwrap();
-    unsafe { bash::CURRENT_COMMAND = name.as_ptr() as *mut _ };
-    let result = func();
-    unsafe { bash::CURRENT_COMMAND = ptr::null_mut() };
-    result
-}
-
 #[cfg(test)]
 mod tests {
     use crate::variables::optional;
@@ -195,18 +183,5 @@ mod tests {
     #[test]
     fn invalid() {
         assert!(RawCommand::from_str("|| {").is_err());
-    }
-
-    #[test]
-    fn cmd_scope_and_current() {
-        // no command running
-        assert!(current().is_none());
-
-        // fake a command
-        cmd_scope("test", || {
-            assert_eq!(current().unwrap(), "test");
-            Ok(ExecStatus::Success)
-        })
-        .unwrap();
     }
 }
