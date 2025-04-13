@@ -292,39 +292,14 @@ where
     }
 }
 
+/// Enable/disable builtins, automatically reverting their status when leaving scope.
 #[derive(Debug, Default)]
 pub struct ScopedBuiltins {
     enabled: Vec<String>,
     disabled: Vec<String>,
 }
 
-/// Enable/disable builtins, automatically reverting their status when leaving scope.
 impl ScopedBuiltins {
-    pub fn new<I>(builtins: I) -> crate::Result<Self>
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        let mut enabled = vec![];
-        let mut disabled = vec![];
-
-        for s in builtins {
-            let s = s.as_ref();
-            if let Some(value) = s.strip_prefix('-') {
-                disabled.push(value.to_string());
-            } else if let Some(value) = s.strip_prefix('+') {
-                enabled.push(value.to_string());
-            } else {
-                return Err(Error::Base(format!("missing -/+ prefix: {s}")));
-            }
-        }
-
-        enable(&enabled)?;
-        disable(&disabled)?;
-
-        Ok(Self { enabled, disabled })
-    }
-
     pub fn disable<I>(values: I) -> crate::Result<Self>
     where
         I: IntoIterator,
