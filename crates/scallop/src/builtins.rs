@@ -295,8 +295,8 @@ where
 /// Enable/disable builtins, automatically reverting their status when leaving scope.
 #[derive(Debug, Default)]
 pub struct ScopedBuiltins {
-    enabled: Vec<String>,
-    disabled: Vec<String>,
+    names: Vec<String>,
+    enabled: bool,
 }
 
 impl ScopedBuiltins {
@@ -305,9 +305,11 @@ impl ScopedBuiltins {
         I: IntoIterator,
         I::Item: fmt::Display,
     {
-        let mut builtins = Self::default();
-        builtins.disabled = values.into_iter().map(|s| s.to_string()).collect();
-        disable(&builtins.disabled)?;
+        let builtins = Self {
+            names: values.into_iter().map(|s| s.to_string()).collect(),
+            enabled: false,
+        };
+        disable(&builtins.names)?;
         Ok(builtins)
     }
 
@@ -316,20 +318,21 @@ impl ScopedBuiltins {
         I: IntoIterator,
         I::Item: fmt::Display,
     {
-        let mut builtins = Self::default();
-        builtins.enabled = values.into_iter().map(|s| s.to_string()).collect();
-        enable(&builtins.enabled)?;
+        let builtins = Self {
+            names: values.into_iter().map(|s| s.to_string()).collect(),
+            enabled: true,
+        };
+        enable(&builtins.names)?;
         Ok(builtins)
     }
 }
 
 impl Drop for ScopedBuiltins {
     fn drop(&mut self) {
-        if !self.enabled.is_empty() {
-            disable(&self.enabled).unwrap_or_else(|_| panic!("failed disabling builtins"));
-        }
-        if !self.disabled.is_empty() {
-            enable(&self.disabled).unwrap_or_else(|_| panic!("failed enabling builtins"));
+        if self.enabled {
+            disable(&self.names).unwrap_or_else(|_| panic!("failed disabling builtins"));
+        } else {
+            enable(&self.names).unwrap_or_else(|_| panic!("failed enabling builtins"));
         }
     }
 }
