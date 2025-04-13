@@ -131,4 +131,14 @@ mod tests {
         assert!(super::set(["-o", "errexit"]).is_ok());
         assert!(super::set(["+e"]).is_ok());
     }
+
+    #[test]
+    fn shopt() {
+        // invalid args
+        assert!(super::shopt(["-s", "foo"]).is_err());
+
+        // valid args
+        assert!(super::shopt(["-s", "failglob"]).is_ok());
+        assert!(super::shopt(["-u", "failglob"]).is_ok());
+    }
 }
