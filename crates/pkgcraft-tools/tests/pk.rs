@@ -1,3 +1,4 @@
+mod completion;
 mod cpv;
 mod dep;
 mod pkg;
