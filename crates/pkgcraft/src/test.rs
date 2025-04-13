@@ -10,7 +10,6 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
-use crate::files::is_hidden;
 use crate::macros::build_path;
 use crate::repo::{ebuild::EbuildRepo, Repo, Repository};
 use crate::types::SortedSet;
@@ -228,12 +227,26 @@ impl TestDataPatched {
     }
 }
 
+/// Determine if a file is a patch.
 fn is_patch(entry: &DirEntry) -> bool {
     let path = entry.path();
     path.is_file()
         && path
             .file_name()
             .map(|s| s == "fix.patch")
+            .unwrap_or_default()
+}
+
+/// Determine if a file is temporary.
+fn is_temp(path: &Utf8Path) -> bool {
+    path.is_file()
+        && path
+            .file_name()
+            .map(|x| x.starts_with('.'))
+            .unwrap_or_default()
+        && path
+            .extension()
+            .map(|x| x.parse::<u32>().is_ok())
             .unwrap_or_default()
 }
 
@@ -269,7 +282,7 @@ pub fn test_data_patched() -> TestDataPatched {
                 if src.is_dir() {
                     fs::create_dir(&dest)
                         .unwrap_or_else(|e| panic!("failed creating dir {dest}: {e}"));
-                } else if src.is_file() && !is_patch(&entry) && !is_hidden(&entry) {
+                } else if src.is_file() && !is_patch(&entry) && !is_temp(src) {
                     fs::copy(src, &dest)
                         .unwrap_or_else(|e| panic!("failed copying {src} to {dest}: {e}"));
                 }
