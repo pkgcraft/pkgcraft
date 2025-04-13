@@ -1,3 +1,4 @@
+mod completion;
 mod diff;
 mod ignore;
 mod replay;
