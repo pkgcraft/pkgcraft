@@ -8,6 +8,13 @@ use crate::dep::parse;
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Arch(String);
 
+impl Arch {
+    /// Return true for prefix targets, false otherwise.
+    pub fn is_prefix(&self) -> bool {
+        self.0.contains('-')
+    }
+}
+
 impl From<&str> for Arch {
     fn from(value: &str) -> Self {
         Self(value.to_string())
