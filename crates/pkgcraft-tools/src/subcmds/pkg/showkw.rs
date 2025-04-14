@@ -2,9 +2,12 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{builder::ArgPredicate, Args};
+use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::cli::{MaybeStdinVec, Targets};
+use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
+use pkgcraft::pkg::ebuild::keyword::Arch;
+use pkgcraft::pkg::RepoPackage;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 
@@ -18,6 +21,16 @@ pub(crate) struct Command {
     /// Target repo
     #[arg(short, long)]
     repo: Option<String>,
+
+    /// Target arches
+    #[arg(
+        short,
+        long,
+        value_name = "TARGET[,...]",
+        value_delimiter = ',',
+        allow_hyphen_values = true
+    )]
+    arches: Vec<TriState<Arch>>,
 
     // positionals
     /// Target packages or paths
@@ -41,9 +54,25 @@ impl Command {
             .ebuild_pkgs()
             .log_errors(self.ignore);
 
+        let selected: IndexSet<_> = self.arches.iter().cloned().collect();
+
         let mut stdout = io::stdout().lock();
         for pkg in &mut iter {
-            writeln!(stdout, "{pkg}: {}", pkg.keywords().iter().join(" "))?;
+            // determine default repo arches
+            let mut enabled = pkg
+                .repo()
+                .metadata()
+                .arches()
+                .iter()
+                .filter(|x| !x.is_prefix())
+                .cloned()
+                .collect();
+            // filter defaults by selected arches
+            TriState::enabled(&mut enabled, &selected);
+
+            // support tabular format output
+            let mut keywords = pkg.keywords().iter().filter(|x| enabled.contains(x.arch()));
+            writeln!(stdout, "{pkg}: {}", keywords.join(" "))?;
         }
 
         Ok(ExitCode::from(iter))
