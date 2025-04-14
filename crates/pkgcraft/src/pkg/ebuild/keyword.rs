@@ -14,6 +14,15 @@ impl From<&str> for Arch {
     }
 }
 
+impl FromStr for Arch {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        // TODO: verify arch name via parser
+        Ok(Self(s.to_string()))
+    }
+}
+
 /// Compare two arches, making unprefixed arches less than prefixed arches.
 impl Ord for Arch {
     fn cmp(&self, other: &Self) -> Ordering {
