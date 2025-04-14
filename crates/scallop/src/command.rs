@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::ptr;
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -146,15 +146,6 @@ impl Drop for RawCommand {
 
 static COMMAND_MARKER: LazyLock<CString> =
     LazyLock::new(|| CString::new("Command::from_str").unwrap());
-
-/// Get the currently running command name if one exists.
-pub fn current<'a>() -> Option<&'a str> {
-    unsafe {
-        bash::CURRENT_COMMAND
-            .as_ref()
-            .map(|s| CStr::from_ptr(s).to_str().unwrap())
-    }
-}
 
 #[cfg(test)]
 mod tests {

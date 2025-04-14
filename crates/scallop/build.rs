@@ -21,7 +21,6 @@ impl ParseCallbacks for BashCallback {
             "builtin" => Some("Builtin".into()),
             // global mutables
             "global_command" => Some("GLOBAL_COMMAND".into()),
-            "this_command_name" => Some("CURRENT_COMMAND".into()),
             "temporary_env" => Some("TEMPORARY_ENV".into()),
             "ifs_value" => Some("IFS".into()),
             "shell_builtins" => Some("SHELL_BUILTINS".into()),
@@ -133,7 +132,6 @@ fn main() {
         .allowlist_var("CMD_.*")
 
         .header("bash/execute_cmd.h")
-        .allowlist_var("this_command_name")
         .allowlist_var("subshell_level")
         .allowlist_var("executing_builtin")
         .allowlist_function("executing_line_number")
