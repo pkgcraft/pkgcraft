@@ -115,22 +115,29 @@ impl<'a> Targets<'a> {
 
     /// Parse a dep restriction.
     fn dep_restriction(&mut self, restrict: Restrict) -> crate::Result<(RepoSet, Restrict)> {
+        use DepRestrict::Repo;
+        use StrRestrict::Equal;
+
         let repo_set = self.repo_set()?;
+        let mut repo_targets: Option<Vec<_>> = None;
+        let mut restricts = vec![];
 
         // support external repo path restrictions
         if let Restrict::And(vals) = &restrict {
-            use DepRestrict::Repo;
-            use StrRestrict::Equal;
-            let mut paths = vec![];
-            let mut restricts = vec![];
             for r in vals.iter().map(Deref::deref) {
                 match r {
-                    Restrict::Dep(Repo(Some(Equal(s)))) => paths.push(s),
+                    Restrict::Dep(Repo(Some(Equal(s)))) => {
+                        repo_targets.get_or_insert_default().push(s)
+                    }
                     r => restricts.push(r),
                 }
             }
+        } else if let Restrict::Dep(Repo(Some(Equal(s)))) = &restrict {
+            repo_targets.get_or_insert_default().push(s);
+        }
 
-            match paths[..] {
+        if let Some(targets) = repo_targets {
+            match targets[..] {
                 [path] if path.contains('/') => {
                     let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
                         Error::InvalidValue(format!("invalid repo: {path}: {e}"))
@@ -146,8 +153,12 @@ impl<'a> Targets<'a> {
 
                     return Ok((repo.into(), Restrict::and(restricts)));
                 }
-                [id] if !repo_set.repos.iter().any(|r| r.id() == id) => {
-                    return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
+                [id] => {
+                    if let Ok(repo) = self.config.get_repo(id) {
+                        return Ok((repo.into(), Restrict::and(restricts)));
+                    } else {
+                        return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
+                    }
                 }
                 _ => (),
             }
