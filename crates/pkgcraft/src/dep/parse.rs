@@ -14,21 +14,21 @@ use crate::pkg::ebuild::keyword::{Keyword, KeywordStatus};
 use crate::types::Ordered;
 
 peg::parser!(grammar depspec() for str {
-    // Keywords must not begin with a hyphen.
-    rule keyword_name() -> &'input str
+    // Arches must not begin with a hyphen.
+    pub(super) rule arch() -> &'input str
         = s:$(quiet!{
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
             ['a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-']*
-        } / expected!("keyword name"))
+        } / expected!("arch name"))
         { s }
 
     // The "-*" keyword is allowed in KEYWORDS for package metadata.
     pub(super) rule keyword() -> Keyword
-        = arch:keyword_name()
+        = arch:arch()
             { Keyword { status: KeywordStatus::Stable, arch: arch.into() } }
-        / "~" arch:keyword_name()
+        / "~" arch:arch()
             { Keyword { status: KeywordStatus::Unstable, arch: arch.into() } }
-        / "-" arch:keyword_name()
+        / "-" arch:arch()
             { Keyword { status: KeywordStatus::Disabled, arch: arch.into() } }
         / "-*"
             { Keyword { status: KeywordStatus::Disabled, arch: "*".into() } }
@@ -359,6 +359,10 @@ pub fn use_flag(s: &str) -> crate::Result<&str> {
 
 pub(crate) fn iuse(s: &str) -> crate::Result<Iuse> {
     depspec::iuse(s).map_err(|e| peg_error("invalid IUSE", s, e))
+}
+
+pub(crate) fn arch(s: &str) -> crate::Result<&str> {
+    depspec::arch(s).map_err(|e| peg_error("invalid arch", s, e))
 }
 
 pub(crate) fn keyword(s: &str) -> crate::Result<Keyword> {
