@@ -6,6 +6,7 @@ use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
 
 #[derive(Args)]
+#[clap(next_help_heading = "Remove options")]
 pub(crate) struct Command {
     /// Custom cache path
     #[arg(short, long)]
@@ -17,7 +18,7 @@ pub(crate) struct Command {
 
     // positionals
     /// Target repository
-    #[arg(default_value = ".")]
+    #[arg(default_value = ".", help_heading = "Arguments")]
     repo: String,
 }
 
