@@ -23,7 +23,7 @@ pub enum Error {
     #[error("{0}")]
     IO(String),
     #[error("failed: {0}")]
-    Status(ExecStatus),
+    Status(i32),
 }
 
 impl From<io::Error> for Error {

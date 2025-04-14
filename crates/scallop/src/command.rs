@@ -101,7 +101,7 @@ impl RawCommand {
     fn execute(&self) -> crate::Result<ExecStatus> {
         ok_or_error(|| match unsafe { bash::scallop_execute_command(self.ptr) } {
             0 => Ok(ExecStatus::Success),
-            n => Err(Error::Status(ExecStatus::Failure(n))),
+            n => Err(Error::Status(n)),
         })
     }
 }

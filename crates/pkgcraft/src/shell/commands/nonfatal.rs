@@ -39,8 +39,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // run the specified command
     let result = match command.args(cmd.args).subshell(subshell).execute() {
         r @ (Ok(_) | Err(Error::Bail(_))) => r,
-        Err(Error::Status(s)) => Ok(s),
-        _ => Ok(ExecStatus::Failure(1)),
+        Err(e) => Ok(e.into()),
     };
 
     // disable nonfatal status

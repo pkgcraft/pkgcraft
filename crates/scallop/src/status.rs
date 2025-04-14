@@ -30,7 +30,7 @@ impl From<Error> for ExecStatus {
     fn from(e: Error) -> ExecStatus {
         match e {
             Error::Bail(_) => ExecStatus::Failure(bash::EX_LONGJMP as i32),
-            Error::Status(s) => s,
+            Error::Status(n) => ExecStatus::Failure(n),
             _ => ExecStatus::Failure(1),
         }
     }
