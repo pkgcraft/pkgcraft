@@ -45,18 +45,6 @@ impl From<i32> for ExecStatus {
     }
 }
 
-impl From<&ExecStatus> for bool {
-    fn from(exec: &ExecStatus) -> bool {
-        matches!(exec, ExecStatus::Success)
-    }
-}
-
-impl From<ExecStatus> for bool {
-    fn from(exec: ExecStatus) -> bool {
-        matches!(exec, ExecStatus::Success)
-    }
-}
-
 impl From<bool> for ExecStatus {
     fn from(value: bool) -> ExecStatus {
         if value {
