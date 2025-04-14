@@ -15,7 +15,7 @@ pub enum TriState<T> {
     Remove(T),
 }
 
-impl<T: Ord + Copy + Hash> TriState<T> {
+impl<T: Ord + Clone + Hash> TriState<T> {
     /// Modify the given, enabled set given an iterator of TriState values.
     pub fn enabled<'a, I>(enabled: &mut IndexSet<T>, selected: I)
     where
@@ -23,7 +23,7 @@ impl<T: Ord + Copy + Hash> TriState<T> {
         T: 'a,
     {
         // sort by variant
-        let selected: Vec<_> = selected.into_iter().copied().sorted().collect();
+        let selected: Vec<_> = selected.into_iter().cloned().sorted().collect();
 
         // don't use default if neutral options exist
         if let Some(TriState::Set(_)) = selected.first() {
