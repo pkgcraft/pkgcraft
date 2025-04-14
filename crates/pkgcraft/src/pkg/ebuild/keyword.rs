@@ -25,8 +25,7 @@ impl FromStr for Arch {
     type Err = crate::Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        // TODO: verify arch name via parser
-        Ok(Self(s.to_string()))
+        parse::arch(s).map(|s| Self(s.to_string()))
     }
 }
 
