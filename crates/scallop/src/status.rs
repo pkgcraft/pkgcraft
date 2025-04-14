@@ -1,5 +1,3 @@
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{bash, Error};
@@ -8,13 +6,6 @@ use crate::{bash, Error};
 pub enum ExecStatus {
     Success,
     Failure(i32),
-}
-
-impl fmt::Display for ExecStatus {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ret: i32 = (*self).into();
-        write!(f, "{ret}")
-    }
 }
 
 impl From<ExecStatus> for i32 {
