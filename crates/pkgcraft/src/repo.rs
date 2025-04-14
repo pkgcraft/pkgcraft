@@ -834,10 +834,17 @@ macro_rules! make_repo_traits {
 
         impl Contains<&crate::restrict::Restrict> for $x {
             fn contains(&self, value: &crate::restrict::Restrict) -> bool {
-                value == &Restrict::True
-                    || (value != &Restrict::False
-                        && (self.iter_cpv_restrict(value).next().is_some()
-                            || self.iter_cpn_restrict(value).next().is_some()))
+                use $crate::restrict::dep::Restrict as DepRestrict;
+                use $crate::restrict::Restriction;
+                match value {
+                    Restrict::True => true,
+                    Restrict::False => false,
+                    Restrict::Dep(DepRestrict::Repo(Some(r))) => r.matches(self.id()),
+                    _ => {
+                        self.iter_cpv_restrict(value).next().is_some()
+                            || self.iter_cpn_restrict(value).next().is_some()
+                    }
+                }
             }
         }
 
