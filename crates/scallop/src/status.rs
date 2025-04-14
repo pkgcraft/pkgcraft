@@ -1,5 +1,4 @@
 use std::fmt;
-use std::process::ExitStatus;
 
 use serde::{Deserialize, Serialize};
 
@@ -61,16 +60,6 @@ impl From<ExecStatus> for bool {
 impl From<bool> for ExecStatus {
     fn from(value: bool) -> ExecStatus {
         if value {
-            ExecStatus::Success
-        } else {
-            ExecStatus::Failure(1)
-        }
-    }
-}
-
-impl From<ExitStatus> for ExecStatus {
-    fn from(status: ExitStatus) -> ExecStatus {
-        if status.success() {
             ExecStatus::Success
         } else {
             ExecStatus::Failure(1)
