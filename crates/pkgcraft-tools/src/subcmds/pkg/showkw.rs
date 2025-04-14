@@ -32,6 +32,10 @@ pub(crate) struct Command {
     )]
     arches: Vec<TriState<Arch>>,
 
+    /// Show prefix arches
+    #[arg(short, long)]
+    prefix: bool,
+
     // positionals
     /// Target packages or paths
     #[arg(
@@ -55,6 +59,7 @@ impl Command {
             .log_errors(self.ignore);
 
         let selected: IndexSet<_> = self.arches.iter().cloned().collect();
+        let arch_filter = |arch: &Arch| -> bool { self.prefix || !arch.is_prefix() };
 
         let mut stdout = io::stdout().lock();
         for pkg in &mut iter {
@@ -64,7 +69,7 @@ impl Command {
                 .metadata()
                 .arches()
                 .iter()
-                .filter(|x| !x.is_prefix())
+                .filter(|&x| arch_filter(x))
                 .cloned()
                 .collect();
             // filter defaults by selected arches
