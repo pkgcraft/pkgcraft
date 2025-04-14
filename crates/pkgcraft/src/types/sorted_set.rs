@@ -7,6 +7,7 @@ use indexmap::{Equivalent, IndexSet};
 use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
 use serde::{Deserialize, Deserializer};
+use winnow::stream::Accumulate;
 
 use crate::macros::partial_cmp_not_equal_opt;
 
@@ -191,6 +192,16 @@ where
         D: Deserializer<'de>,
     {
         IndexSet::deserialize(deserializer).map(SortedSet)
+    }
+}
+
+impl<T: Ordered> Accumulate<T> for SortedSet<T> {
+    fn initial(_capacity: Option<usize>) -> Self {
+        SortedSet::new()
+    }
+
+    fn accumulate(&mut self, acc: T) {
+        self.insert(acc);
     }
 }
 

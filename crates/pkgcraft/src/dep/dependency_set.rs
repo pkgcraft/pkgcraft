@@ -5,6 +5,7 @@ use std::ops::{
 };
 
 use itertools::Itertools;
+use winnow::stream::Accumulate;
 
 use crate::eapi::Eapi;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
@@ -584,6 +585,16 @@ impl Restriction<&DependencySet<Dep>> for BaseRestrict {
         crate::restrict::restrict_match! {self, val,
             Self::Dep(r) => val.into_iter_flatten().any(|v| r.matches(v)),
         }
+    }
+}
+
+impl<T: Ordered> Accumulate<Dependency<T>> for DependencySet<T> {
+    fn initial(_capacity: Option<usize>) -> Self {
+        DependencySet::new()
+    }
+
+    fn accumulate(&mut self, acc: Dependency<T>) {
+        self.insert(acc);
     }
 }
 

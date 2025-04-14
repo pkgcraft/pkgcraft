@@ -10,6 +10,7 @@ pub mod fetch;
 pub mod files;
 pub(crate) mod io;
 pub mod macros;
+pub mod parser;
 pub mod pkg;
 pub mod repo;
 pub mod restrict;
