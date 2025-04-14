@@ -70,7 +70,7 @@ impl Command {
             // filter defaults by selected arches
             TriState::enabled(&mut enabled, &selected);
 
-            // support tabular format output
+            // TODO: support tabular output formats
             let mut keywords = pkg.keywords().iter().filter(|x| enabled.contains(x.arch()));
             writeln!(stdout, "{pkg}: {}", keywords.join(" "))?;
         }
