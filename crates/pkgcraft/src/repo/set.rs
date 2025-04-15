@@ -179,6 +179,12 @@ impl PkgRepository for RepoSet {
     }
 }
 
+impl Contains<&str> for RepoSet {
+    fn contains(&self, value: &str) -> bool {
+        self.repos.iter().any(|r| r.id() == value)
+    }
+}
+
 impl Contains<&Cpn> for RepoSet {
     fn contains(&self, value: &Cpn) -> bool {
         self.repos.iter().any(|r| r.contains(value))
