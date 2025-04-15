@@ -201,14 +201,10 @@ impl EbuildPkgSetCheck for Check {
 
                         // handle strings with embedded $FILESDIR usage
                         if !path.starts_with(filesdir.as_str()) {
-                            if let Some(idx) = path.find(filesdir.as_str()) {
-                                path = path.split_at(idx).1.to_string();
-                            } else {
-                                warn!("{self}: {pkg}: unhandled file path: {path}");
-                                // disable FilesUnused report
-                                files.clear();
-                                continue;
-                            }
+                            let idx = path.find(filesdir.as_str()).unwrap_or_else(|| {
+                                panic!("{self}: {pkg}: failed expanding FILESDIR: {path}")
+                            });
+                            path = path.split_at(idx).1.to_string();
                         }
 
                         // flag nonexistent files
