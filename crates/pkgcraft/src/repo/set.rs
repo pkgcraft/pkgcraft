@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Deref, Sub, SubAssign,
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign,
 };
 
 use indexmap::IndexSet;
@@ -8,7 +8,6 @@ use indexmap::IndexSet;
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::Pkg;
 use crate::repo::ebuild::EbuildRepo;
-use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
 use crate::types::OrderedSet;
@@ -129,36 +128,10 @@ impl PkgRepository for RepoSet {
 
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         let restrict = val.into();
-
-        // extract repo restrictions for filtering
-        use crate::pkg::Restrict::Repo as PkgRepo;
-        use DepRestrict::Repo as DepRepo;
-        let mut repo_restricts = vec![];
-
-        if let Restrict::And(vals) = &restrict {
-            for r in vals.iter().map(Deref::deref) {
-                match r {
-                    Restrict::Dep(DepRepo(Some(x))) => repo_restricts.push(x.clone()),
-                    Restrict::Pkg(PkgRepo(x)) => repo_restricts.push(x.clone()),
-                    _ => (),
-                }
-            }
-        } else if let Restrict::Pkg(PkgRepo(x)) = &restrict {
-            repo_restricts.push(x.clone());
-        }
-
-        let repo_restrict = match &repo_restricts[..] {
-            [] => Restrict::True,
-            [_] => repo_restricts.remove(0).into(),
-            _ => Restrict::and(repo_restricts),
-        };
-
         IterRestrict(Box::new(
-            self.repos
-                .clone()
+            self.filter(&restrict)
                 .into_iter()
-                .filter(move |r| repo_restrict.matches(r.id()))
-                .flat_map(move |r| r.iter_restrict(restrict.clone())),
+                .flat_map(move |r| r.iter_restrict(&restrict)),
         ))
     }
 }
@@ -426,6 +399,7 @@ mod tests {
     use crate::pkg::Restrict as PkgRestrict;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::fake::FakeRepo;
+    use crate::restrict::dep::Restrict as DepRestrict;
     use crate::test::*;
     use crate::utils::hash;
 
