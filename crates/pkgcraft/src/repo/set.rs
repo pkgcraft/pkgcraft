@@ -519,6 +519,9 @@ mod tests {
         assert!(!s.contains(&cpn));
         assert!(!s.contains(&cpv));
         assert!(!s.contains(&dep));
+        assert!(s.contains("empty"));
+        assert!(s.contains("fake"));
+        assert!(!s.contains("nonexistent"));
 
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
