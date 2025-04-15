@@ -240,7 +240,7 @@ mod tests {
         fchmodat(None, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
 
         // compressed archives
-        for ext in ["tar.gz", "tar.bz2", "tar.xz"] {
+        for ext in ["tar.gz", "tar.bz2", "tar.lzma", "tar.xz"] {
             // create tarball, remove its source, and then unpack it
             run_commands(|| {
                 let file = format!("a.{ext}");
@@ -267,7 +267,7 @@ mod tests {
         }
 
         // compressed files
-        for ext in ["gz", "bz2", "xz"] {
+        for ext in ["gz", "bz2", "lzma", "xz"] {
             // create archive, remove its source, and then unpack it
             run_commands(|| {
                 let file = format!("file.{ext}");
