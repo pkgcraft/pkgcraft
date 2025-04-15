@@ -7,6 +7,7 @@ use indexmap::IndexSet;
 
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::Pkg;
+use crate::pkg::Restrict as PkgRestrict;
 use crate::repo::ebuild::EbuildRepo;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -34,27 +35,33 @@ impl RepoSet {
 
     /// Filter a repo set using repo restrictions.
     pub fn filter(self, restrict: Restrict) -> (Self, Restrict) {
+        let mut repo_restricts = vec![];
+        let mut restricts = vec![];
+
+        // try to extract repo restrictions to perform repo filtering
         if let Restrict::And(vals) = &restrict {
-            use DepRestrict::Repo;
-            let mut repo_restricts = vec![];
-            let mut restricts = vec![];
             for r in vals.iter().map(Deref::deref) {
                 match r {
-                    Restrict::Dep(Repo(Some(r))) => repo_restricts.push(r),
+                    Restrict::Dep(DepRestrict::Repo(Some(r))) => repo_restricts.push(r),
+                    Restrict::Pkg(PkgRestrict::Repo(r)) => repo_restricts.push(r),
                     r => restricts.push(r),
                 }
             }
-
-            if !repo_restricts.is_empty() {
-                let set = self
-                    .into_iter()
-                    .filter(|repo| repo_restricts.iter().all(|r| r.matches(repo.id())))
-                    .collect();
-                return (set, Restrict::and(restricts));
-            }
+        } else if let Restrict::Dep(DepRestrict::Repo(Some(r))) = &restrict {
+            repo_restricts.push(r);
+        } else if let Restrict::Pkg(PkgRestrict::Repo(r)) = &restrict {
+            repo_restricts.push(r);
         }
 
-        (self, restrict)
+        if !repo_restricts.is_empty() {
+            let set = self
+                .into_iter()
+                .filter(|repo| repo_restricts.iter().all(|r| r.matches(repo.id())))
+                .collect();
+            (set, Restrict::and(restricts))
+        } else {
+            (self, restrict)
+        }
     }
 }
 
@@ -483,6 +490,22 @@ mod tests {
         let r2: Repo = FakeRepo::new("r2", 0).into();
         let s = RepoSet::from_iter([&r1, &r2]);
         assert_ordered_eq!(&s.repos, [&r2, &r1]);
+    }
+
+    #[test]
+    fn filter() {
+        let r1: Repo = FakeRepo::new("r1", 0).into();
+        let r2: Repo = FakeRepo::new("r2", 0).into();
+        let s = RepoSet::from_iter([&r1, &r2]);
+        let s1 = RepoSet::from_iter([&r1]);
+        let s2 = RepoSet::from_iter([&r2]);
+
+        let restrict: Restrict = DepRestrict::repo(Some("r1")).into();
+        let (new, _) = s.clone().filter(restrict);
+        assert_eq!(new, s1);
+        let restrict: Restrict = PkgRestrict::repo("r2").into();
+        let (new, _) = s.clone().filter(restrict);
+        assert_eq!(new, s2);
     }
 
     #[test]
