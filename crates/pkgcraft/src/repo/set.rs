@@ -500,6 +500,7 @@ mod tests {
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
+        assert!(s.iter_cpn().next().is_none());
         assert!(s.iter_cpv().next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
@@ -514,6 +515,7 @@ mod tests {
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
+        assert!(s.iter_cpn().next().is_none());
         assert!(s.iter_cpv().next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
@@ -539,6 +541,7 @@ mod tests {
         assert_ordered_eq!(s.versions("cat", "pkg"), [Version::try_new("1").unwrap()]);
         assert_eq!(s.len(), 1);
         assert!(!s.is_empty());
+        assert_ordered_eq!(s.iter_cpn(), [cpn.clone()]);
         assert_ordered_eq!(s.iter_cpv(), [cpv.clone()]);
         assert!(s.iter().next().is_some());
         assert!(s.iter_restrict(&cpv).next().is_some());
@@ -556,6 +559,7 @@ mod tests {
         assert!(s.contains(&cpn));
         assert!(s.contains(&cpv));
         assert!(s.contains(&dep));
+        assert_ordered_eq!(s.iter_cpn(), [cpn.clone()]);
         assert_ordered_eq!(s.iter_cpv(), [cpv.clone()]);
         assert_eq!(s.iter().count(), 2);
         assert_eq!(s.iter_restrict(&cpv).count(), 2);
