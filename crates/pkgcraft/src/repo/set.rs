@@ -494,6 +494,7 @@ mod tests {
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
         let dep = Dep::try_new("=cat/pkg-1").unwrap();
+        let restrict: Restrict = DepRestrict::category("cat").into();
 
         // empty repo set
         let s = RepoSet::new();
@@ -501,7 +502,9 @@ mod tests {
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
         assert!(s.iter_cpn().next().is_none());
+        assert!(s.iter_cpn_restrict(&restrict).next().is_none());
         assert!(s.iter_cpv().next().is_none());
+        assert!(s.iter_cpv_restrict(&restrict).next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpn));
@@ -516,7 +519,9 @@ mod tests {
         assert_eq!(s.len(), 0);
         assert!(s.is_empty());
         assert!(s.iter_cpn().next().is_none());
+        assert!(s.iter_cpn_restrict(&restrict).next().is_none());
         assert!(s.iter_cpv().next().is_none());
+        assert!(s.iter_cpv_restrict(&restrict).next().is_none());
         assert!(s.iter().next().is_none());
         assert!(s.iter_restrict(&cpv).next().is_none());
         assert!(!s.contains(&cpn));
@@ -542,7 +547,9 @@ mod tests {
         assert_eq!(s.len(), 1);
         assert!(!s.is_empty());
         assert_ordered_eq!(s.iter_cpn(), [cpn.clone()]);
+        assert_ordered_eq!(s.iter_cpn_restrict(&restrict), [cpn.clone()]);
         assert_ordered_eq!(s.iter_cpv(), [cpv.clone()]);
+        assert_ordered_eq!(s.iter_cpv_restrict(&restrict), [cpv.clone()]);
         assert!(s.iter().next().is_some());
         assert!(s.iter_restrict(&cpv).next().is_some());
         assert!(s.contains(&cpn));
@@ -560,7 +567,9 @@ mod tests {
         assert!(s.contains(&cpv));
         assert!(s.contains(&dep));
         assert_ordered_eq!(s.iter_cpn(), [cpn.clone()]);
+        assert_ordered_eq!(s.iter_cpn_restrict(&restrict), [cpn.clone()]);
         assert_ordered_eq!(s.iter_cpv(), [cpv.clone()]);
+        assert_ordered_eq!(s.iter_cpv_restrict(&restrict), [cpv.clone()]);
         assert_eq!(s.iter().count(), 2);
         assert_eq!(s.iter_restrict(&cpv).count(), 2);
         let pkg = s.iter_restrict(&cpv).next().unwrap().unwrap();
