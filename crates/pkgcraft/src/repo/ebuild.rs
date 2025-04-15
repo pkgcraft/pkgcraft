@@ -1620,9 +1620,10 @@ mod tests {
         let restrict = crate::restrict::parse::dep("cat1/*z").unwrap();
         assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
 
-        // no matches via globbed dep restrict
-        let restrict = crate::restrict::parse::dep("*a/*z").unwrap();
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+        // matches via globbed dep restrict
+        let restrict = crate::restrict::parse::dep("*1/*a").unwrap();
+        let cpn = Cpn::try_new("cat1/pkga").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [cpn]);
     }
 
     #[test]
