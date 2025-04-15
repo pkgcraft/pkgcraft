@@ -47,3 +47,21 @@ impl<T> FromIterator<T> for Deque<T> {
         Self(iterable.into_iter().collect())
     }
 }
+
+impl<'a, T> IntoIterator for &'a Deque<T> {
+    type Item = &'a T;
+    type IntoIter = std::collections::vec_deque::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<T> IntoIterator for Deque<T> {
+    type Item = T;
+    type IntoIter = std::collections::vec_deque::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
