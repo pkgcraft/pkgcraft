@@ -1686,6 +1686,13 @@ mod tests {
         let cpv = Cpv::try_new("cat/nonexistent-1").unwrap();
         assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), []);
 
+        // invalid Cpv restrict
+        let cat_restrict = DepRestrict::category("-cat");
+        let pn_restrict = DepRestrict::package("-pkg");
+        let ver_restrict = DepRestrict::version("1").unwrap();
+        let restrict = Restrict::and([cat_restrict, pn_restrict, ver_restrict]);
+        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), [] as [Cpv; 0]);
+
         // multiple matches via Cpn
         let cpn = Cpn::try_new("cat1/pkga").unwrap();
         assert_ordered_eq!(
