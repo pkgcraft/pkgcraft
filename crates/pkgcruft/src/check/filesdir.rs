@@ -187,11 +187,12 @@ impl EbuildPkgSetCheck for Check {
                         target = node.parent();
                     }
                     if let Some(node) = target {
+                        let location = Location::from(&node);
+
                         // expand references
                         let mut path = match expand_node(pkg, node, &mut cursor, &filesdir) {
                             Ok(path) => path,
                             Err(e) => {
-                                let location = Location::from(&node);
                                 warn!("{self}: {pkg}, {location}: {node}: {e}");
                                 // disable FilesUnused report
                                 files.clear();
@@ -202,7 +203,7 @@ impl EbuildPkgSetCheck for Check {
                         // handle strings with embedded $FILESDIR usage
                         if !path.starts_with(filesdir.as_str()) {
                             let idx = path.find(filesdir.as_str()).unwrap_or_else(|| {
-                                panic!("{self}: {pkg}: failed expanding FILESDIR: {path}")
+                                panic!("{self}: {pkg}, {location}: failed expanding: {node}")
                             });
                             path = path.split_at(idx).1.to_string();
                         }
@@ -220,7 +221,7 @@ impl EbuildPkgSetCheck for Check {
                                         FileUnknown
                                             .version(pkg)
                                             .message(file.trim_start_matches('/'))
-                                            .location(&node)
+                                            .location(location)
                                             .report(run);
                                     }
                                 }
