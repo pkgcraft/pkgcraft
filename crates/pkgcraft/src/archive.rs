@@ -341,8 +341,18 @@ pub(crate) struct Lzma {
 impl ArchiveFormat for Lzma {
     const EXTS: &'static [&'static str] = &["lzma"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
-        unimplemented!()
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
+        let src = src.as_ref();
+        let src = File::open(src)
+            .map_err(|e| Error::IO(format!("failed reading file: {src}: {e}")))?;
+
+        let dest = dest.as_ref();
+        let dest = File::create(dest)
+            .map_err(|e| Error::IO(format!("failed creating file: {dest}: {e}")))?;
+
+        let mut cmd = Command::new("lzma");
+        cmd.arg("-c").stdin(src).stdout(dest);
+        cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()> {
