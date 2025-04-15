@@ -1605,6 +1605,12 @@ mod tests {
         let cpn = Cpn::try_new("cat/nonexistent").unwrap();
         assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [] as [Cpn; 0]);
 
+        // invalid Cpn restrict
+        let cat_restrict = DepRestrict::category("-cat");
+        let pn_restrict = DepRestrict::package("-pkg");
+        let restrict = Restrict::and([cat_restrict, pn_restrict]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+
         // single match via package name
         let restrict = DepRestrict::package("pkgb");
         assert_ordered_eq!(
