@@ -200,7 +200,7 @@ impl EbuildPkgSetCheck for Check {
                             }
                         };
 
-                        // handle strings with embedded $FILESDIR usage
+                        // handle strings with prefixed $FILESDIR usage
                         if !path.starts_with(filesdir.as_str()) {
                             let idx = path.find(filesdir.as_str()).unwrap_or_else(|| {
                                 panic!("{self}: {pkg}, {location}: failed expanding: {node}")
