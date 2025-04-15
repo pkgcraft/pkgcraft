@@ -12,7 +12,7 @@ use tracing::debug;
 use crate::config::{Config, RepoConfig};
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::{Package, Pkg};
-use crate::restrict::Restrict;
+use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
 use crate::Error;
 
@@ -879,6 +879,16 @@ macro_rules! make_contains_path {
     };
 }
 use make_contains_path;
+
+impl Restriction<&Repo> for Restrict {
+    fn matches(&self, repo: &Repo) -> bool {
+        match self {
+            Self::Dep(r) => r.matches(repo),
+            Self::Pkg(r) => r.matches(repo),
+            _ => false,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

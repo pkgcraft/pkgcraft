@@ -169,7 +169,8 @@ impl<'a> Targets<'a> {
             }
         }
 
-        Ok(repo_set.clone().filter(restrict))
+        let set = repo_set.filter(&restrict);
+        Ok((set, restrict))
     }
 
     /// Convert a target into a path or dep restriction.

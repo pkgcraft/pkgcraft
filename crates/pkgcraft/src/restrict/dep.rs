@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 
 use crate::dep::{Blocker, Cpn, Cpv, Dep, UseDep, Version};
+use crate::pkg::{Package, Pkg, RepoPackage};
+use crate::repo::{Repo, Repository};
 use crate::traits::Intersects;
 use crate::types::SortedSet;
 
@@ -136,6 +138,24 @@ impl Restriction<&str> for Restrict {
 impl Restriction<&Cow<'_, Dep>> for Restrict {
     fn matches(&self, value: &Cow<'_, Dep>) -> bool {
         self.matches(value.as_ref())
+    }
+}
+
+impl Restriction<&Pkg> for Restrict {
+    fn matches(&self, pkg: &Pkg) -> bool {
+        match self {
+            Self::Repo(Some(r)) => r.matches(pkg.repo().id()),
+            r => r.matches(pkg.cpv()),
+        }
+    }
+}
+
+impl Restriction<&Repo> for Restrict {
+    fn matches(&self, repo: &Repo) -> bool {
+        match self {
+            Self::Repo(Some(r)) => r.matches(repo.id()),
+            _ => false,
+        }
     }
 }
 

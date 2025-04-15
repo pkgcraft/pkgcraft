@@ -6,7 +6,6 @@ use scallop::ExecStatus;
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::eapi::{Eapi, Restrict as EapiRestrict};
 use crate::repo::{Repo, Repository};
-use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::traits::Intersects;
@@ -328,11 +327,11 @@ impl Restriction<&Pkg> for BaseRestrict {
     }
 }
 
-impl Restriction<&Pkg> for DepRestrict {
-    fn matches(&self, pkg: &Pkg) -> bool {
+impl Restriction<&Repo> for Restrict {
+    fn matches(&self, repo: &Repo) -> bool {
         match self {
-            Self::Repo(Some(r)) => r.matches(pkg.repo().id()),
-            r => r.matches(pkg.cpv()),
+            Self::Repo(r) => r.matches(repo.id()),
+            _ => false,
         }
     }
 }
