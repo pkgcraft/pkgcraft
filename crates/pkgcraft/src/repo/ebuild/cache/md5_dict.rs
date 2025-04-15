@@ -264,11 +264,15 @@ impl Cache for Md5Dict {
 
     fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
         let path = self.path.join(cpv.category()).join(cpv.pf());
-        match fs::remove_file(path) {
+        match fs::remove_file(&path) {
             Err(e) if e.kind() != io::ErrorKind::NotFound => {
                 Err(Error::IO(format!("failed removing cache entry: {cpv}: {e}")))
             }
-            _ => Ok(()),
+            _ => {
+                // remove empty parent directory
+                let _ = fs::remove_dir(path.parent().unwrap());
+                Ok(())
+            }
         }
     }
 
