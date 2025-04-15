@@ -1581,6 +1581,14 @@ mod tests {
         temp.create_ebuild("cat1/pkgb-2", &[]).unwrap();
         temp.create_ebuild("cat1/pkgb-3", &[]).unwrap();
 
+        // matching restriction
+        let restrict = Restrict::True;
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), repo.iter_cpn());
+
+        // non-matching restriction
+        let restrict = Restrict::False;
+        assert!(repo.iter_cpn_restrict(restrict).next().is_none());
+
         // no matches via existing Cpv
         let cpv = Cpv::try_new("cat1/pkga-1").unwrap();
         assert_ordered_eq!(repo.iter_cpn_restrict(&cpv), [] as [Cpn; 0]);
@@ -1606,14 +1614,6 @@ mod tests {
 
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
-
-        // all Cpns match
-        let restrict = Restrict::True;
-        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), repo.iter_cpn());
-
-        // no Cpns match
-        let restrict = Restrict::False;
         assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
     }
 
@@ -1655,6 +1655,14 @@ mod tests {
         temp.create_ebuild("cat1/pkgb-2", &[]).unwrap();
         temp.create_ebuild("cat1/pkgb-3", &[]).unwrap();
 
+        // matching restriction
+        let restrict = Restrict::True;
+        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), repo.iter_cpv());
+
+        // non-matching restriction
+        let restrict = Restrict::False;
+        assert!(repo.iter_cpv_restrict(restrict).next().is_none());
+
         // single match via Cpv
         let cpv = Cpv::try_new("cat1/pkga-1").unwrap();
         assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), [cpv]);
@@ -1684,14 +1692,6 @@ mod tests {
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
         assert_ordered_eq!(repo.iter_cpv_restrict(restrict), []);
-
-        // all Cpvs match
-        let restrict = Restrict::True;
-        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), repo.iter_cpv());
-
-        // no Cpvs match
-        let restrict = Restrict::False;
-        assert_ordered_eq!(repo.iter_cpv_restrict(restrict), []);
     }
 
     #[test]
@@ -1718,6 +1718,10 @@ mod tests {
     fn iter_restrict() {
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
+
+        // non-matching restriction
+        let restrict = Restrict::False;
+        assert!(repo.iter_restrict(restrict).next().is_none());
 
         // single match via Cpv
         let cpv = Cpv::try_new("optional/none-8").unwrap();
