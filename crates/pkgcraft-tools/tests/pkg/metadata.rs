@@ -165,15 +165,16 @@ fn custom_path() {
     let dir = tempdir().unwrap();
     let path = dir.path();
 
+    let mut config = Config::default();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+    let repo = config
+        .add_repo(&temp, false)
+        .unwrap()
+        .into_ebuild()
+        .unwrap();
+
     for opt in ["-p", "--path"] {
-        let mut config = Config::default();
-        let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
         cmd("pk pkg metadata cat/pkg-1")
             .args(["--repo", repo.as_ref()])
             .arg(opt)
