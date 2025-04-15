@@ -65,3 +65,21 @@ impl<T> IntoIterator for Deque<T> {
         self.0.into_iter()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::assert_ordered_eq;
+
+    use super::*;
+
+    #[test]
+    fn extend_left() {
+        let mut deque = Deque::new();
+        deque.extend([1]);
+        deque.extend_left([]);
+        deque.extend_left([2, 3]);
+        deque.extend([4]);
+        assert_ordered_eq!(deque.iter().copied(), [2, 3, 1, 4]);
+        assert_ordered_eq!(deque.into_iter(), [2, 3, 1, 4]);
+    }
+}
