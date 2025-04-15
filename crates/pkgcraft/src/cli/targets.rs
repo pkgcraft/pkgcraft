@@ -119,7 +119,7 @@ impl<'a> Targets<'a> {
         use StrRestrict::Equal;
 
         let repo_set = self.repo_set()?;
-        let mut repo_targets: Option<Vec<_>> = None;
+        let mut repo_targets: Option<Vec<&str>> = None;
         let mut restricts = vec![];
 
         // support external repo path restrictions
@@ -154,6 +154,11 @@ impl<'a> Targets<'a> {
                     return Ok((repo.into(), Restrict::and(restricts)));
                 }
                 [id] => {
+                    // make sure config is loaded if repo isn't registered
+                    if !repo_set.contains(id) {
+                        self.config.load()?;
+                    }
+
                     if let Ok(repo) = self.config.get_repo(id) {
                         return Ok((repo.into(), Restrict::and(restricts)));
                     } else {
