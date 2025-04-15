@@ -173,6 +173,12 @@ impl PkgRepository for RepoSet {
     }
 }
 
+impl Contains<&Repo> for RepoSet {
+    fn contains(&self, value: &Repo) -> bool {
+        self.repos.contains(value)
+    }
+}
+
 impl Contains<&str> for RepoSet {
     fn contains(&self, value: &str) -> bool {
         self.repos.iter().any(|r| r.id() == value)
@@ -483,7 +489,7 @@ mod tests {
     fn repo_traits() {
         let data = test_data();
         let e_repo = data.repo("empty").unwrap();
-        let fake_repo = FakeRepo::new("fake", 0);
+        let f_repo: Repo = FakeRepo::new("fake", 0).into();
 
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();
@@ -500,9 +506,10 @@ mod tests {
         assert!(!s.contains(&cpn));
         assert!(!s.contains(&cpv));
         assert!(!s.contains(&dep));
+        assert!(!s.contains(e_repo));
+        assert!(!s.contains("empty"));
 
         // repo set with no pkgs
-        let f_repo: Repo = fake_repo.into();
         let s = RepoSet::from_iter([e_repo.clone(), f_repo.clone()]);
         assert!(s.categories().is_empty());
         assert_eq!(s.len(), 0);
@@ -513,7 +520,9 @@ mod tests {
         assert!(!s.contains(&cpn));
         assert!(!s.contains(&cpv));
         assert!(!s.contains(&dep));
+        assert!(s.contains(e_repo));
         assert!(s.contains("empty"));
+        assert!(s.contains(&f_repo));
         assert!(s.contains("fake"));
         assert!(!s.contains("nonexistent"));
 
@@ -538,8 +547,7 @@ mod tests {
         assert!(s.contains(&dep));
 
         // multiple pkgs of different types
-        let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
-        let f_repo: Repo = fake_repo.into();
+        let f_repo: Repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap().into();
         let s = RepoSet::from_iter([e_repo, f_repo]);
         assert_ordered_eq!(s.categories(), ["cat"]);
         assert_ordered_eq!(s.packages("cat"), ["pkg"]);
