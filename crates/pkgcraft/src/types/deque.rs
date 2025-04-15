@@ -79,7 +79,7 @@ mod tests {
         deque.extend_left([]);
         deque.extend_left([2, 3]);
         deque.extend([4]);
-        assert_ordered_eq!(deque.iter().copied(), [2, 3, 1, 4]);
-        assert_ordered_eq!(deque.into_iter(), [2, 3, 1, 4]);
+        assert_ordered_eq!(&deque, &[2, 3, 1, 4]);
+        assert_ordered_eq!(deque, [2, 3, 1, 4]);
     }
 }
