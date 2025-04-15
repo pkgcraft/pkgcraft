@@ -882,10 +882,9 @@ use make_contains_path;
 
 impl Restriction<&Repo> for Restrict {
     fn matches(&self, repo: &Repo) -> bool {
-        match self {
+        crate::restrict::restrict_match! {self, repo,
             Self::Dep(r) => r.matches(repo),
             Self::Pkg(r) => r.matches(repo),
-            _ => false,
         }
     }
 }
