@@ -61,10 +61,8 @@ pub struct EbuildRepo(Arc<InternalEbuildRepo>);
 
 impl fmt::Debug for EbuildRepo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Repo")
+        f.debug_struct("EbuildRepo")
             .field("id", &self.id())
-            .field("repo_config", self.repo_config())
-            .field("name", &self.name())
             .finish()
     }
 }
