@@ -72,12 +72,6 @@ impl From<Repo> for RepoSet {
     }
 }
 
-impl From<&Repo> for RepoSet {
-    fn from(repo: &Repo) -> Self {
-        repo.clone().into()
-    }
-}
-
 impl PkgRepository for RepoSet {
     type Pkg = Pkg;
     type IterCpn = IterCpn;

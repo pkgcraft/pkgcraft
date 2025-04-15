@@ -160,7 +160,7 @@ impl<'a> Targets<'a> {
                     }
 
                     if let Ok(repo) = self.config.get_repo(id) {
-                        return Ok((repo.into(), Restrict::and(restricts)));
+                        return Ok((repo.clone().into(), Restrict::and(restricts)));
                     } else {
                         return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
                     }
