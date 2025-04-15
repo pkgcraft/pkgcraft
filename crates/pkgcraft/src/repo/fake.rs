@@ -19,7 +19,7 @@ use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct InternalFakeRepo {
     id: String,
     repo_config: RepoConfig,
@@ -27,8 +27,14 @@ struct InternalFakeRepo {
     cpvs: OrderedSet<Cpv>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct FakeRepo(Arc<InternalFakeRepo>);
+
+impl fmt::Debug for FakeRepo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("FakeRepo").field("id", &self.id()).finish()
+    }
+}
 
 impl PartialEq for FakeRepo {
     fn eq(&self, other: &Self) -> bool {
