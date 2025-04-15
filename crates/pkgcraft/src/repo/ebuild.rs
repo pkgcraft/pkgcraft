@@ -1615,6 +1615,14 @@ mod tests {
         // no matches via package name
         let restrict = DepRestrict::package("nonexistent");
         assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+
+        // no matches via globbed dep restrict
+        let restrict = crate::restrict::parse::dep("cat1/*z").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
+
+        // no matches via globbed dep restrict
+        let restrict = crate::restrict::parse::dep("*a/*z").unwrap();
+        assert_ordered_eq!(repo.iter_cpn_restrict(restrict), [] as [Cpn; 0]);
     }
 
     #[test]
