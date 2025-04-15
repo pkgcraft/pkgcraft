@@ -27,8 +27,8 @@ impl RepoSet {
         Self::default()
     }
 
-    /// Iterate over all ebuild repos in the set.
-    pub fn ebuild(&self) -> impl Iterator<Item = &EbuildRepo> {
+    /// Iterate over ebuild repos in the set.
+    pub fn iter_ebuild(&self) -> impl Iterator<Item = &EbuildRepo> {
         self.repos.iter().filter_map(|r| r.as_ebuild())
     }
 

@@ -318,7 +318,7 @@ impl PkgTargets {
     /// Convert target restrictions into borrowed ebuild repo and restriction tuples.
     pub fn ebuild_repo_restricts(&self) -> impl Iterator<Item = (&EbuildRepo, &Restrict)> {
         self.into_iter()
-            .flat_map(|(set, restrict)| set.ebuild().map(move |repo| (repo, restrict)))
+            .flat_map(|(set, restrict)| set.iter_ebuild().map(move |r| (r, restrict)))
     }
 
     /// Convert target restrictions to packages.

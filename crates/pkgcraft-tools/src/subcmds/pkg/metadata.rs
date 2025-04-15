@@ -69,7 +69,7 @@ impl Command {
             .finalize_pkgs(self.targets.iter().flatten())?;
 
         for (repo_set, restrict) in targets {
-            for repo in repo_set.ebuild() {
+            for repo in repo_set.iter_ebuild() {
                 let format = self.format.unwrap_or(repo.metadata().cache().format());
 
                 let cache = if let Some(path) = self.path.as_ref() {
