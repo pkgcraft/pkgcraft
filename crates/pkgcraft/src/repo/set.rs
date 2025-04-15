@@ -33,14 +33,14 @@ impl RepoSet {
 
     /// Filter a repo set using a restriction.
     pub fn filter(&self, restrict: &Restrict) -> Self {
-        let new: Self = self
+        let filtered: Self = self
             .repos
             .iter()
             .filter(|&repo| restrict.matches(repo))
             .collect();
 
-        if !new.repos.is_empty() {
-            new
+        if !filtered.repos.is_empty() {
+            filtered
         } else {
             self.clone()
         }
