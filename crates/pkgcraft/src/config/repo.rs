@@ -235,14 +235,10 @@ impl Config {
         let repos = self.repos.values();
         match kind {
             None => repos.collect(),
-            Some(RepoFormat::Ebuild) => {
-                repos.filter(|r| matches!(r, Repo::Ebuild(_))).collect()
-            }
+            Some(RepoFormat::Ebuild) => repos.filter(|r| r.is_ebuild()).collect(),
             Some(RepoFormat::Configured) => self.configured.iter().collect(),
-            Some(RepoFormat::Fake) => repos.filter(|r| matches!(r, Repo::Fake(_))).collect(),
-            Some(RepoFormat::Nonexistent) => repos
-                .filter(|r| matches!(r, Repo::Nonexistent(_)))
-                .collect(),
+            Some(RepoFormat::Fake) => repos.filter(|r| r.is_fake()).collect(),
+            Some(RepoFormat::Nonexistent) => repos.filter(|r| r.is_nonexistent()).collect(),
         }
     }
 
