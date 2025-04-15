@@ -14,10 +14,17 @@ use crate::Error;
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
 
 /// Nonexistent repo only defined via the config.
-#[derive(Debug)]
 pub struct NonexistentRepo {
     id: String,
     repo_config: RepoConfig,
+}
+
+impl fmt::Debug for NonexistentRepo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("NonexistentRepo")
+            .field("id", &self.id())
+            .finish()
+    }
 }
 
 impl PartialEq for NonexistentRepo {
