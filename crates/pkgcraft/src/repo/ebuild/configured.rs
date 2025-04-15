@@ -16,10 +16,18 @@ use crate::traits::Contains;
 use super::EbuildRepo;
 
 /// Configured ebuild repository.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ConfiguredRepo {
     raw: EbuildRepo,
     settings: Arc<Settings>,
+}
+
+impl fmt::Debug for ConfiguredRepo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ConfiguredRepo")
+            .field("id", &self.id())
+            .finish()
+    }
 }
 
 impl<'a> From<&'a ConfiguredRepo> for &'a EbuildRepo {
