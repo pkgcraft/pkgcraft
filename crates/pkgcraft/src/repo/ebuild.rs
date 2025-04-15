@@ -1294,11 +1294,13 @@ mod tests {
         let repo = data.ebuild_repo("primary").unwrap();
         assert_eq!(repo.id(), "primary");
         assert_eq!(repo.name(), "primary");
+        assert!(format!("{repo:?}").contains(repo.id()));
 
         // repo id differs from name
         let repo = EbuildRepo::from_path("name", 0, repo.path()).unwrap();
         assert_eq!(repo.id(), "name");
         assert_eq!(repo.name(), "primary");
+        assert!(!format!("{repo:?}").contains(repo.name()));
     }
 
     #[test]

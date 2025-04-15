@@ -385,6 +385,7 @@ mod tests {
     fn id() {
         let repo = FakeRepo::new("fake", 0);
         assert_eq!(repo.id(), "fake");
+        assert!(format!("{repo:?}").contains(repo.id()));
     }
 
     #[test]
