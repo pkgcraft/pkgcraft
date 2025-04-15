@@ -322,13 +322,17 @@ pub(crate) struct Ar {
 impl ArchiveFormat for Ar {
     const EXTS: &'static [&'static str] = &["deb", "a"];
 
-    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(_src: P, _dest: Q) -> crate::Result<()> {
-        unimplemented!()
+    fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()> {
+        let src = src.as_ref();
+        let dest = dest.as_ref();
+        let mut cmd = Command::new("ar");
+        cmd.args(["-cr", dest.as_str(), src.as_str()]);
+        cmd.run()
     }
 
     fn unpack<P: AsRef<Utf8Path>>(&self, _dest: P) -> crate::Result<()> {
         let mut cmd = Command::new("ar");
-        cmd.args(["x", self.path.as_str()]);
+        cmd.args(["-x", self.path.as_str()]);
         cmd.run()
     }
 }
