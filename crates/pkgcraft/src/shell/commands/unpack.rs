@@ -267,7 +267,7 @@ mod tests {
         }
 
         // compressed files
-        for ext in ["gz", "bz2", "lzma", "xz"] {
+        for ext in ["gz", "bz2", "lzma", "tar", "xz"] {
             // create archive, remove its source, and then unpack it
             run_commands(|| {
                 let file = format!("file.{ext}");
