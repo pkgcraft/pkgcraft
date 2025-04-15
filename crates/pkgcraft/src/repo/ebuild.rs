@@ -35,7 +35,6 @@ pub use revdeps::RevDepCache;
 mod temp;
 pub use temp::{EbuildRepoBuilder, EbuildTempRepo};
 
-#[derive(Debug)]
 struct InternalEbuildRepo {
     metadata: Metadata,
     config: RepoConfig,
@@ -43,7 +42,7 @@ struct InternalEbuildRepo {
 }
 
 /// Ebuild repo metadata that is lazily loaded.
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct LazyMetadata {
     masters: OnceLock<Vec<EbuildRepo>>,
     pool: OnceLock<Weak<BuildPool>>,
