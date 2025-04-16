@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::{fmt, fs, io};
@@ -7,6 +6,7 @@ use std::{fmt, fs, io};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use ordermap::OrderMap;
 use rayon::prelude::*;
 use strum::{Display, EnumIter, EnumString};
 
@@ -68,12 +68,12 @@ pub enum ManifestType {
 }
 
 /// Package manifest contained in Manifest files as defined by GLEP 44.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Ord, PartialOrd)]
 pub struct ManifestEntry {
     kind: ManifestType,
     name: String,
     size: u64,
-    hashes: IndexMap<HashType, String>,
+    hashes: OrderMap<HashType, String>,
 }
 
 impl ManifestEntry {
@@ -83,7 +83,7 @@ impl ManifestEntry {
         size: u64,
         data: &[&str],
     ) -> crate::Result<Self> {
-        let mut hashes = IndexMap::new();
+        let mut hashes = OrderMap::new();
         for (kind, value) in data.iter().tuples() {
             let kind: HashType = kind
                 .parse()
@@ -139,7 +139,7 @@ impl ManifestEntry {
         self.size
     }
 
-    pub fn hashes(&self) -> &IndexMap<HashType, String> {
+    pub fn hashes(&self) -> &OrderMap<HashType, String> {
         &self.hashes
     }
 
@@ -164,20 +164,6 @@ impl Eq for ManifestEntry {}
 impl Hash for ManifestEntry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.name.hash(state);
-    }
-}
-
-impl Ord for ManifestEntry {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.kind
-            .cmp(&other.kind)
-            .then_with(|| self.name.cmp(&other.name))
-    }
-}
-
-impl PartialOrd for ManifestEntry {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -381,7 +367,7 @@ impl Manifest {
             }
         });
 
-        // sort manifest entries by kind then by name
+        // sort manifest entries
         self.0.par_sort();
 
         Ok(())
