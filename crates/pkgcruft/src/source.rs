@@ -4,7 +4,7 @@ use std::str::FromStr;
 use colored::{Color, Colorize};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
-use pkgcraft::dep::Cpv;
+use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::ebuild::{keyword::KeywordStatus, EbuildPkg, EbuildRawPkg};
 use pkgcraft::pkg::Package;
@@ -342,7 +342,6 @@ impl Source for EbuildRawPkgSource {
 /// Cache used to avoid recreating package objects for package and version scope scans.
 #[derive(Debug)]
 pub(crate) struct PkgCache<T> {
-    pkgs: pkgcraft::Result<Vec<T>>,
     cache: IndexMap<Cpv, pkgcraft::Result<T>>,
 }
 
@@ -362,18 +361,24 @@ impl<T: Package + Clone> PkgCache<T> {
             }
         }
 
-        Self {
-            pkgs: cache.values().cloned().try_collect(),
-            cache,
-        }
+        Self { cache }
     }
 
-    /// Get all packages from the cache if none were invalid on creation.
-    pub(crate) fn get_pkgs(&self) -> Result<&[T], &pkgcraft::Error> {
-        self.pkgs.as_deref()
+    /// Get matching packages from the cache.
+    pub(crate) fn get_pkgs(&self, cpn: &Cpn) -> Result<Vec<T>, pkgcraft::Error> {
+        self.cache
+            .iter()
+            .filter_map(|(cpv, r)| {
+                if cpn == cpv.cpn() {
+                    Some(r.clone())
+                } else {
+                    None
+                }
+            })
+            .try_collect()
     }
 
-    /// Get a matching package result from the cache if it exists.
+    /// Get a matching package from the cache.
     pub(crate) fn get_pkg(&self, cpv: &Cpv) -> Option<&pkgcraft::Result<T>> {
         self.cache.get(cpv)
     }
