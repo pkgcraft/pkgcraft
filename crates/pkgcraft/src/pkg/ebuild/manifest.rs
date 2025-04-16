@@ -475,4 +475,22 @@ mod tests {
         let manifest = Manifest::parse(data).unwrap();
         assert!(manifest.verify(distdir, distdir).is_ok());
     }
+
+    #[test]
+    fn is_thick() {
+        // thin
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
+        "#};
+        let manifest = Manifest::parse(data).unwrap();
+        assert!(!manifest.is_thick());
+
+        // thick
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
+            EBUILD a-1.ebuild 100 BLAKE2B 531ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ac2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
+        "#};
+        let manifest = Manifest::parse(data).unwrap();
+        assert!(manifest.is_thick());
+    }
 }
