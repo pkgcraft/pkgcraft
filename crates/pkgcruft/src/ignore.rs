@@ -2,7 +2,7 @@ use std::{fmt, fs};
 
 use dashmap::{mapref::one::RefMut, DashMap};
 use indexmap::{IndexMap, IndexSet};
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository, Repository};
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::traits::FilterLines;
 use rayon::prelude::*;
@@ -180,23 +180,23 @@ impl fmt::Display for Ignore {
 /// This iterates in reverse precedence order allowing more specific ignore entries to
 /// override those at a larger scope. For example, package specific entries override repo
 /// settings.
-struct IgnoreScopes<'a, 'b> {
-    repo: &'a EbuildRepo,
-    target: &'b ReportScope,
+struct IgnoreScopes<'a> {
+    repo: String,
+    target: &'a ReportScope,
     scope: Option<Scope>,
 }
 
-impl<'a, 'b> IgnoreScopes<'a, 'b> {
-    fn new(repo: &'a EbuildRepo, target: &'b ReportScope) -> Self {
+impl<'a> IgnoreScopes<'a> {
+    fn new<R: Repository>(repo: R, target: &'a ReportScope) -> Self {
         Self {
-            repo,
+            repo: repo.to_string(),
             target,
             scope: Some(Scope::Repo),
         }
     }
 }
 
-impl Iterator for IgnoreScopes<'_, '_> {
+impl Iterator for IgnoreScopes<'_> {
     type Item = ReportScope;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -214,7 +214,7 @@ impl Iterator for IgnoreScopes<'_, '_> {
                 (Scope::Category, ReportScope::Version(cpv, _)) => {
                     ReportScope::Category(cpv.category().into())
                 }
-                _ => ReportScope::Repo(self.repo.to_string()),
+                _ => ReportScope::Repo(self.repo.clone()),
             };
 
             // set the scope to the next lower level
