@@ -260,6 +260,7 @@ impl ReportIter {
         // create worker and producer threads depending on run scope
         let mut threads = vec![];
         if run.scope >= Scope::Category {
+            // parallelize by package for multiple Cpn targets
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);
             threads.extend((0..run.jobs).map(|_| {
@@ -273,6 +274,7 @@ impl ReportIter {
             }));
             threads.push(pkg_producer(run.clone(), wg, targets_tx, finish_tx));
         } else {
+            // parallelize by check for single Cpn or version targets
             let (targets_tx, targets_rx) = bounded(run.jobs);
             let (finish_tx, finish_rx) = bounded(run.jobs);
             threads.extend((0..run.jobs).map(|_| {
