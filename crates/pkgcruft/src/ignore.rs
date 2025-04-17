@@ -1,6 +1,5 @@
 use std::{fmt, fs};
 
-use camino::Utf8PathBuf;
 use dashmap::{mapref::one::RefMut, DashMap};
 use indexmap::{IndexMap, IndexSet};
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
@@ -52,7 +51,6 @@ impl Ignore {
 
     /// Load ignore data from ebuild lines or files.
     fn load_data(&self, scope: &ReportScope, run: Option<&ScannerRun>) -> CacheEntry {
-        let relpath = scope_to_path(scope);
         let mut ignore = IndexMap::new();
 
         // Parse ignore directives from a line.
@@ -79,10 +77,10 @@ impl Ignore {
             }
         };
 
-        let abspath = self.repo.path().join(&relpath);
+        let path = scope.to_abspath(&self.repo);
         if matches!(scope, ReportScope::Version(..)) {
             // TODO: use BufRead to avoid loading the entire ebuild file?
-            for (i, line) in fs::read_to_string(abspath)
+            for (i, line) in fs::read_to_string(path)
                 .unwrap_or_default()
                 .lines()
                 .enumerate()
@@ -95,7 +93,7 @@ impl Ignore {
                 }
             }
         } else {
-            for (i, line) in fs::read_to_string(abspath.join(".pkgcruft-ignore"))
+            for (i, line) in fs::read_to_string(path.join(".pkgcruft-ignore"))
                 .unwrap_or_default()
                 .filter_lines()
             {
@@ -174,16 +172,6 @@ impl fmt::Display for Ignore {
         }
 
         Ok(())
-    }
-}
-
-/// Convert scope to ignore file path.
-fn scope_to_path(scope: &ReportScope) -> Utf8PathBuf {
-    match scope {
-        ReportScope::Version(cpv, _) => cpv.relpath(),
-        ReportScope::Package(cpn) => cpn.to_string().into(),
-        ReportScope::Category(category) => category.into(),
-        ReportScope::Repo(_) => Default::default(),
     }
 }
 

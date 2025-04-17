@@ -5,7 +5,7 @@ use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 use std::sync::LazyLock;
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use colored::Color;
 use indexmap::IndexSet;
 use pkgcraft::bash::Node;
@@ -919,6 +919,21 @@ impl ReportScope {
             Self::Package(_) => Scope::Package,
             Self::Category(_) => Scope::Category,
             Self::Repo(_) => Scope::Repo,
+        }
+    }
+
+    /// Convert scope to its absolute repo path.
+    pub(crate) fn to_abspath<R: Repository>(&self, repo: R) -> Utf8PathBuf {
+        repo.path().join(self.to_relpath())
+    }
+
+    /// Convert scope to its relative repo path.
+    pub(crate) fn to_relpath(&self) -> Utf8PathBuf {
+        match self {
+            Self::Version(cpv, _) => cpv.relpath(),
+            Self::Package(cpn) => cpn.to_string().into(),
+            Self::Category(category) => category.into(),
+            Self::Repo(_) => Default::default(),
         }
     }
 }
