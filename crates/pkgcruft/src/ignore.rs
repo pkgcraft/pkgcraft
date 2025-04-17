@@ -11,7 +11,27 @@ use tracing::warn;
 use crate::report::{Report, ReportKind, ReportScope, ReportSet};
 use crate::scan::ScannerRun;
 
-type CacheEntry = IndexMap<ReportKind, Vec<(ReportSet, bool)>>;
+/// Individual ignore directive relating to a ReportSet.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy)]
+pub(crate) struct IgnoreDirective {
+    line: usize,
+    set: ReportSet,
+    used: bool,
+}
+
+impl IgnoreDirective {
+    fn new(set: ReportSet, line: usize) -> Self {
+        Self { line, set, used: false }
+    }
+}
+
+impl fmt::Display for IgnoreDirective {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.set)
+    }
+}
+
+type CacheEntry = IndexMap<ReportKind, Vec<IgnoreDirective>>;
 
 /// The cache of ignore data for an ebuild repo.
 ///
@@ -60,8 +80,9 @@ impl Ignore {
             for result in data.split(',').map(|s| s.trim().parse::<ReportSet>()) {
                 match result {
                     Ok(set) => {
+                        let directive = IgnoreDirective::new(set, lineno);
                         for kind in set.expand(&self.default, &self.supported) {
-                            ignore.entry(kind).or_default().push((set, false));
+                            ignore.entry(kind).or_default().push(directive);
                         }
                     }
                     Err(e) => {
@@ -131,9 +152,9 @@ impl Ignore {
         self.generate(report.scope(), Some(run)).any(|mut entry| {
             entry
                 .get_mut(&report.kind)
-                .map(|sets| {
-                    for (_, used) in sets {
-                        *used = true;
+                .map(|directives| {
+                    for d in directives {
+                        d.used = true;
                     }
                 })
                 .is_some()
@@ -146,9 +167,10 @@ impl Ignore {
             let map = entry.value();
             let sets: IndexSet<_> = map
                 .values()
-                .flat_map(|sets| {
-                    sets.iter()
-                        .filter_map(|(set, used)| if !used { Some(*set) } else { None })
+                .flat_map(|directives| {
+                    directives
+                        .iter()
+                        .filter_map(|d| if !d.used { Some(d.set) } else { None })
                 })
                 .collect();
             if !sets.is_empty() {
@@ -173,12 +195,10 @@ impl fmt::Display for Ignore {
             let (scope, map) = entry.pair();
             writeln!(f, "{scope}")?;
             // output report sets
-            let sets: IndexSet<_> = map
-                .values()
-                .flat_map(|sets| sets.iter().map(|(set, _)| set))
-                .collect();
-            for set in sets {
-                writeln!(f, "  {set}")?;
+            let mut directives: IndexSet<_> = map.values().flatten().collect();
+            directives.sort_unstable();
+            for d in directives {
+                writeln!(f, "  {d}")?;
             }
         }
 
