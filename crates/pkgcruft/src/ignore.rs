@@ -2,6 +2,7 @@ use std::{fmt, fs};
 
 use dashmap::{mapref::one::RefMut, DashMap};
 use indexmap::{IndexMap, IndexSet};
+use itertools::Either;
 use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::traits::FilterLines;
@@ -74,10 +75,15 @@ impl Ignore {
         let mut ignore: CacheEntry = IndexMap::new();
 
         // Parse ignore directives from a line.
-        //
-        // This supports comma-separated values with optional whitespace.
-        let mut parse_line = |data: &str, lineno: usize| {
-            for result in data.split(',').map(|s| s.trim().parse::<ReportSet>()) {
+        let mut parse_line = |csv: bool, data: &str, lineno: usize| {
+            // support comma-separated values for ebuild files
+            let values = if csv {
+                Either::Left(data.split(',').map(|s| s.trim().parse::<ReportSet>()))
+            } else {
+                Either::Right([data.trim().parse::<ReportSet>()].into_iter())
+            };
+
+            for result in values {
                 match result {
                     Ok(set) => {
                         let directive = IgnoreDirective::new(set, lineno);
@@ -109,7 +115,7 @@ impl Ignore {
             {
                 let line = line.trim();
                 if let Some(data) = line.strip_prefix("# pkgcruft-ignore: ") {
-                    parse_line(data, i + 1);
+                    parse_line(true, data, i + 1);
                 } else if !line.is_empty() && !line.starts_with("#") {
                     break;
                 }
@@ -119,7 +125,7 @@ impl Ignore {
                 .unwrap_or_default()
                 .filter_lines()
             {
-                parse_line(line, i);
+                parse_line(false, line, i);
             }
         }
 
