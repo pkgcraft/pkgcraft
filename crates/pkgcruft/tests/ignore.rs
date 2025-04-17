@@ -70,11 +70,30 @@ fn current_dir_targets() {
     "};
     fs::write(repo.path().join("cat-a/pkg-a/.pkgcruft-ignore"), data).unwrap();
 
+    // ignore all level range variants
+    repo.create_ebuild("cat-a/levels-1", &[]).unwrap();
+    let data = indoc::indoc! {"
+        @<info
+        @<=style
+        @=warning
+        @!=warning
+        @>=error
+        @>critical
+    "};
+    fs::write(repo.path().join("cat-a/levels/.pkgcruft-ignore"), data).unwrap();
+
     // repo dir
     env::set_current_dir(&repo).unwrap();
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
+            cat-a/levels
+              @<info
+              @<=style
+              @=warning
+              @!=warning
+              @>=error
+              @>critical
             cat-a/pkg-a-1
               PythonUpdate
             cat-a/pkg-a
@@ -96,6 +115,13 @@ fn current_dir_targets() {
     cmd("pkgcruft ignore")
         .assert()
         .stdout(indoc::indoc! {"
+            cat-a/levels
+              @<info
+              @<=style
+              @=warning
+              @!=warning
+              @>=error
+              @>critical
             cat-a/pkg-a-1
               PythonUpdate
             cat-a/pkg-a
