@@ -269,7 +269,7 @@ macro_rules! make_pkg_check_runner {
 
             /// Run a check for a [`Cpn`].
             fn run_pkg_set(&self, check: &Check, cpn: &Cpn, run: &ScannerRun) {
-                match self.cache(run).get_pkgs(cpn) {
+                match self.cache(run).get_pkgs() {
                     Ok(pkgs) => {
                         if !pkgs.is_empty() {
                             let runner = self
@@ -277,7 +277,7 @@ macro_rules! make_pkg_check_runner {
                                 .get(check)
                                 .unwrap_or_else(|| unreachable!("unknown check: {check}"));
                             let now = Instant::now();
-                            runner.run(cpn, &pkgs, run);
+                            runner.run(cpn, pkgs, run);
                             debug!("{check}: {cpn}: {:?}", now.elapsed());
                         }
                     }
