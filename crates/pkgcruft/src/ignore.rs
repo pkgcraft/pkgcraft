@@ -15,20 +15,29 @@ use crate::scan::ScannerRun;
 /// Individual ignore directive relating to a ReportSet.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Hash, Clone, Copy)]
 pub(crate) struct IgnoreDirective {
-    line: usize,
+    location: (usize, usize),
     set: ReportSet,
     used: bool,
+    invert: bool,
 }
 
 impl IgnoreDirective {
-    fn new(set: ReportSet, line: usize) -> Self {
-        Self { line, set, used: false }
+    fn try_new(s: &str, location: (usize, usize)) -> crate::Result<Self> {
+        let (s, invert) = s.strip_prefix('!').map_or((s, false), |x| (x, true));
+
+        s.parse().map(|set| Self {
+            location,
+            set,
+            used: false,
+            invert,
+        })
     }
 }
 
 impl fmt::Display for IgnoreDirective {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.set)
+        let invert = if self.invert { "!" } else { "" };
+        write!(f, "{invert}{}", self.set)
     }
 }
 
@@ -78,17 +87,20 @@ impl Ignore {
         let mut parse_line = |csv: bool, data: &str, lineno: usize| {
             // support comma-separated values for ebuild files
             let values = if csv {
-                Either::Left(data.split(',').map(|s| s.trim().parse::<ReportSet>()))
+                Either::Left(
+                    data.split(',')
+                        .enumerate()
+                        .map(|(i, s)| IgnoreDirective::try_new(s.trim(), (lineno, i))),
+                )
             } else {
-                Either::Right([data.trim().parse::<ReportSet>()].into_iter())
+                Either::Right([IgnoreDirective::try_new(data.trim(), (lineno, 0))].into_iter())
             };
 
             for result in values {
                 match result {
-                    Ok(set) => {
-                        let directive = IgnoreDirective::new(set, lineno);
-                        for kind in set.expand(&self.default, &self.supported) {
-                            ignore.entry(kind).or_default().push(directive);
+                    Ok(d) => {
+                        for kind in d.set.expand(&self.default, &self.supported) {
+                            ignore.entry(kind).or_default().push(d);
                         }
                     }
                     Err(e) => {
@@ -150,21 +162,23 @@ impl Ignore {
         })
     }
 
-    /// Determine if a report is ignored via any relevant ignore settings.
+    /// Determine if a report is ignored via relevant ignore directives.
     ///
     /// For example, a version scope report will check for repo, category, package, and
-    /// ebuild ignore data stopping at the first match.
+    /// ebuild directives.
     pub(crate) fn ignored(&self, report: &Report, run: &ScannerRun) -> bool {
-        self.generate(report.scope(), Some(run)).any(|mut entry| {
-            entry
-                .get_mut(&report.kind)
-                .map(|directives| {
-                    for d in directives {
-                        d.used = true;
-                    }
-                })
-                .is_some()
-        })
+        let mut ignored = false;
+
+        for mut entry in self.generate(report.scope(), Some(run)) {
+            if let Some(directives) = entry.get_mut(&report.kind) {
+                for d in directives {
+                    d.used = true;
+                    ignored = !d.invert;
+                }
+            }
+        }
+
+        ignored
     }
 
     /// Return the set of unused ignore directives for a scope if it exists.

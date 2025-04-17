@@ -33,14 +33,14 @@ fn current_dir_targets() {
 
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
-        # pkgcruft-ignore: PythonUpdate
+        # pkgcruft-ignore: PythonUpdate, !@style
         EAPI=8
         DESCRIPTION="ebuild with ignore directive"
         SLOT=0
     "#};
     repo.create_ebuild_from_str("cat-a/pkg-a-1", &data).unwrap();
     let data = indoc::formatdoc! {r#"
-        # pkgcruft-ignore: PythonUpdate
+        # pkgcruft-ignore: PythonUpdate,!@style
         EAPI=8
         DESCRIPTION="ebuild with ignore directive"
         SLOT=0
@@ -96,10 +96,12 @@ fn current_dir_targets() {
               @>critical
             cat-a/pkg-a-1
               PythonUpdate
+              !@style
             cat-a/pkg-a
               UnstableOnly
             cat-a/pkg-b-1
               PythonUpdate
+              !@style
             cat-b/pkg-c-1
               PythonUpdate
             cat-a/*
@@ -124,10 +126,12 @@ fn current_dir_targets() {
               @>critical
             cat-a/pkg-a-1
               PythonUpdate
+              !@style
             cat-a/pkg-a
               UnstableOnly
             cat-a/pkg-b-1
               PythonUpdate
+              !@style
             cat-a/*
               @Manifest
             test
@@ -143,6 +147,7 @@ fn current_dir_targets() {
         .stdout(indoc::indoc! {"
             cat-a/pkg-a-1
               PythonUpdate
+              !@style
             cat-a/pkg-a
               UnstableOnly
             cat-a/*
