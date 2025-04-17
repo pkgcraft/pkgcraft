@@ -176,18 +176,17 @@ impl<'a> Targets<'a> {
     /// Convert a target into a path or dep restriction.
     fn target_restriction(&mut self, target: &str) -> crate::Result<(RepoSet, Restrict)> {
         // avoid treating `cat/pkg/` as path restriction
-        let mut s = target.trim_end_matches('/');
+        let s = target.trim_end_matches('/');
 
         let (set, restrict) = if let Ok(cpn) = Cpn::try_new(s) {
             Ok((self.repo_set()?.clone(), cpn.into()))
         } else {
-            // convert glob to current path restriction
-            s = if s == "*" { "." } else { s };
-
-            // try creating path and repo targets
+            // try resolving path target
             let path_target = Utf8Path::new(s).canonicalize_utf8().map_err(|e| {
                 Error::InvalidValue(format!("invalid path target: {target}: {e}"))
             });
+
+            // try loading repo from path target
             let repo_target = path_target
                 .as_ref()
                 .ok()
