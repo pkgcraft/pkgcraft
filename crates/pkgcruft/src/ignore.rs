@@ -176,6 +176,10 @@ impl fmt::Display for Ignore {
 }
 
 /// Iterator over relevant scopes for ignore data in a repo targeting a scope.
+///
+/// This iterates in reverse precedence order allowing more specific ignore entries to
+/// override those at a larger scope. For example, package specific entries override repo
+/// settings.
 struct IgnoreScopes<'a, 'b> {
     repo: &'a EbuildRepo,
     target: &'b ReportScope,
@@ -197,7 +201,6 @@ impl Iterator for IgnoreScopes<'_, '_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.scope.map(|scope| {
-            // construct the relative path to check for ignore files
             let entry_scope = match (scope, self.target) {
                 (Scope::Version, ReportScope::Version(..)) => self.target.clone(),
                 (Scope::Package, ReportScope::Version(cpv, _)) => {
