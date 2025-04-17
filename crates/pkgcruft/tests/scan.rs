@@ -381,61 +381,101 @@ fn sort() {
 #[test]
 fn repo() {
     let repo = test_data_path().join("repos/valid/qa-primary");
+    let path = repo.as_str();
 
+    // repo target
+    let reports = cmd("pkgcruft scan -R json")
+        .args(["--repo", path])
+        .to_reports()
+        .unwrap();
+    let expected = glob_reports!("{repo}/**/reports.json");
+    assert_unordered_eq!(&expected, &reports);
+
+    // category target
+    let reports = cmd("pkgcruft scan -R json")
+        .args(["--repo", path])
+        .arg("Dependency/*")
+        .to_reports()
+        .unwrap();
+    let expected = glob_reports!("{repo}/Dependency/*/reports.json");
+    assert_unordered_eq!(&expected, &reports);
+
+    // package target
+    let reports = cmd("pkgcruft scan -R json")
+        .args(["--repo", path])
+        .arg("DependencyDeprecated")
+        .to_reports()
+        .unwrap();
+    let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
+    assert_unordered_eq!(&expected, &reports);
+
+    // Cpn target
+    let reports = cmd("pkgcruft scan -R json")
+        .args(["--repo", path])
+        .arg("Dependency/DependencyDeprecated")
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&expected, &reports);
+
+    // Cpv target
+    let reports = cmd("pkgcruft scan -R json")
+        .args(["--repo", path])
+        .arg("Dependency/DependencyDeprecated-0")
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&expected[..1], &reports);
+
+    // P target
+    let reports = cmd("pkgcruft scan -R json")
+        .args(["--repo", path])
+        .arg("DependencyDeprecated-0")
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&expected[..1], &reports);
+
+    // implicit current dir repo
     env::set_current_dir(&repo).unwrap();
-    for path in [".", "./", repo.as_ref()] {
-        // implicit repo target
-        let reports = cmd("pkgcruft scan -R json")
-            .args(["--repo", path])
-            .to_reports()
-            .unwrap();
-        let expected = glob_reports!("{repo}/**/reports.json");
-        assert_unordered_eq!(&expected, &reports);
+    // repo target
+    let reports = cmd("pkgcruft scan -R json").to_reports().unwrap();
+    let expected = glob_reports!("{repo}/**/reports.json");
+    assert_unordered_eq!(&expected, &reports);
 
-        // category target
-        let reports = cmd("pkgcruft scan -R json")
-            .args(["--repo", path])
-            .arg("Dependency/*")
-            .to_reports()
-            .unwrap();
-        let expected = glob_reports!("{repo}/Dependency/*/reports.json");
-        assert_unordered_eq!(&expected, &reports);
+    // category target
+    let reports = cmd("pkgcruft scan -R json")
+        .arg("Dependency/*")
+        .to_reports()
+        .unwrap();
+    let expected = glob_reports!("{repo}/Dependency/*/reports.json");
+    assert_unordered_eq!(&expected, &reports);
 
-        // package target
-        let reports = cmd("pkgcruft scan -R json")
-            .args(["--repo", path])
-            .arg("DependencyDeprecated")
-            .to_reports()
-            .unwrap();
-        let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
-        assert_unordered_eq!(&expected, &reports);
+    // package target
+    let reports = cmd("pkgcruft scan -R json")
+        .arg("DependencyDeprecated")
+        .to_reports()
+        .unwrap();
+    let expected = glob_reports!("{repo}/Dependency/DependencyDeprecated/reports.json");
+    assert_unordered_eq!(&expected, &reports);
 
-        // Cpn target
-        let reports = cmd("pkgcruft scan -R json")
-            .args(["--repo", path])
-            .arg("Dependency/DependencyDeprecated")
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&expected, &reports);
+    // Cpn target
+    let reports = cmd("pkgcruft scan -R json")
+        .arg("Dependency/DependencyDeprecated")
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&expected, &reports);
 
-        // Cpv target
-        let reports = cmd("pkgcruft scan -R json")
-            .args(["--repo", path])
-            .arg("Dependency/DependencyDeprecated-0")
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&expected[..1], &reports);
+    // Cpv target
+    let reports = cmd("pkgcruft scan -R json")
+        .arg("Dependency/DependencyDeprecated-0")
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&expected[..1], &reports);
 
-        // P target
-        let reports = cmd("pkgcruft scan -R json")
-            .args(["--repo", path])
-            .arg("DependencyDeprecated-0")
-            .to_reports()
-            .unwrap();
-        assert_unordered_eq!(&expected[..1], &reports);
-    }
-
-    // TODO: test overlay
+    // P target
+    let reports = cmd("pkgcruft scan -R json")
+        .arg("DependencyDeprecated-0")
+        .to_reports()
+        .unwrap();
+    assert_unordered_eq!(&expected[..1], &reports);
 }
 
 #[test]
