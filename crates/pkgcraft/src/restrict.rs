@@ -176,11 +176,13 @@ pub enum Scope {
 impl From<&Restrict> for Scope {
     fn from(value: &Restrict) -> Self {
         use dep::Restrict::{Category, Package, Version};
+        use str::Restrict::Equal;
 
         let restrict_scope = |restrict: &Restrict| match restrict {
-            Restrict::Dep(Category(_)) => Scope::Category,
-            Restrict::Dep(Package(_)) => Scope::Package,
             Restrict::Dep(Version(Some(_))) => Scope::Version,
+            Restrict::Dep(Package(Equal(_))) => Scope::Package,
+            Restrict::Dep(Package(_)) => Scope::Category,
+            Restrict::Dep(Category(_)) => Scope::Category,
             _ => Scope::Repo,
         };
 
