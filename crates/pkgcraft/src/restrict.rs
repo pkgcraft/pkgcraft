@@ -150,6 +150,7 @@ impl Restriction<&str> for Restrict {
     }
 }
 
+/// Defines the scope for restriction matches.
 #[derive(
     AsRefStr,
     Display,
@@ -167,9 +168,13 @@ impl Restriction<&str> for Restrict {
 )]
 #[strum(serialize_all = "kebab-case")]
 pub enum Scope {
+    /// Single package version target.
     Version,
+    /// Single unversioned package target.
     Package,
+    /// Multiple unversioned package or category targets.
     Category,
+    /// Full repo target.
     Repo,
 }
 
