@@ -156,7 +156,7 @@ where
                 "!=" => Ok(Self::NotEqual(value)),
                 ">=" => Ok(Self::GreaterOrEqual(value)),
                 ">" => Ok(Self::Greater(value)),
-                _ => panic!("invalid RangeOp regex"),
+                _ => unreachable!("invalid RangeOp regex"),
             }
         } else {
             Err(Error::InvalidValue(format!("invalid range op: {s}")))
