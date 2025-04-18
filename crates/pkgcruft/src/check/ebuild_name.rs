@@ -32,14 +32,12 @@ impl CpnCheck for Check {
             }
         }
 
-        for versions in cpvs.values() {
-            if versions.len() > 1 {
-                let versions = versions.iter().sorted().join(", ");
-                EbuildVersionsEqual
-                    .package(cpn)
-                    .message(format!("versions overlap: {versions}"))
-                    .report(run);
-            }
+        for versions in cpvs.values().filter(|x| x.len() > 1) {
+            let versions = versions.iter().sorted().join(", ");
+            EbuildVersionsEqual
+                .package(cpn)
+                .message(format!("versions overlap: {versions}"))
+                .report(run);
         }
     }
 }
