@@ -508,16 +508,22 @@ mod tests {
 
     #[test]
     fn test_override_funcs() {
+        variables::bind_global("VAR", "1", None, None).unwrap();
+
         // functions override builtins by default
-        source::string("declare() { VAR+=1; }").unwrap();
-        override_funcs(["declare"], false).unwrap();
+        source::string("declare() { (( VAR += 1 )); }").unwrap();
         source::string("declare").unwrap();
-        assert_eq!(variables::optional("VAR").unwrap(), "1");
+        assert_eq!(variables::optional("VAR").unwrap(), "2");
 
         // builtins marked as special override functions
         override_funcs(["declare"], true).unwrap();
         source::string("declare").unwrap();
-        assert_eq!(variables::optional("VAR").unwrap(), "1");
+        assert_eq!(variables::optional("VAR").unwrap(), "2");
+
+        // revert to functions overriding builtins
+        override_funcs(["declare"], false).unwrap();
+        source::string("declare").unwrap();
+        assert_eq!(variables::optional("VAR").unwrap(), "3");
 
         // unknown builtin
         assert!(override_funcs(["nonexistent"], true).is_err());
