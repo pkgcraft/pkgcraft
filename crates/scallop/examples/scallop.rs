@@ -12,5 +12,8 @@ fn main() {
     builtins::enable(builtins).expect("failed enabling builtins");
 
     // run shell
-    shell::interactive(env::args(), env::vars())
+    shell::Interactive::new()
+        .args(env::args().skip(1))
+        .env(env::vars())
+        .run()
 }

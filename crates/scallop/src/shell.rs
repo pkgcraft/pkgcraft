@@ -1,9 +1,10 @@
 use std::cmp::min;
 use std::ffi::{c_char, c_int, CStr, CString};
 use std::sync::LazyLock;
-use std::{env, mem, process, ptr};
+use std::{env, mem, ptr};
 
-use nix::unistd::{getpid, Pid};
+use nix::sys::wait::{waitpid, WaitStatus};
+use nix::unistd::{fork, getpid, ForkResult, Pid};
 
 use crate::shm::create_shm;
 use crate::{bash, error, ExecStatus};
@@ -63,40 +64,101 @@ pub fn reset(ignore_vars: &[&str]) {
     }
 }
 
-/// Start an interactive shell session.
-pub fn interactive<I, J, S1, S2>(args: I, env: J)
-where
-    I: IntoIterator,
-    I::Item: AsRef<str>,
-    J: IntoIterator<Item = (S1, S2)>,
-    S1: std::fmt::Display,
-    S2: std::fmt::Display,
-{
-    let mut argv_ptrs: Vec<_> = args
-        .into_iter()
-        .map(|s| CString::new(s.as_ref()).unwrap().into_raw())
-        .collect();
-    let argc: c_int = argv_ptrs.len().try_into().unwrap();
-    argv_ptrs.push(ptr::null_mut());
-    argv_ptrs.shrink_to_fit();
-    let argv = argv_ptrs.as_mut_ptr();
-    mem::forget(argv_ptrs);
+pub struct Interactive {
+    args: Vec<String>,
+    env: Vec<(String, String)>,
+}
 
-    let mut env_ptrs: Vec<_> = env
-        .into_iter()
-        .map(|(key, val)| CString::new(format!("{key}={val}")).unwrap().into_raw())
-        .collect();
-    env_ptrs.push(ptr::null_mut());
-    env_ptrs.shrink_to_fit();
-    let env = env_ptrs.as_mut_ptr();
-    mem::forget(env_ptrs);
-
-    let ret: i32;
-    unsafe {
-        bash::lib_error_handlers(Some(error::stderr_output), Some(error::stderr_output));
-        ret = bash::bash_main(argc, argv, env);
+impl Default for Interactive {
+    fn default() -> Self {
+        Self {
+            args: vec![String::from("scallop")],
+            env: Default::default(),
+        }
     }
-    process::exit(ret)
+}
+
+impl Interactive {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn args<I>(mut self, args: I) -> Self
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        self.args.extend(args.into_iter().map(Into::into));
+        self
+    }
+
+    pub fn env<I, S1, S2>(mut self, env: I) -> Self
+    where
+        I: IntoIterator<Item = (S1, S2)>,
+        S1: Into<String>,
+        S2: Into<String>,
+    {
+        self.env
+            .extend(env.into_iter().map(|(s1, s2)| (s1.into(), s2.into())));
+        self
+    }
+
+    fn convert_args(self) -> (*mut *mut c_char, i32, *mut *mut c_char) {
+        let mut argv_ptrs: Vec<_> = self
+            .args
+            .into_iter()
+            .map(|s| CString::new(s).unwrap().into_raw())
+            .collect();
+        let argc: c_int = argv_ptrs.len().try_into().unwrap();
+        argv_ptrs.push(ptr::null_mut());
+        argv_ptrs.shrink_to_fit();
+        let argv = argv_ptrs.as_mut_ptr();
+        mem::forget(argv_ptrs);
+
+        let mut env_ptrs: Vec<_> = self
+            .env
+            .into_iter()
+            .map(|(key, val)| CString::new(format!("{key}={val}")).unwrap().into_raw())
+            .collect();
+        env_ptrs.push(ptr::null_mut());
+        env_ptrs.shrink_to_fit();
+        let env = env_ptrs.as_mut_ptr();
+        mem::forget(env_ptrs);
+
+        (argv, argc, env)
+    }
+
+    /// Run an interactive shell.
+    pub fn run(self) {
+        let (argv, argc, env) = self.convert_args();
+        unsafe {
+            bash::lib_error_handlers(Some(error::stderr_output), Some(error::stderr_output));
+            bash::bash_main(argc, argv, env);
+        }
+    }
+
+    /// Run an interactive shell in a forked process, returning the exit status.
+    pub fn fork(self) -> ExecStatus {
+        let (argv, argc, env) = self.convert_args();
+        let mut ret: i32 = -1;
+        unsafe {
+            bash::lib_error_handlers(Some(error::stderr_output), Some(error::stderr_output));
+            match fork() {
+                Ok(ForkResult::Parent { child }) => {
+                    if let Ok(WaitStatus::Exited(_, status)) = waitpid(child, None) {
+                        ret = status;
+                    }
+                }
+                Ok(ForkResult::Child) => {
+                    bash::bash_main(argc, argv, env);
+                    unreachable!("child shell didn't exit");
+                }
+                _ => unreachable!("failed forking shell"),
+            }
+        }
+
+        ExecStatus::from(ret)
+    }
 }
 
 /// Create an error message in shared memory.
@@ -252,5 +314,22 @@ mod tests {
         assert!(functions::find("func").is_some());
         reset(&[]);
         assert!(functions::find("func").is_none());
+    }
+
+    #[test]
+    fn test_interactive() {
+        // forked success
+        let status = Interactive::new()
+            .args(["-c", "exit 0"])
+            .env([("PATH", "/dev/null")])
+            .fork();
+        assert_eq!(status, ExecStatus::Success);
+
+        // forked failure
+        let status = Interactive::new().args(["-c", "exit 10"]).fork();
+        assert_eq!(status, ExecStatus::Failure(10));
+
+        // direct process exit
+        Interactive::new().args(["-c", "exit 0"]).run()
     }
 }
