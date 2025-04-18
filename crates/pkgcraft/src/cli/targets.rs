@@ -386,8 +386,12 @@ impl IntoIterator for RepoTargets {
 impl RepoTargets {
     /// Collapse repos into a single ebuild repo.
     pub fn ebuild_repo(self) -> crate::Result<EbuildRepo> {
-        self.ebuild_repos()
-            .map(|repos| repos.into_iter().next().expect("no repo targets"))
+        let repos = self.ebuild_repos()?;
+        let len = repos.len();
+        repos
+            .into_iter()
+            .exactly_one()
+            .map_err(|_| Error::InvalidValue(format!("requires a single repo, got {len}")))
     }
 
     /// Convert repos into ebuild repos.
