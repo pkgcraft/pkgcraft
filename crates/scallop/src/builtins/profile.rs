@@ -42,17 +42,21 @@ make_builtin!("profile", profile_builtin, run, LONG_DOC, "profile func arg1 arg2
 #[cfg(test)]
 mod tests {
     use crate::builtins;
+    use crate::source;
 
     use super::BUILTIN as profile;
 
     #[test]
     fn builtin() {
+        // register and enable builtin
         builtins::register([profile]);
+        builtins::enable([profile]).unwrap();
 
         // no args
         assert!(profile(&[]).is_err());
 
-        // basic command
-        assert!(profile(&["echo 1"]).is_ok());
+        // TODO: use shorter timeout once supported
+        // verify basic command directly from bash
+        assert!(source::string("profile true").is_ok());
     }
 }
