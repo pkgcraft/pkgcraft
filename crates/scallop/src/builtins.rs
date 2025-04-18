@@ -551,7 +551,10 @@ mod tests {
         assert!(bash::shopt_opts().contains(disable));
         {
             let mut opts = ScopedOptions::default();
+            // perform twice to complete branch coverage
             opts.enable([enable]).unwrap();
+            opts.enable([enable]).unwrap();
+            opts.disable([disable]).unwrap();
             opts.disable([disable]).unwrap();
             assert!(bash::shopt_opts().contains(enable));
             assert!(!bash::shopt_opts().contains(disable));
@@ -568,7 +571,10 @@ mod tests {
         assert!(bash::set_opts().contains(disable));
         {
             let mut opts = ScopedOptions::default();
+            // perform twice to complete branch coverage
             opts.enable([enable]).unwrap();
+            opts.enable([enable]).unwrap();
+            opts.disable([disable]).unwrap();
             opts.disable([disable]).unwrap();
             assert!(bash::set_opts().contains(enable));
             assert!(!bash::set_opts().contains(disable));
