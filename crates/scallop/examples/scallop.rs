@@ -1,3 +1,5 @@
+use std::env;
+
 use scallop::{builtins, shell};
 
 fn main() {
@@ -10,5 +12,5 @@ fn main() {
     builtins::enable(builtins).expect("failed enabling builtins");
 
     // run shell
-    shell::interactive()
+    shell::interactive(env::args(), env::vars())
 }

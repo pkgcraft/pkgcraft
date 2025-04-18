@@ -64,9 +64,17 @@ pub fn reset(ignore_vars: &[&str]) {
 }
 
 /// Start an interactive shell session.
-pub fn interactive() {
-    let mut argv_ptrs: Vec<_> = env::args()
-        .map(|s| CString::new(s).unwrap().into_raw())
+pub fn interactive<I, J, S1, S2>(args: I, env: J)
+where
+    I: IntoIterator,
+    I::Item: AsRef<str>,
+    J: IntoIterator<Item = (S1, S2)>,
+    S1: std::fmt::Display,
+    S2: std::fmt::Display,
+{
+    let mut argv_ptrs: Vec<_> = args
+        .into_iter()
+        .map(|s| CString::new(s.as_ref()).unwrap().into_raw())
         .collect();
     let argc: c_int = argv_ptrs.len().try_into().unwrap();
     argv_ptrs.push(ptr::null_mut());
@@ -74,7 +82,8 @@ pub fn interactive() {
     let argv = argv_ptrs.as_mut_ptr();
     mem::forget(argv_ptrs);
 
-    let mut env_ptrs: Vec<_> = env::vars()
+    let mut env_ptrs: Vec<_> = env
+        .into_iter()
         .map(|(key, val)| CString::new(format!("{key}={val}")).unwrap().into_raw())
         .collect();
     env_ptrs.push(ptr::null_mut());
