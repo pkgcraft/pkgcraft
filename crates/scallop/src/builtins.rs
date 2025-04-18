@@ -332,29 +332,26 @@ impl ScopedOptions {
     where
         I: IntoIterator<Item = &'a str>,
     {
-        let mut unknown = vec![];
         let enabled_shopt = bash::shopt_opts();
         let enabled_set = bash::set_opts();
 
         for opt in options {
-            match (bash::SET_OPTS.contains(opt), bash::SHOPT_OPTS.contains(opt)) {
-                (true, false) if !enabled_set.contains(opt) => {
+            if bash::SET_OPTS.contains(opt) {
+                if !enabled_set.contains(opt) {
                     set::enable(&[opt])?;
                     self.set_enabled.push(opt.into());
                 }
-                (false, true) if !enabled_shopt.contains(opt) => {
+            } else if bash::SHOPT_OPTS.contains(opt) {
+                if !enabled_shopt.contains(opt) {
                     shopt::enable(&[opt])?;
                     self.shopt_enabled.push(opt.into());
                 }
-                _ => unknown.push(opt),
+            } else {
+                return Err(Error::Base(format!("unknown option: {opt}")));
             }
         }
 
-        if unknown.is_empty() {
-            Ok(())
-        } else {
-            Err(Error::Base(format!("unknown options: {}", unknown.join(", "))))
-        }
+        Ok(())
     }
 
     /// Disable shell options.
@@ -362,29 +359,26 @@ impl ScopedOptions {
     where
         I: IntoIterator<Item = &'a str>,
     {
-        let mut unknown = vec![];
         let enabled_shopt = bash::shopt_opts();
         let enabled_set = bash::set_opts();
 
         for opt in options {
-            match (bash::SET_OPTS.contains(opt), bash::SHOPT_OPTS.contains(opt)) {
-                (true, false) if enabled_set.contains(opt) => {
+            if bash::SET_OPTS.contains(opt) {
+                if enabled_set.contains(opt) {
                     set::disable(&[opt])?;
                     self.set_disabled.push(opt.into());
                 }
-                (false, true) if enabled_shopt.contains(opt) => {
+            } else if bash::SHOPT_OPTS.contains(opt) {
+                if enabled_shopt.contains(opt) {
                     shopt::disable(&[opt])?;
                     self.shopt_disabled.push(opt.into());
                 }
-                _ => unknown.push(opt),
+            } else {
+                return Err(Error::Base(format!("unknown option: {opt}")));
             }
         }
 
-        if unknown.is_empty() {
-            Ok(())
-        } else {
-            Err(Error::Base(format!("unknown options: {}", unknown.join(", "))))
-        }
+        Ok(())
     }
 }
 
@@ -393,12 +387,15 @@ impl Drop for ScopedOptions {
         if !self.shopt_enabled.is_empty() {
             shopt::disable(&self.shopt_enabled).expect("failed unsetting shopt options");
         }
+
         if !self.shopt_disabled.is_empty() {
             shopt::enable(&self.shopt_disabled).expect("failed setting shopt options");
         }
+
         if !self.set_enabled.is_empty() {
             set::disable(&self.set_enabled).expect("failed unsetting set options");
         }
+
         if !self.set_disabled.is_empty() {
             set::enable(&self.set_disabled).expect("failed setting set options");
         }
@@ -540,39 +537,43 @@ mod tests {
 
     #[test]
     fn scoped_options() {
-        let (set, unset) = ("autocd", "sourcepath");
+        // invalid options
+        let mut opts = ScopedOptions::default();
+        assert!(opts.enable(["unknown"]).is_err());
+        assert!(opts.disable(["unknown"]).is_err());
 
-        assert!(!bash::shopt_opts().contains(set));
-        assert!(bash::shopt_opts().contains(unset));
+        // shopt options
+        let (enable, disable) = ("autocd", "sourcepath");
+        shopt::disable(&[enable]).unwrap();
+        shopt::enable(&[disable]).unwrap();
+
+        assert!(!bash::shopt_opts().contains(enable));
+        assert!(bash::shopt_opts().contains(disable));
         {
             let mut opts = ScopedOptions::default();
-            opts.enable([set]).unwrap();
-            opts.disable([unset]).unwrap();
-            assert!(bash::shopt_opts().contains(set));
-            assert!(!bash::shopt_opts().contains(unset));
+            opts.enable([enable]).unwrap();
+            opts.disable([disable]).unwrap();
+            assert!(bash::shopt_opts().contains(enable));
+            assert!(!bash::shopt_opts().contains(disable));
         }
-        assert!(!bash::shopt_opts().contains(set));
-        assert!(bash::shopt_opts().contains(unset));
+        assert!(!bash::shopt_opts().contains(enable));
+        assert!(bash::shopt_opts().contains(disable));
 
-        // toggle options in separate scope from ScopedOptions creation
+        // set options
+        let (enable, disable) = ("noglob", "verbose");
+        set::disable(&[enable]).unwrap();
+        set::enable(&[disable]).unwrap();
+
+        assert!(!bash::set_opts().contains(enable));
+        assert!(bash::set_opts().contains(disable));
         {
             let mut opts = ScopedOptions::default();
-            // options aren't toggled
-            assert!(!bash::shopt_opts().contains(set));
-            assert!(bash::shopt_opts().contains(unset));
-            {
-                opts.enable([set]).unwrap();
-                opts.disable([unset]).unwrap();
-                // options are toggled
-                assert!(bash::shopt_opts().contains(set));
-                assert!(!bash::shopt_opts().contains(unset));
-            }
-            // options are still toggled
-            assert!(bash::shopt_opts().contains(set));
-            assert!(!bash::shopt_opts().contains(unset));
+            opts.enable([enable]).unwrap();
+            opts.disable([disable]).unwrap();
+            assert!(bash::set_opts().contains(enable));
+            assert!(!bash::set_opts().contains(disable));
         }
-        // options have been reverted
-        assert!(!bash::shopt_opts().contains(set));
-        assert!(bash::shopt_opts().contains(unset));
+        assert!(!bash::set_opts().contains(enable));
+        assert!(bash::set_opts().contains(disable));
     }
 }
