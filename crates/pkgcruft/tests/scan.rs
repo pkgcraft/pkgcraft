@@ -345,6 +345,14 @@ fn force() {
             .unwrap();
         assert!(!reports.is_empty());
     }
+
+    // inverted category directive disregards all ignore directives
+    fs::write(repo.path().join("cat/.pkgcruft-ignore"), "!@all").unwrap();
+    let reports = cmd("pkgcruft scan -R json")
+        .arg(&repo)
+        .to_reports()
+        .unwrap();
+    assert!(!reports.is_empty());
 }
 
 #[test]
