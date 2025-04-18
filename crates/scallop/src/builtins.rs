@@ -118,12 +118,6 @@ impl Borrow<str> for Builtin {
     }
 }
 
-impl From<&Builtin> for Builtin {
-    fn from(b: &Builtin) -> Self {
-        *b
-    }
-}
-
 // TODO: replace with callable trait implementation if it's ever stabilized
 // https://github.com/rust-lang/rust/issues/29625
 impl Deref for Builtin {
