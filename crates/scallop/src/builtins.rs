@@ -507,7 +507,7 @@ mod tests {
     }
 
     #[test]
-    fn test_override_funcs() {
+    fn toggle_overrides() {
         variables::bind_global("VAR", "1", None, None).unwrap();
 
         // functions override builtins by default
@@ -527,6 +527,15 @@ mod tests {
 
         // unknown builtin
         assert!(override_funcs(["nonexistent"], true).is_err());
+    }
+
+    #[test]
+    fn scoped_builtins() {
+        assert!(source::string("declare").is_ok());
+        let _builtins = ScopedBuiltins::disable(["declare"]).unwrap();
+        assert!(source::string("declare").is_err());
+        let _builtins = ScopedBuiltins::enable(["declare"]).unwrap();
+        assert!(source::string("declare").is_ok());
     }
 
     #[test]
