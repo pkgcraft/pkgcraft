@@ -285,10 +285,10 @@ impl fmt::Display for Builtin {
 // TODO: replace with callable trait implementation if it's ever stabilized
 // https://github.com/rust-lang/rust/issues/29625
 impl Deref for Builtin {
-    type Target = scallop::builtins::BuiltinFn;
+    type Target = scallop::builtins::Builtin;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner.func
+        &self.inner
     }
 }
 
@@ -351,10 +351,10 @@ impl fmt::Display for Command {
 // TODO: replace with callable trait implementation if it's ever stabilized
 // https://github.com/rust-lang/rust/issues/29625
 impl Deref for Command {
-    type Target = scallop::builtins::BuiltinFn;
+    type Target = scallop::builtins::Builtin;
 
     fn deref(&self) -> &Self::Target {
-        &self.builtin.inner.func
+        &self.builtin.inner
     }
 }
 
