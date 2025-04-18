@@ -166,13 +166,10 @@ where
         let builtin_ptr = builtin_name.as_ptr() as *mut _;
         match unsafe { bash::builtin_address_internal(builtin_ptr, 1).as_mut() } {
             Some(b) => {
-                let special = (b.flags & Attr::SPECIAL.bits() as i32) == 1;
-                if special != enable {
-                    if enable {
-                        b.flags |= Attr::SPECIAL.bits() as i32;
-                    } else {
-                        b.flags &= !Attr::SPECIAL.bits() as i32;
-                    }
+                if enable {
+                    b.flags |= Attr::SPECIAL.bits() as i32;
+                } else {
+                    b.flags &= !Attr::SPECIAL.bits() as i32;
                 }
             }
             None => {
