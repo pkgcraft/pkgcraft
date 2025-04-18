@@ -8,14 +8,6 @@ pub struct Words {
     owned: bool,
 }
 
-impl<'a> TryFrom<&'a Words> for Vec<&'a str> {
-    type Error = std::str::Utf8Error;
-
-    fn try_from(words: &'a Words) -> Result<Self, Self::Error> {
-        words.into_iter().collect()
-    }
-}
-
 impl TryFrom<Words> for Vec<String> {
     type Error = std::str::Utf8Error;
 
