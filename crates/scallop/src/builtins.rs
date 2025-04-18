@@ -8,6 +8,7 @@ use std::{cmp, fmt, mem, process, ptr};
 use bitflags::bitflags;
 
 use crate::macros::*;
+use crate::traits::IntoWords;
 use crate::{bash, shell, Error, ExecStatus};
 
 mod _bash;
@@ -428,6 +429,22 @@ pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
     ExecStatus::from(err)
 }
 
+/// Run a builtin as called from bash.
+fn run(builtin: &Builtin, args: *mut bash::WordList) -> ExecStatus {
+    // convert raw command args into &str
+    let args = args.to_words();
+    let args: Result<Vec<_>, _> = args.into_iter().collect();
+
+    // run command if args are valid utf8
+    let result = match args {
+        Ok(args) => builtin(&args),
+        Err(e) => Err(Error::Base(format!("invalid args: {e}"))),
+    };
+
+    // handle builtin errors extracting the return status
+    result.unwrap_or_else(|e| handle_error(builtin, e))
+}
+
 /// Create C compatible builtin function wrapper converting between rust and C types.
 #[macro_export]
 macro_rules! make_builtin {
@@ -438,26 +455,7 @@ macro_rules! make_builtin {
 
         #[no_mangle]
         extern "C" fn $func_name(args: *mut $crate::bash::WordList) -> c_int {
-            use $crate::builtins::handle_error;
-            use $crate::traits::IntoWords;
-
-            // convert raw command args into &str
-            let args = args.to_words();
-            let args: Result<Vec<_>, _> = args.into_iter().collect();
-
-            // run command if args are valid utf8
-            let result = match args {
-                Ok(args) => $func(&args),
-                Err(e) => Err(Error::Base(format!("invalid args: {e}"))),
-            };
-
-            // handle builtin errors extracting the return status
-            let ret = match result {
-                Err(e) => handle_error($name, e),
-                Ok(status) => status,
-            };
-
-            i32::from(ret)
+            i32::from($crate::builtins::run(&BUILTIN, args))
         }
 
         pub static BUILTIN: Builtin = Builtin {
