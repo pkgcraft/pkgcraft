@@ -443,15 +443,26 @@ macro_rules! make_builtin {
         use $crate::builtins::Builtin;
 
         #[no_mangle]
-        extern "C" fn $func_name(list: *mut $crate::bash::WordList) -> c_int {
+        extern "C" fn $func_name(args: *mut $crate::bash::WordList) -> c_int {
             use $crate::builtins::handle_error;
             use $crate::traits::IntoWords;
 
-            let words = &list.to_words();
-            let args: Vec<_> = words
-                .try_into()
-                .unwrap_or_else(|e| panic!("non-unicode args: {e}"));
-            let ret = $func(&args).unwrap_or_else(|e| handle_error($name, e));
+            // convert raw command args into &str
+            let args = args.to_words();
+            let args: Result<Vec<_>, _> = args.into_iter().collect();
+
+            // run command if args are valid utf8
+            let result = match args {
+                Ok(args) => $func(&args),
+                Err(e) => Err(Error::Base(format!("invalid args: {e}"))),
+            };
+
+            // handle builtin errors extracting the return status
+            let ret = match result {
+                Err(e) => handle_error($name, e),
+                Ok(status) => status,
+            };
+
             i32::from(ret)
         }
 
