@@ -38,3 +38,21 @@ pub(crate) fn run(args: &[&str]) -> crate::Result<ExecStatus> {
 }
 
 make_builtin!("profile", profile_builtin, run, LONG_DOC, "profile func arg1 arg2");
+
+#[cfg(test)]
+mod tests {
+    use crate::builtins;
+
+    use super::BUILTIN as profile;
+
+    #[test]
+    fn builtin() {
+        builtins::register([profile]);
+
+        // no args
+        assert!(profile(&[]).is_err());
+
+        // basic command
+        assert!(profile(&["echo 1"]).is_ok());
+    }
+}
