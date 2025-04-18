@@ -506,6 +506,11 @@ mod tests {
         var.unbind().unwrap();
         assert_eq!(var.optional(), None);
         assert!(var.required().is_err());
+
+        var.bind_global("4", None, Some(Attr::READONLY)).unwrap();
+        assert_eq!(var.optional().unwrap(), "4");
+        assert_eq!(var.required().unwrap(), "4");
+        assert!(var.bind_global("5", None, None).is_err());
     }
 
     #[test]
