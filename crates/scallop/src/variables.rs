@@ -63,9 +63,9 @@ pub(crate) use find_variable;
 pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
     let name = name.as_ref();
     let cstr = CString::new(name).unwrap();
-    ok_or_error(|| {
+    ok_or_error(|| unsafe {
         // ignore non-zero return values for nonexistent variables
-        unsafe { bash::unbind_variable(cstr.as_ptr()) };
+        bash::unbind_variable(cstr.as_ptr());
         Ok(ExecStatus::Success)
     })
 }
@@ -74,9 +74,9 @@ pub fn unbind<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
 pub fn unbind_check<S: AsRef<str>>(name: S) -> crate::Result<ExecStatus> {
     let name = name.as_ref();
     let cstr = CString::new(name).unwrap();
-    ok_or_error(|| {
+    ok_or_error(|| unsafe {
         // ignore non-zero return values for nonexistent variables
-        unsafe { bash::check_unbind_variable(cstr.as_ptr()) };
+        bash::check_unbind_variable(cstr.as_ptr());
         Ok(ExecStatus::Success)
     })
 }
@@ -95,9 +95,8 @@ where
     let value = CString::new(value.as_ref()).unwrap();
     let val = value.as_ptr() as *mut _;
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
-    ok_or_error(|| {
-        let var = unsafe { bash::bind_variable(name.as_ptr(), val, flags).as_mut() };
-        if let Some(var) = var {
+    ok_or_error(|| unsafe {
+        if let Some(var) = bash::bind_variable(name.as_ptr(), val, flags).as_mut() {
             if let Some(attrs) = attrs {
                 var.attributes |= attrs.bits() as i32;
             }
@@ -120,9 +119,8 @@ where
     let value = CString::new(value.as_ref()).unwrap();
     let val = value.as_ptr() as *mut _;
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
-    ok_or_error(|| {
-        let var = unsafe { bash::bind_global_variable(name.as_ptr(), val, flags).as_mut() };
-        if let Some(var) = var {
+    ok_or_error(|| unsafe {
+        if let Some(var) = bash::bind_global_variable(name.as_ptr(), val, flags).as_mut() {
             if let Some(attrs) = attrs {
                 var.attributes |= attrs.bits() as i32;
             }

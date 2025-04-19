@@ -12,8 +12,8 @@ where
         .into_iter()
         .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
-    ok_or_error(|| {
-        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+    ok_or_error(|| unsafe {
+        let ret = bash::builtin_builtin((&args).into());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -32,8 +32,8 @@ where
         .into_iter()
         .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
-    ok_or_error(|| {
-        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+    ok_or_error(|| unsafe {
+        let ret = bash::builtin_builtin((&args).into());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -52,8 +52,8 @@ where
         .into_iter()
         .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
-    ok_or_error(|| {
-        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+    ok_or_error(|| unsafe {
+        let ret = bash::builtin_builtin((&args).into());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -72,8 +72,8 @@ where
         .into_iter()
         .chain(args.into_iter().map(Into::into));
     let args = Words::from_iter(args);
-    ok_or_error(|| {
-        let ret = unsafe { bash::builtin_builtin((&args).into()) };
+    ok_or_error(|| unsafe {
+        let ret = bash::builtin_builtin((&args).into());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {

@@ -24,9 +24,9 @@ bitflags! {
 
 pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
     let c_str = CString::new(s.as_ref()).unwrap();
-    ok_or_error(|| {
+    ok_or_error(|| unsafe {
         let flags = Eval::RESET_LINE.bits() as i32;
-        let ret = unsafe { bash::scallop_evalstring(c_str.as_ptr(), flags) };
+        let ret = bash::scallop_evalstring(c_str.as_ptr(), flags);
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -38,8 +38,8 @@ pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
 pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
     let path = path.as_ref();
     let c_str = CString::new(path).unwrap();
-    ok_or_error(|| {
-        let ret = unsafe { bash::scallop_source_file(c_str.as_ptr()) };
+    ok_or_error(|| unsafe {
+        let ret = bash::scallop_source_file(c_str.as_ptr());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {

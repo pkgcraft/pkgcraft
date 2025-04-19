@@ -22,11 +22,9 @@ impl Function<'_> {
     pub fn execute(&mut self, args: &[&str]) -> crate::Result<ExecStatus> {
         let args = [&[self.name()], args].concat();
         let mut args = iter_to_array!(args.iter(), str_to_raw);
-        ok_or_error(|| {
-            let ret = unsafe {
-                let words = bash::strvec_to_word_list(args.as_mut_ptr(), 0, 0);
-                bash::scallop_execute_shell_function(self.func, words)
-            };
+        ok_or_error(|| unsafe {
+            let words = bash::strvec_to_word_list(args.as_mut_ptr(), 0, 0);
+            let ret = bash::scallop_execute_shell_function(self.func, words);
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
