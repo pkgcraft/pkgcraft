@@ -14,7 +14,7 @@ pub mod ebuild;
 pub mod fake;
 
 #[allow(clippy::large_enum_variant)]
-#[derive(EnumAsInner, Clone)]
+#[derive(EnumAsInner, Debug, Clone)]
 pub enum Pkg {
     Configured(ebuild::EbuildConfiguredPkg),
     Ebuild(ebuild::EbuildPkg),
@@ -22,16 +22,6 @@ pub enum Pkg {
 }
 
 make_pkg_traits!(Pkg);
-
-impl fmt::Debug for Pkg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Configured(pkg) => write!(f, "Configured({pkg:?})"),
-            Self::Ebuild(pkg) => write!(f, "Ebuild({pkg:?})"),
-            Self::Fake(pkg) => write!(f, "Fake({pkg:?})"),
-        }
-    }
-}
 
 pub trait Package:
     fmt::Debug + fmt::Display + Intersects<Dep> + Intersects<Cpv> + Intersects<Cpn>
