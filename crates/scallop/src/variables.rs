@@ -478,9 +478,11 @@ mod tests {
     fn test_variable() {
         let mut var = Variable::new("VAR");
         assert_eq!(var.as_ref(), "VAR");
+        assert_eq!(var.to_string(), "VAR");
         assert_eq!(var.optional(), None);
         assert!(var.required().is_err());
         assert!(!var.is_readonly());
+        assert!(!var.is_array());
 
         var.bind("", None, None).unwrap();
         assert_eq!(var.optional().unwrap(), "");
