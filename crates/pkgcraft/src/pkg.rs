@@ -381,11 +381,12 @@ mod tests {
     #[test]
     fn package_trait() {
         let cpv = Cpv::try_new("cat/pkg-1-r2").unwrap();
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
         let r: Repo = fake::FakeRepo::new("test", 0).pkgs([&cpv]).unwrap().into();
         let pkg = r.iter_restrict(&cpv).next().unwrap().unwrap();
         assert_eq!(pkg.eapi(), *EAPI_LATEST_OFFICIAL);
         assert_eq!(pkg.cpv(), &cpv);
-        assert_eq!(pkg.cpn().to_string(), "cat/pkg");
+        assert_eq!(pkg.cpn(), &cpn);
         assert_eq!(pkg.category(), "cat");
         assert_eq!(pkg.package(), "pkg");
         assert_eq!(pkg.version().to_string(), "1-r2");
@@ -394,6 +395,12 @@ mod tests {
         assert_eq!(pkg.pr(), "r2");
         assert_eq!(pkg.pv(), "1");
         assert_eq!(pkg.pvr(), "1-r2");
+
+        // intersects
+        assert!(pkg.intersects(&cpv));
+        assert!(cpv.intersects(&pkg));
+        assert!(pkg.intersects(&cpn));
+        assert!(cpn.intersects(&pkg));
     }
 
     #[test]
