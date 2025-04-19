@@ -287,7 +287,11 @@ mod tests {
         // use restricted scope
         restricted(|| {
             assert!(is_restricted());
-            Ok(ExecStatus::Success)
+            // nested calls work as expected
+            restricted(|| {
+                assert!(is_restricted());
+                Ok(ExecStatus::Success)
+            })
         })
         .unwrap();
         assert!(!is_restricted());
