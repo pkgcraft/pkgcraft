@@ -127,18 +127,6 @@ pub struct Phase {
     pub(crate) hooks: HashMap<HookKind, IndexSet<Hook>>,
 }
 
-impl From<&Phase> for PhaseKind {
-    fn from(phase: &Phase) -> PhaseKind {
-        phase.kind
-    }
-}
-
-impl From<Phase> for PhaseKind {
-    fn from(phase: Phase) -> PhaseKind {
-        phase.kind
-    }
-}
-
 impl AsRef<str> for Phase {
     fn as_ref(&self) -> &str {
         self.kind.as_ref()

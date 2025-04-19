@@ -49,7 +49,7 @@ impl PkgPretend for EbuildPkg {
         };
 
         let build = get_build_mut();
-        build.scope = Scope::Phase(phase.into());
+        build.scope = Scope::Phase(phase.kind);
 
         // initialize phase scope variables
         build.set_vars()?;
