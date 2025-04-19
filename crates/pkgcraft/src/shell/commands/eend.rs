@@ -39,7 +39,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(cmd.status))
 }
 
-make_builtin!("eend", eend_builtin, false);
+make_builtin!("eend", eend_builtin);
 
 #[cfg(test)]
 mod tests {

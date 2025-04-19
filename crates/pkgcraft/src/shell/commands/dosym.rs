@@ -49,7 +49,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("dosym", dosym_builtin, true);
+make_builtin!("dosym", dosym_builtin);
 
 #[cfg(test)]
 mod tests {

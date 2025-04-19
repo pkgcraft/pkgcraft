@@ -26,7 +26,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("addpredict", addpredict_builtin, true);
+make_builtin!("addpredict", addpredict_builtin);
 
 #[cfg(test)]
 mod tests {

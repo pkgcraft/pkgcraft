@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doheader)
 }
 
-make_builtin!("newheader", newheader_builtin, true);
+make_builtin!("newheader", newheader_builtin);
 
 #[cfg(test)]
 mod tests {

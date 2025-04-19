@@ -35,7 +35,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("docompress", docompress_builtin, true);
+make_builtin!("docompress", docompress_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -55,7 +55,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("ver_rs", ver_rs_builtin, false);
+make_builtin!("ver_rs", ver_rs_builtin);
 
 #[cfg(test)]
 mod tests {

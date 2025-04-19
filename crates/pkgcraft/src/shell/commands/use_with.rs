@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_conf(args, "with", "without")
 }
 
-make_builtin!("use_with", use_with_builtin, false);
+make_builtin!("use_with", use_with_builtin);
 
 #[cfg(test)]
 mod tests {

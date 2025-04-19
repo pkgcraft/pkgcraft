@@ -163,7 +163,7 @@ fn eapi_command<'a>(
     }
 
     // flag unnecessary `die` usage for fatal EAPI commands
-    if eapi_cmd.die_on_failure() {
+    if eapi_cmd.die_on_failure {
         // Note that this only flags simple commands and not command lists, for example
         // `emake || die` is flagged, but not `true && emake || die`.
         if let Some(node) = cmd_node

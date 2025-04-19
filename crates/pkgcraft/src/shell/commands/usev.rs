@@ -54,7 +54,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(ret))
 }
 
-make_builtin!("usev", usev_builtin, false);
+make_builtin!("usev", usev_builtin);
 
 #[cfg(test)]
 mod tests {

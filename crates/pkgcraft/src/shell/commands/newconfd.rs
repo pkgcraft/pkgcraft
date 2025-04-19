@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doconfd)
 }
 
-make_builtin!("newconfd", newconfd_builtin, true);
+make_builtin!("newconfd", newconfd_builtin);
 
 #[cfg(test)]
 mod tests {

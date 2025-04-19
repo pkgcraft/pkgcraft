@@ -31,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("eapply_user", eapply_user_builtin, true);
+make_builtin!("eapply_user", eapply_user_builtin);
 
 #[cfg(test)]
 mod tests {

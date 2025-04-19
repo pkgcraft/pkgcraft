@@ -30,7 +30,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("dolib.so", dolib_so_builtin, true);
+make_builtin!("dolib.so", dolib_so_builtin);
 
 #[cfg(test)]
 mod tests {

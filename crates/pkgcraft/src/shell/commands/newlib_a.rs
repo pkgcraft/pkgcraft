@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dolib_a)
 }
 
-make_builtin!("newlib.a", newlib_a_builtin, true);
+make_builtin!("newlib.a", newlib_a_builtin);
 
 #[cfg(test)]
 mod tests {

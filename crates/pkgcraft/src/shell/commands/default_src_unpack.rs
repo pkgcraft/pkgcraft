@@ -22,7 +22,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     get_build_mut().phase().default()
 }
 
-make_builtin!("default_src_unpack", default_src_unpack_builtin, true);
+make_builtin!("default_src_unpack", default_src_unpack_builtin);
 
 #[cfg(test)]
 mod tests {

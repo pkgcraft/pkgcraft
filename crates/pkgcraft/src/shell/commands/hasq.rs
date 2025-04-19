@@ -25,7 +25,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(found))
 }
 
-make_builtin!("hasq", hasq_builtin, true);
+make_builtin!("hasq", hasq_builtin);
 
 #[cfg(test)]
 mod tests {

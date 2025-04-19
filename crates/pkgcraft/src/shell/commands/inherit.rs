@@ -85,7 +85,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("inherit", inherit_builtin, true);
+make_builtin!("inherit", inherit_builtin);
 
 #[cfg(test)]
 mod tests {

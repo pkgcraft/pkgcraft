@@ -43,7 +43,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     install_bin(&cmd.paths, "bin")
 }
 
-make_builtin!("dobin", dobin_builtin, true);
+make_builtin!("dobin", dobin_builtin);
 
 #[cfg(test)]
 mod tests {

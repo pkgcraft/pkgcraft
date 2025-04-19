@@ -31,7 +31,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("fperms", fperms_builtin, true);
+make_builtin!("fperms", fperms_builtin);
 
 #[cfg(test)]
 mod tests {

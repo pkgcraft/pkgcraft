@@ -28,7 +28,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("doinfo", doinfo_builtin, true);
+make_builtin!("doinfo", doinfo_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -25,7 +25,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     emake(&[paths, &["-j1"], args, &["install"]].concat())
 }
 
-make_builtin!("einstall", einstall_builtin, true);
+make_builtin!("einstall", einstall_builtin);
 
 #[cfg(test)]
 mod tests {

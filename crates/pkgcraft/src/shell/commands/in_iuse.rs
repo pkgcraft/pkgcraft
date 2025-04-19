@@ -24,7 +24,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(pkg.iuse_effective().contains(&cmd.flag)))
 }
 
-make_builtin!("in_iuse", in_iuse_builtin, false);
+make_builtin!("in_iuse", in_iuse_builtin);
 
 #[cfg(test)]
 mod tests {

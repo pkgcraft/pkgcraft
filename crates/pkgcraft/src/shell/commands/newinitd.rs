@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doinitd)
 }
 
-make_builtin!("newinitd", newinitd_builtin, true);
+make_builtin!("newinitd", newinitd_builtin);
 
 #[cfg(test)]
 mod tests {

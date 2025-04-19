@@ -28,7 +28,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("eqawarn", eqawarn_builtin, true);
+make_builtin!("eqawarn", eqawarn_builtin);
 
 #[cfg(test)]
 mod tests {

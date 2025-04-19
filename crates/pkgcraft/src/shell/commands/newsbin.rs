@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dosbin)
 }
 
-make_builtin!("newsbin", newsbin_builtin, true);
+make_builtin!("newsbin", newsbin_builtin);
 
 #[cfg(test)]
 mod tests {

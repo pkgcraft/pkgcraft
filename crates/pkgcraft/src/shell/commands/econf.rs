@@ -196,7 +196,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("econf", econf_builtin, true);
+make_builtin!("econf", econf_builtin);
 
 #[cfg(test)]
 mod tests {

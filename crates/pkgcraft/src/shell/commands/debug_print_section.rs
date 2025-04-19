@@ -23,7 +23,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("debug-print-section", debug_print_section_builtin, true);
+make_builtin!("debug-print-section", debug_print_section_builtin);
 
 #[cfg(test)]
 mod tests {

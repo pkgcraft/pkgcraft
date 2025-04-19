@@ -21,7 +21,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 }
 
-make_builtin!("best_version", best_version_builtin, false);
+make_builtin!("best_version", best_version_builtin);
 
 #[cfg(test)]
 mod tests {

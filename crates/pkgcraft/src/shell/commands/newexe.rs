@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doexe)
 }
 
-make_builtin!("newexe", newexe_builtin, true);
+make_builtin!("newexe", newexe_builtin);
 
 #[cfg(test)]
 mod tests {

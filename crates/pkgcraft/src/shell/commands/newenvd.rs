@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doenvd)
 }
 
-make_builtin!("newenvd", newenvd_builtin, true);
+make_builtin!("newenvd", newenvd_builtin);
 
 #[cfg(test)]
 mod tests {

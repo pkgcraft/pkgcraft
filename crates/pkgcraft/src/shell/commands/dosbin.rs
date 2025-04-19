@@ -19,7 +19,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     install_bin(&cmd.paths, "sbin")
 }
 
-make_builtin!("dosbin", dosbin_builtin, true);
+make_builtin!("dosbin", dosbin_builtin);
 
 #[cfg(test)]
 mod tests {

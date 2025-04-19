@@ -18,7 +18,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("get_libdir", get_libdir_builtin, true);
+make_builtin!("get_libdir", get_libdir_builtin);
 
 #[cfg(test)]
 mod tests {

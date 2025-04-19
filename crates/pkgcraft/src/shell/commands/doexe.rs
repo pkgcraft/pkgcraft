@@ -33,7 +33,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("doexe", doexe_builtin, true);
+make_builtin!("doexe", doexe_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok((!cpvs.is_empty()).into())
 }
 
-make_builtin!("has_version", has_version_builtin, false);
+make_builtin!("has_version", has_version_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -34,7 +34,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("doinitd", doinitd_builtin, true);
+make_builtin!("doinitd", doinitd_builtin);
 
 #[cfg(test)]
 mod tests {

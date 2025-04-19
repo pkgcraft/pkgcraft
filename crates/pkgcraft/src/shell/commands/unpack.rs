@@ -136,7 +136,7 @@ fn correct_permissions(entry: DirEntry) -> scallop::Result<()> {
     Ok(())
 }
 
-make_builtin!("unpack", unpack_builtin, true);
+make_builtin!("unpack", unpack_builtin);
 
 #[cfg(test)]
 mod tests {

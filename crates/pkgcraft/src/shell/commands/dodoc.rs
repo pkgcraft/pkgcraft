@@ -59,7 +59,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     install_docs(cmd.recursive, &cmd.paths, dest)
 }
 
-make_builtin!("dodoc", dodoc_builtin, true);
+make_builtin!("dodoc", dodoc_builtin);
 
 #[cfg(test)]
 mod tests {

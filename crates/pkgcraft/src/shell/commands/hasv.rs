@@ -33,7 +33,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::from(found))
 }
 
-make_builtin!("hasv", hasv_builtin, false);
+make_builtin!("hasv", hasv_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -20,7 +20,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("dodir", dodir_builtin, true);
+make_builtin!("dodir", dodir_builtin);
 
 #[cfg(test)]
 mod tests {

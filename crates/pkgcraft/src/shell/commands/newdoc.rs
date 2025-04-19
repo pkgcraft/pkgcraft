@@ -11,7 +11,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dodoc)
 }
 
-make_builtin!("newdoc", newdoc_builtin, true);
+make_builtin!("newdoc", newdoc_builtin);
 
 #[cfg(test)]
 mod tests {

@@ -23,7 +23,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-make_builtin!("adddeny", adddeny_builtin, true);
+make_builtin!("adddeny", adddeny_builtin);
 
 #[cfg(test)]
 mod tests {
