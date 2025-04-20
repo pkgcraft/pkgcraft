@@ -896,25 +896,62 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::test::assert_err_re;
+    use crate::test::{assert_err_re, assert_ordered_eq};
 
     use super::*;
 
     #[test]
     fn traits() {
-        let temp = EbuildRepoBuilder::new().name("test").build().unwrap();
-        let e_repo = Repo::from(&temp);
-        let f_repo: Repo = FakeRepo::new("fake", 0).into();
+        let mut config = Config::default();
+
+        // ebuild repo
+        let mut temp = EbuildRepoBuilder::new().name("test").build().unwrap();
+        let e_repo = config.add_repo(&temp, false).unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+
+        // fake repo
+        let fake = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
+        let f_repo = config.add_repo(fake, false).unwrap();
+
+        // finalize repos
+        config.finalize().unwrap();
+
+        // comparisons
         assert!(e_repo != f_repo);
         assert!(e_repo > f_repo);
 
+        // equality
+        let f_repo: Repo = FakeRepo::new("test", 0).into();
+        assert!(e_repo != f_repo);
+        assert!(f_repo != e_repo);
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
 
-        let f_repo: Repo = FakeRepo::new("test", 0).into();
-        assert!(e_repo != f_repo);
+        // hash
         let repos: HashSet<_> = HashSet::from([&e_repo, &f_repo]);
         assert_eq!(repos.len(), 2);
+
+        // PkgRepository for &PkgRepository type
+        let repo = &&e_repo;
+        let cpn = Cpn::try_new("cat/pkg").unwrap();
+        let cpv = Cpv::try_new("cat/pkg-1").unwrap();
+        let pkg = repo.iter().next().unwrap().unwrap();
+        assert_ordered_eq!(repo.categories(), ["cat"]);
+        assert_ordered_eq!(repo.packages("cat"), ["pkg"]);
+        assert_ordered_eq!(repo.versions("cat", "pkg").iter().map(|x| x.to_string()), ["1"]);
+        assert_eq!(repo.len(), 1);
+        assert_ordered_eq!(repo.iter_cpn(), [cpn.clone()]);
+        assert_ordered_eq!(repo.iter_cpn_restrict(&cpn), [cpn.clone()]);
+        assert_ordered_eq!(repo.iter_cpv(), [cpv.clone()]);
+        assert_ordered_eq!(repo.iter_cpv_restrict(&cpv), [cpv.clone()]);
+        assert_ordered_eq!(repo.iter(), [Ok(pkg.clone())]);
+        assert_ordered_eq!(repo.iter_restrict(&pkg), [Ok(pkg.clone())]);
+        // Repository for &PkgRepository type
+        assert_eq!(repo.format(), RepoFormat::Ebuild);
+        assert_eq!(repo.id(), "test");
+        assert_eq!(repo.name(), "test");
+        assert_eq!(repo.priority(), 0);
+        assert_eq!(repo.path(), temp.path());
     }
 
     #[test]
