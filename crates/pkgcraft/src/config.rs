@@ -311,7 +311,10 @@ impl Config {
                     if let Some(parent) = repo.path().parent() {
                         for name in repos {
                             let path = parent.join(name);
-                            if self.add_repo_path(name, &path, 0, false).is_err() {
+                            if self
+                                .add_format_repo_path(name, &path, 0, false, repo.format())
+                                .is_err()
+                            {
                                 break;
                             }
                         }
