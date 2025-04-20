@@ -579,4 +579,27 @@ mod tests {
         config.load_portage_conf(Some(conf_path)).unwrap();
         assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
     }
+
+    #[test]
+    fn add_repo() {
+        let mut config = Config::new("pkgcraft", "");
+
+        // nonexistent masters
+        let path = test_data_path().join("repos/invalid/nonexistent-masters");
+        let repo = Repo::from_path("test1", path, 0).unwrap();
+        assert!(config.add_repo(repo, true).is_ok());
+
+        // empty
+        let path = test_data_path().join("repos/valid/empty");
+        let repo = Repo::from_path("test2", path, 0).unwrap();
+        assert!(config.add_repo(repo, true).is_ok());
+
+        // dynamically loaded masters
+        let path = test_data_path().join("repos/valid/qa-secondary");
+        let repo = Repo::from_path("test3", path, 0).unwrap();
+        assert!(config.add_repo(repo, true).is_ok());
+
+        // repo with nonexistent masters fails to finalize
+        assert!(config.finalize().is_err());
+    }
 }
