@@ -37,6 +37,9 @@ fn initialize() {
 
     // initialize bash
     crate::shell::init().unwrap();
+
+    // disable config loading by default
+    env::set_var("PKGCRAFT_CONFIG", "");
 }
 
 #[serde_as]
