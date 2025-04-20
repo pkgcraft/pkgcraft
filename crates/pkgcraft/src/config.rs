@@ -153,11 +153,13 @@ impl Config {
                 self.repos =
                     repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
 
+                // try loading portage config if no repos exist
                 if self.repos.is_empty() {
-                    // ignore error for missing portage config
-                    match self.load_portage_conf(None) {
-                        Err(Error::ConfigMissing(_)) => (),
-                        e => return e,
+                    if let Err(e) = self.load_portage_conf(None) {
+                        // ignore error for missing portage config
+                        if !matches!(e, Error::ConfigMissing(_)) {
+                            return Err(e);
+                        }
                     }
                 }
             }
