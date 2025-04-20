@@ -524,6 +524,7 @@ mod tests {
         {
             let mut var = ScopedVariable::new("VAR");
             assert_eq!(var.as_ref(), "VAR");
+            assert_eq!(var.to_string(), "VAR");
             var.bind("inner", None, None).unwrap();
             assert_eq!(var.optional().unwrap(), "inner");
         }
