@@ -278,12 +278,6 @@ impl AsRef<str> for ScopedVariable {
     }
 }
 
-impl Borrow<str> for ScopedVariable {
-    fn borrow(&self) -> &str {
-        self.name()
-    }
-}
-
 impl fmt::Display for ScopedVariable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.name())
