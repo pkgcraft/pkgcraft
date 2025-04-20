@@ -101,6 +101,10 @@ jobs:
       if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
       uses: taiki-e/install-action@cargo-llvm-cov
 
+    - name: Install grcov
+      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
+      uses: taiki-e/install-action@grcov
+
     - name: Install cargo-nextest
       uses: taiki-e/install-action@nextest
 
@@ -108,8 +112,14 @@ jobs:
       run: |
         # only collect code coverage for the latest rust release on linux
         if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
+          # run tests while collecting coverage information
           cargo llvm-cov --no-report nextest --all-features --workspace --tests
-          cargo llvm-cov report --lcov --output-path lcov.info
+
+          # process coverage information
+          grcov . -s . --binary-path ./target/llvm-cov-target \
+            --keep-only "crates/*/src/*" -t lcov --llvm --branch -o lcov.info \
+            --excl-line "unreachable!(.*)"
+
           # remove generated coverage data to avoid caching it
           find . -name \*.profraw -delete
         else
