@@ -321,7 +321,7 @@ impl BuildPool {
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }
-                        Err(e) => panic!("process pool fork failed: {e}"),
+                        Err(e) => panic!("process pool fork failed: {e}"), // pragma: no cover
                     }
                 }
 
@@ -329,7 +329,7 @@ impl BuildPool {
                 sem.wait().unwrap();
                 unsafe { libc::_exit(0) }
             }
-            Err(e) => panic!("process pool failed start: {e}"),
+            Err(e) => panic!("process pool failed start: {e}"), // pragma: no cover
         }
     }
 
