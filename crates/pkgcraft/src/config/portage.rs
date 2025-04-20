@@ -25,26 +25,26 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
     };
 
     // load all repos from a given file
-    let repos_from_file = |f: &Utf8Path| -> crate::Result<Vec<Repo>> {
-        let ini = Ini::load_from_file(f)
-            .map_err(|e| Error::Config(format!("invalid repos.conf file: {f:?}: {e}")))?;
+    let repos_from_file = |path: &Utf8Path| -> crate::Result<Vec<Repo>> {
+        let ini = Ini::load_from_file(path)
+            .map_err(|e| Error::Config(format!("invalid repos.conf file: {path}: {e}")))?;
 
         let repos: Vec<_> = ini
             .iter()
-            .filter_map(|(section, p)| match section {
-                Some(s) if s != "DEFAULT" => Some((s, p)),
+            .filter_map(|(section, settings)| match section {
+                Some(name) if name != "DEFAULT" => Some((name, settings)),
                 _ => None,
             })
             .filter_map(|(name, settings)| {
                 // pull supported fields from config
                 let priority = settings.get("priority").unwrap_or("0").parse().unwrap_or(0);
-                let Some(path) = settings.get("location") else {
-                    error!("invalid repos.conf file: {f:?}: missing location field: {name}");
+                let Some(repo_path) = settings.get("location") else {
+                    error!("invalid repos.conf file: {path}: missing location field: {name}");
                     return None;
                 };
 
                 // ignore invalid repos
-                match Repo::from_path(name, path, priority) {
+                match Repo::from_path(name, repo_path, priority) {
                     Ok(repo) => Some(repo),
                     Err(err) => {
                         error!("{err}");
@@ -61,7 +61,7 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
             "no repos found".to_string()
         };
 
-        info!("loading portage config: {f}: {msg}");
+        info!("loading portage config: {path}: {msg}");
         Ok(repos)
     };
 
