@@ -410,6 +410,10 @@ pub fn exported() -> IndexSet<Variable> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
+    use tempfile::tempdir;
+
     use super::*;
 
     #[test]
@@ -542,5 +546,22 @@ mod tests {
         assert!(!exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
         bind("SCALLOP_VAR_TEST", "1", None, Some(Attr::EXPORTED)).unwrap();
         assert!(exported().iter().any(|s| s == "SCALLOP_VAR_TEST"));
+    }
+
+    #[test]
+    fn glob_file() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap();
+
+        // dir path
+        assert_eq!(glob_files(path), [path]);
+
+        // empty dir
+        assert!(glob_files(format!("{path}/*")).is_empty());
+
+        // non-empty dir
+        let file = format!("{path}/test");
+        File::create(&file).unwrap();
+        assert_eq!(glob_files(format!("{path}/*")), [file]);
     }
 }
