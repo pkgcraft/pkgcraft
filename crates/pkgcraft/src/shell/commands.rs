@@ -870,3 +870,19 @@ macro_rules! cmd_scope_tests {
 }
 #[cfg(test)]
 use cmd_scope_tests;
+
+#[cfg(test)]
+mod tests {
+    use crate::eapi::EAPI_LATEST_OFFICIAL;
+
+    #[test]
+    fn command_traits() {
+        let dobin = EAPI_LATEST_OFFICIAL.commands().get("dobin").unwrap();
+        assert_eq!(dobin.to_string(), "dobin");
+        assert!(format!("{dobin:?}").contains("dobin"));
+
+        let dodir = EAPI_LATEST_OFFICIAL.commands().get("dodir").unwrap();
+        assert!(dobin != dodir);
+        assert!(dobin < dodir);
+    }
+}
