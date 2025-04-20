@@ -373,13 +373,37 @@ impl Iterator for IterRestrict {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+    use std::io::Write;
+
     use itertools::Itertools;
+    use tempfile::tempdir;
     use tracing_test::traced_test;
 
     use crate::pkg::Package;
     use crate::test::*;
 
     use super::*;
+
+    #[test]
+    fn from_path() {
+        let dir = tempdir().unwrap();
+        let path = Utf8Path::from_path(dir.path()).unwrap();
+
+        // empty dir
+        assert!(FakeRepo::from_path("test", 0, path).is_err());
+
+        // empty file
+        let repo_path = path.join("fake");
+        let mut f = File::create(&repo_path).unwrap();
+        let repo = FakeRepo::from_path("test", 0, &repo_path).unwrap();
+        assert!(repo.is_empty());
+
+        // non-empty file
+        writeln!(&mut f, "cat/pkg-1").unwrap();
+        let repo = FakeRepo::from_path("test", 0, &repo_path).unwrap();
+        assert_ordered_eq!(repo.iter_cpv().map(|x| x.to_string()), ["cat/pkg-1"]);
+    }
 
     #[test]
     fn id() {
