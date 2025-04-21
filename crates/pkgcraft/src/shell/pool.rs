@@ -160,7 +160,8 @@ impl PkgPretendTask {
 
     fn run(self, config: &Config) -> crate::Result<Option<String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
-        repo.get_pkg(self.cpv).and_then(|x| Ok(x.pkg_pretend()?))
+        let pkg = repo.get_pkg(self.cpv)?;
+        Ok(pkg.pkg_pretend()?)
     }
 }
 
