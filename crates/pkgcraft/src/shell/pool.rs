@@ -21,10 +21,10 @@ use crate::repo::ebuild::EbuildRepo;
 use crate::repo::Repository;
 
 /// Get an ebuild repo from a config matching a given ID.
-fn get_ebuild_repo(config: &Config, repo: String) -> crate::Result<&EbuildRepo> {
+fn get_ebuild_repo<'a>(config: &'a Config, repo: &str) -> crate::Result<&'a EbuildRepo> {
     config
         .repos
-        .get(&repo)?
+        .get(repo)?
         .as_ebuild()
         .ok_or_else(|| Error::InvalidValue(format!("unknown ebuild repo: {repo}")))
 }
@@ -49,7 +49,7 @@ impl MetadataTask {
     }
 
     fn run(self, config: &Config) -> crate::Result<()> {
-        let repo = get_ebuild_repo(config, self.repo)?;
+        let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
         let meta = Metadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
         if !self.verify {
@@ -159,7 +159,7 @@ impl PkgPretendTask {
     }
 
     fn run(self, config: &Config) -> crate::Result<Option<String>> {
-        let repo = get_ebuild_repo(config, self.repo)?;
+        let repo = get_ebuild_repo(config, &self.repo)?;
         repo.get_pkg(self.cpv).and_then(|x| Ok(x.pkg_pretend()?))
     }
 }
@@ -179,7 +179,7 @@ impl SourceEnvTask {
     }
 
     fn run(self, config: &Config) -> crate::Result<IndexMap<String, String>> {
-        let repo = get_ebuild_repo(config, self.repo)?;
+        let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         pkg.source()?;
         Ok(variables::visible()
