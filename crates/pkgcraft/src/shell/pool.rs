@@ -15,7 +15,7 @@ use crate::config::Config;
 use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
-use crate::pkg::{ebuild::EbuildRawPkg, PkgPretend, Source};
+use crate::pkg::{PkgPretend, Source};
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 use crate::repo::ebuild::EbuildRepo;
 use crate::repo::Repository;
@@ -50,7 +50,7 @@ impl MetadataTask {
 
     fn run(self, config: &Config) -> crate::Result<()> {
         let repo = get_ebuild_repo(config, &self.repo)?;
-        let pkg = EbuildRawPkg::try_new(self.cpv, repo)?;
+        let pkg = repo.get_pkg_raw(self.cpv)?;
         let meta = Metadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
         if !self.verify {
             self.cache.update(&pkg, &meta)?;
