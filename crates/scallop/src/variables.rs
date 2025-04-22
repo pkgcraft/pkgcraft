@@ -312,9 +312,14 @@ pub fn required<S: AsRef<str>>(name: S) -> crate::Result<String> {
 pub fn expand<S: AsRef<str>>(val: S) -> Option<String> {
     let val = CString::new(val.as_ref()).unwrap();
     unsafe {
-        bash::expand_string_to_string(val.as_ptr() as *mut _, 0)
-            .as_ref()
-            .map(|s| CStr::from_ptr(s).to_str().unwrap().to_string())
+        let ptr = bash::expand_string_to_string(val.as_ptr() as *mut _, 0);
+        if !ptr.is_null() {
+            let s = CStr::from_ptr(ptr).to_str().map(|s| s.to_string());
+            bash::xfree(ptr as *mut c_void);
+            s.ok()
+        } else {
+            None
+        }
     }
 }
 
