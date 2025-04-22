@@ -4,7 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::dep::Cpv;
 use crate::error::Error;
@@ -163,6 +163,7 @@ impl MetadataCache {
             cache: self,
             progress: false,
             clean: true,
+            output: false,
             regen: repo.pool().metadata_task(repo).cache(self),
             repo: repo.clone(),
             targets: None,
@@ -175,6 +176,7 @@ pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
     progress: bool,
     clean: bool,
+    output: bool,
     regen: MetadataTaskBuilder,
     repo: EbuildRepo,
     targets: Option<IndexSet<Cpv>>,
@@ -196,6 +198,7 @@ impl MetadataCacheRegen<'_> {
     /// Allow output from stdout and stderr during cache regeneration.
     pub fn output(mut self, value: bool) -> Self {
         self.regen = self.regen.output(value);
+        self.output = value;
         self
     }
 
@@ -252,21 +255,31 @@ impl MetadataCacheRegen<'_> {
         // in build pool processes as necessary
         let errors = cpvs
             .into_par_iter()
-            .filter_map(|cpv| {
+            .map(|cpv| {
                 progress.inc(1);
-                self.regen.run(cpv).err()
+                self.regen.run(cpv)
             })
-            .inspect(|err| {
+            .inspect(|result| {
                 // hack to force log capturing for tests to work in threads
                 // https://github.com/dbrgn/tracing-test/issues/23
                 #[cfg(test)]
                 let _entered = thread_span.clone().entered();
 
-                // log errors
-                progress.suspend(|| {
-                    error!("{err}");
-                });
+                match result {
+                    Err(e) => {
+                        progress.suspend(|| {
+                            error!("{e}");
+                        });
+                    }
+                    Ok(Some(output)) if self.output => {
+                        progress.suspend(|| {
+                            warn!("{output}");
+                        });
+                    }
+                    Ok(_) => (),
+                }
             })
+            .filter(|result| result.is_err())
             .count();
 
         progress.finish_and_clear();

@@ -1,15 +1,15 @@
-use std::fs::File;
-use std::io::{stderr, stdout};
+use std::fs::{self, File};
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::OnceLock;
 
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use nix::sys::{prctl, signal::Signal};
-use nix::unistd::{dup2, fork, ForkResult};
-use scallop::pool::SharedSemaphore;
+use nix::unistd::{dup, dup2, fork, ForkResult};
+use scallop::pool::{redirect_output, SharedSemaphore};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
+use tempfile::NamedTempFile;
 
 use crate::config::Config;
 use crate::dep::Cpv;
@@ -35,27 +35,63 @@ struct MetadataTask {
     repo: String,
     cpv: Cpv,
     cache: MetadataCache,
+    output: bool,
     verify: bool,
 }
 
 impl MetadataTask {
-    fn new(repo: &EbuildRepo, cpv: Cpv, cache: MetadataCache, verify: bool) -> Self {
+    fn new(
+        repo: &EbuildRepo,
+        cpv: Cpv,
+        cache: MetadataCache,
+        output: bool,
+        verify: bool,
+    ) -> Self {
         Self {
             repo: repo.id().to_string(),
             cpv,
             cache,
+            output,
             verify,
         }
     }
 
-    fn run(self, config: &Config) -> crate::Result<()> {
+    fn run(self, config: &Config) -> crate::Result<Option<String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
+
+        // TODO: use a wrapper method to capture output
+        // conditionally capture stdin and stderr
+        let output = if self.output {
+            let file = NamedTempFile::new()?;
+            let fd = dup(2).unwrap();
+            redirect_output(&file)?;
+            Some((file, fd))
+        } else {
+            None
+        };
+
         let meta = Metadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
+
+        // process captured output to send back to the main process
+        let output = if let Some((file, fd)) = output {
+            dup2(fd, 2).unwrap();
+            let data = fs::read_to_string(file.path()).unwrap_or_default();
+            let data = data.trim();
+            if !data.is_empty() {
+                Some(format!("{pkg}:\n{data}"))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         if !self.verify {
             self.cache.update(&pkg, &meta)?;
         }
-        Ok(())
+
+        Ok(output)
     }
 }
 
@@ -66,7 +102,7 @@ pub struct MetadataTaskBuilder {
     repo: EbuildRepo,
     cache: Option<MetadataCache>,
     force: bool,
-    output: Pipes,
+    output: bool,
     verify: bool,
 }
 
@@ -100,9 +136,7 @@ impl MetadataTaskBuilder {
 
     /// Pass through output to stderr and stdout.
     pub fn output(mut self, value: bool) -> Self {
-        if value {
-            self.output = Pipes::all();
-        }
+        self.output = value;
         self
     }
 
@@ -113,7 +147,7 @@ impl MetadataTaskBuilder {
     }
 
     /// Run the task for a target [`Cpv`].
-    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<()> {
+    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<Option<String>> {
         let cpv = cpv.into();
         let cache = self
             .cache
@@ -125,19 +159,19 @@ impl MetadataTaskBuilder {
             if let Some(result) = cache.get(&pkg) {
                 if self.verify {
                     // perform deserialization, returning any occurring error
-                    return result.and_then(|e| e.to_metadata(&pkg)).map(|_| ());
+                    return result.and_then(|e| e.to_metadata(&pkg)).map(|_| None);
                 } else if result.is_ok() {
                     // skip deserialization, assuming existing cache entry is valid
-                    return Ok(());
+                    return Ok(None);
                 }
             }
         }
-        let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.verify);
+        let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
         let (tx, rx) = ipc::channel()
             .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::Metadata(meta, tx);
         self.tx
-            .send(Command::Task(task, self.output))
+            .send(Command::Task(task))
             .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
         rx.recv()
             .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
@@ -193,15 +227,15 @@ impl SourceEnvTask {
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
-    Metadata(MetadataTask, IpcSender<crate::Result<()>>),
+    Metadata(MetadataTask, IpcSender<crate::Result<Option<String>>>),
     PkgPretend(PkgPretendTask, IpcSender<crate::Result<Option<String>>>),
     SourceEnv(SourceEnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
 }
 
 impl Task {
-    fn run(self, config: &Config, pipes: Pipes, nullfd: RawFd) {
-        // redirect output
-        let result = pipes.redirect(nullfd);
+    fn run(self, config: &Config, nullfd: RawFd) {
+        // suppress output by default
+        let result = suppress_output(nullfd);
 
         // run the task
         match self {
@@ -218,38 +252,20 @@ impl Task {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
-struct Pipes {
-    stdout: Option<RawFd>,
-    stderr: Option<RawFd>,
-}
-
-impl Pipes {
-    /// Redirect stdout and stderr for the current process.
-    fn all() -> Self {
-        Self {
-            stdout: Some(stdout().as_raw_fd()),
-            stderr: Some(stderr().as_raw_fd()),
-        }
-    }
-
-    /// Redirect stdout and stderr to the specified fds, if any.
-    fn redirect(&self, nullfd: RawFd) -> crate::Result<()> {
-        dup2(self.stdout.unwrap_or(nullfd), 1)
-            .map_err(|e| Error::InvalidValue(format!("failed redirecting stdout: {e}")))?;
-
-        dup2(self.stderr.unwrap_or(nullfd), 2)
-            .map_err(|e| Error::InvalidValue(format!("failed redirecting stderr: {e}")))?;
-
-        Ok(())
-    }
+/// Redirect stdout and stderr to the specified fds, if any.
+fn suppress_output(nullfd: RawFd) -> crate::Result<()> {
+    dup2(nullfd, 1)
+        .map_err(|e| Error::InvalidValue(format!("failed redirecting stdout: {e}")))?;
+    dup2(nullfd, 2)
+        .map_err(|e| Error::InvalidValue(format!("failed redirecting stderr: {e}")))?;
+    Ok(())
 }
 
 /// Build pool command.
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize)]
 enum Command {
-    Task(Task, Pipes),
+    Task(Task),
     Stop,
 }
 
@@ -311,14 +327,14 @@ impl BuildPool {
                     std::env::remove_var(name);
                 }
 
-                while let Ok(Command::Task(task, pipes)) = self.rx.recv() {
+                while let Ok(Command::Task(task)) = self.rx.recv() {
                     // wait on bounded semaphore for pool space
                     sem.acquire().unwrap();
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
                             scallop::shell::fork_init();
-                            task.run(config, pipes, nullfd);
+                            task.run(config, nullfd);
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }
@@ -350,7 +366,7 @@ impl BuildPool {
             .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::PkgPretend(task, tx);
         self.tx
-            .send(Command::Task(task, Default::default()))
+            .send(Command::Task(task))
             .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
         rx.recv()
             .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
@@ -367,7 +383,7 @@ impl BuildPool {
             .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
         let task = Task::SourceEnv(task, tx);
         self.tx
-            .send(Command::Task(task, Default::default()))
+            .send(Command::Task(task))
             .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
         rx.recv()
             .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?

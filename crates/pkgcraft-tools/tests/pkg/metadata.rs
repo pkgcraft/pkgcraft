@@ -258,12 +258,17 @@ fn output() {
         .success();
 
     for opt in ["-o", "--output"] {
-        cmd("pk pkg metadata -f")
+        cmd("pk pkg metadata -fv")
             .arg(opt)
             .arg(&repo)
+            .env("NO_COLOR", "1")
             .assert()
-            .stdout("stdout\n")
-            .stderr("stderr\n")
+            .stdout("")
+            .stderr(indoc::indoc! {"
+                 WARN cat/pkg-1::test:
+                stdout
+                stderr
+            "})
             .success();
     }
 }
