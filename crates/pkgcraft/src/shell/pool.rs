@@ -56,7 +56,7 @@ impl MetadataTask {
         }
     }
 
-    fn run(self, config: &Config) -> crate::Result<Option<String>> {
+    fn run(self, config: &Config) -> crate::Result<Option<Vec<String>>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
 
@@ -77,9 +77,9 @@ impl MetadataTask {
         let output = if let Some((file, fd)) = output {
             dup2(fd, 2).unwrap();
             let data = fs::read_to_string(file.path()).unwrap_or_default();
-            let data = data.trim();
-            if !data.is_empty() {
-                Some(format!("{pkg}:\n{data}"))
+            let lines: Vec<_> = data.lines().map(|line| format!("{pkg}: {line}")).collect();
+            if !lines.is_empty() {
+                Some(lines)
             } else {
                 None
             }
@@ -147,7 +147,7 @@ impl MetadataTaskBuilder {
     }
 
     /// Run the task for a target [`Cpv`].
-    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<Option<String>> {
+    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<Option<Vec<String>>> {
         let cpv = cpv.into();
         let cache = self
             .cache
@@ -227,7 +227,7 @@ impl SourceEnvTask {
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
-    Metadata(MetadataTask, IpcSender<crate::Result<Option<String>>>),
+    Metadata(MetadataTask, IpcSender<crate::Result<Option<Vec<String>>>>),
     PkgPretend(PkgPretendTask, IpcSender<crate::Result<Option<String>>>),
     SourceEnv(SourceEnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
 }

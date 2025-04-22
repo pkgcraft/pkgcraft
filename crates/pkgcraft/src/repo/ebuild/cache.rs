@@ -4,7 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::dep::Cpv;
 use crate::error::Error;
@@ -269,9 +269,11 @@ impl MetadataCacheRegen<'_> {
                         });
                     }
                     Ok(output) => {
-                        if let Some(data) = output {
+                        if let Some(lines) = output {
                             progress.suspend(|| {
-                                warn!("{data}");
+                                for line in lines {
+                                    eprintln!("{line}");
+                                }
                             });
                         }
                     }
