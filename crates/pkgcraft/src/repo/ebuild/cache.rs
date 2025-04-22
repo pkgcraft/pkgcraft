@@ -271,12 +271,13 @@ impl MetadataCacheRegen<'_> {
                             error!("{e}");
                         });
                     }
-                    Ok(Some(output)) if self.output => {
-                        progress.suspend(|| {
-                            warn!("{output}");
-                        });
+                    Ok(output) => {
+                        if let Some(data) = output {
+                            progress.suspend(|| {
+                                warn!("{data}");
+                            });
+                        }
                     }
-                    Ok(_) => (),
                 }
             })
             .filter(|result| result.is_err())
