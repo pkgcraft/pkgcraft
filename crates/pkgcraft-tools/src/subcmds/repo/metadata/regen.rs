@@ -26,6 +26,10 @@ pub(crate) struct Command {
     #[arg(short, long)]
     no_progress: bool,
 
+    /// Capture stderr and stdout
+    #[arg(short, long)]
+    output: bool,
+
     /// Custom cache format
     #[arg(long)]
     format: Option<CacheFormat>,
@@ -60,6 +64,7 @@ impl Command {
             .regen(&repo)
             .force(self.force)
             .progress(stdout().is_terminal() && !self.no_progress)
+            .output(self.output)
             .run()?;
 
         if self.use_local {
