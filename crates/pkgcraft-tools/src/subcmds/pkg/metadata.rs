@@ -35,7 +35,7 @@ pub(crate) struct Command {
     #[arg(short, long)]
     no_progress: bool,
 
-    /// Allow output to stderr and stdout
+    /// Capture stderr and stdout
     #[arg(short, long)]
     output: bool,
 
@@ -89,7 +89,7 @@ impl Command {
                     cache
                         .regen(repo)
                         .force(self.force)
-                        .progress(stdout().is_terminal() && !self.no_progress && !self.output)
+                        .progress(stdout().is_terminal() && !self.no_progress)
                         .output(self.output)
                         .verify(self.verify)
                         .targets(restrict.clone())
