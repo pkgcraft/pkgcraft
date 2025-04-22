@@ -296,9 +296,13 @@ impl Drop for ScopedVariable {
 pub fn optional<S: AsRef<str>>(name: S) -> Option<String> {
     let name = CString::new(name.as_ref()).unwrap();
     unsafe {
-        bash::get_string_value(name.as_ptr())
-            .as_ref()
-            .map(|s| CStr::from_ptr(s).to_str().unwrap().to_string())
+        let ptr = bash::get_string_value(name.as_ptr());
+        if !ptr.is_null() {
+            let s = CStr::from_ptr(ptr).to_str().map(|s| s.to_string());
+            s.ok()
+        } else {
+            None
+        }
     }
 }
 
