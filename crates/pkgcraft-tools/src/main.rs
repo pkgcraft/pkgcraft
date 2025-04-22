@@ -24,6 +24,17 @@ pub(crate) struct Command {
     #[command(flatten)]
     verbosity: Verbosity,
 
+    /// Enable/disable color output
+    #[arg(
+        long,
+        value_name = "BOOL",
+        num_args = 0..=1,
+        default_missing_value = "true",
+        hide_possible_values = true,
+        global = true,
+    )]
+    color: Option<bool>,
+
     /// Use a custom config
     #[arg(long, value_name = "PATH", global = true)]
     config: Option<String>,
@@ -58,11 +69,19 @@ fn main() -> anyhow::Result<ExitCode> {
         .without_time()
         .compact();
 
-    tracing_subscriber::fmt()
+    // create formatting subscriber that uses stderr
+    let mut subscriber = tracing_subscriber::fmt()
         .event_format(format)
         .with_max_level(level.as_trace())
-        .with_writer(stderr)
-        .init();
+        .with_writer(stderr);
+
+    // forcibly enable or disable subscriber output color
+    if let Some(value) = args.color {
+        subscriber = subscriber.with_ansi(value);
+    }
+
+    // initialize global subscriber
+    subscriber.init();
 
     args.subcmd.run(&args).or_else(|err| {
         eprintln!("pk: error: {err}");

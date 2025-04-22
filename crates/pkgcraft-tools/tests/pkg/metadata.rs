@@ -258,10 +258,9 @@ fn output() {
         .success();
 
     for opt in ["-o", "--output"] {
-        cmd("pk pkg metadata -fv")
+        cmd("pk pkg metadata -fv --color false")
             .arg(opt)
             .arg(&repo)
-            .env("NO_COLOR", "1")
             .assert()
             .stdout("")
             .stderr(indoc::indoc! {"
