@@ -163,7 +163,6 @@ impl MetadataCache {
             cache: self,
             progress: false,
             clean: true,
-            output: false,
             regen: repo.pool().metadata_task(repo).cache(self),
             repo: repo.clone(),
             targets: None,
@@ -176,7 +175,6 @@ pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
     progress: bool,
     clean: bool,
-    output: bool,
     regen: MetadataTaskBuilder,
     repo: EbuildRepo,
     targets: Option<IndexSet<Cpv>>,
@@ -198,7 +196,6 @@ impl MetadataCacheRegen<'_> {
     /// Allow output from stdout and stderr during cache regeneration.
     pub fn output(mut self, value: bool) -> Self {
         self.regen = self.regen.output(value);
-        self.output = value;
         self
     }
 
