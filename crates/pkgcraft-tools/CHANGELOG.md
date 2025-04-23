@@ -1,7 +1,14 @@
-# Unreleased
+# 0.0.26
 
 ## Added
+- pk: add --color to forcibly enable or disable color support
 - pk completion: add shell completion generation support
+- pk pkg showkw: add -a/--arches support using tri-state filtering
+- pk pkg showkw: add -p/--prefix to filter prefix keywords
+- pk repo metadata regen: add -o/--output support
+
+## Changed
+- pk pkg source: add short option -b for --bench and change short option -B for --bound
 
 # 0.0.25
 
