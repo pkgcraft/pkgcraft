@@ -234,16 +234,11 @@ impl Task {
     /// Run the task, sending the result back to the main process.
     fn run(self, config: &Config) {
         match self {
-            Self::Metadata(task, tx) => {
-                tx.send(task.run(config)).unwrap();
-            }
-            Self::PkgPretend(task, tx) => {
-                tx.send(task.run(config)).unwrap();
-            }
-            Self::SourceEnv(task, tx) => {
-                tx.send(task.run(config)).unwrap();
-            }
+            Self::Metadata(task, tx) => tx.send(task.run(config)),
+            Self::PkgPretend(task, tx) => tx.send(task.run(config)),
+            Self::SourceEnv(task, tx) => tx.send(task.run(config)),
         }
+        .expect("failed sending task result")
     }
 }
 
