@@ -305,17 +305,15 @@ fn color() {
           \u{1b}[33mKeywordsDropped\u{1b}[0m: version 2: x86
     "};
     let expected: Vec<_> = reports.lines().collect();
-    for opts in ["--color true", "--color"] {
-        let output = cmd(format!("pkgcruft scan {opts}"))
-            .args(["--repo", repo.as_ref()])
-            .arg("KeywordsDropped")
-            .output()
-            .unwrap()
-            .stdout;
-        let data = String::from_utf8(output).unwrap();
-        let data: Vec<_> = data.lines().collect();
-        assert_eq!(&expected, &data);
-    }
+    let output = cmd("pkgcruft scan --color true")
+        .args(["--repo", repo.as_ref()])
+        .arg("KeywordsDropped")
+        .output()
+        .unwrap()
+        .stdout;
+    let data = String::from_utf8(output).unwrap();
+    let data: Vec<_> = data.lines().collect();
+    assert_eq!(&expected, &data);
 }
 
 #[test]

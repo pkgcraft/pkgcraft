@@ -18,14 +18,7 @@ pub(crate) struct Command {
     verbosity: Verbosity,
 
     /// enable/disable color support
-    #[arg(
-        long,
-        value_name = "BOOL",
-        num_args = 0..=1,
-        default_missing_value = "true",
-        hide_possible_values = true,
-        global = true,
-    )]
+    #[arg(long, value_name = "BOOL", hide_possible_values = true, global = true)]
     color: Option<bool>,
 
     // positional
