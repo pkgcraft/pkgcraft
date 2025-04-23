@@ -57,7 +57,8 @@ fn expand_var<'a>(
     cursor: &mut tree_sitter::TreeCursor<'a>,
     filesdir: &Utf8Path,
 ) -> crate::Result<String> {
-    let err = |msg: &str| Err(Error::InvalidValue(format!("expanding {node}: {msg}")));
+    let error = |msg: &str| Error::InvalidValue(format!("expanding {node}: {msg}"));
+    let cpv = pkg.cpv();
 
     let mut var_node = None;
     if node.kind() == "variable_name" {
@@ -74,15 +75,14 @@ fn expand_var<'a>(
 
         // TODO: handle string substitution
         if nodes.len() > 3 {
-            return err("unhandled string expansion");
+            return Err(error("unhandled string expansion"));
         }
     }
 
     let Some(var) = var_node else {
-        return err("invalid variable node");
+        return Err(error("invalid variable node"));
     };
 
-    let cpv = pkg.cpv();
     match var.as_str() {
         "FILESDIR" => Ok(filesdir.to_string()),
         "CATEGORY" => Ok(cpv.category().to_string()),
@@ -103,16 +103,16 @@ fn expand_var<'a>(
                 .filter(|node| node.kind() == "variable_assignment")
                 .find(|node| node.name().map(|x| x == name).unwrap_or_default())
             else {
-                return err("unhandled local variable");
+                return Err(error("unhandled local variable"));
             };
 
             if let Some(val) = node.into_iter().nth(2) {
                 match expand_node(pkg, val, cursor, filesdir) {
                     Ok(val) => Ok(val),
-                    Err(e) => err(&format!("{node}: unhandled global variable: {e}")),
+                    Err(e) => Err(error(&format!("{node}: unhandled global variable: {e}"))),
                 }
             } else {
-                err(&format!("{node}: invalid assignment"))
+                Err(error(&format!("{node}: invalid assignment")))
             }
         }
     }
