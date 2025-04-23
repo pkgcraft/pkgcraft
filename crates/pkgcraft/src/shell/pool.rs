@@ -1,5 +1,6 @@
 use std::fs;
 use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -177,12 +178,12 @@ impl MetadataTaskBuilder {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct PkgPretendTask {
+struct PretendTask {
     repo: String,
     cpv: Cpv,
 }
 
-impl PkgPretendTask {
+impl PretendTask {
     fn new<T: Into<Cpv>>(repo: &EbuildRepo, cpv: T) -> Self {
         Self {
             repo: repo.id().to_string(),
@@ -198,12 +199,12 @@ impl PkgPretendTask {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct SourceEnvTask {
+struct EnvTask {
     repo: String,
     cpv: Cpv,
 }
 
-impl SourceEnvTask {
+impl EnvTask {
     fn new<T: Into<Cpv>>(repo: &EbuildRepo, cpv: T) -> Self {
         Self {
             repo: repo.id().to_string(),
@@ -222,21 +223,47 @@ impl SourceEnvTask {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct DurationTask {
+    repo: String,
+    cpv: Cpv,
+}
+
+impl DurationTask {
+    fn new<T: Into<Cpv>>(repo: &EbuildRepo, cpv: T) -> Self {
+        Self {
+            repo: repo.id().to_string(),
+            cpv: cpv.into(),
+        }
+    }
+
+    fn run(self, config: &Config) -> crate::Result<Duration> {
+        let repo = get_ebuild_repo(config, &self.repo)?;
+        let pkg = repo.get_pkg_raw(self.cpv)?;
+        let start = Instant::now();
+        pkg.source()
+            .map_err(|e| Error::from(e).into_invalid_pkg_err(&pkg))?;
+        Ok(start.elapsed())
+    }
+}
+
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
+    Env(EnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
     Metadata(MetadataTask, IpcSender<crate::Result<Option<String>>>),
-    PkgPretend(PkgPretendTask, IpcSender<crate::Result<Option<String>>>),
-    SourceEnv(SourceEnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
+    Pretend(PretendTask, IpcSender<crate::Result<Option<String>>>),
+    Duration(DurationTask, IpcSender<crate::Result<Duration>>),
 }
 
 impl Task {
     /// Run the task, sending the result back to the main process.
     fn run(self, config: &Config) {
         match self {
+            Self::Env(task, tx) => tx.send(task.run(config)),
             Self::Metadata(task, tx) => tx.send(task.run(config)),
-            Self::PkgPretend(task, tx) => tx.send(task.run(config)),
-            Self::SourceEnv(task, tx) => tx.send(task.run(config)),
+            Self::Pretend(task, tx) => tx.send(task.run(config)),
+            Self::Duration(task, tx) => tx.send(task.run(config)),
         }
         .expect("failed sending task result")
     }
@@ -343,22 +370,35 @@ impl BuildPool {
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<Option<String>> {
-        let task = PkgPretendTask::new(repo, cpv);
+        let task = PretendTask::new(repo, cpv);
         let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Command::Task(Task::PkgPretend(task, tx));
+        let task = Command::Task(Task::Pretend(task, tx));
         self.tx.send(task).expect("failed queuing task");
         rx.recv().expect("failed receiving task result")
     }
 
     /// Return the mapping of global environment variables exported by a package.
-    pub fn source_env<T: Into<Cpv>>(
+    pub fn env<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<IndexMap<String, String>> {
-        let task = SourceEnvTask::new(repo, cpv);
+        let task = EnvTask::new(repo, cpv);
         let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Command::Task(Task::SourceEnv(task, tx));
+        let task = Command::Task(Task::Env(task, tx));
+        self.tx.send(task).expect("failed queuing task");
+        rx.recv().expect("failed receiving task result")
+    }
+
+    /// Return the time duration required to source a package.
+    pub fn duration<T: Into<Cpv>>(
+        &self,
+        repo: &EbuildRepo,
+        cpv: T,
+    ) -> crate::Result<Duration> {
+        let task = DurationTask::new(repo, cpv);
+        let (tx, rx) = ipc::channel().expect("failed creating task channel");
+        let task = Command::Task(Task::Duration(task, tx));
         self.tx.send(task).expect("failed queuing task");
         rx.recv().expect("failed receiving task result")
     }
