@@ -1,5 +1,4 @@
-use std::fs::{self, File};
-use std::os::fd::{AsRawFd, RawFd};
+use std::fs;
 use std::sync::OnceLock;
 
 use indexmap::IndexMap;
@@ -7,7 +6,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use itertools::Itertools;
 use nix::sys::{prctl, signal::Signal};
 use nix::unistd::{dup, dup2, fork, ForkResult};
-use scallop::pool::{redirect_output, SharedSemaphore};
+use scallop::pool::{redirect_output, suppress_output, SharedSemaphore};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
@@ -236,32 +235,20 @@ enum Task {
 }
 
 impl Task {
-    fn run(self, config: &Config, nullfd: RawFd) {
-        // suppress output by default
-        let result = suppress_output(nullfd);
-
-        // run the task
+    /// Run the task, sending the result back to the main process.
+    fn run(self, config: &Config) {
         match self {
             Self::Metadata(task, tx) => {
-                tx.send(result.and_then(|_| task.run(config))).unwrap();
+                tx.send(task.run(config)).unwrap();
             }
             Self::PkgPretend(task, tx) => {
-                tx.send(result.and_then(|_| task.run(config))).unwrap();
+                tx.send(task.run(config)).unwrap();
             }
             Self::SourceEnv(task, tx) => {
-                tx.send(result.and_then(|_| task.run(config))).unwrap();
+                tx.send(task.run(config)).unwrap();
             }
         }
     }
-}
-
-/// Redirect stdout and stderr to the specified fds, if any.
-fn suppress_output(nullfd: RawFd) -> crate::Result<()> {
-    dup2(nullfd, 1)
-        .map_err(|e| Error::InvalidValue(format!("failed redirecting stdout: {e}")))?;
-    dup2(nullfd, 2)
-        .map_err(|e| Error::InvalidValue(format!("failed redirecting stderr: {e}")))?;
-    Ok(())
 }
 
 /// Build pool command.
@@ -309,9 +296,8 @@ impl BuildPool {
         // initialize bash
         super::init()?;
 
+        // initialize shared memory semaphore to track jobs
         let mut sem = SharedSemaphore::new(self.jobs)?;
-        let null = File::options().write(true).open("/dev/null")?;
-        let nullfd = null.as_raw_fd();
 
         match unsafe { fork() } {
             Ok(ForkResult::Parent { .. }) => Ok(()),
@@ -330,6 +316,9 @@ impl BuildPool {
                     std::env::remove_var(name);
                 }
 
+                // suppress global output by default
+                suppress_output()?;
+
                 while let Ok(Command::Task(task)) = self.rx.recv() {
                     // wait on bounded semaphore for pool space
                     sem.acquire().unwrap();
@@ -337,7 +326,7 @@ impl BuildPool {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
                             scallop::shell::fork_init();
-                            task.run(config, nullfd);
+                            task.run(config);
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }
