@@ -169,14 +169,12 @@ impl MetadataTaskBuilder {
             }
         }
         let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
-        let (tx, rx) = ipc::channel()
-            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
+        let (tx, rx) = ipc::channel().expect("failed creating task channel");
         let task = Task::Metadata(meta, tx);
         self.tx
             .send(Command::Task(task))
-            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
-        rx.recv()
-            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
+            .expect("failed queuing task");
+        rx.recv().expect("failed receiving task result")
     }
 }
 
@@ -354,14 +352,12 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<Option<String>> {
         let task = PkgPretendTask::new(repo, cpv);
-        let (tx, rx) = ipc::channel()
-            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
+        let (tx, rx) = ipc::channel().expect("failed creating task channel");
         let task = Task::PkgPretend(task, tx);
         self.tx
             .send(Command::Task(task))
-            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
-        rx.recv()
-            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
+            .expect("failed queuing task");
+        rx.recv().expect("failed receiving task result")
     }
 
     /// Return the mapping of global environment variables exported by a package.
@@ -371,14 +367,12 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<IndexMap<String, String>> {
         let task = SourceEnvTask::new(repo, cpv);
-        let (tx, rx) = ipc::channel()
-            .map_err(|e| Error::InvalidValue(format!("failed creating task channel: {e}")))?;
+        let (tx, rx) = ipc::channel().expect("failed creating task channel");
         let task = Task::SourceEnv(task, tx);
         self.tx
             .send(Command::Task(task))
-            .map_err(|e| Error::InvalidValue(format!("failed queuing task: {e}")))?;
-        rx.recv()
-            .map_err(|e| Error::InvalidValue(format!("failed receiving task status: {e}")))?
+            .expect("failed queuing task");
+        rx.recv().expect("failed receiving task result")
     }
 }
 
