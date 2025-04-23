@@ -302,7 +302,6 @@ impl BuildPool {
                 #[cfg(target_os = "linux")]
                 prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
 
-                scallop::shell::fork_init();
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
 
