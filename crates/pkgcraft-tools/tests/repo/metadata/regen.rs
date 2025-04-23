@@ -351,3 +351,43 @@ fn use_local() {
     "};
     assert_eq!(&data, expected);
 }
+
+#[test]
+fn output() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with output during metadata generation"
+        SLOT=0
+        echo stdout
+        echo stderr >&2
+        eqawarn eqawarn
+        ewarn ewarn
+        eerror eerror
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+
+    // output is suppressed by default
+    cmd("pk repo metadata regen")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    for opt in ["-o", "--output"] {
+        cmd("pk repo metadata regen -f")
+            .arg(opt)
+            .arg(&repo)
+            .assert()
+            .stdout("")
+            .stderr(indoc::indoc! {"
+                cat/pkg-1::test: stdout
+                cat/pkg-1::test: stderr
+                cat/pkg-1::test: * eqawarn
+                cat/pkg-1::test: * ewarn
+                cat/pkg-1::test: * eerror
+            "})
+            .success();
+    }
+}
