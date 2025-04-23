@@ -110,7 +110,11 @@ impl EbuildRepo {
         })))
     }
 
-    /// Finalize the repo, resolving repo dependencies into Repo objects.
+    /// Finalize the repo, resolving repo dependencies and collapsing lazy metadata.
+    ///
+    /// This collapses lazy fields used in metadata regeneration that leverages
+    /// process-based parallelism. Without collapsing, every spawned process reinitializes
+    /// any lazy data it accesses, causing significant overhead.
     pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
         // check if the repo has already been initialized
         if self.0.data.masters.get().is_some() {
@@ -141,9 +145,7 @@ impl EbuildRepo {
             .set(Arc::downgrade(config.pool()))
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
-        // Collapse lazy fields used in metadata regeneration that leverages process-based
-        // parallelism. Without collapsing, each spawned process reinitializes all lazy
-        // fields slowing down runtime considerably.
+        // collapse lazy fields
         self.eclasses();
         self.arches();
         self.licenses();

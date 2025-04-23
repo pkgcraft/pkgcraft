@@ -235,11 +235,11 @@ impl Repo {
         Err(Error::InvalidValue(format!("invalid repo: {path}")))
     }
 
+    /// Finalize the repo, resolving repo dependencies and collapsing lazy metadata.
     pub(crate) fn finalize(&self, config: &Config) -> crate::Result<()> {
-        if let Self::Ebuild(repo) = self {
-            repo.finalize(config)
-        } else {
-            Ok(())
+        match self {
+            Self::Ebuild(repo) => repo.finalize(config),
+            _ => Ok(()),
         }
     }
 
