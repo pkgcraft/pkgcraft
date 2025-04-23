@@ -170,10 +170,8 @@ impl MetadataTaskBuilder {
         }
         let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
         let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Task::Metadata(meta, tx);
-        self.tx
-            .send(Command::Task(task))
-            .expect("failed queuing task");
+        let task = Command::Task(Task::Metadata(meta, tx));
+        self.tx.send(task).expect("failed queuing task");
         rx.recv().expect("failed receiving task result")
     }
 }
@@ -353,10 +351,8 @@ impl BuildPool {
     ) -> crate::Result<Option<String>> {
         let task = PkgPretendTask::new(repo, cpv);
         let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Task::PkgPretend(task, tx);
-        self.tx
-            .send(Command::Task(task))
-            .expect("failed queuing task");
+        let task = Command::Task(Task::PkgPretend(task, tx));
+        self.tx.send(task).expect("failed queuing task");
         rx.recv().expect("failed receiving task result")
     }
 
@@ -368,10 +364,8 @@ impl BuildPool {
     ) -> crate::Result<IndexMap<String, String>> {
         let task = SourceEnvTask::new(repo, cpv);
         let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Task::SourceEnv(task, tx);
-        self.tx
-            .send(Command::Task(task))
-            .expect("failed queuing task");
+        let task = Command::Task(Task::SourceEnv(task, tx));
+        self.tx.send(task).expect("failed queuing task");
         rx.recv().expect("failed receiving task result")
     }
 }
