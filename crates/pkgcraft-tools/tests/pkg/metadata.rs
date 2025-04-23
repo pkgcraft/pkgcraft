@@ -246,6 +246,9 @@ fn output() {
         SLOT=0
         echo stdout
         echo stderr >&2
+        eqawarn eqawarn
+        ewarn ewarn
+        eerror eerror
     "#};
     repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
@@ -266,6 +269,9 @@ fn output() {
             .stderr(indoc::indoc! {"
                 cat/pkg-1::test: stdout
                 cat/pkg-1::test: stderr
+                cat/pkg-1::test: * eqawarn
+                cat/pkg-1::test: * ewarn
+                cat/pkg-1::test: * eerror
             "})
             .success();
     }
