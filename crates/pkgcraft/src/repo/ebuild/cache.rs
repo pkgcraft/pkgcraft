@@ -257,14 +257,14 @@ impl MetadataCacheRegen<'_> {
                 self.regen.run(cpv)
             })
             .inspect(|result| {
-                // hack to force log capturing for tests to work in threads
-                // https://github.com/dbrgn/tracing-test/issues/23
-                #[cfg(test)]
-                let _entered = thread_span.clone().entered();
-
                 match result {
                     Err(e) => {
                         progress.suspend(|| {
+                            // hack to force log capturing for tests to work in threads
+                            // https://github.com/dbrgn/tracing-test/issues/23
+                            #[cfg(test)]
+                            let _entered = thread_span.clone().entered();
+
                             error!("{e}");
                         });
                     }
