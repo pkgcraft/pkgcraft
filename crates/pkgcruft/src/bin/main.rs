@@ -48,11 +48,6 @@ fn main() -> anyhow::Result<ExitCode> {
 
     let args = Command::parse();
 
-    // ignore the environment and forcibly enable/disable color support
-    if let Some(value) = args.color {
-        colored::control::set_override(value);
-    }
-
     // custom log event formatter that disables target prefixes by default
     let level = args.verbosity.log_level_filter();
     let format = tracing_subscriber::fmt::format()
@@ -61,12 +56,20 @@ fn main() -> anyhow::Result<ExitCode> {
         .without_time()
         .compact();
 
-    tracing_subscriber::fmt()
+    // create formatting subscriber that uses stderr
+    let mut subscriber = tracing_subscriber::fmt()
         .event_format(format)
-        .with_ansi(args.color.unwrap_or(true))
         .with_max_level(level.as_trace())
-        .with_writer(stderr)
-        .init();
+        .with_writer(stderr);
+
+    // forcibly enable or disable color support
+    if let Some(value) = args.color {
+        colored::control::set_override(value);
+        subscriber = subscriber.with_ansi(value);
+    }
+
+    // initialize global subscriber
+    subscriber.init();
 
     let cmd = args.cmd().join(" ");
     args.subcmd.run().or_else(|err| {
