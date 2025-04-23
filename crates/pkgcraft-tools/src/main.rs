@@ -24,7 +24,7 @@ pub(crate) struct Command {
     #[command(flatten)]
     verbosity: Verbosity,
 
-    /// Enable/disable color output
+    /// Enable/disable color support
     #[arg(
         long,
         value_name = "BOOL",

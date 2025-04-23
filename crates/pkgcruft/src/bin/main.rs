@@ -1,7 +1,6 @@
 use std::io::stderr;
 use std::process::ExitCode;
 
-use clap::builder::BoolValueParser;
 use clap::Parser;
 use clap_verbosity_flag::{log::LevelFilter, Verbosity};
 use pkgcraft::cli::reset_sigpipe;
@@ -21,12 +20,11 @@ pub(crate) struct Command {
     /// enable/disable color support
     #[arg(
         long,
-        global = true,
         value_name = "BOOL",
         num_args = 0..=1,
         default_missing_value = "true",
-        value_parser = BoolValueParser::new(),
         hide_possible_values = true,
+        global = true,
     )]
     color: Option<bool>,
 
