@@ -267,11 +267,12 @@ fn output() {
             .assert()
             .stdout("")
             .stderr(indoc::indoc! {"
-                cat/pkg-1::test: stdout
-                cat/pkg-1::test: stderr
-                cat/pkg-1::test: * eqawarn
-                cat/pkg-1::test: * ewarn
-                cat/pkg-1::test: * eerror
+                cat/pkg-1::test:
+                  stdout
+                  stderr
+                  * eqawarn
+                  * ewarn
+                  * eerror
             "})
             .success();
     }

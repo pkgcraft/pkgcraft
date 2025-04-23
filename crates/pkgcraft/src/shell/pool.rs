@@ -4,6 +4,7 @@ use std::sync::OnceLock;
 
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use itertools::Itertools;
 use nix::sys::{prctl, signal::Signal};
 use nix::unistd::{dup, dup2, fork, ForkResult};
 use scallop::pool::{redirect_output, SharedSemaphore};
@@ -56,7 +57,7 @@ impl MetadataTask {
         }
     }
 
-    fn run(self, config: &Config) -> crate::Result<Option<Vec<String>>> {
+    fn run(self, config: &Config) -> crate::Result<Option<String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
 
@@ -77,9 +78,11 @@ impl MetadataTask {
         let output = if let Some((file, fd)) = output {
             dup2(fd, 2).unwrap();
             let data = fs::read_to_string(file.path()).unwrap_or_default();
-            let lines: Vec<_> = data.lines().map(|line| format!("{pkg}: {line}")).collect();
-            if !lines.is_empty() {
-                Some(lines)
+            let data = data.trim();
+            if !data.is_empty() {
+                // indent output data and add package header
+                let data = data.lines().join("\n  ");
+                Some(format!("{pkg}:\n  {data}"))
             } else {
                 None
             }
@@ -147,7 +150,7 @@ impl MetadataTaskBuilder {
     }
 
     /// Run the task for a target [`Cpv`].
-    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<Option<Vec<String>>> {
+    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<Option<String>> {
         let cpv = cpv.into();
         let cache = self
             .cache
@@ -227,7 +230,7 @@ impl SourceEnvTask {
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
-    Metadata(MetadataTask, IpcSender<crate::Result<Option<Vec<String>>>>),
+    Metadata(MetadataTask, IpcSender<crate::Result<Option<String>>>),
     PkgPretend(PkgPretendTask, IpcSender<crate::Result<Option<String>>>),
     SourceEnv(SourceEnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
 }

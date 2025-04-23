@@ -269,11 +269,9 @@ impl MetadataCacheRegen<'_> {
                         });
                     }
                     Ok(output) => {
-                        if let Some(lines) = output {
+                        if let Some(data) = output {
                             progress.suspend(|| {
-                                for line in lines {
-                                    eprintln!("{line}");
-                                }
+                                eprintln!("{data}");
                             });
                         }
                     }
