@@ -230,13 +230,13 @@ impl TestDataPatched {
     }
 }
 
-/// Determine if a file is a patch.
-fn is_patch(entry: &DirEntry) -> bool {
+/// Determine if a file is a patch or script.
+fn is_change(entry: &DirEntry) -> bool {
     let path = entry.path();
     path.is_file()
         && path
             .file_name()
-            .map(|s| s == "fix.patch")
+            .map(|s| s == "fix.patch" || s == "fix.sh")
             .unwrap_or_default()
 }
 
@@ -246,20 +246,20 @@ pub fn test_data_patched() -> TestDataPatched {
     let mut config = Config::new("pkgcraft", "");
     let mut repos = vec![];
 
-    // generate temporary repos for with patches applied
+    // generate temporary repos with changes applied
     let data = test_data();
     for (name, repo) in &data.config.repos {
-        let patches: Vec<Utf8PathBuf> = WalkDir::new(repo.path())
+        let changes: Vec<Utf8PathBuf> = WalkDir::new(repo.path())
             .sort_by_file_name()
             .into_iter()
             .filter_map(Result::ok)
-            .filter(is_patch)
+            .filter(is_change)
             .map(|entry| entry.path().to_path_buf())
             .map(|path| path.try_into())
             .try_collect()
             .unwrap();
 
-        if !patches.is_empty() {
+        if !changes.is_empty() {
             let old_path = repo.path();
             let new_path = tmppath.join(name);
 
@@ -268,11 +268,11 @@ pub fn test_data_patched() -> TestDataPatched {
                 let src = Utf8Path::from_path(entry.path()).unwrap();
                 let dest = new_path.join(src.strip_prefix(old_path).unwrap());
 
-                // create directories and copy files skipping patches
+                // create directories and copy files skipping change files
                 if src.is_dir() {
                     fs::create_dir(&dest)
                         .unwrap_or_else(|e| panic!("failed creating dir {dest}: {e}"));
-                } else if src.is_file() && !is_patch(&entry) {
+                } else if src.is_file() && !is_change(&entry) {
                     // ignore missing transient metadata cache files
                     if let Err(e) = fs::copy(src, &dest) {
                         if e.kind() != io::ErrorKind::NotFound {
@@ -282,20 +282,29 @@ pub fn test_data_patched() -> TestDataPatched {
                 }
             }
 
-            // apply patches to new repo
-            for patch in &patches {
-                let relpath = relpath_utf8(patch.parent().unwrap(), old_path).unwrap();
+            // apply changes to new repo
+            for change in &changes {
+                let relpath = relpath_utf8(change.parent().unwrap(), old_path).unwrap();
                 let dir = new_path.join(relpath);
-                let status = process::Command::new("patch")
-                    .arg("-p1")
-                    .arg("-F0")
-                    .arg("-N")
-                    .arg("--backup-if-mismatch")
-                    .stdin(fs::File::open(patch).unwrap())
-                    .current_dir(&dir)
-                    .status()
-                    .unwrap();
-                assert!(status.success(), "failed applying: {patch}");
+                let name = change.file_name().unwrap();
+
+                let status = if name == "fix.patch" {
+                    process::Command::new("patch")
+                        .arg("-p1")
+                        .arg("-F0")
+                        .arg("-N")
+                        .arg("--backup-if-mismatch")
+                        .stdin(fs::File::open(change).unwrap())
+                        .current_dir(&dir)
+                        .status()
+                        .unwrap()
+                } else {
+                    process::Command::new(change)
+                        .current_dir(&dir)
+                        .status()
+                        .unwrap()
+                };
+                assert!(status.success(), "failed applying: {change}");
 
                 // TODO: Switch to using a patch option rejecting mismatches if upstream ever
                 // supports that.
@@ -308,7 +317,7 @@ pub fn test_data_patched() -> TestDataPatched {
                         .map(|s| s == "orig")
                         .unwrap_or_default()
                 }) {
-                    panic!("mismatched patch: {}", patch.strip_prefix(tmppath).unwrap());
+                    panic!("mismatched patch: {}", change.strip_prefix(tmppath).unwrap());
                 }
             }
 
