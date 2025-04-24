@@ -7,7 +7,7 @@ use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
-#[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord)]
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
