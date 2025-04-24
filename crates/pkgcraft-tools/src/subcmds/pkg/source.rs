@@ -85,7 +85,7 @@ impl FromStr for Bench {
 #[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
     /// Parallel jobs to run
-    #[arg(short, long, default_value_t = num_cpus::get_physical())]
+    #[arg(short, long, default_value_t = num_cpus::get())]
     jobs: usize,
 
     /// Benchmark for a duration or number of runs
