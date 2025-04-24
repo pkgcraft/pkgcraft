@@ -60,6 +60,27 @@ impl FromStr for Bound {
     }
 }
 
+/// Perform a benchmark for an elapsed duration or number of runs.
+#[derive(Copy, Clone)]
+enum Bench {
+    Duration(Duration),
+    Runs(u32),
+}
+
+impl FromStr for Bench {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> anyhow::Result<Self> {
+        if let Ok(value) = humantime::Duration::from_str(s) {
+            Ok(Self::Duration(value.into()))
+        } else if let Ok(value) = s.parse() {
+            Ok(Self::Runs(value))
+        } else {
+            Err(anyhow::anyhow!("invalid benchmark value: {s}"))
+        }
+    }
+}
+
 #[derive(Args)]
 #[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
@@ -67,9 +88,9 @@ pub(crate) struct Command {
     #[arg(short, long, default_value_t = num_cpus::get_physical())]
     jobs: usize,
 
-    /// Benchmark for a duration
-    #[arg(short, long, value_name = "DURATION")]
-    bench: Option<humantime::Duration>,
+    /// Benchmark for a duration or number of runs
+    #[arg(short, long)]
+    bench: Option<Bench>,
 
     /// Apply bounds to elapsed time
     #[arg(short = 'B', long)]
@@ -105,7 +126,7 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given duration per package.
-fn benchmark<I>(duration: Duration, pkgs: I, sort: bool) -> anyhow::Result<bool>
+fn benchmark<I>(bench: Bench, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
     I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>> + Send + 'static,
 {
@@ -114,11 +135,23 @@ where
         move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
             let pkg = pkg?;
             let mut data = vec![];
-            let mut elapsed = Duration::new(0, 0);
-            while elapsed < duration {
-                let time = pkg.duration()?;
-                data.push(micros!(time));
-                elapsed += time;
+            match bench {
+                Bench::Duration(duration) => {
+                    let mut elapsed = Duration::new(0, 0);
+                    while elapsed < duration {
+                        let time = pkg.duration()?;
+                        data.push(micros!(time));
+                        elapsed += time;
+                    }
+                }
+                Bench::Runs(limit) => {
+                    let mut runs = 0;
+                    while runs < limit {
+                        let time = pkg.duration()?;
+                        data.push(micros!(time));
+                        runs += 1;
+                    }
+                }
             }
             Ok((pkg.to_string(), data))
         };
@@ -232,8 +265,8 @@ impl Command {
             .finalize_pkgs(self.targets.iter().flatten())?
             .ebuild_raw_pkgs();
 
-        let failed = if let Some(duration) = self.bench {
-            benchmark(duration.into(), pkgs, self.sort)
+        let failed = if let Some(value) = self.bench {
+            benchmark(value, pkgs, self.sort)
         } else {
             source(pkgs, &self.bound, self.sort)
         }?;

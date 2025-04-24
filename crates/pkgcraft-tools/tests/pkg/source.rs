@@ -148,7 +148,7 @@ fn bound_and_sort() {
     }
 
     // sorting output
-    for opts in [vec![], vec!["--bench", "500ms"]] {
+    for opts in [vec![], vec!["--bench", "500ms"], vec!["-b", "10"]] {
         cmd("pk pkg source --sort")
             .args(opts)
             .arg(&repo)
