@@ -248,7 +248,7 @@ impl<R> ParallelMapIter<R>
 where
     R: Send + 'static,
 {
-    pub fn new<I, F, T>(value: I, func: F, jobs: usize) -> Self
+    fn new<I, F, T>(value: I, func: F, jobs: usize) -> Self
     where
         I: IntoIterator<Item = T> + Send + 'static,
         F: Fn(T) -> R + Clone + Send + 'static,
@@ -405,7 +405,7 @@ impl<R> ParallelMapOrderedIter<R>
 where
     R: Send + 'static,
 {
-    pub fn new<I, F, T>(value: I, func: F, jobs: usize) -> Self
+    fn new<I, F, T>(value: I, func: F, jobs: usize) -> Self
     where
         I: IntoIterator<Item = T> + Send + 'static,
         F: Fn(T) -> R + Clone + Send + 'static,
