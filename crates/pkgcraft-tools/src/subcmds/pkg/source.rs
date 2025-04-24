@@ -90,11 +90,11 @@ pub(crate) struct Command {
     jobs: usize,
 
     /// Benchmark for a duration or number of runs
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "cumulative")]
     bench: Option<Bench>,
 
     /// Apply bounds to elapsed time
-    #[arg(short = 'B', long)]
+    #[arg(short = 'B', long, conflicts_with = "cumulative")]
     bound: Vec<Bound>,
 
     /// Benchmark across all targets cumulatively
@@ -104,7 +104,6 @@ pub(crate) struct Command {
         value_name = "RUNS",
         num_args = 0..=1,
         default_missing_value = "1",
-        conflicts_with = "bench"
     )]
     cumulative: Option<NonZero<u32>>,
 
