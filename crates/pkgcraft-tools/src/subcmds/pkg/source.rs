@@ -1,15 +1,15 @@
 use std::io::{self, Write};
 use std::process::ExitCode;
 use std::str::FromStr;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use clap::{builder::ArgPredicate, Args};
 use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Source};
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::utils::bounded_jobs;
-use scallop::pool::PoolIter;
+use pkgcraft::traits::ParallelMapIter;
+use pkgcraft::utils::bounded_thread_pool;
 use tracing::error;
 
 /// Duration bound to apply against elapsed time values.
@@ -105,27 +105,20 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given duration per package.
-fn benchmark<I>(duration: Duration, jobs: usize, pkgs: I, sort: bool) -> anyhow::Result<bool>
+fn benchmark<I>(duration: Duration, pkgs: I, sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>>,
+    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>> + Send + 'static,
 {
     let mut failed = false;
     let func =
-        |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
+        move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
             let pkg = pkg?;
             let mut data = vec![];
             let mut elapsed = Duration::new(0, 0);
             while elapsed < duration {
-                let start = Instant::now();
-                // TODO: move error mapping into pkgcraft for pkg sourcing
-                pkg.source().map_err(|e| {
-                    let err: pkgcraft::Error = e.into();
-                    err.into_invalid_pkg_err(&pkg)
-                })?;
-                let source_elapsed = micros!(start.elapsed());
-                data.push(source_elapsed);
-                elapsed += source_elapsed;
-                scallop::shell::reset(&[]);
+                let time = pkg.duration()?;
+                data.push(micros!(time));
+                elapsed += time;
             }
             Ok((pkg.to_string(), data))
         };
@@ -133,8 +126,8 @@ where
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
-    for r in PoolIter::new(jobs, pkgs, func, true)? {
-        match r {
+    for result in ParallelMapIter::new(pkgs, func) {
+        match result {
             Ok((pkg, data)) => {
                 let n = data.len() as u64;
                 let micros: Vec<u64> = data
@@ -183,28 +176,23 @@ where
 }
 
 /// Run package sourcing a single time per package.
-fn source<I>(jobs: usize, pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
+fn source<I>(pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
 where
-    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>>,
+    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>> + Send + 'static,
 {
     let mut failed = false;
-    let func = |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
-        let start = Instant::now();
-        let pkg = pkg?;
-        // TODO: move error mapping into pkgcraft for pkg sourcing
-        pkg.source().map_err(|e| {
-            let err: pkgcraft::Error = e.into();
-            err.into_invalid_pkg_err(&pkg)
-        })?;
-        let elapsed = micros!(start.elapsed());
-        Ok((pkg.to_string(), elapsed))
-    };
+    let func =
+        move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
+            let pkg = pkg?;
+            let elapsed = micros!(pkg.duration()?);
+            Ok((pkg.to_string(), elapsed))
+        };
 
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
-    for r in PoolIter::new(jobs, pkgs, func, true)? {
-        match r {
+    for result in ParallelMapIter::new(pkgs, func) {
+        match result {
             Ok((pkg, elapsed)) => {
                 if bound.iter().all(|b| b.matches(&elapsed)) {
                     if let Some(values) = sorted.as_mut() {
@@ -234,8 +222,8 @@ where
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // default to running a job on each physical CPU in order to limit contention
-        let jobs = bounded_jobs(self.jobs);
+        // build custom, global thread pool when limiting jobs
+        bounded_thread_pool(self.jobs);
 
         // convert targets to pkgs
         let pkgs = Targets::new(config)
@@ -245,9 +233,9 @@ impl Command {
             .ebuild_raw_pkgs();
 
         let failed = if let Some(duration) = self.bench {
-            benchmark(duration.into(), jobs, pkgs, self.sort)
+            benchmark(duration.into(), pkgs, self.sort)
         } else {
-            source(jobs, pkgs, &self.bound, self.sort)
+            source(pkgs, &self.bound, self.sort)
         }?;
 
         Ok(ExitCode::from(failed as u8))
