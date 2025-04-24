@@ -177,6 +177,15 @@ fn bench() {
             .failure()
             .code(2);
 
+        // default runs
+        cmd("pk pkg source")
+            .arg(repo)
+            .arg(opt)
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+
         // valid duration
         cmd("pk pkg source")
             .arg(repo)
