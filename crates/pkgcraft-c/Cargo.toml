@@ -1,6 +1,6 @@
 [package]
 name = "pkgcraft-c"
-version = "0.0.26"
+version = "0.0.27"
 description = "C library for pkgcraft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-c"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-c"
@@ -22,6 +22,6 @@ crate-type = ["cdylib"]
 capi = []
 
 [dependencies]
-pkgcraft = { path = "../pkgcraft", version = "0.0.26" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.27" }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
