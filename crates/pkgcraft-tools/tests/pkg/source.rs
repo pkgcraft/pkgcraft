@@ -50,21 +50,15 @@ fn invalid_pkgs() {
         .failure()
         .code(1);
 
-    // repo target
-    cmd(format!("pk pkg source {path}"))
-        .assert()
-        .stdout("")
-        .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
-        .failure()
-        .code(1);
-
-    // benchmarking failures
-    cmd(format!("pk pkg source --bench 500ms {path}"))
-        .assert()
-        .stdout("")
-        .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
-        .failure()
-        .code(1);
+    // repo level
+    for args in [vec![], vec!["-b", "500ms"], vec!["-c", "1"]] {
+        cmd(format!("pk pkg source {path}"))
+            .args(args)
+            .assert()
+            .stderr(lines_contain(["a/pkg-1", "cat/a-1", "cat/b-1"]))
+            .failure()
+            .code(1);
+    }
 }
 
 #[test]
