@@ -1,4 +1,5 @@
 use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
@@ -145,6 +146,12 @@ impl EbuildRawPkg {
     pub fn env(&self) -> crate::Result<IndexMap<String, String>> {
         let repo = &self.0.repo;
         self.0.repo.pool().env(repo, &self.0.cpv)
+    }
+
+    /// Return the time duration required to source the package.
+    pub fn duration(&self) -> crate::Result<Duration> {
+        let repo = &self.0.repo;
+        self.0.repo.pool().duration(repo, &self.0.cpv)
     }
 }
 
