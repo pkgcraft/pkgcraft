@@ -5,6 +5,7 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use clap::{builder::ArgPredicate, Args};
+use indicatif::{ProgressBar, ProgressStyle};
 use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
@@ -240,17 +241,25 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
     let mut values = vec![];
     let mut stdout = io::stdout().lock();
 
+    // initialize progress bar
+    let progress = ProgressBar::new(targets.len().try_into().unwrap())
+        .with_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
+
     while run < limit {
         let mut cpu_time = Duration::new(0, 0);
         let start = Instant::now();
         let pkgs = targets.clone().ebuild_raw_pkgs();
+        progress.reset();
 
         for result in pkgs.par_map(func).jobs(cmd.jobs) {
+            progress.inc(1);
             match result {
                 Ok(duration) => cpu_time += duration,
                 Err(e) => {
                     failed = true;
-                    error!("{e}");
+                    progress.suspend(|| {
+                        error!("{e}");
+                    });
                 }
             }
         }
@@ -258,9 +267,13 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
         run += 1;
         let elapsed = millis!(start.elapsed());
         let cpu_time = millis!(cpu_time);
-        writeln!(stdout, "run #{run}: real: {elapsed:?}, cpu: {cpu_time:?}")?;
+        progress.suspend(|| {
+            println!("run #{run}: real: {elapsed:?}, cpu: {cpu_time:?}");
+        });
         values.push(elapsed);
     }
+
+    progress.finish_and_clear();
 
     // output statistics across multiple runs
     if limit > 1 {
