@@ -316,6 +316,19 @@ impl IntoIterator for PkgTargets {
 }
 
 impl PkgTargets {
+    /// Return the number of package targets.
+    pub fn len(&self) -> usize {
+        self.into_iter()
+            .flat_map(|(set, restrict)| set.iter_cpv_restrict(restrict))
+            .count()
+    }
+
+    /// Return true if package targets exist.
+    pub fn is_empty(&self) -> bool {
+        self.into_iter()
+            .any(|(set, restrict)| set.contains(restrict))
+    }
+
     /// Convert target restrictions into borrowed ebuild repo and restriction tuples.
     pub fn ebuild_repo_restricts(&self) -> impl Iterator<Item = (&EbuildRepo, &Restrict)> {
         self.into_iter()
