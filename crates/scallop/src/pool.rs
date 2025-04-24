@@ -1,13 +1,11 @@
 use std::fs::File;
 use std::os::fd::{AsFd, AsRawFd};
 
-use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
 use nix::errno::Errno;
-use nix::unistd::{dup2, fork, ForkResult};
-use serde::{Deserialize, Serialize};
+use nix::unistd::dup2;
 
 use crate::shm::create_shm;
-use crate::{bash, shell, Error};
+use crate::Error;
 
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output<T: AsFd>(f: T) -> crate::Result<()> {
@@ -77,97 +75,5 @@ impl SharedSemaphore {
 impl Drop for SharedSemaphore {
     fn drop(&mut self) {
         unsafe { libc::sem_destroy(self.sem) };
-    }
-}
-
-pub struct PoolIter<T: Serialize + for<'a> Deserialize<'a>> {
-    rx: IpcReceiver<T>,
-}
-
-impl<T: Serialize + for<'a> Deserialize<'a>> PoolIter<T> {
-    pub fn new<O, I, F>(size: usize, iter: I, func: F, suppress: bool) -> crate::Result<Self>
-    where
-        I: Iterator<Item = O>,
-        F: FnOnce(O) -> T,
-    {
-        let mut sem = SharedSemaphore::new(size)?;
-        let (tx, rx): (IpcSender<T>, IpcReceiver<T>) = ipc::channel()
-            .map_err(|e| Error::Base(format!("failed creating IPC channel: {e}")))?;
-
-        match unsafe { fork() } {
-            Ok(ForkResult::Parent { .. }) => Ok(()),
-            Ok(ForkResult::Child) => {
-                shell::fork_init();
-                // enable internal bash SIGCHLD handler
-                unsafe { bash::set_sigchld_handler() };
-
-                if suppress {
-                    // suppress stdout and stderr in forked processes
-                    suppress_output()?;
-                }
-
-                for obj in iter {
-                    // wait on bounded semaphore for pool space
-                    sem.acquire()?;
-
-                    match unsafe { fork() } {
-                        Ok(ForkResult::Parent { .. }) => (),
-                        Ok(ForkResult::Child) => {
-                            shell::fork_init();
-                            // TODO: use catch_unwind() with UnwindSafe function and serialize tracebacks
-                            let r = func(obj);
-                            tx.send(r).map_err(|e| {
-                                Error::Base(format!("process pool sending failed: {e}"))
-                            })?;
-                            sem.release()?;
-                            unsafe { libc::_exit(0) };
-                        }
-                        Err(e) => panic!("process pool fork failed: {e}"),
-                    }
-                }
-                unsafe { libc::_exit(0) };
-            }
-            Err(e) => Err(Error::Base(format!("starting process pool failed: {e}"))),
-        }?;
-
-        Ok(Self { rx })
-    }
-}
-
-impl<T: Serialize + for<'a> Deserialize<'a>> Iterator for PoolIter<T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.rx.recv() {
-            Ok(r) => Some(r),
-            Err(IpcError::Disconnected) => None,
-            Err(e) => panic!("process pool receiver failed: {e}"),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::source;
-    use crate::variables::optional;
-
-    use super::*;
-
-    #[test]
-    fn env_leaking() {
-        assert!(optional("VAR").is_none());
-
-        let vals: Vec<_> = (0..16).collect();
-        let func = |i: u64| {
-            source::string(format!("VAR={i}")).unwrap();
-            assert_eq!(optional("VAR").unwrap(), i.to_string());
-            i
-        };
-
-        PoolIter::new(2, vals.into_iter(), func, false)
-            .unwrap()
-            .for_each(drop);
-
-        assert!(optional("VAR").is_none());
     }
 }
