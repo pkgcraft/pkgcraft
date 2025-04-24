@@ -10,7 +10,6 @@ use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::ParallelMapIter;
-use pkgcraft::utils::bounded_thread_pool;
 use tracing::error;
 
 /// Duration bound to apply against elapsed time values.
@@ -82,13 +81,10 @@ impl FromStr for Bench {
     }
 }
 
+// TODO: re-add -j/--jobs support
 #[derive(Args)]
 #[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
-    /// Parallel jobs to run
-    #[arg(short, long, default_value_t = num_cpus::get_physical())]
-    jobs: usize,
-
     /// Benchmark for a duration or number of runs
     #[arg(short, long, conflicts_with = "cumulative")]
     bench: Option<Bench>,
@@ -330,9 +326,6 @@ fn source(targets: PkgTargets, bound: &[Bound], sort: bool) -> anyhow::Result<bo
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // build custom, global thread pool when limiting jobs
-        bounded_thread_pool(self.jobs);
-
         // convert targets to pkgs
         let targets = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
