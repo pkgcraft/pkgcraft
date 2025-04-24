@@ -77,3 +77,29 @@ impl Drop for SharedSemaphore {
         unsafe { libc::sem_destroy(self.sem) };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn semaphore() {
+        // exceed max semaphore value
+        let size = u32::MAX.try_into().unwrap();
+        assert!(SharedSemaphore::new(size).is_err());
+
+        // max value is i32::MAX
+        let size = i32::MAX.try_into().unwrap();
+        let mut sem = SharedSemaphore::new(size).unwrap();
+        // overflow semaphore value
+        assert!(sem.release().is_err());
+
+        // acquire then release
+        sem.acquire().unwrap();
+        assert!(sem.release().is_ok());
+
+        // acquire all
+        let mut sem = SharedSemaphore::new(10).unwrap();
+        sem.wait().unwrap();
+    }
+}
