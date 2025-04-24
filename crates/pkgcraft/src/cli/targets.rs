@@ -294,6 +294,7 @@ impl<'a> Targets<'a> {
     }
 }
 
+#[derive(Clone)]
 pub struct PkgTargets(Vec<(RepoSet, Restrict)>);
 
 impl<'a> IntoIterator for &'a PkgTargets {
@@ -363,6 +364,7 @@ impl PkgTargets {
     }
 }
 
+#[derive(Clone)]
 pub struct RepoTargets(Vec<(String, Repo)>);
 
 impl<'a> IntoIterator for &'a RepoTargets {
