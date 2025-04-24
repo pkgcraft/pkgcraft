@@ -250,9 +250,7 @@ impl EbuildPkgSetCheck for Check {
             let inherited: HashSet<_> =
                 pkgs.iter().flat_map(|x| x.inherited()).cloned().collect();
             if let Some(eclass) = self.eclasses.intersection(&inherited).next() {
-                warn!(
-                    "{self}: {cpn}: skipping unused files due to eclass FILESDIR usage: {eclass}"
-                );
+                warn!("{self}: {cpn}: skipping unused files due to eclass FILESDIR: {eclass}");
                 return;
             }
 
