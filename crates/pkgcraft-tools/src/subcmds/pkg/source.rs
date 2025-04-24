@@ -9,7 +9,7 @@ use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::ParallelMapIter;
+use pkgcraft::traits::ParallelMap;
 use tracing::error;
 
 /// Duration bound to apply against elapsed time values.
@@ -171,7 +171,7 @@ fn benchmark(bench: Bench, targets: PkgTargets, sort: bool) -> anyhow::Result<bo
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
-    for result in ParallelMapIter::new(pkgs, func) {
+    for result in pkgs.par_map(func) {
         match result {
             Ok((pkg, data)) => {
                 let n = data.len() as u64;
@@ -236,7 +236,7 @@ fn cumulative(limit: u32, targets: PkgTargets) -> anyhow::Result<bool> {
         let start = Instant::now();
         let pkgs = targets.clone().ebuild_raw_pkgs();
 
-        for result in ParallelMapIter::new(pkgs, func) {
+        for result in pkgs.par_map(func) {
             match result {
                 Ok(duration) => cpu_time += duration,
                 Err(e) => {
@@ -295,7 +295,7 @@ fn source(targets: PkgTargets, bound: &[Bound], sort: bool) -> anyhow::Result<bo
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
-    for result in ParallelMapIter::new(pkgs, func) {
+    for result in pkgs.par_map(func) {
         match result {
             Ok((pkg, elapsed)) => {
                 if bound.iter().all(|b| b.matches(&elapsed)) {
