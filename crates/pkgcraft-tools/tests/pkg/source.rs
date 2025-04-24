@@ -162,6 +162,42 @@ fn bound_and_sort() {
 }
 
 #[test]
+fn bench() {
+    let data = test_data();
+    let repo = data.ebuild_repo("metadata").unwrap();
+
+    for opt in ["-b", "--bench"] {
+        // invalid
+        cmd("pk pkg source")
+            .arg(repo)
+            .args([opt, "a"])
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
+        // valid duration
+        cmd("pk pkg source")
+            .arg(repo)
+            .args([opt, "50ms"])
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+
+        // valid runs
+        cmd("pk pkg source")
+            .arg(repo)
+            .args([opt, "3"])
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+    }
+}
+
+#[test]
 fn cumulative() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
