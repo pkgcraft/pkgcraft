@@ -1,10 +1,11 @@
 use std::io::{self, Write};
+use std::num::NonZero;
 use std::process::ExitCode;
 use std::str::FromStr;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use clap::{builder::ArgPredicate, Args};
-use pkgcraft::cli::{MaybeStdinVec, Targets};
+use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
@@ -64,7 +65,7 @@ impl FromStr for Bound {
 #[derive(Copy, Clone)]
 enum Bench {
     Duration(Duration),
-    Runs(u32),
+    Runs(NonZero<u32>),
 }
 
 impl FromStr for Bench {
@@ -96,12 +97,23 @@ pub(crate) struct Command {
     #[arg(short = 'B', long)]
     bound: Vec<Bound>,
 
+    /// Benchmark across all targets cumulatively
+    #[arg(
+        short,
+        long,
+        value_name = "RUNS",
+        num_args = 0..=1,
+        default_missing_value = "1",
+        conflicts_with = "bench"
+    )]
+    cumulative: Option<NonZero<u32>>,
+
     /// Target repo
     #[arg(short, long)]
     repo: Option<String>,
 
     /// Sort output in ascending order for elapsed time
-    #[arg(long)]
+    #[arg(long, conflicts_with = "cumulative")]
     sort: bool,
 
     // positionals
@@ -117,6 +129,14 @@ pub(crate) struct Command {
     targets: Vec<MaybeStdinVec<String>>,
 }
 
+// Truncate a duration to millisecond precision.
+macro_rules! millis {
+    ($val:expr) => {{
+        let val = $val.as_millis().try_into().expect("duration overflow");
+        Duration::from_millis(val)
+    }};
+}
+
 // Truncate a duration to microsecond precision.
 macro_rules! micros {
     ($val:expr) => {{
@@ -126,10 +146,7 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given duration per package.
-fn benchmark<I>(bench: Bench, pkgs: I, sort: bool) -> anyhow::Result<bool>
-where
-    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>> + Send + 'static,
-{
+fn benchmark(bench: Bench, targets: PkgTargets, sort: bool) -> anyhow::Result<bool> {
     let mut failed = false;
     let func =
         move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
@@ -137,16 +154,15 @@ where
             let mut data = vec![];
             match bench {
                 Bench::Duration(duration) => {
-                    let mut elapsed = Duration::new(0, 0);
-                    while elapsed < duration {
+                    let start = Instant::now();
+                    while start.elapsed() < duration {
                         let time = pkg.duration()?;
                         data.push(micros!(time));
-                        elapsed += time;
                     }
                 }
                 Bench::Runs(limit) => {
                     let mut runs = 0;
-                    while runs < limit {
+                    while runs < limit.get() {
                         let time = pkg.duration()?;
                         data.push(micros!(time));
                         runs += 1;
@@ -156,6 +172,7 @@ where
             Ok((pkg.to_string(), data))
         };
 
+    let pkgs = targets.ebuild_raw_pkgs();
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
@@ -208,11 +225,69 @@ where
     Ok(failed)
 }
 
+/// Run package sourcing benchmark cumulatively across all targets.
+fn cumulative(limit: u32, targets: PkgTargets) -> anyhow::Result<bool> {
+    let func = move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Duration> {
+        Ok(pkg?.duration()?)
+    };
+
+    let mut failed = false;
+    let mut run = 0;
+    let mut values = vec![];
+    let mut stdout = io::stdout().lock();
+
+    while run < limit {
+        let mut cpu_time = Duration::new(0, 0);
+        let start = Instant::now();
+        let pkgs = targets.clone().ebuild_raw_pkgs();
+
+        for result in ParallelMapIter::new(pkgs, func) {
+            match result {
+                Ok(duration) => cpu_time += duration,
+                Err(e) => {
+                    failed = true;
+                    error!("{e}");
+                }
+            }
+        }
+
+        run += 1;
+        let elapsed = millis!(start.elapsed());
+        let cpu_time = millis!(cpu_time);
+        writeln!(stdout, "run #{run}: real: {elapsed:?}, cpu: {cpu_time:?}")?;
+        values.push(elapsed);
+    }
+
+    // output statistics across multiple runs
+    if limit > 1 {
+        let n = run as u64;
+        let millis: Vec<u64> = values
+            .iter()
+            .map(|v| v.as_millis().try_into().unwrap())
+            .collect();
+        let min = Duration::from_millis(*millis.iter().min().unwrap());
+        let max = Duration::from_millis(*millis.iter().max().unwrap());
+        let total: u64 = millis.iter().sum();
+        let mean: u64 = total / n;
+        let variance = (millis
+            .iter()
+            .map(|v| (*v as i64 - mean as i64).pow(2))
+            .sum::<i64>()) as f64
+            / n as f64;
+        let sdev = Duration::from_millis(variance.sqrt().round() as u64);
+        let mean = Duration::from_millis(mean);
+
+        writeln!(
+            stdout,
+            "total: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}"
+        )?;
+    }
+
+    Ok(failed)
+}
+
 /// Run package sourcing a single time per package.
-fn source<I>(pkgs: I, bound: &[Bound], sort: bool) -> anyhow::Result<bool>
-where
-    I: Iterator<Item = pkgcraft::Result<EbuildRawPkg>> + Send + 'static,
-{
+fn source(targets: PkgTargets, bound: &[Bound], sort: bool) -> anyhow::Result<bool> {
     let mut failed = false;
     let func =
         move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
@@ -221,6 +296,7 @@ where
             Ok((pkg.to_string(), elapsed))
         };
 
+    let pkgs = targets.ebuild_raw_pkgs();
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
@@ -259,16 +335,17 @@ impl Command {
         bounded_thread_pool(self.jobs);
 
         // convert targets to pkgs
-        let pkgs = Targets::new(config)
+        let targets = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_pkgs(self.targets.iter().flatten())?
-            .ebuild_raw_pkgs();
+            .finalize_pkgs(self.targets.iter().flatten())?;
 
         let failed = if let Some(value) = self.bench {
-            benchmark(value, pkgs, self.sort)
+            benchmark(value, targets, self.sort)
+        } else if let Some(value) = self.cumulative {
+            cumulative(value.get(), targets)
         } else {
-            source(pkgs, &self.bound, self.sort)
+            source(targets, &self.bound, self.sort)
         }?;
 
         Ok(ExitCode::from(failed as u8))

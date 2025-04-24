@@ -166,3 +166,29 @@ fn bound_and_sort() {
             .success();
     }
 }
+
+#[test]
+fn cumulative() {
+    let data = test_data();
+    let repo = data.ebuild_repo("metadata").unwrap();
+
+    for opt in ["-c", "--cumulative"] {
+        // single run without argument
+        cmd("pk pkg source")
+            .arg(repo)
+            .arg(opt)
+            .assert()
+            .stdout(lines_contain(["run #1"]))
+            .stderr("")
+            .success();
+
+        // multiple runs
+        cmd("pk pkg source")
+            .arg(repo)
+            .args([opt, "3"])
+            .assert()
+            .stdout(lines_contain(["run #1:", "run #2:", "run #3:", "total:"]))
+            .stderr("")
+            .success();
+    }
+}
