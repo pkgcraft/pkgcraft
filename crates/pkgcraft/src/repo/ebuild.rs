@@ -19,7 +19,10 @@ use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
 use crate::shell::BuildPool;
-use crate::traits::{Contains, Intersects, ParallelMapIter, ParallelMapOrderedIter};
+use crate::traits::{
+    Contains, Intersects, ParallelMap, ParallelMapIter, ParallelMapOrdered,
+    ParallelMapOrderedIter,
+};
 use crate::xml::parse_xml_with_dtd;
 
 use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
@@ -733,11 +736,12 @@ pub struct IterUnordered {
 
 impl IterUnordered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
-        let iter = IterRaw::new(repo, restrict);
+        let pkgs = IterRaw::new(repo, restrict);
         let func =
             move |result: crate::Result<EbuildRawPkg>| result.and_then(|pkg| pkg.try_into());
-        let iter = ParallelMapIter::new(iter, func);
-        Self { iter }
+        Self {
+            iter: pkgs.par_map(func).into_iter(),
+        }
     }
 }
 
@@ -758,11 +762,12 @@ pub struct IterOrdered {
 
 impl IterOrdered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
-        let iter = IterRaw::new(repo, restrict);
+        let pkgs = IterRaw::new(repo, restrict);
         let func =
             move |result: crate::Result<EbuildRawPkg>| result.and_then(|pkg| pkg.try_into());
-        let iter = ParallelMapOrderedIter::new(iter, func);
-        Self { iter }
+        Self {
+            iter: pkgs.par_map_ordered(func).into_iter(),
+        }
     }
 }
 
@@ -1167,11 +1172,12 @@ pub struct IterRawOrdered {
 
 impl IterRawOrdered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
-        let iter = IterCpv::new(repo, restrict);
+        let cpvs = IterCpv::new(repo, restrict);
         let repo = repo.clone();
         let func = move |cpv: Cpv| repo.get_pkg_raw(cpv);
-        let iter = ParallelMapOrderedIter::new(iter, func);
-        Self { iter }
+        Self {
+            iter: cpvs.par_map_ordered(func).into_iter(),
+        }
     }
 }
 

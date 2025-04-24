@@ -11,6 +11,8 @@ use indexmap::{Equivalent, IndexSet};
 use scallop::{source, ExecStatus};
 use tracing::error;
 
+use crate::utils::bounded_jobs;
+
 /// Return true if a container type contains a given object, otherwise false.
 pub trait Contains<T> {
     fn contains(&self, obj: T) -> bool;
@@ -183,7 +185,57 @@ where
     T: Send + 'static,
     R: Send + 'static,
 {
-    fn par_map(self, func: F) -> ParallelMapIter<R>;
+    fn par_map(self, func: F) -> ParallelMapBuilder<I, F, T, R>;
+}
+
+/// Builder for the ParallelMap trait.
+pub struct ParallelMapBuilder<I, F, T, R>
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    iterable: I,
+    func: F,
+    jobs: usize,
+}
+
+impl<I, F, T, R> ParallelMapBuilder<I, F, T, R>
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    fn new(iterable: I, func: F) -> Self {
+        Self {
+            iterable,
+            func,
+            jobs: num_cpus::get(),
+        }
+    }
+
+    /// Set the number of threads to use, defaults to all threads.
+    pub fn jobs(mut self, value: usize) -> Self {
+        self.jobs = bounded_jobs(value);
+        self
+    }
+}
+
+impl<I, F, T, R> IntoIterator for ParallelMapBuilder<I, F, T, R>
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    type Item = R;
+    type IntoIter = ParallelMapIter<R>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ParallelMapIter::new(self.iterable, self.func, self.jobs)
+    }
 }
 
 /// Iterator that converts values in parallel while retaining the original order.
@@ -196,18 +248,17 @@ impl<R> ParallelMapIter<R>
 where
     R: Send + 'static,
 {
-    pub fn new<I, F, T>(value: I, func: F) -> Self
+    pub fn new<I, F, T>(value: I, func: F, jobs: usize) -> Self
     where
         I: IntoIterator<Item = T> + Send + 'static,
         F: Fn(T) -> R + Clone + Send + 'static,
         T: Send + 'static,
     {
-        let (input_tx, input_rx) = bounded(num_cpus::get());
-        let (output_tx, output_rx) = bounded(num_cpus::get());
+        let (input_tx, input_rx) = bounded(jobs);
+        let (output_tx, output_rx) = bounded(jobs);
         let mut threads = vec![Self::producer(value, input_tx)];
         threads.extend(
-            (0..num_cpus::get())
-                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone())),
+            (0..jobs).map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone())),
         );
 
         Self { threads, rx: output_rx }
@@ -245,8 +296,8 @@ where
     T: Send + 'static,
     R: Send + 'static,
 {
-    fn par_map(self, func: F) -> ParallelMapIter<R> {
-        ParallelMapIter::new(self, func)
+    fn par_map(self, func: F) -> ParallelMapBuilder<I, F, T, R> {
+        ParallelMapBuilder::new(self, func)
     }
 }
 
@@ -277,7 +328,69 @@ where
     T: Send + 'static,
     R: Send + 'static,
 {
-    fn par_map_ordered(self, func: F) -> ParallelMapOrderedIter<R>;
+    fn par_map_ordered(self, func: F) -> ParallelMapOrderedBuilder<I, F, T, R>;
+}
+
+impl<I, F, T, R> ParallelMapOrdered<I, F, T, R> for I
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    fn par_map_ordered(self, func: F) -> ParallelMapOrderedBuilder<I, F, T, R> {
+        ParallelMapOrderedBuilder::new(self, func)
+    }
+}
+
+/// Builder for the ParallelMapOrdered trait.
+pub struct ParallelMapOrderedBuilder<I, F, T, R>
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    iterable: I,
+    func: F,
+    jobs: usize,
+}
+
+impl<I, F, T, R> ParallelMapOrderedBuilder<I, F, T, R>
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    fn new(iterable: I, func: F) -> Self {
+        Self {
+            iterable,
+            func,
+            jobs: num_cpus::get(),
+        }
+    }
+
+    /// Set the number of threads to use, defaults to all threads.
+    pub fn jobs(mut self, value: usize) -> Self {
+        self.jobs = bounded_jobs(value);
+        self
+    }
+}
+
+impl<I, F, T, R> IntoIterator for ParallelMapOrderedBuilder<I, F, T, R>
+where
+    I: IntoIterator<Item = T> + Send + 'static,
+    F: Fn(T) -> R + Clone + Send + 'static,
+    T: Send + 'static,
+    R: Send + 'static,
+{
+    type Item = R;
+    type IntoIter = ParallelMapOrderedIter<R>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ParallelMapOrderedIter::new(self.iterable, self.func, self.jobs)
+    }
 }
 
 /// Iterator that converts values in parallel while retaining the original order.
@@ -292,18 +405,17 @@ impl<R> ParallelMapOrderedIter<R>
 where
     R: Send + 'static,
 {
-    pub fn new<I, F, T>(value: I, func: F) -> Self
+    pub fn new<I, F, T>(value: I, func: F, jobs: usize) -> Self
     where
         I: IntoIterator<Item = T> + Send + 'static,
         F: Fn(T) -> R + Clone + Send + 'static,
         T: Send + 'static,
     {
-        let (input_tx, input_rx) = bounded(num_cpus::get());
-        let (output_tx, output_rx) = bounded(num_cpus::get());
+        let (input_tx, input_rx) = bounded(jobs);
+        let (output_tx, output_rx) = bounded(jobs);
         let mut threads = vec![Self::producer(value, input_tx)];
         threads.extend(
-            (0..num_cpus::get())
-                .map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone())),
+            (0..jobs).map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone())),
         );
 
         Self {
@@ -340,18 +452,6 @@ where
                 tx.send((id, func(item))).ok();
             }
         })
-    }
-}
-
-impl<I, F, T, R> ParallelMapOrdered<I, F, T, R> for I
-where
-    I: IntoIterator<Item = T> + Send + 'static,
-    F: Fn(T) -> R + Clone + Send + 'static,
-    T: Send + 'static,
-    R: Send + 'static,
-{
-    fn par_map_ordered(self, func: F) -> ParallelMapOrderedIter<R> {
-        ParallelMapOrderedIter::new(self, func)
     }
 }
 
