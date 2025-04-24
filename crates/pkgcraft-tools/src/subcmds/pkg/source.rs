@@ -81,10 +81,13 @@ impl FromStr for Bench {
     }
 }
 
-// TODO: re-add -j/--jobs support
 #[derive(Args)]
 #[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
+    /// Parallel jobs to run
+    #[arg(short, long, default_value_t = num_cpus::get_physical())]
+    jobs: usize,
+
     /// Benchmark for a duration or number of runs
     #[arg(short, long, conflicts_with = "cumulative")]
     bench: Option<Bench>,
@@ -141,7 +144,12 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given duration per package.
-fn benchmark(bench: Bench, targets: PkgTargets, sort: bool) -> anyhow::Result<bool> {
+fn benchmark(
+    bench: Bench,
+    targets: PkgTargets,
+    jobs: usize,
+    sort: bool,
+) -> anyhow::Result<bool> {
     let mut failed = false;
     let func =
         move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
@@ -171,7 +179,7 @@ fn benchmark(bench: Bench, targets: PkgTargets, sort: bool) -> anyhow::Result<bo
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
-    for result in pkgs.par_map(func) {
+    for result in pkgs.par_map(func).jobs(jobs) {
         match result {
             Ok((pkg, data)) => {
                 let n = data.len() as u64;
@@ -221,7 +229,7 @@ fn benchmark(bench: Bench, targets: PkgTargets, sort: bool) -> anyhow::Result<bo
 }
 
 /// Run package sourcing benchmark cumulatively across all targets.
-fn cumulative(limit: u32, targets: PkgTargets) -> anyhow::Result<bool> {
+fn cumulative(limit: u32, jobs: usize, targets: PkgTargets) -> anyhow::Result<bool> {
     let func = move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Duration> {
         Ok(pkg?.duration()?)
     };
@@ -236,7 +244,7 @@ fn cumulative(limit: u32, targets: PkgTargets) -> anyhow::Result<bool> {
         let start = Instant::now();
         let pkgs = targets.clone().ebuild_raw_pkgs();
 
-        for result in pkgs.par_map(func) {
+        for result in pkgs.par_map(func).jobs(jobs) {
             match result {
                 Ok(duration) => cpu_time += duration,
                 Err(e) => {
@@ -282,7 +290,12 @@ fn cumulative(limit: u32, targets: PkgTargets) -> anyhow::Result<bool> {
 }
 
 /// Run package sourcing a single time per package.
-fn source(targets: PkgTargets, bound: &[Bound], sort: bool) -> anyhow::Result<bool> {
+fn source(
+    targets: PkgTargets,
+    bound: &[Bound],
+    jobs: usize,
+    sort: bool,
+) -> anyhow::Result<bool> {
     let mut failed = false;
     let func =
         move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
@@ -295,7 +308,7 @@ fn source(targets: PkgTargets, bound: &[Bound], sort: bool) -> anyhow::Result<bo
     let mut sorted = if sort { Some(vec![]) } else { None };
     let mut stdout = io::stdout().lock();
 
-    for result in pkgs.par_map(func) {
+    for result in pkgs.par_map(func).jobs(jobs) {
         match result {
             Ok((pkg, elapsed)) => {
                 if bound.iter().all(|b| b.matches(&elapsed)) {
@@ -333,11 +346,11 @@ impl Command {
             .finalize_pkgs(self.targets.iter().flatten())?;
 
         let failed = if let Some(value) = self.bench {
-            benchmark(value, targets, self.sort)
+            benchmark(value, targets, self.jobs, self.sort)
         } else if let Some(value) = self.cumulative {
-            cumulative(value.get(), targets)
+            cumulative(value.get(), self.jobs, targets)
         } else {
-            source(targets, &self.bound, self.sort)
+            source(targets, &self.bound, self.jobs, self.sort)
         }?;
 
         Ok(ExitCode::from(failed as u8))
