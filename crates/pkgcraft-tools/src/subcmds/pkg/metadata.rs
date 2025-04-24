@@ -62,6 +62,9 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
+        // build custom, global thread pool when limiting jobs
+        bounded_thread_pool(self.jobs);
+
         // convert targets to restrictions
         let targets = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
@@ -83,9 +86,6 @@ impl Command {
                         cache.remove_entry(&cpv)?;
                     }
                 } else {
-                    // build custom, global thread pool when limiting jobs
-                    bounded_thread_pool(self.jobs);
-
                     cache
                         .regen(repo)
                         .force(self.force)
