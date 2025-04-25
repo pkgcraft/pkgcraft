@@ -11,7 +11,6 @@ use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
 use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
-use scallop::variables;
 use strum::IntoEnumIterator;
 
 #[derive(Args)]
@@ -65,8 +64,6 @@ impl Command {
             .finalize_pkgs(self.targets.iter().flatten())?
             .ebuild_raw_pkgs();
 
-        let external: HashSet<_> = variables::visible().into_iter().collect();
-        let bash: HashSet<_> = ["PIPESTATUS"].into_iter().collect();
         let eapi: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
         let meta: HashSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
@@ -92,10 +89,7 @@ impl Command {
 
         // filter variables being shown
         let filter = |name: &str| -> bool {
-            !external.contains(name)
-                && !bash.contains(name)
-                && !hide.contains(name)
-                && (show.is_empty() || show.contains(name))
+            !hide.contains(name) && (show.is_empty() || show.contains(name))
         };
 
         // source ebuilds and output ebuild-specific environment variables

@@ -48,6 +48,7 @@ fn current_dir() {
             DISTDIR=/tmp
             EAPI=8
             EPREFIX=
+            HOME=/tmp
             HOMEPAGE=https://github.com/pkgcraft/a https://github.com/pkgcraft
             IDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
             INHERITED=b a
@@ -88,6 +89,7 @@ fn current_dir() {
             DISTDIR=/tmp
             EAPI=8
             EPREFIX=
+            HOME=/tmp
             HOMEPAGE=https://github.com/pkgcraft
             IDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg
             INHERITED=a
@@ -120,6 +122,7 @@ fn current_dir() {
             DISTDIR=/tmp
             EAPI=8
             EPREFIX=
+            HOME=/tmp
             HOMEPAGE=https://github.com/pkgcraft/a https://github.com/pkgcraft
             IDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
             INHERITED=b a
@@ -152,6 +155,7 @@ fn current_dir() {
             DISTDIR=/tmp
             EAPI=8
             EPREFIX=
+            HOME=/tmp
             HOMEPAGE=https://github.com/pkgcraft
             IDEPEND=cat/pkg ebuild/pkg
             LICENSE=l1
