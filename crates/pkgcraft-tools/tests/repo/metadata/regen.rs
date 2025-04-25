@@ -364,6 +364,7 @@ fn output() {
         eqawarn eqawarn
         ewarn ewarn
         eerror eerror
+        einfo einfo
     "#};
     repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
 
@@ -388,6 +389,7 @@ fn output() {
                   * eqawarn
                   * ewarn
                   * eerror
+                  * einfo
             "})
             .success();
     }

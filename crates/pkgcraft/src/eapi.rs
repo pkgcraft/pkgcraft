@@ -574,7 +574,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             econf.allowed_in([SrcConfigure]),
             eend.allowed_in([Phases]).die(false),
             eerror.allowed_in([All]),
-            einfo.allowed_in([Phases]),
+            einfo.allowed_in([All]),
             einfon.allowed_in([Phases]),
             einstall.allowed_in([SrcInstall]),
             elog.allowed_in([Phases]),
