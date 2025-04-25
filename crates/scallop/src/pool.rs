@@ -50,9 +50,10 @@ impl SharedSemaphore {
         if unsafe { libc::sem_wait(self.sem) } == 0 {
             Ok(())
         } else {
+            // grcov-excl-start: only errors on signal handler interrupt
             let err = Errno::last_raw();
             Err(Error::Base(format!("sem_wait() failed: {err}")))
-        }
+        } // grcov-excl-stop
     }
 
     pub fn release(&mut self) -> crate::Result<()> {
