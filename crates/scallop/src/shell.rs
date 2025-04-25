@@ -330,7 +330,9 @@ mod tests {
         assert_eq!(status, ExecStatus::Success);
 
         // forked failure
-        let status = Interactive::new().args(["-c", "exit 10"]).fork();
+        let status = Interactive::new()
+            .args(["-c", "cd nonexistent || exit 10"])
+            .fork();
         assert_eq!(status, ExecStatus::Failure(10));
 
         // direct process exit
