@@ -151,7 +151,7 @@ macro_rules! micros {
 }
 
 /// Run package sourcing benchmarks for a given duration per package.
-fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result<bool> {
+fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let mut failed = false;
     let func =
         move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
@@ -227,11 +227,11 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
         }
     }
 
-    Ok(failed)
+    Ok(ExitCode::from(failed as u8))
 }
 
 /// Run package sourcing benchmark cumulatively across all targets.
-fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<bool> {
+fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let func = move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Duration> {
         Ok(pkg?.duration()?)
     };
@@ -300,11 +300,11 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
         )?;
     }
 
-    Ok(failed)
+    Ok(ExitCode::from(failed as u8))
 }
 
 /// Run package sourcing a single time per package.
-fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<bool> {
+fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let mut failed = false;
     let func =
         move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
@@ -343,7 +343,7 @@ fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<bool> {
         }
     }
 
-    Ok(failed)
+    Ok(ExitCode::from(failed as u8))
 }
 
 impl Command {
@@ -354,14 +354,12 @@ impl Command {
             .repo(self.repo.as_deref())?
             .finalize_pkgs(self.targets.iter().flatten())?;
 
-        let failed = if let Some(value) = self.bench {
+        if let Some(value) = self.bench {
             benchmark(value, targets, self)
         } else if let Some(value) = self.cumulative {
             cumulative(value.get(), targets, self)
         } else {
             source(targets, self)
-        }?;
-
-        Ok(ExitCode::from(failed as u8))
+        }
     }
 }
