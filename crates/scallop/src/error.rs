@@ -85,13 +85,6 @@ pub(crate) fn bash_error(msg: *mut c_char, status: u8) {
     }
 }
 
-/// Output given message as error level log message.
-#[no_mangle]
-pub(crate) extern "C" fn bash_error_log(msg: *mut c_char) {
-    let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
-    tracing::error!("{}", msg.as_ref());
-}
-
 /// Output given message as warning level log message.
 #[no_mangle]
 pub(crate) extern "C" fn bash_warning_log(msg: *mut c_char) {
