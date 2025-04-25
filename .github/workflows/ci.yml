@@ -118,7 +118,9 @@ jobs:
           # process coverage information
           grcov . -s . --binary-path ./target/llvm-cov-target \
             --keep-only "crates/*/src/*" -t lcov --llvm --branch -o lcov.info \
-            --excl-line "unreachable!(.*)|grcov-excl-line"
+            --excl-line "unreachable!(.*)|grcov-excl-line" \
+            --excl-start grcov-excl-start \
+            --excl-stop grcov-excl-stop
 
           # remove generated coverage data to avoid caching it
           find . -name \*.profraw -delete
