@@ -85,12 +85,14 @@ pub(crate) fn bash_error(msg: *mut c_char, status: u8) {
     }
 }
 
+// grcov-excl-start: bash only uses warnings for internal issues
 /// Output given message as warning level log message.
-#[no_mangle] // grcov-excl-start: bash only uses warnings for internal issues
+#[no_mangle]
 pub(crate) extern "C" fn bash_warning_log(msg: *mut c_char) {
     let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
     tracing::warn!("{}", msg.as_ref());
-} // grcov-excl-stop
+}
+// grcov-excl-stop
 
 /// Wrapper to write errors and warning to stderr for interactive mode.
 #[no_mangle]
