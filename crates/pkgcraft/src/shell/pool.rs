@@ -347,7 +347,7 @@ impl BuildPool {
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }
-                        Err(e) => panic!("process pool fork failed: {e}"), // pragma: no cover
+                        Err(e) => panic!("process pool fork failed: {e}"), // grcov-excl-line
                     }
                 }
 
@@ -355,7 +355,7 @@ impl BuildPool {
                 sem.wait().unwrap();
                 unsafe { libc::_exit(0) }
             }
-            Err(e) => panic!("process pool failed start: {e}"), // pragma: no cover
+            Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line
         }
     }
 
