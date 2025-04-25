@@ -41,7 +41,6 @@ num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.27" }
 rayon = "1.10.0"
 reqwest = { version = "0.12.15", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
-scallop = { path = "../scallop", version = "0.0.26" }
 strum = { version = "0.27.1", features = ["derive"] }
 tempfile = "3.19.1"
 tokio = { version = "1.44.2", features = ["full"] }

@@ -2205,7 +2205,6 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "reqwest",
- "scallop",
  "strum",
  "tempfile",
  "tokio",
