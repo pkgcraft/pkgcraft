@@ -27,7 +27,7 @@ fn get_ebuild_repo<'a>(config: &'a Config, repo: &str) -> crate::Result<&'a Ebui
         .repos
         .get(repo)?
         .as_ebuild()
-        .ok_or_else(|| Error::InvalidValue(format!("unknown ebuild repo: {repo}")))
+        .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {repo}")))
 }
 
 /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
