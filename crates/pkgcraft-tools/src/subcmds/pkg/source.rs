@@ -154,8 +154,8 @@ macro_rules! micros {
 fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let mut failed = false;
     let func =
-        move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Vec<Duration>)> {
-            let pkg = pkg?;
+        move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<(String, Vec<Duration>)> {
+            let pkg = result?;
             let mut data = vec![];
             match bench {
                 Bench::Duration(duration) => {
@@ -232,8 +232,8 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
 
 /// Run package sourcing benchmark cumulatively across all targets.
 fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
-    let func = move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<Duration> {
-        Ok(pkg?.duration()?)
+    let func = move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<Duration> {
+        result.and_then(|pkg| pkg.duration())
     };
 
     let mut failed = false;
@@ -307,8 +307,8 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
 fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let mut failed = false;
     let func =
-        move |pkg: pkgcraft::Result<EbuildRawPkg>| -> scallop::Result<(String, Duration)> {
-            let pkg = pkg?;
+        move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<(String, Duration)> {
+            let pkg = result?;
             let elapsed = micros!(pkg.duration()?);
             Ok((pkg.to_string(), elapsed))
         };
