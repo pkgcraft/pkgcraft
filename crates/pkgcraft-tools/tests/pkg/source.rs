@@ -62,6 +62,36 @@ fn invalid_pkgs() {
 }
 
 #[test]
+fn jobs() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    repo.create_ebuild("cat/pkg-1", &[]).unwrap();
+
+    for opt in ["-j", "--jobs"] {
+        // invalid
+        for val in ["", "-1"] {
+            cmd("pk pkg source")
+                .args([opt, val])
+                .assert()
+                .stdout("")
+                .stderr(predicate::str::is_empty().not())
+                .failure()
+                .code(2);
+        }
+
+        // valid and automatically bounded between 1 and max CPUs
+        for val in ["0", "999999"] {
+            cmd("pk pkg source")
+                .args([opt, val])
+                .arg(&repo)
+                .assert()
+                .stdout(predicate::str::is_empty().not())
+                .stderr("")
+                .success();
+        }
+    }
+}
+
+#[test]
 fn path_targets() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     repo.create_ebuild("cat1/a-1", &[]).unwrap();
