@@ -426,7 +426,7 @@ macro_rules! make_archive {
                 let mut ext = String::new();
                 let mut kind = "";
                 for (x, marker) in possible_exts {
-                    if filename.ends_with(x) {
+                    if filename.ends_with(&format!(".{x}")) {
                         kind = marker;
                         ext = x.to_string();
                         break;
@@ -439,14 +439,24 @@ macro_rules! make_archive {
                 }
             }
 
-            /// Return the file name base of the archive.
-            pub(crate) fn base(&self) -> &str {
-                let (path, ext) = match self {
-                    $(Archive::$x($x { path, ext }) => (path, ext),)+
-                };
+            /// Return the file name of the archive.
+            pub(crate) fn file_name(&self) -> &str {
+                match self {
+                    $(Archive::$x($x { path, .. }) => path.file_name().unwrap(),)+
+                }
+            }
 
-                let base = path.file_name().expect("invalid archive file name");
-                &base[0..base.len() - 1 - ext.len()]
+            /// Return the extension of the archive.
+            pub(crate) fn ext(&self) -> &str {
+                match self {
+                    $(Archive::$x($x { ext, .. }) => &ext,)+
+                }
+            }
+
+            /// Return the file base of the archive.
+            pub(crate) fn base(&self) -> &str {
+                let base = self.file_name();
+                &base[0..base.len() - 1 - self.ext().len()]
             }
         }
     };

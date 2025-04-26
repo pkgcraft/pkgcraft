@@ -189,7 +189,7 @@ mod tests {
             if eapi.has(Feature::UnpackCaseInsensitive) {
                 result.unwrap();
             } else {
-                assert_err_re!(result, "^unknown archive format: .*$");
+                assert_err_re!(result, "^unmatched archive extension: a.TAR.GZ$");
             }
 
             // absolute path support
