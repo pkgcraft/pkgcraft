@@ -69,15 +69,13 @@ impl<'a> Targets<'a> {
             }
 
             // try to pull repo from config before path fallback
-            let repo = if let Ok(repo) = self.config.get_repo(id) {
-                Ok(repo.clone())
+            if let Ok(repo) = self.config.get_repo(id) {
+                self.repo_set = repo.clone().into();
             } else if let Ok(repo) = self.repo_from_path(id) {
-                Ok(repo)
+                self.repo_set = repo.into();
             } else {
-                Err(Error::InvalidValue(format!("nonexistent repo: {id}")))
-            }?;
-
-            self.repo_set = repo.into();
+                return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
+            }
         } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(&x)) {
             self.repo_set = repo.into();
         }
