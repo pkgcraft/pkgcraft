@@ -91,7 +91,7 @@ where
 
 impl<T> Serialize for OrderedSet<T>
 where
-    T: Serialize + Ordered,
+    T: Ordered + Serialize,
 {
     fn serialize<Se>(&self, serializer: Se) -> Result<Se::Ok, Se::Error>
     where

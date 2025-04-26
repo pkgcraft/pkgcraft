@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
 use ordermap::OrderMap;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::{Ordered, OrderedSet};
 
@@ -113,6 +113,19 @@ where
         D: Deserializer<'de>,
     {
         OrderMap::deserialize(deserializer).map(OrderedMap)
+    }
+}
+
+impl<K, V> Serialize for OrderedMap<K, V>
+where
+    K: Ordered + Serialize,
+    V: Ordered + Serialize,
+{
+    fn serialize<Se>(&self, serializer: Se) -> Result<Se::Ok, Se::Error>
+    where
+        Se: Serializer,
+    {
+        OrderMap::serialize(self, serializer)
     }
 }
 
