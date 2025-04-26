@@ -356,10 +356,6 @@ mod tests {
     fn sync() {
         let mut config = Config::new("pkgcraft", "");
 
-        // no repos
-        let repos = Vec::<&str>::new();
-        assert!(config.repos.sync(&repos).is_ok());
-
         // nonexistent repo
         let r = config.repos.sync(["nonexistent"]);
         assert_err_re!(r, "nonexistent repo: nonexistent");
@@ -368,5 +364,9 @@ mod tests {
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
         config.add_repo(fake_repo, false).unwrap();
         assert!(config.repos.sync(["fake"]).is_ok());
+
+        // all repos
+        let repos: [&str; 0] = [];
+        assert!(config.repos.sync(repos).is_ok());
     }
 }
