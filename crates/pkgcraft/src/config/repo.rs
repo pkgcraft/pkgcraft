@@ -1,6 +1,5 @@
 use std::fs;
 use std::io::Write;
-use std::path::Path;
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -37,13 +36,13 @@ impl From<RepoFormat> for RepoConfig {
 }
 
 impl RepoConfig {
-    fn try_new<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
+    fn try_new<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path)
-            .map_err(|e| Error::Config(format!("failed loading repo config {path:?}: {e}")))?;
+            .map_err(|e| Error::Config(format!("failed loading repo config: {path}: {e}")))?;
 
         let config: RepoConfig = toml::from_str(&data).map_err(|e| {
-            Error::Config(format!("failed loading repo config toml {path:?}: {e}"))
+            Error::Config(format!("failed loading repo config toml: {path}: {e}"))
         })?;
 
         Ok(config)
