@@ -58,7 +58,7 @@ impl RepoConfig {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Config {
+pub struct ConfigRepos {
     config_dir: Utf8PathBuf,
     repo_dir: Utf8PathBuf,
     repos: IndexMap<String, Repo>,
@@ -66,7 +66,7 @@ pub struct Config {
     nonexistent: IndexMap<String, RepoConfig>,
 }
 
-impl Config {
+impl ConfigRepos {
     pub(super) fn new(
         config_dir: &Utf8Path,
         db_dir: &Utf8Path,
@@ -326,7 +326,7 @@ pub struct ReposIter<'a> {
     iter: indexmap::map::Iter<'a, String, Repo>,
 }
 
-impl<'a> IntoIterator for &'a Config {
+impl<'a> IntoIterator for &'a ConfigRepos {
     type Item = (&'a str, &'a Repo);
     type IntoIter = ReposIter<'a>;
 

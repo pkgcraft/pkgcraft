@@ -13,6 +13,7 @@ pub(crate) use repo::RepoConfig;
 
 mod portage;
 mod repo;
+use repo::ConfigRepos;
 
 const PORTAGE_CONFIG_PATHS: &[&str] = &["/etc/portage", "/usr/share/portage/config"];
 
@@ -124,7 +125,7 @@ impl Settings {
 #[derive(Debug, Default)]
 pub struct Config {
     pub path: ConfigPath,
-    pub repos: repo::Config,
+    pub repos: ConfigRepos,
     pub settings: Arc<Settings>,
     /// Flag used to denote when config files have been loaded.
     loaded: bool,
@@ -151,7 +152,7 @@ impl Config {
             } else {
                 self.settings = Default::default();
                 self.repos =
-                    repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
+                    ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
 
                 // try loading portage config if no repos exist
                 if self.repos.is_empty() {
@@ -174,7 +175,7 @@ impl Config {
         if !self.loaded && !path.is_empty() {
             if self.path.config.exists() {
                 self.repos =
-                    repo::Config::new(&self.path.config, &self.path.db, &self.settings)?;
+                    ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
             } else {
                 self.load_portage_conf(Some(path))?;
             }
