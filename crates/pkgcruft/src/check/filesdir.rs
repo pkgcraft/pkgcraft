@@ -20,7 +20,7 @@ use crate::Error;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
     let eclasses = run
         .repo
         .eclasses()

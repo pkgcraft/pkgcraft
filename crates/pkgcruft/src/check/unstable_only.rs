@@ -10,7 +10,7 @@ use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
     Check {
         stable: run
             .repo

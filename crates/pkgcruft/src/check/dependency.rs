@@ -13,7 +13,7 @@ use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     let unused = if run.enabled(PackageDeprecatedUnused) {
         run.repo
             .metadata()

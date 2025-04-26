@@ -7,7 +7,7 @@ use crate::scan::ScannerRun;
 
 use super::CpvCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl CpvCheck {
+pub(super) fn create(run: &ScannerRun) -> impl CpvCheck + 'static {
     Check {
         regen: run.repo.pool().metadata_task(&run.repo),
     }

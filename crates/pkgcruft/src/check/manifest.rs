@@ -13,7 +13,7 @@ use crate::scan::ScannerRun;
 
 use super::EbuildPkgSetCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
     Check {
         thin_manifests: run.repo.metadata().config.thin_manifests,
         colliding: Default::default(),

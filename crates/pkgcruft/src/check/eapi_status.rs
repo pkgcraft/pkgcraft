@@ -8,7 +8,7 @@ use crate::scan::ScannerRun;
 
 use super::EbuildRawPkgCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildRawPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildRawPkgCheck + 'static {
     let banned = &run.repo.metadata().config.eapis_banned;
     let unused = if run.enabled(EapiUnused) && !banned.is_empty() {
         EAPIS_OFFICIAL

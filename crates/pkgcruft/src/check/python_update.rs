@@ -48,7 +48,7 @@ impl Eclass {
     }
 }
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     Check {
         targets: Eclass::iter()
             .map(|e| (e, e.targets(&run.repo).collect()))

@@ -17,7 +17,7 @@ use super::EbuildPkgCheck;
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     Check {
         targets: impl_targets(&run.repo, "ruby_targets", "ruby").collect(),
         dep_targets: Default::default(),

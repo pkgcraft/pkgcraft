@@ -9,7 +9,7 @@ use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     let unused = if run.enabled(MirrorsUnused) {
         run.repo.metadata().mirrors().keys().cloned().collect()
     } else {

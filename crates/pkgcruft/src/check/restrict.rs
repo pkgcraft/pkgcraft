@@ -8,7 +8,7 @@ use crate::scan::ScannerRun;
 
 use super::EbuildPkgCheck;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck {
+pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     Check {
         allowed: run
             .repo
