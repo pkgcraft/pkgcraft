@@ -178,12 +178,12 @@ impl<'a> Targets<'a> {
                 .map(|_| self.repo_from_nested_path(s));
 
             match (restrict::parse::dep(s), path_target, repo_target) {
-                (_, Ok(path), Some(Ok(repo))) => repo
-                    .restrict_from_path(&path)
-                    .ok_or_else(|| {
-                        Error::InvalidValue(format!("{repo} doesn't contain path: {path}"))
-                    })
-                    .map(|restrict| (repo.into(), restrict)),
+                (_, Ok(path), Some(Ok(repo))) => {
+                    let restrict = repo
+                        .restrict_from_path(&path)
+                        .unwrap_or_else(|| panic!("invalid repo path: {}", repo.path()));
+                    Ok((repo.into(), restrict))
+                }
                 (Ok(restrict), _, _) => self.dep_restriction(restrict),
                 (_, Ok(path), Some(Err(e))) if path.exists() => Err(e),
                 (_, Err(e), _) if s.contains('/') || s.ends_with(".ebuild") => Err(e),
