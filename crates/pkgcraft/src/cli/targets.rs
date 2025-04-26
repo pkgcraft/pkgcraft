@@ -21,6 +21,7 @@ use crate::types::OrderedMap;
 use crate::utils::current_dir;
 use crate::Error;
 
+#[derive(Debug)]
 pub struct Targets<'a> {
     config: &'a mut Config,
     repo_set: RepoSet,
@@ -278,7 +279,7 @@ impl<'a> Targets<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PkgTargets(Vec<(RepoSet, Restrict)>);
 
 impl<'a> IntoIterator for &'a PkgTargets {
@@ -362,7 +363,7 @@ impl PkgTargets {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RepoTargets(Vec<(String, Repo)>);
 
 impl<'a> IntoIterator for &'a RepoTargets {
@@ -402,5 +403,93 @@ impl RepoTargets {
                     .map_err(|_| Error::InvalidValue(format!("non-ebuild repo: {id}")))
             })
             .try_collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::env;
+
+    use crate::pkg::Pkg;
+    use crate::repo::ebuild::EbuildRepoBuilder;
+    use crate::repo::fake::FakeRepo;
+    use crate::test::*;
+
+    use super::*;
+
+    #[test]
+    fn repo() {
+        let mut config = Config::default();
+
+        // add ebuild repo to config
+        let mut temp = EbuildRepoBuilder::new().name("ebuild").build().unwrap();
+        let ebuild_repo = config
+            .add_repo(&temp, false)
+            .unwrap()
+            .into_ebuild()
+            .unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+
+        // add fake repo to config
+        let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-2"]).unwrap();
+        let fake_repo = config
+            .add_repo(fake_repo, false)
+            .unwrap()
+            .into_fake()
+            .unwrap();
+
+        // finalize config and pull pkgs
+        config.finalize().unwrap();
+        let ebuild_pkg = ebuild_repo.get_pkg("cat/pkg-1").unwrap();
+        let fake_pkg = fake_repo.get_pkg("cat/pkg-2").unwrap();
+
+        // no specific repo target
+        let none: Option<&str> = None;
+        let targets = Targets::new(&mut config)
+            .repo(none)
+            .unwrap()
+            .finalize_pkgs(["cat/pkg"])
+            .unwrap();
+        assert!(!targets.is_empty());
+        assert_eq!(targets.len(), 2);
+        assert_ordered_eq!(
+            targets.clone().pkgs(),
+            [Ok(Pkg::Ebuild(ebuild_pkg.clone())), Ok(Pkg::Fake(fake_pkg.clone()))]
+        );
+        assert_ordered_eq!(targets.clone().ebuild_pkgs(), [Ok(ebuild_pkg.clone())]);
+
+        // no specific repo target uses current working directory if inside a valid repo
+        let path = test_data_path().join("repos/valid/metadata");
+        env::set_current_dir(path).unwrap();
+        let targets = Targets::new(&mut config)
+            .repo(none)
+            .unwrap()
+            .finalize_pkgs(["slot/slot"])
+            .unwrap();
+        assert_eq!(targets.len(), 1);
+
+        // valid repo ID
+        let targets = Targets::new(&mut config)
+            .repo(Some("ebuild"))
+            .unwrap()
+            .finalize_pkgs(["cat/pkg"])
+            .unwrap();
+        assert_eq!(targets.len(), 1);
+
+        // nonexistent repo ID
+        let r = Targets::new(&mut config).repo(Some("nonexistent"));
+        assert_err_re!(r, "nonexistent repo: nonexistent");
+
+        // valid repo path target
+        let targets = Targets::new(&mut config)
+            .repo(Some(temp.path()))
+            .unwrap()
+            .finalize_pkgs(["cat/pkg"])
+            .unwrap();
+        assert_eq!(targets.len(), 1);
+
+        // nonexistent repo path
+        let r = Targets::new(&mut config).repo(Some("/path/to/nonexistent/repo"));
+        assert_err_re!(r, "nonexistent repo: /path/to/nonexistent/repo");
     }
 }
