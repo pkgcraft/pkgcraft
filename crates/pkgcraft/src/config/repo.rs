@@ -215,17 +215,17 @@ impl Config {
     pub fn sync<I>(&self, values: I) -> crate::Result<()>
     where
         I: IntoIterator,
-        I::Item: Into<String>,
+        I::Item: std::fmt::Display,
     {
         let mut repos = vec![];
         for id in values {
-            let id = id.into();
+            let id = id.to_string();
             if let Some(repo) = self.repos.get(&id) {
                 repos.push((id, repo.repo_config()));
             } else if let Some(config) = self.nonexistent.get(&id) {
                 repos.push((id, config));
             } else {
-                return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
+                return Err(Error::NonexistentRepo(id));
             }
         }
 
@@ -358,5 +358,30 @@ impl<'a> Iterator for ReposIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(id, repo)| (id.as_str(), repo))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::Config;
+    use crate::repo::FakeRepo;
+    use crate::test::*;
+
+    #[test]
+    fn sync() {
+        let mut config = Config::new("pkgcraft", "");
+
+        // no repos
+        let repos = Vec::<&str>::new();
+        assert!(config.repos.sync(&repos).is_ok());
+
+        // nonexistent repo
+        let r = config.repos.sync(["nonexistent"]);
+        assert_err_re!(r, "nonexistent repo: nonexistent");
+
+        // fake repo with no-op syncing
+        let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
+        config.add_repo(fake_repo, false).unwrap();
+        assert!(config.repos.sync(&repos).is_ok());
     }
 }
