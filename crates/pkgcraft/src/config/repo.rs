@@ -57,15 +57,12 @@ impl RepoConfig {
     }
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone)]
 pub struct Config {
     config_dir: Utf8PathBuf,
     repo_dir: Utf8PathBuf,
-    #[serde(skip)]
     repos: IndexMap<String, Repo>,
-    #[serde(skip)]
     configured: IndexSet<Repo>,
-    #[serde(skip)]
     nonexistent: IndexMap<String, RepoConfig>,
 }
 
