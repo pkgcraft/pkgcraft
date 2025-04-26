@@ -371,7 +371,7 @@ impl EbuildRepo {
         &self,
         category: &str,
         package: &str,
-    ) -> impl Iterator<Item = crate::Result<Cpv>> {
+    ) -> impl Iterator<Item = crate::Result<Cpv>> + use<> {
         let path = build_path!(self.path(), category, package);
         if let Ok(entries) = path.read_dir_utf8() {
             let cpvs: Vec<_> = entries
