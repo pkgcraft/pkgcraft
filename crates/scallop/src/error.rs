@@ -19,8 +19,6 @@ pub enum Error {
     #[error("{0}")]
     Base(String),
     #[error("{0}")]
-    Errno(String),
-    #[error("{0}")]
     IO(String),
     #[error("failed: {0}")]
     Status(i32),
@@ -29,12 +27,6 @@ pub enum Error {
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
         Error::IO(format!("{e}: {}", e.kind()))
-    }
-}
-
-impl From<nix::errno::Errno> for Error {
-    fn from(e: nix::errno::Errno) -> Self {
-        Error::Errno(e.to_string())
     }
 }
 

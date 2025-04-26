@@ -10,8 +10,8 @@ use crate::shm::create_shm;
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output<T: AsFd>(f: T) -> crate::Result<()> {
     let fd = f.as_fd().as_raw_fd();
-    dup2(fd, 1)?;
-    dup2(fd, 2)?;
+    dup2(fd, 1).map_err(|e| Error::IO(e.to_string()))?;
+    dup2(fd, 2).map_err(|e| Error::IO(e.to_string()))?;
     Ok(())
 }
 
