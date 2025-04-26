@@ -73,7 +73,7 @@ impl Arcanist for ArcanistService {
     ) -> Result<Response<ListResponse>, Status> {
         let req = request.into_inner();
         let config = &mut self.config.write().await;
-        match config.repos.sync(req.data.clone()) {
+        match config.repos.sync(&req.data) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(e)),
             Err(e) => Err(Status::internal(format!("{e}"))),
             Ok(_) => {

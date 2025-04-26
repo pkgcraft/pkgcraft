@@ -80,6 +80,8 @@ pub struct Config {
     repos: IndexMap<String, Repo>,
     #[serde(skip)]
     configured: IndexSet<Repo>,
+    #[serde(skip)]
+    nonexistent: IndexMap<String, RepoConfig>,
 }
 
 impl Config {
@@ -115,17 +117,24 @@ impl Config {
 
         // load repos
         let mut repos = vec![];
+        let mut nonexistent = IndexMap::new();
         for (name, c) in configs {
             // ignore invalid repos
             match c.format.load_from_path(&name, &c.location, c.priority) {
                 Ok(repo) => repos.push(repo),
+                Err(Error::NonexistentRepo(_)) => {
+                    nonexistent.insert(name, c);
+                }
                 Err(err) => error!("{err}"),
             }
         }
 
+        nonexistent.sort_keys();
+
         let mut config = Self {
             config_dir,
             repo_dir,
+            nonexistent,
             ..Default::default()
         };
 
@@ -203,19 +212,37 @@ impl Config {
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync<S: AsRef<str>>(&self, repos: Vec<S>) -> crate::Result<()> {
-        let repos: Vec<_> = match &repos {
-            names if !names.is_empty() => names.iter().map(|s| s.as_ref()).collect(),
-            // sync all repos if none were passed
-            _ => self.repos.keys().map(|s| s.as_str()).collect(),
-        };
+    pub fn sync<I>(&self, values: I) -> crate::Result<()>
+    where
+        I: IntoIterator,
+        I::Item: Into<String>,
+    {
+        let mut repos = vec![];
+        for id in values {
+            let id = id.into();
+            if let Some(repo) = self.repos.get(&id) {
+                repos.push((id, repo.repo_config()));
+            } else if let Some(config) = self.nonexistent.get(&id) {
+                repos.push((id, config));
+            } else {
+                return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
+            }
+        }
+
+        // sync all repos if none were passed
+        if repos.is_empty() {
+            repos.extend(
+                self.repos
+                    .iter()
+                    .map(|(id, r)| (id.clone(), r.repo_config())),
+            );
+            repos.extend(self.nonexistent.iter().map(|(id, c)| (id.clone(), c)));
+        }
 
         let mut failed = vec![];
-        for name in repos {
-            if let Some(repo) = self.repos.get(name) {
-                if let Err(e) = repo.sync() {
-                    failed.push((name, e));
-                }
+        for (name, repo) in repos {
+            if let Err(e) = repo.sync() {
+                failed.push((name, e));
             }
         }
 
@@ -238,7 +265,6 @@ impl Config {
             Some(RepoFormat::Ebuild) => repos.filter(|r| r.is_ebuild()).collect(),
             Some(RepoFormat::Configured) => self.configured.iter().collect(),
             Some(RepoFormat::Fake) => repos.filter(|r| r.is_fake()).collect(),
-            Some(RepoFormat::Nonexistent) => repos.filter(|r| r.is_nonexistent()).collect(),
         }
     }
 
