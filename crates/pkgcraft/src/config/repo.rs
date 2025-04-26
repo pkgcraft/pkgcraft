@@ -36,7 +36,7 @@ impl From<RepoFormat> for RepoConfig {
 }
 
 impl RepoConfig {
-    fn try_new<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Self> {
+    fn from_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Self> {
         let path = path.as_ref();
         let data = fs::read_to_string(path)
             .map_err(|e| Error::Config(format!("failed loading repo config: {path}: {e}")))?;
@@ -86,7 +86,7 @@ impl ConfigRepos {
                     && !entry.file_name().starts_with('.')
                 {
                     // ignore bad configs
-                    match RepoConfig::try_new(entry.path()) {
+                    match RepoConfig::from_path(entry.path()) {
                         Ok(config) => {
                             configs.push((entry.file_name().to_string(), config));
                         }
