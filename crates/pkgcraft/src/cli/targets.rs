@@ -418,7 +418,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn repo() {
+    fn pkg_targets() {
         let mut config = Config::default();
 
         // add ebuild repo to config
@@ -468,6 +468,10 @@ mod tests {
             .unwrap();
         assert_eq!(targets.len(), 1);
 
+        // nonexistent repo ID
+        let r = Targets::new(&mut config).repo(Some("nonexistent"));
+        assert_err_re!(r, "nonexistent repo: nonexistent");
+
         // valid repo ID
         let targets = Targets::new(&mut config)
             .repo(Some("ebuild"))
@@ -476,11 +480,11 @@ mod tests {
             .unwrap();
         assert_eq!(targets.len(), 1);
 
-        // nonexistent repo ID
-        let r = Targets::new(&mut config).repo(Some("nonexistent"));
-        assert_err_re!(r, "nonexistent repo: nonexistent");
+        // nonexistent repo path
+        let r = Targets::new(&mut config).repo(Some("/path/to/nonexistent/repo"));
+        assert_err_re!(r, "nonexistent repo: /path/to/nonexistent/repo");
 
-        // valid repo path target
+        // valid repo path
         let targets = Targets::new(&mut config)
             .repo(Some(temp.path()))
             .unwrap()
@@ -488,8 +492,20 @@ mod tests {
             .unwrap();
         assert_eq!(targets.len(), 1);
 
-        // nonexistent repo path
-        let r = Targets::new(&mut config).repo(Some("/path/to/nonexistent/repo"));
-        assert_err_re!(r, "nonexistent repo: /path/to/nonexistent/repo");
+        // nonexistent repo target with dep restriction
+        let r = Targets::new(&mut config).finalize_pkgs(["cat/pkg::nonexistent"]);
+        assert_err_re!(r, "nonexistent repo: nonexistent");
+
+        // existing repo target with dep restriction
+        let targets = Targets::new(&mut config)
+            .finalize_pkgs(["cat/pkg::fake"])
+            .unwrap();
+        assert_eq!(targets.len(), 1);
+
+        // existing repo path
+        let targets = Targets::new(&mut config)
+            .finalize_pkgs([ebuild_repo.path()])
+            .unwrap();
+        assert_eq!(targets.len(), 1);
     }
 }
