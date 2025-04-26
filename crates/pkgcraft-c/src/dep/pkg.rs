@@ -23,7 +23,7 @@ use super::use_dep::UseDep;
 ///
 /// # Safety
 /// The eapi argument may be NULL to use the default EAPI.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -> *mut Dep {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
@@ -39,7 +39,7 @@ pub unsafe extern "C" fn pkgcraft_dep_new(s: *const c_char, eapi: *const Eapi) -
 ///
 /// # Safety
 /// The eapi argument may be NULL to use the default EAPI.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_parse(
     s: *const c_char,
     eapi: *const Eapi,
@@ -58,7 +58,7 @@ pub unsafe extern "C" fn pkgcraft_dep_parse(
 ///
 /// # Safety
 /// The arguments must a valid Dep pointer and DepField values.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_without(
     d: *mut Dep,
     fields: *mut DepField,
@@ -81,7 +81,7 @@ pub unsafe extern "C" fn pkgcraft_dep_without(
 ///
 /// # Safety
 /// The argument must a valid Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_unversioned(d: *mut Dep) -> *mut Dep {
     let dep = try_ref_from_ptr!(d);
     if let Cow::Owned(d) = dep.unversioned() {
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn pkgcraft_dep_unversioned(d: *mut Dep) -> *mut Dep {
 ///
 /// # Safety
 /// The argument must a valid Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_versioned(d: *mut Dep) -> *mut Dep {
     let dep = try_ref_from_ptr!(d);
     if let Cow::Owned(d) = dep.versioned() {
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn pkgcraft_dep_versioned(d: *mut Dep) -> *mut Dep {
 ///
 /// # Safety
 /// The argument must a valid Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_no_use_deps(d: *mut Dep) -> *mut Dep {
     let dep = try_ref_from_ptr!(d);
     if let Cow::Owned(d) = dep.no_use_deps() {
@@ -127,7 +127,7 @@ pub unsafe extern "C" fn pkgcraft_dep_no_use_deps(d: *mut Dep) -> *mut Dep {
 /// # Safety
 /// The fields and values arguments must be equal length arrays of DepFields with
 /// corresponding string values.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_modify(
     d: *mut Dep,
     fields: *mut DepField,
@@ -155,14 +155,14 @@ pub unsafe extern "C" fn pkgcraft_dep_modify(
 ///
 /// # Safety
 /// The argument must be a UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_blocker_from_str(s: *const c_char) -> u32 {
     let s = try_str_from_ptr!(s);
     s.parse::<Blocker>().map(|x| x as u32).unwrap_or_default()
 }
 
 /// Return the string for a Blocker.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
     try_ptr_from_str!(b.as_ref())
 }
@@ -173,7 +173,7 @@ pub extern "C" fn pkgcraft_dep_blocker_str(b: Blocker) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> u32 {
     let s = try_str_from_ptr!(s);
     s.parse::<SlotOperator>()
@@ -182,7 +182,7 @@ pub unsafe extern "C" fn pkgcraft_dep_slot_op_from_str(s: *const c_char) -> u32 
 }
 
 /// Return the string for a SlotOperator.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn pkgcraft_dep_slot_op_str(op: SlotOperator) -> *mut c_char {
     try_ptr_from_str!(op.as_ref())
 }
@@ -192,7 +192,7 @@ pub extern "C" fn pkgcraft_dep_slot_op_str(op: SlotOperator) -> *mut c_char {
 ///
 /// # Safety
 /// The arguments must be non-null Dep pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn pkgcraft_dep_cmp(d1: *mut Dep, d2: *mut Dep) -> c_int {
 ///
 /// # Safety
 /// The arguments must be non-null Dep pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_intersects(d1: *mut Dep, d2: *mut Dep) -> bool {
     let d1 = try_ref_from_ptr!(d1);
     let d2 = try_ref_from_ptr!(d2);
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn pkgcraft_dep_intersects(d1: *mut Dep, d2: *mut Dep) -> 
 ///
 /// # Safety
 /// The arguments must be non-null Cpv and Dep pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_intersects_cpv(d: *mut Dep, c: *mut Cpv) -> bool {
     let d = try_ref_from_ptr!(d);
     let c = try_ref_from_ptr!(c);
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn pkgcraft_dep_intersects_cpv(d: *mut Dep, c: *mut Cpv) -
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_category(d: *mut Dep) -> *mut c_char {
     let dep = try_ref_from_ptr!(d);
     try_ptr_from_str!(dep.category())
@@ -242,7 +242,7 @@ pub unsafe extern "C" fn pkgcraft_dep_category(d: *mut Dep) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_package(d: *mut Dep) -> *mut c_char {
     let dep = try_ref_from_ptr!(d);
     try_ptr_from_str!(dep.package())
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn pkgcraft_dep_package(d: *mut Dep) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_blocker(d: *mut Dep) -> u32 {
     let dep = try_ref_from_ptr!(d);
     dep.blocker().map(|x| x as u32).unwrap_or_default()
@@ -268,7 +268,7 @@ pub unsafe extern "C" fn pkgcraft_dep_blocker(d: *mut Dep) -> u32 {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_version(d: *mut Dep) -> *mut Version {
     let dep = try_ref_from_ptr!(d);
     match dep.version() {
@@ -284,7 +284,7 @@ pub unsafe extern "C" fn pkgcraft_dep_version(d: *mut Dep) -> *mut Version {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_slot(d: *mut Dep) -> *mut c_char {
     let dep = try_ref_from_ptr!(d);
     match dep.slot() {
@@ -300,7 +300,7 @@ pub unsafe extern "C" fn pkgcraft_dep_slot(d: *mut Dep) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_subslot(d: *mut Dep) -> *mut c_char {
     let dep = try_ref_from_ptr!(d);
     match dep.subslot() {
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn pkgcraft_dep_subslot(d: *mut Dep) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> u32 {
     let dep = try_ref_from_ptr!(d);
     dep.slot_op().map(|x| x as u32).unwrap_or_default()
@@ -329,7 +329,7 @@ pub unsafe extern "C" fn pkgcraft_dep_slot_op(d: *mut Dep) -> u32 {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_use_deps(
     d: *mut Dep,
     len: *mut usize,
@@ -351,7 +351,7 @@ pub unsafe extern "C" fn pkgcraft_dep_use_deps(
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_use_deps_str(
     d: *mut Dep,
     len: *mut usize,
@@ -371,7 +371,7 @@ pub unsafe extern "C" fn pkgcraft_dep_use_deps_str(
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_repo(d: *mut Dep) -> *mut c_char {
     let dep = try_ref_from_ptr!(d);
     match dep.repo() {
@@ -384,7 +384,7 @@ pub unsafe extern "C" fn pkgcraft_dep_repo(d: *mut Dep) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut Cpn {
     let dep = try_ref_from_ptr!(d);
     Box::into_raw(Box::new(dep.cpn().clone()))
@@ -396,7 +396,7 @@ pub unsafe extern "C" fn pkgcraft_dep_cpn(d: *mut Dep) -> *mut Cpn {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_cpv(d: *mut Dep) -> *mut Cpv {
     let dep = try_ref_from_ptr!(d);
     match dep.cpv() {
@@ -409,7 +409,7 @@ pub unsafe extern "C" fn pkgcraft_dep_cpv(d: *mut Dep) -> *mut Cpv {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_str(d: *mut Dep) -> *mut c_char {
     let dep = try_ref_from_ptr!(d);
     try_ptr_from_str!(dep.to_string())
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn pkgcraft_dep_str(d: *mut Dep) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_hash(d: *mut Dep) -> u64 {
     let dep = try_ref_from_ptr!(d);
     hash(dep)
@@ -429,7 +429,7 @@ pub unsafe extern "C" fn pkgcraft_dep_hash(d: *mut Dep) -> u64 {
 ///
 /// # Safety
 /// The argument must be a non-null Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_restrict(d: *mut Dep) -> *mut Restrict {
     let dep = try_ref_from_ptr!(d);
     Box::into_raw(Box::new(dep.into()))
@@ -439,7 +439,7 @@ pub unsafe extern "C" fn pkgcraft_dep_restrict(d: *mut Dep) -> *mut Restrict {
 ///
 /// # Safety
 /// The arguments must be valid Restrict and Dep pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_restrict_matches(d: *mut Dep, r: *mut Restrict) -> bool {
     let dep = try_ref_from_ptr!(d);
     let restrict = try_ref_from_ptr!(r);
@@ -450,7 +450,7 @@ pub unsafe extern "C" fn pkgcraft_dep_restrict_matches(d: *mut Dep, r: *mut Rest
 ///
 /// # Safety
 /// The argument must be a Dep pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dep_free(d: *mut Dep) {
     if !d.is_null() {
         unsafe { drop(Box::from_raw(d)) };

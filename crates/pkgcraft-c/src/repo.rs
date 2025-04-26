@@ -25,7 +25,7 @@ pub mod set;
 ///
 /// # Safety
 /// The path argument should be a valid path on the system.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_from_path(
     id: *const c_char,
     priority: c_int,
@@ -50,7 +50,7 @@ pub unsafe extern "C" fn pkgcraft_repo_from_path(
 ///
 /// # Safety
 /// The path argument should be a valid path on the system.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_from_format(
     format: RepoFormat,
     id: *const c_char,
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn pkgcraft_repo_from_format(
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_format(r: *mut Repo) -> RepoFormat {
     let repo = try_ref_from_ptr!(r);
     repo.format()
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn pkgcraft_repo_format(r: *mut Repo) -> RepoFormat {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_id(r: *mut Repo) -> *mut c_char {
     let repo = try_ref_from_ptr!(r);
     try_ptr_from_str!(repo.id())
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn pkgcraft_repo_id(r: *mut Repo) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_path(r: *mut Repo) -> *mut c_char {
     let repo = try_ref_from_ptr!(r);
     try_ptr_from_str!(repo.path().as_str())
@@ -104,7 +104,7 @@ pub unsafe extern "C" fn pkgcraft_repo_path(r: *mut Repo) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_len(r: *mut Repo) -> usize {
     let repo = try_ref_from_ptr!(r);
     repo.len()
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn pkgcraft_repo_len(r: *mut Repo) -> usize {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_is_empty(r: *mut Repo) -> bool {
     let repo = try_ref_from_ptr!(r);
     repo.is_empty()
@@ -124,7 +124,7 @@ pub unsafe extern "C" fn pkgcraft_repo_is_empty(r: *mut Repo) -> bool {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_categories(
     r: *mut Repo,
     len: *mut usize,
@@ -137,7 +137,7 @@ pub unsafe extern "C" fn pkgcraft_repo_categories(
 ///
 /// # Safety
 /// The arguments must be a non-null Repo pointer and category.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_packages(
     r: *mut Repo,
     cat: *const c_char,
@@ -152,7 +152,7 @@ pub unsafe extern "C" fn pkgcraft_repo_packages(
 ///
 /// # Safety
 /// The arguments must be a non-null Repo pointer, category, and package.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_versions(
     r: *mut Repo,
     cat: *const c_char,
@@ -170,7 +170,7 @@ pub unsafe extern "C" fn pkgcraft_repo_versions(
 ///
 /// # Safety
 /// The arguments must be non-null Repo pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_cmp(r1: *mut Repo, r2: *mut Repo) -> c_int {
     let repo1 = try_ref_from_ptr!(r1);
     let repo2 = try_ref_from_ptr!(r2);
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn pkgcraft_repo_cmp(r1: *mut Repo, r2: *mut Repo) -> c_in
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_hash(r: *mut Repo) -> u64 {
     let repo = try_ref_from_ptr!(r);
     hash(repo)
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn pkgcraft_repo_hash(r: *mut Repo) -> u64 {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_contains_path(
     r: *mut Repo,
     path: *const c_char,
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn pkgcraft_repo_contains_path(
 ///
 /// # Safety
 /// The argument must be a Repo pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_free(r: *mut Repo) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn pkgcraft_repo_free(r: *mut Repo) {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_cpv(r: *mut Repo) -> *mut RepoIterCpv {
     let repo = try_ref_from_ptr!(r);
     Box::into_raw(Box::new(repo.iter_cpv()))
@@ -233,7 +233,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_cpv(r: *mut Repo) -> *mut RepoIterCp
 ///
 /// # Safety
 /// The argument must be a non-null RepoIterCpv pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_next(i: *mut RepoIterCpv) -> *mut Cpv {
     let iter = try_mut_from_ptr!(i);
     iter.next().map(boxed).unwrap_or(ptr::null_mut())
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_next(i: *mut RepoIterCpv) -> *mu
 ///
 /// # Safety
 /// The argument must be a non-null RepoIterCpv pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_free(i: *mut RepoIterCpv) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
@@ -254,7 +254,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_cpv_free(i: *mut RepoIterCpv) {
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter(r: *mut Repo) -> *mut RepoIter {
     let repo = try_ref_from_ptr!(r);
     Box::into_raw(Box::new(repo.iter()))
@@ -266,7 +266,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter(r: *mut Repo) -> *mut RepoIter {
 ///
 /// # Safety
 /// The argument must be a non-null RepoIter pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_next(i: *mut RepoIter) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
     // TODO: determine how to differentiate return types for pkg errors and iterator end.
@@ -279,7 +279,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_next(i: *mut RepoIter) -> *mut Pkg {
 ///
 /// # Safety
 /// The argument must be a non-null RepoIter pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_free(i: *mut RepoIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
@@ -291,7 +291,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_free(i: *mut RepoIter) {
 /// # Safety
 /// The repo argument must be a non-null Repo pointer and the restrict argument must be a non-null
 /// Restrict pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_restrict(
     repo: *mut Repo,
     restrict: *mut Restrict,
@@ -307,7 +307,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_restrict(
 ///
 /// # Safety
 /// The argument must be a non-null RepoIterRestrict pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_restrict_next(
     i: *mut RepoIterRestrict,
 ) -> *mut Pkg {
@@ -322,7 +322,7 @@ pub unsafe extern "C" fn pkgcraft_repo_iter_restrict_next(
 ///
 /// # Safety
 /// The argument must be a non-null RepoIterRestrict pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_iter_restrict_free(i: *mut RepoIterRestrict) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };

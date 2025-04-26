@@ -11,7 +11,7 @@ use crate::panic::ffi_catch_panic;
 ///
 /// # Safety
 /// The argument be a valid UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_parse_category(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
@@ -26,7 +26,7 @@ pub unsafe extern "C" fn pkgcraft_parse_category(s: *const c_char) -> *const c_c
 ///
 /// # Safety
 /// The argument be a valid UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_parse_package(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
@@ -41,7 +41,7 @@ pub unsafe extern "C" fn pkgcraft_parse_package(s: *const c_char) -> *const c_ch
 ///
 /// # Safety
 /// The argument be a valid UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn pkgcraft_parse_repo(s: *const c_char) -> *const c_char 
 ///
 /// # Safety
 /// The argument be a valid UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_parse_use_flag(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);

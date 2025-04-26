@@ -34,7 +34,7 @@ impl From<&Pkg> for PkgFormat {
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_format(p: *mut Pkg) -> PkgFormat {
     let pkg = try_ref_from_ptr!(p);
     pkg.into()
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_format(p: *mut Pkg) -> PkgFormat {
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_cpv(p: *mut Pkg) -> *mut Cpv {
     let pkg = try_ref_from_ptr!(p);
     Box::into_raw(Box::new(pkg.cpv().clone()))
@@ -54,7 +54,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_cpv(p: *mut Pkg) -> *mut Cpv {
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_repo(p: *mut Pkg) -> *mut Repo {
     let pkg = try_ref_from_ptr!(p);
     Box::into_raw(Box::new(pkg.repo()))
@@ -64,7 +64,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_repo(p: *mut Pkg) -> *mut Repo {
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_eapi(p: *mut Pkg) -> *const Eapi {
     let pkg = try_ref_from_ptr!(p);
     pkg.eapi()
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_eapi(p: *mut Pkg) -> *const Eapi {
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_version(p: *mut Pkg) -> *mut Version {
     let pkg = try_ref_from_ptr!(p);
     Box::into_raw(Box::new(pkg.version().clone()))
@@ -85,7 +85,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_version(p: *mut Pkg) -> *mut Version {
 ///
 /// # Safety
 /// The arguments must be non-null Pkg pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_cmp(p1: *mut Pkg, p2: *mut Pkg) -> c_int {
     let pkg1 = try_ref_from_ptr!(p1);
     let pkg2 = try_ref_from_ptr!(p2);
@@ -101,7 +101,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_cmp(p1: *mut Pkg, p2: *mut Pkg) -> c_int {
 ///
 /// # Safety
 /// The arguments should be non-null pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_intersects_dep(p: *mut Pkg, d: *mut Dep) -> bool {
     let pkg = try_ref_from_ptr!(p);
     let dep = try_ref_from_ptr!(d);
@@ -112,7 +112,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_intersects_dep(p: *mut Pkg, d: *mut Dep) -
 ///
 /// # Safety
 /// The arguments should be non-null pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_intersects_cpv(p: *mut Pkg, c: *mut Cpv) -> bool {
     let pkg = try_ref_from_ptr!(p);
     let cpv = try_ref_from_ptr!(c);
@@ -123,7 +123,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_intersects_cpv(p: *mut Pkg, c: *mut Cpv) -
 ///
 /// # Safety
 /// The arguments should be non-null pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_intersects_cpn(p: *mut Pkg, c: *mut Cpn) -> bool {
     let pkg = try_ref_from_ptr!(p);
     let cpn = try_ref_from_ptr!(c);
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_intersects_cpn(p: *mut Pkg, c: *mut Cpn) -
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_str(p: *mut Pkg) -> *mut c_char {
     let pkg = try_ref_from_ptr!(p);
     try_ptr_from_str!(pkg.to_string())
@@ -144,7 +144,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_str(p: *mut Pkg) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_hash(p: *mut Pkg) -> u64 {
     let pkg = try_ref_from_ptr!(p);
     hash(pkg)
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_hash(p: *mut Pkg) -> u64 {
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_restrict(p: *mut Pkg) -> *mut Restrict {
     let pkg = try_ref_from_ptr!(p);
     Box::into_raw(Box::new(pkg.into()))
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_restrict(p: *mut Pkg) -> *mut Restrict {
 ///
 /// # Safety
 /// The arguments must be valid Restrict and Pkg pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_restrict_matches(p: *mut Pkg, r: *mut Restrict) -> bool {
     let pkg = try_ref_from_ptr!(p);
     let r = try_ref_from_ptr!(r);
@@ -175,7 +175,7 @@ pub unsafe extern "C" fn pkgcraft_pkg_restrict_matches(p: *mut Pkg, r: *mut Rest
 ///
 /// # Safety
 /// The argument must be a non-null Pkg pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_pkg_free(p: *mut Pkg) {
     if !p.is_null() {
         unsafe { drop(Box::from_raw(p)) };

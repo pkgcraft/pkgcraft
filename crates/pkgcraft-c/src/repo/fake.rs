@@ -13,7 +13,7 @@ use crate::panic::ffi_catch_panic;
 ///
 /// # Safety
 /// The cpvs argument should be valid CPV strings.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_fake_new(
     id: *const c_char,
     priority: c_int,
@@ -38,7 +38,7 @@ pub unsafe extern "C" fn pkgcraft_repo_fake_new(
 ///
 /// # Safety
 /// The arguments must be a non-null Repo pointer and an array of CPV strings.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_fake_extend(
     r: *mut Repo,
     cpvs: *mut *mut c_char,

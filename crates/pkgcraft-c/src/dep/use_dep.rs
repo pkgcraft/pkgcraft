@@ -65,7 +65,7 @@ impl Drop for UseDep {
 ///
 /// # Safety
 /// The argument must be a non-null string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_use_dep_new(s: *const c_char) -> *mut UseDep {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
@@ -79,7 +79,7 @@ pub unsafe extern "C" fn pkgcraft_use_dep_new(s: *const c_char) -> *mut UseDep {
 ///
 /// # Safety
 /// The arguments must be non-null UseDep pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_use_dep_cmp(u1: *mut UseDep, u2: *mut UseDep) -> c_int {
     let u1 = try_ref_from_ptr!(u1);
     let u2 = try_ref_from_ptr!(u2);
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn pkgcraft_use_dep_cmp(u1: *mut UseDep, u2: *mut UseDep) 
 ///
 /// # Safety
 /// The argument must be a non-null UseDep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_use_dep_hash(u: *mut UseDep) -> u64 {
     let use_dep = try_ref_from_ptr!(u);
     hash(use_dep.deref())
@@ -105,7 +105,7 @@ pub unsafe extern "C" fn pkgcraft_use_dep_hash(u: *mut UseDep) -> u64 {
 ///
 /// # Safety
 /// The argument must be a non-null UseDep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_use_dep_str(u: *mut UseDep) -> *mut c_char {
     let u = try_ref_from_ptr!(u);
     try_ptr_from_str!(u.to_string())
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn pkgcraft_use_dep_str(u: *mut UseDep) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a UseDep pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_use_dep_free(u: *mut UseDep) {
     if !u.is_null() {
         unsafe { drop(Box::from_raw(u)) };

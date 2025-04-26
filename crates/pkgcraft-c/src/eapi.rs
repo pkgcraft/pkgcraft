@@ -24,7 +24,7 @@ pub(crate) use eapi_or_default;
 ///
 /// # Safety
 /// The returned array must be freed via pkgcraft_eapis_free().
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapis(len: *mut usize) -> *mut *const Eapi {
     iter_to_array!(eapi::EAPIS.iter(), len, |&e| { e as *const _ })
 }
@@ -33,7 +33,7 @@ pub unsafe extern "C" fn pkgcraft_eapis(len: *mut usize) -> *mut *const Eapi {
 ///
 /// # Safety
 /// The returned array must be freed via pkgcraft_eapis_free().
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const Eapi {
     iter_to_array!(eapi::EAPIS_OFFICIAL.iter(), len, |&e| { e as *const _ })
 }
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn pkgcraft_eapis_official(len: *mut usize) -> *mut *const
 ///
 /// # Safety
 /// The argument must be a non-null string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_from_str(s: *const c_char) -> *const Eapi {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_from_str(s: *const c_char) -> *const Eapi
 ///
 /// # Safety
 /// The arguments must be a non-null Eapi pointer and non-null string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) -> bool {
     let eapi = try_ref_from_ptr!(eapi);
     let s = try_str_from_ptr!(s);
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_has(eapi: *const Eapi, s: *const c_char) 
 ///
 /// # Safety
 /// The arguments must be a non-null Eapi pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char {
     let eapi = try_ref_from_ptr!(eapi);
     try_ptr_from_str!(eapi.as_str())
@@ -79,7 +79,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_as_str(eapi: *const Eapi) -> *mut c_char 
 ///
 /// # Safety
 /// The argument should point to a UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_parse(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
@@ -93,7 +93,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_parse(s: *const c_char) -> *const c_char 
 ///
 /// # Safety
 /// The arguments must be non-null Eapi pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_cmp(e1: *const Eapi, e2: *const Eapi) -> c_int {
     let eapi1 = try_ref_from_ptr!(e1);
     let eapi2 = try_ref_from_ptr!(e2);
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_cmp(e1: *const Eapi, e2: *const Eapi) -> 
 ///
 /// # Safety
 /// The argument must be a non-null Eapi pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_dep_keys(
     eapi: *const Eapi,
     len: *mut usize,
@@ -122,7 +122,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_dep_keys(
 ///
 /// # Safety
 /// The argument must be a non-null Eapi pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_metadata_keys(
     eapi: *const Eapi,
     len: *mut usize,
@@ -135,7 +135,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_metadata_keys(
 ///
 /// # Safety
 /// The argument must be a non-null Eapi pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapi_hash(eapi: *const Eapi) -> u64 {
     let eapi = try_ref_from_ptr!(eapi);
     hash(eapi)
@@ -147,7 +147,7 @@ pub unsafe extern "C" fn pkgcraft_eapi_hash(eapi: *const Eapi) -> u64 {
 ///
 /// # Safety
 /// The argument must be a non-null string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_eapis_range(
     s: *const c_char,
     len: *mut usize,

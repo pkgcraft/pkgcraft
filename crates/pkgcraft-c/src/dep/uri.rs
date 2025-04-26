@@ -8,7 +8,7 @@ use crate::macros::*;
 ///
 /// # Safety
 /// The argument must be a Uri pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_uri(u: *mut Uri) -> *mut c_char {
     let uri = try_ref_from_ptr!(u);
     try_ptr_from_str!(uri.as_ref())
@@ -18,7 +18,7 @@ pub unsafe extern "C" fn pkgcraft_uri(u: *mut Uri) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a Uri pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_uri_filename(u: *mut Uri) -> *mut c_char {
     let uri = try_ref_from_ptr!(u);
     try_ptr_from_str!(uri.filename())
@@ -28,7 +28,7 @@ pub unsafe extern "C" fn pkgcraft_uri_filename(u: *mut Uri) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a Uri pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_uri_str(u: *mut Uri) -> *mut c_char {
     let uri = try_ref_from_ptr!(u);
     try_ptr_from_str!(uri.to_string())
@@ -38,7 +38,7 @@ pub unsafe extern "C" fn pkgcraft_uri_str(u: *mut Uri) -> *mut c_char {
 ///
 /// # Safety
 /// The argument must be a valid Uri pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_uri_free(u: *mut Uri) {
     if !u.is_null() {
         unsafe { drop(Box::from_raw(u)) };

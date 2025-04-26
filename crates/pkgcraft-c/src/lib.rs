@@ -19,7 +19,7 @@ pub mod types;
 mod utils;
 
 /// Return the library version.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn pkgcraft_lib_version() -> *mut c_char {
     panic::ffi_catch_panic! {
         let version = env!("CARGO_PKG_VERSION");

@@ -13,6 +13,6 @@ use std::ffi::c_int;
 include!(concat!(env!("OUT_DIR"), "/bash-bindings.rs"));
 
 // Provide external access to builtins since they aren't explicitly exported.
-extern "C" {
+unsafe extern "C" {
     pub fn builtin_builtin(list: *mut WordList) -> c_int;
 }

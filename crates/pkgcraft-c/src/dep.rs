@@ -487,7 +487,7 @@ impl Iterator for DependencyIntoIterConditionals {
 ///
 /// # Safety
 /// The argument must be a valid DependencySetKind.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_new(
     kind: DependencySetKind,
 ) -> *mut DependencySet {
@@ -507,7 +507,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_new(
 ///
 /// # Safety
 /// The argument should be an array of similarly-typed Dependency objects.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_from_iter(
     deps: *mut *mut Dependency,
     len: usize,
@@ -549,7 +549,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_from_iter(
 ///
 /// # Safety
 /// The argument should be a UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_parse(
     s: *const c_char,
     eapi: *const Eapi,
@@ -597,7 +597,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_parse(
 ///
 /// # Safety
 /// The argument should be a UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_parse(
     s: *const c_char,
     eapi: *const Eapi,
@@ -643,7 +643,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_parse(
 ///
 /// # Safety
 /// The argument must be valid Dep pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_from_dep(d: *mut Dep) -> *mut Dependency {
     let d = try_ref_from_ptr!(d);
     let dep = Dependency::new_dep(dep::Dependency::Enabled(d.clone()));
@@ -654,7 +654,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_from_dep(d: *mut Dep) -> *mut Depen
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_evaluate(
     d: *mut DependencySet,
     options: *mut *mut c_char,
@@ -683,7 +683,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_evaluate(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_evaluate_force(
     d: *mut DependencySet,
     force: bool,
@@ -709,7 +709,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_evaluate_force(
 ///
 /// # Safety
 /// The arguments must be a valid DependencySet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_is_disjoint(
     d1: *mut DependencySet,
     d2: *mut DependencySet,
@@ -730,7 +730,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_is_disjoint(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_is_empty(d: *mut DependencySet) -> bool {
     let deps = try_deref_from_ptr!(d);
 
@@ -745,7 +745,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_is_empty(d: *mut DependencySet)
 ///
 /// # Safety
 /// The arguments must be a valid DependencySet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_is_subset(
     d1: *mut DependencySet,
     d2: *mut DependencySet,
@@ -768,7 +768,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_is_subset(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_get_index(
     d: *mut DependencySet,
     index: usize,
@@ -804,7 +804,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_get_index(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_sort(d: *mut DependencySet) {
     let set = try_mut_from_ptr!(d);
 
@@ -820,7 +820,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_sort(d: *mut DependencySet) {
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_sort_recursive(d: *mut DependencySet) {
     let set = try_mut_from_ptr!(d);
 
@@ -836,7 +836,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_sort_recursive(d: *mut Dependen
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_clone(
     d: *mut DependencySet,
 ) -> *mut DependencySet {
@@ -850,7 +850,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_clone(
 ///
 /// # Safety
 /// The arguments must be valid DependencySet and Dependency pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_insert(
     d: *mut DependencySet,
     value: *mut Dependency,
@@ -874,7 +874,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_insert(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_pop(
     d: *mut DependencySet,
 ) -> *mut Dependency {
@@ -896,7 +896,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_pop(
 ///
 /// # Safety
 /// The arguments must be valid DependencySet and Dependency pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_replace_index(
     d: *mut DependencySet,
     index: usize,
@@ -927,7 +927,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_replace_index(
 ///
 /// # Safety
 /// The arguments must be valid DependencySet and Dependency pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_replace(
     d: *mut DependencySet,
     key: *const Dependency,
@@ -967,7 +967,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_replace(
 ///
 /// # Safety
 /// The arguments must be valid DependencySet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_assign_op_set(
     op: SetOp,
     d1: *mut DependencySet,
@@ -993,7 +993,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_assign_op_set(
 ///
 /// # Safety
 /// The arguments must be valid DependencySet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_op_set(
     op: SetOp,
     d1: *mut DependencySet,
@@ -1017,7 +1017,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_op_set(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_str(d: *mut DependencySet) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
     try_ptr_from_str!(deps.to_string())
@@ -1027,7 +1027,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_str(d: *mut DependencySet) -> *
 ///
 /// # Safety
 /// The arguments must be valid DependencySet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_eq(
     d1: *mut DependencySet,
     d2: *mut DependencySet,
@@ -1041,7 +1041,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_eq(
 ///
 /// # Safety
 /// The arguments must be valid DependencySet and Dependency pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dependency(
     s: *mut DependencySet,
     d: *mut Dependency,
@@ -1061,7 +1061,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dependency(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_contains_str(
     d: *mut DependencySet,
     s: *const c_char,
@@ -1080,7 +1080,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_str(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_contains_use_dep(
     d: *mut DependencySet,
     u: *mut use_dep::UseDep,
@@ -1099,7 +1099,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_use_dep(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dep(
     d: *mut DependencySet,
     dep: *mut Dep,
@@ -1117,7 +1117,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_dep(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_contains_uri(
     d: *mut DependencySet,
     uri: *mut Uri,
@@ -1135,7 +1135,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_contains_uri(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_hash(d: *mut DependencySet) -> u64 {
     let deps = try_ref_from_ptr!(d);
     hash(deps)
@@ -1145,7 +1145,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_hash(d: *mut DependencySet) -> 
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_len(d: *mut DependencySet) -> usize {
     let deps = try_deref_from_ptr!(d);
     use DependencySetWrapper::*;
@@ -1160,7 +1160,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_len(d: *mut DependencySet) -> u
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter(
     d: *mut DependencySet,
 ) -> *mut DependencyIntoIter {
@@ -1179,7 +1179,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIter pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_next(
     i: *mut DependencyIntoIter,
 ) -> *mut Dependency {
@@ -1193,7 +1193,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_next(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIter pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_next_back(
     i: *mut DependencyIntoIter,
 ) -> *mut Dependency {
@@ -1205,7 +1205,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_next_back(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIter pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_free(i: *mut DependencyIntoIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
@@ -1216,7 +1216,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_free(i: *mut Dependen
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_evaluate(
     d: *mut Dependency,
     options: *mut *mut c_char,
@@ -1251,7 +1251,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_evaluate(
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_evaluate_force(
     d: *mut Dependency,
     force: bool,
@@ -1285,7 +1285,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_evaluate_force(
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_conditional(
     d: *mut Dependency,
 ) -> *mut use_dep::UseDep {
@@ -1307,7 +1307,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_conditional(
 ///
 /// # Safety
 /// The arguments must be valid Dependency pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_cmp(
     d1: *mut Dependency,
     d2: *mut Dependency,
@@ -1326,7 +1326,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_cmp(
 ///
 /// # Safety
 /// The arguments must be valid Dependency pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_contains_dependency(
     d1: *mut Dependency,
     d2: *mut Dependency,
@@ -1347,7 +1347,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_dependency(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_contains_str(
     d: *mut Dependency,
     s: *const c_char,
@@ -1366,7 +1366,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_str(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_contains_use_dep(
     d: *mut Dependency,
     u: *mut use_dep::UseDep,
@@ -1385,7 +1385,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_use_dep(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_contains_dep(
     d: *mut Dependency,
     dep: *mut Dep,
@@ -1403,7 +1403,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_dep(
 ///
 /// # Safety
 /// The arguments must be valid pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_contains_uri(
     d: *mut Dependency,
     uri: *mut Uri,
@@ -1423,7 +1423,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_contains_uri(
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_get_index(
     d: *mut Dependency,
     index: usize,
@@ -1459,7 +1459,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_get_index(
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_hash(d: *mut Dependency) -> u64 {
     let deps = try_ref_from_ptr!(d);
     hash(deps)
@@ -1469,7 +1469,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_hash(d: *mut Dependency) -> u64 {
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_len(d: *mut Dependency) -> usize {
     let deps = try_deref_from_ptr!(d);
     use DependencyWrapper::*;
@@ -1484,7 +1484,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_len(d: *mut Dependency) -> usize {
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_sort(d: *mut Dependency) {
     let dep = try_mut_from_ptr!(d);
 
@@ -1500,7 +1500,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_sort(d: *mut Dependency) {
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_str(d: *mut Dependency) -> *mut c_char {
     let deps = try_ref_from_ptr!(d);
     try_ptr_from_str!(deps.to_string())
@@ -1510,7 +1510,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_str(d: *mut Dependency) -> *mut c_c
 ///
 /// # Safety
 /// The argument must be a Dependency pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_free(r: *mut Dependency) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
@@ -1521,7 +1521,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_free(r: *mut Dependency) {
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_into_iter(
     d: *mut Dependency,
 ) -> *mut DependencyIntoIter {
@@ -1538,7 +1538,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_into_iter(
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_into_iter_flatten(
     d: *mut Dependency,
 ) -> *mut DependencyIntoIterFlatten {
@@ -1557,7 +1557,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_into_iter_flatten(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten(
     d: *mut DependencySet,
 ) -> *mut DependencyIntoIterFlatten {
@@ -1578,7 +1578,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIterFlatten pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten_next(
     i: *mut DependencyIntoIterFlatten,
 ) -> *mut c_void {
@@ -1590,7 +1590,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten_next(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIterFlatten pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten_free(
     i: *mut DependencyIntoIterFlatten,
 ) {
@@ -1603,7 +1603,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_flatten_free(
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_into_iter_recursive(
     d: *mut Dependency,
 ) -> *mut DependencyIntoIterRecursive {
@@ -1626,7 +1626,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_into_iter_recursive(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive(
     d: *mut DependencySet,
 ) -> *mut DependencyIntoIterRecursive {
@@ -1651,7 +1651,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIterRecursive pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive_next(
     i: *mut DependencyIntoIterRecursive,
 ) -> *mut Dependency {
@@ -1663,7 +1663,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive_next(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIterRecursive pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive_free(
     i: *mut DependencyIntoIterRecursive,
 ) {
@@ -1676,7 +1676,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_recursive_free(
 ///
 /// # Safety
 /// The argument must be a valid Dependency pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_into_iter_conditionals(
     d: *mut Dependency,
 ) -> *mut DependencyIntoIterConditionals {
@@ -1699,7 +1699,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_into_iter_conditionals(
 ///
 /// # Safety
 /// The argument must be a valid DependencySet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals(
     d: *mut DependencySet,
 ) -> *mut DependencyIntoIterConditionals {
@@ -1724,7 +1724,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIterConditionals pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_next(
     i: *mut DependencyIntoIterConditionals,
 ) -> *mut use_dep::UseDep {
@@ -1738,7 +1738,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_next(
 ///
 /// # Safety
 /// The argument must be a valid DependencyIntoIterConditionals pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_free(
     i: *mut DependencyIntoIterConditionals,
 ) {
@@ -1751,7 +1751,7 @@ pub unsafe extern "C" fn pkgcraft_dependency_set_into_iter_conditionals_free(
 ///
 /// # Safety
 /// The argument must be a DependencySet pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_dependency_set_free(d: *mut DependencySet) {
     if !d.is_null() {
         unsafe { drop(Box::from_raw(d)) };

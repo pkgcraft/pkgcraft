@@ -8,7 +8,7 @@ use crate::macros::*;
 use crate::panic::ffi_catch_panic;
 
 /// Create an empty pkgcraft config.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn pkgcraft_config_new() -> *mut Config {
     let config = Config::new("pkgcraft", "");
     Box::into_raw(Box::new(config))
@@ -20,7 +20,7 @@ pub extern "C" fn pkgcraft_config_new() -> *mut Config {
 ///
 /// # Safety
 /// The path argument should be a valid path on the system.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
     c: *mut Config,
     id: *const c_char,
@@ -48,7 +48,7 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
 ///
 /// # Safety
 /// The arguments must be valid Config and Repo pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_config_add_repo(
     c: *mut Config,
     r: *mut Repo,
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo(
 ///
 /// # Safety
 /// A valid pkgcraft (or portage config) directory should be located on the system.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_config_load(c: *mut Config) -> *mut Config {
     ffi_catch_panic! {
         let config = try_mut_from_ptr!(c);
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn pkgcraft_config_load(c: *mut Config) -> *mut Config {
 ///
 /// # Safety
 /// The path argument should be a valid path on the system.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_config_load_portage_conf(
     c: *mut Config,
     path: *const c_char,
@@ -100,7 +100,7 @@ pub unsafe extern "C" fn pkgcraft_config_load_portage_conf(
 ///
 /// # Safety
 /// The config argument must be a non-null Config pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_config_repos(
     c: *mut Config,
     len: *mut usize,
@@ -116,7 +116,7 @@ pub unsafe extern "C" fn pkgcraft_config_repos(
 ///
 /// # Safety
 /// The config argument must be a non-null Config pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_config_repos_set(
     c: *mut Config,
     format: *const RepoFormat,
@@ -133,7 +133,7 @@ pub unsafe extern "C" fn pkgcraft_config_repos_set(
 ///
 /// # Safety
 /// The argument must be a Config pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_config_free(c: *mut Config) {
     if !c.is_null() {
         unsafe { drop(Box::from_raw(c)) };

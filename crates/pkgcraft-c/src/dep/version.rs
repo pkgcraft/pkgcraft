@@ -16,7 +16,7 @@ use crate::panic::ffi_catch_panic;
 ///
 /// # Safety
 /// The argument should be a valid UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_revision_new(s: *const c_char) -> *mut Revision {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn pkgcraft_revision_new(s: *const c_char) -> *mut Revisio
 ///
 /// # Safety
 /// The revision arguments should be non-null Revision pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_revision_cmp(r1: *mut Revision, r2: *mut Revision) -> c_int {
     let r1 = try_ref_from_ptr!(r1);
     let r2 = try_ref_from_ptr!(r2);
@@ -46,7 +46,7 @@ pub unsafe extern "C" fn pkgcraft_revision_cmp(r1: *mut Revision, r2: *mut Revis
 ///
 /// # Safety
 /// The revision argument should be a non-null Revision pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_revision_hash(r: *mut Revision) -> u64 {
     let rev = try_ref_from_ptr!(r);
     hash(rev)
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn pkgcraft_revision_hash(r: *mut Revision) -> u64 {
 ///
 /// # Safety
 /// The revision argument should be a non-null Revision pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_revision_str(r: *mut Revision) -> *mut c_char {
     let rev = try_ref_from_ptr!(r);
     try_ptr_from_str!(rev.as_str())
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn pkgcraft_revision_str(r: *mut Revision) -> *mut c_char 
 ///
 /// # Safety
 /// The revision argument should be a non-null Revision pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_revision_free(r: *mut Revision) {
     if !r.is_null() {
         let _ = unsafe { Box::from_raw(r) };
@@ -79,7 +79,7 @@ pub unsafe extern "C" fn pkgcraft_revision_free(r: *mut Revision) {
 ///
 /// # Safety
 /// The version argument should point to a valid string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn pkgcraft_version_new(s: *const c_char) -> *mut Version 
 ///
 /// # Safety
 /// The argument should point to a UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_parse(s: *const c_char) -> *const c_char {
     ffi_catch_panic! {
         let val = try_str_from_ptr!(s);
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn pkgcraft_version_parse(s: *const c_char) -> *const c_ch
 ///
 /// # Safety
 /// The argument must be a non-null Version pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> u32 {
     let ver = try_ref_from_ptr!(v);
     ver.op().map(|x| x as u32).unwrap_or_default()
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn pkgcraft_version_op(v: *mut Version) -> u32 {
 ///
 /// # Safety
 /// The argument must be a non-null Version pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_with_op(
     v: *mut Version,
     op: Operator,
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn pkgcraft_version_with_op(
 ///
 /// # Safety
 /// The version argument should be a non-null Version pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_base(v: *mut Version) -> *mut c_char {
     let ver = try_ref_from_ptr!(v);
     try_ptr_from_str!(ver.base())
@@ -153,14 +153,14 @@ pub unsafe extern "C" fn pkgcraft_version_base(v: *mut Version) -> *mut c_char {
 ///
 /// # Safety
 /// The argument should be a UTF-8 string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_op_from_str(s: *const c_char) -> u32 {
     let s = try_str_from_ptr!(s);
     s.parse::<Operator>().map(|x| x as u32).unwrap_or_default()
 }
 
 /// Return the string for an Operator.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn pkgcraft_version_op_str(op: Operator) -> *mut c_char {
     try_ptr_from_str!(op.as_ref())
 }
@@ -170,7 +170,7 @@ pub extern "C" fn pkgcraft_version_op_str(op: Operator) -> *mut c_char {
 ///
 /// # Safety
 /// The version arguments should be non-null Version pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut Version, v2: *mut Version) -> c_int {
     let v1 = try_ref_from_ptr!(v1);
     let v2 = try_ref_from_ptr!(v2);
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn pkgcraft_version_cmp(v1: *mut Version, v2: *mut Version
 ///
 /// # Safety
 /// The version arguments should be non-null Version pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_intersects(
     v1: *mut Version,
     v2: *mut Version,
@@ -202,7 +202,7 @@ pub unsafe extern "C" fn pkgcraft_version_intersects(
 ///
 /// # Safety
 /// The version argument should be a non-null Version pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut Version) -> *mut Revision {
     let ver = try_ref_from_ptr!(v);
     match ver.revision() {
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn pkgcraft_version_revision(v: *mut Version) -> *mut Revi
 ///
 /// # Safety
 /// The version argument should be a non-null Version pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_str(v: *mut Version) -> *mut c_char {
     let ver = try_ref_from_ptr!(v);
     try_ptr_from_str!(ver.to_string())
@@ -225,7 +225,7 @@ pub unsafe extern "C" fn pkgcraft_version_str(v: *mut Version) -> *mut c_char {
 ///
 /// # Safety
 /// The version argument should be a non-null Version pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_free(v: *mut Version) {
     if !v.is_null() {
         let _ = unsafe { Box::from_raw(v) };
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn pkgcraft_version_free(v: *mut Version) {
 ///
 /// # Safety
 /// The version argument should be a non-null Version pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_version_hash(v: *mut Version) -> u64 {
     let ver = try_ref_from_ptr!(v);
     hash(ver)

@@ -25,7 +25,7 @@ macro_rules! try_repo_from_ptr {
 ///
 /// # Safety
 /// The arguments must be valid Repo and Config pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_configure(
     r: *mut Repo,
     c: *mut Config,
@@ -39,7 +39,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_configure(
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_arches(
     r: *mut Repo,
     len: *mut usize,
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_arches(
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_categories(
     r: *mut Repo,
     len: *mut usize,
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_categories(
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_licenses(
     r: *mut Repo,
     len: *mut usize,
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_licenses(
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_eapi(r: *mut Repo) -> *const Eapi {
     let repo = try_repo_from_ptr!(r);
     repo.eapi()
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_eapi(r: *mut Repo) -> *const Eapi 
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
     r: *mut Repo,
     len: *mut usize,
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_masters(
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_licenses(
     r: *mut Repo,
     len: *mut usize,
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_licenses(
 ///
 /// # Safety
 /// The argument must be a non-null Repo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_metadata_regen(
     r: *mut Repo,
     force: bool,

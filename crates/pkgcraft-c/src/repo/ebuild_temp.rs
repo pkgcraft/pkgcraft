@@ -15,7 +15,7 @@ use crate::panic::ffi_catch_panic;
 /// # Safety
 /// The name argument should be a valid, unicode string and the eapi parameter can optionally be
 /// NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
     name: *const c_char,
     eapi: *const Eapi,
@@ -33,7 +33,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_new(
 ///
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(
     r: *mut EbuildTempRepo,
 ) -> *mut c_char {
@@ -47,7 +47,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_path(
 ///
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
     r: *mut EbuildTempRepo,
     cpv: *const c_char,
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild(
 ///
 /// # Safety
 /// The argument must be a non-null EbuildTempRepo pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_from_str(
     r: *mut EbuildTempRepo,
     cpv: *const c_char,
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_from_str(
 ///
 /// # Safety
 /// The related EbuildTempRepo pointer is invalid on function completion and should not be used.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_persist(
     r: *mut EbuildTempRepo,
     path: *const c_char,
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_persist(
 ///
 /// # Safety
 /// The argument must be a EbuildTempRepo pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_free(r: *mut EbuildTempRepo) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };

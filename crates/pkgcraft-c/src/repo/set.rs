@@ -17,7 +17,7 @@ use crate::utils::{boxed, str_to_raw};
 ///
 /// # Safety
 /// The argument must be an array of Repo pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_new(
     repos: *mut *mut Repo,
     len: usize,
@@ -31,7 +31,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_new(
 ///
 /// # Safety
 /// The argument must be a non-null RepoSet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_categories(
     s: *mut RepoSet,
     len: *mut usize,
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_categories(
 ///
 /// # Safety
 /// The arguments must be a non-null RepoSet pointer and category.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_packages(
     s: *mut RepoSet,
     cat: *const c_char,
@@ -59,7 +59,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_packages(
 ///
 /// # Safety
 /// The arguments must be a non-null RepoSet pointer, category, and package.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_versions(
     s: *mut RepoSet,
     cat: *const c_char,
@@ -76,7 +76,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_versions(
 ///
 /// # Safety
 /// The argument must be a non-null RepoSet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_len(s: *mut RepoSet) -> usize {
     let s = try_ref_from_ptr!(s);
     s.len()
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_len(s: *mut RepoSet) -> usize {
 ///
 /// # Safety
 /// The argument must be a non-null RepoSet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_is_empty(s: *mut RepoSet) -> bool {
     let s = try_ref_from_ptr!(s);
     s.is_empty()
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_is_empty(s: *mut RepoSet) -> bool {
 ///
 /// # Safety
 /// The argument must be a non-null RepoSet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_repos(
     s: *mut RepoSet,
     len: *mut usize,
@@ -110,7 +110,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_repos(
 ///
 /// # Safety
 /// The arguments must be non-null RepoSet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_cmp(s1: *mut RepoSet, s2: *mut RepoSet) -> c_int {
     let s1 = try_ref_from_ptr!(s1);
     let s2 = try_ref_from_ptr!(s2);
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_cmp(s1: *mut RepoSet, s2: *mut RepoSe
 ///
 /// # Safety
 /// The argument must be a non-null RepoSet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_hash(s: *mut RepoSet) -> u64 {
     let s = try_ref_from_ptr!(s);
     hash(s)
@@ -136,7 +136,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_hash(s: *mut RepoSet) -> u64 {
 ///
 /// # Safety
 /// The argument must be a RepoSet pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_free(r: *mut RepoSet) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };
@@ -147,7 +147,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_free(r: *mut RepoSet) {
 ///
 /// # Safety
 /// The set argument must be a non-null RepoSet pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter(s: *mut RepoSet) -> *mut RepoSetIter {
     let s = try_ref_from_ptr!(s);
     Box::into_raw(Box::new(s.iter()))
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter(s: *mut RepoSet) -> *mut RepoSet
 ///
 /// # Safety
 /// The argument must be a non-null RepoSetIter pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_next(i: *mut RepoSetIter) -> *mut Pkg {
     let iter = try_mut_from_ptr!(i);
     // TODO: determine how to differentiate return types for pkg errors and iterator end.
@@ -172,7 +172,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter_next(i: *mut RepoSetIter) -> *mu
 ///
 /// # Safety
 /// The argument must be a non-null RepoSetIter pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_free(i: *mut RepoSetIter) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter_free(i: *mut RepoSetIter) {
 /// # Safety
 /// The set argument must be a non-null RepoSet pointer and the restrict argument must be a non-null
 /// Restrict pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict(
     s: *mut RepoSet,
     restrict: *mut Restrict,
@@ -200,7 +200,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict(
 ///
 /// # Safety
 /// The argument must be a non-null RepoSetIterRestrict pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict_next(
     i: *mut RepoSetIterRestrict,
 ) -> *mut Pkg {
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict_next(
 ///
 /// # Safety
 /// The argument must be a non-null RepoSetIterRestrict pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict_free(i: *mut RepoSetIterRestrict) {
     if !i.is_null() {
         unsafe { drop(Box::from_raw(i)) };
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_iter_restrict_free(i: *mut RepoSetIte
 ///
 /// # Safety
 /// The arguments must be non-null RepoSet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_set(
     op: SetOp,
     s1: *mut RepoSet,
@@ -247,7 +247,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_set(
 ///
 /// # Safety
 /// The arguments must be non-null RepoSet and Repo pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_repo(
     op: SetOp,
     s: *mut RepoSet,
@@ -268,7 +268,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_assign_op_repo(
 ///
 /// # Safety
 /// The arguments must be non-null RepoSet pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_op_set(
     op: SetOp,
     s1: *mut RepoSet,
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn pkgcraft_repo_set_op_set(
 ///
 /// # Safety
 /// The arguments must be non-null RepoSet and Repo pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_repo_set_op_repo(
     op: SetOp,
     s: *mut RepoSet,

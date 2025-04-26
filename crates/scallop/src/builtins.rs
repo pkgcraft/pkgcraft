@@ -453,7 +453,7 @@ macro_rules! make_builtin {
 
         use $crate::builtins::Builtin;
 
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         extern "C" fn $func_name(args: *mut $crate::bash::WordList) -> c_int {
             i32::from($crate::builtins::run(&BUILTIN, args))
         }

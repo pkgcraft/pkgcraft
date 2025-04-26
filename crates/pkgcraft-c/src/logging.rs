@@ -76,7 +76,7 @@ impl Drop for PkgcraftLog {
 ///
 /// # Safety
 /// The argument must be a non-null PkgcraftLog pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_log_free(l: *mut PkgcraftLog) {
     if !l.is_null() {
         unsafe { drop(Box::from_raw(l)) };
@@ -121,7 +121,7 @@ thread_local! {
 }
 
 /// Enable pkgcraft logging support.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback, level: LogLevel) {
     let level_filter: LevelFilter = level.into();
     let filter = EnvFilter::builder()
@@ -142,7 +142,7 @@ pub extern "C" fn pkgcraft_logging_enable(cb: LogCallback, level: LogLevel) {
 ///
 /// # Safety
 /// The argument must be a non-null PkgcraftLog pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_log_test(msg: *const c_char, level: LogLevel) {
     let message = try_str_from_ptr!(msg);
     use LogLevel::*;

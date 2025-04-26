@@ -12,7 +12,7 @@ use crate::panic::ffi_catch_panic;
 ///
 /// # Safety
 /// The argument must be a non-null string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_parse_dep(s: *const c_char) -> *mut Restrict {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
@@ -27,7 +27,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_parse_dep(s: *const c_char) -> *mut R
 ///
 /// # Safety
 /// The argument must be a non-null string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_parse_pkg(s: *const c_char) -> *mut Restrict {
     ffi_catch_panic! {
         let s = try_str_from_ptr!(s);
@@ -40,7 +40,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_parse_pkg(s: *const c_char) -> *mut R
 ///
 /// # Safety
 /// The arguments must be non-null Restrict pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_eq(r1: *mut Restrict, r2: *mut Restrict) -> bool {
     let r1 = try_ref_from_ptr!(r1);
     let r2 = try_ref_from_ptr!(r2);
@@ -51,7 +51,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_eq(r1: *mut Restrict, r2: *mut Restri
 ///
 /// # Safety
 /// The argument must be a non-null Restrict pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_hash(r: *mut Restrict) -> u64 {
     let restrict = try_ref_from_ptr!(r);
     hash(restrict)
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_hash(r: *mut Restrict) -> u64 {
 ///
 /// # Safety
 /// The arguments must be Restrict pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_and(
     r1: *mut Restrict,
     r2: *mut Restrict,
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_and(
 ///
 /// # Safety
 /// The arguments must be Restrict pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_or(
     r1: *mut Restrict,
     r2: *mut Restrict,
@@ -89,7 +89,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_or(
 ///
 /// # Safety
 /// The arguments must be Restrict pointers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_xor(
     r1: *mut Restrict,
     r2: *mut Restrict,
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_xor(
 ///
 /// # Safety
 /// The arguments must be a Restrict pointer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_not(r: *mut Restrict) -> *mut Restrict {
     let r = try_ref_from_ptr!(r);
     Box::into_raw(Box::new(!r.clone()))
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn pkgcraft_restrict_not(r: *mut Restrict) -> *mut Restric
 ///
 /// # Safety
 /// The argument must be a Restrict pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_restrict_free(r: *mut Restrict) {
     if !r.is_null() {
         unsafe { drop(Box::from_raw(r)) };

@@ -28,7 +28,7 @@ pub fn init() {
 }
 
 /// Bash callback to convert bash errors into native errors.
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn bash_error(msg: *mut c_char) {
     error::bash_error(msg, 1)
 }

@@ -103,7 +103,7 @@ pub(crate) fn update_last_error<E: Into<Error> + fmt::Debug>(err: E) {
 }
 
 /// Get the most recent error, returns NULL if none exists.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn pkgcraft_error_last() -> *mut PkgcraftError {
     match LAST_ERROR.with(|prev| prev.borrow_mut().take()) {
         Some(e) => Box::into_raw(Box::new(e.into())),
@@ -115,7 +115,7 @@ pub extern "C" fn pkgcraft_error_last() -> *mut PkgcraftError {
 ///
 /// # Safety
 /// The argument must be a non-null PkgcraftError pointer or NULL.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn pkgcraft_error_free(e: *mut PkgcraftError) {
     if !e.is_null() {
         unsafe { drop(Box::from_raw(e)) };
