@@ -311,9 +311,10 @@ impl BuildPool {
 
     /// Start the build pool loop.
     pub(crate) fn start(&self, config: &Config) -> crate::Result<()> {
-        self.running
-            .set(true)
-            .map_err(|_| Error::InvalidValue("task pool already running".to_string()))?;
+        if self.running.set(true).is_err() {
+            // task pool already running
+            return Ok(());
+        }
 
         // initialize bash
         super::init()?;
