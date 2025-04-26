@@ -136,36 +136,17 @@ impl<'a> Targets<'a> {
             repo_targets.get_or_insert_default().push(s);
         }
 
-        if let Some(targets) = repo_targets {
-            match targets[..] {
-                [path] if path.contains('/') => {
-                    let path = Utf8Path::new(path).canonicalize_utf8().map_err(|e| {
-                        Error::InvalidValue(format!("invalid repo: {path}: {e}"))
-                    })?;
+        // collapse repo set for single repo target
+        if let Some([id]) = repo_targets.as_deref() {
+            // make sure config is loaded if repo isn't registered
+            if !repo_set.contains(*id) {
+                self.config.load()?;
+            }
 
-                    // add external repo to the config if it doesn't exist
-                    let repo =
-                        if let Some(repo) = repo_set.repos.iter().find(|r| r.path() == path) {
-                            repo.clone()
-                        } else {
-                            self.repo_from_path(&path)?
-                        };
-
-                    return Ok((repo.into(), Restrict::and(restricts)));
-                }
-                [id] => {
-                    // make sure config is loaded if repo isn't registered
-                    if !repo_set.contains(id) {
-                        self.config.load()?;
-                    }
-
-                    if let Ok(repo) = self.config.get_repo(id) {
-                        return Ok((repo.clone().into(), Restrict::and(restricts)));
-                    } else {
-                        return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
-                    }
-                }
-                _ => (),
+            if let Ok(repo) = self.config.get_repo(id) {
+                return Ok((repo.clone().into(), Restrict::and(restricts)));
+            } else {
+                return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
             }
         }
 

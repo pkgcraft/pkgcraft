@@ -22,7 +22,8 @@ fn pkg_target_from_stdin() {
     let data = test_data();
     let repo = data.ebuild_repo("phases").unwrap();
     cmd("pk pkg pretend -")
-        .write_stdin(format!("pkg-pretend/success-with-output::{}", repo.path()))
+        .args(["-r", repo.path().as_str()])
+        .write_stdin("pkg-pretend/success-with-output")
         .assert()
         .stdout(lines_contain(["pkg-pretend/success-with-output-1", "output123"]))
         .stderr("")

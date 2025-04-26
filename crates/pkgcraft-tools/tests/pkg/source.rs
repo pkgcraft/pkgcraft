@@ -13,7 +13,8 @@ fn pkg_target_from_stdin() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
     cmd("pk pkg source -")
-        .write_stdin(format!("slot/slot::{}", repo.path()))
+        .args(["-r", repo.path().as_str()])
+        .write_stdin("slot/slot")
         .assert()
         .stdout(lines_contain(["slot/slot-8"]))
         .stderr("")
@@ -35,7 +36,9 @@ fn invalid_pkgs() {
     let path = temp.path();
 
     // dep restriction
-    cmd(format!("pk pkg source cat/a-1::{path}"))
+    cmd("pk pkg source")
+        .args(["-r", path.as_str()])
+        .arg("cat/a-1")
         .assert()
         .stdout("")
         .stderr(lines_contain(["invalid pkg: cat/a-1::test: line 4: die: error: msg"]))
@@ -43,7 +46,9 @@ fn invalid_pkgs() {
         .code(1);
 
     // category restriction
-    cmd(format!("pk pkg source cat/*::{path}"))
+    cmd("pk pkg source")
+        .args(["-r", path.as_str()])
+        .arg("cat/*")
         .assert()
         .stdout("")
         .stderr(lines_contain(["cat/a-1", "cat/b-1"]))
