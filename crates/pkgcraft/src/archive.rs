@@ -15,6 +15,7 @@ pub(crate) trait ArchiveFormat {
 #[derive(Debug)]
 pub(crate) struct Tar {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Tar {
@@ -38,6 +39,7 @@ impl ArchiveFormat for Tar {
 #[derive(Debug)]
 pub(crate) struct TarGz {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for TarGz {
@@ -61,6 +63,7 @@ impl ArchiveFormat for TarGz {
 #[derive(Debug)]
 pub(crate) struct TarBz2 {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for TarBz2 {
@@ -84,6 +87,7 @@ impl ArchiveFormat for TarBz2 {
 #[derive(Debug)]
 pub(crate) struct TarLzma {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for TarLzma {
@@ -107,6 +111,7 @@ impl ArchiveFormat for TarLzma {
 #[derive(Debug)]
 pub(crate) struct TarXz {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for TarXz {
@@ -130,6 +135,7 @@ impl ArchiveFormat for TarXz {
 #[derive(Debug)]
 pub(crate) struct Zip {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Zip {
@@ -149,6 +155,7 @@ impl ArchiveFormat for Zip {
 #[derive(Debug)]
 pub(crate) struct Gz {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Gz {
@@ -186,6 +193,7 @@ impl ArchiveFormat for Gz {
 #[derive(Debug)]
 pub(crate) struct Bz2 {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Bz2 {
@@ -223,6 +231,7 @@ impl ArchiveFormat for Bz2 {
 #[derive(Debug)]
 pub(crate) struct Xz {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Xz {
@@ -260,6 +269,7 @@ impl ArchiveFormat for Xz {
 #[derive(Debug)]
 pub(crate) struct _7z {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for _7z {
@@ -279,6 +289,7 @@ impl ArchiveFormat for _7z {
 #[derive(Debug)]
 pub(crate) struct Rar {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Rar {
@@ -298,6 +309,7 @@ impl ArchiveFormat for Rar {
 #[derive(Debug)]
 pub(crate) struct Lha {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Lha {
@@ -317,6 +329,7 @@ impl ArchiveFormat for Lha {
 #[derive(Debug)]
 pub(crate) struct Ar {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Ar {
@@ -340,6 +353,7 @@ impl ArchiveFormat for Ar {
 #[derive(Debug)]
 pub(crate) struct Lzma {
     path: Utf8PathBuf,
+    ext: String,
 }
 
 impl ArchiveFormat for Lzma {
@@ -395,6 +409,7 @@ macro_rules! make_archive {
         }
 
         impl Archive {
+            /// Create an Archive from a file path.
             pub(crate) fn from_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Archive> {
                 let path = path.as_ref().to_path_buf();
                 let filename = path.file_name().ok_or_else(||
@@ -408,18 +423,30 @@ macro_rules! make_archive {
                 possible_exts.sort_by_cached_key(|(s, _)| s.len());
                 possible_exts.reverse();
 
-                let mut marker_ext = "";
-                for (ext, marker) in possible_exts {
-                    if filename.ends_with(ext) {
-                        marker_ext = marker;
+                let mut ext = String::new();
+                let mut kind = "";
+                for (x, marker) in possible_exts {
+                    if filename.ends_with(x) {
+                        kind = marker;
+                        ext = x.to_string();
                         break;
                     }
                 }
 
-                match marker_ext {
-                    $(ext if ext == $x::EXTS[0] => Ok(Archive::$x($x { path })),)+
+                match kind {
+                    $(x if x == $x::EXTS[0] => Ok(Archive::$x($x { path, ext })),)+
                     _ => Err(Error::InvalidValue(format!("unknown archive format: {path}"))),
                 }
+            }
+
+            /// Return the file name base of the archive.
+            pub(crate) fn base(&self) -> &str {
+                let (path, ext) = match self {
+                    $(Archive::$x($x { path, ext }) => (path, ext),)+
+                };
+
+                let base = path.file_name().expect("invalid archive file name");
+                &base[0..base.len() - 1 - ext.len()]
             }
         }
     };

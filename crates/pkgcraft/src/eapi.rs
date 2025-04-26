@@ -263,7 +263,7 @@ impl Eapi {
     }
 
     /// Load an archive from a given path if it's supported.
-    pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<(&str, Archive)>
+    pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<Archive>
     where
         P: AsRef<Utf8Path>,
     {
@@ -284,7 +284,7 @@ impl Eapi {
             .iter()
             .find(|ext| matches(ext))
             .ok_or_else(|| Error::InvalidValue(format!("unknown archive format: {path}")))
-            .and_then(|ext| Archive::from_path(path).map(|x| (ext.as_str(), x)))
+            .and_then(|_| Archive::from_path(path))
     }
 
     /// Metadata variables for dependencies.

@@ -90,10 +90,8 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // unpack all specified archives
     for path in cmd.paths {
-        let (ext, archive) = eapi.archive_from_path(&path.0)?;
-        let base = path.0.file_name().expect("invalid archive file name");
-        let base = &base[0..base.len() - 1 - ext.len()];
-        archive.unpack(base)?;
+        let archive = eapi.archive_from_path(&path.0)?;
+        archive.unpack(archive.base())?;
     }
 
     // TODO: parallelize walking fs
