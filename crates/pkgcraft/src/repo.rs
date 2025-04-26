@@ -16,9 +16,9 @@ use crate::traits::Contains;
 use crate::Error;
 
 pub mod ebuild;
-use ebuild::EbuildRepo;
+pub use ebuild::EbuildRepo;
 pub mod fake;
-use fake::FakeRepo;
+pub use fake::FakeRepo;
 pub mod set;
 
 /// Supported repo formats
