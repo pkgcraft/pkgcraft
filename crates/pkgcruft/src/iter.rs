@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::{mem, thread};
 
-use crossbeam_channel::{bounded, Receiver, RecvError, Sender};
+use crossbeam_channel::{Receiver, RecvError, Sender, bounded};
 use crossbeam_utils::sync::WaitGroup;
 use itertools::Itertools;
 use pkgcraft::repo::PkgRepository;

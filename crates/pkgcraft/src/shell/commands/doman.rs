@@ -8,7 +8,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 static DETECT_LANG_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(?P<base>\w+)(\.(?P<lang>[a-z]{2}(_[A-Z]{2})?))?\.(?P<section>\d)$").unwrap()

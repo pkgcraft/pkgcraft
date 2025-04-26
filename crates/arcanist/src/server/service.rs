@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use pkgcraft::config::Config as PkgcraftConfig;
-use pkgcraft::{repo::Repository, Error};
-use tokio::sync::mpsc;
+use pkgcraft::{Error, repo::Repository};
 use tokio::sync::RwLock;
+use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
 use crate::settings::Settings;
 
 use arcanist::proto::{
-    arcanist_server::Arcanist, AddRepoRequest, ListRequest, ListResponse, StringRequest,
-    StringResponse,
+    AddRepoRequest, ListRequest, ListResponse, StringRequest, StringResponse,
+    arcanist_server::Arcanist,
 };
 
 #[derive(Debug)]

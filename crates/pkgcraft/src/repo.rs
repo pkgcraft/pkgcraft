@@ -8,12 +8,12 @@ use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use tracing::debug;
 
+use crate::Error;
 use crate::config::{Config, RepoConfig};
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::{Package, Pkg};
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
-use crate::Error;
 
 pub mod ebuild;
 pub use ebuild::EbuildRepo;

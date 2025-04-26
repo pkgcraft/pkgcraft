@@ -5,14 +5,14 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexSet;
-use scallop::{functions, ExecStatus};
+use scallop::{ExecStatus, functions};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::commands::emake;
 use super::environment::Variable::D;
 use super::hooks::{Hook, HookBuilder, HookKind};
 use super::utils::makefile_exists;
-use super::{get_build_mut, BuildData, BuildFn};
+use super::{BuildData, BuildFn, get_build_mut};
 
 pub(crate) mod eapi5;
 pub(crate) mod eapi6;

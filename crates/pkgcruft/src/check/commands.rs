@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use pkgcraft::bash::Node;
 use pkgcraft::dep::Dep;
-use pkgcraft::eapi::{Eapi, EAPIS};
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package, RepoPackage};
+use pkgcraft::eapi::{EAPIS, Eapi};
+use pkgcraft::pkg::{Package, RepoPackage, ebuild::EbuildRawPkg};
 use pkgcraft::shell::phase::PhaseKind;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;

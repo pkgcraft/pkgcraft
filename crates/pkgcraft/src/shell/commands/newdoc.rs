@@ -18,8 +18,8 @@ mod tests {
     use std::fs;
 
     use crate::io::stdin;
-    use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::shell::test::FileTree;
     use crate::test::test_data;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, newdoc};

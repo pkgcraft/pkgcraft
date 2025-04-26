@@ -18,11 +18,11 @@ use url::Url;
 use crate::dep::Uri;
 use crate::eapi::Feature::SrcUriUnrestrict;
 use crate::error::Error;
-use crate::pkg::ebuild::manifest::HashType;
 use crate::pkg::ebuild::EbuildPkg;
+use crate::pkg::ebuild::manifest::HashType;
 use crate::pkg::{Package, RepoPackage};
-use crate::repo::ebuild::Mirror;
 use crate::repo::Repository;
+use crate::repo::ebuild::Mirror;
 use crate::traits::Contains;
 
 static SUPPORTED_PROTOCOLS: LazyLock<HashSet<String>> = LazyLock::new(|| {

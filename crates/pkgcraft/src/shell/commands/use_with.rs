@@ -19,7 +19,7 @@ mod tests {
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::io::stdout;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::shell::{get_build_mut, BuildData};
+    use crate::shell::{BuildData, get_build_mut};
     use crate::test::assert_err_re;
     use crate::test::test_data;
 

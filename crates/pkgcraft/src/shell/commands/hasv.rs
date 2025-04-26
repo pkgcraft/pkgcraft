@@ -4,7 +4,7 @@ use scallop::ExecStatus;
 
 use crate::io::stdout;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

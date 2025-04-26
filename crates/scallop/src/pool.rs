@@ -4,8 +4,8 @@ use std::os::fd::{AsFd, AsRawFd};
 use nix::errno::Errno;
 use nix::unistd::dup2;
 
-use crate::shm::create_shm;
 use crate::Error;
+use crate::shm::create_shm;
 
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output<T: AsFd>(f: T) -> crate::Result<()> {

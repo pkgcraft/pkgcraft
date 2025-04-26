@@ -4,10 +4,10 @@ use std::str::FromStr;
 use indexmap::IndexSet;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::types::SortedSet;
 use crate::Error;
+use crate::types::SortedSet;
 
-use super::{parse, Stringable};
+use super::{Stringable, parse};
 
 /// Package USE dependency type.
 #[repr(C)]

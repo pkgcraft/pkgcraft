@@ -14,7 +14,7 @@ use crate::eapi::Eapi;
 use crate::error::Error;
 use crate::files::*;
 use crate::macros::build_path;
-use crate::pkg::ebuild::{keyword::Arch, EbuildPkg, EbuildRawPkg};
+use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg, keyword::Arch};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict, Restriction};
@@ -25,7 +25,7 @@ use crate::traits::{
 };
 use crate::xml::parse_xml_with_dtd;
 
-use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
+use super::{PkgRepository, RepoFormat, Repository, make_repo_traits};
 
 pub mod cache;
 pub(crate) mod configured;
@@ -1330,9 +1330,10 @@ mod tests {
         assert!(repo.restrict_from_path("/").is_none());
 
         // nonexistent path
-        assert!(repo
-            .restrict_from_path(repo.path().join("/nonexistent/path"))
-            .is_none());
+        assert!(
+            repo.restrict_from_path(repo.path().join("/nonexistent/path"))
+                .is_none()
+        );
 
         // repo root
         assert_eq!(repo.restrict_from_path(repo.path()).unwrap(), Restrict::True);

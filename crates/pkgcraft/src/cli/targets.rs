@@ -6,12 +6,13 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 
+use crate::Error;
 use crate::config::Config;
 use crate::dep::Cpn;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Package, Pkg, RepoPackage};
-use crate::repo::set::RepoSet;
 use crate::repo::EbuildRepo;
+use crate::repo::set::RepoSet;
 use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -19,7 +20,6 @@ use crate::restrict::{self, Restrict, Scope};
 use crate::traits::Contains;
 use crate::types::OrderedMap;
 use crate::utils::current_dir;
-use crate::Error;
 
 #[derive(Debug)]
 pub struct Targets<'a> {
@@ -411,8 +411,8 @@ mod tests {
     use std::env;
 
     use crate::pkg::Pkg;
-    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::FakeRepo;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::*;
 
     use super::*;

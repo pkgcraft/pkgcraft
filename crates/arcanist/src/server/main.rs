@@ -1,8 +1,8 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use anyhow::{bail, Context, Result};
-use clap::{builder::NonEmptyStringValueParser, Arg, ArgAction, Command};
+use anyhow::{Context, Result, bail};
+use clap::{Arg, ArgAction, Command, builder::NonEmptyStringValueParser};
 use futures::TryFutureExt;
 use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::{TcpListener, UnixListener};

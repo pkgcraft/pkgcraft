@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use dashmap::{mapref::one::MappedRef, DashMap};
+use dashmap::{DashMap, mapref::one::MappedRef};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
-use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::repo::{EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};

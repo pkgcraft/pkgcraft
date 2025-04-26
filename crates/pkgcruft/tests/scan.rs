@@ -6,7 +6,7 @@ use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
-use tempfile::{tempdir, NamedTempFile};
+use tempfile::{NamedTempFile, tempdir};
 
 #[test]
 fn no_matches() {

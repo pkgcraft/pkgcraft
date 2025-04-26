@@ -5,8 +5,8 @@ use ini::Ini;
 use itertools::Itertools;
 use tracing::{error, info};
 
-use crate::repo::{Repo, Repository};
 use crate::Error;
+use crate::repo::{Repo, Repository};
 
 /// Load repos from a repos.conf file.
 fn repos_from_file(path: &Utf8Path) -> crate::Result<Vec<Repo>> {

@@ -5,7 +5,7 @@ use crate::files::NO_WALKDIR_FILTER;
 use crate::shell::environment::Variable::INSDESTTREE;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

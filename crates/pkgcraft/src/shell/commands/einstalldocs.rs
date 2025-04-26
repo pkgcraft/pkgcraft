@@ -6,7 +6,7 @@ use itertools::Itertools;
 use scallop::variables::var_to_vec;
 use scallop::{Error, ExecStatus};
 
-use super::{dodoc::install_docs, make_builtin, TryParseArgs};
+use super::{TryParseArgs, dodoc::install_docs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -109,8 +109,8 @@ make_builtin!("einstalldocs", einstalldocs_builtin);
 mod tests {
     use scallop::source;
 
-    use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
     use crate::test::test_data;
 

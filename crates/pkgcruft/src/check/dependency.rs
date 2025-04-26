@@ -1,8 +1,8 @@
 use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::dep::{Dep, Dependency, Operator, SlotOperator, UseDepKind};
-use pkgcraft::pkg::ebuild::{metadata::Key, EbuildPkg};
 use pkgcraft::pkg::Package;
+use pkgcraft::pkg::ebuild::{EbuildPkg, metadata::Key};
 use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{

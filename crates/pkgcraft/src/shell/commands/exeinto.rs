@@ -2,7 +2,7 @@ use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::EXEDESTTREE;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

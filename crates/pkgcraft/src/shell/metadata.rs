@@ -1,10 +1,10 @@
 use itertools::Itertools;
 use scallop::{functions, variables};
 
-use crate::pkg::ebuild::metadata::{Key, Metadata};
-use crate::pkg::ebuild::EbuildRawPkg;
-use crate::pkg::{Package, RepoPackage, Source};
 use crate::Error;
+use crate::pkg::ebuild::EbuildRawPkg;
+use crate::pkg::ebuild::metadata::{Key, Metadata};
+use crate::pkg::{Package, RepoPackage, Source};
 
 use super::get_build_mut;
 

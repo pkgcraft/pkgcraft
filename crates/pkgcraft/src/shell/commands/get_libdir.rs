@@ -5,7 +5,7 @@ use scallop::ExecStatus;
 use crate::io::stdout;
 use crate::shell::utils::get_libdir;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(name = "get_libdir", long_about = "Output the libdir name.")]

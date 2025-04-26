@@ -1,12 +1,12 @@
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
+use crate::Error;
 use crate::dep::{Dep, DependencySet, Slot, Uri};
 use crate::eapi::Eapi;
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::shell::phase::PhaseKind;
 use crate::types::OrderedSet;
-use crate::Error;
 
 use super::iuse::Iuse;
 use super::keyword::Keyword;

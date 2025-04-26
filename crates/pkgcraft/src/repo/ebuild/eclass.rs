@@ -5,11 +5,11 @@ use std::sync::Arc;
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use scallop::{source, ExecStatus};
+use scallop::{ExecStatus, source};
 
+use crate::Error;
 use crate::dep::parse;
 use crate::traits::SourceBash;
-use crate::Error;
 
 use super::cache::{Cache, MetadataCache};
 

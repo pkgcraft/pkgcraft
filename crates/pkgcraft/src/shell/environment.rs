@@ -4,8 +4,8 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-use scallop::variables::{bind, unbind, Attr};
 use scallop::ExecStatus;
+use scallop::variables::{Attr, bind, unbind};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::get_build_mut;

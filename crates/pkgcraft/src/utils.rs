@@ -1,6 +1,6 @@
 use std::env;
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::path::{is_separator, Component, Path, PathBuf};
+use std::path::{Component, Path, PathBuf, is_separator};
 
 use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 use digest::Digest;
@@ -10,11 +10,7 @@ use crate::Error;
 /// Limit parallel jobs to the number of logical CPUs on a system. All CPUs are used if jobs is 0.
 pub fn bounded_jobs(jobs: usize) -> usize {
     let cpus = num_cpus::get();
-    if jobs > 0 && jobs <= cpus {
-        jobs
-    } else {
-        cpus
-    }
+    if jobs > 0 && jobs <= cpus { jobs } else { cpus }
 }
 
 /// Create a custom, global thread pool when limiting threads.

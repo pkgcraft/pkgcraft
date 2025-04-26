@@ -4,7 +4,7 @@ use scallop::ExecStatus;
 
 use crate::io::stdout;
 
-use super::{make_builtin, use_, TryParseArgs};
+use super::{TryParseArgs, make_builtin, use_};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -52,7 +52,7 @@ mod tests {
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::pkg::Build;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::shell::{get_build_mut, BuildData};
+    use crate::shell::{BuildData, get_build_mut};
     use crate::test::assert_err_re;
     use crate::test::test_data;
 

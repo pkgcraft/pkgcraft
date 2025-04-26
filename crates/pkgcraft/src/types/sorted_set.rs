@@ -10,7 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::macros::partial_cmp_not_equal_opt;
 
-use super::{make_set_traits, Ordered};
+use super::{Ordered, make_set_traits};
 
 /// Wrapper for IndexSet that implements Ord and Hash via sorting.
 #[derive(Debug, Clone)]

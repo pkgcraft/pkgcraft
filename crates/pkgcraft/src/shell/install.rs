@@ -5,7 +5,7 @@ use std::{fmt, fs, io};
 
 use camino::Utf8Path;
 use clap::Parser;
-use filetime::{set_file_times, FileTime};
+use filetime::{FileTime, set_file_times};
 use indexmap::IndexMap;
 use itertools::Either;
 use nix::{fcntl::AtFlags, sys::stat, unistd};

@@ -6,15 +6,15 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use tracing::error;
 
+use crate::Error;
 use crate::config::RepoConfig;
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::fake::Pkg;
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
 use crate::types::OrderedSet;
-use crate::Error;
 
-use super::{make_repo_traits, PkgRepository, RepoFormat, Repository};
+use super::{PkgRepository, RepoFormat, Repository, make_repo_traits};
 
 type VersionMap = IndexMap<String, IndexSet<Version>>;
 type PkgMap = IndexMap<String, VersionMap>;

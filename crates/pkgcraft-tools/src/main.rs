@@ -2,7 +2,7 @@ use std::io::stderr;
 use std::process::ExitCode;
 
 use clap::Parser;
-use clap_verbosity_flag::{log::LevelFilter, Verbosity};
+use clap_verbosity_flag::{Verbosity, log::LevelFilter};
 use pkgcraft::cli::reset_sigpipe;
 use pkgcraft::config::Config;
 use tracing_log::AsTrace;

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{bash, Error};
+use crate::{Error, bash};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub enum ExecStatus {

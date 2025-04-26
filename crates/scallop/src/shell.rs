@@ -1,13 +1,13 @@
 use std::cmp::min;
-use std::ffi::{c_char, c_int, CStr, CString};
+use std::ffi::{CStr, CString, c_char, c_int};
 use std::sync::LazyLock;
 use std::{env, mem, ptr};
 
-use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{fork, getpid, ForkResult, Pid};
+use nix::sys::wait::{WaitStatus, waitpid};
+use nix::unistd::{ForkResult, Pid, fork, getpid};
 
 use crate::shm::create_shm;
-use crate::{bash, error, ExecStatus};
+use crate::{ExecStatus, bash, error};
 
 /// Initialize shared memory for proxying errors.
 fn shm_init() {

@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
-use nix::sys::stat::{fchmodat, lstat, FchmodatFlags::FollowSymlink, Mode, SFlag};
+use nix::sys::stat::{FchmodatFlags::FollowSymlink, Mode, SFlag, fchmodat, lstat};
 use rayon::prelude::*;
 use scallop::{Error, ExecStatus};
 use walkdir::{DirEntry, WalkDir};
@@ -16,7 +16,7 @@ use crate::shell::environment::Variable::DISTDIR;
 use crate::shell::get_build_mut;
 use crate::utils::is_single_component;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 // TODO: Drop LazyLock usage once upstream BitOr is marked const (see
 // https://github.com/bitflags/bitflags/issues/180) requiring const trait impl support in

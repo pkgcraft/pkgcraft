@@ -7,12 +7,12 @@ use std::time::Duration;
 use camino::Utf8Path;
 use futures::StreamExt;
 use regex::Regex;
-use reqwest::header::{HeaderMap, ETAG};
+use reqwest::header::{ETAG, HeaderMap};
 use serde::{Deserialize, Serialize};
 use tempfile::Builder;
 
-use crate::sync::{Syncable, Syncer};
 use crate::Error;
+use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^tar\+(?P<url>https://.+)$").unwrap());

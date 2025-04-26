@@ -15,7 +15,8 @@ use strum::{AsRefStr, Display, EnumString};
 use tracing::{error, warn};
 use url::Url;
 
-use crate::dep::{parse, Cpn, Dep};
+use crate::Error;
+use crate::dep::{Cpn, Dep, parse};
 use crate::eapi::Eapi;
 use crate::files::{
     atomic_write_file, has_ext_utf8, is_file, is_file_utf8, is_hidden, is_hidden_utf8,
@@ -28,10 +29,9 @@ use crate::pkg::ebuild::xml;
 use crate::repo::{PkgRepository, RepoFormat};
 use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
-use crate::Error;
 
-use super::cache::{CacheFormat, MetadataCache};
 use super::Eclass;
+use super::cache::{CacheFormat, MetadataCache};
 
 /// Wrapper for ini format config files.
 #[derive(Debug, Default)]

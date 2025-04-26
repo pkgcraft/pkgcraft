@@ -1,8 +1,8 @@
-use scallop::variables::var_to_vec;
 use scallop::ExecStatus;
+use scallop::variables::var_to_vec;
 
-use crate::shell::commands::{eapply, eapply_user, einstalldocs};
 use crate::shell::BuildData;
+use crate::shell::commands::{eapply, eapply_user, einstalldocs};
 
 use super::emake_install;
 
@@ -36,7 +36,7 @@ mod tests {
     use crate::pkg::Build;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::test::FileTree;
-    use crate::shell::{get_build_mut, BuildData};
+    use crate::shell::{BuildData, get_build_mut};
     use crate::test::assert_err_re;
 
     #[test]

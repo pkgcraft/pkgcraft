@@ -5,15 +5,15 @@ use crate::config::Settings;
 use crate::dep::{Cpv, Dep, DependencySet, Evaluate, Uri};
 use crate::eapi::Eapi;
 use crate::macros::bool_not_equal;
-use crate::pkg::{make_pkg_traits, Package, RepoPackage};
-use crate::repo::ebuild::configured::ConfiguredRepo;
+use crate::pkg::{Package, RepoPackage, make_pkg_traits};
 use crate::repo::Repository;
+use crate::repo::ebuild::configured::ConfiguredRepo;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::traits::Intersects;
 use crate::types::OrderedSet;
 
-use super::metadata::Key;
 use super::EbuildPkg;
+use super::metadata::Key;
 
 #[derive(Clone)]
 pub struct EbuildConfiguredPkg {

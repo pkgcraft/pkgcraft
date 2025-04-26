@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
-use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
 
 use crate::report::ReportKind::KeywordsDropped;
 use crate::scan::ScannerRun;

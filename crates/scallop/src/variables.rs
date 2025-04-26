@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use std::ffi::{c_void, CStr, CString};
+use std::ffi::{CStr, CString, c_void};
 use std::fmt;
 
 use bitflags::bitflags;
@@ -8,7 +8,7 @@ use indexmap::IndexSet;
 use crate::array::Array;
 use crate::error::ok_or_error;
 use crate::traits::*;
-use crate::{bash, Error, ExecStatus};
+use crate::{Error, ExecStatus, bash};
 
 bitflags! {
     /// Flags for various attributes a given variable can have.

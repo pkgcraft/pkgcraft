@@ -2,7 +2,7 @@ use scallop::ExecStatus;
 
 use crate::shell::get_build_mut;
 
-use super::{eapply, make_builtin, TryParseArgs};
+use super::{TryParseArgs, eapply, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

@@ -5,7 +5,7 @@ use scallop::ExecStatus;
 use crate::io::stderr;
 use crate::shell::unescape::unescape;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

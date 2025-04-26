@@ -1,14 +1,14 @@
 use std::fs;
 
 use scallop::pool::redirect_output;
-use scallop::{functions, Error, ExecStatus};
+use scallop::{Error, ExecStatus, functions};
 use tempfile::NamedTempFile;
 
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Build, Package, PkgPretend, Source};
 use crate::shell::phase::PhaseKind;
 use crate::shell::scope::Scope;
-use crate::shell::{get_build_mut, BuildData};
+use crate::shell::{BuildData, get_build_mut};
 
 use super::OperationKind;
 

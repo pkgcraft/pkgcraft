@@ -1,12 +1,12 @@
 use std::fs;
-use std::io::{stdout, IsTerminal, Write};
+use std::io::{IsTerminal, Write, stdout};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use camino::Utf8PathBuf;
-use clap::{builder::ArgPredicate, Args};
-use futures::{stream, StreamExt};
+use clap::{Args, builder::ArgPredicate};
+use futures::{StreamExt, stream};
 use indexmap::IndexSet;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 use pkgcraft::cli::{MaybeStdinVec, Targets};
@@ -14,7 +14,7 @@ use pkgcraft::config::Config;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetcher;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::restrict::{str::Restrict as StrRestrict, Restrict, Restriction};
+use pkgcraft::restrict::{Restrict, Restriction, str::Restrict as StrRestrict};
 use pkgcraft::traits::LogErrors;
 use pkgcraft::utils::bounded_jobs;
 use tracing::error;

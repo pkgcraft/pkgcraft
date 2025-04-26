@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
+use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 use url::Url;
 
 use crate::report::ReportKind::HomepageInvalid;

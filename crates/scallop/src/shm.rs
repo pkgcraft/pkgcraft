@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use nix::fcntl::OFlag;
-use nix::sys::mman::{mmap, shm_open, shm_unlink, MapFlags, ProtFlags};
+use nix::sys::mman::{MapFlags, ProtFlags, mmap, shm_open, shm_unlink};
 use nix::sys::stat::Mode;
 use nix::unistd::ftruncate;
 

@@ -1,8 +1,8 @@
-use std::ffi::{c_void, CStr, CString};
+use std::ffi::{CStr, CString, c_void};
 
-use crate::error::{ok_or_error, Error};
+use crate::error::{Error, ok_or_error};
 use crate::macros::*;
-use crate::{bash, ExecStatus};
+use crate::{ExecStatus, bash};
 
 #[derive(Debug)]
 pub struct Function<'a> {

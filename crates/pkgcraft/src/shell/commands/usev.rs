@@ -6,7 +6,7 @@ use crate::eapi::Feature::UsevTwoArgs;
 use crate::io::stdout;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, TryParseArgs, UseFlag};
+use super::{TryParseArgs, UseFlag, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

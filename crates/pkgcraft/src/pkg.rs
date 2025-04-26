@@ -331,7 +331,7 @@ mod tests {
     use itertools::Itertools;
 
     use crate::eapi::EAPI_LATEST_OFFICIAL;
-    use crate::repo::{fake, PkgRepository};
+    use crate::repo::{PkgRepository, fake};
     use crate::test::assert_ordered_eq;
 
     use super::*;

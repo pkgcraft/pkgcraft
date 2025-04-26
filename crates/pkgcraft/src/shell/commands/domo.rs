@@ -7,7 +7,7 @@ use crate::macros::build_path;
 use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -64,8 +64,8 @@ mod tests {
     use crate::config::Config;
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
     use crate::test::test_data;
 

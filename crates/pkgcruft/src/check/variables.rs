@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use pkgcraft::bash::Node;
-use pkgcraft::eapi::{Eapi, EAPIS};
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
+use pkgcraft::eapi::{EAPIS, Eapi};
+use pkgcraft::pkg::{Package, ebuild::EbuildRawPkg};
 
 use crate::report::ReportKind::VariableScopeInvalid;
 use crate::scan::ScannerRun;

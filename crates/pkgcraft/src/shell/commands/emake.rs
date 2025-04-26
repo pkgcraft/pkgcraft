@@ -7,7 +7,7 @@ use crate::command::RunCommand;
 use crate::io::stdout;
 use crate::shell::utils::makefile_exists;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

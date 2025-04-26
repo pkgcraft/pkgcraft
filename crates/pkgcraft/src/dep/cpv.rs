@@ -6,8 +6,8 @@ use std::str::FromStr;
 use camino::Utf8PathBuf;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::traits::Intersects;
 use crate::Error;
+use crate::traits::Intersects;
 
 use super::cpn::Cpn;
 use super::parse;

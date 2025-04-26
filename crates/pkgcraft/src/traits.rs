@@ -6,9 +6,9 @@ use std::rc::Rc;
 use std::thread;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, bounded};
 use indexmap::{Equivalent, IndexSet};
-use scallop::{source, ExecStatus};
+use scallop::{ExecStatus, source};
 use tracing::error;
 
 use crate::utils::bounded_jobs;

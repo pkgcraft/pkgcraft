@@ -1,4 +1,4 @@
-use cached::{proc_macro::cached, SizedCache};
+use cached::{SizedCache, proc_macro::cached};
 
 use crate::dep::cpn::Cpn;
 use crate::dep::cpv::{Cpv, CpvOrDep};
@@ -462,7 +462,7 @@ pub(super) fn package_dependency(
 
 #[cfg(test)]
 mod tests {
-    use crate::eapi::{EAPIS, EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL, EAPI_PKGCRAFT};
+    use crate::eapi::{EAPI_LATEST_OFFICIAL, EAPI_PKGCRAFT, EAPIS, EAPIS_OFFICIAL};
 
     use super::*;
 
@@ -725,9 +725,11 @@ mod tests {
         }
 
         // empty set
-        assert!(package_dependency_set("", &EAPI_LATEST_OFFICIAL)
-            .unwrap()
-            .is_empty());
+        assert!(
+            package_dependency_set("", &EAPI_LATEST_OFFICIAL)
+                .unwrap()
+                .is_empty()
+        );
 
         // valid
         for (s, expected_flatten) in [

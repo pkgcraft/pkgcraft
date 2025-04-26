@@ -1,6 +1,6 @@
 use pkgcraft::dep::{Dependency, DependencySet};
-use pkgcraft::pkg::ebuild::iuse::Iuse;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::ebuild::iuse::Iuse;
 
 use crate::report::ReportKind::RestrictMissing;
 use crate::scan::ScannerRun;

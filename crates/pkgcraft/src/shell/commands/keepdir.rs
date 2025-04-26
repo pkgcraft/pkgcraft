@@ -5,7 +5,7 @@ use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -55,8 +55,8 @@ mod tests {
     use crate::config::Config;
     use crate::pkg::Build;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::shell::test::FileTree;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, keepdir};
 

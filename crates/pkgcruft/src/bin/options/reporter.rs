@@ -1,5 +1,5 @@
-use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Args;
+use clap::builder::{PossibleValuesParser, TypedValueParser};
 use pkgcruft::reporter::Reporter;
 use strum::VariantNames;
 

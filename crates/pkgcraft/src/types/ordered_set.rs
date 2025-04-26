@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use ordermap::OrderSet;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::{make_set_traits, Ordered};
+use super::{Ordered, make_set_traits};
 
 /// Wrapper for OrderSet that provides additional FromIterator implemetations.
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]

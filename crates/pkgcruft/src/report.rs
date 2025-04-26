@@ -17,9 +17,9 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
+use crate::Error;
 use crate::check::{Check, Context};
 use crate::scan::ScannerRun;
-use crate::Error;
 
 /// The severity of the report.
 #[derive(
@@ -1137,7 +1137,9 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
                     err => return Some(err),
                 },
                 Err(e) => {
-                    return Some(Err(Error::InvalidValue(format!("failed reading line: {e}"))))
+                    return Some(Err(Error::InvalidValue(format!(
+                        "failed reading line: {e}"
+                    ))));
                 }
             }
         }

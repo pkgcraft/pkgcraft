@@ -1,6 +1,6 @@
-use crate::error::{ok_or_error, Error};
+use crate::error::{Error, ok_or_error};
 use crate::traits::*;
-use crate::{bash, ExecStatus};
+use crate::{ExecStatus, bash};
 
 /// Run the `declare` builtin with the given arguments.
 pub fn declare<I>(args: I) -> crate::Result<ExecStatus>

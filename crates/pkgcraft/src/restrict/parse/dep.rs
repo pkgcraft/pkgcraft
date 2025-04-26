@@ -1,9 +1,9 @@
 use crate::dep::version::{Number, Operator, Revision, Suffix, SuffixKind, Version, WithOp};
 use crate::dep::{Blocker, UseDep, UseDepKind};
 use crate::error::peg_error;
+use crate::restrict::Restrict as BaseRestrict;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::Restrict as BaseRestrict;
 
 // Convert globbed string to regex restriction, escaping all meta characters except '*'.
 fn str_to_regex_restrict(s: &str) -> Result<StrRestrict, &'static str> {

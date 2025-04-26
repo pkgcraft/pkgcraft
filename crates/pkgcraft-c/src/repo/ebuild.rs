@@ -2,8 +2,8 @@ use std::ffi::c_char;
 
 use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
-use pkgcraft::repo::ebuild::{cache::Cache, EbuildRepo};
 use pkgcraft::repo::Repo;
+use pkgcraft::repo::ebuild::{EbuildRepo, cache::Cache};
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;

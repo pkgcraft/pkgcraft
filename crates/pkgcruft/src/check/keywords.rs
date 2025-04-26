@@ -1,8 +1,8 @@
 use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use pkgcraft::pkg::ebuild::{keyword::KeywordStatus::Stable, EbuildPkg};
 use pkgcraft::pkg::Package;
+use pkgcraft::pkg::ebuild::{EbuildPkg, keyword::KeywordStatus::Stable};
 
 use crate::report::ReportKind::{
     ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,

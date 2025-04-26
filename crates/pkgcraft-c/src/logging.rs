@@ -1,11 +1,11 @@
 use std::cell::RefCell;
-use std::ffi::{c_char, CString};
+use std::ffi::{CString, c_char};
 use std::fmt::{Debug, Write};
 
 use tracing::field::{Field, Visit};
-use tracing::{subscriber::DefaultGuard, Event, Level, Subscriber};
+use tracing::{Event, Level, Subscriber, subscriber::DefaultGuard};
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
-use tracing_subscriber::{prelude::*, registry::Registry, Layer};
+use tracing_subscriber::{Layer, prelude::*, registry::Registry};
 
 use crate::macros::*;
 

@@ -3,12 +3,12 @@ use std::cmp::Ordering;
 use crate::error::peg_error;
 use crate::pkg::ebuild::{MaintainerRestrict, Restrict as EbuildRestrict};
 
+use crate::restrict::Restrict as BaseRestrict;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::depset::Restrict as DepSetRestrict;
 use crate::restrict::ordered::Restrict as OrderedRestrict;
 use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::Restrict as BaseRestrict;
 
 use super::dep;
 

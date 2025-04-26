@@ -2,7 +2,7 @@ use camino::Utf8PathBuf;
 use scallop::ExecStatus;
 
 use super::dobin::install_bin;
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

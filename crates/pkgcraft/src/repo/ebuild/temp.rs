@@ -5,13 +5,13 @@ use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
 use tempfile::TempDir;
 
+use crate::Error;
 use crate::dep::Cpv;
-use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
+use crate::eapi::{EAPI_LATEST_OFFICIAL, Eapi};
 use crate::files::atomic_write_file;
 use crate::pkg::ebuild::metadata::Key;
 use crate::repo::ebuild::Metadata;
 use crate::repo::{Repo, RepoFormat};
-use crate::Error;
 
 /// Temporary ebuild repo builder.
 #[derive(Debug)]

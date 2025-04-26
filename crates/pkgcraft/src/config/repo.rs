@@ -6,13 +6,13 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{DisplayFromStr, serde_as};
 use tracing::error;
 
+use crate::Error;
 use crate::repo::set::RepoSet;
 use crate::repo::{Repo, RepoFormat, Repository};
 use crate::sync::Syncer;
-use crate::Error;
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]

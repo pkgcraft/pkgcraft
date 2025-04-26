@@ -7,16 +7,16 @@ use itertools::Itertools;
 use pkgcraft::bash::{Node, Tree};
 use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
-use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
+use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 use pkgcraft::repo::ebuild::Eclass;
 use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
 
+use crate::Error;
 use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scan::ScannerRun;
-use crate::Error;
 
 use super::EbuildPkgSetCheck;
 
@@ -149,7 +149,7 @@ fn expand_node<'a>(
             kind => {
                 return Err(Error::InvalidValue(format!(
                     "unhandled node variant: {kind}: {x}"
-                )))
+                )));
             }
         }
     }

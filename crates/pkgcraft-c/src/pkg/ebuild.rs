@@ -1,8 +1,8 @@
-use std::ffi::{c_char, CString};
+use std::ffi::{CString, c_char};
 use std::{mem, ptr, slice};
 
-use pkgcraft::pkg::ebuild::xml;
 use pkgcraft::pkg::Pkg;
+use pkgcraft::pkg::ebuild::xml;
 use pkgcraft::traits::IntoOwned;
 
 use crate::dep::{DependencySet, DependencySetKind};

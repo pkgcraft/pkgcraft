@@ -5,8 +5,9 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::{
+    Arg, ArgAction, ArgMatches, Command,
     builder::{BoolishValueParser, NonEmptyStringValueParser},
-    value_parser, Arg, ArgAction, ArgMatches, Command,
+    value_parser,
 };
 use hyper_util::rt::TokioIo;
 use pkgcraft::config::Config as PkgcraftConfig;

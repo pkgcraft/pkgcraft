@@ -8,9 +8,9 @@ use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
+use crate::Error;
 use crate::macros::cmp_not_equal;
 use crate::traits::Intersects;
-use crate::Error;
 
 use super::parse;
 

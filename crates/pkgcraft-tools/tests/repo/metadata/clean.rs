@@ -1,8 +1,8 @@
 use std::fs;
 
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
+use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::test::cmd;
 
 #[test]

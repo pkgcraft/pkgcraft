@@ -3,8 +3,8 @@ use std::process::Command;
 
 use camino::{Utf8Path, Utf8PathBuf};
 
-use crate::command::RunCommand;
 use crate::Error;
+use crate::command::RunCommand;
 
 pub(crate) trait ArchiveFormat {
     const EXTS: &'static [&'static str];

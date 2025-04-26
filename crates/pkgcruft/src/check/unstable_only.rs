@@ -1,8 +1,8 @@
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
-use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::ReportKind::UnstableOnly;

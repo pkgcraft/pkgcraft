@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use dashmap::DashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
+use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 
 use crate::report::ReportKind::{LicenseDeprecated, LicenseInvalid, LicensesUnused};
 use crate::scan::ScannerRun;

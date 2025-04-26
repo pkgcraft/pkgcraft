@@ -6,7 +6,7 @@ use crate::shell::environment::Variable::DESTTREE;
 use crate::shell::get_build_mut;
 use crate::shell::utils::get_libdir;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(name = "dolib", long_about = "Install libraries.")]

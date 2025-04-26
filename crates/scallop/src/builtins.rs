@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::HashSet;
-use std::ffi::{c_int, CStr, CString};
+use std::ffi::{CStr, CString, c_int};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{cmp, fmt, mem, process, ptr};
@@ -9,7 +9,7 @@ use bitflags::bitflags;
 
 use crate::macros::*;
 use crate::traits::IntoWords;
-use crate::{bash, shell, Error, ExecStatus};
+use crate::{Error, ExecStatus, bash, shell};
 
 mod _bash;
 pub mod profile;
@@ -174,7 +174,7 @@ where
                 }
             }
             None => {
-                return Err(Error::Base(format!("failed overriding unknown builtin: {name}")))
+                return Err(Error::Base(format!("failed overriding unknown builtin: {name}")));
             }
         }
     }

@@ -3,7 +3,7 @@ use std::{fs, io};
 
 use camino::Utf8PathBuf;
 use clap::{Args, CommandFactory, ValueEnum};
-use clap_complete::{generate, generate_to, Shell};
+use clap_complete::{Shell, generate, generate_to};
 
 #[derive(Args)]
 #[clap(next_help_heading = "Completion options")]

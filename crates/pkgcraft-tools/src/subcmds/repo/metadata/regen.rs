@@ -1,4 +1,4 @@
-use std::io::{stdout, IsTerminal};
+use std::io::{IsTerminal, stdout};
 use std::process::ExitCode;
 
 use clap::Args;

@@ -3,8 +3,8 @@ use criterion::Criterion;
 use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::dep::Cpv;
-use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::PkgRepository;
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::test_data;
 
 pub fn bench_repo_ebuild(c: &mut Criterion) {

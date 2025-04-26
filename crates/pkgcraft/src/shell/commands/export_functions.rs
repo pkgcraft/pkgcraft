@@ -3,7 +3,7 @@ use scallop::{Error, ExecStatus};
 use crate::shell::get_build_mut;
 use crate::shell::phase::PhaseKind;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(

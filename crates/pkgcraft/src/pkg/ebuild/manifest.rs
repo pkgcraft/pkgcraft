@@ -10,10 +10,10 @@ use ordermap::OrderMap;
 use rayon::prelude::*;
 use strum::{Display, EnumIter, EnumString};
 
+use crate::Error;
 use crate::files::relative_paths;
 use crate::macros::build_path;
 use crate::utils::digest;
-use crate::Error;
 
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]

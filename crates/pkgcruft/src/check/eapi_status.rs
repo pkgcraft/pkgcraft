@@ -1,7 +1,7 @@
 use dashmap::DashSet;
 use itertools::Itertools;
-use pkgcraft::eapi::{EAPIS_OFFICIAL, EAPI_LATEST_OFFICIAL};
-use pkgcraft::pkg::{ebuild::EbuildRawPkg, Package};
+use pkgcraft::eapi::{EAPI_LATEST_OFFICIAL, EAPIS_OFFICIAL};
+use pkgcraft::pkg::{Package, ebuild::EbuildRawPkg};
 
 use crate::report::ReportKind::{EapiBanned, EapiDeprecated, EapiUnused};
 use crate::scan::ScannerRun;
@@ -104,10 +104,12 @@ mod tests {
             .ebuild_repo()
             .unwrap();
         let reports = scanner.run(&repo, &repo).unwrap();
-        let expected = vec![Report::from_json(
-            r#"{"kind":"EapiUnused","scope":{"Repo":"test"},"message":"7"}"#,
-        )
-        .unwrap()];
+        let expected = vec![
+            Report::from_json(
+                r#"{"kind":"EapiUnused","scope":{"Repo":"test"},"message":"7"}"#,
+            )
+            .unwrap(),
+        ];
         assert_unordered_reports!(reports, expected);
 
         // secondary with no banned or deprecated EAPIs set

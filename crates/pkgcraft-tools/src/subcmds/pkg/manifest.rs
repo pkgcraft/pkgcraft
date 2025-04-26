@@ -1,13 +1,13 @@
 use std::fs;
-use std::io::{stdout, IsTerminal, Write};
+use std::io::{IsTerminal, Write, stdout};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use anyhow::anyhow;
 use camino::{Utf8Path, Utf8PathBuf};
-use clap::{builder::ArgPredicate, Args};
-use futures::{stream, StreamExt};
+use clap::{Args, builder::ArgPredicate};
+use futures::{StreamExt, stream};
 use indexmap::{IndexMap, IndexSet};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget};
 use pkgcraft::cli::{MaybeStdinVec, Targets};

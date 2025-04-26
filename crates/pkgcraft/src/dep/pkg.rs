@@ -8,14 +8,14 @@ use itertools::Itertools;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use strum::{AsRefStr, Display, EnumString};
 
+use crate::Error;
 use crate::macros::bool_not_equal;
 use crate::traits::Intersects;
 use crate::types::{OrderedMap, OrderedSet, SortedSet};
-use crate::Error;
 
 use super::use_dep::{UseDep, UseDepKind};
 use super::version::{Operator, Revision, Version};
-use super::{parse, Cpn, Cpv};
+use super::{Cpn, Cpv, parse};
 
 #[repr(C)]
 #[derive(

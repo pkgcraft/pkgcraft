@@ -8,9 +8,9 @@ use itertools::Itertools;
 use roxmltree::Node;
 use strum::{AsRefStr, Display, EnumString};
 
+use crate::Error;
 use crate::types::OrderedSet;
 use crate::xml::parse_xml_with_dtd;
-use crate::Error;
 
 #[derive(AsRefStr, Display, EnumString, Debug, Default, PartialEq, Eq, Hash, Copy, Clone)]
 #[strum(serialize_all = "snake_case")]

@@ -5,7 +5,7 @@ use scallop::ExecStatus;
 use crate::io::stdout;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, parse, TryParseArgs};
+use super::{TryParseArgs, make_builtin, parse};
 
 #[derive(clap::Parser, Debug)]
 #[command(

@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::{ArgMatches, Command};
 
-use crate::settings::Settings;
 use crate::Client;
+use crate::settings::Settings;
 
 mod add;
 mod del;

@@ -397,8 +397,8 @@ mod tests {
     use crate::config::Config;
     use crate::pkg::RepoPackage;
     use crate::pkg::Restrict as PkgRestrict;
-    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::FakeRepo;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::restrict::dep::Restrict as DepRestrict;
     use crate::test::*;
     use crate::utils::hash;

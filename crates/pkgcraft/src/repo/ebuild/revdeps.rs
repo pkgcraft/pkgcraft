@@ -9,12 +9,12 @@ use itertools::Itertools;
 use ordermap::OrderSet;
 use rayon::prelude::*;
 
+use crate::Error;
 use crate::dep::{ConditionalFlatten, Cpn, Cpv, Dep, UseDep};
 use crate::macros::build_path;
-use crate::pkg::ebuild::metadata::Key;
 use crate::pkg::Package;
+use crate::pkg::ebuild::metadata::Key;
 use crate::traits::LogErrors;
-use crate::Error;
 
 use super::EbuildRepo;
 
@@ -65,13 +65,7 @@ impl fmt::Display for QaRevDep<'_> {
         write!(f, "{}", self.cpv)?;
 
         // return the prefix for the USE dependency
-        let enabled = |use_dep: &UseDep| -> &str {
-            if use_dep.enabled() {
-                ""
-            } else {
-                "!"
-            }
-        };
+        let enabled = |use_dep: &UseDep| -> &str { if use_dep.enabled() { "" } else { "!" } };
 
         if !self.use_deps.is_empty() {
             write!(

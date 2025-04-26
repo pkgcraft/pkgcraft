@@ -4,9 +4,9 @@ use is_executable::IsExecutable;
 use scallop::ExecStatus;
 
 use crate::io::stderr;
+use crate::shell::BuildData;
 use crate::shell::commands::{econf, einstalldocs::install_docs_from, emake, unpack};
 use crate::shell::utils::{configure, makefile_exists};
-use crate::shell::BuildData;
 
 use super::emake_install;
 
@@ -72,8 +72,8 @@ mod tests {
     use crate::eapi;
     use crate::pkg::Build;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::shell::test::FileTree;
 
     #[test]
     fn src_install() {

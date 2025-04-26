@@ -4,7 +4,7 @@ use crate::repo::Repository;
 use crate::restrict::boolean::*;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::depset::Restrict as DepSetRestrict;
-use crate::restrict::ordered::{make_ordered_restrictions, Restrict as OrderedRestrict};
+use crate::restrict::ordered::{Restrict as OrderedRestrict, make_ordered_restrictions};
 use crate::restrict::set::OrderedSetRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
@@ -262,8 +262,8 @@ mod tests {
     use itertools::Itertools;
 
     use crate::config::Config;
-    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::PkgRepository;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::assert_ordered_eq;
 
     use super::*;

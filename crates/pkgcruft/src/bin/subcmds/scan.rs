@@ -1,8 +1,8 @@
 use std::io;
 use std::process::ExitCode;
 
-use clap::builder::ArgPredicate;
 use clap::Args;
+use clap::builder::ArgPredicate;
 use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::repo::RepoFormat;

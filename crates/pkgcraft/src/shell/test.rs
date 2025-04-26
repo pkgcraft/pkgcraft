@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use serde::{Deserialize, Serialize};
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 use walkdir::WalkDir;
 
 use crate::shell::environment::Variable::ED;

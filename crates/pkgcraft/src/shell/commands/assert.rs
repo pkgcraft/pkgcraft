@@ -1,5 +1,5 @@
-use scallop::array::PipeStatus;
 use scallop::ExecStatus;
+use scallop::array::PipeStatus;
 
 use super::{die, make_builtin};
 
@@ -18,7 +18,7 @@ mod tests {
     use scallop::source;
     use scallop::variables::{self, *};
 
-    use crate::eapi::{Feature::NonfatalDie, EAPIS_OFFICIAL};
+    use crate::eapi::{EAPIS_OFFICIAL, Feature::NonfatalDie};
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 

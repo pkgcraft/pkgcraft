@@ -1,10 +1,10 @@
-use std::ffi::{c_long, CStr, CString};
+use std::ffi::{CStr, CString, c_long};
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
-use crate::variables::{find_variable, Attr};
-use crate::{bash, Error};
+use crate::variables::{Attr, find_variable};
+use crate::{Error, bash};
 
 /// Wrapper type for bash arrays.
 pub struct Array<'a> {

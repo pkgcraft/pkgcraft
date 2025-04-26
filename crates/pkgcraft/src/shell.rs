@@ -7,12 +7,12 @@ use camino::Utf8PathBuf;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use scallop::variables::*;
-use scallop::{builtins, functions, Error, ExecStatus};
+use scallop::{Error, ExecStatus, builtins, functions};
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
-use crate::pkg::ebuild::{metadata::Key, EbuildConfiguredPkg, EbuildPkg, EbuildRawPkg};
+use crate::pkg::ebuild::{EbuildConfiguredPkg, EbuildPkg, EbuildRawPkg, metadata::Key};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::{Repo, Repository};

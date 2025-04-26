@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
-use dashmap::{mapref::one::MappedRef, DashMap};
+use dashmap::{DashMap, mapref::one::MappedRef};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
-use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
+use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 use pkgcraft::repo::{EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 

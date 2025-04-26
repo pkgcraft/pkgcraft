@@ -9,7 +9,7 @@ use indexmap::IndexSet;
 use crate::config::{RepoConfig, Settings};
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::ebuild::EbuildConfiguredPkg;
-use crate::repo::{make_repo_traits, PkgRepository, RepoFormat, Repository};
+use crate::repo::{PkgRepository, RepoFormat, Repository, make_repo_traits};
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
 
@@ -222,8 +222,8 @@ mod tests {
     use crate::config::Config;
     use crate::dep::Cpv;
     use crate::pkg::Package;
-    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::PkgRepository;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::restrict::dep::Restrict as DepRestrict;
     use crate::test::assert_ordered_eq;
 

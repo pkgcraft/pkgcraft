@@ -8,8 +8,8 @@ use tracing::error;
 
 use crate::dep::Cpv;
 use crate::error::Error;
-use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::ebuild::EbuildRawPkg;
+use crate::pkg::ebuild::metadata::Metadata;
 use crate::repo::PkgRepository;
 use crate::restrict::Restrict;
 use crate::shell::pool::MetadataTaskBuilder;

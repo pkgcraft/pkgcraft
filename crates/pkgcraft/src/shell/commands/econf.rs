@@ -6,14 +6,14 @@ use std::sync::LazyLock;
 use indexmap::{IndexMap, IndexSet};
 use is_executable::IsExecutable;
 use regex::Regex;
-use scallop::{variables, Error, ExecStatus};
+use scallop::{Error, ExecStatus, variables};
 
 use crate::command::RunCommand;
 use crate::io::stdout;
 use crate::shell::get_build_mut;
 use crate::shell::utils::{configure, get_libdir};
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(Debug, Clone)]
 pub(crate) struct EconfOption {
@@ -203,7 +203,7 @@ mod tests {
     use std::env;
     use std::fs::File;
 
-    use scallop::variables::{bind, unbind, ScopedVariable, ShellVariable};
+    use scallop::variables::{ScopedVariable, ShellVariable, bind, unbind};
     use tempfile::tempdir;
 
     use crate::command::commands;

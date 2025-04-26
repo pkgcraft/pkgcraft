@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use crate::builtins::{make_builtin, ScopedOptions};
+use crate::builtins::{ScopedOptions, make_builtin};
 use crate::command::Command;
 use crate::{Error, ExecStatus};
 

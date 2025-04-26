@@ -1,6 +1,6 @@
 use std::ffi::c_char;
 
-use pkgcraft::restrict::{parse, Restrict};
+use pkgcraft::restrict::{Restrict, parse};
 use pkgcraft::utils::hash;
 
 use crate::macros::*;

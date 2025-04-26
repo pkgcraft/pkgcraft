@@ -67,11 +67,7 @@ impl RunCommand for Command {
         COMMANDS.with(|cmds| cmds.borrow_mut().push(cmd));
 
         RUN_COMMAND.with(|d| -> crate::Result<()> {
-            if *d.borrow() {
-                run_cmd(self)
-            } else {
-                Ok(())
-            }
+            if *d.borrow() { run_cmd(self) } else { Ok(()) }
         })
     }
 

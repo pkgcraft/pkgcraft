@@ -1,6 +1,6 @@
 use std::{fmt, fs};
 
-use dashmap::{mapref::one::RefMut, DashMap};
+use dashmap::{DashMap, mapref::one::RefMut};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Either;
 use pkgcraft::repo::{EbuildRepo, PkgRepository};
@@ -193,11 +193,7 @@ impl Ignore {
                         .filter_map(|d| if !d.used { Some(d.set) } else { None })
                 })
                 .collect();
-            if !sets.is_empty() {
-                Some(sets)
-            } else {
-                None
-            }
+            if !sets.is_empty() { Some(sets) } else { None }
         })
     }
 }

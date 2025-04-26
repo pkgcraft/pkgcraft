@@ -8,8 +8,8 @@ use itertools::Itertools;
 use nix::{sys::stat, unistd};
 use walkdir::{DirEntry, WalkDir};
 
-use crate::utils::relpath;
 use crate::Error;
+use crate::utils::relpath;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Group(unistd::Group);

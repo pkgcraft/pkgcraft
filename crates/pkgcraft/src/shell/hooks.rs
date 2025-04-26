@@ -5,8 +5,8 @@ use scallop::ExecStatus;
 
 use crate::shell::BuildData;
 
-use super::phase::PhaseKind;
 use super::BuildFn;
+use super::phase::PhaseKind;
 
 pub(crate) mod docompress;
 pub(crate) mod dostrip;

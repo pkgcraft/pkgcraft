@@ -3,8 +3,8 @@ use std::{env, fs};
 
 use indexmap::IndexMap;
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
+use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;

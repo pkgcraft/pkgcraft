@@ -56,8 +56,8 @@ mod tests {
     use std::fs;
 
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, dosym};

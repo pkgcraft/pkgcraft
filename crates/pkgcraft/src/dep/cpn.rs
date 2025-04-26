@@ -3,8 +3,8 @@ use std::str::FromStr;
 
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 
-use crate::traits::Intersects;
 use crate::Error;
+use crate::traits::Intersects;
 
 use super::parse;
 

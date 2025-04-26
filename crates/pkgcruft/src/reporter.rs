@@ -7,8 +7,8 @@ use itertools::Itertools;
 use strfmt::strfmt;
 use strum::{EnumString, VariantNames};
 
-use crate::report::{Report, ReportKind, ReportScope};
 use crate::Error;
+use crate::report::{Report, ReportKind, ReportScope};
 
 #[derive(EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "kebab-case")]

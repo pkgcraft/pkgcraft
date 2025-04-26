@@ -6,8 +6,8 @@ use std::sync::LazyLock;
 use bitflags::bitflags;
 use itertools::Itertools;
 
-use crate::error::{ok_or_error, Error};
-use crate::{bash, ExecStatus};
+use crate::error::{Error, ok_or_error};
+use crate::{ExecStatus, bash};
 
 bitflags! {
     /// Flag values used with commands.

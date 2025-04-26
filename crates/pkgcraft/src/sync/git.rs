@@ -5,8 +5,8 @@ use camino::Utf8Path;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::sync::{Syncable, Syncer};
 use crate::Error;
+use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(https|git)://.+\.git$").unwrap());

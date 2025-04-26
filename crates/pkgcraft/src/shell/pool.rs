@@ -7,8 +7,8 @@ use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use itertools::Itertools;
 use nix::sys::{prctl, signal::Signal};
-use nix::unistd::{dup, dup2, fork, ForkResult};
-use scallop::pool::{redirect_output, suppress_output, SharedSemaphore};
+use nix::unistd::{ForkResult, dup, dup2, fork};
+use scallop::pool::{SharedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
@@ -18,9 +18,9 @@ use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::{PkgPretend, Source};
-use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 use crate::repo::EbuildRepo;
 use crate::repo::Repository;
+use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 
 /// Get an ebuild repo from a config matching a given ID.
 fn get_ebuild_repo<'a>(config: &'a Config, repo: &str) -> crate::Result<&'a EbuildRepo> {

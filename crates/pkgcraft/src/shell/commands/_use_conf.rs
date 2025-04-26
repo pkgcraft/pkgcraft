@@ -14,7 +14,7 @@ pub(super) fn use_conf(
 ) -> scallop::Result<ExecStatus> {
     let (flag, opt, value) = match args[..] {
         [flag] if flag.starts_with('!') => {
-            return Err(Error::Base("USE flag inversion requires 2 or 3 args".into()))
+            return Err(Error::Base("USE flag inversion requires 2 or 3 args".into()));
         }
         [flag] => (flag, flag, None),
         [flag, opt] => (flag, opt, None),

@@ -1,6 +1,6 @@
 use pkgcraft::dep::Cpn;
-use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::Package;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::types::OrderedMap;
 
 use crate::report::ReportKind::EapiStale;

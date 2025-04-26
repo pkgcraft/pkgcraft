@@ -1,7 +1,7 @@
 use crate::dep::{Dep, DependencySet, Flatten, Recursive, Uri};
+use crate::restrict::Restriction;
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
-use crate::restrict::Restriction;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Restrict<T> {

@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::ffi::{c_void, CStr};
+use std::ffi::{CStr, c_void};
 use std::sync::LazyLock;
 
 use crate::bash;

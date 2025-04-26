@@ -2,7 +2,7 @@ use scallop::ExecStatus;
 
 use crate::shell::environment::Variable::INSDESTTREE;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -34,7 +34,7 @@ mod tests {
     use crate::eapi::EAPIS_OFFICIAL;
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::phase::PhaseKind;
-    use crate::shell::{get_build_mut, BuildData, Scope};
+    use crate::shell::{BuildData, Scope, get_build_mut};
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, insinto};
     use super::*;

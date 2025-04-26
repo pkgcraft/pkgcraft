@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::macros::build_path;
 use crate::repo::{Repo, RepoFormat, Repository};
 use crate::utils::find_existing_path;
-use crate::{shell, Error};
+use crate::{Error, shell};
 pub(crate) use repo::RepoConfig;
 
 mod portage;
@@ -387,8 +387,8 @@ mod tests {
     use tempfile::tempdir;
     use tracing_test::traced_test;
 
-    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::Repository;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::*;
 
     use super::*;

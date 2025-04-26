@@ -6,7 +6,7 @@ use crate::eapi::Feature::ConsistentFileOpts;
 use crate::files::NO_WALKDIR_FILTER;
 use crate::shell::get_build_mut;
 
-use super::{make_builtin, TryParseArgs};
+use super::{TryParseArgs, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -60,8 +60,8 @@ mod tests {
     use std::fs;
 
     use crate::eapi::EAPIS_OFFICIAL;
-    use crate::shell::test::FileTree;
     use crate::shell::BuildData;
+    use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, doheader, insopts};

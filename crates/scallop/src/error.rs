@@ -1,12 +1,12 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ffi::{c_char, CStr};
+use std::ffi::{CStr, c_char};
 use std::io;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{bash, ExecStatus};
+use crate::{ExecStatus, bash};
 
 pub type Result<T> = std::result::Result<T, Error>;
 

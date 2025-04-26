@@ -7,22 +7,22 @@ use std::sync::LazyLock;
 use std::{fmt, fs, io};
 
 use camino::Utf8Path;
-use indexmap::{set::MutableValues, IndexSet};
+use indexmap::{IndexSet, set::MutableValues};
 use itertools::Either;
 use strum::EnumString;
 
+use crate::Error;
 use crate::archive::Archive;
 use crate::dep;
 use crate::pkg::ebuild::metadata::Key;
-use crate::restrict::str::Restrict as StrRestrict;
 use crate::restrict::Restriction;
+use crate::restrict::str::Restrict as StrRestrict;
 use crate::shell::commands::econf::EconfOption;
 use crate::shell::commands::{Builtin, Command};
 use crate::shell::environment::{BuildVariable, Variable};
 use crate::shell::hooks::HookBuilder;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::Phase;
-use crate::Error;
 
 peg::parser!(grammar parse() for str {
     // EAPIs must not begin with a hyphen, dot, or plus sign.
@@ -523,7 +523,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks;
     use crate::shell::operations::OperationKind::*;
-    use crate::shell::phase::{eapi5, PhaseKind::*};
+    use crate::shell::phase::{PhaseKind::*, eapi5};
     use crate::shell::scope::EbuildScope::*;
     use Feature::*;
 
@@ -732,7 +732,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
 pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::commands::*;
     use crate::shell::hooks;
-    use crate::shell::phase::{eapi6, PhaseKind::*};
+    use crate::shell::phase::{PhaseKind::*, eapi6};
     use crate::shell::scope::EbuildScope::*;
     use Feature::*;
 

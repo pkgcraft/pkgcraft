@@ -10,14 +10,14 @@ use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
 use crate::fetch::Fetchable;
 use crate::macros::bool_not_equal;
-use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::Repository;
+use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::shell::phase::PhaseKind;
 use crate::traits::{Contains, Intersects, ToRef};
 use crate::types::OrderedSet;
-use crate::{bash, Error};
+use crate::{Error, bash};
 
-use super::{make_pkg_traits, Package, RepoPackage};
+use super::{Package, RepoPackage, make_pkg_traits};
 
 mod configured;
 pub use configured::EbuildConfiguredPkg;
@@ -390,8 +390,8 @@ impl Intersects<Dep> for EbuildPkg {
 mod tests {
     use crate::config::Config;
     use crate::eapi::EAPI_LATEST_OFFICIAL;
-    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::repo::PkgRepository;
+    use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::assert_err_re;
     use crate::test::{assert_ordered_eq, test_data};
 

@@ -1,13 +1,13 @@
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use clap::{builder::ArgPredicate, Args};
+use clap::{Args, builder::ArgPredicate};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::ebuild::keyword::Arch;
 use pkgcraft::pkg::RepoPackage;
+use pkgcraft::pkg::ebuild::keyword::Arch;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 

@@ -4,9 +4,9 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::LazyLock;
 
+use crate::Error;
 use crate::shell::phase::PhaseKind;
 use crate::shell::scope::Scope;
-use crate::Error;
 
 static CONDITIONALS: LazyLock<HashSet<String>> = LazyLock::new(|| {
     ["test_command", "if_statement", "list"]

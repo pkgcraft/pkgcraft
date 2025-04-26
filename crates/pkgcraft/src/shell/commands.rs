@@ -577,8 +577,8 @@ peg::parser! {
 
 // provide public parsing functionality while converting error types
 mod parse {
-    use crate::error::peg_error;
     use crate::Error;
+    use crate::error::peg_error;
 
     use super::cmd;
 
@@ -600,7 +600,7 @@ mod parse {
 /// Run a command given its name and argument list from bash.
 fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
     use scallop::builtins::handle_error;
-    use scallop::{traits::IntoWords, Error};
+    use scallop::{Error, traits::IntoWords};
 
     let build = get_build_mut();
     let eapi = build.eapi();

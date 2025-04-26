@@ -5,8 +5,8 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::error::Error::UnversionedPkg;
-use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
 
 use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
 use crate::scan::ScannerRun;

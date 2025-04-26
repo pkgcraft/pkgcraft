@@ -4,17 +4,17 @@ use assert_cmd::Command;
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
 use serde::Deserialize;
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{DisplayFromStr, serde_as};
 use tempfile::TempDir;
 use walkdir::{DirEntry, WalkDir};
 
+use crate::Error;
 use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
 use crate::repo::{EbuildRepo, Repo, Repository};
 use crate::types::SortedSet;
 use crate::utils::relpath_utf8;
-use crate::Error;
 
 /// Construct a Command from a given string.
 pub fn cmd<S: AsRef<str>>(cmd: S) -> Command {
