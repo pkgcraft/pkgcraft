@@ -97,7 +97,7 @@ where
     where
         Se: Serializer,
     {
-        serializer.collect_seq(self)
+        OrderSet::serialize(self, serializer)
     }
 }
 
@@ -202,5 +202,13 @@ mod tests {
         assert_ordered_eq!(&s1, &["a"]);
         s1 -= s2;
         assert_ordered_eq!(&s1, &["a"]);
+    }
+
+    #[test]
+    fn serde() {
+        let set = OrderedSet::from(["a", "b"]);
+        let s = serde_json::to_string(&set).unwrap();
+        let obj: OrderedSet<_> = serde_json::from_str(&s).unwrap();
+        assert_eq!(set, obj);
     }
 }
