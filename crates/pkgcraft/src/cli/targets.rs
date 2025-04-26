@@ -59,21 +59,24 @@ impl<'a> Targets<'a> {
     /// This can either be the repo's configured name or the path to an external repo.
     ///
     /// When None is passed, the current working directory is tried.
-    pub fn repo(mut self, value: Option<&str>) -> crate::Result<Self> {
-        if let Some(s) = value.as_ref() {
+    pub fn repo<S: AsRef<str>>(mut self, value: Option<S>) -> crate::Result<Self> {
+        if let Some(id) = value {
+            let id = id.as_ref();
+
             // load system config for repo alias support
-            if !s.contains('/') {
+            if !id.contains('/') {
                 self.config.load()?;
             }
 
-            let path = Utf8Path::new(s);
-            let repo = if let Ok(repo) = self.config.get_repo(s) {
+            // try to pull repo from config before path fallback
+            let repo = if let Ok(repo) = self.config.get_repo(id) {
                 Ok(repo.clone())
-            } else if path.exists() {
-                self.repo_from_path(path)
+            } else if let Ok(repo) = self.repo_from_path(id) {
+                Ok(repo)
             } else {
-                Err(Error::InvalidValue(format!("nonexistent repo: {s}")))
+                Err(Error::InvalidValue(format!("nonexistent repo: {id}")))
             }?;
+
             self.repo_set = repo.into();
         } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(&x)) {
             self.repo_set = repo.into();
