@@ -141,4 +141,12 @@ mod tests {
         assert_ordered_eq!(&map, [(&"a", &1), (&"b", &2)]);
         assert_ordered_eq!(map, [("a", 1), ("b", 2)]);
     }
+
+    #[test]
+    fn serde() {
+        let map = OrderedMap::from([("a", 1), ("b", 2)]);
+        let s = serde_json::to_string(&map).unwrap();
+        let obj: OrderedMap<_, _> = serde_json::from_str(&s).unwrap();
+        assert_eq!(map, obj);
+    }
 }
