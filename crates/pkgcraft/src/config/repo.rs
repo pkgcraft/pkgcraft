@@ -367,6 +367,6 @@ mod tests {
         // fake repo with no-op syncing
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
         config.add_repo(fake_repo, false).unwrap();
-        assert!(config.repos.sync(&repos).is_ok());
+        assert!(config.repos.sync(["fake"]).is_ok());
     }
 }
