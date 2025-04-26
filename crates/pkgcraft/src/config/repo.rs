@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -55,20 +54,6 @@ impl RepoConfig {
             Some(syncer) => syncer.sync(&self.location),
             None => Ok(()),
         }
-    }
-}
-
-impl PartialOrd for RepoConfig {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for RepoConfig {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.priority
-            .cmp(&other.priority)
-            .then_with(|| self.location.cmp(&other.location))
     }
 }
 
