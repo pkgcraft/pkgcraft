@@ -102,7 +102,7 @@ impl EbuildRepo {
         let metadata = Metadata::try_new(id.as_ref(), path)?;
         let config = RepoConfig {
             location: Utf8PathBuf::from(path),
-            priority,
+            priority: Some(priority),
             ..RepoFormat::Ebuild.into()
         };
 
@@ -607,7 +607,7 @@ impl Repository for EbuildRepo {
     }
 
     fn priority(&self) -> i32 {
-        self.repo_config().priority
+        self.repo_config().priority()
     }
 
     fn path(&self) -> &Utf8Path {

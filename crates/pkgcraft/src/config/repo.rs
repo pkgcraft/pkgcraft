@@ -20,7 +20,7 @@ pub(crate) struct RepoConfig {
     pub(crate) location: Utf8PathBuf,
     #[serde_as(as = "DisplayFromStr")]
     pub(crate) format: RepoFormat,
-    pub(crate) priority: i32,
+    pub(crate) priority: Option<i32>,
     pub(crate) sync: Option<Syncer>,
 }
 
@@ -46,6 +46,10 @@ impl RepoConfig {
         })?;
 
         Ok(config)
+    }
+
+    pub(crate) fn priority(&self) -> i32 {
+        self.priority.unwrap_or_default()
     }
 
     pub(crate) fn sync(&self) -> crate::Result<()> {
@@ -101,7 +105,7 @@ impl ConfigRepos {
         let mut nonexistent = IndexMap::new();
         for (name, c) in configs {
             // ignore invalid repos
-            match c.format.from_path(&name, &c.location, c.priority) {
+            match c.format.from_path(&name, &c.location, c.priority()) {
                 Ok(repo) => repos.push(repo),
                 Err(Error::NonexistentRepo(_)) => {
                     nonexistent.insert(name, c);
@@ -141,7 +145,7 @@ impl ConfigRepos {
     ) -> crate::Result<Repo> {
         let config = RepoConfig {
             location: self.repo_dir.join(name),
-            priority,
+            priority: Some(priority),
             sync: Some(uri.parse()?),
             ..RepoFormat::Ebuild.into()
         };
