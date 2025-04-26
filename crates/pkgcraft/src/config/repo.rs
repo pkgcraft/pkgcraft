@@ -348,9 +348,60 @@ impl<'a> Iterator for ReposIter<'a> {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::NamedTempFile;
+
     use crate::config::Config;
     use crate::repo::FakeRepo;
     use crate::test::*;
+
+    use super::*;
+
+    #[test]
+    fn repo_config() {
+        // nonexistent
+        assert!(RepoConfig::from_path("nonexistent").is_err());
+
+        // empty
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_str().unwrap();
+        let r = RepoConfig::from_path(path);
+        assert_err_re!(r, "missing field `location`");
+
+        // invalid (missing format)
+        let data = indoc::indoc! {r#"
+            location = "/path/to/repo"
+        "#};
+        fs::write(&file, data).unwrap();
+        let r = RepoConfig::from_path(path);
+        assert_err_re!(r, "missing field `format`");
+
+        // invalid (invalid syncer)
+        let data = indoc::indoc! {r#"
+            location = "/path/to/repo"
+            sync = "invalid"
+        "#};
+        fs::write(&file, data).unwrap();
+        let r = RepoConfig::from_path(path);
+        assert_err_re!(r, "no syncers available: invalid");
+
+        // valid (all required fields)
+        let data = indoc::indoc! {r#"
+            location = "/path/to/repo"
+            format = "ebuild"
+        "#};
+        fs::write(&file, data).unwrap();
+        RepoConfig::from_path(path).unwrap();
+
+        // valid (all fields)
+        let data = indoc::indoc! {r#"
+            location = "/path/to/repo"
+            format = "ebuild"
+            priority = 0
+            sync = "tar+https://pkgcraft.pkgcraft/repo.tar.gz"
+        "#};
+        fs::write(&file, data).unwrap();
+        RepoConfig::from_path(path).unwrap();
+    }
 
     #[test]
     fn sync() {
