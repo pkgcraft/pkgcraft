@@ -64,11 +64,13 @@ mod tests {
 
     #[test]
     fn tri_state() {
+        let empty: [i32; 0] = [];
+
         // empty
         let mut enabled = IndexSet::<i32>::new();
         let selected = IndexSet::new();
         TriState::enabled(&mut enabled, &selected);
-        assert_ordered_eq!(enabled, []);
+        assert_ordered_eq!(enabled, empty);
 
         // no selections
         let mut enabled: IndexSet<i32> = [1].into_iter().collect();
@@ -87,7 +89,7 @@ mod tests {
         let selected: IndexSet<_> =
             ["2", "-2"].iter().map(|s| s.parse()).try_collect().unwrap();
         TriState::enabled(&mut enabled, &selected);
-        assert_ordered_eq!(enabled, []);
+        assert_ordered_eq!(enabled, empty);
 
         // add to defaults
         let mut enabled: IndexSet<_> = [1].into_iter().collect();
