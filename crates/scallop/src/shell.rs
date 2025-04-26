@@ -60,7 +60,7 @@ pub fn reset(ignore_vars: &[&str]) {
     unsafe { bash::lib_reset() };
 
     for (var, value) in cached {
-        env::set_var(var, value);
+        unsafe { env::set_var(var, value) };
     }
 }
 
@@ -245,7 +245,7 @@ where
 
         // restore the original PATH
         if let Some(s) = orig_path {
-            env::set_var("PATH", s);
+            unsafe { env::set_var("PATH", s) };
         }
     }
 

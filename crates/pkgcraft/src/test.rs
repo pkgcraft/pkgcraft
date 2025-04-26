@@ -39,7 +39,7 @@ fn initialize() {
     crate::shell::init().unwrap();
 
     // disable config loading by default
-    env::set_var("PKGCRAFT_CONFIG", "");
+    unsafe { env::set_var("PKGCRAFT_CONFIG", "") };
 }
 
 #[serde_as]

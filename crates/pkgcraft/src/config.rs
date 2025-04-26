@@ -395,10 +395,12 @@ mod tests {
 
     #[test]
     fn config() {
-        env::set_var("XDG_CACHE_HOME", "/cache");
-        env::set_var("XDG_CONFIG_HOME", "/config");
-        env::set_var("XDG_RUNTIME_DIR", "/run/user/4321");
-        env::set_var("HOME", "/home/user");
+        unsafe {
+            env::set_var("XDG_CACHE_HOME", "/cache");
+            env::set_var("XDG_CONFIG_HOME", "/config");
+            env::set_var("XDG_RUNTIME_DIR", "/run/user/4321");
+            env::set_var("HOME", "/home/user");
+        }
 
         // XDG vars and HOME are set
         let config = Config::new("pkgcraft", "");
@@ -412,9 +414,11 @@ mod tests {
         assert_eq!(config.path.config, Utf8PathBuf::from("/prefix/config/pkgcraft"));
         assert_eq!(config.path.run, Utf8PathBuf::from("/prefix/run/user/4321/pkgcraft"));
 
-        env::remove_var("XDG_CACHE_HOME");
-        env::remove_var("XDG_CONFIG_HOME");
-        env::remove_var("XDG_RUNTIME_DIR");
+        unsafe {
+            env::remove_var("XDG_CACHE_HOME");
+            env::remove_var("XDG_CONFIG_HOME");
+            env::remove_var("XDG_RUNTIME_DIR");
+        }
 
         // XDG vars are unset and HOME is set
         let config = Config::new("pkgcraft", "");
@@ -430,7 +434,7 @@ mod tests {
             Utf8PathBuf::from("/prefix/home/user/.config/pkgcraft")
         );
         assert_eq!(config.path.run, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
-        env::remove_var("HOME");
+        unsafe { env::remove_var("HOME") };
 
         // XDG vars and HOME are unset
         let config = Config::new("pkgcraft", "");

@@ -335,7 +335,7 @@ impl BuildPool {
                 // TODO: skip variables from allowed set
                 // wipe external environment variables
                 for (name, _value) in std::env::vars() {
-                    std::env::remove_var(name);
+                    unsafe { std::env::remove_var(name) };
                 }
 
                 // suppress global output by default
