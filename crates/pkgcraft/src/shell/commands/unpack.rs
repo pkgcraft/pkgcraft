@@ -90,7 +90,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     // unpack all specified archives
     for path in cmd.paths {
-        let archive = eapi.archive_from_path(&path.0)?;
+        let archive = eapi.archive_from_path(path.0)?;
         archive.unpack(archive.base())?;
     }
 

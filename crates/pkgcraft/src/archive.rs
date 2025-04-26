@@ -410,8 +410,8 @@ macro_rules! make_archive {
 
         impl Archive {
             /// Create an Archive from a file path.
-            pub(crate) fn from_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Archive> {
-                let path = path.as_ref().to_path_buf();
+            pub(crate) fn from_path<P: Into<Utf8PathBuf>>(path: P) -> crate::Result<Archive> {
+                let path = path.into();
                 let filename = path.file_name().ok_or_else(||
                     Error::InvalidValue(format!("invalid archive: {path}")))?;
                 let filename = filename.to_lowercase();

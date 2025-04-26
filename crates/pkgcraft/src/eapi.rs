@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::{fmt, fs, io};
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexSet, set::MutableValues};
 use itertools::Either;
 use strum::EnumString;
@@ -265,7 +265,7 @@ impl Eapi {
     /// Load an archive from a given path if it's supported.
     pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<Archive>
     where
-        P: AsRef<Utf8Path>,
+        P: Into<Utf8PathBuf>,
     {
         let archive = Archive::from_path(path)?;
         let file_name = archive.file_name();
