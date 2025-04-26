@@ -420,10 +420,13 @@ mod tests {
     }
 
     #[test]
-    fn id() {
+    fn repository_trait() {
         let repo = FakeRepo::new("fake", 0);
+        assert_eq!(repo.format(), RepoFormat::Fake);
         assert_eq!(repo.id(), "fake");
-        assert!(format!("{repo:?}").contains(repo.id()));
+        assert_eq!(repo.priority(), 0);
+        assert_eq!(repo.path(), "");
+        assert!(repo.sync().is_ok());
     }
 
     #[test]
