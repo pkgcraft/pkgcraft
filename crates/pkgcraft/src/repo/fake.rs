@@ -607,4 +607,15 @@ mod tests {
         let cpn = Cpn::try_new("cat/pkg").unwrap();
         assert_ordered_eq!(repo.iter_cpv_restrict(&cpn), cpvs);
     }
+
+    #[test]
+    fn get_pkg() {
+        let repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
+        // existent
+        assert!(repo.get_pkg("cat/pkg-1").is_ok());
+        // nonexistent
+        assert!(repo.get_pkg("cat/pkg-2").is_err());
+        // invalid Cpv
+        assert!(repo.get_pkg("cat/pkg").is_err());
+    }
 }
