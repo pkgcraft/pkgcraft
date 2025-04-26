@@ -420,6 +420,7 @@ macro_rules! make_archive {
                 $(
                     possible_exts.extend($x::EXTS.iter().map(|&s| (s, $x::EXTS[0])));
                 )+
+                // sort by extension length, longest to shortest
                 possible_exts.sort_by_cached_key(|(s, _)| s.len());
                 possible_exts.reverse();
 

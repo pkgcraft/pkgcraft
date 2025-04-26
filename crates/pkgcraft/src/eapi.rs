@@ -104,7 +104,7 @@ pub struct Eapi {
     mandatory_keys: IndexSet<Key>,
     metadata_keys: IndexSet<Key>,
     econf_options: IndexSet<EconfOption>,
-    archives: IndexSet<String>,
+    archives: HashSet<String>,
     env: IndexSet<BuildVariable>,
     commands: IndexSet<Command>,
 }
@@ -438,8 +438,6 @@ impl Eapi {
         I: IntoIterator<Item = &'a str>,
     {
         self.archives.extend(extensions.into_iter().map(Into::into));
-        // sort archives by extension length, longest to shortest
-        self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
     }
 
@@ -449,12 +447,10 @@ impl Eapi {
         I: IntoIterator<Item = &'a str>,
     {
         for x in extensions {
-            if !self.archives.swap_remove(x) {
+            if !self.archives.remove(x) {
                 unreachable!("EAPI {self}: disabling unknown archive format: {x}");
             }
         }
-        // sort archives by extension length, longest to shortest
-        self.archives.sort_by(|s1, s2| (s2.len().cmp(&s1.len())));
         self
     }
 
