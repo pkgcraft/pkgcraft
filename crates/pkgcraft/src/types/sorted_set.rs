@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use indexmap::{Equivalent, IndexSet};
 use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::macros::partial_cmp_not_equal_opt;
 
@@ -194,6 +194,18 @@ where
     }
 }
 
+impl<T> Serialize for SortedSet<T>
+where
+    T: Ordered + Serialize,
+{
+    fn serialize<Se>(&self, serializer: Se) -> Result<Se::Ok, Se::Error>
+    where
+        Se: Serializer,
+    {
+        IndexSet::serialize(self, serializer)
+    }
+}
+
 make_set_traits!(SortedSet<T>);
 
 #[cfg(test)]
@@ -225,5 +237,13 @@ mod tests {
         let s2 = SortedSet::from(["a", "b", "b"]);
         assert_eq!(&s1, &s2);
         assert_eq!(SortedSet::from([s1, s2]).len(), 1);
+    }
+
+    #[test]
+    fn serde() {
+        let set = SortedSet::from(["a", "b"]);
+        let s = serde_json::to_string(&set).unwrap();
+        let obj: SortedSet<&str> = serde_json::from_str(&s).unwrap();
+        assert_eq!(set, obj);
     }
 }
