@@ -11,7 +11,7 @@ use walkdir::{DirEntry, WalkDir};
 use crate::config::Config;
 use crate::dep::{Blocker, Revision, SlotOperator, UseDep, Version};
 use crate::macros::build_path;
-use crate::repo::{ebuild::EbuildRepo, Repo, Repository};
+use crate::repo::{EbuildRepo, Repo, Repository};
 use crate::types::SortedSet;
 use crate::utils::relpath_utf8;
 use crate::Error;

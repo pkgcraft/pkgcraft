@@ -1,5 +1,5 @@
 use pkgcraft::dep::Dep;
-use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::repo::EbuildRepo;
 
 /// Return true if a given package dependency has a USE dependency starting with at least
 /// one of the given prefixes, otherwise false.

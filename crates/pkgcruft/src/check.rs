@@ -6,7 +6,7 @@ use camino::Utf8Path;
 use indexmap::IndexSet;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
-use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
+use pkgcraft::repo::{EbuildRepo, Repository};
 use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};

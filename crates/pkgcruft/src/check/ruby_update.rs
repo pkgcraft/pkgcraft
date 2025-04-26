@@ -5,7 +5,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::{ebuild::EbuildPkg, Package};
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::repo::{EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 
 use crate::report::ReportKind::RubyUpdate;

@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::Pkg;
-use crate::repo::ebuild::EbuildRepo;
+use crate::repo::EbuildRepo;
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
 use crate::types::OrderedSet;
@@ -398,7 +398,7 @@ mod tests {
     use crate::pkg::RepoPackage;
     use crate::pkg::Restrict as PkgRestrict;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::repo::fake::FakeRepo;
+    use crate::repo::FakeRepo;
     use crate::restrict::dep::Restrict as DepRestrict;
     use crate::test::*;
     use crate::utils::hash;

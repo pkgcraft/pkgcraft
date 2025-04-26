@@ -10,8 +10,8 @@ use crate::config::Config;
 use crate::dep::Cpn;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Package, Pkg, RepoPackage};
-use crate::repo::ebuild::EbuildRepo;
 use crate::repo::set::RepoSet;
+use crate::repo::EbuildRepo;
 use crate::repo::{PkgRepository, Repo, RepoFormat, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::str::Restrict as StrRestrict;
@@ -412,7 +412,7 @@ mod tests {
 
     use crate::pkg::Pkg;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::repo::fake::FakeRepo;
+    use crate::repo::FakeRepo;
     use crate::test::*;
 
     use super::*;

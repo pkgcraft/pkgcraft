@@ -14,7 +14,7 @@ use crate::files::{atomic_write_file, is_file};
 use crate::pkg::ebuild::metadata::{Key, Metadata};
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::pkg::{Package, RepoPackage};
-use crate::repo::ebuild::EbuildRepo;
+use crate::repo::EbuildRepo;
 use crate::traits::Contains;
 use crate::utils::digest;
 use crate::Error;

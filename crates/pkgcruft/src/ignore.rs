@@ -3,7 +3,7 @@ use std::{fmt, fs};
 use dashmap::{mapref::one::RefMut, DashMap};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Either;
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::repo::{EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 use pkgcraft::traits::FilterLines;
 use rayon::prelude::*;

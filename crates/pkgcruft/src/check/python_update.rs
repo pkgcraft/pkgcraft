@@ -6,7 +6,7 @@ use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::repo::{EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 

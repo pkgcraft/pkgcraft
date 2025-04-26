@@ -11,7 +11,7 @@ use indexmap::IndexSet;
 use pkgcraft::bash::Node;
 use pkgcraft::cli::TriState;
 use pkgcraft::dep::{Cpn, Cpv};
-use pkgcraft::repo::{ebuild::EbuildRepo, Repository};
+use pkgcraft::repo::{EbuildRepo, Repository};
 use pkgcraft::restrict::{Restrict, Restriction, Scope};
 use regex::Regex;
 use serde::{Deserialize, Serialize};

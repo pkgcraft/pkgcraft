@@ -2,7 +2,7 @@ use dashmap::{mapref::one::Ref, DashMap};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::repo::{ebuild::EbuildRepo, PkgRepository};
+use pkgcraft::repo::{EbuildRepo, PkgRepository};
 use pkgcraft::restrict::Restrict;
 
 use crate::report::ReportKind::DependencySlotMissing;

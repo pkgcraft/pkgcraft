@@ -12,7 +12,7 @@ use crate::error::Error;
 use crate::macros::bool_not_equal;
 use crate::pkg::{make_pkg_traits, Package, RepoPackage};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
-use crate::repo::{ebuild::EbuildRepo, Repository};
+use crate::repo::{EbuildRepo, Repository};
 use crate::traits::{FilterLines, Intersects};
 
 use super::metadata::Metadata;

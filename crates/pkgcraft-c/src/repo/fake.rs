@@ -1,7 +1,7 @@
 use std::ffi::{c_char, c_int};
 use std::slice;
 
-use pkgcraft::repo::fake::FakeRepo;
+use pkgcraft::repo::FakeRepo;
 use pkgcraft::repo::Repo;
 
 use crate::macros::*;

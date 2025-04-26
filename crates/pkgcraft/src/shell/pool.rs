@@ -19,7 +19,7 @@ use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
 use crate::pkg::{PkgPretend, Source};
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
-use crate::repo::ebuild::EbuildRepo;
+use crate::repo::EbuildRepo;
 use crate::repo::Repository;
 
 /// Get an ebuild repo from a config matching a given ID.

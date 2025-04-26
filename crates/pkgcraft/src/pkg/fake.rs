@@ -4,7 +4,7 @@ use crate::dep::{Cpv, Dep};
 use crate::eapi::{Eapi, EAPI_LATEST_OFFICIAL};
 use crate::macros::bool_not_equal;
 use crate::pkg;
-use crate::repo::{fake::FakeRepo, Repository};
+use crate::repo::{FakeRepo, Repository};
 use crate::restrict::dep::Restrict as DepRestrict;
 use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::traits::Intersects;

@@ -4,7 +4,7 @@ use std::sync::{Arc, OnceLock};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
-use pkgcraft::repo::ebuild::EbuildRepo;
+use pkgcraft::repo::EbuildRepo;
 use pkgcraft::restrict::{Restrict, Scope, TryIntoRestrict};
 use pkgcraft::utils::bounded_jobs;
 use tracing::{info, warn};
