@@ -305,9 +305,10 @@ impl PkgTargets {
             .count()
     }
 
-    /// Return true if package targets exist.
+    /// Return true if no package targets exist.
     pub fn is_empty(&self) -> bool {
-        self.into_iter()
+        !self
+            .into_iter()
             .any(|(set, restrict)| set.contains(restrict))
     }
 
