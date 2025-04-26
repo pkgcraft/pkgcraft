@@ -143,6 +143,20 @@ impl FakeRepo {
         self.0 = Arc::new(repo);
         Ok(())
     }
+
+    /// Retrieve a package from the repo given its [`Cpv`].
+    pub fn get_pkg<T>(&self, value: T) -> crate::Result<Pkg>
+    where
+        T: TryInto<Cpv>,
+        Error: From<T::Error>,
+    {
+        let cpv = value.try_into()?;
+        if self.contains(&cpv) {
+            Ok(Pkg::new(cpv, self.clone()))
+        } else {
+            Err(Error::InvalidValue(format!("not in repo: {cpv}")))
+        }
+    }
 }
 
 impl fmt::Display for FakeRepo {
