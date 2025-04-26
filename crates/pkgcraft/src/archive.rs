@@ -396,8 +396,7 @@ macro_rules! make_archive {
 
         impl Archive {
             pub(crate) fn from_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Archive> {
-                let path = path.as_ref();
-                let path = Utf8PathBuf::from(path);
+                let path = path.as_ref().to_path_buf();
                 let filename = path.file_name().ok_or_else(||
                     Error::InvalidValue(format!("invalid archive: {path}")))?;
                 let filename = filename.to_lowercase();
@@ -426,3 +425,29 @@ macro_rules! make_archive {
     };
 }
 make_archive!(Tar, TarGz, TarBz2, TarLzma, TarXz, Zip, Gz, Bz2, Xz, _7z, Rar, Lha, Ar, Lzma);
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use crate::test::assert_err_re;
+
+    use super::*;
+
+    #[test]
+    fn from_path() {
+        // invalid file name
+        let r = Archive::from_path("/path/to/dir/..");
+        assert_err_re!(r, "invalid archive");
+
+        // unknown format
+        let r = Archive::from_path("/path/to/nonexistent/archive.fmt");
+        assert_err_re!(r, "unknown archive format");
+
+        // non-file target
+        let tmpdir = tempdir().unwrap();
+        let path = tmpdir.path().to_str().unwrap();
+        let r = Archive::from_path(path);
+        assert_err_re!(r, "unknown archive format");
+    }
+}
