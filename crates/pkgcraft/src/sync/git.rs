@@ -1,7 +1,7 @@
 use std::io::{self, Write};
-use std::path::Path;
 use std::sync::LazyLock;
 
+use camino::Utf8Path;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -21,11 +21,11 @@ impl Syncable for Repo {
         if HANDLED_URI_RE.is_match(uri) {
             Ok(Syncer::Git(Repo { uri: uri.to_string() }))
         } else {
-            Err(Error::RepoInit(format!("invalid git repo: {uri:?}")))
+            Err(Error::RepoInit(format!("invalid git repo: {uri}")))
         }
     }
 
-    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()> {
+    async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
         if path.exists() {
             let repo = git2::Repository::open(path).map_err(|e| {
@@ -53,7 +53,7 @@ impl Syncable for Repo {
     }
 }
 
-fn do_clone<P: AsRef<Path>>(url: &str, path: P) -> Result<git2::Repository, git2::Error> {
+fn do_clone<P: AsRef<Utf8Path>>(url: &str, path: P) -> Result<git2::Repository, git2::Error> {
     let path = path.as_ref();
     let mut cb = git2::RemoteCallbacks::new();
 
@@ -79,7 +79,7 @@ fn do_clone<P: AsRef<Path>>(url: &str, path: P) -> Result<git2::Repository, git2
 
     let mut builder = git2::build::RepoBuilder::new();
     builder.fetch_options(fo);
-    builder.clone(url, path)?;
+    builder.clone(url, path.as_std_path())?;
 
     git2::Repository::open(path)
 }

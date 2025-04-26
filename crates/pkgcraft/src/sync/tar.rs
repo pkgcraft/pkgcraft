@@ -1,16 +1,14 @@
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use flate2::read::GzDecoder;
+use camino::Utf8Path;
 use futures::StreamExt;
 use regex::Regex;
 use reqwest::header::{HeaderMap, ETAG};
 use serde::{Deserialize, Serialize};
-use tar::Archive;
 use tempfile::Builder;
 
 use crate::sync::{Syncable, Syncer};
@@ -36,10 +34,10 @@ impl Syncable for Repo {
         }
     }
 
-    async fn sync<P: AsRef<Path> + Send>(&self, path: P) -> crate::Result<()> {
+    async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
         let repos_dir = path.parent().unwrap();
-        let repo_name = path.file_name().unwrap().to_str().unwrap();
+        let repo_name = path.file_name().unwrap();
 
         // use cached ETag to check if update exists
         let etag_path = path.join(".etag");
@@ -95,8 +93,7 @@ impl Syncable for Repo {
             .tempdir_in(repos_dir)
             .map_err(|e| Error::RepoSync(e.to_string()))?;
 
-        // try unpacking via tar first since it's a lot faster for large repos
-        let tar_unpack = Command::new("tar")
+        let output = Command::new("tar")
             .args([
                 "--extract",
                 "--gzip",
@@ -107,55 +104,29 @@ impl Syncable for Repo {
                 "-C",
                 tmp_dir.path().to_str().unwrap(),
             ])
-            .stderr(Stdio::null())
-            .status();
+            .stdout(Stdio::null())
+            .output()
+            .map_err(|e| Error::RepoSync(format!("failed unpacking repo: {e}")))?;
 
-        // fallback to built-in support on tar failure
-        if tar_unpack.is_err() || !tar_unpack.unwrap().success() {
-            let tar_file = fs::File::open(temp_file.path())
-                .map_err(|e| Error::RepoSync(e.to_string()))?;
-            // TODO: run decompression in a separate thread
-            let mut archive = Archive::new(GzDecoder::new(tar_file));
-            archive
-                .entries()
-                .map_err(|e| Error::RepoSync(e.to_string()))?
-                .filter_map(Result::ok)
-                .map(|mut entry| -> crate::Result<PathBuf> {
-                    // drop first directory component in archive paths
-                    let stripped_path: PathBuf = entry
-                        .path()
-                        .map_err(|e| Error::RepoSync(format!("failed unpacking archive: {e}")))
-                        .iter()
-                        .skip(1)
-                        .collect();
-                    entry
-                        .unpack(tmp_dir.path().join(&stripped_path))
-                        .map_err(|e| {
-                            Error::RepoSync(format!("failed unpacking archive: {e}"))
-                        })?;
-                    Ok(stripped_path)
-                })
-                .filter_map(Result::ok)
-                .for_each(drop);
+        if !output.status.success() {
+            let msg = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::RepoSync(format!("failed unpacking repo: {}", msg.trim())));
         }
 
         // move old repo out of the way if it exists and replace with unpacked repo
         if path.exists() {
             fs::rename(path, &tmp_dir_old).map_err(|e| {
-                Error::RepoSync(format!(
-                    "failed moving old repo {path:?} -> {tmp_dir_old:?}: {e}"
-                ))
+                Error::RepoSync(format!("failed moving old repo: {path}: {e}"))
             })?;
         }
-        fs::rename(&tmp_dir, path).map_err(|e| {
-            Error::RepoSync(format!("failed moving repo {tmp_dir:?} -> {path:?}: {e}"))
-        })?;
+        fs::rename(&tmp_dir, path)
+            .map_err(|e| Error::RepoSync(format!("failed moving repo: {path}: {e}")))?;
 
         // TODO: store this in cache instead of repo file
         // update cached ETag value
         if let Some(etag) = resp_headers.get(ETAG) {
             fs::write(&etag_path, etag.as_bytes()).map_err(|e| {
-                Error::RepoSync(format!("failed writing etag {etag_path:?}: {e}"))
+                Error::RepoSync(format!("failed writing etag: {etag_path}: {e}"))
             })?;
         }
 

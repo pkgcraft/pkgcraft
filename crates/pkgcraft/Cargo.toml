@@ -21,8 +21,6 @@ name = "pkgcraft"
 default = []
 # enable git repo syncing support
 git = ["dep:git2"]
-# enable repo syncing over https, e.g. tar+https
-https = ["dep:flate2", "dep:tar"]
 # external test support
 test = ["dep:assert_cmd", "dep:pretty_assertions"]
 
@@ -38,7 +36,6 @@ dashmap = "6.1.0"
 digest = "0.10.7"
 enum-as-inner = "0.6.1"
 filetime = "0.2.25"
-flate2 = { version = "1.1.1", optional = true }
 futures = "0.3.31"
 git2 = { version = "0.20.1", optional = true }
 glob = "0.3.2"
@@ -65,7 +62,6 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_with = { version = "3.12.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.8"
 strum = { version = "0.27.1", features = ["derive"] }
-tar = { version = "0.4.44", optional = true }
 tempfile = "3.19.1"
 thiserror = "2.0.12"
 tree-sitter = "0.25.3"
