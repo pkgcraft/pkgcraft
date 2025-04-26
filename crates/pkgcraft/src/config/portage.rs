@@ -57,15 +57,13 @@ pub(super) fn load_repos_conf<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Vec<
 
     // expand directory path into files
     let mut files = match path.read_dir_utf8() {
-        Ok(entries) => entries
+        Ok(entries) => Ok(entries
             .filter_map(Result::ok)
             .map(|d| d.path().to_path_buf())
-            .collect(),
-        Err(e) if e.kind() == io::ErrorKind::NotADirectory => vec![path.to_path_buf()],
-        Err(e) => {
-            return Err(Error::Config(format!("failed reading repos.conf: {path}: {e}")))
-        }
-    };
+            .collect()),
+        Err(e) if e.kind() == io::ErrorKind::NotADirectory => Ok(vec![path.to_path_buf()]),
+        Err(e) => Err(Error::Config(format!("failed reading repos.conf: {path}: {e}"))),
+    }?;
 
     // load ini files in lexical order
     files.sort();
