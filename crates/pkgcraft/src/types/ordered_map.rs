@@ -115,3 +115,17 @@ where
         OrderMap::deserialize(deserializer).map(OrderedMap)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test::assert_ordered_eq;
+
+    use super::*;
+
+    #[test]
+    fn from_array() {
+        let map = OrderedMap::from([("a", 1), ("b", 2)]);
+        assert_ordered_eq!(&map, [(&"a", &1), (&"b", &2)]);
+        assert_ordered_eq!(map, [("a", 1), ("b", 2)]);
+    }
+}
