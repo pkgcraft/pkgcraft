@@ -69,14 +69,14 @@ impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<T> {
     fn to_ref(&'a self) -> Self::Ref {
         use Dependency::*;
         match self {
-            Enabled(ref val) => Enabled(val),
-            Disabled(ref val) => Disabled(val),
-            AllOf(ref vals) => AllOf(box_ref!(vals)),
-            AnyOf(ref vals) => AnyOf(box_ref!(vals)),
-            ExactlyOneOf(ref vals) => ExactlyOneOf(box_ref!(vals)),
-            AtMostOneOf(ref vals) => AtMostOneOf(box_ref!(vals)),
+            Enabled(val) => Enabled(val),
+            Disabled(val) => Disabled(val),
+            AllOf(vals) => AllOf(box_ref!(vals)),
+            AnyOf(vals) => AnyOf(box_ref!(vals)),
+            ExactlyOneOf(vals) => ExactlyOneOf(box_ref!(vals)),
+            AtMostOneOf(vals) => AtMostOneOf(box_ref!(vals)),
             // TODO: replace clone with borrowed ref when dep evaluation is reworked
-            Conditional(ref u, ref vals) => Conditional(u.clone(), box_ref!(vals)),
+            Conditional(u, vals) => Conditional(u.clone(), box_ref!(vals)),
         }
     }
 }
