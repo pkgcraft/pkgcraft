@@ -276,7 +276,7 @@ impl Eapi {
         } else if self.archives.contains(ext) {
             Ok(archive)
         } else {
-            Err(Error::InvalidValue(format!("unsupported archive format: {ext}")))
+            Err(Error::InvalidValue(format!("unsupported archive format: {file_name}")))
         }
     }
 

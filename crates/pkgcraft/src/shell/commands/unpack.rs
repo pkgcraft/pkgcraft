@@ -145,7 +145,7 @@ mod tests {
 
     use crate::archive::Archive;
     use crate::command::run_commands;
-    use crate::eapi::EAPIS_OFFICIAL;
+    use crate::eapi::{EAPI_LATEST_OFFICIAL, EAPIS_OFFICIAL};
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
@@ -211,6 +211,12 @@ mod tests {
                 assert_err_re!(result, format!("EAPI {eapi}: unsupported relative path: .*"));
             }
         }
+
+        // disabled archive format
+        fs::File::create("distdir/a.7z").unwrap();
+        BuildData::empty(&EAPI_LATEST_OFFICIAL);
+        let r = unpack(&["a.7z"]);
+        assert_err_re!(r, "unsupported archive format: a.7z");
     }
 
     #[test]
