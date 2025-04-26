@@ -46,8 +46,8 @@ pub enum RepoFormat {
 }
 
 impl RepoFormat {
-    /// Try to load a specific repo type from a given path.
-    pub fn load_from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
+    /// Try to load a specific repo type from a path.
+    pub fn from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
         self,
         id: S,
         path: P,
@@ -76,8 +76,8 @@ impl RepoFormat {
         }
     }
 
-    /// Try to load a specific repo type from a given path, traversing parents.
-    pub fn load_from_nested_path<P: AsRef<Utf8Path>>(
+    /// Try to load a specific repo type from a path, traversing parents.
+    pub fn from_nested_path<P: AsRef<Utf8Path>>(
         self,
         path: P,
         priority: i32,
@@ -94,7 +94,7 @@ impl RepoFormat {
 
         let mut path = abspath.as_path();
         while let Some(parent) = path.parent() {
-            match self.load_from_path(path, path, priority) {
+            match self.from_path(path, path, priority) {
                 Err(Error::NotARepo { .. }) => path = parent,
                 result => return result,
             }
@@ -186,7 +186,7 @@ impl Repo {
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            match format.load_from_path(id, path, priority) {
+            match format.from_path(id, path, priority) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
                 result => return result,
@@ -204,7 +204,7 @@ impl Repo {
         let path = path.as_ref();
 
         for format in RepoFormat::iter() {
-            match format.load_from_nested_path(path, priority) {
+            match format.from_nested_path(path, priority) {
                 Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
                 Err(Error::LoadRepo { .. }) => (),
                 result => return result,

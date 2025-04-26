@@ -79,7 +79,7 @@ pub struct EbuildTempRepo {
 }
 
 impl EbuildTempRepo {
-    /// Create a temporary repo at a given path or inside `env::temp_dir()`.
+    /// Create a temporary repo at a path or inside `env::temp_dir()`.
     fn new(
         name: String,
         path: Option<&Utf8Path>,
@@ -134,7 +134,7 @@ impl EbuildTempRepo {
         Ok(())
     }
 
-    /// Create an ebuild using the given fields.
+    /// Create an ebuild using custom data field values.
     pub fn create_ebuild<T>(&mut self, value: T, data: &[&str]) -> crate::Result<Utf8PathBuf>
     where
         T: TryInto<Cpv>,
@@ -223,7 +223,7 @@ impl EbuildTempRepo {
 impl From<&EbuildTempRepo> for Repo {
     fn from(repo: &EbuildTempRepo) -> Self {
         RepoFormat::Ebuild
-            .load_from_path(&repo.name, &repo.path, repo.priority)
+            .from_path(&repo.name, &repo.path, repo.priority)
             .unwrap()
             .into_ebuild()
             .unwrap()

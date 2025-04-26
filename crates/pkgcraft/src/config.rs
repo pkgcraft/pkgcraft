@@ -249,7 +249,7 @@ impl Config {
         external: bool,
         format: RepoFormat,
     ) -> crate::Result<Repo> {
-        let r = format.load_from_path(name, path, priority)?;
+        let r = format.from_path(name, path, priority)?;
         self.add_repo(&r, external)
     }
 
@@ -271,7 +271,7 @@ impl Config {
         format: RepoFormat,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        match format.load_from_nested_path(path, priority) {
+        match format.from_nested_path(path, priority) {
             Err(Error::NotARepo { .. }) => {
                 Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
             }

@@ -65,7 +65,7 @@ pub unsafe extern "C" fn pkgcraft_repo_from_format(
             try_str_from_ptr!(id)
         };
 
-        let repo = unwrap_or_panic!(format.load_from_path(id, path, priority));
+        let repo = unwrap_or_panic!(format.from_path(id, path, priority));
         Box::into_raw(Box::new(repo))
     }
 }

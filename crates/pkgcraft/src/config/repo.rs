@@ -101,7 +101,7 @@ impl ConfigRepos {
         let mut nonexistent = IndexMap::new();
         for (name, c) in configs {
             // ignore invalid repos
-            match c.format.load_from_path(&name, &c.location, c.priority) {
+            match c.format.from_path(&name, &c.location, c.priority) {
                 Ok(repo) => repos.push(repo),
                 Err(Error::NonexistentRepo(_)) => {
                     nonexistent.insert(name, c);
