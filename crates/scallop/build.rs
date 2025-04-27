@@ -47,6 +47,20 @@ fn main() {
     let bash_out_dir = out_dir.join("bash");
     let bash_build_dir = bash_out_dir.join("build");
     fs::create_dir_all(&bash_out_dir).unwrap();
+    let apple_fixup = bash_out_dir.join("apple-fixup.h");
+
+    println!("{apple_fixup}");
+
+    fs::write(
+        &apple_fixup,
+        r#"
+#if defined(__APPLE__) && !defined(environ)
+#   include <crt_externs.h>
+#   define environ (*_NSGetEnviron())
+#endif
+    "#,
+    )
+    .unwrap();
 
     let mut bash = autotools::Config::new(&bash_repo_dir);
     bash.make_args(vec![format!("-j{}", num_cpus::get())])
@@ -69,6 +83,7 @@ fn main() {
         .enable("library", None)
         // NOTE: Fix build issues with GCC 15. Only required for bash < 5.3.
         .cflag("-std=gnu17")
+        .cflag(&format!("-include {}", apple_fixup.as_str()))
         .make_target("libbash.a")
         .build();
 
