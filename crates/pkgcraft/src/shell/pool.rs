@@ -6,7 +6,6 @@ use std::time::{Duration, Instant};
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use itertools::Itertools;
-use nix::sys::{prctl, signal::Signal};
 use nix::unistd::{ForkResult, dup, dup2, fork};
 use scallop::pool::{SharedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
@@ -326,8 +325,10 @@ impl BuildPool {
             Ok(ForkResult::Parent { .. }) => Ok(()),
             Ok(ForkResult::Child) => {
                 // signal child to exit on parent death
-                #[cfg(target_os = "linux")]
-                prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
+                #[cfg(target_os = "linux")] {
+                    use nix::sys::{prctl, signal::Signal};
+                    prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
+                }
 
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
