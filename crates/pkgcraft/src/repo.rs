@@ -384,6 +384,11 @@ pub trait PkgRepository:
         count
     }
 
+    /// Return true if the repo doesn't have any packages.
+    fn is_empty(&self) -> bool {
+        self.iter_cpv().next().is_none()
+    }
+
     /// Return an iterator of Cpns for the repo.
     fn iter_cpn(&self) -> Self::IterCpn;
 
@@ -401,10 +406,6 @@ pub trait PkgRepository:
 
     /// Return a filtered iterator of packages for the repo.
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict;
-
-    fn is_empty(&self) -> bool {
-        self.iter().next().is_none()
-    }
 }
 
 pub trait Repository: PkgRepository + fmt::Display {
