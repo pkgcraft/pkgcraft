@@ -8,7 +8,7 @@ use strum::IntoEnumIterator;
 
 use crate::Error;
 use crate::config::Config;
-use crate::dep::Cpn;
+use crate::dep::{Cpn, parse};
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Package, Pkg, RepoPackage};
 use crate::repo::EbuildRepo;
@@ -65,7 +65,7 @@ impl<'a> Targets<'a> {
             let id = id.as_ref();
 
             // load system config for repo alias support
-            if !id.contains('/') {
+            if parse::repo(id).is_ok() {
                 self.config.load()?;
             }
 
@@ -250,7 +250,7 @@ impl<'a> Targets<'a> {
             let target = value.to_string();
 
             // load system config for repo alias support
-            if target != "." && !target.contains('/') {
+            if parse::repo(&target).is_ok() {
                 self.config.load()?;
             }
 
