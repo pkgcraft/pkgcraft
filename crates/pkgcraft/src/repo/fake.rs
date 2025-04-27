@@ -200,6 +200,10 @@ impl PkgRepository for FakeRepo {
         self.0.cpvs.len()
     }
 
+    fn is_empty(&self) -> bool {
+        self.0.cpvs.is_empty()
+    }
+
     fn iter_cpn(&self) -> Self::IterCpn {
         IterCpn {
             iter: self
