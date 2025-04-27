@@ -250,7 +250,7 @@ impl<'a> Targets<'a> {
             let target = value.to_string();
 
             // load system config for repo alias support
-            if !target.contains('/') {
+            if target != "." && !target.contains('/') {
                 self.config.load()?;
             }
 
