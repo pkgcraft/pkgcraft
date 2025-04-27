@@ -155,10 +155,6 @@ impl TestData {
         &self.path
     }
 
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
         self.config.repos.get(name)
     }
@@ -210,14 +206,6 @@ pub struct TestDataPatched {
 }
 
 impl TestDataPatched {
-    pub fn path(&self) -> &Utf8Path {
-        Utf8Path::from_path(self.tmpdir.path()).unwrap()
-    }
-
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
         self.config.repos.get(name)
     }
