@@ -5,14 +5,14 @@ use std::process::ExitCode;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use clap::{builder::ArgPredicate, Args};
+use clap::{Args, ValueEnum, builder::ArgPredicate};
 use indicatif::{ProgressBar, ProgressStyle};
 use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
-use pkgcraft::pkg::Package;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::ParallelMap;
+use serde::Serialize;
 use tracing::error;
 
 /// Duration bound to apply against elapsed time values.
@@ -84,6 +84,14 @@ impl FromStr for Bench {
     }
 }
 
+#[derive(Copy, Clone, ValueEnum)]
+enum Format {
+    /// Plain output
+    Plain,
+    /// CSV output
+    Csv,
+}
+
 #[derive(Args)]
 #[clap(next_help_heading = "Source options")]
 pub(crate) struct Command {
@@ -114,6 +122,9 @@ pub(crate) struct Command {
         default_missing_value = "1",
     )]
     cumulative: Option<NonZero<u32>>,
+
+    #[arg(short, long, value_enum, default_value_t = Format::Plain)]
+    format: Format,
 
     /// Target repo
     #[arg(short, long)]
@@ -152,26 +163,51 @@ macro_rules! micros {
     }};
 }
 
-#[derive(Debug, Clone)]
+mod as_secs_f64 {
+    use std::time::Duration;
+
+    use serde::Serializer;
+
+    pub(super) fn serialize<S>(ts: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = ts.as_secs_f64();
+        serializer.serialize_f64(s)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct Benchmark {
-    label: String,
+    package: String,
+    #[serde(with = "as_secs_f64")]
     mean: Duration,
+    #[serde(with = "as_secs_f64")]
     min: Duration,
+    #[serde(with = "as_secs_f64")]
     max: Duration,
+    #[serde(with = "as_secs_f64")]
     sdev: Duration,
     n: u64,
 }
 
 impl Benchmark {
     fn new(
-        label: String,
+        package: String,
         mean: Duration,
         min: Duration,
         max: Duration,
         sdev: Duration,
         n: u64,
     ) -> Self {
-        Self { label, mean, min, max, sdev, n }
+        Self {
+            package,
+            mean,
+            min,
+            max,
+            sdev,
+            n,
+        }
     }
 }
 
@@ -180,8 +216,72 @@ impl Display for Benchmark {
         write!(
             f,
             "{}: mean: {:?}, min: {:?}, max: {:?}, σ = {:?}, N = {}",
-            self.label, self.mean, self.min, self.max, self.sdev, self.n
+            self.package, self.mean, self.min, self.max, self.sdev, self.n
         )
+    }
+}
+
+trait Output {
+    fn write<V: Serialize + Display>(&mut self, value: &V) -> anyhow::Result<()>;
+}
+
+struct PlainOutput<W: std::io::Write> {
+    out: W,
+}
+
+impl<W: std::io::Write> PlainOutput<W> {
+    fn new(out: W) -> Self {
+        Self { out }
+    }
+}
+
+impl<W: std::io::Write> Output for PlainOutput<W> {
+    fn write<V: Serialize + Display>(&mut self, value: &V) -> anyhow::Result<()> {
+        writeln!(self.out, "{value}")?;
+        Ok(())
+    }
+}
+
+struct CsvOutput<W: std::io::Write> {
+    out: csv::Writer<W>,
+}
+
+impl<W: std::io::Write> CsvOutput<W> {
+    fn new(writer: W) -> Self {
+        let out = csv::Writer::from_writer(writer);
+
+        Self { out }
+    }
+}
+
+impl<W: std::io::Write> Output for CsvOutput<W> {
+    fn write<V: Serialize + Display>(&mut self, value: &V) -> anyhow::Result<()> {
+        self.out.serialize(value)?;
+        Ok(())
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
+enum FormattedOutput<W: std::io::Write> {
+    Plain(PlainOutput<W>),
+    Csv(CsvOutput<W>),
+}
+
+impl Format {
+    fn make_output<W: std::io::Write>(&self, writer: W) -> FormattedOutput<W> {
+        match self {
+            Format::Plain => FormattedOutput::Plain(PlainOutput::new(writer)),
+            Format::Csv => FormattedOutput::Csv(CsvOutput::new(writer)),
+        }
+    }
+}
+
+impl<W: std::io::Write> Output for FormattedOutput<W> {
+    fn write<V: Serialize + Display>(&mut self, value: &V) -> anyhow::Result<()> {
+        match self {
+            FormattedOutput::Plain(out) => out.write(value),
+            FormattedOutput::Csv(out) => out.write(value),
+        }
     }
 }
 
@@ -214,7 +314,8 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
 
     let pkgs = targets.ebuild_raw_pkgs();
     let mut sorted = if cmd.sort { Some(vec![]) } else { None };
-    let mut stdout = io::stdout().lock();
+    let stdout = io::stdout().lock();
+    let mut out = cmd.format.make_output(stdout);
 
     for result in pkgs.par_map(func).jobs(cmd.jobs) {
         match result {
@@ -240,7 +341,7 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
                 if let Some(values) = sorted.as_mut() {
                     values.push(value);
                 } else {
-                    writeln!(stdout, "{value}")?;
+                    out.write(&value)?;
                 }
             }
             Err(e) => {
@@ -254,7 +355,7 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
     if let Some(values) = sorted.as_mut() {
         values.sort_by(|t1, t2| t1.mean.cmp(&t2.mean));
         for value in values {
-            writeln!(stdout, "{value}")?;
+            out.write(&value)?;
         }
     }
 
@@ -332,28 +433,44 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
     Ok(ExitCode::from(failed as u8))
 }
 
+#[derive(Clone, Serialize)]
+struct Elapsed {
+    package: String,
+    #[serde(with = "as_secs_f64")]
+    elapsed: Duration,
+}
+
+impl Display for Elapsed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: elapsed: {:?}", self.package, self.elapsed)
+    }
+}
+
 /// Run package sourcing a single time per package.
 fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let mut failed = false;
-    let func =
-        move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<(String, Duration)> {
-            let pkg = result?;
-            let elapsed = micros!(pkg.duration()?);
-            Ok((pkg.to_string(), elapsed))
-        };
+    let func = move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<Elapsed> {
+        let pkg = result?;
+        let elapsed = micros!(pkg.duration()?);
+        Ok(Elapsed {
+            package: pkg.to_string(),
+            elapsed,
+        })
+    };
 
     let pkgs = targets.ebuild_raw_pkgs();
     let mut sorted = if cmd.sort { Some(vec![]) } else { None };
-    let mut stdout = io::stdout().lock();
+    let stdout = io::stdout().lock();
+    let mut out = cmd.format.make_output(stdout);
 
     for result in pkgs.par_map(func).jobs(cmd.jobs) {
         match result {
-            Ok((pkg, elapsed)) => {
-                if cmd.bound.iter().all(|b| b.matches(&elapsed)) {
+            Ok(value) => {
+                if cmd.bound.iter().all(|b| b.matches(&value.elapsed)) {
                     if let Some(values) = sorted.as_mut() {
-                        values.push((pkg, elapsed));
+                        values.push(value);
                     } else {
-                        writeln!(stdout, "{pkg}: {elapsed:?}")?;
+                        out.write(&value)?;
                     }
                 }
             }
@@ -366,9 +483,9 @@ fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
 
     // output in ascending order if sorting is enabled
     if let Some(values) = sorted.as_mut() {
-        values.sort_by(|(_, t1), (_, t2)| t1.cmp(t2));
-        for (pkg, elapsed) in values {
-            writeln!(stdout, "{pkg}: {elapsed:?}")?;
+        values.sort_by(|t1, t2| t1.elapsed.cmp(&t2.elapsed));
+        for value in values {
+            out.write(&value)?;
         }
     }
 
