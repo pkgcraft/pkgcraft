@@ -259,7 +259,7 @@ impl<'a> Targets<'a> {
                 Err(e) => {
                     let path = Utf8Path::new(&target);
                     if path.exists() {
-                        let repo = self.repo_from_path(path)?;
+                        let repo = self.repo_from_nested_path(path)?;
                         repos.push((target, repo));
                     } else {
                         return Err(e);
