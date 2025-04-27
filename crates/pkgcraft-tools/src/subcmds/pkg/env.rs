@@ -2,12 +2,13 @@ use std::collections::HashSet;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use clap::{Args, builder::ArgPredicate};
+use clap::{builder::ArgPredicate, Args};
+use globset::{Glob, GlobSetBuilder};
 use indexmap::IndexMap;
 use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::pkg::ebuild::metadata::Key;
+use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
 use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
@@ -68,7 +69,7 @@ impl Command {
         let meta: HashSet<_> = Key::iter().map(|v| v.to_string()).collect();
 
         // create variable filters
-        let (mut hide, mut show) = (HashSet::new(), HashSet::new());
+        let (mut hide, mut show) = (GlobSetBuilder::new(), GlobSetBuilder::new());
         let items = self.filter.iter().flat_map(|line| line.split(','));
         for item in items {
             // determine filter set
@@ -79,17 +80,28 @@ impl Command {
 
             // expand variable aliases
             match var {
-                "@EAPI" => set.extend(eapi.iter().map(|s| s.as_str())),
-                "@META" => set.extend(meta.iter().map(|s| s.as_str())),
+                "@EAPI" => {
+                    for s in eapi.iter() {
+                        set.add(Glob::new(s)?);
+                    }
+                }
+                "@META" => {
+                    for s in meta.iter() {
+                        set.add(Glob::new(s)?);
+                    }
+                }
                 _ => {
-                    set.insert(var);
+                    set.add(Glob::new(var)?);
                 }
             }
         }
 
+        let hide = hide.build()?;
+        let show = show.build()?;
+
         // filter variables being shown
         let filter = |name: &str| -> bool {
-            !hide.contains(name) && (show.is_empty() || show.contains(name))
+            !hide.is_match(name) && (show.is_empty() || show.is_match(name))
         };
 
         // source ebuilds and output ebuild-specific environment variables
