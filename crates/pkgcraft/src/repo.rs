@@ -456,9 +456,6 @@ where
     fn versions(&self, cat: &str, pkg: &str) -> IndexSet<Version> {
         (*self).versions(cat, pkg)
     }
-    fn len(&self) -> usize {
-        (*self).len()
-    }
     fn iter_cpn(&self) -> Self::IterCpn {
         (*self).iter_cpn()
     }
