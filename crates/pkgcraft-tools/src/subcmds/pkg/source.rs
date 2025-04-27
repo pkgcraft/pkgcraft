@@ -1,14 +1,16 @@
+use std::fmt::Display;
 use std::io::{self, Write};
 use std::num::NonZero;
 use std::process::ExitCode;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use clap::{Args, builder::ArgPredicate};
+use clap::{builder::ArgPredicate, Args};
 use indicatif::{ProgressBar, ProgressStyle};
 use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
+use pkgcraft::pkg::Package;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::ParallelMap;
 use tracing::error;
@@ -150,6 +152,39 @@ macro_rules! micros {
     }};
 }
 
+#[derive(Debug, Clone)]
+struct Benchmark {
+    label: String,
+    mean: Duration,
+    min: Duration,
+    max: Duration,
+    sdev: Duration,
+    n: u64,
+}
+
+impl Benchmark {
+    fn new(
+        label: String,
+        mean: Duration,
+        min: Duration,
+        max: Duration,
+        sdev: Duration,
+        n: u64,
+    ) -> Self {
+        Self { label, mean, min, max, sdev, n }
+    }
+}
+
+impl Display for Benchmark {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}: mean: {:?}, min: {:?}, max: {:?}, σ = {:?}, N = {}",
+            self.label, self.mean, self.min, self.max, self.sdev, self.n
+        )
+    }
+}
+
 /// Run package sourcing benchmarks for a given duration per package.
 fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let mut failed = false;
@@ -200,13 +235,12 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
                     / n as f64;
                 let sdev = Duration::from_micros(variance.sqrt().round() as u64);
                 let mean = Duration::from_micros(mean);
+
+                let value = Benchmark::new(pkg, mean, min, max, sdev, n);
                 if let Some(values) = sorted.as_mut() {
-                    values.push((pkg, mean, min, max, sdev, n));
+                    values.push(value);
                 } else {
-                    writeln!(
-                        stdout,
-                        "{pkg}: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}"
-                    )?;
+                    writeln!(stdout, "{value}")?;
                 }
             }
             Err(e) => {
@@ -218,12 +252,9 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
 
     // output in ascending order if sorting is enabled
     if let Some(values) = sorted.as_mut() {
-        values.sort_by(|(_, t1, ..), (_, t2, ..)| t1.cmp(t2));
-        for (pkg, mean, min, max, sdev, n) in values {
-            writeln!(
-                stdout,
-                "{pkg}: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}"
-            )?;
+        values.sort_by(|t1, t2| t1.mean.cmp(&t2.mean));
+        for value in values {
+            writeln!(stdout, "{value}")?;
         }
     }
 
@@ -294,10 +325,9 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
         let sdev = Duration::from_millis(variance.sqrt().round() as u64);
         let mean = Duration::from_millis(mean);
 
-        writeln!(
-            stdout,
-            "total: mean: {mean:?}, min: {min:?}, max: {max:?}, σ = {sdev:?}, N = {n}"
-        )?;
+        let value = Benchmark::new("total".to_owned(), mean, min, max, sdev, n);
+
+        writeln!(stdout, "{value}")?;
     }
 
     Ok(ExitCode::from(failed as u8))
