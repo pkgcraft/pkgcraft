@@ -1,5 +1,6 @@
 use std::{env, fs};
 
+use pkgcraft::repo::Repository;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
@@ -62,8 +63,8 @@ fn empty_repo() {
 }
 
 #[test]
-fn default_current_directory() {
-    // non-repo working directory
+fn current_directory() {
+    // invalid repo
     let dir = tempdir().unwrap();
     env::set_current_dir(dir.path()).unwrap();
     cmd("pk repo mirror")
@@ -73,16 +74,32 @@ fn default_current_directory() {
         .failure()
         .code(2);
 
-    // repo working directory
-    // fails due to invalid pkgs
     let data = test_data();
-    let repo = data.ebuild_repo("qa-primary").unwrap();
-    env::set_current_dir(repo).unwrap();
-    cmd("pk repo mirror")
+    let repo_path = data.repo("qa-primary").unwrap().path();
+
+    // repo directory
+    env::set_current_dir(repo_path).unwrap();
+    cmd("pk repo mirror -i")
         .assert()
         .stdout(predicate::str::is_empty().not())
-        .stderr(predicate::str::is_empty().not())
-        .failure();
+        .stderr("")
+        .success();
+
+    // category directory
+    env::set_current_dir(repo_path.join("stub")).unwrap();
+    cmd("pk repo mirror -i")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // package directory
+    env::set_current_dir(repo_path.join("stub/live")).unwrap();
+    cmd("pk repo mirror -i")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
 }
 
 #[test]

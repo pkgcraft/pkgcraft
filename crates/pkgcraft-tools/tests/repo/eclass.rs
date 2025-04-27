@@ -1,5 +1,6 @@
 use std::env;
 
+use pkgcraft::repo::Repository;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{cmd, test_data};
 use predicates::prelude::*;
@@ -62,8 +63,8 @@ fn empty_repo() {
 }
 
 #[test]
-fn default_current_directory() {
-    // non-repo working directory
+fn current_directory() {
+    // invalid repo
     let dir = tempdir().unwrap();
     env::set_current_dir(dir.path()).unwrap();
     cmd("pk repo eclass")
@@ -73,10 +74,27 @@ fn default_current_directory() {
         .failure()
         .code(2);
 
-    // repo working directory
     let data = test_data();
-    let repo = data.ebuild_repo("metadata").unwrap();
-    env::set_current_dir(repo).unwrap();
+    let repo_path = data.repo("metadata").unwrap().path();
+
+    // repo directory
+    env::set_current_dir(repo_path).unwrap();
+    cmd("pk repo eclass")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // category directory
+    env::set_current_dir(repo_path.join("slot")).unwrap();
+    cmd("pk repo eclass")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
+
+    // package directory
+    env::set_current_dir(repo_path.join("slot/slot")).unwrap();
     cmd("pk repo eclass")
         .assert()
         .stdout(predicate::str::is_empty().not())
