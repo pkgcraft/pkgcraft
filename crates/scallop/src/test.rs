@@ -10,6 +10,5 @@ fn initialize() {
     }
 
     // initialize bash
-    let env: [(&str, &str); 0] = [];
-    crate::shell::init(env);
+    crate::shell::init(crate::shell::Env::default());
 }

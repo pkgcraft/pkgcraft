@@ -10,6 +10,48 @@ use crate::macros::{iter_to_array, str_to_raw};
 use crate::shm::create_shm;
 use crate::{ExecStatus, bash, error};
 
+/// Wrapper to modify the shell environment on initialization.
+#[derive(Default)]
+pub struct Env {
+    vars: Vec<(String, String)>,
+}
+
+impl Env {
+    /// Create a new shell environment wrapper.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Return an iterator of environment variables in "name=value" format.
+    fn environ(&self) -> impl Iterator<Item = String> {
+        self.vars
+            .iter()
+            .map(|(name, value)| format!("{name}={value}"))
+    }
+
+    /// Allow environment variables to be passed through.
+    pub fn allow<I, S>(mut self, vars: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.vars.extend(vars.into_iter().filter_map(|x| {
+            let name = x.as_ref();
+            env::var(name).ok().map(|value| (name.to_string(), value))
+        }));
+        self
+    }
+}
+
+impl IntoIterator for Env {
+    type Item = (String, String);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.vars.into_iter()
+    }
+}
+
 /// Initialize shared memory for proxying errors.
 fn shm_init() {
     let shm =
@@ -20,15 +62,9 @@ fn shm_init() {
 }
 
 /// Initialize the shell for library use.
-pub fn init<I, S1, S2>(env: I)
-where
-    I: IntoIterator<Item = (S1, S2)>,
-    S1: std::fmt::Display,
-    S2: std::fmt::Display,
-{
+pub fn init(env: Env) {
     shm_init();
-    let env = env.into_iter().map(|(var, value)| format!("{var}={value}"));
-    let mut env = iter_to_array!(env, str_to_raw);
+    let mut env = iter_to_array!(env.environ(), str_to_raw);
     unsafe {
         bash::lib_error_handlers(Some(bash_error), Some(error::bash_warning_log));
         bash::lib_init(env.as_mut_ptr());
@@ -58,15 +94,9 @@ pub fn fork_init() {
 }
 
 /// Reset the shell back to a pristine state, optionally setting the shell environment.
-pub fn reset<I, S1, S2>(env: I)
-where
-    I: IntoIterator<Item = (S1, S2)>,
-    S1: std::fmt::Display,
-    S2: std::fmt::Display,
-{
+pub fn reset(env: Env) {
     error::reset();
-    let env = env.into_iter().map(|(var, value)| format!("{var}={value}"));
-    let mut env = iter_to_array!(env, str_to_raw);
+    let mut env = iter_to_array!(env.environ(), str_to_raw);
     unsafe { bash::lib_reset(env.as_mut_ptr()) };
 }
 
@@ -313,8 +343,7 @@ mod tests {
     fn test_reset_var() {
         variables::bind("VAR", "1", None, None).unwrap();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
-        let env: [(&str, &str); 0] = [];
-        reset(env);
+        reset(Env::default());
         assert_eq!(variables::optional("VAR"), None);
     }
 
@@ -323,8 +352,7 @@ mod tests {
         assert!(functions::find("func").is_none());
         source::string("func() { :; }").unwrap();
         assert!(functions::find("func").is_some());
-        let env: [(&str, &str); 0] = [];
-        reset(env);
+        reset(Env::default());
         assert!(functions::find("func").is_none());
     }
 
