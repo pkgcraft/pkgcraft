@@ -8,6 +8,8 @@ fn initialize() {
     if !env::args().any(|x| x == "--bench") {
         env::var("NEXTEST").expect("tests must be run via cargo-nextest");
     }
+
     // initialize bash
-    crate::shell::init();
+    let env: [(&str, &str); 0] = [];
+    crate::shell::init(env);
 }

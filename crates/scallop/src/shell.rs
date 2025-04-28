@@ -6,6 +6,7 @@ use std::{env, mem, ptr};
 use nix::sys::wait::{WaitStatus, waitpid};
 use nix::unistd::{ForkResult, Pid, fork, getpid};
 
+use crate::macros::{iter_to_array, str_to_raw};
 use crate::shm::create_shm;
 use crate::{ExecStatus, bash, error};
 
@@ -19,11 +20,18 @@ fn shm_init() {
 }
 
 /// Initialize the shell for library use.
-pub fn init() {
+pub fn init<I, S1, S2>(env: I)
+where
+    I: IntoIterator<Item = (S1, S2)>,
+    S1: std::fmt::Display,
+    S2: std::fmt::Display,
+{
     shm_init();
+    let env = env.into_iter().map(|(var, value)| format!("{var}={value}"));
+    let mut env = iter_to_array!(env, str_to_raw);
     unsafe {
         bash::lib_error_handlers(Some(bash_error), Some(error::bash_warning_log));
-        bash::lib_init();
+        bash::lib_init(env.as_mut_ptr());
     }
 }
 
@@ -49,19 +57,17 @@ pub fn fork_init() {
     }
 }
 
-/// Reset the shell back to a pristine state, optionally skipping a list of variables.
-pub fn reset(ignore_vars: &[&str]) {
-    let cached: Vec<_> = ignore_vars
-        .iter()
-        .filter_map(|&s| env::var(s).ok().map(|val| (s, val)))
-        .collect();
-
+/// Reset the shell back to a pristine state, optionally setting the shell environment.
+pub fn reset<I, S1, S2>(env: I)
+where
+    I: IntoIterator<Item = (S1, S2)>,
+    S1: std::fmt::Display,
+    S2: std::fmt::Display,
+{
     error::reset();
-    unsafe { bash::lib_reset() };
-
-    for (var, value) in cached {
-        unsafe { env::set_var(var, value) };
-    }
+    let env = env.into_iter().map(|(var, value)| format!("{var}={value}"));
+    let mut env = iter_to_array!(env, str_to_raw);
+    unsafe { bash::lib_reset(env.as_mut_ptr()) };
 }
 
 pub struct Interactive {
@@ -307,7 +313,8 @@ mod tests {
     fn test_reset_var() {
         variables::bind("VAR", "1", None, None).unwrap();
         assert_eq!(variables::optional("VAR").unwrap(), "1");
-        reset(&[]);
+        let env: [(&str, &str); 0] = [];
+        reset(env);
         assert_eq!(variables::optional("VAR"), None);
     }
 
@@ -316,7 +323,8 @@ mod tests {
         assert!(functions::find("func").is_none());
         source::string("func() { :; }").unwrap();
         assert!(functions::find("func").is_some());
-        reset(&[]);
+        let env: [(&str, &str); 0] = [];
+        reset(env);
         assert!(functions::find("func").is_none());
     }
 
