@@ -1,5 +1,5 @@
 use crate::error::{Error, ok_or_error};
-use crate::traits::*;
+use crate::traits::Words;
 use crate::{ExecStatus, bash};
 
 /// Run the `declare` builtin with the given arguments.
@@ -8,12 +8,12 @@ where
     I: IntoIterator,
     I::Item: Into<String>,
 {
-    let args = [String::from("declare")]
+    let args: Words = [String::from("declare")]
         .into_iter()
-        .chain(args.into_iter().map(Into::into));
-    let args = Words::from_iter(args);
+        .chain(args.into_iter().map(Into::into))
+        .collect();
     ok_or_error(|| unsafe {
-        let ret = bash::builtin_builtin((&args).into());
+        let ret = bash::builtin_builtin(args.as_ptr());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -28,12 +28,12 @@ where
     I: IntoIterator,
     I::Item: Into<String>,
 {
-    let args = [String::from("local")]
+    let args: Words = [String::from("local")]
         .into_iter()
-        .chain(args.into_iter().map(Into::into));
-    let args = Words::from_iter(args);
+        .chain(args.into_iter().map(Into::into))
+        .collect();
     ok_or_error(|| unsafe {
-        let ret = bash::builtin_builtin((&args).into());
+        let ret = bash::builtin_builtin(args.as_ptr());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -48,12 +48,12 @@ where
     I: IntoIterator,
     I::Item: Into<String>,
 {
-    let args = [String::from("set")]
+    let args: Words = [String::from("set")]
         .into_iter()
-        .chain(args.into_iter().map(Into::into));
-    let args = Words::from_iter(args);
+        .chain(args.into_iter().map(Into::into))
+        .collect();
     ok_or_error(|| unsafe {
-        let ret = bash::builtin_builtin((&args).into());
+        let ret = bash::builtin_builtin(args.as_ptr());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
@@ -68,12 +68,12 @@ where
     I: IntoIterator,
     I::Item: Into<String>,
 {
-    let args = [String::from("shopt")]
+    let args: Words = [String::from("shopt")]
         .into_iter()
-        .chain(args.into_iter().map(Into::into));
-    let args = Words::from_iter(args);
+        .chain(args.into_iter().map(Into::into))
+        .collect();
     ok_or_error(|| unsafe {
-        let ret = bash::builtin_builtin((&args).into());
+        let ret = bash::builtin_builtin(args.as_ptr());
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {

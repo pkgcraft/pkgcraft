@@ -334,9 +334,8 @@ where
     S: AsRef<str>,
 {
     let words: Words = vals.into_iter().collect();
-    let ptr: *mut bash::WordList = (&words).into();
     unsafe {
-        bash::expand_words_no_vars(ptr)
+        bash::expand_words_no_vars(words.as_ptr())
             .into_words()
             .try_into()
             .unwrap()

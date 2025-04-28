@@ -91,9 +91,3 @@ impl<S: AsRef<str>> FromIterator<S> for Words {
         Words { words, owned: true }
     }
 }
-
-impl From<&Words> for *mut bash::WordList {
-    fn from(val: &Words) -> Self {
-        val.words
-    }
-}
