@@ -32,13 +32,70 @@ fn ignore() {
 }
 
 #[test]
+fn globs() {
+    let data = test_data();
+    let repo = data.ebuild_repo("metadata").unwrap().path().as_str();
+
+    // enabled
+    cmd("pk pkg env -f P*")
+        .args(["-r", repo])
+        .arg("inherit/indirect-8")
+        .assert()
+        .stdout(indoc::indoc! {"
+            P=indirect-8
+            PDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
+            PF=indirect-8
+            PN=indirect
+            PR=r0
+            PROPERTIES=global eclass a global eclass b
+            PV=8
+            PVR=8
+        "})
+        .stderr("")
+        .success();
+
+    // disabled
+    cmd("pk pkg env -f -P*,-FILESDIR")
+        .args(["-r", repo])
+        .arg("inherit/indirect-8")
+        .assert()
+        .stdout(indoc::indoc! {"
+            BDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
+            CATEGORY=inherit
+            DEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
+            DESCRIPTION=ebuild with indirect eclass inherit
+            DISTDIR=/tmp
+            EAPI=8
+            EPREFIX=
+            HOME=/tmp
+            HOMEPAGE=https://github.com/pkgcraft/a https://github.com/pkgcraft
+            IDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
+            INHERITED=b a
+            IUSE=global eclass a global eclass b
+            LICENSE=l1
+            RDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
+            REQUIRED_USE=global eclass a global eclass b
+            RESTRICT=global eclass a global eclass b
+            S=/tmp
+            SLOT=0/1
+            SRC_URI=https://github.com/pkgcraft/a.tar.xz https://github.com/pkgcraft/pkgcraft-9999.tar.xz
+            T=/tmp
+            TMPDIR=/tmp
+            USE=
+            WORKDIR=/tmp
+        "})
+        .stderr("")
+        .success();
+}
+
+#[test]
 fn current_dir() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap();
 
     // package directory
     env::set_current_dir(repo.path().join("inherit/indirect")).unwrap();
-    cmd("pk pkg env -f=-FILESDIR")
+    cmd("pk pkg env -f -FILESDIR")
         .assert()
         .stdout(indoc::indoc! {"
             BDEPEND=cat/pkg ebuild/pkg cat/pkg eclass/pkg a/pkg cat/pkg eclass/pkg b/pkg
@@ -78,7 +135,7 @@ fn current_dir() {
 
     // category directory
     env::set_current_dir(repo.path().join("inherit")).unwrap();
-    cmd("pk pkg env -f=-FILESDIR")
+    cmd("pk pkg env -f -FILESDIR")
         .assert()
         .stdout(indoc::indoc! {"
             inherit/direct-8::metadata
