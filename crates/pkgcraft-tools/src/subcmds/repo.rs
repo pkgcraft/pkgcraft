@@ -23,21 +23,22 @@ impl Command {
 }
 
 #[derive(clap::Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Subcommand {
     /// Output EAPI statistics
-    Eapi(Box<eapi::Command>),
+    Eapi(eapi::Command),
     /// Output eclass statistics
-    Eclass(Box<eclass::Command>),
+    Eclass(eclass::Command),
     /// Output leaf packages
-    Leaf(Box<leaf::Command>),
+    Leaf(leaf::Command),
     /// Output license statistics
-    License(Box<license::Command>),
+    License(license::Command),
     /// Manipulate repo metadata
-    Metadata(Box<metadata::Command>),
+    Metadata(metadata::Command),
     /// Output mirror statistics
-    Mirror(Box<mirror::Command>),
+    Mirror(mirror::Command),
     /// Output revdeps cache
-    Revdeps(Box<revdeps::Command>),
+    Revdeps(revdeps::Command),
 }
 
 impl Subcommand {

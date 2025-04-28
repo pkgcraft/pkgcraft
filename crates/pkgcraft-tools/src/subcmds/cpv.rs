@@ -20,17 +20,18 @@ impl Command {
 }
 
 #[derive(clap::Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Subcommand {
     /// Compare two cpvs
-    Compare(Box<compare::Command>),
+    Compare(compare::Command),
     /// Determine if a cpv intersects another value
-    Intersect(Box<intersect::Command>),
+    Intersect(intersect::Command),
     /// Parse cpv and optionally print formatted output
-    Parse(Box<parse::Command>),
+    Parse(parse::Command),
     /// Collapse cpvs into a set
-    Set(Box<set::Command>),
+    Set(set::Command),
     /// Sort cpvs
-    Sort(Box<sort::Command>),
+    Sort(sort::Command),
 }
 
 impl Subcommand {

@@ -25,23 +25,24 @@ impl Command {
 }
 
 #[derive(clap::Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Subcommand {
     /// Output ebuild environment
-    Env(Box<env::Command>),
+    Env(env::Command),
     /// Fetch distfiles
-    Fetch(Box<fetch::Command>),
+    Fetch(fetch::Command),
     /// Update manifests
-    Manifest(Box<manifest::Command>),
+    Manifest(manifest::Command),
     /// Manipulate package metadata
-    Metadata(Box<metadata::Command>),
+    Metadata(metadata::Command),
     /// Run the pkg_pretend phase
-    Pretend(Box<pretend::Command>),
+    Pretend(pretend::Command),
     /// Output reverse dependencies
-    Revdeps(Box<revdeps::Command>),
+    Revdeps(revdeps::Command),
     /// Output package keywords
-    Showkw(Box<showkw::Command>),
+    Showkw(showkw::Command),
     /// Benchmark ebuild sourcing
-    Source(Box<source::Command>),
+    Source(source::Command),
 }
 
 impl Subcommand {

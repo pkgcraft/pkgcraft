@@ -8,6 +8,7 @@ mod repo;
 mod version;
 
 #[derive(clap::Subcommand)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Subcommand {
     /// Generate shell completion
     Completion(completion::Command),
