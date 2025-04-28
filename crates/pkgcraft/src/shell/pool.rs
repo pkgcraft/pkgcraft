@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use itertools::Itertools;
-use nix::unistd::{ForkResult, dup, dup2, fork};
+use nix::unistd::{ForkResult, Pid, dup, dup2, fork};
 use scallop::pool::{SharedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
@@ -285,7 +285,7 @@ pub struct BuildPool {
     jobs: usize,
     tx: IpcSender<Command>,
     rx: IpcReceiver<Command>,
-    running: OnceLock<bool>,
+    pid: OnceLock<Pid>,
 }
 
 // needed due to IpcSender lacking Sync
@@ -304,13 +304,13 @@ impl BuildPool {
             jobs,
             tx,
             rx,
-            running: OnceLock::new(),
+            pid: OnceLock::new(),
         }
     }
 
     /// Start the build pool loop.
     pub(crate) fn start(&self, config: &Config) -> crate::Result<()> {
-        if self.running.set(true).is_err() {
+        if self.pid.get().is_some() {
             // task pool already running
             return Ok(());
         }
@@ -322,10 +322,14 @@ impl BuildPool {
         let mut sem = SharedSemaphore::new(self.jobs)?;
 
         match unsafe { fork() } {
-            Ok(ForkResult::Parent { .. }) => Ok(()),
+            Ok(ForkResult::Parent { child }) => {
+                self.pid.set(child).expect("task pool already running");
+                Ok(())
+            }
             Ok(ForkResult::Child) => {
                 // signal child to exit on parent death
-                #[cfg(target_os = "linux")] {
+                #[cfg(target_os = "linux")]
+                {
                     use nix::sys::{prctl, signal::Signal};
                     prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
                 }
