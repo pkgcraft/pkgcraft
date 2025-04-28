@@ -421,7 +421,13 @@ fn update_build(state: BuildData) {
 
     // HACK: handle resets for builtin command tests
     if cfg!(test) && !matches!(build.state, BuildState::Empty(_)) {
-        let env = scallop::shell::Env::new().allow(["PATH"]);
+        let mut env = scallop::shell::Env::new().allow(["PATH"]);
+
+        // pass through environment when testing
+        if cfg!(feature = "test") {
+            env.extend(std::env::vars());
+        }
+
         scallop::shell::reset(env);
     }
 
@@ -433,7 +439,13 @@ type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 /// Initialize bash for library usage.
 pub(crate) fn init() -> scallop::Result<()> {
     // TODO: pass through variables from allowed set
-    let env = scallop::shell::Env::new().allow(["PATH"]);
+    let mut env = scallop::shell::Env::new().allow(["PATH"]);
+
+    // pass through environment when testing
+    if cfg!(feature = "test") {
+        env.extend(std::env::vars());
+    }
+
     scallop::shell::init(env);
 
     // all builtins are enabled by default, access is restricted at runtime based on scope
