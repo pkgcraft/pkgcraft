@@ -43,15 +43,6 @@ impl Env {
     }
 }
 
-impl IntoIterator for Env {
-    type Item = (String, String);
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.vars.into_iter()
-    }
-}
-
 /// Initialize shared memory for proxying errors.
 fn shm_init() {
     let shm =
