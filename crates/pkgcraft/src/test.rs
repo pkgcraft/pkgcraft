@@ -201,7 +201,7 @@ pub fn test_data() -> TestData {
 
 #[derive(Debug)]
 pub struct TestDataPatched {
-    tmpdir: TempDir,
+    _tmpdir: TempDir,
     config: Config,
 }
 
@@ -229,8 +229,8 @@ fn is_change(entry: &DirEntry) -> bool {
 }
 
 pub fn test_data_patched() -> TestDataPatched {
-    let tmpdir = TempDir::new().unwrap();
-    let tmppath = Utf8Path::from_path(tmpdir.path()).unwrap();
+    let _tmpdir = TempDir::new().unwrap();
+    let tmppath = Utf8Path::from_path(_tmpdir.path()).unwrap();
     let mut config = Config::new("pkgcraft", "");
     let mut repos = vec![];
 
@@ -316,7 +316,7 @@ pub fn test_data_patched() -> TestDataPatched {
     config.repos.extend(repos, &config.settings, false).unwrap();
     config.finalize().unwrap();
 
-    TestDataPatched { tmpdir, config }
+    TestDataPatched { _tmpdir, config }
 }
 
 /// Verify two, ordered iterables are equal.
