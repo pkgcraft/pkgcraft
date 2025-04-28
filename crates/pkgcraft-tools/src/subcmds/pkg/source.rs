@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use clap::{builder::ArgPredicate, Args, ValueEnum};
+use clap::{Args, ValueEnum, builder::ArgPredicate};
 use indicatif::{ProgressBar, ProgressStyle};
 use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;

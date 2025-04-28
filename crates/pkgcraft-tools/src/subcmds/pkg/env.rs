@@ -2,13 +2,13 @@ use std::collections::HashSet;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use clap::{builder::ArgPredicate, Args};
+use clap::{Args, builder::ArgPredicate};
 use globset::{Glob, GlobSetBuilder};
 use indexmap::IndexMap;
 use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
+use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
 use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
