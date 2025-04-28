@@ -266,3 +266,39 @@ fn cumulative() {
             .success();
     }
 }
+
+#[test]
+fn format() {
+    let data = test_data();
+    let repo = data.ebuild_repo("metadata").unwrap();
+
+    for opt in ["-f", "--format"] {
+        // invalid
+        cmd("pk pkg source")
+            .args([opt, "invalid"])
+            .arg(repo)
+            .assert()
+            .stdout("")
+            .stderr(predicate::str::is_empty().not())
+            .failure()
+            .code(2);
+
+        // plain
+        cmd("pk pkg source")
+            .args([opt, "plain"])
+            .arg(repo)
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+
+        // csv
+        cmd("pk pkg source")
+            .args([opt, "csv"])
+            .arg(repo)
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+    }
+}
