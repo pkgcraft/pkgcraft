@@ -16,7 +16,7 @@ use crate::config::Config;
 use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
-use crate::pkg::{PkgPretend, Source};
+use crate::pkg::{Package, PkgPretend, Source};
 use crate::repo::EbuildRepo;
 use crate::repo::Repository;
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
@@ -215,12 +215,16 @@ impl EnvTask {
     fn run(self, config: &Config) -> crate::Result<IndexMap<String, String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
+        let eapi = pkg.eapi().env();
         let skip: HashSet<_> = ["PATH", "PIPESTATUS", "_"].into_iter().collect();
         let external: HashSet<_> = variables::visible().into_iter().collect();
         pkg.source()?;
         Ok(variables::visible()
             .into_iter()
-            .filter(|x| !skip.contains(x.as_ref()) && !external.contains(x))
+            .filter(|var| {
+                let name = var.as_ref();
+                eapi.contains(name) || (!skip.contains(name) && !external.contains(name))
+            })
             .filter_map(|var| var.to_vec().map(|v| (var.to_string(), v.join(" "))))
             .collect())
     }
