@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString, c_void};
 
 use crate::error::{Error, ok_or_error};
-use crate::macros::*;
+use crate::traits::Words;
 use crate::{ExecStatus, bash};
 
 #[derive(Debug)]
@@ -20,11 +20,9 @@ impl Function<'_> {
 
     /// Execute a given shell function.
     pub fn execute(&mut self, args: &[&str]) -> crate::Result<ExecStatus> {
-        let args = [&[self.name()], args].concat();
-        let mut args = iter_to_array!(args.iter(), str_to_raw);
+        let words: Words = [&self.name()].into_iter().chain(args).collect();
         ok_or_error(|| unsafe {
-            let words = bash::strvec_to_word_list(args.as_mut_ptr(), 0, 0);
-            let ret = bash::scallop_execute_shell_function(self.func, words);
+            let ret = bash::scallop_execute_shell_function(self.func, words.as_ptr());
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
