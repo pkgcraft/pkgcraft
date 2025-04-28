@@ -110,7 +110,7 @@ pub fn reset(env: Env) {
 
 pub struct Interactive {
     args: Vec<String>,
-    env: Vec<(String, String)>,
+    env: Env,
 }
 
 impl Default for Interactive {
@@ -148,28 +148,16 @@ impl Interactive {
     }
 
     fn convert_args(self) -> (*mut *mut c_char, i32, *mut *mut c_char) {
-        let mut argv_ptrs: Vec<_> = self
-            .args
-            .into_iter()
-            .map(|s| CString::new(s).unwrap().into_raw())
-            .collect();
+        let mut argv_ptrs = iter_to_array!(self.args.into_iter(), str_to_raw);
         let argc: c_int = argv_ptrs.len().try_into().unwrap();
-        argv_ptrs.push(ptr::null_mut());
-        argv_ptrs.shrink_to_fit();
         let argv = argv_ptrs.as_mut_ptr();
         mem::forget(argv_ptrs);
 
-        let mut env_ptrs: Vec<_> = self
-            .env
-            .into_iter()
-            .map(|(key, val)| CString::new(format!("{key}={val}")).unwrap().into_raw())
-            .collect();
-        env_ptrs.push(ptr::null_mut());
-        env_ptrs.shrink_to_fit();
+        let mut env_ptrs = iter_to_array!(self.env.environ(), str_to_raw);
         let env = env_ptrs.as_mut_ptr();
         mem::forget(env_ptrs);
 
-        (argv, argc, env)
+        (argv, argc - 1, env)
     }
 
     /// Run an interactive shell.
