@@ -3,9 +3,17 @@ use std::ptr;
 
 use crate::bash;
 
+/// Wrapper for bash WordList used for passing arguments to functions and commands.
 pub struct Words {
     words: *mut bash::WordList,
     owned: bool,
+}
+
+impl Words {
+    /// Return the pointer to the underlying bash WordList.
+    pub(crate) fn as_ptr(&self) -> *mut bash::WordList {
+        self.words
+    }
 }
 
 impl TryFrom<Words> for Vec<String> {
