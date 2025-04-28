@@ -171,7 +171,6 @@ impl Interactive {
 
     /// Run an interactive shell in a forked process, returning the exit status.
     pub fn fork(self) -> ExecStatus {
-        let (argv, argc, env) = self.convert_args();
         let mut ret: i32 = -1;
         unsafe {
             bash::lib_error_handlers(Some(error::stderr_output), Some(error::stderr_output));
@@ -182,6 +181,7 @@ impl Interactive {
                     }
                 }
                 Ok(ForkResult::Child) => {
+                    let (argv, argc, env) = self.convert_args();
                     bash::bash_main(argc, argv, env);
                     unreachable!("child shell didn't exit");
                 }
