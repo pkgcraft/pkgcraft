@@ -3,6 +3,7 @@ use std::ffi::{CStr, CString, c_char, c_int};
 use std::sync::LazyLock;
 use std::{env, mem, ptr};
 
+use indexmap::IndexMap;
 use nix::sys::wait::{WaitStatus, waitpid};
 use nix::unistd::{ForkResult, Pid, fork, getpid};
 
@@ -13,7 +14,7 @@ use crate::{ExecStatus, bash, error};
 /// Wrapper to modify the shell environment on initialization.
 #[derive(Default)]
 pub struct Env {
-    vars: Vec<(String, String)>,
+    vars: IndexMap<String, String>,
 }
 
 impl Env {
