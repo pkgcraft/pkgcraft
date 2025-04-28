@@ -298,21 +298,21 @@ impl Config {
         external: bool,
     ) -> crate::Result<Repo> {
         let repo: Repo = value.into();
-        self.repos
-            .extend([repo.clone()], &self.settings, external)?;
 
+        // finalize external repo, loading masters where possible
         if external {
-            // try finalizing external repos to add missing repo deps
-            if let Err(Error::NonexistentRepoMasters { ref repos }) = repo.finalize(self) {
-                // load system repos if they aren't loaded
-                if !self.loaded {
+            if let Repo::Ebuild(r) = &repo {
+                let masters = &r.metadata().config.masters;
+
+                // load system config if masters are missing
+                if !self.has_repos(masters) {
                     self.load()?;
                 }
 
                 // if still missing, try loading repos from parent dir
-                if !self.has_repos(repos) {
+                if !self.has_repos(masters) {
                     if let Some(parent) = repo.path().parent() {
-                        for name in repos {
+                        for name in masters {
                             let path = parent.join(name);
                             if self
                                 .add_format_repo_path(name, &path, 0, false, repo.format())
@@ -323,13 +323,13 @@ impl Config {
                         }
                     }
                 }
-
-                // re-add repo if its masters now exist
-                if self.has_repos(repos) {
-                    return self.add_repo(repo, external);
-                }
             }
+
+            repo.finalize(self)?;
         }
+
+        self.repos
+            .extend([repo.clone()], &self.settings, external)?;
 
         Ok(repo)
     }
@@ -338,7 +338,7 @@ impl Config {
     pub fn get_repo<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
         let repo = self.repos.get(key)?;
 
-        // finalize the repo so cloning works as expected
+        // verify the repo is finalized so cloning works as expected
         repo.finalize(self)?;
 
         Ok(repo)
@@ -594,19 +594,19 @@ mod tests {
         // nonexistent masters
         let path = test_data_path().join("repos/invalid/nonexistent-masters");
         let repo = Repo::from_path("test1", path, 0).unwrap();
-        assert!(config.add_repo(repo, true).is_ok());
+        assert!(config.add_repo(repo, true).is_err());
 
         // empty
         let path = test_data_path().join("repos/valid/empty");
         let repo = Repo::from_path("test2", path, 0).unwrap();
-        assert!(config.add_repo(repo, true).is_ok());
+        config.add_repo(repo, true).unwrap();
 
         // dynamically loaded masters
         let path = test_data_path().join("repos/valid/qa-secondary");
         let repo = Repo::from_path("test3", path, 0).unwrap();
-        assert!(config.add_repo(repo, true).is_ok());
+        config.add_repo(repo, true).unwrap();
 
-        // repo with nonexistent masters fails to finalize
-        assert!(config.finalize().is_err());
+        // config finalization doesn't re-finalize external repos
+        config.finalize().unwrap();
     }
 }
