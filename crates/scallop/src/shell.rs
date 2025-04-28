@@ -44,6 +44,22 @@ impl Env {
     }
 }
 
+impl<S1, S2> Extend<(S1, S2)> for Env
+where
+    S1: std::fmt::Display,
+    S2: std::fmt::Display,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = (S1, S2)>,
+    {
+        self.vars.extend(
+            iter.into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string())),
+        );
+    }
+}
+
 /// Initialize shared memory for proxying errors.
 fn shm_init() {
     let shm =
