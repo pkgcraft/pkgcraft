@@ -73,7 +73,7 @@ impl<'a> Targets<'a> {
             let repo = if let Ok(repo) = self.config.get_repo(id) {
                 repo.clone()
             } else if Utf8Path::new(id).exists() {
-                self.repo_from_path(id)?
+                self.repo_from_nested_path(id)?
             } else {
                 return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
             };
@@ -95,16 +95,6 @@ impl<'a> Targets<'a> {
             self.repo_set = self.config.repos.set(self.repo_format);
         }
         Ok(&self.repo_set)
-    }
-
-    /// Load a repo from a path.
-    fn repo_from_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
-        let path = path.as_ref();
-        if let Some(format) = self.repo_format {
-            self.config.add_format_repo_path(path, path, 0, format)
-        } else {
-            self.config.add_repo_path(path, path, 0)
-        }
     }
 
     /// Load a repo from a nested path.
