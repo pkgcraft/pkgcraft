@@ -290,8 +290,12 @@ impl Config {
     }
 
     /// Add a repo to the config.
-    pub fn add_repo<T: Into<Repo>>(&mut self, value: T) -> crate::Result<Repo> {
-        let repo: Repo = value.into();
+    pub fn add_repo<T>(&mut self, value: T) -> crate::Result<Repo>
+    where
+        T: TryInto<Repo>,
+        Error: From<T::Error>,
+    {
+        let repo: Repo = value.try_into()?;
 
         // automatically load repo deps if possible
         if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
