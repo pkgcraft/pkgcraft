@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
@@ -55,6 +57,12 @@ pub enum Key {
     // match ordering of previous implementations (although the cache format is unordered)
     INHERITED,
     CHKSUM,
+}
+
+impl Borrow<str> for Key {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
 }
 
 /// Ebuild package metadata.
