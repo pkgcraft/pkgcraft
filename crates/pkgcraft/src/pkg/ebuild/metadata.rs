@@ -1,4 +1,6 @@
 use std::borrow::Borrow;
+use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
 use itertools::Itertools;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
@@ -18,20 +20,7 @@ use super::keyword::Keyword;
 /// Many of these directly correspond to variables set in ebuilds or eclasses. See the related
 /// metadata key sets in [`Eapi`] for EAPI support relating to incrementals, dependencies, and
 /// mandatory settings.
-#[derive(
-    AsRefStr,
-    EnumIter,
-    EnumString,
-    Display,
-    Debug,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Copy,
-    Clone,
-)]
+#[derive(AsRefStr, EnumIter, EnumString, Display, Debug, Copy, Clone)]
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
@@ -57,6 +46,32 @@ pub enum Key {
     // match ordering of previous implementations (although the cache format is unordered)
     INHERITED,
     CHKSUM,
+}
+
+impl PartialEq for Key {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Eq for Key {}
+
+impl Ord for Key {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.as_ref().cmp(other.as_ref())
+    }
+}
+
+impl PartialOrd for Key {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Hash for Key {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state);
+    }
 }
 
 impl Borrow<str> for Key {
