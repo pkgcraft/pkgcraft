@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 use std::{fmt, io};
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use enum_as_inner::EnumAsInner;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
@@ -139,6 +139,20 @@ impl From<FakeRepo> for Repo {
         Self::Fake(repo)
     }
 }
+
+/// Try creating a repo from a path.
+macro_rules! make_repo_from_path {
+    ($($x:ty),+) => {$(
+        impl TryFrom<$x> for Repo {
+            type Error = Error;
+
+            fn try_from(path: $x) -> crate::Result<Self> {
+                Repo::from_nested_path(path, 0)
+            }
+        }
+    )+};
+}
+make_repo_from_path!(&Utf8Path, Utf8PathBuf, &Utf8PathBuf);
 
 impl From<&Repo> for Restrict {
     fn from(repo: &Repo) -> Self {

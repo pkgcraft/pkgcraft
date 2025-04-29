@@ -594,7 +594,10 @@ mod tests {
         let repo = Repo::from_path("test3", path, 0).unwrap();
         config.add_repo(repo).unwrap();
 
-        // config finalization doesn't re-finalize repos
-        config.finalize().unwrap();
+        // add directly via path
+        let path = test_data_path().join("repos/valid/metadata");
+        config.add_repo(&path).unwrap();
+        config.add_repo(path.join("slot/slot")).unwrap();
+        assert!(config.add_repo(path.join("nonexistent")).is_err());
     }
 }
