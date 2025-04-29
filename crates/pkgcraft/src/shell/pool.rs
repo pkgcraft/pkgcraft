@@ -21,6 +21,8 @@ use crate::repo::EbuildRepo;
 use crate::repo::Repository;
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 
+use super::environment::{BASH, EXTERNAL};
+
 /// Get an ebuild repo from a config matching a given ID.
 fn get_ebuild_repo<'a>(config: &'a Config, repo: &str) -> crate::Result<&'a EbuildRepo> {
     config
@@ -216,14 +218,16 @@ impl EnvTask {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         let eapi = pkg.eapi().env();
-        let skip: HashSet<_> = ["PATH", "PIPESTATUS", "_"].into_iter().collect();
-        let external: HashSet<_> = variables::visible().into_iter().collect();
+        let skip: HashSet<_> = ["PIPESTATUS", "_"].into_iter().collect();
         pkg.source()?;
         Ok(variables::visible()
             .into_iter()
             .filter(|var| {
                 let name = var.as_ref();
-                eapi.contains(name) || (!skip.contains(name) && !external.contains(name))
+                eapi.contains(name)
+                    || (!skip.contains(name)
+                        && !EXTERNAL.contains(name)
+                        && !BASH.contains(name))
             })
             .filter_map(|var| var.to_vec().map(|v| (var.to_string(), v.join(" "))))
             .collect())

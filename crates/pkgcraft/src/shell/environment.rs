@@ -3,13 +3,32 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::sync::LazyLock;
 
+use indexmap::IndexSet;
 use scallop::ExecStatus;
-use scallop::variables::{Attr, bind, unbind};
+use scallop::variables::{self, Attr, bind, unbind};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::get_build_mut;
 use super::scope::EbuildScope;
+
+/// Ordered set of all externally defined environment variables.
+///
+/// Don't use this before bash is initialized.
+pub(crate) static EXTERNAL: LazyLock<IndexSet<String>> =
+    LazyLock::new(|| std::env::vars().map(|(name, _)| name).collect());
+
+/// Ordered set of all bash-specific environment variables.
+///
+/// Don't use this before bash is initialized.
+pub(crate) static BASH: LazyLock<IndexSet<String>> = LazyLock::new(|| {
+    variables::visible()
+        .into_iter()
+        .filter(|var| !EXTERNAL.contains(var.as_ref()))
+        .map(|var| var.to_string())
+        .collect()
+});
 
 #[derive(AsRefStr, Display, EnumIter, EnumString, Debug, Copy, Clone)]
 #[strum(serialize_all = "UPPERCASE")]

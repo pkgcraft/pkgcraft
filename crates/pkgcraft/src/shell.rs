@@ -33,7 +33,7 @@ pub(crate) mod test;
 mod unescape;
 mod utils;
 
-use environment::Variable;
+use environment::{BASH, EXTERNAL, Variable};
 use scope::Scope;
 
 // builtins that are permanently disabled
@@ -425,7 +425,7 @@ fn update_build(state: BuildData) {
 
         // pass through environment when testing
         if cfg!(feature = "test") {
-            env.extend(std::env::vars());
+            env.extend(EXTERNAL.iter().cloned());
         }
 
         scallop::shell::reset(env);
@@ -438,15 +438,21 @@ type BuildFn = fn(build: &mut BuildData) -> scallop::Result<ExecStatus>;
 
 /// Initialize bash for library usage.
 pub(crate) fn init() -> scallop::Result<()> {
+    // populate external variables
+    LazyLock::force(&EXTERNAL);
+
     // TODO: pass through variables from allowed set
     let mut env = scallop::shell::Env::new().allow(["PATH"]);
 
     // pass through environment when testing
     if cfg!(feature = "test") {
-        env.extend(std::env::vars());
+        env.extend(EXTERNAL.iter().cloned());
     }
 
     scallop::shell::init(env);
+
+    // populate bash variables
+    LazyLock::force(&BASH);
 
     // all builtins are enabled by default, access is restricted at runtime based on scope
     builtins::register(&*commands::BUILTINS);
