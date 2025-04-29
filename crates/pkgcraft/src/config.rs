@@ -225,9 +225,6 @@ impl Config {
         Ok(())
     }
 
-    // Note that repo references can't be returned since the underlying map structure alters them
-    // during mutations causing references to change.
-
     /// Add local repo from a filesystem path.
     pub fn add_repo_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         &mut self,
