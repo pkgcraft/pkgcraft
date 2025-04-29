@@ -115,7 +115,7 @@ fn optfeature<'a>(
         match Dep::try_new(x) {
             Ok(dep) => {
                 // TODO: move inherited repo search to pkgcraft
-                if !pkg.repo().trees().rev().any(|r| r.contains(dep.cpn())) {
+                if !pkg.repo().trees().any(|r| r.contains(dep.cpn())) {
                     Optfeature
                         .version(pkg)
                         .message(format!("nonexistent dep: {x}"))

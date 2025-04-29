@@ -195,9 +195,9 @@ impl EbuildRepo {
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
     }
 
-    /// Return the complete repo inheritance sequence.
-    pub fn trees(&self) -> impl DoubleEndedIterator<Item = &Self> {
-        self.masters().iter().chain([self])
+    /// Return the iterator of all inherited repos.
+    pub fn trees(&self) -> impl Iterator<Item = &Self> {
+        [self].into_iter().chain(self.masters())
     }
 
     /// Return the ordered map of inherited eclasses.
@@ -205,7 +205,6 @@ impl EbuildRepo {
         self.0.data.eclasses.get_or_init(|| {
             let mut eclasses: IndexSet<_> = self
                 .trees()
-                .rev()
                 .flat_map(|r| r.metadata().eclasses().clone())
                 .collect();
             eclasses.sort_unstable();
@@ -218,7 +217,6 @@ impl EbuildRepo {
         self.0.data.use_expand.get_or_init(|| {
             let mut use_expand: IndexMap<_, _> = self
                 .trees()
-                .rev()
                 .flat_map(|r| r.metadata().use_expand().clone())
                 .collect();
             use_expand.sort_unstable_keys();
@@ -300,7 +298,6 @@ impl EbuildRepo {
         self.0.data.arches.get_or_init(|| {
             let mut arches: IndexSet<_> = self
                 .trees()
-                .rev()
                 .flat_map(|r| r.metadata().arches().clone())
                 .collect();
             arches.sort_unstable();
@@ -313,7 +310,6 @@ impl EbuildRepo {
         self.0.data.licenses.get_or_init(|| {
             let mut licenses: IndexSet<_> = self
                 .trees()
-                .rev()
                 .flat_map(|r| r.metadata().licenses().clone())
                 .collect();
             licenses.sort_unstable();
@@ -326,7 +322,6 @@ impl EbuildRepo {
         self.0.data.license_groups.get_or_init(|| {
             let mut license_groups: IndexMap<_, _> = self
                 .trees()
-                .rev()
                 .flat_map(|r| r.metadata().license_groups().clone())
                 .collect();
             license_groups.sort_keys();
@@ -339,7 +334,6 @@ impl EbuildRepo {
         self.0.data.mirrors.get_or_init(|| {
             let mut mirrors: IndexMap<_, _> = self
                 .trees()
-                .rev()
                 .flat_map(|r| r.metadata().mirrors().clone())
                 .collect();
             mirrors.sort_keys();
@@ -1267,7 +1261,7 @@ mod tests {
         config.finalize().unwrap();
         let secondary_repo = repo.as_ebuild().unwrap();
         assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
-        assert_ordered_eq!(secondary_repo.trees(), [primary_repo, secondary_repo]);
+        assert_ordered_eq!(secondary_repo.trees(), [secondary_repo, primary_repo]);
     }
 
     #[test]
