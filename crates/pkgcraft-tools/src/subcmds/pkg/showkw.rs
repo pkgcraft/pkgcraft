@@ -66,7 +66,6 @@ impl Command {
             // determine default repo arches
             let mut enabled = pkg
                 .repo()
-                .metadata()
                 .arches()
                 .iter()
                 .filter(|&x| arch_filter(x))
