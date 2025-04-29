@@ -26,7 +26,6 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
     id: *const c_char,
     priority: c_int,
     path: *const c_char,
-    external: bool,
 ) -> *mut Repo {
     ffi_catch_panic! {
         let path = try_str_from_ptr!(path);
@@ -37,7 +36,7 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
         };
 
         let config = try_mut_from_ptr!(c);
-        let repo = unwrap_or_panic!(config.add_repo_path(id, path, priority, external));
+        let repo = unwrap_or_panic!(config.add_repo_path(id, path, priority));
         Box::into_raw(Box::new(repo))
     }
 }
@@ -49,15 +48,11 @@ pub unsafe extern "C" fn pkgcraft_config_add_repo_path(
 /// # Safety
 /// The arguments must be valid Config and Repo pointers.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pkgcraft_config_add_repo(
-    c: *mut Config,
-    r: *mut Repo,
-    external: bool,
-) -> *mut Repo {
+pub unsafe extern "C" fn pkgcraft_config_add_repo(c: *mut Config, r: *mut Repo) -> *mut Repo {
     ffi_catch_panic! {
         let config = try_mut_from_ptr!(c);
         let repo = try_ref_from_ptr!(r);
-        unwrap_or_panic!(config.add_repo(repo, external));
+        unwrap_or_panic!(config.add_repo(repo));
         r
     }
 }

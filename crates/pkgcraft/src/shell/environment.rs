@@ -250,11 +250,7 @@ mod tests {
 
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
         let all_scopes: Vec<_> = EbuildScope::All.into_iter().collect();
 
@@ -355,11 +351,7 @@ mod tests {
     fn state() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -402,11 +394,7 @@ mod tests {
     fn vars_ebuild_phase() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
@@ -447,11 +435,7 @@ mod tests {
     fn vars_pkg() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {

@@ -516,7 +516,7 @@ mod tests {
 
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let e_repo = config.add_repo(&temp, false).unwrap();
+        let e_repo = config.add_repo(&temp).unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         config.finalize().unwrap();
 

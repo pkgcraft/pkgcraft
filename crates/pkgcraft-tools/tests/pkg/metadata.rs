@@ -47,11 +47,7 @@ fn targets() {
     temp.create_ebuild("cat/pkg-2", &[]).unwrap();
     temp.create_ebuild("cat/a-1", &[]).unwrap();
     temp.create_ebuild("a/b-1", &[]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
     env::set_current_dir(&repo).unwrap();
 
@@ -116,11 +112,7 @@ fn remove() {
     temp.create_ebuild("cat/pkg-2", &[]).unwrap();
     temp.create_ebuild("cat/a-1", &[]).unwrap();
     temp.create_ebuild("a/b-1", &[]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
     env::set_current_dir(&repo).unwrap();
 
@@ -198,11 +190,7 @@ fn custom_path() {
     let mut config = Config::default();
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
     for opt in ["-p", "--path"] {
         cmd("pk pkg metadata cat/pkg-1")
@@ -250,11 +238,7 @@ fn verify() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         cmd("pk pkg metadata cat/pkg-1")
             .args(["--repo", repo.as_ref()])
             .arg(opt)

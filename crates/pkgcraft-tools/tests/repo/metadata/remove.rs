@@ -12,11 +12,7 @@ fn run() {
     let mut config = Config::default();
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
     let path = repo.metadata().cache().path();
 
     // generate cache
@@ -54,11 +50,7 @@ fn current_dir() {
     let mut config = Config::default();
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
     let path = repo.metadata().cache().path();
     env::set_current_dir(&repo).unwrap();
 

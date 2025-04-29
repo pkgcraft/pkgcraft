@@ -1232,7 +1232,7 @@ mod tests {
         // none
         let mut config = Config::default();
         let repo = config
-            .add_repo_path("a", repos.join("valid/primary"), 0, false)
+            .add_repo_path("a", repos.join("valid/primary"), 0)
             .unwrap();
         config.finalize().unwrap();
         let primary_repo = repo.as_ebuild().unwrap();
@@ -1242,24 +1242,22 @@ mod tests {
         // nonexistent
         let mut config = Config::default();
         config
-            .add_repo_path("a", repos.join("valid/primary"), 0, false)
+            .add_repo_path("primary", repos.join("valid/primary"), 0)
             .unwrap();
-        config
-            .add_repo_path("test", repos.join("invalid/nonexistent-masters"), 0, false)
-            .unwrap();
-        let r = config.finalize();
-        assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
+        let r = config.add_repo_path("test", repos.join("invalid/nonexistent-masters"), 0);
+        assert_err_re!(r, "^nonexistent masters: nonexistent1, nonexistent2$");
 
         // single
         let mut config = Config::default();
-        config
-            .add_repo_path("a", repos.join("valid/primary"), 0, false)
+        let r1 = config
+            .add_repo_path("primary", repos.join("valid/primary"), 0)
             .unwrap();
-        let repo = config
-            .add_repo_path("b", repos.join("valid/secondary"), 0, false)
+        let r2 = config
+            .add_repo_path("secondary", repos.join("valid/secondary"), 0)
             .unwrap();
         config.finalize().unwrap();
-        let secondary_repo = repo.as_ebuild().unwrap();
+        let primary_repo = r1.as_ebuild().unwrap();
+        let secondary_repo = r2.as_ebuild().unwrap();
         assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
         assert_ordered_eq!(secondary_repo.trees(), [secondary_repo, primary_repo]);
     }
@@ -1309,11 +1307,7 @@ mod tests {
     fn restrict_from_path() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         fs::File::create(temp.path().join("cat/pkg/pkga-1.ebuild")).unwrap();
         fs::File::create(temp.path().join("cat/pkg/pkg.ebuild")).unwrap();
@@ -1377,11 +1371,11 @@ mod tests {
         let repos = data.path().join("repos");
 
         // nonexistent profiles/eapi file uses EAPI 0 which isn't supported
-        let r = config.add_repo_path("test", repos.join("invalid/unsupported-eapi"), 0, false);
+        let r = config.add_repo_path("test", repos.join("invalid/unsupported-eapi"), 0);
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: 0$");
 
         // unknown EAPI
-        let r = config.add_repo_path("test", repos.join("invalid/unknown-eapi"), 0, false);
+        let r = config.add_repo_path("test", repos.join("invalid/unknown-eapi"), 0);
         assert_err_re!(r, "^invalid repo: test: profiles/eapi: unsupported EAPI: unknown$");
 
         // supported EAPI
@@ -1398,11 +1392,7 @@ mod tests {
 
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         config.finalize().unwrap();
@@ -1419,11 +1409,7 @@ mod tests {
 
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("a-cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("z-cat/pkg-1", &[]).unwrap();
@@ -1436,11 +1422,7 @@ mod tests {
     fn packages() {
         let mut config = Config::default();
         let temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         assert!(repo.packages("cat").is_empty());
@@ -1455,11 +1437,7 @@ mod tests {
     fn versions() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         let ver = |s: &str| Version::try_new(s).unwrap();
@@ -1490,11 +1468,7 @@ mod tests {
     fn contains() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat/pkg-2", &[]).unwrap();
         config.finalize().unwrap();
@@ -1551,11 +1525,7 @@ mod tests {
     fn iter_cpn() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
@@ -1572,11 +1542,7 @@ mod tests {
     fn iter_cpn_restrict() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
@@ -1641,11 +1607,7 @@ mod tests {
     fn iter_cpv() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
@@ -1661,11 +1623,7 @@ mod tests {
     fn iter_cpv_restrict() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
@@ -1725,11 +1683,7 @@ mod tests {
     fn iter() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
@@ -1773,11 +1727,7 @@ mod tests {
     fn iter_ordered() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         let cpvs: Vec<_> = (0..100)
             .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
             .collect();
@@ -1800,11 +1750,7 @@ mod tests {
     fn iter_unordered() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         let cpvs: Vec<_> = (0..100)
             .map(|x| Cpv::try_new(format!("cat/pkg-{x}")).unwrap())
             .collect();

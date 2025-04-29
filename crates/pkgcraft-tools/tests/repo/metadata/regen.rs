@@ -88,11 +88,7 @@ fn single() {
     let mut config = Config::default();
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat/pkg-1", &["EAPI=7"]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
     // default target is the current working directory
     env::set_current_dir(&repo).unwrap();
@@ -180,11 +176,7 @@ fn multiple() {
     temp.create_ebuild("cat/a-1", &[]).unwrap();
     temp.create_ebuild("cat/b-1", &[]).unwrap();
     temp.create_ebuild("other/pkg-1", &[]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
     cmd("pk repo metadata regen")
         .arg(&repo)
@@ -219,11 +211,7 @@ fn pkg_with_invalid_eapi() {
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat/a-1", &["EAPI=invalid"]).ok();
     temp.create_ebuild("cat/b-1", &["EAPI=8"]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
     cmd("pk repo metadata regen")
         .arg(&repo)
@@ -244,11 +232,7 @@ fn pkg_with_invalid_dep() {
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
     temp.create_ebuild("cat/a-1", &["DEPEND=cat/pkg[]"]).ok();
     temp.create_ebuild("cat/b-1", &["DEPEND=cat/pkg"]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
     cmd("pk repo metadata regen")
         .arg(&repo)

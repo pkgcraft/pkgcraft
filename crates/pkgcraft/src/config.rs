@@ -212,7 +212,7 @@ impl Config {
 
         let repos = portage::load_repos_conf(repos_conf)?;
         if !repos.is_empty() {
-            self.repos.extend(repos, &self.settings, false)?;
+            self.repos.extend(repos, &self.settings)?;
         }
 
         Ok(())
@@ -234,10 +234,9 @@ impl Config {
         name: S,
         path: P,
         priority: i32,
-        external: bool,
     ) -> crate::Result<Repo> {
         let r = Repo::from_path(name, path, priority)?;
-        self.add_repo(&r, external)
+        self.add_repo(&r)
     }
 
     /// Add local repo of a specific format from a filesystem path.
@@ -246,11 +245,10 @@ impl Config {
         name: S,
         path: P,
         priority: i32,
-        external: bool,
         format: RepoFormat,
     ) -> crate::Result<Repo> {
         let r = format.from_path(name, path, priority)?;
-        self.add_repo(&r, external)
+        self.add_repo(&r)
     }
 
     /// Add local repo from a potentially nested filesystem path.
@@ -260,7 +258,7 @@ impl Config {
         priority: i32,
     ) -> crate::Result<Repo> {
         let r = Repo::from_nested_path(path, priority)?;
-        self.add_repo(&r, true)
+        self.add_repo(&r)
     }
 
     /// Add local repo of a specific format from a potentially nested filesystem path.
@@ -276,11 +274,11 @@ impl Config {
                 Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
             }
             Err(e) => Err(e),
-            Ok(r) => self.add_repo(&r, true),
+            Ok(r) => self.add_repo(&r),
         }
     }
 
-    /// Add external repo from a URI.
+    /// Add repo from a URI.
     pub fn add_repo_uri(
         &mut self,
         name: &str,
@@ -288,44 +286,38 @@ impl Config {
         uri: &str,
     ) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
-        self.add_repo(&r, false)
+        self.add_repo(&r)
     }
 
     /// Add a repo to the config.
-    pub fn add_repo<T: Into<Repo>>(
-        &mut self,
-        value: T,
-        external: bool,
-    ) -> crate::Result<Repo> {
+    pub fn add_repo<T: Into<Repo>>(&mut self, value: T) -> crate::Result<Repo> {
         let repo: Repo = value.into();
 
-        // automatically load repo deps for external repos if possible
-        if external {
-            if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
-                // load system config
-                self.load()?;
+        // automatically load repo deps if possible
+        if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
+            // load system config
+            self.load()?;
 
-                // if repos are still missing, try loading from the parent dir
-                if !self.has_repos(&repos) {
-                    if let Some(parent) = repo.path().parent() {
-                        for name in &repos {
-                            let path = parent.join(name);
-                            if self
-                                .add_format_repo_path(name, &path, 0, false, repo.format())
-                                .is_err()
-                            {
-                                break;
-                            }
+            // if repos are still missing, try loading from the parent dir
+            if !self.has_repos(&repos) {
+                if let Some(parent) = repo.path().parent() {
+                    for name in &repos {
+                        let path = parent.join(name);
+                        //let repo = repo.format().from_path(name, &path, repo.priority())?;
+                        if self
+                            .add_format_repo_path(name, &path, 0, repo.format())
+                            .is_err()
+                        {
+                            break;
                         }
                     }
                 }
-
-                repo.finalize(self)?;
             }
+
+            repo.finalize(self)?;
         }
 
-        self.repos
-            .extend([repo.clone()], &self.settings, external)?;
+        self.repos.extend([repo.clone()], &self.settings)?;
 
         Ok(repo)
     }
@@ -528,14 +520,14 @@ mod tests {
         config.load_portage_conf(Some(conf_path)).unwrap();
         assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["c", "b"]);
 
-        // reloading existing repo using a different id fails
+        // reloading existing repo using a different id succeeds
         let data = indoc::formatdoc! {r#"
             [r4]
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        let r = config.load_portage_conf(Some(conf_path));
-        assert_err_re!(r, "existing repos: r4");
+        config.load_portage_conf(Some(conf_path)).unwrap();
+        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["c", "b", "r4"]);
 
         // nonexistent masters causes finalization failure
         let mut config = Config::new("pkgcraft", "");
@@ -590,19 +582,19 @@ mod tests {
         // nonexistent masters
         let path = test_data_path().join("repos/invalid/nonexistent-masters");
         let repo = Repo::from_path("test1", path, 0).unwrap();
-        assert!(config.add_repo(repo, true).is_err());
+        assert!(config.add_repo(repo).is_err());
 
         // empty
         let path = test_data_path().join("repos/valid/empty");
         let repo = Repo::from_path("test2", path, 0).unwrap();
-        config.add_repo(repo, true).unwrap();
+        config.add_repo(repo).unwrap();
 
         // dynamically loaded masters
         let path = test_data_path().join("repos/valid/qa-secondary");
         let repo = Repo::from_path("test3", path, 0).unwrap();
-        config.add_repo(repo, true).unwrap();
+        config.add_repo(repo).unwrap();
 
-        // config finalization doesn't re-finalize external repos
+        // config finalization doesn't re-finalize repos
         config.finalize().unwrap();
     }
 }

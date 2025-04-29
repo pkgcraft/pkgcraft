@@ -63,7 +63,7 @@ impl RepoConfig {
 #[derive(Debug, Default, Clone)]
 pub struct ConfigRepos {
     config_dir: Utf8PathBuf,
-    repo_dir: Utf8PathBuf,
+    repos_dir: Utf8PathBuf,
     repos: IndexMap<String, Repo>,
     configured: IndexSet<Repo>,
     nonexistent: IndexMap<String, RepoConfig>,
@@ -76,7 +76,7 @@ impl ConfigRepos {
         settings: &Arc<super::Settings>,
     ) -> crate::Result<Self> {
         let config_dir = config_dir.join("repos");
-        let repo_dir = db_dir.join("repos");
+        let repos_dir = db_dir.join("repos");
 
         let mut configs = vec![];
         if config_dir.exists() {
@@ -118,19 +118,19 @@ impl ConfigRepos {
 
         let mut config = Self {
             config_dir,
-            repo_dir,
+            repos_dir,
             nonexistent,
             ..Default::default()
         };
 
         // add repos to the config
-        config.extend(repos, settings, false)?;
+        config.extend(repos, settings)?;
         Ok(config)
     }
 
     /// Create related repo config paths.
     pub(super) fn create_paths(&self) -> crate::Result<()> {
-        for path in [&self.config_dir, &self.repo_dir] {
+        for path in [&self.config_dir, &self.repos_dir] {
             fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
         }
         Ok(())
@@ -144,7 +144,7 @@ impl ConfigRepos {
         uri: &str,
     ) -> crate::Result<Repo> {
         let config = RepoConfig {
-            location: self.repo_dir.join(name),
+            location: self.repos_dir.join(name),
             priority: Some(priority),
             sync: Some(uri.parse()?),
             ..RepoFormat::Ebuild.into()
@@ -271,27 +271,18 @@ impl ConfigRepos {
         &mut self,
         repos: I,
         settings: &Arc<super::Settings>,
-        external: bool,
     ) -> crate::Result<()> {
         let mut existing_repos = vec![];
         let mut new_repos = IndexMap::new();
 
         // determine if any new repos override existing ones
         for repo in repos {
-            // use path names for external repos
-            let path = repo.path().as_str();
-            let name = if external && !path.is_empty() {
-                path
-            } else {
-                repo.name()
-            };
-
-            if let Some(existing) = self.repos.get(name) {
+            if let Some(existing) = self.repos.get(repo.id()) {
                 if existing != &repo {
                     existing_repos.push(repo);
                 }
             } else {
-                new_repos.insert(name.to_string(), repo);
+                new_repos.insert(repo.id().to_string(), repo);
             }
         }
 
@@ -413,7 +404,7 @@ mod tests {
 
         // fake repo with no-op syncing
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
-        config.add_repo(fake_repo, false).unwrap();
+        config.add_repo(fake_repo).unwrap();
         assert!(config.repos.sync(["fake"]).is_ok());
 
         // all repos

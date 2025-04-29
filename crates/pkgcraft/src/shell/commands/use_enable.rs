@@ -46,11 +46,7 @@ mod tests {
     fn enabled_and_disabled() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();

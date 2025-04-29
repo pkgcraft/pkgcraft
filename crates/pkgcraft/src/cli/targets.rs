@@ -101,10 +101,9 @@ impl<'a> Targets<'a> {
     fn repo_from_path<P: AsRef<Utf8Path>>(&mut self, path: P) -> crate::Result<Repo> {
         let path = path.as_ref();
         if let Some(format) = self.repo_format {
-            self.config
-                .add_format_repo_path(path, path, 0, true, format)
+            self.config.add_format_repo_path(path, path, 0, format)
         } else {
-            self.config.add_repo_path(path, path, 0, true)
+            self.config.add_repo_path(path, path, 0)
         }
     }
 
@@ -423,20 +422,12 @@ mod tests {
 
         // add ebuild repo to config
         let mut temp = EbuildRepoBuilder::new().name("ebuild").build().unwrap();
-        let ebuild_repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let ebuild_repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
 
         // add fake repo to config
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-2"]).unwrap();
-        let fake_repo = config
-            .add_repo(fake_repo, false)
-            .unwrap()
-            .into_fake()
-            .unwrap();
+        let fake_repo = config.add_repo(fake_repo).unwrap().into_fake().unwrap();
 
         // finalize config and pull pkgs
         config.finalize().unwrap();

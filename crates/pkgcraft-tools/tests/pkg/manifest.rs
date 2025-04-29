@@ -253,11 +253,7 @@ async fn regen() {
         SLOT=0
     "#};
     temp.create_ebuild_from_str("cat/pkg-2", &data).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
     let pkg1 = repo.get_pkg_raw("cat/pkg-1").unwrap();
     let pkg2 = repo.get_pkg_raw("cat/pkg-2").unwrap();
 

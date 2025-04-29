@@ -502,11 +502,7 @@ mod tests {
     fn global_scope_external_command() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
@@ -531,11 +527,7 @@ mod tests {
     fn global_scope_absolute_path_command() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
@@ -560,11 +552,7 @@ mod tests {
     fn failglob() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
@@ -589,11 +577,7 @@ mod tests {
     fn cmd_overrides() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
@@ -616,11 +600,7 @@ mod tests {
     fn direct_phase_calls() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         for eapi in &*EAPIS {

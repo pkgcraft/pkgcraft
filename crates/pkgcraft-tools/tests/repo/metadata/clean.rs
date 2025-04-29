@@ -13,11 +13,7 @@ fn run() {
     temp.create_ebuild("cat/a-1", &[]).unwrap();
     temp.create_ebuild("cat/b-1", &[]).unwrap();
     temp.create_ebuild("cat/b-2", &[]).unwrap();
-    let repo = config
-        .add_repo(&temp, false)
-        .unwrap()
-        .into_ebuild()
-        .unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
     let path = repo.metadata().cache().path();
 
     // generate cache

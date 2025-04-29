@@ -849,12 +849,12 @@ mod tests {
 
         // ebuild repo
         let mut temp = EbuildRepoBuilder::new().name("test").build().unwrap();
-        let e_repo = config.add_repo(&temp, false).unwrap();
+        let e_repo = config.add_repo(&temp).unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
 
         // fake repo
         let fake = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
-        let f_repo = config.add_repo(fake, false).unwrap();
+        let f_repo = config.add_repo(fake).unwrap();
 
         // finalize repos
         config.finalize().unwrap();

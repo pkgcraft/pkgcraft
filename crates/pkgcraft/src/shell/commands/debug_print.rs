@@ -59,11 +59,7 @@ mod tests {
             SLOT=0
         "#};
 
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
@@ -93,11 +89,7 @@ mod tests {
             e1_func msg 1 2 3
         "#};
 
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();

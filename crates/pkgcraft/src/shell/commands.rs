@@ -716,11 +716,7 @@ macro_rules! cmd_scope_tests {
                 {invalid_cmd}
             "#};
             temp.create_eclass("invalid", &eclass).unwrap();
-            let repo = config
-                .add_repo(&temp, false)
-                .unwrap()
-                .into_ebuild()
-                .unwrap();
+            let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
             config.finalize().unwrap();
             let all_scopes: HashSet<_> = EbuildScope::All.into_iter().collect();
 

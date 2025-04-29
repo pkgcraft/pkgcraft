@@ -272,11 +272,7 @@ mod tests {
     fn ebuild() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         // single
@@ -317,11 +313,7 @@ mod tests {
     fn description() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &["DESCRIPTION=desc1"])
             .unwrap();
         temp.create_ebuild("cat/pkg-2", &["DESCRIPTION=desc2"])
@@ -352,11 +344,7 @@ mod tests {
     fn slot() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
@@ -385,11 +373,7 @@ mod tests {
     fn subslot() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
         temp.create_ebuild("cat/pkg-1", &["SLOT=1/2"]).unwrap();
         config.finalize().unwrap();
@@ -424,11 +408,7 @@ mod tests {
     fn long_description() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
 
         temp.create_ebuild("cat/pkg-a-1", &[]).unwrap();
 
@@ -486,11 +466,7 @@ mod tests {
     fn maintainers() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
-        let repo = config
-            .add_repo(&temp, false)
-            .unwrap()
-            .into_ebuild()
-            .unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
         // none
