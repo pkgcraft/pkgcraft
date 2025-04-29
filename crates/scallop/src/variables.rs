@@ -418,6 +418,7 @@ pub fn exported() -> IndexSet<Variable> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::fs::File;
 
     use tempfile::tempdir;
@@ -482,6 +483,7 @@ mod tests {
     fn test_variable() {
         let mut var = Variable::new("VAR");
         assert_eq!(var.as_ref(), "VAR");
+        assert!(HashSet::from([var.clone()]).contains("VAR"));
         assert_eq!(var.to_string(), "VAR");
         assert_eq!(var.optional(), None);
         assert!(var.required().is_err());
