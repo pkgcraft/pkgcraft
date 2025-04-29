@@ -217,14 +217,16 @@ impl EnvTask {
     fn run(self, config: &Config) -> crate::Result<IndexMap<String, String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
-        let eapi = pkg.eapi().env();
+        let eapi_vars = pkg.eapi().env();
+        let metadata_vars = pkg.eapi().metadata_keys();
         let skip: HashSet<_> = ["PIPESTATUS", "_"].into_iter().collect();
         pkg.source()?;
         Ok(variables::visible()
             .into_iter()
             .filter(|var| {
                 let name = var.as_ref();
-                eapi.contains(name)
+                eapi_vars.contains(name)
+                    || metadata_vars.contains(name)
                     || (!skip.contains(name)
                         && !EXTERNAL.contains(name)
                         && !BASH.contains(name))
