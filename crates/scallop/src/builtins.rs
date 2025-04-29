@@ -403,11 +403,6 @@ impl Drop for ScopedOptions {
     }
 }
 
-/// Returns the count of nested builtins, e.g. `eval echo a` would have it set to 2.
-pub fn builtin_level() -> i32 {
-    unsafe { bash::BUILTIN_LEVEL }
-}
-
 /// Handle builtin errors.
 pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
     // command_not_found_handle builtin messages are unprefixed

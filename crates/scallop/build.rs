@@ -26,7 +26,6 @@ impl ParseCallbacks for BashCallback {
             "shell_builtins" => Some("SHELL_BUILTINS".into()),
             "num_shell_builtins" => Some("NUM_SHELL_BUILTINS".into()),
             "subshell_level" => Some("SUBSHELL_LEVEL".into()),
-            "executing_builtin" => Some("BUILTIN_LEVEL".into()),
             "restricted" => Some("RESTRICTED".into()),
             "restricted_shell" => Some("RESTRICTED_SHELL".into()),
             "shell_pgrp" => Some("SHELL_PID".into()),
@@ -133,7 +132,6 @@ fn main() {
 
         .header("bash/execute_cmd.h")
         .allowlist_var("subshell_level")
-        .allowlist_var("executing_builtin")
         .allowlist_function("executing_line_number")
         .allowlist_function("scallop_execute_command")
         .allowlist_function("scallop_execute_shell_function")
