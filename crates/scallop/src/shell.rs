@@ -34,28 +34,31 @@ impl Env {
     pub fn allow<I, S>(mut self, vars: I) -> Self
     where
         I: IntoIterator<Item = S>,
-        S: AsRef<str>,
+        S: std::fmt::Display,
     {
-        self.vars.extend(vars.into_iter().filter_map(|x| {
-            let name = x.as_ref();
-            env::var(name).ok().map(|value| (name.to_string(), value))
-        }));
+        self.extend(vars.into_iter().map(|x| x.to_string()));
         self
     }
 }
 
-impl<S1, S2> Extend<(S1, S2)> for Env
-where
-    S1: std::fmt::Display,
-    S2: std::fmt::Display,
-{
+impl Extend<(String, String)> for Env {
     fn extend<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = (S1, S2)>,
+        I: IntoIterator<Item = (String, String)>,
+    {
+        self.vars.extend(iter);
+    }
+}
+
+impl Extend<String> for Env {
+    fn extend<I>(&mut self, value: I)
+    where
+        I: IntoIterator<Item = String>,
     {
         self.vars.extend(
-            iter.into_iter()
-                .map(|(k, v)| (k.to_string(), v.to_string())),
+            value
+                .into_iter()
+                .filter_map(|name| env::var(&name).ok().map(|value| (name, value))),
         );
     }
 }
