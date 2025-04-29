@@ -424,7 +424,7 @@ fn update_build(state: BuildData) {
         let mut env = scallop::shell::Env::new().allow(["PATH"]);
 
         // pass through environment when running tests for code coverage
-        if std::env::var("LLVM_PROFILE_FILE").is_ok() {
+        if cfg!(feature = "test") && std::env::var("LLVM_PROFILE_FILE").is_ok() {
             env.extend(EXTERNAL.iter().cloned());
         }
 
@@ -445,7 +445,7 @@ pub(crate) fn init() -> scallop::Result<()> {
     let mut env = scallop::shell::Env::new().allow(["PATH"]);
 
     // pass through environment when running tests for code coverage
-    if std::env::var("LLVM_PROFILE_FILE").is_ok() {
+    if cfg!(feature = "test") && std::env::var("LLVM_PROFILE_FILE").is_ok() {
         env.extend(EXTERNAL.iter().cloned());
     }
 
