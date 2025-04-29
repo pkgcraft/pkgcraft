@@ -72,10 +72,8 @@ impl<'a> Targets<'a> {
             // try to pull repo from config before path fallback
             let repo = if let Ok(repo) = self.config.get_repo(id) {
                 repo.clone()
-            } else if Utf8Path::new(id).exists() {
-                self.repo_from_path(id)?
             } else {
-                return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
+                self.repo_from_path(id)?
             };
 
             self.repo_set = repo.into();
