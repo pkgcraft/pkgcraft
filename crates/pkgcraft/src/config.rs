@@ -299,20 +299,16 @@ impl Config {
     ) -> crate::Result<Repo> {
         let repo: Repo = value.into();
 
-        // finalize external repo, loading masters where possible
+        // automatically load repo deps for external repos if possible
         if external {
-            if let Repo::Ebuild(r) = &repo {
-                let masters = &r.metadata().config.masters;
+            if let Err(Error::NonexistentRepoMasters { repos }) = repo.finalize(self) {
+                // load system config
+                self.load()?;
 
-                // load system config if masters are missing
-                if !self.has_repos(masters) {
-                    self.load()?;
-                }
-
-                // if still missing, try loading repos from parent dir
-                if !self.has_repos(masters) {
+                // if repos are still missing, try loading from the parent dir
+                if !self.has_repos(&repos) {
                     if let Some(parent) = repo.path().parent() {
-                        for name in masters {
+                        for name in &repos {
                             let path = parent.join(name);
                             if self
                                 .add_format_repo_path(name, &path, 0, false, repo.format())
@@ -323,9 +319,9 @@ impl Config {
                         }
                     }
                 }
-            }
 
-            repo.finalize(self)?;
+                repo.finalize(self)?;
+            }
         }
 
         self.repos
