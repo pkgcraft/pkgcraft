@@ -70,14 +70,13 @@ impl<'a> Targets<'a> {
             }
 
             // try to pull repo from config before path fallback
-            let repo = if let Ok(repo) = self.config.get_repo(id) {
-                repo.clone()
-            } else {
-                self.repo_from_path(id)?
-            };
-
-            self.repo_set = repo.into();
-        } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(&x)) {
+            self.repo_set = self
+                .config
+                .get_repo(id)
+                .cloned()
+                .or_else(|_| self.repo_from_path(id))?
+                .into();
+        } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(x)) {
             self.repo_set = repo.into();
         }
 
