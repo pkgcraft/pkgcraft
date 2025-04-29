@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::Utf8PathBuf;
@@ -423,9 +424,17 @@ fn update_build(state: BuildData) {
     if cfg!(test) && !matches!(build.state, BuildState::Empty(_)) {
         let mut env = scallop::shell::Env::new().allow(["PATH"]);
 
-        // pass through environment when testing
+        // Pass through environment when testing to allow code coverage support.
+        //
+        // Skip EAPI variables to avoid test failures under portage due to its overly
+        // enthusiastic exporting design.
         if cfg!(feature = "test") {
-            env.extend(EXTERNAL.iter().cloned());
+            env.extend(
+                EXTERNAL
+                    .iter()
+                    .filter(|x| Variable::from_str(x).is_err())
+                    .cloned(),
+            );
         }
 
         scallop::shell::reset(env);
@@ -444,9 +453,17 @@ pub(crate) fn init() -> scallop::Result<()> {
     // TODO: pass through variables from allowed set
     let mut env = scallop::shell::Env::new().allow(["PATH"]);
 
-    // pass through environment when testing
+    // Pass through environment when testing to allow code coverage support.
+    //
+    // Skip EAPI variables to avoid test failures under portage due to its overly
+    // enthusiastic exporting design.
     if cfg!(feature = "test") {
-        env.extend(EXTERNAL.iter().cloned());
+        env.extend(
+            EXTERNAL
+                .iter()
+                .filter(|x| Variable::from_str(x).is_err())
+                .cloned(),
+        );
     }
 
     scallop::shell::init(env);
