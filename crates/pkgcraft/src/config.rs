@@ -236,7 +236,7 @@ impl Config {
         priority: i32,
     ) -> crate::Result<Repo> {
         let r = Repo::from_path(name, path, priority)?;
-        self.add_repo(&r)
+        self.add_repo(r)
     }
 
     /// Add local repo of a specific format from a filesystem path.
@@ -248,7 +248,7 @@ impl Config {
         format: RepoFormat,
     ) -> crate::Result<Repo> {
         let r = format.from_path(name, path, priority)?;
-        self.add_repo(&r)
+        self.add_repo(r)
     }
 
     /// Add local repo from a potentially nested filesystem path.
@@ -258,7 +258,7 @@ impl Config {
         priority: i32,
     ) -> crate::Result<Repo> {
         let r = Repo::from_nested_path(path, priority)?;
-        self.add_repo(&r)
+        self.add_repo(r)
     }
 
     /// Add local repo of a specific format from a potentially nested filesystem path.
@@ -274,7 +274,7 @@ impl Config {
                 Err(Error::InvalidValue(format!("invalid {format} repo: {path}")))
             }
             Err(e) => Err(e),
-            Ok(r) => self.add_repo(&r),
+            Ok(r) => self.add_repo(r),
         }
     }
 
@@ -286,7 +286,7 @@ impl Config {
         uri: &str,
     ) -> crate::Result<Repo> {
         let r = self.repos.add_uri(name, priority, uri)?;
-        self.add_repo(&r)
+        self.add_repo(r)
     }
 
     /// Add a repo to the config.
