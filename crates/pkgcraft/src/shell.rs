@@ -433,6 +433,7 @@ fn update_build(state: BuildData) {
                 EXTERNAL
                     .iter()
                     .filter(|x| Variable::from_str(x).is_err())
+                    .filter(|x| Key::from_str(x).is_err())
                     .cloned(),
             );
         }
@@ -462,6 +463,7 @@ pub(crate) fn init() -> scallop::Result<()> {
             EXTERNAL
                 .iter()
                 .filter(|x| Variable::from_str(x).is_err())
+                .filter(|x| Key::from_str(x).is_err())
                 .cloned(),
         );
     }
