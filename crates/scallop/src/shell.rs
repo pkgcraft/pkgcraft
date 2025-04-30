@@ -20,7 +20,15 @@ pub struct Env {
 impl Env {
     /// Create a new shell environment wrapper.
     pub fn new() -> Self {
-        Self::default()
+        let mut env = Self::default();
+
+        // pass through code coverage variables when testing
+        if cfg!(feature = "test") && env::var("CARGO_LLVM_COV").is_ok() {
+            env = env.allow(["LLVM_PROFILE_FILE"]);
+            env.extend(env::vars().filter(|(name, _)| name.starts_with("CARGO_LLVM_COV")));
+        }
+
+        env
     }
 
     /// Return an iterator of environment variables in "name=value" format.

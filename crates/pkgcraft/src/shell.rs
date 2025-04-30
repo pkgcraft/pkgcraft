@@ -421,13 +421,7 @@ fn update_build(state: BuildData) {
 
     // HACK: handle resets for builtin command tests
     if cfg!(test) && !matches!(build.state, BuildState::Empty(_)) {
-        let mut env = scallop::shell::Env::new().allow(["PATH"]);
-
-        // pass through environment when running tests for code coverage
-        if cfg!(feature = "test") && std::env::var("LLVM_PROFILE_FILE").is_ok() {
-            env.extend(EXTERNAL.iter().cloned());
-        }
-
+        let env = scallop::shell::Env::new().allow(["PATH"]);
         scallop::shell::reset(env);
     }
 
@@ -442,13 +436,7 @@ pub(crate) fn init() -> scallop::Result<()> {
     LazyLock::force(&EXTERNAL);
 
     // TODO: pass through variables from allowed set
-    let mut env = scallop::shell::Env::new().allow(["PATH"]);
-
-    // pass through environment when running tests for code coverage
-    if cfg!(feature = "test") && std::env::var("LLVM_PROFILE_FILE").is_ok() {
-        env.extend(EXTERNAL.iter().cloned());
-    }
-
+    let env = scallop::shell::Env::new().allow(["PATH"]);
     scallop::shell::init(env);
 
     // populate bash variables
