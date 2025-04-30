@@ -59,14 +59,16 @@ impl Command {
             .finalize_pkgs(self.targets.iter().flatten())?;
 
         let selected: IndexSet<_> = self.arches.iter().cloned().collect();
-        let arch_filter = |arch: &Arch| -> bool { self.prefix || !arch.is_prefix() };
 
-        let arches: IndexSet<_> = pkg_targets
+        // determine default repo arches
+        let mut arches: IndexSet<_> = pkg_targets
             .ebuild_repo_restricts()
             .flat_map(|(repos, _)| repos.arches())
-            .filter(|&x| arch_filter(x))
+            .filter(|arch| !arch.is_prefix() || self.prefix)
             .cloned()
             .collect();
+        // filter defaults by selected arches
+        TriState::enabled(&mut arches, &selected);
 
         let mut b = Builder::new();
         if !arches.is_empty() {
@@ -81,23 +83,12 @@ impl Command {
 
         let mut stdout = io::stdout().lock();
         for pkg in &mut iter {
-            // determine default repo arches
-            let mut enabled = pkg
-                .repo()
-                .arches()
-                .iter()
-                .filter(|&x| arch_filter(x))
-                .cloned()
-                .collect();
-            // filter defaults by selected arches
-            TriState::enabled(&mut enabled, &selected);
-
             let cpv = pkg.cpv().to_string();
             let repo = pkg.repo().to_string();
             let keywords = pkg
                 .keywords()
                 .iter()
-                .filter(|x| enabled.contains(x.arch()))
+                .filter(|x| arches.contains(x.arch()))
                 .map(|k| {
                     match k.status() {
                         KeywordStatus::Disabled => "-",
