@@ -28,6 +28,10 @@ path = "src/lib.rs"
 [[example]]
 name = "scallop"
 
+[features]
+# external test support
+test = []
+
 [dependencies]
 bitflags = "2.9.0"
 indexmap = { version = "2.9.0", features = ["rayon", "serde"] }

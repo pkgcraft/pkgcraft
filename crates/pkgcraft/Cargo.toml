@@ -18,11 +18,10 @@ workspace = true
 name = "pkgcraft"
 
 [features]
-default = []
 # enable git repo syncing support
 git = ["dep:git2"]
-# external test support
-test = ["dep:assert_cmd", "dep:pretty_assertions"]
+# test support
+test = ["dep:assert_cmd", "dep:pretty_assertions", "scallop/test"]
 
 [dependencies]
 blake2 = "0.10.6"
