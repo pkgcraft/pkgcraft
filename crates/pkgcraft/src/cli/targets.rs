@@ -293,18 +293,14 @@ impl IntoIterator for PkgTargets {
 }
 
 impl PkgTargets {
-    /// Return the number of package targets.
+    /// Return the number of restriction targets.
     pub fn len(&self) -> usize {
-        self.into_iter()
-            .flat_map(|(set, restrict)| set.iter_cpv_restrict(restrict))
-            .count()
+        self.0.len()
     }
 
-    /// Return true if no package targets exist.
+    /// Return true if no restriction targets exist.
     pub fn is_empty(&self) -> bool {
-        !self
-            .into_iter()
-            .any(|(set, restrict)| set.contains(restrict))
+        self.0.is_empty()
     }
 
     /// Collapse targets into a single restriction per repo set.
@@ -461,7 +457,7 @@ mod tests {
             .unwrap()
             .collapse();
         assert!(!targets.is_empty());
-        assert_eq!(targets.len(), 2);
+        assert_eq!(targets.len(), 1);
         assert_ordered_eq!(
             targets.clone().pkgs(),
             [Ok(Pkg::Ebuild(ebuild_pkg.clone())), Ok(Pkg::Fake(fake_pkg.clone()))]
