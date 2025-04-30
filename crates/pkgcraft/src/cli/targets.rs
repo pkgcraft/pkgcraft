@@ -317,6 +317,16 @@ impl PkgTargets {
             .flat_map(|(set, restrict)| set.iter_ebuild().map(move |r| (r, restrict)))
     }
 
+    /// Return the iterator of repos for target restrictions.
+    pub fn repos(&self) -> impl Iterator<Item = &Repo> {
+        self.into_iter().flat_map(|(set, _)| set.repos.iter())
+    }
+
+    /// Return the iterator of ebuild repos for target restrictions.
+    pub fn ebuild_repos(&self) -> impl Iterator<Item = &EbuildRepo> {
+        self.repos().filter_map(|r| r.as_ebuild())
+    }
+
     /// Convert target restrictions to packages.
     pub fn pkgs(self) -> impl Iterator<Item = crate::Result<Pkg>> {
         self.into_iter()
