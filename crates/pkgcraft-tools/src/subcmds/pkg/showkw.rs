@@ -87,7 +87,7 @@ impl Command {
             let mut builder = Builder::new();
             if !arches.is_empty() {
                 let mut headers = vec![String::new()];
-                headers.extend(arches.iter().map(|a| a.to_string().chars().join("\n")));
+                headers.extend(arches.iter().map(|a| a.as_ref().chars().join("\n")));
                 if repos > 1 {
                     headers.push("repo".chars().join("\n"));
                 }
