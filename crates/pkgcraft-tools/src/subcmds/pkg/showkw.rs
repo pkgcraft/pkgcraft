@@ -6,8 +6,8 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::RepoPackage;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus};
+use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::LogErrors;
 use tabled::builder::Builder;
@@ -72,7 +72,8 @@ impl Command {
         if !arches.is_empty() {
             b.push_record(
                 std::iter::once(String::new())
-                    .chain(arches.iter().map(|a| a.to_string().chars().join("\n"))),
+                    .chain(arches.iter().map(|a| a.to_string().chars().join("\n")))
+                    .chain(["repo".chars().join("\n")]),
             );
         }
 
@@ -90,21 +91,24 @@ impl Command {
                 .collect();
             // filter defaults by selected arches
             TriState::enabled(&mut enabled, &selected);
-            b.push_record(
-                std::iter::once(pkg.to_string()).chain(
-                    pkg.keywords()
-                        .iter()
-                        .filter(|x| enabled.contains(x.arch()))
-                        .map(|k| {
-                            match k.status() {
-                                KeywordStatus::Disabled => " ",
-                                KeywordStatus::Stable => "+",
-                                KeywordStatus::Unstable => "~",
-                            }
-                            .to_string()
-                        }),
-                ),
-            );
+
+            let cpv = pkg.cpv().to_string();
+            let repo = pkg.repo().to_string();
+            let keywords = pkg
+                .keywords()
+                .iter()
+                .filter(|x| enabled.contains(x.arch()))
+                .map(|k| {
+                    match k.status() {
+                        KeywordStatus::Disabled => "-",
+                        KeywordStatus::Stable => "+",
+                        KeywordStatus::Unstable => "~",
+                    }
+                    .to_string()
+                })
+                .pad_using(arches.len(), |_| " ".to_string());
+
+            b.push_record(std::iter::once(cpv).chain(keywords).chain([repo]));
         }
 
         let mut table = b.build();
