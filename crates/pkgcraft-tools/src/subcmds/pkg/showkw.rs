@@ -16,7 +16,7 @@ use tabled::builder::Builder;
 use tabled::settings::location::Locator;
 use tabled::settings::object::{FirstRow, LastColumn};
 use tabled::settings::style::HorizontalLine;
-use tabled::settings::{Color, Style, Theme};
+use tabled::settings::{Alignment, Color, Style, Theme};
 
 #[derive(Args)]
 #[clap(next_help_heading = "Target options")]
@@ -150,6 +150,7 @@ impl Command {
             let mut table = builder.build();
             if !table.is_empty() {
                 table.with(theme.clone());
+                table.with(Alignment::bottom());
                 if repos > 1 {
                     table.modify(LastColumn, Color::FG_YELLOW);
                 }
