@@ -62,7 +62,8 @@ impl Command {
         let pkgs = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .pkg_targets_collapsed(self.targets.iter().flatten())?
+            .pkg_targets(self.targets.iter().flatten())?
+            .collapse()
             .ebuild_raw_pkgs();
 
         let eapi: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
