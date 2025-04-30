@@ -115,16 +115,13 @@ impl Command {
                     .collect();
 
                 row.extend(arches.iter().map(|arch| {
-                    if let Some(status) = map.get(arch) {
-                        match status {
-                            KeywordStatus::Disabled => "-",
-                            KeywordStatus::Stable => "+",
-                            KeywordStatus::Unstable => "~",
-                        }
-                        .to_string()
-                    } else {
-                        " ".to_string()
+                    match map.get(arch) {
+                        Some(KeywordStatus::Disabled) => "-",
+                        Some(KeywordStatus::Stable) => "+",
+                        Some(KeywordStatus::Unstable) => "~",
+                        None => " ",
                     }
+                    .to_string()
                 }));
 
                 // only include repo data when multiple repos are targeted
