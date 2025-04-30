@@ -67,30 +67,21 @@ impl Command {
         for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
             let scope = Scope::from(restrict);
 
-            let mut iter = set.iter_restrict(restrict).log_errors(self.ignore);
-            let mut repos = IndexSet::new();
-            let mut pkgs = vec![];
-            for pkg in &mut iter {
-                let pkg = pkg.into_ebuild().unwrap();
-                repos.insert(pkg.repo());
-                pkgs.push(pkg);
-            }
-            failed |= iter.failed();
-
             // determine default arch set
             let mut arches = IndexSet::new();
-            for repo in &repos {
+            let mut repos = 0;
+            for repo in set.iter_ebuild() {
                 arches.extend(
                     repo.arches()
                         .into_iter()
                         .filter(|arch| !arch.is_prefix() || self.prefix)
                         .cloned(),
                 );
+                repos += 1;
             }
 
             // filter defaults by selected arches
             TriState::enabled(&mut arches, selected.clone());
-            let repos = repos.len();
 
             // build table headers
             let mut builder = Builder::new();
@@ -103,10 +94,15 @@ impl Command {
                 builder.push_record(headers);
             }
 
-            for pkg in &pkgs {
+            let mut iter = set.iter_restrict(restrict).log_errors(self.ignore);
+            let mut target: Option<String> = None;
+            for pkg in &mut iter {
+                let pkg = pkg.into_ebuild().unwrap();
+
                 // use versions for single package or version targets, otherwise use cpvs
                 let mut row = vec![];
                 if scope <= Scope::Package {
+                    target.get_or_insert_with(|| pkg.cpn().to_string());
                     row.push(pkg.pvr());
                 } else {
                     row.push(pkg.cpv().to_string());
@@ -134,19 +130,22 @@ impl Command {
 
                 builder.push_record(row);
             }
+            failed |= iter.failed();
 
             // render table
             let mut table = builder.build();
-            if let Some(pkg) = pkgs.first() {
+            if !table.is_empty() {
                 table.with(Style::psql());
 
                 // TODO: output raw targets for non-package scopes
                 // output title for multiple package targets
-                if pkg_targets.len() > 1 && scope <= Scope::Package {
-                    if idx > 0 {
-                        writeln!(stdout)?;
+                if pkg_targets.len() > 1 {
+                    if let Some(target) = target {
+                        if idx > 0 {
+                            writeln!(stdout)?;
+                        }
+                        writeln!(stdout, "keywords for {target}:")?;
                     }
-                    writeln!(stdout, "keywords for {}:", pkg.cpn())?;
                 }
 
                 writeln!(stdout, "{table}")?;
