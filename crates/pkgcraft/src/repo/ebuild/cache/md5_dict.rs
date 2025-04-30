@@ -7,6 +7,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
 use walkdir::WalkDir;
 
 use crate::Error;
@@ -147,7 +148,7 @@ impl FromStr for Md5DictEntry {
 }
 
 /// Serialize a metadata field to its md5-dict cache mapping, returning None for empty fields.
-fn serialize(meta: &Metadata, key: &Key) -> Option<(Md5DictKey, String)> {
+fn serialize(meta: &Metadata, key: Key) -> Option<(Md5DictKey, String)> {
     let value = match key {
         Key::CHKSUM => meta.chksum.to_string(),
         Key::DESCRIPTION => meta.description.to_string(),
@@ -185,15 +186,14 @@ fn serialize(meta: &Metadata, key: &Key) -> Option<(Md5DictKey, String)> {
     if value.is_empty() {
         None
     } else {
-        Some((Md5DictKey(*key), value))
+        Some((Md5DictKey(key), value))
     }
 }
 
 impl From<&Metadata> for Md5DictEntry {
     fn from(meta: &Metadata) -> Self {
-        meta.eapi
-            .metadata_keys()
-            .iter()
+        Key::iter()
+            .filter(|x| meta.eapi.metadata_keys().contains(x))
             .filter_map(|key| serialize(meta, key))
             .collect()
     }
