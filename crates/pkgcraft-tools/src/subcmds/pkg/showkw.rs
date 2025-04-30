@@ -2,7 +2,7 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{Args, builder::ArgPredicate};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
@@ -108,20 +108,24 @@ impl Command {
                     row.push(pkg.cpv().to_string());
                 }
 
-                row.extend(
-                    pkg.keywords()
-                        .iter()
-                        .filter(|x| arches.contains(x.arch()))
-                        .map(|k| {
-                            match k.status() {
-                                KeywordStatus::Disabled => "-",
-                                KeywordStatus::Stable => "+",
-                                KeywordStatus::Unstable => "~",
-                            }
-                            .to_string()
-                        })
-                        .pad_using(arches.len(), |_| " ".to_string()),
-                );
+                let map: IndexMap<_, _> = pkg
+                    .keywords()
+                    .iter()
+                    .map(|k| (k.arch(), k.status()))
+                    .collect();
+
+                row.extend(arches.iter().map(|arch| {
+                    if let Some(status) = map.get(arch) {
+                        match status {
+                            KeywordStatus::Disabled => "-",
+                            KeywordStatus::Stable => "+",
+                            KeywordStatus::Unstable => "~",
+                        }
+                        .to_string()
+                    } else {
+                        " ".to_string()
+                    }
+                }));
 
                 // only include repo data when multiple repos are targeted
                 if repos > 1 {
