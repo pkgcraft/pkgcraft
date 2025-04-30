@@ -12,7 +12,9 @@ use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
 use tabled::builder::Builder;
-use tabled::settings::Style;
+use tabled::settings::location::Locator;
+use tabled::settings::object::{FirstRow, LastColumn};
+use tabled::settings::{Color, Style};
 
 #[derive(Args)]
 #[clap(next_help_heading = "Target options")]
@@ -62,6 +64,12 @@ impl Command {
         let selected: IndexSet<_> = self.arches.iter().cloned().collect();
         let mut stdout = io::stdout().lock();
         let mut failed = false;
+
+        let theme = Style::modern()
+            .remove_top()
+            .remove_left()
+            .remove_right()
+            .remove_horizontal();
 
         // output a table per restriction target
         for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
@@ -136,7 +144,12 @@ impl Command {
             // render table
             let mut table = builder.build();
             if !table.is_empty() {
-                table.with(Style::psql());
+                table.with(theme.clone());
+                table.modify(LastColumn, Color::FG_YELLOW);
+                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
+                table.modify(Locator::content("+"), Color::FG_GREEN);
+                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
+                table.modify(Locator::content("-"), Color::FG_RED);
 
                 // TODO: output raw targets for non-package scopes
                 // output title for multiple package targets
