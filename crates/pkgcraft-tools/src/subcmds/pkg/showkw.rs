@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
 use clap::{Args, builder::ArgPredicate};
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
@@ -108,7 +109,7 @@ impl Command {
                     row.push(pkg.cpv().to_string());
                 }
 
-                let map: IndexMap<_, _> = pkg
+                let map: HashMap<_, _> = pkg
                     .keywords()
                     .iter()
                     .map(|k| (k.arch(), k.status()))
