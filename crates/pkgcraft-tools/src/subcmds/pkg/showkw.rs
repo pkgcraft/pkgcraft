@@ -64,14 +64,22 @@ impl Command {
         let mut failed = false;
 
         // output a table per restriction target
-        for (set, restrict) in pkg_targets {
-            let scope = Scope::from(&restrict);
+        for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
+            let scope = Scope::from(restrict);
+
+            let mut iter = set.iter_restrict(restrict).log_errors(self.ignore);
             let mut repos = IndexSet::new();
-            let mut arches = IndexSet::new();
+            let mut pkgs = vec![];
+            for pkg in &mut iter {
+                let pkg = pkg.into_ebuild().unwrap();
+                repos.insert(pkg.repo());
+                pkgs.push(pkg);
+            }
+            failed |= iter.failed();
 
             // determine default arch set
-            for repo in set.iter_ebuild() {
-                repos.insert(repo);
+            let mut arches = IndexSet::new();
+            for repo in &repos {
                 arches.extend(
                     repo.arches()
                         .into_iter()
@@ -95,10 +103,7 @@ impl Command {
                 builder.push_record(headers);
             }
 
-            let mut iter = set.iter_restrict(restrict).log_errors(self.ignore);
-            for pkg in &mut iter {
-                let pkg = pkg.into_ebuild().unwrap();
-
+            for pkg in &pkgs {
                 // use versions for single package or version targets, otherwise use cpvs
                 let mut row = vec![];
                 if scope <= Scope::Package {
@@ -132,12 +137,20 @@ impl Command {
 
             // render table
             let mut table = builder.build();
-            if !table.is_empty() {
+            if let Some(pkg) = pkgs.first() {
                 table.with(Style::psql());
+
+                // TODO: output raw targets for non-package scopes
+                // output title for multiple package targets
+                if pkg_targets.len() > 1 && scope <= Scope::Package {
+                    if idx > 0 {
+                        writeln!(stdout)?;
+                    }
+                    writeln!(stdout, "keywords for {}:", pkg.cpn())?;
+                }
+
                 writeln!(stdout, "{table}")?;
             }
-
-            failed |= iter.failed();
         }
 
         Ok(ExitCode::from(failed as u8))
