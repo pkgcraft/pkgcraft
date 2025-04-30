@@ -54,7 +54,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 
 # pk pkg env: glob filter support
 globset = "0.4.16"
-tabled = "0.19.0"
+tabled = { version = "0.19.0", features = ["ansi"] }
 
 [dev-dependencies]
 predicates = "3.1.3"
