@@ -62,8 +62,8 @@ impl Command {
 
         // determine default repo arches
         let mut arches: IndexSet<_> = pkg_targets
-            .ebuild_repo_restricts()
-            .flat_map(|(repos, _)| repos.arches())
+            .ebuild_repos()
+            .flat_map(|repo| repo.arches())
             .filter(|arch| !arch.is_prefix() || self.prefix)
             .cloned()
             .collect();
