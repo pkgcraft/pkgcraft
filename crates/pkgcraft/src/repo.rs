@@ -352,7 +352,7 @@ impl Iterator for Iter {
 #[allow(clippy::large_enum_variant)]
 pub enum IterRestrict {
     Configured(ebuild::configured::IterRestrict),
-    Ebuild(ebuild::IterRestrict),
+    Ebuild(ebuild::IterRestrictOrdered),
     Fake(fake::IterRestrict),
 }
 
@@ -601,7 +601,7 @@ impl PkgRepository for Repo {
     fn iter_restrict<R: Into<Restrict>>(&self, val: R) -> Self::IterRestrict {
         match self {
             Self::Configured(repo) => IterRestrict::Configured(repo.iter_restrict(val)),
-            Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict(val)),
+            Self::Ebuild(repo) => IterRestrict::Ebuild(repo.iter_restrict_ordered(val)),
             Self::Fake(repo) => IterRestrict::Fake(repo.iter_restrict(val)),
         }
     }
