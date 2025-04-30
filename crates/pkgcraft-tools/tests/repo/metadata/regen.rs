@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::test::{assert_unordered_eq, cmd, test_data};
+use pkgcraft::test::{assert_ordered_eq, cmd, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
@@ -291,7 +291,7 @@ fn data_content() {
         // verify new data matches original
         let new = metadata_content(path);
         for (cpv, data) in new {
-            assert_unordered_eq!(expected.get(&cpv).unwrap().lines(), data.lines());
+            assert_ordered_eq!(expected.get(&cpv).unwrap().lines(), data.lines());
         }
     }
 }
