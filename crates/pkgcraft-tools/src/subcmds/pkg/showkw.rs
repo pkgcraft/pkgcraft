@@ -150,7 +150,9 @@ impl Command {
             let mut table = builder.build();
             if !table.is_empty() {
                 table.with(theme.clone());
-                table.modify(LastColumn, Color::FG_YELLOW);
+                if repos > 1 {
+                    table.modify(LastColumn, Color::FG_YELLOW);
+                }
                 table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
                 table.modify(Locator::content("+"), Color::FG_GREEN);
                 table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
