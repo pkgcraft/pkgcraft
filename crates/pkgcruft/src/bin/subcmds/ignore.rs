@@ -35,7 +35,7 @@ impl Command {
         let targets = Targets::new(&mut config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_pkgs(self.targets.iter().flatten())?;
+            .pkg_targets_collapsed(self.targets.iter().flatten())?;
 
         let mut stdout = io::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {

@@ -131,7 +131,7 @@ impl Command {
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .scope(|x| *x >= Scope::Package)
-            .finalize_pkgs(self.targets.iter().flatten())?
+            .pkg_targets_collapsed(self.targets.iter().flatten())?
             .ebuild_pkg_sets()?;
 
         let failed = &AtomicBool::new(false);

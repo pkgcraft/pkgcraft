@@ -50,7 +50,7 @@ impl Command {
         bounded_thread_pool(self.jobs);
 
         let repo = Targets::new(config)
-            .finalize_repos([&self.repo])?
+            .repo_targets([&self.repo])?
             .ebuild_repo()?;
 
         let format = self.format.unwrap_or(repo.metadata().cache().format());

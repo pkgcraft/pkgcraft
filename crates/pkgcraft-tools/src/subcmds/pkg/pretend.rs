@@ -45,7 +45,7 @@ impl Command {
         let pkgs = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_pkgs(self.targets.iter().flatten())?
+            .pkg_targets_collapsed(self.targets.iter().flatten())?
             .ebuild_pkgs();
 
         // run pkg_pretend across selected pkgs

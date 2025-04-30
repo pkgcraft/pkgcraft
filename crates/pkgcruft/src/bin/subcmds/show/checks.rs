@@ -26,7 +26,7 @@ impl Subcommand {
         let checks: Vec<_> = if let Some(repo) = self.repo.as_deref() {
             let mut config = Config::new("pkgcraft", "");
             let repo = Targets::new(&mut config)
-                .finalize_repos([repo])?
+                .repo_targets([repo])?
                 .ebuild_repo()?;
             Check::iter_supported(&repo, Scope::Repo).collect()
         } else {

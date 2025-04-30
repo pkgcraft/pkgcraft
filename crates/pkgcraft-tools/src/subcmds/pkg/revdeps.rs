@@ -28,7 +28,7 @@ pub(crate) struct Command {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         let repo = Targets::new(config)
-            .finalize_repos([&self.repo])?
+            .repo_targets([&self.repo])?
             .ebuild_repo()?;
 
         // convert targets to Cpv or Dep objects

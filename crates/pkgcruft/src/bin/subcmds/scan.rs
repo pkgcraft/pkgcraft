@@ -74,7 +74,7 @@ impl Command {
         let targets = Targets::new(&mut config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_pkgs(self.targets.iter().flatten())?;
+            .pkg_targets_collapsed(self.targets.iter().flatten())?;
 
         // create report scanner
         let scanner = Scanner::new()

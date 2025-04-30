@@ -99,7 +99,7 @@ mod tests {
         }
         let mut config = Config::new("pkgcraft", "");
         let repo = Targets::new(&mut config)
-            .finalize_repos([temp.path()])
+            .repo_targets([temp.path()])
             .unwrap()
             .ebuild_repo()
             .unwrap();

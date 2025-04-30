@@ -69,7 +69,7 @@ impl Command {
         let targets = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_pkgs(self.targets.iter().flatten())?;
+            .pkg_targets_collapsed(self.targets.iter().flatten())?;
 
         for (repo_set, restrict) in targets {
             for repo in repo_set.iter_ebuild() {

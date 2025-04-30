@@ -14,7 +14,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
         temp.create_ebuild(format!("cat/pkg-{i}"), &[]).unwrap();
     }
     let repo = Targets::new(&mut config)
-        .finalize_repos([temp.path()])
+        .repo_targets([temp.path()])
         .unwrap()
         .ebuild_repo()
         .unwrap();

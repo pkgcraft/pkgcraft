@@ -198,8 +198,40 @@ impl<'a> Targets<'a> {
         Ok((set, restrict))
     }
 
-    /// Determine package restrictions and finalize the config.
-    pub fn finalize_pkgs<I>(mut self, values: I) -> crate::Result<PkgTargets>
+    /// Return package targets.
+    pub fn pkg_targets<I>(mut self, values: I) -> crate::Result<PkgTargets>
+    where
+        I: IntoIterator,
+        I::Item: std::fmt::Display,
+    {
+        // convert targets into restrictions, initializing repos as necessary
+        let mut targets = vec![];
+        for target in values {
+            let target = target.to_string();
+            let (set, restrict) = self.target_restriction(&target)?;
+            targets.push((target, set, restrict));
+        }
+
+        // finalize the config after loading repos to start the build pool
+        self.config.finalize()?;
+
+        // verify matches exist
+        let targets = targets
+            .into_iter()
+            .map(|(target, set, restrict)| {
+                if set.contains(&restrict) {
+                    Ok((set, restrict))
+                } else {
+                    Err(Error::NoMatches(target))
+                }
+            })
+            .try_collect()?;
+
+        Ok(PkgTargets(targets))
+    }
+
+    /// Return package targets collapsed per repo set.
+    pub fn pkg_targets_collapsed<I>(mut self, values: I) -> crate::Result<PkgTargets>
     where
         I: IntoIterator,
         I::Item: std::fmt::Display,
@@ -235,7 +267,7 @@ impl<'a> Targets<'a> {
     }
 
     /// Determine target repos and finalize the config.
-    pub fn finalize_repos<I>(mut self, values: I) -> crate::Result<RepoTargets>
+    pub fn repo_targets<I>(mut self, values: I) -> crate::Result<RepoTargets>
     where
         I: IntoIterator,
         I::Item: std::fmt::Display,
@@ -446,7 +478,7 @@ mod tests {
         let targets = Targets::new(&mut config)
             .repo(none)
             .unwrap()
-            .finalize_pkgs(["cat/pkg"])
+            .pkg_targets_collapsed(["cat/pkg"])
             .unwrap();
         assert!(!targets.is_empty());
         assert_eq!(targets.len(), 2);
@@ -462,7 +494,7 @@ mod tests {
         let targets = Targets::new(&mut config)
             .repo(none)
             .unwrap()
-            .finalize_pkgs(["slot/slot"])
+            .pkg_targets_collapsed(["slot/slot"])
             .unwrap();
         assert_eq!(targets.len(), 1);
 
@@ -474,7 +506,7 @@ mod tests {
         let targets = Targets::new(&mut config)
             .repo(Some("ebuild"))
             .unwrap()
-            .finalize_pkgs(["cat/pkg"])
+            .pkg_targets_collapsed(["cat/pkg"])
             .unwrap();
         assert_eq!(targets.len(), 1);
 
@@ -496,23 +528,23 @@ mod tests {
         let targets = Targets::new(&mut config)
             .repo(Some(temp.path()))
             .unwrap()
-            .finalize_pkgs(["cat/pkg"])
+            .pkg_targets_collapsed(["cat/pkg"])
             .unwrap();
         assert_eq!(targets.len(), 1);
 
         // nonexistent repo target with dep restriction
-        let r = Targets::new(&mut config).finalize_pkgs(["cat/pkg::nonexistent"]);
+        let r = Targets::new(&mut config).pkg_targets_collapsed(["cat/pkg::nonexistent"]);
         assert_err_re!(r, "nonexistent repo: nonexistent");
 
         // existing repo target with dep restriction
         let targets = Targets::new(&mut config)
-            .finalize_pkgs(["cat/pkg::fake"])
+            .pkg_targets_collapsed(["cat/pkg::fake"])
             .unwrap();
         assert_eq!(targets.len(), 1);
 
         // existing repo path
         let targets = Targets::new(&mut config)
-            .finalize_pkgs([ebuild_repo.path()])
+            .pkg_targets_collapsed([ebuild_repo.path()])
             .unwrap();
         assert_eq!(targets.len(), 1);
     }

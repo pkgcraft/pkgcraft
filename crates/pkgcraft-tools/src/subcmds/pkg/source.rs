@@ -498,7 +498,7 @@ impl Command {
         let targets = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
-            .finalize_pkgs(self.targets.iter().flatten())?;
+            .pkg_targets_collapsed(self.targets.iter().flatten())?;
 
         if let Some(value) = self.bench {
             benchmark(value, targets, self)

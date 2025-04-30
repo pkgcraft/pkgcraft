@@ -30,7 +30,7 @@ impl Subcommand {
             (selected, Some(repo)) => {
                 let mut config = Config::new("pkgcraft", "");
                 let repo = Targets::new(&mut config)
-                    .finalize_repos([repo])?
+                    .repo_targets([repo])?
                     .ebuild_repo()?;
                 let defaults = ReportKind::defaults(&repo);
                 let supported = ReportKind::supported(&repo, Scope::Repo);
