@@ -58,50 +58,64 @@ impl Command {
             .repo(self.repo.as_deref())?
             .finalize_pkgs(self.targets.iter().flatten())?;
 
-        // determine default repo arches
         let selected: IndexSet<_> = self.arches.iter().cloned().collect();
-        let mut arches: IndexSet<_> = pkg_targets
-            .ebuild_repos()
-            .flat_map(|repo| repo.arches())
-            .filter(|arch| !arch.is_prefix() || self.prefix)
-            .cloned()
-            .collect();
+        let mut repos = IndexSet::new();
+        let mut arches = IndexSet::new();
+
+        // determine default arch set
+        for repo in pkg_targets.ebuild_repos() {
+            repos.insert(repo);
+            arches.extend(
+                repo.arches()
+                    .into_iter()
+                    .filter(|arch| !arch.is_prefix() || self.prefix)
+                    .cloned(),
+            );
+        }
+
         // filter defaults by selected arches
         TriState::enabled(&mut arches, selected);
+        let repos = repos.len();
 
+        // build table headers
         let mut b = Builder::new();
         if !arches.is_empty() {
-            b.push_record(
-                std::iter::once(String::new())
-                    .chain(arches.iter().map(|a| a.to_string().chars().join("\n")))
-                    .chain(["repo".chars().join("\n")]),
-            );
+            let mut headers = vec![String::new()];
+            headers.extend(arches.iter().map(|a| a.to_string().chars().join("\n")));
+            if repos > 1 {
+                headers.push("repo".chars().join("\n"));
+            }
+            b.push_record(headers);
         }
 
         // convert pkg targets to ebuild pkgs
         let mut iter = pkg_targets.ebuild_pkgs().log_errors(self.ignore);
         let mut stdout = io::stdout().lock();
 
+        // insert table records
         for pkg in &mut iter {
-            let cpv = pkg.cpv().to_string();
-            let repo = pkg.repo().to_string();
-            let keywords = pkg
-                .keywords()
-                .iter()
-                .filter(|x| arches.contains(x.arch()))
-                .map(|k| {
-                    match k.status() {
-                        KeywordStatus::Disabled => "-",
-                        KeywordStatus::Stable => "+",
-                        KeywordStatus::Unstable => "~",
-                    }
-                    .to_string()
-                })
-                .pad_using(arches.len(), |_| " ".to_string());
-
-            b.push_record(std::iter::once(cpv).chain(keywords).chain([repo]));
+            let mut row = vec![pkg.cpv().to_string()];
+            row.extend(
+                pkg.keywords()
+                    .iter()
+                    .filter(|x| arches.contains(x.arch()))
+                    .map(|k| {
+                        match k.status() {
+                            KeywordStatus::Disabled => "-",
+                            KeywordStatus::Stable => "+",
+                            KeywordStatus::Unstable => "~",
+                        }
+                        .to_string()
+                    })
+                    .pad_using(arches.len(), |_| " ".to_string()),
+            );
+            if repos > 1 {
+                row.push(pkg.repo().to_string());
+            }
+            b.push_record(row);
         }
 
+        // render table
         let mut table = b.build();
         if !table.is_empty() {
             table.with(Style::psql());
