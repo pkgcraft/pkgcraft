@@ -303,6 +303,11 @@ impl PkgTargets {
         self.0.is_empty()
     }
 
+    /// Return the iterator of package targets.
+    pub fn iter(&self) -> impl Iterator<Item = &(RepoSet, Restrict)> {
+        self.into_iter()
+    }
+
     /// Collapse targets into a single restriction per repo set.
     pub fn collapse(self) -> Self {
         let mut targets = IndexMap::<_, Vec<_>>::new();
