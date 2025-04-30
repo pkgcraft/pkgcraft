@@ -8,7 +8,8 @@ use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus};
 use pkgcraft::pkg::{Package, RepoPackage};
-use pkgcraft::repo::RepoFormat;
+use pkgcraft::repo::{PkgRepository, RepoFormat};
+use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
 use tabled::builder::Builder;
 use tabled::settings::Style;
@@ -59,69 +60,86 @@ impl Command {
             .finalize_pkgs(self.targets.iter().flatten())?;
 
         let selected: IndexSet<_> = self.arches.iter().cloned().collect();
-        let mut repos = IndexSet::new();
-        let mut arches = IndexSet::new();
-
-        // determine default arch set
-        for repo in pkg_targets.ebuild_repos() {
-            repos.insert(repo);
-            arches.extend(
-                repo.arches()
-                    .into_iter()
-                    .filter(|arch| !arch.is_prefix() || self.prefix)
-                    .cloned(),
-            );
-        }
-
-        // filter defaults by selected arches
-        TriState::enabled(&mut arches, selected);
-        let repos = repos.len();
-
-        // build table headers
-        let mut b = Builder::new();
-        if !arches.is_empty() {
-            let mut headers = vec![String::new()];
-            headers.extend(arches.iter().map(|a| a.to_string().chars().join("\n")));
-            if repos > 1 {
-                headers.push("repo".chars().join("\n"));
-            }
-            b.push_record(headers);
-        }
-
-        // convert pkg targets to ebuild pkgs
-        let mut iter = pkg_targets.ebuild_pkgs().log_errors(self.ignore);
         let mut stdout = io::stdout().lock();
+        let mut failed = false;
 
-        // insert table records
-        for pkg in &mut iter {
-            let mut row = vec![pkg.cpv().to_string()];
-            row.extend(
-                pkg.keywords()
-                    .iter()
-                    .filter(|x| arches.contains(x.arch()))
-                    .map(|k| {
-                        match k.status() {
-                            KeywordStatus::Disabled => "-",
-                            KeywordStatus::Stable => "+",
-                            KeywordStatus::Unstable => "~",
-                        }
-                        .to_string()
-                    })
-                    .pad_using(arches.len(), |_| " ".to_string()),
-            );
-            if repos > 1 {
-                row.push(pkg.repo().to_string());
+        // output a table per restriction target
+        for (set, restrict) in pkg_targets {
+            let scope = Scope::from(&restrict);
+            let mut repos = IndexSet::new();
+            let mut arches = IndexSet::new();
+
+            // determine default arch set
+            for repo in set.iter_ebuild() {
+                repos.insert(repo);
+                arches.extend(
+                    repo.arches()
+                        .into_iter()
+                        .filter(|arch| !arch.is_prefix() || self.prefix)
+                        .cloned(),
+                );
             }
-            b.push_record(row);
+
+            // filter defaults by selected arches
+            TriState::enabled(&mut arches, selected.clone());
+            let repos = repos.len();
+
+            // build table headers
+            let mut builder = Builder::new();
+            if !arches.is_empty() {
+                let mut headers = vec![String::new()];
+                headers.extend(arches.iter().map(|a| a.to_string().chars().join("\n")));
+                if repos > 1 {
+                    headers.push("repo".chars().join("\n"));
+                }
+                builder.push_record(headers);
+            }
+
+            let mut iter = set.iter_restrict(restrict).log_errors(self.ignore);
+            for pkg in &mut iter {
+                let pkg = pkg.into_ebuild().unwrap();
+
+                // use versions for single package or version targets, otherwise use cpvs
+                let mut row = vec![];
+                if scope <= Scope::Package {
+                    row.push(pkg.pvr());
+                } else {
+                    row.push(pkg.cpv().to_string());
+                }
+
+                row.extend(
+                    pkg.keywords()
+                        .iter()
+                        .filter(|x| arches.contains(x.arch()))
+                        .map(|k| {
+                            match k.status() {
+                                KeywordStatus::Disabled => "-",
+                                KeywordStatus::Stable => "+",
+                                KeywordStatus::Unstable => "~",
+                            }
+                            .to_string()
+                        })
+                        .pad_using(arches.len(), |_| " ".to_string()),
+                );
+
+                // only include repo data when multiple repos are targeted
+                if repos > 1 {
+                    row.push(pkg.repo().to_string());
+                }
+
+                builder.push_record(row);
+            }
+
+            // render table
+            let mut table = builder.build();
+            if !table.is_empty() {
+                table.with(Style::psql());
+                writeln!(stdout, "{table}")?;
+            }
+
+            failed |= iter.failed();
         }
 
-        // render table
-        let mut table = b.build();
-        if !table.is_empty() {
-            table.with(Style::psql());
-            writeln!(stdout, "{table}")?;
-        }
-
-        Ok(ExitCode::from(iter))
+        Ok(ExitCode::from(failed as u8))
     }
 }
