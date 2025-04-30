@@ -17,13 +17,12 @@ pub enum TriState<T> {
 
 impl<T: Ord + Clone + Hash> TriState<T> {
     /// Modify the given, enabled set given an iterator of TriState values.
-    pub fn enabled<'a, I>(enabled: &mut IndexSet<T>, selected: I)
+    pub fn enabled<I>(enabled: &mut IndexSet<T>, selected: I)
     where
-        I: IntoIterator<Item = &'a TriState<T>>,
-        T: 'a,
+        I: IntoIterator<Item = TriState<T>>,
     {
         // sort by variant
-        let selected: Vec<_> = selected.into_iter().cloned().sorted().collect();
+        let selected: Vec<_> = selected.into_iter().sorted().collect();
 
         // don't use default if neutral options exist
         if let Some(TriState::Set(_)) = selected.first() {
@@ -69,32 +68,32 @@ mod tests {
         // empty
         let mut enabled = IndexSet::<i32>::new();
         let selected = IndexSet::new();
-        TriState::enabled(&mut enabled, &selected);
+        TriState::enabled(&mut enabled, selected);
         assert_ordered_eq!(enabled, empty);
 
         // no selections
         let mut enabled: IndexSet<i32> = [1].into_iter().collect();
         let selected = IndexSet::new();
-        TriState::enabled(&mut enabled, &selected);
+        TriState::enabled(&mut enabled, selected);
         assert_ordered_eq!(enabled, [1]);
 
         // override defaults
         let mut enabled: IndexSet<i32> = [1].into_iter().collect();
         let selected: IndexSet<_> = ["2"].iter().map(|s| s.parse()).try_collect().unwrap();
-        TriState::enabled(&mut enabled, &selected);
+        TriState::enabled(&mut enabled, selected);
         assert_ordered_eq!(enabled, [2]);
 
         // negated selection
         let mut enabled: IndexSet<i32> = [1].into_iter().collect();
         let selected: IndexSet<_> =
             ["2", "-2"].iter().map(|s| s.parse()).try_collect().unwrap();
-        TriState::enabled(&mut enabled, &selected);
+        TriState::enabled(&mut enabled, selected);
         assert_ordered_eq!(enabled, empty);
 
         // add to defaults
         let mut enabled: IndexSet<_> = [1].into_iter().collect();
         let selected: IndexSet<_> = ["+2"].iter().map(|s| s.parse()).try_collect().unwrap();
-        TriState::enabled(&mut enabled, &selected);
+        TriState::enabled(&mut enabled, selected);
         assert_ordered_eq!(enabled, [1, 2]);
     }
 }

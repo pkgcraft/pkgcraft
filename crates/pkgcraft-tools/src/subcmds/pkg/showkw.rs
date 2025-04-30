@@ -52,15 +52,14 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        // convert targets to pkgs
+        // determine pkg targets
         let pkg_targets = Targets::new(config)
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .finalize_pkgs(self.targets.iter().flatten())?;
 
-        let selected: IndexSet<_> = self.arches.iter().cloned().collect();
-
         // determine default repo arches
+        let selected: IndexSet<_> = self.arches.iter().cloned().collect();
         let mut arches: IndexSet<_> = pkg_targets
             .ebuild_repos()
             .flat_map(|repo| repo.arches())
@@ -68,7 +67,7 @@ impl Command {
             .cloned()
             .collect();
         // filter defaults by selected arches
-        TriState::enabled(&mut arches, &selected);
+        TriState::enabled(&mut arches, selected);
 
         let mut b = Builder::new();
         if !arches.is_empty() {
@@ -79,9 +78,10 @@ impl Command {
             );
         }
 
+        // convert pkg targets to ebuild pkgs
         let mut iter = pkg_targets.ebuild_pkgs().log_errors(self.ignore);
-
         let mut stdout = io::stdout().lock();
+
         for pkg in &mut iter {
             let cpv = pkg.cpv().to_string();
             let repo = pkg.repo().to_string();
