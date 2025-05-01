@@ -93,9 +93,14 @@ impl Format {
                 theme.insert_vertical_line(1, vline);
                 let repo_col = table.count_columns() - 1;
                 theme.insert_vertical_line(repo_col, vline);
+                theme.insert_vertical_line(repo_col - 2, vline);
                 table.with(theme);
                 table.with(Alignment::bottom());
-                table.modify(Columns::new(1..repo_col - 1), Padding::new(1, 0, 0, 0));
+                table.modify(Columns::new(1..repo_col - 3), Padding::new(1, 0, 0, 0));
+                table.modify(
+                    Columns::new(repo_col - 2..repo_col - 1),
+                    Padding::new(1, 0, 0, 0),
+                );
                 table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
                 table.modify(Locator::content("+"), Color::FG_GREEN);
                 table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
@@ -158,6 +163,8 @@ impl Command {
             if !arches.is_empty() {
                 let mut headers = vec![String::new()];
                 headers.extend(arches.iter().map(|a| a.as_ref().chars().join("\n")));
+                headers.push("eapi".chars().join("\n"));
+                headers.push("slot".chars().join("\n"));
                 if self.format == Format::Eshowkw || repos > 1 {
                     headers.push("repo".chars().join("\n"));
                 }
@@ -193,6 +200,9 @@ impl Command {
                     }
                     .to_string()
                 }));
+
+                row.push(pkg.eapi().to_string());
+                row.push(pkg.slot().to_string());
 
                 // only include repo data when multiple repos are targeted
                 if self.format == Format::Eshowkw || repos > 1 {
