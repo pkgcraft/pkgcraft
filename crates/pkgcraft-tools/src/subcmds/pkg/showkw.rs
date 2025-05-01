@@ -178,6 +178,7 @@ impl Command {
                 .log_errors(self.ignore);
 
             let mut target: Option<String> = None;
+            let mut status_indent = "";
             for pkg in &mut iter {
                 // use versions for single package or version targets, otherwise use cpvs
                 let mut row = vec![];
@@ -190,9 +191,10 @@ impl Command {
 
                 // flag pkgs masked by their repo
                 if pkg.masked() {
+                    status_indent = "   ";
                     row.push(Color::FG_RED.colorize(format!("[M]{pkg_id}")));
                 } else {
-                    row.push(pkg_id);
+                    row.push(format!("{status_indent}{pkg_id}"));
                 }
 
                 let map: HashMap<_, _> = pkg
