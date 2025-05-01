@@ -8,6 +8,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
+use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus};
 use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
@@ -170,11 +171,14 @@ impl Command {
                 builder.push_record(headers);
             }
 
-            let mut iter = set.iter_restrict(restrict).log_errors(self.ignore);
+            // determine ebuild pkgs from target restriction
+            let mut iter = set
+                .iter_restrict(restrict)
+                .map(|result| result.and_then(EbuildPkg::try_from))
+                .log_errors(self.ignore);
+
             let mut target: Option<String> = None;
             for pkg in &mut iter {
-                let pkg = pkg.into_ebuild().unwrap();
-
                 // use versions for single package or version targets, otherwise use cpvs
                 let mut row = vec![];
                 if scope <= Scope::Package {
