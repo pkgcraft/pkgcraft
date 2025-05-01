@@ -103,24 +103,69 @@ enum TableFormat {
     Showkw,
 }
 
+/// Wrapper for tabular table theming.
+struct TableTheme {
+    inner: Theme,
+    format: TableFormat,
+}
+
+impl TableTheme {
+    /// Insert a vertical divider in a theme at a column location.
+    fn insert_vline(&mut self, column: usize) {
+        let vline = match self.format {
+            TableFormat::Eshowkw => VerticalLine::inherit(Style::ascii().remove_frame()),
+            TableFormat::Showkw => VerticalLine::inherit(Style::modern().remove_frame()),
+        };
+        self.inner.insert_vertical_line(column, vline);
+    }
+
+    /// Insert a horizontal divider in a theme at a row location.
+    fn insert_hline(&mut self, row: usize) {
+        let hline = match self.format {
+            TableFormat::Eshowkw => HorizontalLine::inherit(Style::ascii().remove_frame()),
+            TableFormat::Showkw => HorizontalLine::inherit(Style::modern().remove_frame()),
+        };
+        self.inner.insert_horizontal_line(row, hline);
+    }
+}
+
 impl TableFormat {
-    /// Apply formatting theme to a table.
-    fn style(&self, table: &mut Table) {
+    /// Create a theme for a table format.
+    fn theme(self) -> TableTheme {
         match self {
             Self::Eshowkw => {
                 let style = Style::blank()
                     .remove_vertical()
                     .horizontal('-')
                     .remove_horizontal();
-                let mut theme = Theme::from_style(style);
-                let hline = HorizontalLine::inherit(Style::ascii().remove_frame());
-                let vline = VerticalLine::inherit(Style::ascii().remove_frame());
-                theme.insert_horizontal_line(1, hline);
-                theme.insert_vertical_line(2, vline);
+                TableTheme {
+                    inner: Theme::from_style(style),
+                    format: self,
+                }
+            }
+            Self::Showkw => {
+                let style = Style::modern()
+                    .remove_top()
+                    .remove_left()
+                    .remove_right()
+                    .remove_horizontal();
+                TableTheme {
+                    inner: Theme::from_style(style),
+                    format: self,
+                }
+            }
+        }
+    }
+
+    /// Apply a theme to a table format.
+    fn style(&self, table: &mut Table, mut theme: TableTheme) {
+        match self {
+            Self::Eshowkw => {
                 let repo_col = table.count_columns() - 1;
-                theme.insert_vertical_line(repo_col, vline);
-                theme.insert_vertical_line(repo_col - 2, vline);
-                table.with(theme);
+                theme.insert_vline(2);
+                theme.insert_vline(repo_col);
+                theme.insert_vline(repo_col - 2);
+                table.with(theme.inner);
                 table.with(Alignment::bottom());
                 table.modify(Columns::first(), Padding::zero());
                 table.modify(Columns::single(1), Padding::new(0, 1, 0, 0));
@@ -131,15 +176,7 @@ impl TableFormat {
                 );
             }
             Self::Showkw => {
-                let style = Style::modern()
-                    .remove_top()
-                    .remove_left()
-                    .remove_right()
-                    .remove_horizontal();
-                let mut theme = Theme::from_style(style);
-                let hline = HorizontalLine::inherit(Style::modern().remove_frame());
-                theme.insert_horizontal_line(1, hline);
-                table.with(theme);
+                table.with(theme.inner);
                 table.with(Alignment::bottom());
                 table.modify(Columns::first(), Padding::zero());
             }
@@ -161,6 +198,7 @@ impl Command {
 
         // output a table per restriction target
         for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
+            let mut theme = self.format.theme();
             let scope = Scope::from(restrict);
             let repos = set.iter_ebuild().count();
 
@@ -210,7 +248,10 @@ impl Command {
                 .log_errors(self.ignore);
 
             let mut target: Option<String> = None;
+            let mut prev_slot = None;
+            let mut pkg_row = 0;
             for pkg in &mut iter {
+                pkg_row += 1;
                 let mut row = vec![];
 
                 // determine pkg status
@@ -245,7 +286,19 @@ impl Command {
                 }));
 
                 row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
-                row.push(pkg.slot().to_string());
+
+                let slot = pkg.slot().to_string();
+                if !prev_slot
+                    .as_ref()
+                    .map(|prev| prev == &slot)
+                    .unwrap_or_default()
+                {
+                    theme.insert_hline(pkg_row);
+                    row.push(slot.clone());
+                    prev_slot = Some(slot);
+                } else {
+                    row.push("".to_string());
+                }
 
                 // only include repo data when multiple repos are targeted
                 if self.format == TableFormat::Eshowkw || repos > 1 {
@@ -260,7 +313,7 @@ impl Command {
             let mut table = builder.build();
             if !table.is_empty() {
                 // apply table formatting
-                self.format.style(&mut table);
+                self.format.style(&mut table, theme);
                 // force vertical header output
                 table.modify(Rows::first(), Width::wrap(1));
 
