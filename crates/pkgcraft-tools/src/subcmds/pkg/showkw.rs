@@ -181,11 +181,18 @@ impl Command {
             for pkg in &mut iter {
                 // use versions for single package or version targets, otherwise use cpvs
                 let mut row = vec![];
-                if scope <= Scope::Package {
+                let pkg_id = if scope <= Scope::Package {
                     target.get_or_insert_with(|| pkg.cpn().to_string());
-                    row.push(pkg.pvr());
+                    pkg.pvr()
                 } else {
-                    row.push(pkg.cpv().to_string());
+                    pkg.cpv().to_string()
+                };
+
+                // flag pkgs masked by their repo
+                if pkg.masked() {
+                    row.push(Color::FG_RED.colorize(format!("[M]{pkg_id}")));
+                } else {
+                    row.push(pkg_id);
                 }
 
                 let map: HashMap<_, _> = pkg
