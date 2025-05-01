@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use itertools::Itertools;
 use nix::unistd::{ForkResult, Pid, dup, dup2, fork};
-use scallop::pool::{SharedSemaphore, redirect_output, suppress_output};
+use scallop::pool::{NamedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
@@ -328,9 +328,6 @@ impl BuildPool {
         // initialize bash
         super::init()?;
 
-        // initialize shared memory semaphore to track jobs
-        let mut sem = SharedSemaphore::new(self.jobs)?;
-
         match unsafe { fork() } {
             Ok(ForkResult::Parent { child }) => {
                 self.pid.set(child).expect("task pool already running");
@@ -343,6 +340,11 @@ impl BuildPool {
                     use nix::sys::{prctl, signal::Signal};
                     prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
                 }
+
+                // initialize semaphore to track jobs
+                let pid = std::process::id();
+                let name = format!("/pkgcraft-task-pool-{pid}");
+                let mut sem = NamedSemaphore::new(&name, self.jobs)?;
 
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
@@ -365,8 +367,6 @@ impl BuildPool {
                     }
                 }
 
-                // wait for forked processes to complete
-                sem.wait().unwrap();
                 unsafe { libc::_exit(0) }
             }
             Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line

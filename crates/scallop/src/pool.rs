@@ -1,3 +1,4 @@
+use std::ffi::CString;
 use std::fs::File;
 use std::os::fd::{AsFd, AsRawFd};
 
@@ -5,7 +6,6 @@ use nix::errno::Errno;
 use nix::unistd::dup2;
 
 use crate::Error;
-use crate::shm::create_shm;
 
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output<T: AsFd>(f: T) -> crate::Result<()> {
@@ -22,27 +22,26 @@ pub fn suppress_output() -> crate::Result<()> {
     Ok(())
 }
 
-/// Semaphore wrapping libc semaphore calls on top of shared memory.
-pub struct SharedSemaphore {
+/// Semaphore wrapping libc named semaphore calls.
+pub struct NamedSemaphore {
     sem: *mut libc::sem_t,
     size: u32,
 }
 
-impl SharedSemaphore {
-    pub fn new(size: usize) -> crate::Result<Self> {
-        let ptr = create_shm("scallop-pool-sem", std::mem::size_of::<libc::sem_t>())?;
-        let sem = ptr as *mut libc::sem_t;
-
-        // sem_init() uses u32 values
+impl NamedSemaphore {
+    pub fn new<S: AsRef<str>>(name: S, size: usize) -> crate::Result<Self> {
+        let name = CString::new(name.as_ref()).unwrap();
         let size: u32 = size
             .try_into()
             .map_err(|_| Error::Base(format!("pool too large: {size}")))?;
 
-        if unsafe { libc::sem_init(sem, 1, size) } == 0 {
+        let sem = unsafe { libc::sem_open(name.as_ptr(), libc::O_CREAT, 0o600, size) };
+        if !sem.is_null() {
+            unsafe { libc::sem_unlink(name.as_ptr()) };
             Ok(Self { sem, size })
         } else {
             let err = Errno::last_raw();
-            Err(Error::Base(format!("sem_init() failed: {err}")))
+            Err(Error::Base(format!("sem_open() failed: {err}")))
         }
     }
 
@@ -73,9 +72,11 @@ impl SharedSemaphore {
     }
 }
 
-impl Drop for SharedSemaphore {
+impl Drop for NamedSemaphore {
     fn drop(&mut self) {
-        unsafe { libc::sem_destroy(self.sem) };
+        unsafe {
+            libc::sem_close(self.sem);
+        }
     }
 }
 
@@ -87,11 +88,11 @@ mod tests {
     fn semaphore() {
         // exceed max semaphore value
         let size = u32::MAX.try_into().unwrap();
-        assert!(SharedSemaphore::new(size).is_err());
+        assert!(NamedSemaphore::new("test", size).is_err());
 
         // max value is i32::MAX
         let size = i32::MAX.try_into().unwrap();
-        let mut sem = SharedSemaphore::new(size).unwrap();
+        let mut sem = NamedSemaphore::new("test", size).unwrap();
         // overflow semaphore value
         assert!(sem.release().is_err());
 
@@ -100,7 +101,7 @@ mod tests {
         assert!(sem.release().is_ok());
 
         // acquire all
-        let mut sem = SharedSemaphore::new(10).unwrap();
+        let mut sem = NamedSemaphore::new("test", 10).unwrap();
         sem.wait().unwrap();
     }
 }
