@@ -49,10 +49,10 @@ pub(crate) struct Command {
         default_value = "showkw",
         hide_default_value = true,
         hide_possible_values = true,
-        value_parser = PossibleValuesParser::new(Format::VARIANTS)
-            .map(|s| s.parse::<Format>().unwrap()),
+        value_parser = PossibleValuesParser::new(TableFormat::VARIANTS)
+            .map(|s| s.parse::<TableFormat>().unwrap()),
     )]
-    format: Format,
+    format: TableFormat,
 
     /// Show prefix arches
     #[arg(short, long)]
@@ -70,15 +70,31 @@ pub(crate) struct Command {
     targets: Vec<MaybeStdinVec<String>>,
 }
 
+/// Package status variants.
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+enum PkgStatus {
+    Deprecated,
+    Masked,
+}
+
+impl std::fmt::Display for PkgStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Deprecated => write!(f, "{}", Color::FG_YELLOW.colorize("D")),
+            Self::Masked => write!(f, "{}", Color::FG_RED.colorize("M")),
+        }
+    }
+}
+
 /// Formatting theme variants for tabular output.
 #[derive(Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
-enum Format {
+enum TableFormat {
     Eshowkw,
     Showkw,
 }
 
-impl Format {
+impl TableFormat {
     /// Apply formatting theme to a table.
     fn style(&self, table: &mut Table) {
         match self {
@@ -91,13 +107,15 @@ impl Format {
                 let hline = HorizontalLine::inherit(Style::ascii().remove_frame());
                 let vline = VerticalLine::inherit(Style::ascii().remove_frame());
                 theme.insert_horizontal_line(1, hline);
-                theme.insert_vertical_line(1, vline);
+                theme.insert_vertical_line(2, vline);
                 let repo_col = table.count_columns() - 1;
                 theme.insert_vertical_line(repo_col, vline);
                 theme.insert_vertical_line(repo_col - 2, vline);
                 table.with(theme);
                 table.with(Alignment::bottom());
-                table.modify(Columns::new(1..repo_col - 3), Padding::new(1, 0, 0, 0));
+                table.modify(Columns::first(), Padding::zero());
+                table.modify(Columns::single(1), Padding::new(0, 1, 0, 0));
+                table.modify(Columns::new(2..repo_col - 3), Padding::new(1, 0, 0, 0));
                 table.modify(
                     Columns::new(repo_col - 2..repo_col - 1),
                     Padding::new(1, 0, 0, 0),
@@ -114,6 +132,7 @@ impl Format {
                 theme.insert_horizontal_line(1, hline);
                 table.with(theme);
                 table.with(Alignment::bottom());
+                table.modify(Columns::first(), Padding::zero());
             }
         }
     }
@@ -161,11 +180,11 @@ impl Command {
             // build table headers
             let mut builder = Builder::new();
             if !target_arches.is_empty() {
-                let mut headers = vec![String::new()];
+                let mut headers = vec![String::new(), String::new()];
                 headers.extend(target_arches.iter().map(|a| a.to_string()));
                 headers.push("eapi".to_string());
                 headers.push("slot".to_string());
-                if self.format == Format::Eshowkw || repos > 1 {
+                if self.format == TableFormat::Eshowkw || repos > 1 {
                     headers.push("repo".to_string());
                 }
                 builder.push_record(headers);
@@ -178,7 +197,6 @@ impl Command {
                 .log_errors(self.ignore);
 
             let mut target: Option<String> = None;
-            let mut status_indent = "";
             for pkg in &mut iter {
                 // use versions for single package or version targets, otherwise use cpvs
                 let mut row = vec![];
@@ -189,13 +207,22 @@ impl Command {
                     pkg.cpv().to_string()
                 };
 
+                let mut statuses = IndexSet::new();
                 // flag pkgs masked by their repo
-                if pkg.masked() {
-                    status_indent = "   ";
-                    row.push(Color::FG_RED.colorize(format!("[M]{pkg_id}")));
-                } else {
-                    row.push(format!("{status_indent}{pkg_id}"));
+                if pkg.deprecated() {
+                    statuses.insert(PkgStatus::Deprecated);
                 }
+                if pkg.masked() {
+                    statuses.insert(PkgStatus::Masked);
+                }
+
+                if !statuses.is_empty() {
+                    row.push(format!("[{}]", statuses.iter().join("")));
+                } else {
+                    row.push("".to_string());
+                }
+
+                row.push(pkg_id.to_string());
 
                 let map: HashMap<_, _> = pkg
                     .keywords()
@@ -217,7 +244,7 @@ impl Command {
                 row.push(pkg.slot().to_string());
 
                 // only include repo data when multiple repos are targeted
-                if self.format == Format::Eshowkw || repos > 1 {
+                if self.format == TableFormat::Eshowkw || repos > 1 {
                     row.push(Color::FG_YELLOW.colorize(pkg.repo()));
                 }
 
