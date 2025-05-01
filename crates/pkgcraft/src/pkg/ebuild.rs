@@ -48,6 +48,16 @@ struct InternalEbuildPkg {
 #[derive(Clone)]
 pub struct EbuildPkg(Arc<InternalEbuildPkg>);
 
+impl TryFrom<super::Pkg> for EbuildPkg {
+    type Error = Error;
+
+    fn try_from(value: super::Pkg) -> crate::Result<Self> {
+        value
+            .into_ebuild()
+            .map_err(|pkg| Error::InvalidValue(format!("non-ebuild pkg: {pkg}")))
+    }
+}
+
 make_pkg_traits!(EbuildPkg);
 
 impl fmt::Debug for EbuildPkg {
