@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use clap::{Args, builder::ArgPredicate};
+use clap::Args;
+use clap::builder::{ArgPredicate, PossibleValuesParser, TypedValueParser};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
@@ -12,7 +13,7 @@ use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
-use strum::{Display, EnumIter, EnumString};
+use strum::{Display, EnumIter, EnumString, VariantNames};
 use tabled::settings::location::Locator;
 use tabled::settings::object::{Columns, FirstRow, LastColumn, Object, Rows};
 use tabled::settings::style::{HorizontalLine, VerticalLine};
@@ -41,7 +42,15 @@ pub(crate) struct Command {
     arches: Vec<TriState<Arch>>,
 
     /// Set the tabular format
-    #[arg(short, long, default_value = "showkw")]
+    #[arg(
+        short,
+        long,
+        default_value = "showkw",
+        hide_default_value = true,
+        hide_possible_values = true,
+        value_parser = PossibleValuesParser::new(Format::VARIANTS)
+            .map(|s| s.parse::<Format>().unwrap()),
+    )]
     format: Format,
 
     /// Show prefix arches
@@ -61,7 +70,7 @@ pub(crate) struct Command {
 }
 
 /// Formatting theme variants for tabular output.
-#[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 enum Format {
     Eshowkw,
