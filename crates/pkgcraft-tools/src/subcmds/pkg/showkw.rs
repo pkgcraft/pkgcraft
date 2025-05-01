@@ -16,7 +16,7 @@ use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
 use strum::{Display, EnumIter, EnumString, VariantNames};
 use tabled::settings::location::Locator;
-use tabled::settings::object::{Columns, FirstRow, LastColumn, Object, Rows};
+use tabled::settings::object::{Columns, FirstRow, Rows};
 use tabled::settings::style::{HorizontalLine, VerticalLine};
 use tabled::settings::{Alignment, Color, Padding, Style, Theme, Width};
 use tabled::{Table, builder::Builder};
@@ -204,12 +204,12 @@ impl Command {
                     .to_string()
                 }));
 
-                row.push(pkg.eapi().to_string());
+                row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
                 row.push(pkg.slot().to_string());
 
                 // only include repo data when multiple repos are targeted
                 if self.format == Format::Eshowkw || repos > 1 {
-                    row.push(pkg.repo().to_string());
+                    row.push(Color::FG_YELLOW.colorize(pkg.repo()));
                 }
 
                 builder.push_record(row);
@@ -229,9 +229,6 @@ impl Command {
                 table.modify(Locator::content("+"), Color::FG_GREEN);
                 table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
                 table.modify(Locator::content("-"), Color::FG_RED);
-                if self.format == Format::Eshowkw || repos > 1 {
-                    table.modify(LastColumn.not(Rows::first()), Color::FG_YELLOW);
-                }
 
                 // TODO: output raw targets for non-package scopes
                 // output title for multiple package targets
