@@ -208,16 +208,9 @@ impl Command {
 
             let mut target: Option<String> = None;
             for pkg in &mut iter {
-                // use versions for single package or version targets, otherwise use cpvs
                 let mut row = vec![];
-                let pkg_id = if scope <= Scope::Package {
-                    target.get_or_insert_with(|| pkg.cpn().to_string());
-                    pkg.pvr()
-                } else {
-                    pkg.cpv().to_string()
-                };
 
-                // determine pkg statuses
+                // determine pkg status
                 let statuses: Vec<_> = PkgStatus::from_pkg(&pkg).collect();
                 if !statuses.is_empty() {
                     row.push(format!("[{}]", statuses.iter().join("")));
@@ -225,7 +218,15 @@ impl Command {
                     row.push("".to_string());
                 }
 
-                row.push(pkg_id.to_string());
+                // Vary pkg identifier used by target scope.
+                //
+                // Versions for single package or version targets, otherwise cpvs.
+                if scope <= Scope::Package {
+                    target.get_or_insert_with(|| pkg.cpn().to_string());
+                    row.push(pkg.pvr());
+                } else {
+                    row.push(pkg.cpv().to_string());
+                }
 
                 let map: HashMap<_, _> = pkg
                     .keywords()
