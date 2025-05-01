@@ -134,29 +134,36 @@ impl Command {
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?;
 
-        let selected: IndexSet<_> = self.arches.iter().cloned().collect();
+        let selected_arches: IndexSet<_> = self.arches.iter().cloned().collect();
         let mut stdout = io::stdout().lock();
         let mut failed = false;
 
         // output a table per restriction target
         for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
             let scope = Scope::from(restrict);
+            let repos = set.iter_ebuild().count();
 
             // determine default arch set
-            let mut arches = IndexSet::new();
-            let mut repos = 0;
-            for repo in set.iter_ebuild() {
-                arches.extend(
-                    repo.arches()
-                        .into_iter()
-                        .filter(|arch| !arch.is_prefix() || self.prefix)
-                        .cloned(),
-                );
-                repos += 1;
-            }
+            let all_arches: IndexSet<_> = set
+                .iter_ebuild()
+                .flat_map(|r| r.arches())
+                .cloned()
+                .collect();
+            let mut arches: IndexSet<_> = all_arches
+                .iter()
+                .filter(|arch| !arch.is_prefix() || self.prefix)
+                .cloned()
+                .collect();
 
             // filter defaults by selected arches
-            TriState::enabled(&mut arches, selected.clone());
+            TriState::enabled(&mut arches, selected_arches.clone());
+
+            // verify selected arches exist
+            let nonexistent: Vec<_> = arches.difference(&all_arches).collect();
+            if !nonexistent.is_empty() {
+                let nonexistent = nonexistent.iter().join(", ");
+                anyhow::bail!("nonexistent arches: {nonexistent}");
+            }
 
             // build table headers
             let mut builder = Builder::new();
