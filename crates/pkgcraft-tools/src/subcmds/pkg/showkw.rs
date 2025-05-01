@@ -15,8 +15,7 @@ use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
-use tabled::settings::location::Locator;
-use tabled::settings::object::{Columns, FirstRow, Rows};
+use tabled::settings::object::{Columns, Rows};
 use tabled::settings::style::{HorizontalLine, VerticalLine};
 use tabled::settings::{Alignment, Color, Padding, Style, Theme, Width};
 use tabled::{Table, builder::Builder};
@@ -191,7 +190,11 @@ impl Command {
             let mut builder = Builder::new();
             if !target_arches.is_empty() {
                 let mut headers = vec![String::new(), String::new()];
-                headers.extend(target_arches.iter().map(|a| a.to_string()));
+                headers.extend(
+                    target_arches
+                        .iter()
+                        .map(|a| Color::FG_BRIGHT_WHITE.colorize(a)),
+                );
                 headers.push("eapi".to_string());
                 headers.push("slot".to_string());
                 if self.format == TableFormat::Eshowkw || repos > 1 {
@@ -234,14 +237,11 @@ impl Command {
                     .map(|k| (k.arch(), k.status()))
                     .collect();
 
-                row.extend(target_arches.iter().map(|arch| {
-                    match map.get(arch) {
-                        Some(KeywordStatus::Disabled) => "-",
-                        Some(KeywordStatus::Stable) => "+",
-                        Some(KeywordStatus::Unstable) => "~",
-                        None => " ",
-                    }
-                    .to_string()
+                row.extend(target_arches.iter().map(|arch| match map.get(arch) {
+                    Some(KeywordStatus::Disabled) => Color::FG_RED.colorize("-"),
+                    Some(KeywordStatus::Stable) => Color::FG_GREEN.colorize("+"),
+                    Some(KeywordStatus::Unstable) => Color::FG_BRIGHT_YELLOW.colorize("~"),
+                    None => " ".to_string(),
                 }));
 
                 row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
@@ -263,12 +263,6 @@ impl Command {
                 self.format.style(&mut table);
                 // force vertical header output
                 table.modify(Rows::first(), Width::wrap(1));
-
-                // apply colors
-                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
-                table.modify(Locator::content("+"), Color::FG_GREEN);
-                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
-                table.modify(Locator::content("-"), Color::FG_RED);
 
                 // TODO: output raw targets for non-package scopes
                 // output title for multiple package targets
