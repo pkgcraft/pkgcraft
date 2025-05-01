@@ -14,9 +14,9 @@ use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
 use strum::{Display, EnumIter, EnumString};
 use tabled::settings::location::Locator;
-use tabled::settings::object::{FirstRow, LastColumn};
-use tabled::settings::style::HorizontalLine;
-use tabled::settings::{Alignment, Color, Style, Theme};
+use tabled::settings::object::{Columns, FirstRow, LastColumn, Object, Rows};
+use tabled::settings::style::{HorizontalLine, VerticalLine};
+use tabled::settings::{Alignment, Color, Padding, Style, Theme};
 use tabled::{Table, builder::Builder};
 
 #[derive(Args)]
@@ -41,7 +41,7 @@ pub(crate) struct Command {
     arches: Vec<TriState<Arch>>,
 
     /// Set the tabular format
-    #[arg(short, long, default_value = "eshowkw")]
+    #[arg(short, long, default_value = "showkw")]
     format: Format,
 
     /// Show prefix arches
@@ -65,6 +65,7 @@ pub(crate) struct Command {
 #[strum(serialize_all = "kebab-case")]
 enum Format {
     Eshowkw,
+    Showkw,
 }
 
 impl Format {
@@ -72,6 +73,26 @@ impl Format {
     fn style(&self, table: &mut Table) {
         match self {
             Self::Eshowkw => {
+                let style = Style::blank()
+                    .remove_vertical()
+                    .horizontal('-')
+                    .remove_horizontal();
+                let mut theme = Theme::from_style(style);
+                let hline = HorizontalLine::inherit(Style::ascii().remove_frame());
+                let vline = VerticalLine::inherit(Style::ascii().remove_frame());
+                theme.insert_horizontal_line(1, hline);
+                theme.insert_vertical_line(1, vline);
+                let repo_col = table.count_columns() - 1;
+                theme.insert_vertical_line(repo_col, vline);
+                table.with(theme);
+                table.with(Alignment::bottom());
+                table.modify(Columns::new(1..repo_col - 1), Padding::new(1, 0, 0, 0));
+                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
+                table.modify(Locator::content("+"), Color::FG_GREEN);
+                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
+                table.modify(Locator::content("-"), Color::FG_RED);
+            }
+            Self::Showkw => {
                 let style = Style::modern()
                     .remove_top()
                     .remove_left()
@@ -128,7 +149,7 @@ impl Command {
             if !arches.is_empty() {
                 let mut headers = vec![String::new()];
                 headers.extend(arches.iter().map(|a| a.as_ref().chars().join("\n")));
-                if repos > 1 {
+                if self.format == Format::Eshowkw || repos > 1 {
                     headers.push("repo".chars().join("\n"));
                 }
                 builder.push_record(headers);
@@ -165,7 +186,7 @@ impl Command {
                 }));
 
                 // only include repo data when multiple repos are targeted
-                if repos > 1 {
+                if self.format == Format::Eshowkw || repos > 1 {
                     row.push(pkg.repo().to_string());
                 }
 
@@ -177,8 +198,8 @@ impl Command {
             let mut table = builder.build();
             if !table.is_empty() {
                 self.format.style(&mut table);
-                if repos > 1 {
-                    table.modify(LastColumn, Color::FG_YELLOW);
+                if self.format == Format::Eshowkw || repos > 1 {
+                    table.modify(LastColumn.not(Rows::first()), Color::FG_YELLOW);
                 }
                 // TODO: output raw targets for non-package scopes
                 // output title for multiple package targets
