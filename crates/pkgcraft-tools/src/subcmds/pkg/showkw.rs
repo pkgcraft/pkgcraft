@@ -149,17 +149,17 @@ impl Command {
                 .flat_map(|r| r.arches())
                 .cloned()
                 .collect();
-            let mut arches: IndexSet<_> = all_arches
+            let mut target_arches: IndexSet<_> = all_arches
                 .iter()
                 .filter(|arch| !arch.is_prefix() || self.prefix)
                 .cloned()
                 .collect();
 
-            // filter defaults by selected arches
-            TriState::enabled(&mut arches, selected_arches.clone());
+            // determine target arches, filtering defaults by selected arches
+            TriState::enabled(&mut target_arches, selected_arches.clone());
 
-            // verify selected arches exist
-            let nonexistent: Vec<_> = arches.difference(&all_arches).collect();
+            // verify target arches exist
+            let nonexistent: Vec<_> = target_arches.difference(&all_arches).collect();
             if !nonexistent.is_empty() {
                 let nonexistent = nonexistent.iter().join(", ");
                 anyhow::bail!("nonexistent arches: {nonexistent}");
@@ -167,9 +167,9 @@ impl Command {
 
             // build table headers
             let mut builder = Builder::new();
-            if !arches.is_empty() {
+            if !target_arches.is_empty() {
                 let mut headers = vec![String::new()];
-                headers.extend(arches.iter().map(|a| a.as_ref().chars().join("\n")));
+                headers.extend(target_arches.iter().map(|a| a.as_ref().chars().join("\n")));
                 headers.push("eapi".chars().join("\n"));
                 headers.push("slot".chars().join("\n"));
                 if self.format == Format::Eshowkw || repos > 1 {
@@ -198,7 +198,7 @@ impl Command {
                     .map(|k| (k.arch(), k.status()))
                     .collect();
 
-                row.extend(arches.iter().map(|arch| {
+                row.extend(target_arches.iter().map(|arch| {
                     match map.get(arch) {
                         Some(KeywordStatus::Disabled) => "-",
                         Some(KeywordStatus::Stable) => "+",
