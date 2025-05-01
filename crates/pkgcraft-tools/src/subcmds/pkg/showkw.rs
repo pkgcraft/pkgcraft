@@ -14,7 +14,7 @@ use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
-use strum::{Display, EnumIter, EnumString, VariantNames};
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use tabled::settings::location::Locator;
 use tabled::settings::object::{Columns, FirstRow, Rows};
 use tabled::settings::style::{HorizontalLine, VerticalLine};
@@ -71,10 +71,20 @@ pub(crate) struct Command {
 }
 
 /// Package status variants.
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(EnumIter, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum PkgStatus {
     Deprecated,
     Masked,
+}
+
+impl PkgStatus {
+    /// Return the iterator of statuses from a package.
+    fn from_pkg(pkg: &EbuildPkg) -> impl Iterator<Item = Self> {
+        Self::iter().filter(|status| match status {
+            Self::Deprecated => pkg.deprecated(),
+            Self::Masked => pkg.masked(),
+        })
+    }
 }
 
 impl std::fmt::Display for PkgStatus {
@@ -207,15 +217,8 @@ impl Command {
                     pkg.cpv().to_string()
                 };
 
-                let mut statuses = IndexSet::new();
-                // flag pkgs masked by their repo
-                if pkg.deprecated() {
-                    statuses.insert(PkgStatus::Deprecated);
-                }
-                if pkg.masked() {
-                    statuses.insert(PkgStatus::Masked);
-                }
-
+                // determine pkg statuses
+                let statuses: Vec<_> = PkgStatus::from_pkg(&pkg).collect();
                 if !statuses.is_empty() {
                     row.push(format!("[{}]", statuses.iter().join("")));
                 } else {
