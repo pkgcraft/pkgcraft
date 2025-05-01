@@ -45,6 +45,8 @@ jobs:
             rust-version: ${{ needs.msrv.outputs.version }}
           - os: ubuntu-latest
             rust-version: stable
+          - os: macos-latest
+            rust-version: stable
 
     steps:
     - name: Free disk space for coverage data
