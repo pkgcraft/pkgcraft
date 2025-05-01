@@ -17,7 +17,7 @@ use strum::{Display, EnumIter, EnumString, VariantNames};
 use tabled::settings::location::Locator;
 use tabled::settings::object::{Columns, FirstRow, LastColumn, Object, Rows};
 use tabled::settings::style::{HorizontalLine, VerticalLine};
-use tabled::settings::{Alignment, Color, Padding, Style, Theme};
+use tabled::settings::{Alignment, Color, Padding, Style, Theme, Width};
 use tabled::{Table, builder::Builder};
 
 #[derive(Args)]
@@ -169,11 +169,11 @@ impl Command {
             let mut builder = Builder::new();
             if !target_arches.is_empty() {
                 let mut headers = vec![String::new()];
-                headers.extend(target_arches.iter().map(|a| a.as_ref().chars().join("\n")));
-                headers.push("eapi".chars().join("\n"));
-                headers.push("slot".chars().join("\n"));
+                headers.extend(target_arches.iter().map(|a| a.to_string()));
+                headers.push("eapi".to_string());
+                headers.push("slot".to_string());
                 if self.format == Format::Eshowkw || repos > 1 {
-                    headers.push("repo".chars().join("\n"));
+                    headers.push("repo".to_string());
                 }
                 builder.push_record(headers);
             }
@@ -223,10 +223,14 @@ impl Command {
             // render table
             let mut table = builder.build();
             if !table.is_empty() {
+                // apply table formatting
                 self.format.style(&mut table);
+                // force vertical header output
+                table.modify(Rows::first(), Width::wrap(1));
                 if self.format == Format::Eshowkw || repos > 1 {
                     table.modify(LastColumn.not(Rows::first()), Color::FG_YELLOW);
                 }
+
                 // TODO: output raw targets for non-package scopes
                 // output title for multiple package targets
                 if pkg_targets.len() > 1 {
