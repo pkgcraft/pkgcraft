@@ -12,11 +12,12 @@ use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
-use tabled::builder::Builder;
+use strum::{Display, EnumIter, EnumString};
 use tabled::settings::location::Locator;
 use tabled::settings::object::{FirstRow, LastColumn};
 use tabled::settings::style::HorizontalLine;
 use tabled::settings::{Alignment, Color, Style, Theme};
+use tabled::{Table, builder::Builder};
 
 #[derive(Args)]
 #[clap(next_help_heading = "Target options")]
@@ -39,6 +40,10 @@ pub(crate) struct Command {
     )]
     arches: Vec<TriState<Arch>>,
 
+    /// Set the tabular format
+    #[arg(short, long, default_value = "eshowkw")]
+    format: Format,
+
     /// Show prefix arches
     #[arg(short, long)]
     prefix: bool,
@@ -55,6 +60,37 @@ pub(crate) struct Command {
     targets: Vec<MaybeStdinVec<String>>,
 }
 
+/// Formatting theme variants for tabular output.
+#[derive(Display, EnumIter, EnumString, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[strum(serialize_all = "kebab-case")]
+enum Format {
+    Eshowkw,
+}
+
+impl Format {
+    /// Apply formatting theme to a table.
+    fn style(&self, table: &mut Table) {
+        match self {
+            Self::Eshowkw => {
+                let style = Style::modern()
+                    .remove_top()
+                    .remove_left()
+                    .remove_right()
+                    .remove_horizontal();
+                let mut theme = Theme::from_style(style);
+                let hline = HorizontalLine::inherit(Style::modern().remove_frame());
+                theme.insert_horizontal_line(1, hline);
+                table.with(theme);
+                table.with(Alignment::bottom());
+                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
+                table.modify(Locator::content("+"), Color::FG_GREEN);
+                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
+                table.modify(Locator::content("-"), Color::FG_RED);
+            }
+        }
+    }
+}
+
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine pkg targets
@@ -66,15 +102,6 @@ impl Command {
         let selected: IndexSet<_> = self.arches.iter().cloned().collect();
         let mut stdout = io::stdout().lock();
         let mut failed = false;
-
-        let style = Style::modern()
-            .remove_top()
-            .remove_left()
-            .remove_right()
-            .remove_horizontal();
-        let mut theme = Theme::from_style(style);
-        let hline = HorizontalLine::inherit(Style::modern().remove_frame());
-        theme.insert_horizontal_line(1, hline);
 
         // output a table per restriction target
         for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
@@ -149,16 +176,10 @@ impl Command {
             // render table
             let mut table = builder.build();
             if !table.is_empty() {
-                table.with(theme.clone());
-                table.with(Alignment::bottom());
+                self.format.style(&mut table);
                 if repos > 1 {
                     table.modify(LastColumn, Color::FG_YELLOW);
                 }
-                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
-                table.modify(Locator::content("+"), Color::FG_GREEN);
-                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
-                table.modify(Locator::content("-"), Color::FG_RED);
-
                 // TODO: output raw targets for non-package scopes
                 // output title for multiple package targets
                 if pkg_targets.len() > 1 {
