@@ -129,6 +129,12 @@ impl Borrow<str> for &'static Eapi {
     }
 }
 
+impl AsRef<str> for Eapi {
+    fn as_ref(&self) -> &str {
+        &self.id
+    }
+}
+
 impl Ord for Eapi {
     fn cmp(&self, other: &Self) -> Ordering {
         let self_index = EAPIS.get_index_of(self).unwrap();
