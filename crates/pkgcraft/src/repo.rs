@@ -740,7 +740,7 @@ macro_rules! make_repo_traits {
 
         impl AsRef<str> for $x {
             fn as_ref(&self) -> &str {
-                self.path().as_ref()
+                self.name()
             }
         }
 

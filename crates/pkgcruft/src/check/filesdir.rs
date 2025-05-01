@@ -158,7 +158,7 @@ fn expand_node<'a>(
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
-        let filesdir = build_path!(&run.repo, cpn.category(), cpn.package(), "files");
+        let filesdir = build_path!(run.repo.path(), cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
         let mut files: HashSet<_> = WalkDir::new(&filesdir)
             .min_depth(1)

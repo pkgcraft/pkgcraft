@@ -96,7 +96,7 @@ fn repo() {
 
     // specific path
     cmd("pkgcruft show reports")
-        .args(["--repo", repo.as_ref()])
+        .args(["--repo", repo.path().as_str()])
         .assert()
         .stdout(predicate::str::is_empty().not())
         .stderr("")
@@ -104,7 +104,7 @@ fn repo() {
 
     // specific path with check set
     cmd("pkgcruft show reports")
-        .args(["--repo", repo.as_ref()])
+        .args(["--repo", repo.path().as_str()])
         .args(["-r", "@Dependency"])
         .assert()
         .stdout(predicate::str::is_empty().not())

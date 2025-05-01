@@ -29,7 +29,7 @@ fn no_matches() {
 
     // specific targets in an empty repo fail
     cmd("pkgcruft scan cat/pkg")
-        .args(["--repo", repo.as_ref()])
+        .args(["--repo", repo.path().as_str()])
         .assert()
         .stdout("")
         .stderr(contains("no matches found: cat/pkg"))
@@ -56,7 +56,7 @@ fn stdin_targets() {
 
     for arg in ["KeywordsDropped", "KeywordsDropped/KeywordsDropped"] {
         cmd("pkgcruft scan -R simple -")
-            .args(["--repo", repo.as_ref()])
+            .args(["--repo", repo.path().as_str()])
             .write_stdin(format!("{arg}\n"))
             .assert()
             .stdout(contains("KeywordsDropped: x86"))
@@ -84,7 +84,7 @@ fn dep_restrict_targets() {
     // single
     for s in ["KeywordsDropped/*", "KeywordsDropped"] {
         cmd("pkgcruft scan -R simple")
-            .args(["--repo", repo.as_ref()])
+            .args(["--repo", repo.path().as_str()])
             .arg(s)
             .assert()
             .stdout(contains("KeywordsDropped: x86"))
@@ -98,7 +98,7 @@ fn dep_restrict_targets() {
     "#};
     let expected: Vec<_> = reports.lines().collect();
     let output = cmd("pkgcruft scan -R simple")
-        .args(["--repo", repo.as_ref()])
+        .args(["--repo", repo.path().as_str()])
         .args(["KeywordsDropped/*", "KeywordsDropped"])
         .output()
         .unwrap()
@@ -109,7 +109,7 @@ fn dep_restrict_targets() {
 
     // nonexistent
     cmd("pkgcruft scan -R simple")
-        .args(["--repo", repo.as_ref()])
+        .args(["--repo", repo.path().as_str()])
         .arg("nonexistent/pkg")
         .assert()
         .stdout("")

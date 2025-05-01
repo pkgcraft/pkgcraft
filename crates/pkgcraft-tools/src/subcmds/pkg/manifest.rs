@@ -209,7 +209,7 @@ impl Command {
                 .flat_map(|x| x.distfiles())
                 .map(|f| (f.to_string(), (dir.join(f), self.force || regen_entry(f))))
                 .collect();
-            let pkgdir = build_path!(&repo, cpn.category(), cpn.package());
+            let pkgdir = build_path!(repo.path(), cpn.category(), cpn.package());
             if self.force || manifest.outdated(&pkgdir, &distfiles, thick) {
                 pkg_distfiles.insert((repo, cpn, pkgdir, thick), distfiles);
             }

@@ -194,7 +194,7 @@ fn custom_path() {
 
     for opt in ["-p", "--path"] {
         cmd("pk pkg metadata cat/pkg-1")
-            .args(["--repo", repo.as_ref()])
+            .args(["--repo", repo.path().as_str()])
             .arg(opt)
             .arg(path)
             .assert()
@@ -240,7 +240,7 @@ fn verify() {
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         cmd("pk pkg metadata cat/pkg-1")
-            .args(["--repo", repo.as_ref()])
+            .args(["--repo", repo.path().as_str()])
             .arg(opt)
             .assert()
             .stdout("")
