@@ -101,10 +101,6 @@ impl Format {
                     Columns::new(repo_col - 2..repo_col - 1),
                     Padding::new(1, 0, 0, 0),
                 );
-                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
-                table.modify(Locator::content("+"), Color::FG_GREEN);
-                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
-                table.modify(Locator::content("-"), Color::FG_RED);
             }
             Self::Showkw => {
                 let style = Style::modern()
@@ -117,10 +113,6 @@ impl Format {
                 theme.insert_horizontal_line(1, hline);
                 table.with(theme);
                 table.with(Alignment::bottom());
-                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
-                table.modify(Locator::content("+"), Color::FG_GREEN);
-                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
-                table.modify(Locator::content("-"), Color::FG_RED);
             }
         }
     }
@@ -227,6 +219,12 @@ impl Command {
                 self.format.style(&mut table);
                 // force vertical header output
                 table.modify(Rows::first(), Width::wrap(1));
+
+                // apply colors
+                table.modify(FirstRow, Color::FG_BRIGHT_WHITE);
+                table.modify(Locator::content("+"), Color::FG_GREEN);
+                table.modify(Locator::content("~"), Color::FG_BRIGHT_YELLOW);
+                table.modify(Locator::content("-"), Color::FG_RED);
                 if self.format == Format::Eshowkw || repos > 1 {
                     table.modify(LastColumn.not(Rows::first()), Color::FG_YELLOW);
                 }
