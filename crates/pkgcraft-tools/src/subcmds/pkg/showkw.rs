@@ -148,6 +148,8 @@ impl TableFormat {
                     .remove_top()
                     .remove_left()
                     .remove_right()
+                    .remove_bottom()
+                    .remove_vertical()
                     .remove_horizontal();
                 TableTheme {
                     inner: Theme::from_style(style),
@@ -159,9 +161,10 @@ impl TableFormat {
 
     /// Apply a theme to a table format.
     fn style(&self, table: &mut Table, mut theme: TableTheme) {
+        let repo_col = table.count_columns() - 1;
+
         match self {
             Self::Eshowkw => {
-                let repo_col = table.count_columns() - 1;
                 theme.insert_vline(2);
                 theme.insert_vline(repo_col);
                 theme.insert_vline(repo_col - 2);
@@ -176,9 +179,13 @@ impl TableFormat {
                 );
             }
             Self::Showkw => {
+                theme.insert_vline(2);
+                theme.insert_vline(repo_col);
+                theme.insert_vline(repo_col - 2);
                 table.with(theme.inner);
                 table.with(Alignment::bottom());
                 table.modify(Columns::first(), Padding::zero());
+                table.modify(Columns::single(1), Padding::new(0, 1, 0, 0));
             }
         }
     }
@@ -200,7 +207,6 @@ impl Command {
         for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
             let mut theme = self.format.theme();
             let scope = Scope::from(restrict);
-            let repos = set.iter_ebuild().count();
 
             // determine default arch set
             let all_arches: IndexSet<_> = set
@@ -235,9 +241,7 @@ impl Command {
                 );
                 headers.push("eapi".to_string());
                 headers.push("slot".to_string());
-                if self.format == TableFormat::Eshowkw || repos > 1 {
-                    headers.push("repo".to_string());
-                }
+                headers.push("repo".to_string());
                 builder.push_record(headers);
             }
 
@@ -300,10 +304,7 @@ impl Command {
                     row.push("".to_string());
                 }
 
-                // only include repo data when multiple repos are targeted
-                if self.format == TableFormat::Eshowkw || repos > 1 {
-                    row.push(Color::FG_YELLOW.colorize(pkg.repo()));
-                }
+                row.push(Color::FG_YELLOW.colorize(pkg.repo()));
 
                 builder.push_record(row);
             }
