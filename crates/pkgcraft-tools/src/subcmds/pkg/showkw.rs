@@ -162,32 +162,15 @@ impl TableFormat {
     /// Apply a theme to a table format.
     fn style(&self, table: &mut Table, mut theme: TableTheme) {
         let repo_col = table.count_columns() - 1;
-
-        match self {
-            Self::Eshowkw => {
-                theme.insert_vline(2);
-                theme.insert_vline(repo_col);
-                theme.insert_vline(repo_col - 2);
-                table.with(theme.inner);
-                table.with(Alignment::bottom());
-                table.modify(Columns::first(), Padding::zero());
-                table.modify(Columns::single(1), Padding::new(0, 1, 0, 0));
-                table.modify(Columns::new(2..repo_col - 3), Padding::new(1, 0, 0, 0));
-                table.modify(
-                    Columns::new(repo_col - 2..repo_col - 1),
-                    Padding::new(1, 0, 0, 0),
-                );
-            }
-            Self::Showkw => {
-                theme.insert_vline(2);
-                theme.insert_vline(repo_col);
-                theme.insert_vline(repo_col - 2);
-                table.with(theme.inner);
-                table.with(Alignment::bottom());
-                table.modify(Columns::first(), Padding::zero());
-                table.modify(Columns::single(1), Padding::new(0, 1, 0, 0));
-            }
-        }
+        theme.insert_vline(2);
+        theme.insert_vline(repo_col);
+        theme.insert_vline(repo_col - 2);
+        table.with(theme.inner);
+        table.with(Alignment::bottom());
+        table.modify(Columns::first(), Padding::zero());
+        table.modify(Columns::single(1), Padding::new(0, 1, 0, 0));
+        table.modify(Columns::new(2..repo_col - 3), Padding::new(1, 0, 0, 0));
+        table.modify(Columns::new(repo_col - 2..repo_col - 1), Padding::new(1, 0, 0, 0));
     }
 }
 
