@@ -15,6 +15,7 @@ use tonic::transport::server::Connected;
 pub struct UnixStream(pub tokio::net::UnixStream);
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct UdsConnectInfo {
     pub peer_addr: Option<Arc<tokio::net::unix::SocketAddr>>,
     pub peer_cred: Option<tokio::net::unix::UCred>,

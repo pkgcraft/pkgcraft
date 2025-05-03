@@ -16,6 +16,7 @@ use arcanist::proto::{
 
 #[derive(Debug)]
 pub struct ArcanistService {
+    #[allow(dead_code)]
     pub settings: Settings,
     pub config: Arc<RwLock<PkgcraftConfig>>,
 }

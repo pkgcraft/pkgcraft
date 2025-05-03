@@ -189,6 +189,7 @@ impl From<PhaseKind> for Phase {
 
 impl Phase {
     /// Run the phase operation.
+    #[allow(dead_code)]
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
         let build = get_build_mut();
         let _scope = build.scoped(self.kind);

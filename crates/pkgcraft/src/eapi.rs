@@ -251,6 +251,7 @@ impl Eapi {
     }
 
     /// Return the ordered set of phases for a given operation.
+    #[allow(dead_code)]
     pub(crate) fn operation(&self, op: OperationKind) -> impl Iterator<Item = &Phase> {
         self.operations
             .get(&op)

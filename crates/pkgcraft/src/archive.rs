@@ -8,6 +8,7 @@ use crate::command::RunCommand;
 
 pub(crate) trait ArchiveFormat {
     const EXTS: &'static [&'static str];
+    #[allow(dead_code)]
     fn pack<P: AsRef<Utf8Path>, Q: AsRef<Utf8Path>>(src: P, dest: Q) -> crate::Result<()>;
     fn unpack<P: AsRef<Utf8Path>>(&self, dest: P) -> crate::Result<()>;
 }

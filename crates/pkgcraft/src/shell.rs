@@ -49,7 +49,11 @@ pub(crate) enum BuildState {
     Metadata(EbuildRawPkg),
     Build(EbuildPkg),
     // TODO: use binpkgs for the replace state
-    Replace { old: Vec<EbuildPkg>, new: EbuildPkg },
+    #[allow(dead_code)]
+    Replace {
+        old: Vec<EbuildPkg>,
+        new: EbuildPkg,
+    },
 }
 
 impl Default for BuildState {
@@ -454,6 +458,7 @@ pub(crate) fn init() -> scallop::Result<()> {
 /// Build wrapper for ebuild package variants.
 enum EbuildPackage<'a> {
     Pkg(&'a EbuildPkg),
+    #[allow(dead_code)]
     Configured(&'a EbuildConfiguredPkg),
 }
 

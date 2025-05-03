@@ -73,6 +73,7 @@ impl PartialOrd for Hook {
 }
 
 impl Hook {
+    #[allow(dead_code)]
     pub(crate) fn run(&self, build: &mut BuildData) -> scallop::Result<ExecStatus> {
         (self.func)(build)
     }

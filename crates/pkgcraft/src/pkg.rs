@@ -85,6 +85,7 @@ pub trait RepoPackage: Package + Ord {
     fn repo(&self) -> Self::Repo;
 }
 
+#[allow(dead_code)]
 pub(crate) trait Build: Package {
     /// Run the build operations for a package.
     fn build(&self) -> scallop::Result<()>;
