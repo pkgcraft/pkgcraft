@@ -12,7 +12,7 @@ use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
 
-use crate::config::Config;
+use crate::config::ConfigRepos;
 use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::metadata::Metadata;
@@ -24,9 +24,8 @@ use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 use super::environment::{BASH, EXTERNAL};
 
 /// Get an ebuild repo from a config matching a given ID.
-fn get_ebuild_repo<'a>(config: &'a Config, repo: &str) -> crate::Result<&'a EbuildRepo> {
-    config
-        .repos()
+fn get_ebuild_repo<'a>(repos: &'a ConfigRepos, repo: &str) -> crate::Result<&'a EbuildRepo> {
+    repos
         .get(repo)?
         .as_ebuild()
         .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {repo}")))
@@ -59,7 +58,7 @@ impl MetadataTask {
         }
     }
 
-    fn run(self, config: &Config) -> crate::Result<Option<String>> {
+    fn run(self, config: &ConfigRepos) -> crate::Result<Option<String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
 
@@ -193,7 +192,7 @@ impl PretendTask {
         }
     }
 
-    fn run(self, config: &Config) -> crate::Result<Option<String>> {
+    fn run(self, config: &ConfigRepos) -> crate::Result<Option<String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg(self.cpv)?;
         Ok(pkg.pkg_pretend()?)
@@ -214,7 +213,7 @@ impl EnvTask {
         }
     }
 
-    fn run(self, config: &Config) -> crate::Result<IndexMap<String, String>> {
+    fn run(self, config: &ConfigRepos) -> crate::Result<IndexMap<String, String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         let eapi_vars = pkg.eapi().env();
@@ -250,7 +249,7 @@ impl DurationTask {
         }
     }
 
-    fn run(self, config: &Config) -> crate::Result<Duration> {
+    fn run(self, config: &ConfigRepos) -> crate::Result<Duration> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         let start = Instant::now();
@@ -271,7 +270,7 @@ enum Task {
 
 impl Task {
     /// Run the task, sending the result back to the main process.
-    fn run(self, config: &Config) {
+    fn run(self, config: &ConfigRepos) {
         match self {
             Self::Env(task, tx) => tx.send(task.run(config)),
             Self::Metadata(task, tx) => tx.send(task.run(config)),
@@ -319,7 +318,7 @@ impl BuildPool {
     }
 
     /// Start the build pool loop.
-    pub(crate) fn start(&self, config: &Config) -> crate::Result<()> {
+    pub(crate) fn start(&self, config: ConfigRepos) -> crate::Result<()> {
         if self.pid.get().is_some() {
             // task pool already running
             return Ok(());
@@ -359,7 +358,7 @@ impl BuildPool {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
                             scallop::shell::fork_init();
-                            task.run(config);
+                            task.run(&config);
                             sem.release().unwrap();
                             unsafe { libc::_exit(0) };
                         }
