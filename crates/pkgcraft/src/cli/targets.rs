@@ -89,7 +89,7 @@ impl<'a> Targets<'a> {
     fn repo_set(&mut self) -> crate::Result<&RepoSet> {
         if self.repo_set.repos.is_empty() {
             self.config.load()?;
-            self.repo_set = self.config.repos.set(self.repo_format);
+            self.repo_set = self.config.repos().set(self.repo_format);
         }
         Ok(&self.repo_set)
     }

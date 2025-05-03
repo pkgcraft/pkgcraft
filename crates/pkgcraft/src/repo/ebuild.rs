@@ -126,7 +126,7 @@ impl EbuildRepo {
 
         let (masters, repos): (Vec<_>, Vec<_>) =
             self.metadata().config.masters.iter().partition_map(|id| {
-                match config.repos.get(id).ok().and_then(|r| r.as_ebuild()) {
+                match config.repos().get(id).ok().and_then(|r| r.as_ebuild()) {
                     Some(r) => Either::Left(r.clone()),
                     None => Either::Right(id.to_string()),
                 }
