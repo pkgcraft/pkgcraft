@@ -156,7 +156,7 @@ impl TestData {
     }
 
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
-        self.config.repos.get(name)
+        self.config.repos().get(name)
     }
 
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
@@ -176,7 +176,6 @@ pub fn test_data() -> TestData {
 
     // load valid repos from test data, ignoring purposefully broken ones
     let mut config = Config::new("pkgcraft", "");
-    let mut repos = vec![];
     for entry in WalkDir::new(path.join("repos/valid"))
         .min_depth(1)
         .max_depth(1)
@@ -185,10 +184,11 @@ pub fn test_data() -> TestData {
         let entry = entry.unwrap();
         let name = entry.file_name().to_str().unwrap();
         let path = entry.path().to_str().unwrap();
-        repos.push(Repo::from_path(name, path, 0).unwrap());
+        config
+            .add_repo(Repo::from_path(name, path, 0).unwrap())
+            .unwrap();
     }
 
-    config.repos.extend(repos, &config.settings).unwrap();
     config.finalize().unwrap();
 
     TestData {
@@ -207,7 +207,7 @@ pub struct TestDataPatched {
 
 impl TestDataPatched {
     pub fn repo(&self, name: &str) -> crate::Result<&Repo> {
-        self.config.repos.get(name)
+        self.config.repos().get(name)
     }
 
     pub fn ebuild_repo(&self, name: &str) -> crate::Result<&EbuildRepo> {
@@ -232,11 +232,10 @@ pub fn test_data_patched() -> TestDataPatched {
     let _tmpdir = TempDir::new().unwrap();
     let tmppath = Utf8Path::from_path(_tmpdir.path()).unwrap();
     let mut config = Config::new("pkgcraft", "");
-    let mut repos = vec![];
 
     // generate temporary repos with changes applied
     let data = test_data();
-    for (name, repo) in &data.config.repos {
+    for (name, repo) in data.config.repos() {
         let changes: Vec<Utf8PathBuf> = WalkDir::new(repo.path())
             .sort_by_file_name()
             .into_iter()
@@ -309,11 +308,12 @@ pub fn test_data_patched() -> TestDataPatched {
                 }
             }
 
-            repos.push(Repo::from_path(name, new_path, 0).unwrap());
+            config
+                .add_repo(Repo::from_path(name, new_path, 0).unwrap())
+                .unwrap();
         }
     }
 
-    config.repos.extend(repos, &config.settings).unwrap();
     config.finalize().unwrap();
 
     TestDataPatched { _tmpdir, config }

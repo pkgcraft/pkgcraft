@@ -138,7 +138,7 @@ impl From<&Config> for Arc<Settings> {
     }
 }
 
-// Accessors
+// Accessors for the main fields
 impl Config {
     pub fn repos(&self) -> &ConfigRepos {
         &self.repos
@@ -148,8 +148,27 @@ impl Config {
         &self.path
     }
 
-    pub fn settings(&self) -> &Settings {
+    pub fn settings(&self) -> &Arc<Settings> {
         &self.settings
+    }
+}
+
+// Accessor for repos
+impl Config {
+    /// Get a repo from the config.
+    pub fn get_repo<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
+        let repo = self.repos.get(key)?;
+
+        Ok(repo)
+    }
+
+    /// Determine if the config has all named repos loaded.
+    fn has_repos<I>(&self, repos: I) -> bool
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        repos.into_iter().all(|x| self.repos.get(x).is_ok())
     }
 }
 
@@ -337,32 +356,15 @@ impl Config {
         Ok(repo)
     }
 
-    /// Get a repo from the config.
-    pub fn get_repo<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
-        let repo = self.repos.get(key)?;
-
-        // verify the repo is finalized so cloning works as expected
-        repo.finalize(self)?;
-
-        Ok(repo)
-    }
-
-    /// Determine if the config has all named repos loaded.
-    fn has_repos<I>(&self, repos: I) -> bool
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        repos.into_iter().all(|x| self.repos.get(x).is_ok())
-    }
-
     /// Remove configured repos.
     pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
         // TODO: verify repos to be removed aren't required by remaining repos
         self.repos.del(repos, clean)?;
         Ok(())
     }
+}
 
+impl Config {
     /// Return the build pool for the config.
     pub fn pool(&self) -> &Arc<shell::BuildPool> {
         &self.pool
