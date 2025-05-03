@@ -134,9 +134,12 @@ impl TableFormat {
     fn theme(self) -> TableTheme {
         match self {
             Self::Ascii => {
-                let style = Style::blank()
+                let style = Style::ascii()
+                    .remove_top()
+                    .remove_left()
+                    .remove_right()
+                    .remove_bottom()
                     .remove_vertical()
-                    .horizontal('-')
                     .remove_horizontal();
                 TableTheme {
                     inner: Theme::from_style(style),
