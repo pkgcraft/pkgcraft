@@ -45,7 +45,7 @@ pub(crate) struct Command {
     #[arg(
         short,
         long,
-        default_value = "showkw",
+        default_value = "modern",
         hide_default_value = true,
         hide_possible_values = true,
         value_parser = PossibleValuesParser::new(TableFormat::VARIANTS)
@@ -99,8 +99,8 @@ impl std::fmt::Display for PkgStatus {
 #[derive(Display, EnumIter, EnumString, VariantNames, Debug, PartialEq, Eq, Copy, Clone)]
 #[strum(serialize_all = "kebab-case")]
 enum TableFormat {
-    Eshowkw,
-    Showkw,
+    Ascii,
+    Modern,
 }
 
 /// Wrapper for tabular table theming.
@@ -113,8 +113,8 @@ impl TableTheme {
     /// Insert a vertical divider in a theme at a column location.
     fn insert_vline(&mut self, column: usize) {
         let vline = match self.format {
-            TableFormat::Eshowkw => VerticalLine::inherit(Style::ascii().remove_frame()),
-            TableFormat::Showkw => VerticalLine::inherit(Style::modern().remove_frame()),
+            TableFormat::Ascii => VerticalLine::inherit(Style::ascii().remove_frame()),
+            TableFormat::Modern => VerticalLine::inherit(Style::modern().remove_frame()),
         };
         self.inner.insert_vertical_line(column, vline);
     }
@@ -122,8 +122,8 @@ impl TableTheme {
     /// Insert a horizontal divider in a theme at a row location.
     fn insert_hline(&mut self, row: usize) {
         let hline = match self.format {
-            TableFormat::Eshowkw => HorizontalLine::inherit(Style::ascii().remove_frame()),
-            TableFormat::Showkw => HorizontalLine::inherit(Style::modern().remove_frame()),
+            TableFormat::Ascii => HorizontalLine::inherit(Style::ascii().remove_frame()),
+            TableFormat::Modern => HorizontalLine::inherit(Style::modern().remove_frame()),
         };
         self.inner.insert_horizontal_line(row, hline);
     }
@@ -133,7 +133,7 @@ impl TableFormat {
     /// Create a theme for a table format.
     fn theme(self) -> TableTheme {
         match self {
-            Self::Eshowkw => {
+            Self::Ascii => {
                 let style = Style::blank()
                     .remove_vertical()
                     .horizontal('-')
@@ -143,7 +143,7 @@ impl TableFormat {
                     format: self,
                 }
             }
-            Self::Showkw => {
+            Self::Modern => {
                 let style = Style::modern()
                     .remove_top()
                     .remove_left()
