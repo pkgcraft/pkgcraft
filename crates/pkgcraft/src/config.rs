@@ -121,63 +121,31 @@ impl Settings {
     }
 }
 
-/// System config
+mod sealed {
+    use super::{ConfigPath, ConfigRepos, Settings};
+    use std::sync::Arc;
+
+    pub trait Config: Default + std::fmt::Debug {
+        fn repos(&self) -> &ConfigRepos;
+
+        fn path(&self) -> &ConfigPath;
+
+        fn settings(&self) -> &Arc<Settings>;
+    }
+}
+
 #[derive(Debug, Default)]
-pub struct Config {
+pub struct ConfigInner {
     path: ConfigPath,
     repos: ConfigRepos,
     settings: Arc<Settings>,
     /// Flag used to denote when config files have been loaded.
     loaded: bool,
+    // TODO: Remove it later
     pool: Arc<shell::BuildPool>,
 }
 
-impl From<&Config> for Arc<Settings> {
-    fn from(config: &Config) -> Self {
-        config.settings.clone()
-    }
-}
-
-// Accessors for the main fields
-impl Config {
-    pub fn repos(&self) -> &ConfigRepos {
-        &self.repos
-    }
-
-    pub fn path(&self) -> &ConfigPath {
-        &self.path
-    }
-
-    pub fn settings(&self) -> &Arc<Settings> {
-        &self.settings
-    }
-}
-
-// Accessor for repos
-impl Config {
-    /// Get a repo from the config.
-    pub fn get_repo<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
-        let repo = self.repos.get(key)?;
-
-        Ok(repo)
-    }
-
-    /// Determine if the config has all named repos loaded.
-    fn has_repos<I>(&self, repos: I) -> bool
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        repos.into_iter().all(|x| self.repos.get(x).is_ok())
-    }
-}
-
-impl Config {
-    pub fn new(name: &str, prefix: &str) -> Self {
-        let path = ConfigPath::new(name, prefix);
-        Config { path, ..Default::default() }
-    }
-
+impl ConfigInner {
     /// Load user or system config files, if none are found revert to loading portage files.
     pub fn load(&mut self) -> crate::Result<()> {
         if !self.loaded {
@@ -252,11 +220,123 @@ impl Config {
         Ok(())
     }
 
+    /// Remove configured repos.
+    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
+        // TODO: verify repos to be removed aren't required by remaining repos
+        self.repos.del(repos, clean)?;
+        Ok(())
+    }
+}
+
+impl sealed::Config for ConfigInner {
+    fn repos(&self) -> &ConfigRepos {
+        &self.repos
+    }
+
+    fn path(&self) -> &ConfigPath {
+        &self.path
+    }
+
+    fn settings(&self) -> &Arc<Settings> {
+        &self.settings
+    }
+}
+
+/*
+#[derive(Debug, Default)]
+struct ConfigFinalized {
+    inner: Arc<ConfigInner>,
+    pool: Arc<shell::BuildPool>,
+}
+
+impl sealed::Config for ConfigFinalized {
+    fn repos(&self) -> &ConfigRepos {
+        self.inner.repos()
+    }
+
+    fn path(&self) -> &ConfigPath {
+        self.inner.path()
+    }
+
+    fn settings(&self) -> &Arc<Settings> {
+        self.inner.settings()
+    }
+}
+*/
+
+/// System config
+#[derive(Debug, Default)]
+pub struct Config<C: sealed::Config = ConfigInner> {
+    inner: C,
+}
+
+impl<C: sealed::Config> From<&Config<C>> for Arc<Settings> {
+    fn from(config: &Config<C>) -> Self {
+        config.settings().clone()
+    }
+}
+
+// Accessors for the main fields
+impl<C: sealed::Config> Config<C> {
+    pub fn repos(&self) -> &ConfigRepos {
+        self.inner.repos()
+    }
+
+    pub fn path(&self) -> &ConfigPath {
+        self.inner.path()
+    }
+
+    pub fn settings(&self) -> &Arc<Settings> {
+        self.inner.settings()
+    }
+
     /// Create all config-related paths.
     pub fn create_paths(&self) -> crate::Result<()> {
-        self.path.create_paths()?;
-        self.repos.create_paths()?;
+        self.path().create_paths()?;
+        self.repos().create_paths()?;
         Ok(())
+    }
+}
+
+// Accessor for repos
+impl<C: sealed::Config> Config<C> {
+    /// Get a repo from the config.
+    pub fn get_repo<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
+        let repo = self.repos().get(key)?;
+
+        Ok(repo)
+    }
+
+    /// Determine if the config has all named repos loaded.
+    fn has_repos<I>(&self, repos: I) -> bool
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        repos.into_iter().all(|x| self.repos().get(x).is_ok())
+    }
+}
+
+impl Config<ConfigInner> {
+    pub fn new(name: &str, prefix: &str) -> Self {
+        let path = ConfigPath::new(name, prefix);
+        let inner = ConfigInner { path, ..Default::default() };
+        Config { inner }
+    }
+
+    /// Load user or system config files, if none are found revert to loading portage files.
+    pub fn load(&mut self) -> crate::Result<()> {
+        self.inner.load()
+    }
+
+    /// Load config files from a given path.
+    pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
+        self.inner.load_path(path)
+    }
+
+    /// Load portage config files from a given directory, falling back to the default locations.
+    pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<()> {
+        self.inner.load_portage_conf(path)
     }
 
     /// Add local repo from a filesystem path.
@@ -316,10 +396,9 @@ impl Config {
         priority: i32,
         uri: &str,
     ) -> crate::Result<Repo> {
-        let r = self.repos.add_uri(name, priority, uri)?;
+        let r = self.repos().add_uri(name, priority, uri)?;
         self.add_repo(r)
     }
-
     /// Add a repo to the config.
     pub fn add_repo<T>(&mut self, value: T) -> crate::Result<Repo>
     where
@@ -351,37 +430,37 @@ impl Config {
             repo.finalize(self)?;
         }
 
-        self.repos.extend([repo.clone()], &self.settings)?;
+        let settings = self.settings().clone();
+
+        self.inner.repos.extend([repo.clone()], &settings)?;
 
         Ok(repo)
     }
 
     /// Remove configured repos.
     pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
-        // TODO: verify repos to be removed aren't required by remaining repos
-        self.repos.del(repos, clean)?;
-        Ok(())
+        self.inner.del_repos(repos, clean)
     }
-}
 
-impl Config {
-    /// Return the build pool for the config.
-    pub fn pool(&self) -> &Arc<shell::BuildPool> {
-        &self.pool
-    }
+    // TODO: Move to ConfigFinalized once repo is generic over Config.
 
     /// Finalize the config repos and start the build pool.
     pub fn finalize(&self) -> crate::Result<()> {
         // finalize repos
-        for (id, repo) in &self.repos {
+        for (id, repo) in &self.inner.repos {
             repo.finalize(self)
                 .map_err(|e| Error::Config(format!("{id}: {e}")))?;
         }
 
         // start the build pool
-        self.pool.start(self)?;
+        self.inner.pool.start(self)?;
 
         Ok(())
+    }
+
+    /// Return the build pool for the config.
+    pub fn pool(&self) -> &Arc<shell::BuildPool> {
+        &self.inner.pool
     }
 }
 
@@ -409,15 +488,15 @@ mod tests {
 
         // XDG vars and HOME are set
         let config = Config::new("pkgcraft", "");
-        assert_eq!(config.path.cache, Utf8PathBuf::from("/cache/pkgcraft"));
-        assert_eq!(config.path.config, Utf8PathBuf::from("/config/pkgcraft"));
-        assert_eq!(config.path.run, Utf8PathBuf::from("/run/user/4321/pkgcraft"));
+        assert_eq!(config.path().cache, Utf8PathBuf::from("/cache/pkgcraft"));
+        assert_eq!(config.path().config, Utf8PathBuf::from("/config/pkgcraft"));
+        assert_eq!(config.path().run, Utf8PathBuf::from("/run/user/4321/pkgcraft"));
 
         // prefix
         let config = Config::new("pkgcraft", "/prefix");
-        assert_eq!(config.path.cache, Utf8PathBuf::from("/prefix/cache/pkgcraft"));
-        assert_eq!(config.path.config, Utf8PathBuf::from("/prefix/config/pkgcraft"));
-        assert_eq!(config.path.run, Utf8PathBuf::from("/prefix/run/user/4321/pkgcraft"));
+        assert_eq!(config.path().cache, Utf8PathBuf::from("/prefix/cache/pkgcraft"));
+        assert_eq!(config.path().config, Utf8PathBuf::from("/prefix/config/pkgcraft"));
+        assert_eq!(config.path().run, Utf8PathBuf::from("/prefix/run/user/4321/pkgcraft"));
 
         unsafe {
             env::remove_var("XDG_CACHE_HOME");
@@ -427,25 +506,28 @@ mod tests {
 
         // XDG vars are unset and HOME is set
         let config = Config::new("pkgcraft", "");
-        assert_eq!(config.path.cache, Utf8PathBuf::from("/home/user/.cache/pkgcraft"));
-        assert_eq!(config.path.config, Utf8PathBuf::from("/home/user/.config/pkgcraft"));
-        assert_eq!(config.path.run, Utf8PathBuf::from("/home/user/.cache/pkgcraft"));
+        assert_eq!(config.path().cache, Utf8PathBuf::from("/home/user/.cache/pkgcraft"));
+        assert_eq!(config.path().config, Utf8PathBuf::from("/home/user/.config/pkgcraft"));
+        assert_eq!(config.path().run, Utf8PathBuf::from("/home/user/.cache/pkgcraft"));
 
         // prefix
         let config = Config::new("pkgcraft", "/prefix");
-        assert_eq!(config.path.cache, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
         assert_eq!(
-            config.path.config,
+            config.path().cache,
+            Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft")
+        );
+        assert_eq!(
+            config.path().config,
             Utf8PathBuf::from("/prefix/home/user/.config/pkgcraft")
         );
-        assert_eq!(config.path.run, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
+        assert_eq!(config.path().run, Utf8PathBuf::from("/prefix/home/user/.cache/pkgcraft"));
         unsafe { env::remove_var("HOME") };
 
         // XDG vars and HOME are unset
         let config = Config::new("pkgcraft", "");
-        assert_eq!(config.path.cache, Utf8PathBuf::from("/var/cache/pkgcraft"));
-        assert_eq!(config.path.config, Utf8PathBuf::from("/etc/pkgcraft"));
-        assert_eq!(config.path.run, Utf8PathBuf::from("/run/pkgcraft"));
+        assert_eq!(config.path().cache, Utf8PathBuf::from("/var/cache/pkgcraft"));
+        assert_eq!(config.path().config, Utf8PathBuf::from("/etc/pkgcraft"));
+        assert_eq!(config.path().run, Utf8PathBuf::from("/run/pkgcraft"));
     }
 
     #[traced_test]
@@ -489,7 +571,7 @@ mod tests {
         // empty
         fs::write(path, "").unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert!(config.repos.is_empty());
+        assert!(config.repos().is_empty());
 
         // single repo
         let t1 = EbuildRepoBuilder::new().build().unwrap();
@@ -499,7 +581,7 @@ mod tests {
         "#, t1.path()};
         fs::write(path, data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["a"]);
+        assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["a"]);
 
         // single repo with unsupported EAPI
         let mut config = Config::new("pkgcraft", "");
@@ -521,7 +603,7 @@ mod tests {
         "#};
         fs::write(path, data).unwrap();
         assert!(config.load_portage_conf(Some(conf_path)).is_ok());
-        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["empty"]);
+        assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["empty"]);
 
         // multiple, prioritized repos
         let mut config = Config::new("pkgcraft", "");
@@ -535,7 +617,7 @@ mod tests {
         "#, t1.path(), t2.path()};
         fs::write(path, data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["c", "b"]);
+        assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["c", "b"]);
 
         // reloading existing repo using a different id succeeds
         let data = indoc::formatdoc! {r#"
@@ -544,7 +626,7 @@ mod tests {
         "#, t1.path()};
         fs::write(path, data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["c", "b", "r4"]);
+        assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["c", "b", "r4"]);
 
         // nonexistent masters causes finalization failure
         let mut config = Config::new("pkgcraft", "");
@@ -585,11 +667,11 @@ mod tests {
         fs::write(conf_dir.join("repos.conf/r3.conf"), data).unwrap();
         config.load_portage_conf(Some(conf_path)).unwrap();
         config.finalize().unwrap();
-        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
+        assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
 
         // reloading directory succeeds
         config.load_portage_conf(Some(conf_path)).unwrap();
-        assert_ordered_eq!(config.repos.iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
+        assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
     }
 
     #[test]
