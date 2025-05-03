@@ -13,7 +13,7 @@ pub(crate) use repo::RepoConfig;
 
 mod portage;
 mod repo;
-use repo::ConfigRepos;
+pub(crate) use repo::ConfigRepos;
 
 const PORTAGE_CONFIG_PATHS: &[&str] = &["/etc/portage", "/usr/share/portage/config"];
 
@@ -137,7 +137,7 @@ mod sealed {
 #[derive(Debug, Default)]
 pub struct ConfigInner {
     path: ConfigPath,
-    repos: ConfigRepos,
+    pub(crate) repos: ConfigRepos,
     settings: Arc<Settings>,
     /// Flag used to denote when config files have been loaded.
     loaded: bool,
@@ -462,7 +462,7 @@ impl Config<ConfigInner> {
         }
 
         // start the build pool
-        self.inner.pool.start(self)?;
+        self.inner.pool.start(self.inner.repos.clone())?;
 
         Ok(())
     }
