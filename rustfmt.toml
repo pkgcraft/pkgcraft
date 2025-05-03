@@ -1,3 +1,4 @@
+edition = "2024"
 array_width = 80
 fn_call_width = 80
 max_width = 95
