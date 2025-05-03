@@ -15,7 +15,7 @@ pub mod repo;
 pub mod restrict;
 pub mod shell;
 mod sync;
-#[cfg(feature = "test")]
+#[cfg(any(feature = "test", test))]
 pub mod test;
 pub mod traits;
 pub mod types;
