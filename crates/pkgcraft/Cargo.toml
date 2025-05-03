@@ -20,8 +20,7 @@ name = "pkgcraft"
 [features]
 # enable git repo syncing support
 git = ["dep:git2"]
-# test support
-test = ["dep:assert_cmd", "dep:pretty_assertions", "scallop/test"]
+test = ["dep:assert_cmd", "dep:pretty_assertions"]
 
 [dependencies]
 blake2 = "0.10.6"
@@ -70,16 +69,17 @@ toml = "0.8.22"
 tracing = "0.1.41"
 url = { version = "2.5.4", features = ["serde"] }
 walkdir = "2.5.0"
-
-# exported test support deps
 assert_cmd = { version = "2.0.17", optional = true }
 pretty_assertions = { version = "1.4.1", optional = true }
 
+# exported test support deps
 [dev-dependencies]
 criterion = "0.5"
 ctor = "0.4.2"
 serde_json = "1.0.140"
 tracing-test = "0.2.5"
+assert_cmd = { version = "2.0.17" }
+pretty_assertions = { version = "1.4.1"}
 
 [[bench]]
 name = "bench"
