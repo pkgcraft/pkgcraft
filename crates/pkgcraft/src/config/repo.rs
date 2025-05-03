@@ -137,12 +137,7 @@ impl ConfigRepos {
     }
 
     /// Add external repo from a URI.
-    pub(super) fn add_uri(
-        &mut self,
-        name: &str,
-        priority: i32,
-        uri: &str,
-    ) -> crate::Result<Repo> {
+    pub(super) fn add_uri(&self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let config = RepoConfig {
             location: self.repos_dir.join(name),
             priority: Some(priority),
@@ -399,16 +394,16 @@ mod tests {
         let mut config = Config::new("pkgcraft", "");
 
         // nonexistent repo
-        let r = config.repos.sync(["nonexistent"]);
+        let r = config.repos().sync(["nonexistent"]);
         assert_err_re!(r, "nonexistent repo: nonexistent");
 
         // fake repo with no-op syncing
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
         config.add_repo(fake_repo).unwrap();
-        assert!(config.repos.sync(["fake"]).is_ok());
+        assert!(config.repos().sync(["fake"]).is_ok());
 
         // all repos
         let repos: [&str; 0] = [];
-        assert!(config.repos.sync(repos).is_ok());
+        assert!(config.repos().sync(repos).is_ok());
     }
 }
