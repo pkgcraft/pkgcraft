@@ -26,7 +26,7 @@ use super::environment::{BASH, EXTERNAL};
 /// Get an ebuild repo from a config matching a given ID.
 fn get_ebuild_repo<'a>(config: &'a Config, repo: &str) -> crate::Result<&'a EbuildRepo> {
     config
-        .repos
+        .repos()
         .get(repo)?
         .as_ebuild()
         .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {repo}")))

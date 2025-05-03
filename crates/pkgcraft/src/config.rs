@@ -124,9 +124,9 @@ impl Settings {
 /// System config
 #[derive(Debug, Default)]
 pub struct Config {
-    pub path: ConfigPath,
-    pub repos: ConfigRepos,
-    pub settings: Arc<Settings>,
+    path: ConfigPath,
+    repos: ConfigRepos,
+    settings: Arc<Settings>,
     /// Flag used to denote when config files have been loaded.
     loaded: bool,
     pool: Arc<shell::BuildPool>,
@@ -135,6 +135,21 @@ pub struct Config {
 impl From<&Config> for Arc<Settings> {
     fn from(config: &Config) -> Self {
         config.settings.clone()
+    }
+}
+
+// Accessors
+impl Config {
+    pub fn repos(&self) -> &ConfigRepos {
+        &self.repos
+    }
+
+    pub fn path(&self) -> &ConfigPath {
+        &self.path
+    }
+
+    pub fn settings(&self) -> &Settings {
+        &self.settings
     }
 }
 

@@ -82,7 +82,7 @@ fn load_settings() -> Result<(Settings, PkgcraftConfig)> {
         settings.socket = socket.to_string();
     } else if settings.socket.is_empty() {
         // default to using unix domain socket
-        settings.socket = config.path.run.join("arcanist.sock").to_string();
+        settings.socket = config.path().run.join("arcanist.sock").to_string();
     }
 
     // defaults to warning level

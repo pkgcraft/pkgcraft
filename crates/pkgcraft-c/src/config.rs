@@ -102,7 +102,7 @@ pub unsafe extern "C" fn pkgcraft_config_repos(
 ) -> *mut *const Repo {
     // TODO: switch from usize to std::os::raw::c_size_t when it's stable.
     let config = try_ref_from_ptr!(c);
-    iter_to_array!(config.repos.into_iter(), len, |(_, r)| { r as *const _ })
+    iter_to_array!(config.repos().into_iter(), len, |(_, r)| { r as *const _ })
 }
 
 /// Return the RepoSet for a given repo format.
@@ -118,8 +118,8 @@ pub unsafe extern "C" fn pkgcraft_config_repos_set(
 ) -> *mut RepoSet {
     let config = try_ref_from_ptr!(c);
     let set = match unsafe { format.as_ref() } {
-        Some(f) => config.repos.set(Some(*f)),
-        None => config.repos.set(None),
+        Some(f) => config.repos().set(Some(*f)),
+        None => config.repos().set(None),
     };
     Box::into_raw(Box::new(set))
 }

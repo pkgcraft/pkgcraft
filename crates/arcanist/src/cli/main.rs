@@ -136,7 +136,7 @@ async fn try_main() -> Result<()> {
 
     // use unix domain socket by default if no connection URL is given
     let url = if settings.url.is_empty() {
-        let path = config.path.run.join("arcanist.sock");
+        let path = config.path().run.join("arcanist.sock");
         arcanist::connect_or_spawn(&path, Some(timeout)).await?
     } else {
         settings.url.clone()
