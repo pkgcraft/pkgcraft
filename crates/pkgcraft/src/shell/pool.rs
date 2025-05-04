@@ -173,7 +173,7 @@ impl MetadataTaskBuilder {
         }
         let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
         let (server, name) = IpcOneShotServer::new()?;
-        let task = Command::Task(meta.to_task(name));
+        let task = Command::Task(meta.into_task(name));
         self.tx.send(task).expect("failed queuing task");
         let (_, data) = server.accept().unwrap();
         data
@@ -264,54 +264,57 @@ impl DurationTask {
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
-    Env(EnvTask, ToSender<crate::Result<IndexMap<String, String>>>),
-    Metadata(MetadataTask, ToSender<crate::Result<Option<String>>>),
-    Pretend(PretendTask, ToSender<crate::Result<Option<String>>>),
-    Duration(DurationTask, ToSender<crate::Result<Duration>>),
+    Env(EnvTask, Sender<crate::Result<IndexMap<String, String>>>),
+    Metadata(MetadataTask, Sender<crate::Result<Option<String>>>),
+    Pretend(PretendTask, Sender<crate::Result<Option<String>>>),
+    Duration(DurationTask, Sender<crate::Result<Duration>>),
 }
 
+/// Wrapper for sending task results via IpcOneShotServer.
 #[derive(Debug, Serialize, Deserialize)]
-struct ToSender<T: Serialize + for<'a> Deserialize<'a>> {
+struct Sender<T: Serialize + for<'a> Deserialize<'a>> {
     name: String,
     _ret: PhantomData<T>,
 }
 
-impl<T: Serialize + for<'a> Deserialize<'a>> ToSender<T> {
+impl<T: Serialize + for<'a> Deserialize<'a>> Sender<T> {
     fn new(name: String) -> Self {
         Self { name, _ret: PhantomData }
     }
-    fn to_sender(self) -> IpcSender<T> {
-        IpcSender::connect(self.name).expect("Cannot connect to the OneShotServer")
+    fn send(self, value: T) {
+        let tx = IpcSender::connect(self.name).expect("failed connecting to the server");
+        tx.send(value).expect("failed sending task result")
     }
 }
 
-trait ToTask: Serialize + for<'a> Deserialize<'a> {
+/// Convert a task into a Task variant.
+trait IntoTask: Serialize + for<'a> Deserialize<'a> {
     type R: for<'a> Deserialize<'a> + Serialize;
-    fn to_task(self, name: String) -> Task;
+    fn into_task(self, name: String) -> Task;
 }
 
-impl ToTask for EnvTask {
+impl IntoTask for EnvTask {
     type R = IndexMap<String, String>;
-    fn to_task(self, name: String) -> Task {
-        Task::Env(self, ToSender::<crate::Result<Self::R>>::new(name))
+    fn into_task(self, name: String) -> Task {
+        Task::Env(self, Sender::<crate::Result<Self::R>>::new(name))
     }
 }
-impl ToTask for MetadataTask {
+impl IntoTask for MetadataTask {
     type R = Option<String>;
-    fn to_task(self, name: String) -> Task {
-        Task::Metadata(self, ToSender::<crate::Result<Self::R>>::new(name))
+    fn into_task(self, name: String) -> Task {
+        Task::Metadata(self, Sender::<crate::Result<Self::R>>::new(name))
     }
 }
-impl ToTask for PretendTask {
+impl IntoTask for PretendTask {
     type R = Option<String>;
-    fn to_task(self, name: String) -> Task {
-        Task::Pretend(self, ToSender::<crate::Result<Self::R>>::new(name))
+    fn into_task(self, name: String) -> Task {
+        Task::Pretend(self, Sender::<crate::Result<Self::R>>::new(name))
     }
 }
-impl ToTask for DurationTask {
+impl IntoTask for DurationTask {
     type R = Duration;
-    fn to_task(self, name: String) -> Task {
-        Task::Duration(self, ToSender::<crate::Result<Self::R>>::new(name))
+    fn into_task(self, name: String) -> Task {
+        Task::Duration(self, Sender::<crate::Result<Self::R>>::new(name))
     }
 }
 
@@ -319,12 +322,11 @@ impl Task {
     /// Run the task, sending the result back to the main process.
     fn run(self, config: &ConfigRepos) {
         match self {
-            Self::Env(task, tx) => tx.to_sender().send(task.run(config)),
-            Self::Metadata(task, tx) => tx.to_sender().send(task.run(config)),
-            Self::Pretend(task, tx) => tx.to_sender().send(task.run(config)),
-            Self::Duration(task, tx) => tx.to_sender().send(task.run(config)),
+            Self::Env(task, tx) => tx.send(task.run(config)),
+            Self::Metadata(task, tx) => tx.send(task.run(config)),
+            Self::Pretend(task, tx) => tx.send(task.run(config)),
+            Self::Duration(task, tx) => tx.send(task.run(config)),
         }
-        .expect("failed sending task result")
     }
 }
 
@@ -426,9 +428,9 @@ impl BuildPool {
         MetadataTaskBuilder::new(self, repo)
     }
 
-    fn run_task<T: ToTask>(&self, task: T) -> crate::Result<<T as ToTask>::R> {
+    fn run_task<T: IntoTask>(&self, task: T) -> crate::Result<<T as IntoTask>::R> {
         let (server, name) = IpcOneShotServer::new()?;
-        let task = Command::Task(task.to_task(name));
+        let task = Command::Task(task.into_task(name));
         self.tx.send(task).expect("failed queuing task");
         let (_, data) = server.accept().unwrap();
         data
