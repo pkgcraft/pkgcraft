@@ -324,9 +324,6 @@ impl BuildPool {
             return Ok(());
         }
 
-        // initialize bash
-        super::init()?;
-
         match unsafe { fork() } {
             Ok(ForkResult::Parent { child }) => {
                 self.pid.set(child).expect("task pool already running");
@@ -344,6 +341,9 @@ impl BuildPool {
                 let pid = std::process::id();
                 let name = format!("/pkgcraft-task-pool-{pid}");
                 let mut sem = NamedSemaphore::new(&name, self.jobs)?;
+
+                // initialize bash
+                super::init()?;
 
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
