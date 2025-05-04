@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 use std::fs;
+use std::marker::PhantomData;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use indexmap::IndexMap;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
 use itertools::Itertools;
 use nix::unistd::{ForkResult, Pid, dup, dup2, fork};
 use scallop::pool::{NamedSemaphore, redirect_output, suppress_output};
@@ -171,10 +172,11 @@ impl MetadataTaskBuilder {
             }
         }
         let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
-        let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Command::Task(Task::Metadata(meta, tx));
+        let (server, name) = IpcOneShotServer::new()?;
+        let task = Command::Task(meta.to_task(name));
         self.tx.send(task).expect("failed queuing task");
-        rx.recv().expect("failed receiving task result")
+        let (_, data) = server.accept().unwrap();
+        data
     }
 }
 
@@ -262,20 +264,65 @@ impl DurationTask {
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
-    Env(EnvTask, IpcSender<crate::Result<IndexMap<String, String>>>),
-    Metadata(MetadataTask, IpcSender<crate::Result<Option<String>>>),
-    Pretend(PretendTask, IpcSender<crate::Result<Option<String>>>),
-    Duration(DurationTask, IpcSender<crate::Result<Duration>>),
+    Env(EnvTask, ToSender<crate::Result<IndexMap<String, String>>>),
+    Metadata(MetadataTask, ToSender<crate::Result<Option<String>>>),
+    Pretend(PretendTask, ToSender<crate::Result<Option<String>>>),
+    Duration(DurationTask, ToSender<crate::Result<Duration>>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ToSender<T: Serialize + for<'a> Deserialize<'a>> {
+    name: String,
+    _ret: PhantomData<T>,
+}
+
+impl<T: Serialize + for<'a> Deserialize<'a>> ToSender<T> {
+    fn new(name: String) -> Self {
+        Self { name, _ret: PhantomData }
+    }
+    fn to_sender(self) -> IpcSender<T> {
+        IpcSender::connect(self.name).expect("Cannot connect to the OneShotServer")
+    }
+}
+
+trait ToTask: Serialize + for<'a> Deserialize<'a> {
+    type R: for<'a> Deserialize<'a> + Serialize;
+    fn to_task(self, name: String) -> Task;
+}
+
+impl ToTask for EnvTask {
+    type R = IndexMap<String, String>;
+    fn to_task(self, name: String) -> Task {
+        Task::Env(self, ToSender::<crate::Result<Self::R>>::new(name))
+    }
+}
+impl ToTask for MetadataTask {
+    type R = Option<String>;
+    fn to_task(self, name: String) -> Task {
+        Task::Metadata(self, ToSender::<crate::Result<Self::R>>::new(name))
+    }
+}
+impl ToTask for PretendTask {
+    type R = Option<String>;
+    fn to_task(self, name: String) -> Task {
+        Task::Pretend(self, ToSender::<crate::Result<Self::R>>::new(name))
+    }
+}
+impl ToTask for DurationTask {
+    type R = Duration;
+    fn to_task(self, name: String) -> Task {
+        Task::Duration(self, ToSender::<crate::Result<Self::R>>::new(name))
+    }
 }
 
 impl Task {
     /// Run the task, sending the result back to the main process.
     fn run(self, config: &ConfigRepos) {
         match self {
-            Self::Env(task, tx) => tx.send(task.run(config)),
-            Self::Metadata(task, tx) => tx.send(task.run(config)),
-            Self::Pretend(task, tx) => tx.send(task.run(config)),
-            Self::Duration(task, tx) => tx.send(task.run(config)),
+            Self::Env(task, tx) => tx.to_sender().send(task.run(config)),
+            Self::Metadata(task, tx) => tx.to_sender().send(task.run(config)),
+            Self::Pretend(task, tx) => tx.to_sender().send(task.run(config)),
+            Self::Duration(task, tx) => tx.to_sender().send(task.run(config)),
         }
         .expect("failed sending task result")
     }
@@ -379,17 +426,21 @@ impl BuildPool {
         MetadataTaskBuilder::new(self, repo)
     }
 
+    fn run_task<T: ToTask>(&self, task: T) -> crate::Result<<T as ToTask>::R> {
+        let (server, name) = IpcOneShotServer::new()?;
+        let task = Command::Task(task.to_task(name));
+        self.tx.send(task).expect("failed queuing task");
+        let (_, data) = server.accept().unwrap();
+        data
+    }
+
     /// Run the pkg_pretend phase for an ebuild package.
     pub fn pretend<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<Option<String>> {
-        let task = PretendTask::new(repo, cpv);
-        let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Command::Task(Task::Pretend(task, tx));
-        self.tx.send(task).expect("failed queuing task");
-        rx.recv().expect("failed receiving task result")
+        self.run_task(PretendTask::new(repo, cpv))
     }
 
     /// Return the mapping of global environment variables exported by a package.
@@ -398,11 +449,7 @@ impl BuildPool {
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<IndexMap<String, String>> {
-        let task = EnvTask::new(repo, cpv);
-        let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Command::Task(Task::Env(task, tx));
-        self.tx.send(task).expect("failed queuing task");
-        rx.recv().expect("failed receiving task result")
+        self.run_task(EnvTask::new(repo, cpv))
     }
 
     /// Return the time duration required to source a package.
@@ -411,11 +458,7 @@ impl BuildPool {
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<Duration> {
-        let task = DurationTask::new(repo, cpv);
-        let (tx, rx) = ipc::channel().expect("failed creating task channel");
-        let task = Command::Task(Task::Duration(task, tx));
-        self.tx.send(task).expect("failed queuing task");
-        rx.recv().expect("failed receiving task result")
+        self.run_task(DurationTask::new(repo, cpv))
     }
 }
 
