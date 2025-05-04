@@ -5,6 +5,7 @@ use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
+use nix::fcntl::AT_FDCWD;
 use nix::sys::stat::{FchmodatFlags::FollowSymlink, Mode, SFlag, fchmodat, lstat};
 use rayon::prelude::*;
 use scallop::{Error, ExecStatus};
@@ -110,7 +111,7 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
 /// Alter file permissions.
 fn chmod(path: &Path, mode: Mode) -> scallop::Result<()> {
-    fchmodat(None, path, mode, FollowSymlink).map_err(|e| {
+    fchmodat(AT_FDCWD, path, mode, FollowSymlink).map_err(|e| {
         Error::Base(format!("failed changing permissions: {}: {e}", path.to_string_lossy()))
     })
 }
@@ -240,8 +241,8 @@ mod tests {
         fs::write(&file, "pkgcraft").unwrap();
 
         // disable permissions that should get reset during unpack
-        fchmodat(None, &dir, DIR_MODE.bitxor(Mode::S_IXOTH), FollowSymlink).unwrap();
-        fchmodat(None, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
+        fchmodat(AT_FDCWD, &dir, DIR_MODE.bitxor(Mode::S_IXOTH), FollowSymlink).unwrap();
+        fchmodat(AT_FDCWD, &file, FILE_MODE.bitxor(Mode::S_IWUSR), FollowSymlink).unwrap();
 
         // compressed archives
         for ext in ["tar.gz", "tar.bz2", "tar.lzma", "tar.xz"] {

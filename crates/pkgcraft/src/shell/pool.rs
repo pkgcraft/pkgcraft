@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
+use std::io::stdout;
 use std::marker::PhantomData;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
@@ -7,7 +8,7 @@ use std::time::{Duration, Instant};
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
 use itertools::Itertools;
-use nix::unistd::{ForkResult, Pid, dup, dup2, fork};
+use nix::unistd::{ForkResult, Pid, dup, dup2_stdout, fork};
 use scallop::pool::{NamedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
@@ -67,7 +68,7 @@ impl MetadataTask {
         // conditionally capture stdin and stderr
         let output = if self.output {
             let file = NamedTempFile::new()?;
-            let fd = dup(2).unwrap();
+            let fd = dup(stdout()).unwrap();
             redirect_output(&file)?;
             Some((file, fd))
         } else {
@@ -78,7 +79,7 @@ impl MetadataTask {
 
         // process captured output to send back to the main process
         let output = if let Some((file, fd)) = output {
-            dup2(fd, 2).unwrap();
+            dup2_stdout(fd).unwrap();
             let data = fs::read_to_string(file.path()).unwrap_or_default();
             let data = data.trim();
             if !data.is_empty() {

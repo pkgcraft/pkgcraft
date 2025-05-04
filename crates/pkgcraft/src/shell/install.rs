@@ -8,7 +8,9 @@ use clap::Parser;
 use filetime::{FileTime, set_file_times};
 use indexmap::IndexMap;
 use itertools::Either;
-use nix::{fcntl::AtFlags, sys::stat, unistd};
+use nix::fcntl::{AT_FDCWD, AtFlags};
+use nix::sys::stat::{FchmodatFlags::FollowSymlink, fchmodat};
+use nix::unistd::fchownat;
 use rayon::prelude::*;
 use scallop::Error;
 use walkdir::{DirEntry, WalkDir};
@@ -153,25 +155,22 @@ impl Install {
         let uid = opts.owner.as_ref().map(|o| o.uid);
         let gid = opts.group.as_ref().map(|g| g.gid);
         if uid.is_some() || gid.is_some() {
-            unistd::fchownat(None, path, uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW).map_err(
-                |e| {
-                    Error::Base(format!(
-                        "failed setting file uid/gid: {}: {e}",
-                        path.to_string_lossy()
-                    ))
-                },
-            )?;
+            fchownat(AT_FDCWD, path, uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW).map_err(|e| {
+                Error::Base(format!(
+                    "failed setting file uid/gid: {}: {e}",
+                    path.to_string_lossy()
+                ))
+            })?;
         }
 
         if let Some(mode) = &opts.mode {
             if !path.is_symlink() {
-                stat::fchmodat(None, path, **mode, stat::FchmodatFlags::FollowSymlink)
-                    .map_err(|e| {
-                        Error::Base(format!(
-                            "failed setting file mode: {}: {e}",
-                            path.to_string_lossy()
-                        ))
-                    })?;
+                fchmodat(AT_FDCWD, path, **mode, FollowSymlink).map_err(|e| {
+                    Error::Base(format!(
+                        "failed setting file mode: {}: {e}",
+                        path.to_string_lossy()
+                    ))
+                })?;
             }
         }
 

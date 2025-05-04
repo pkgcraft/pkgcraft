@@ -1,17 +1,16 @@
 use std::ffi::CString;
 use std::fs::File;
-use std::os::fd::{AsFd, AsRawFd};
+use std::os::fd::AsFd;
 
 use nix::errno::Errno;
-use nix::unistd::dup2;
+use nix::unistd::{dup2_stderr, dup2_stdout};
 
 use crate::Error;
 
 /// Redirect stdout and stderr to a given raw file descriptor.
-pub fn redirect_output<T: AsFd>(f: T) -> crate::Result<()> {
-    let fd = f.as_fd().as_raw_fd();
-    dup2(fd, 1).map_err(|e| Error::IO(e.to_string()))?;
-    dup2(fd, 2).map_err(|e| Error::IO(e.to_string()))?;
+pub fn redirect_output<T: AsFd>(fd: T) -> crate::Result<()> {
+    dup2_stdout(&fd).map_err(|e| Error::IO(e.to_string()))?;
+    dup2_stderr(&fd).map_err(|e| Error::IO(e.to_string()))?;
     Ok(())
 }
 
