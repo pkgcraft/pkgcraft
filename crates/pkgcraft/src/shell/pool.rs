@@ -171,12 +171,9 @@ impl MetadataTaskBuilder {
                 }
             }
         }
-        let meta = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
-        let (server, name) = IpcOneShotServer::new()?;
-        let task = Command::Task(meta.into_task(name));
-        self.tx.send(task).expect("failed queuing task");
-        let (_, data) = server.accept().unwrap();
-        data
+
+        let task = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
+        Command::run_task(&self.tx, task)
     }
 }
 
@@ -338,6 +335,20 @@ enum Command {
     Stop,
 }
 
+impl Command {
+    /// Run a task variant and return the result.
+    fn run_task<T: IntoTask>(
+        tx: &IpcSender<Command>,
+        task: T,
+    ) -> crate::Result<<T as IntoTask>::R> {
+        let (server, name) = IpcOneShotServer::new()?;
+        let task = Self::Task(task.into_task(name));
+        tx.send(task).expect("failed queuing task");
+        let (_, data) = server.accept().expect("failed receiving task result");
+        data
+    }
+}
+
 #[derive(Debug)]
 pub struct BuildPool {
     jobs: usize,
@@ -428,21 +439,14 @@ impl BuildPool {
         MetadataTaskBuilder::new(self, repo)
     }
 
-    fn run_task<T: IntoTask>(&self, task: T) -> crate::Result<<T as IntoTask>::R> {
-        let (server, name) = IpcOneShotServer::new()?;
-        let task = Command::Task(task.into_task(name));
-        self.tx.send(task).expect("failed queuing task");
-        let (_, data) = server.accept().unwrap();
-        data
-    }
-
     /// Run the pkg_pretend phase for an ebuild package.
     pub fn pretend<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<Option<String>> {
-        self.run_task(PretendTask::new(repo, cpv))
+        let task = PretendTask::new(repo, cpv);
+        Command::run_task(&self.tx, task)
     }
 
     /// Return the mapping of global environment variables exported by a package.
@@ -451,7 +455,8 @@ impl BuildPool {
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<IndexMap<String, String>> {
-        self.run_task(EnvTask::new(repo, cpv))
+        let task = EnvTask::new(repo, cpv);
+        Command::run_task(&self.tx, task)
     }
 
     /// Return the time duration required to source a package.
@@ -460,7 +465,8 @@ impl BuildPool {
         repo: &EbuildRepo,
         cpv: T,
     ) -> crate::Result<Duration> {
-        self.run_task(DurationTask::new(repo, cpv))
+        let task = DurationTask::new(repo, cpv);
+        Command::run_task(&self.tx, task)
     }
 }
 
