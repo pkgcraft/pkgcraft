@@ -1,5 +1,5 @@
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, OnceLock, Weak};
+use std::sync::{Arc, OnceLock};
 use std::{fmt, fs, iter, mem};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -47,7 +47,7 @@ struct InternalEbuildRepo {
 #[derive(Default)]
 struct LazyMetadata {
     masters: OnceLock<Vec<EbuildRepo>>,
-    pool: OnceLock<Weak<BuildPool>>,
+    pool: OnceLock<Arc<BuildPool>>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -157,7 +157,7 @@ impl EbuildRepo {
         self.0
             .data
             .pool
-            .set(Arc::downgrade(config.pool()))
+            .set(Arc::clone(config.pool()))
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         // collapse lazy fields
@@ -185,8 +185,7 @@ impl EbuildRepo {
             .pool
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
-            .upgrade()
-            .unwrap_or_else(|| panic!("destroyed ebuild repo: {self}"))
+            .clone()
     }
 
     pub fn metadata(&self) -> &Metadata {
@@ -811,7 +810,7 @@ impl Iterator for IterRaw {
 }
 
 /// Iterable of [`Cpn`] objects.
-pub struct IterCpn(Box<dyn Iterator<Item = Cpn> + Send>);
+pub struct IterCpn(Box<dyn Iterator<Item = Cpn>>);
 
 impl IterCpn {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
@@ -930,7 +929,7 @@ impl Iterator for IterCpn {
 }
 
 /// Iterable of [`Cpv`] objects.
-pub struct IterCpv(Box<dyn Iterator<Item = Cpv> + Send>);
+pub struct IterCpv(Box<dyn Iterator<Item = Cpv>>);
 
 impl IterCpv {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
