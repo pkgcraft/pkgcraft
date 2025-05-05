@@ -383,14 +383,14 @@ impl EbuildRepo {
     /// Return an ordered iterator of ebuild packages for the repo.
     ///
     /// This constructs packages in parallel and returns them in repo order.
-    pub fn iter_ordered(&self) -> IterOrdered {
+    pub fn iter_ordered(&self) -> impl Iterator<Item = crate::Result<EbuildPkg>> {
         IterOrdered::new(self, None)
     }
 
     /// Return an unordered iterator of ebuild packages for the repo.
     ///
     /// This constructs packages in parallel and returns them in completion order.
-    pub fn iter_unordered(&self) -> IterUnordered {
+    pub fn iter_unordered(&self) -> impl Iterator<Item = crate::Result<EbuildPkg>> {
         IterUnordered::new(self, None)
     }
 
@@ -403,14 +403,14 @@ impl EbuildRepo {
     }
 
     /// Return an iterator of raw packages for the repo.
-    pub fn iter_raw(&self) -> IterRaw {
+    pub fn iter_raw(&self) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> {
         IterRaw::new(self, None)
     }
 
     /// Return an ordered iterator of raw packages for the repo.
     ///
     /// This constructs packages in parallel and returns them in repo order.
-    pub fn iter_raw_ordered(&self) -> IterRawOrdered {
+    pub fn iter_raw_ordered(&self) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> {
         IterRawOrdered::new(self, None)
     }
 
