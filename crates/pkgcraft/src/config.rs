@@ -1,5 +1,5 @@
+use std::env;
 use std::sync::Arc;
-use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
@@ -99,14 +99,6 @@ impl ConfigPath {
             run,
             tmp,
         }
-    }
-
-    /// Create all config paths.
-    fn create_paths(&self) -> crate::Result<()> {
-        for path in [&self.cache, &self.config, &self.data, &self.db, &self.run] {
-            fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
-        }
-        Ok(())
     }
 }
 
@@ -289,13 +281,6 @@ impl<C: sealed::Config> Config<C> {
     pub fn settings(&self) -> &Arc<Settings> {
         self.inner.settings()
     }
-
-    /// Create all config-related paths.
-    pub fn create_paths(&self) -> crate::Result<()> {
-        self.path().create_paths()?;
-        self.repos().create_paths()?;
-        Ok(())
-    }
 }
 
 // Accessor for repos
@@ -399,6 +384,7 @@ impl Config<ConfigInner> {
         let r = self.repos().add_uri(name, priority, uri)?;
         self.add_repo(r)
     }
+
     /// Add a repo to the config.
     pub fn add_repo<T>(&mut self, value: T) -> crate::Result<Repo>
     where
@@ -466,7 +452,7 @@ impl Config<ConfigInner> {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
+    use std::fs;
 
     use tempfile::tempdir;
     use tracing_test::traced_test;

@@ -128,14 +128,6 @@ impl ConfigRepos {
         Ok(config)
     }
 
-    /// Create related repo config paths.
-    pub(super) fn create_paths(&self) -> crate::Result<()> {
-        for path in [&self.config_dir, &self.repos_dir] {
-            fs::create_dir_all(path).map_err(|e| Error::Config(e.to_string()))?;
-        }
-        Ok(())
-    }
-
     /// Add external repo from a URI.
     pub(super) fn add_uri(&self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let config = RepoConfig {
