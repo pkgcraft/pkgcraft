@@ -283,7 +283,6 @@ impl ConfigRepos {
 
         // error out on overriding repos
         if !existing_repos.is_empty() {
-            existing_repos.sort();
             let repos = existing_repos.iter().map(|r| r.id()).join(", ");
             return Err(Error::Config(format!("can't override existing repos: {repos}")));
         }
