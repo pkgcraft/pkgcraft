@@ -358,9 +358,6 @@ pub struct BuildPool {
     pid: OnceLock<Pid>,
 }
 
-// needed due to IpcSender lacking Sync
-unsafe impl Sync for BuildPool {}
-
 impl Default for BuildPool {
     fn default() -> Self {
         Self::new(num_cpus::get())

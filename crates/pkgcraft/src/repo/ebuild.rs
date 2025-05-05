@@ -5,7 +5,6 @@ use std::{fmt, fs, iter, mem};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
-use rayon::prelude::*;
 use tracing::warn;
 
 use crate::config::{Config, RepoConfig, Settings};
@@ -842,7 +841,7 @@ impl IterCpn {
                 // TODO: revert to serialized iteration once repos provide parallel iterators
                 let mut cpns = repo
                     .categories()
-                    .into_par_iter()
+                    .into_iter()
                     .flat_map(|cat| {
                         repo.packages(&cat)
                             .into_iter()
@@ -853,7 +852,7 @@ impl IterCpn {
                             .collect::<Vec<_>>()
                     })
                     .collect::<Vec<_>>();
-                cpns.par_sort();
+                cpns.sort();
                 Box::new(cpns.into_iter())
             }
             ([Equal(cat)], [Equal(pn)]) => {
@@ -963,10 +962,10 @@ impl IterCpv {
                 // TODO: revert to serialized iteration once repos provide parallel iterators
                 let mut cpvs = repo
                     .categories()
-                    .into_par_iter()
+                    .into_iter()
                     .flat_map(|s| repo.cpvs_from_category(&s))
                     .collect::<Vec<_>>();
-                cpvs.par_sort();
+                cpvs.sort();
                 Box::new(cpvs.into_iter())
             }
             ([Category(Equal(cat))], [Package(Equal(pn))], [Version(Some(ver))])
