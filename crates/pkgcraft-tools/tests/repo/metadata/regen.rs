@@ -46,6 +46,21 @@ fn empty_repo() {
 }
 
 #[test]
+fn bad_repo() {
+    let data = test_data();
+    let repo = data.ebuild_repo("bad").unwrap();
+    cmd("pk repo metadata regen")
+        .arg(repo)
+        .assert()
+        .stdout("")
+        .stderr(predicate::str::is_empty().not())
+        .failure()
+        .code(2);
+
+    assert!(!repo.metadata().cache().path().exists());
+}
+
+#[test]
 fn default_current_directory() {
     // non-repo working directory
     let dir = tempdir().unwrap();
