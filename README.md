@@ -29,9 +29,7 @@ tests via `cargo test` will break due to its threaded approach since much of
 the pkgcraft ecosystem relies on bash which isn't thread-friendly in any
 fashion.
 
-In addition, crates with the `test` feature require it to be enabled when
-running tests so use `cargo nextest run --all-features --tests` to run tests
-for the entire workspace.
+To run tests across all crates use: `cargo nextest run --all-features --tests`
 
 For bugs or other requests use [issues].
 
