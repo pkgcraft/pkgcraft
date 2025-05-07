@@ -9,6 +9,7 @@ mod leaf;
 mod license;
 mod metadata;
 mod mirror;
+mod remove;
 mod revdeps;
 
 #[derive(clap::Args)]
@@ -40,6 +41,8 @@ enum Subcommand {
     Metadata(metadata::Command),
     /// Output mirror statistics
     Mirror(mirror::Command),
+    /// Remove repositories
+    Remove(remove::Command),
     /// Output revdeps cache
     Revdeps(revdeps::Command),
 }
@@ -54,6 +57,7 @@ impl Subcommand {
             Self::License(cmd) => cmd.run(config),
             Self::Metadata(cmd) => cmd.run(config),
             Self::Mirror(cmd) => cmd.run(config),
+            Self::Remove(cmd) => cmd.run(config),
             Self::Revdeps(cmd) => cmd.run(config),
         }
     }
