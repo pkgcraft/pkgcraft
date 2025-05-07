@@ -126,13 +126,20 @@ mod sealed {
     }
 }
 
+/// Config file variant.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum ConfigKind {
+    Pkgcraft,
+    Portage,
+}
+
 #[derive(Debug, Default)]
 pub struct ConfigInner {
     path: ConfigPath,
     pub(crate) repos: ConfigRepos,
     settings: Arc<Settings>,
     /// Flag used to denote when config files have been loaded.
-    loaded: bool,
+    loaded: Option<ConfigKind>,
     // TODO: Remove it later
     pool: Arc<shell::BuildPool>,
 }
@@ -140,13 +147,14 @@ pub struct ConfigInner {
 impl ConfigInner {
     /// Load user or system config files, if none are found revert to loading portage files.
     pub fn load(&mut self) -> crate::Result<()> {
-        if !self.loaded {
+        if self.loaded.is_none() {
             if let Ok(value) = env::var("PKGCRAFT_CONFIG") {
                 self.load_path(&value)?;
             } else {
                 self.settings = Default::default();
                 self.repos =
                     ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
+                self.loaded = Some(ConfigKind::Pkgcraft);
 
                 // try loading portage config if no repos exist
                 if self.repos.is_empty() {
@@ -160,22 +168,22 @@ impl ConfigInner {
             }
         }
 
-        self.loaded = true;
         Ok(())
     }
 
     /// Load config files from a given path.
     pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
-        if !self.loaded && !path.is_empty() {
+        if self.loaded.is_none() && !path.is_empty() {
             if self.path.config.exists() {
                 self.repos =
                     ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
+                self.loaded = Some(ConfigKind::Pkgcraft);
             } else {
                 self.load_portage_conf(Some(path))?;
+                self.loaded = Some(ConfigKind::Portage);
             }
-        }
+        };
 
-        self.loaded = true;
         Ok(())
     }
 
@@ -209,6 +217,7 @@ impl ConfigInner {
             self.repos.extend(repos, &self.settings)?;
         }
 
+        self.loaded = Some(ConfigKind::Portage);
         Ok(())
     }
 }
@@ -406,8 +415,17 @@ impl Config<ConfigInner> {
     }
 
     /// Return the mutable repos configuration.
-    pub fn repos_mut(&mut self) -> &mut ConfigRepos {
-        &mut self.inner.repos
+    pub fn repos_mut(&mut self) -> crate::Result<&mut ConfigRepos> {
+        if self
+            .inner
+            .loaded
+            .map(|x| x == ConfigKind::Pkgcraft)
+            .unwrap_or_default()
+        {
+            Ok(&mut self.inner.repos)
+        } else {
+            Err(Error::Config("can't alter portage config".to_string()))
+        }
     }
 
     // TODO: Move to ConfigFinalized once repo is generic over Config.
