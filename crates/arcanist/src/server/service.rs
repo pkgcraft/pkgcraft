@@ -45,7 +45,7 @@ impl Arcanist for ArcanistService {
     ) -> Result<Response<ListResponse>, Status> {
         let req = request.into_inner();
         let config = &mut self.config.write().await;
-        match config.del_repos(&req.data, true) {
+        match config.repos().remove(&req.data) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(e)),
             Err(e) => Err(Status::internal(format!("{e}"))),
             Ok(_) => {

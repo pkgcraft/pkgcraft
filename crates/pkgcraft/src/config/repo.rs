@@ -171,31 +171,23 @@ impl ConfigRepos {
         Ok(repo)
     }
 
-    pub(super) fn del<S: AsRef<str>>(
-        &mut self,
-        repos: &[S],
-        clean: bool,
-    ) -> crate::Result<()> {
+    /// Remove repos from the config.
+    pub fn remove<S: AsRef<str>>(&self, repos: &[S]) -> crate::Result<()> {
         for name in repos {
             let name = name.as_ref();
             // error out if repo config is missing
             // physical repo files are allowed to be missing
             if let Some(repo) = self.repos.get(name) {
-                if clean {
-                    fs::remove_dir_all(repo.path()).map_err(|e| {
-                        Error::Config(format!(
-                            "failed removing repo files: {:?}: {e}",
-                            repo.path()
-                        ))
-                    })?;
-                    let path = self.config_dir.join(name);
-                    fs::remove_file(&path).map_err(|e| {
-                        Error::Config(format!("failed removing repo config: {path:?}: {e}"))
-                    })?;
-                }
-                self.repos.shift_remove(name);
+                fs::remove_dir_all(repo.path()).map_err(|e| {
+                    Error::Config(format!("failed removing repo files: {}: {e}", repo.path()))
+                })?;
+                let path = self.config_dir.join(name);
+                fs::remove_file(&path).map_err(|e| {
+                    Error::Config(format!("failed removing repo config: {path}: {e}"))
+                })?;
             }
         }
+
         Ok(())
     }
 

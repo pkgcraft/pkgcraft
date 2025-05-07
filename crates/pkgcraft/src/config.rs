@@ -211,13 +211,6 @@ impl ConfigInner {
 
         Ok(())
     }
-
-    /// Remove configured repos.
-    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
-        // TODO: verify repos to be removed aren't required by remaining repos
-        self.repos.del(repos, clean)?;
-        Ok(())
-    }
 }
 
 impl sealed::Config for ConfigInner {
@@ -410,11 +403,6 @@ impl Config<ConfigInner> {
         self.inner.repos.extend([repo.clone()], &settings)?;
 
         Ok(repo)
-    }
-
-    /// Remove configured repos.
-    pub fn del_repos<S: AsRef<str>>(&mut self, repos: &[S], clean: bool) -> crate::Result<()> {
-        self.inner.del_repos(repos, clean)
     }
 
     // TODO: Move to ConfigFinalized once repo is generic over Config.
