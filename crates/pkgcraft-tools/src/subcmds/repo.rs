@@ -2,6 +2,7 @@ use std::process::ExitCode;
 
 use pkgcraft::config::Config;
 
+mod add;
 mod eapi;
 mod eclass;
 mod leaf;
@@ -25,6 +26,8 @@ impl Command {
 #[derive(clap::Subcommand)]
 #[allow(clippy::large_enum_variant)]
 enum Subcommand {
+    /// Add repository to config
+    Add(add::Command),
     /// Output EAPI statistics
     Eapi(eapi::Command),
     /// Output eclass statistics
@@ -44,6 +47,7 @@ enum Subcommand {
 impl Subcommand {
     fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         match self {
+            Self::Add(cmd) => cmd.run(config),
             Self::Eapi(cmd) => cmd.run(config),
             Self::Eclass(cmd) => cmd.run(config),
             Self::Leaf(cmd) => cmd.run(config),
