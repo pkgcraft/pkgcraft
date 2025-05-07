@@ -4,14 +4,10 @@ use clap::Args;
 use pkgcraft::config::Config;
 
 #[derive(Args)]
-#[clap(next_help_heading = "Add options")]
+#[clap(next_help_heading = "Sync options")]
 pub(crate) struct Command {
-    /// Repository name
-    name: String,
-
-    /// Target repositories
-    /// Repository URL
-    url: String,
+    /// Repository names
+    repos: Vec<String>,
 }
 
 impl Command {
@@ -19,8 +15,8 @@ impl Command {
         // make sure system config is loaded if custom config wasn't specified
         config.load()?;
 
-        // add custom repo to the config
-        config.repos().add_uri(&self.name, 0, &self.url)?;
+        // remove specified repos
+        config.repos().sync(&self.repos)?;
 
         Ok(ExitCode::SUCCESS)
     }

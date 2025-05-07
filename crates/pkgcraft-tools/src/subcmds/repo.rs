@@ -11,6 +11,7 @@ mod metadata;
 mod mirror;
 mod remove;
 mod revdeps;
+mod sync;
 
 #[derive(clap::Args)]
 pub(crate) struct Command {
@@ -45,6 +46,8 @@ enum Subcommand {
     Remove(remove::Command),
     /// Output revdeps cache
     Revdeps(revdeps::Command),
+    /// Sync repos
+    Sync(sync::Command),
 }
 
 impl Subcommand {
@@ -59,6 +62,7 @@ impl Subcommand {
             Self::Mirror(cmd) => cmd.run(config),
             Self::Remove(cmd) => cmd.run(config),
             Self::Revdeps(cmd) => cmd.run(config),
+            Self::Sync(cmd) => cmd.run(config),
         }
     }
 }
