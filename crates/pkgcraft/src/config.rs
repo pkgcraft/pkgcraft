@@ -374,17 +374,6 @@ impl Config<ConfigInner> {
         }
     }
 
-    /// Add repo from a URI.
-    pub fn add_repo_uri(
-        &mut self,
-        name: &str,
-        priority: i32,
-        uri: &str,
-    ) -> crate::Result<Repo> {
-        let r = self.repos().add_uri(name, priority, uri)?;
-        self.add_repo(r)
-    }
-
     /// Add a repo to the config.
     pub fn add_repo<T>(&mut self, value: T) -> crate::Result<Repo>
     where

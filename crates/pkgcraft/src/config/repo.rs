@@ -128,28 +128,35 @@ impl ConfigRepos {
         Ok(config)
     }
 
-    /// Add external repo from a URI.
-    pub(super) fn add_uri(&self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
+    /// Create a repo from a URI.
+    pub fn add_uri(&self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
         let config = RepoConfig {
             location: self.repos_dir.join(name),
             priority: Some(priority),
             sync: Some(uri.parse()?),
             ..RepoFormat::Ebuild.into()
         };
+
+        // sync external repo
         config.sync()?;
 
-        let repo = Repo::from_path(name, config.location, priority)?;
+        // verify repo is valid
+        let repo = Repo::from_path(name, &config.location, priority)?;
+
+        // create config directory
+        let dir = &self.config_dir;
+        fs::create_dir_all(dir)
+            .map_err(|e| Error::Config(format!("failed creating config dir: {dir}: {e}")))?;
 
         // write repo config file to disk
-        let data = toml::to_string(repo.repo_config()).map_err(|e| {
-            Error::Config(format!("failed serializing repo config to toml: {e}"))
-        })?;
-        let path = self.config_dir.join(name);
+        let data = toml::to_string(&config)
+            .map_err(|e| Error::Config(format!("failed serializing repo config: {e}")))?;
+        let path = dir.join(name);
         let mut file = fs::File::create(&path).map_err(|e| {
-            Error::Config(format!("failed creating repo config file: {path:?}: {e}"))
+            Error::Config(format!("failed creating repo config file: {path}: {e}"))
         })?;
         file.write_all(data.as_bytes()).map_err(|e| {
-            Error::Config(format!("failed writing repo config file: {path:?}: {e}"))
+            Error::Config(format!("failed writing repo config file: {path}: {e}"))
         })?;
 
         Ok(repo)

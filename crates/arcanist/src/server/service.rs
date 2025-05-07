@@ -29,7 +29,7 @@ impl Arcanist for ArcanistService {
     ) -> Result<Response<StringResponse>, Status> {
         let req = request.into_inner();
         let config = &mut self.config.write().await;
-        match config.add_repo_uri(&req.name, 0, &req.uri) {
+        match config.repos().add_uri(&req.name, 0, &req.uri) {
             Err(Error::Config(e)) => Err(Status::failed_precondition(e)),
             Err(e) => Err(Status::internal(format!("{e}"))),
             Ok(_) => {
