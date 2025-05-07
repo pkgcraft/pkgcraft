@@ -405,6 +405,11 @@ impl Config<ConfigInner> {
         Ok(repo)
     }
 
+    /// Return the mutable repos configuration.
+    pub fn repos_mut(&mut self) -> &mut ConfigRepos {
+        &mut self.inner.repos
+    }
+
     // TODO: Move to ConfigFinalized once repo is generic over Config.
 
     /// Finalize the config repos and start the build pool.

@@ -20,7 +20,7 @@ impl Command {
         config.load()?;
 
         // add custom repo to the config
-        config.repos().add_uri(&self.name, 0, &self.url)?;
+        config.repos_mut().add_uri(&self.name, 0, &self.url)?;
 
         Ok(ExitCode::SUCCESS)
     }
