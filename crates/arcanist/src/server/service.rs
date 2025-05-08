@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use pkgcraft::config::Config as PkgcraftConfig;
-use pkgcraft::{Error, repo::Repository};
+use pkgcraft::repo::Repository;
 use tokio::sync::RwLock;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -10,8 +10,7 @@ use tonic::{Request, Response, Status};
 use crate::settings::Settings;
 
 use arcanist::proto::{
-    AddRepoRequest, ListRequest, ListResponse, StringRequest, StringResponse,
-    arcanist_server::Arcanist,
+    ListRequest, ListResponse, StringRequest, StringResponse, arcanist_server::Arcanist,
 };
 
 #[derive(Debug)]
@@ -23,41 +22,6 @@ pub struct ArcanistService {
 
 #[tonic::async_trait]
 impl Arcanist for ArcanistService {
-    async fn add_repo(
-        &self,
-        request: Request<AddRepoRequest>,
-    ) -> Result<Response<StringResponse>, Status> {
-        let req = request.into_inner();
-        let config = &mut self.config.write().await;
-        match config
-            .repos_mut()
-            .and_then(|c| c.add_uri(&req.name, 0, &req.uri))
-        {
-            Err(Error::Config(e)) => Err(Status::failed_precondition(e)),
-            Err(e) => Err(Status::internal(format!("{e}"))),
-            Ok(_) => {
-                let reply = StringResponse { data: req.name };
-                Ok(Response::new(reply))
-            }
-        }
-    }
-
-    async fn remove_repos(
-        &self,
-        request: Request<ListRequest>,
-    ) -> Result<Response<ListResponse>, Status> {
-        let req = request.into_inner();
-        let config = &mut self.config.write().await;
-        match config.repos_mut().and_then(|c| c.remove(&req.data)) {
-            Err(Error::Config(e)) => Err(Status::failed_precondition(e)),
-            Err(e) => Err(Status::internal(format!("{e}"))),
-            Ok(_) => {
-                let reply = ListResponse { data: req.data };
-                Ok(Response::new(reply))
-            }
-        }
-    }
-
     async fn list_repos(
         &self,
         _request: Request<StringRequest>,
@@ -69,22 +33,6 @@ impl Arcanist for ArcanistService {
         }
         let reply = ListResponse { data: repos };
         Ok(Response::new(reply))
-    }
-
-    async fn sync_repos(
-        &self,
-        request: Request<ListRequest>,
-    ) -> Result<Response<ListResponse>, Status> {
-        let req = request.into_inner();
-        let config = &mut self.config.write().await;
-        match config.repos().sync(&req.data) {
-            Err(Error::Config(e)) => Err(Status::failed_precondition(e)),
-            Err(e) => Err(Status::internal(format!("{e}"))),
-            Ok(_) => {
-                let reply = ListResponse { data: req.data };
-                Ok(Response::new(reply))
-            }
-        }
     }
 
     type SearchPackagesStream = ReceiverStream<Result<StringResponse, Status>>;

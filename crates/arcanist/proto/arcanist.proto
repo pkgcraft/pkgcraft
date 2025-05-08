@@ -5,20 +5,12 @@ service Arcanist {
     rpc Version (StringRequest) returns (StringResponse);
 
     // repo actions
-    rpc AddRepo (AddRepoRequest) returns (StringResponse);
-    rpc RemoveRepos (ListRequest) returns (ListResponse);
     rpc ListRepos (StringRequest) returns (ListResponse);
-    rpc SyncRepos (ListRequest) returns (ListResponse);
 
     // package actions
     rpc SearchPackages (ListRequest) returns (stream StringResponse);
     rpc AddPackages (ListRequest) returns (stream StringResponse);
     rpc RemovePackages (ListRequest) returns (stream StringResponse);
-}
-
-message AddRepoRequest {
-    string name = 1;
-    string uri = 2;
 }
 
 message StringRequest {
