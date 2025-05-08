@@ -27,28 +27,38 @@ impl Syncable for Repo {
 
     async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
-        if path.exists() {
-            let repo = git2::Repository::open(path).map_err(|e| {
-                Error::RepoSync(format!("failed initializing git repo: {}", e.message()))
-            })?;
-            let head = repo.head().map_err(|e| {
-                Error::RepoSync(format!("failed getting git HEAD: {}", e.message()))
-            })?;
-            let branch = head
-                .shorthand()
-                .ok_or_else(|| Error::RepoSync("not on a git branch".to_string()))?;
-            let mut remote = repo.find_remote("origin").map_err(|e| {
-                Error::RepoSync(format!("invalid remote origin: {}", e.message()))
-            })?;
-            let fetch_commit = do_fetch(&repo, &[branch], &mut remote)
-                .map_err(|e| Error::RepoSync(format!("failed fetching: {}", e.message())))?;
-            do_merge(&repo, branch, fetch_commit)
-                .map_err(|e| Error::RepoSync(format!("failed merging: {}", e.message())))?;
-        } else {
-            do_clone(&self.uri, path).map_err(|e| {
-                Error::RepoSync(format!("failed cloning git repo: {}", e.message()))
-            })?;
+
+        match git2::Repository::open(path) {
+            Ok(repo) => {
+                let head = repo.head().map_err(|e| {
+                    Error::RepoSync(format!("failed getting git HEAD: {}", e.message()))
+                })?;
+                let branch = head
+                    .shorthand()
+                    .ok_or_else(|| Error::RepoSync("not on a git branch".to_string()))?;
+                let mut remote = repo.find_remote("origin").map_err(|e| {
+                    Error::RepoSync(format!("invalid remote origin: {}", e.message()))
+                })?;
+                let fetch_commit = do_fetch(&repo, &[branch], &mut remote).map_err(|e| {
+                    Error::RepoSync(format!("failed fetching: {}", e.message()))
+                })?;
+                do_merge(&repo, branch, fetch_commit).map_err(|e| {
+                    Error::RepoSync(format!("failed merging: {}", e.message()))
+                })?;
+            }
+            Err(e) if e.code() == git2::ErrorCode::NotFound => {
+                do_clone(&self.uri, path).map_err(|e| {
+                    Error::RepoSync(format!("failed cloning git repo: {}", e.message()))
+                })?;
+            }
+            Err(e) => {
+                return Err(Error::RepoSync(format!(
+                    "failed initializing git repo: {path}: {}",
+                    e.message()
+                )));
+            }
         }
+
         Ok(())
     }
 }
