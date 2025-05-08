@@ -345,6 +345,11 @@ impl ConfigRepos {
         }
     }
 
+    /// Return true if no repos exist.
+    pub fn is_empty(&self) -> bool {
+        self.repos.is_empty()
+    }
+
     /// RepoSet objects from sets of repos registered in the config object.
     pub fn set(&self, kind: Option<RepoFormat>) -> RepoSet {
         let repos = self.repos.values();

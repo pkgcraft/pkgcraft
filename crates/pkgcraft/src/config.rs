@@ -525,6 +525,7 @@ mod tests {
         // empty
         fs::write(path, "").unwrap();
         assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert!(config.repos().is_empty());
 
         // single repo
         let t1 = EbuildRepoBuilder::new().build().unwrap();
