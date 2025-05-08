@@ -9,12 +9,14 @@ use crate::Error;
 
 #[cfg(feature = "git")]
 mod git;
+mod local;
 mod tar;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
 pub(crate) enum Syncer {
     #[cfg(feature = "git")]
     Git(git::Repo),
+    Local(local::Repo),
     TarHttps(tar::Repo),
 }
 
@@ -24,6 +26,7 @@ impl fmt::Display for Syncer {
             #[cfg(feature = "git")]
             Syncer::Git(repo) => write!(f, "{}", repo.uri),
             Syncer::TarHttps(repo) => write!(f, "{}", repo.uri),
+            Syncer::Local(_) => write!(f, "\"\""),
         }
     }
 }
@@ -49,6 +52,7 @@ impl Syncer {
             #[cfg(feature = "git")]
             Syncer::Git(repo) => futures::executor::block_on(repo.sync(path)),
             Syncer::TarHttps(repo) => futures::executor::block_on(repo.sync(path)),
+            Syncer::Local(repo) => futures::executor::block_on(repo.sync(path)),
         }
     }
 }
@@ -62,6 +66,7 @@ impl FromStr for Syncer {
             #[cfg(feature = "git")]
             git::Repo::uri_to_syncer,
             tar::Repo::uri_to_syncer,
+            local::Repo::uri_to_syncer,
         ];
 
         let mut syncer: Option<Syncer> = None;
