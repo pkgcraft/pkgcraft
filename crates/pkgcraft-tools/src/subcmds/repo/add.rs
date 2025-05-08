@@ -7,7 +7,7 @@ use pkgcraft::config::Config;
 #[clap(next_help_heading = "Add options")]
 pub(crate) struct Command {
     /// Only create the config file
-    #[arg(long, short)]
+    #[arg(long, short, requires = "name")]
     file: bool,
 
     /// Repository name
