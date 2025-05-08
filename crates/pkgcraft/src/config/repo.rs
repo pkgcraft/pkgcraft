@@ -238,22 +238,33 @@ impl ConfigRepos {
 
     /// Remove repos from the config.
     pub fn remove<S: AsRef<str>>(&mut self, repos: &[S]) -> crate::Result<()> {
+        let mut nonexistent = vec![];
+
         for name in repos {
             let name = name.as_ref();
             // error out if repo config is missing
             // physical repo files are allowed to be missing
             if let Some(repo) = self.repos.shift_remove(name) {
                 fs::remove_dir_all(repo.path()).map_err(|e| {
-                    Error::Config(format!("failed removing repo files: {}: {e}", repo.path()))
+                    Error::IO(format!("failed removing repo files: {}: {e}", repo.path()))
                 })?;
                 let path = self.config_dir.join(name);
                 fs::remove_file(&path).map_err(|e| {
-                    Error::Config(format!("failed removing repo config: {path}: {e}"))
+                    Error::IO(format!("failed removing repo config: {path}: {e}"))
                 })?;
+            } else {
+                nonexistent.push(name.to_string());
             }
         }
 
-        Ok(())
+        if !nonexistent.is_empty() {
+            let nonexistent = nonexistent.iter().join(", ");
+            Err(Error::InvalidValue(format!(
+                "failed removing nonexistent repos: {nonexistent}"
+            )))
+        } else {
+            Ok(())
+        }
     }
 
     // TODO: add concurrent syncing support with output progress
