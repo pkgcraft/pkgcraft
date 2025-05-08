@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::Write;
+use std::io::{self, Write};
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -74,18 +74,36 @@ pub struct RepoConfigBuilder<'a> {
     name: Option<String>,
     inner: RepoConfig,
     config: &'a ConfigRepos,
+    tmpdir: Option<TempDir>,
 }
 
 impl<'a> RepoConfigBuilder<'a> {
     fn new(config: &'a ConfigRepos, uri: &str) -> crate::Result<Self> {
+        let syncer: Syncer = uri.parse()?;
+        let (tmpdir, location) = if let Syncer::Local(repo) = &syncer {
+            (None, config.repos_dir.join(&repo.name))
+        } else {
+            let dir = TempDir::new_in(&config.repos_dir)
+                .map_err(|e| Error::InvalidValue(format!("failed creating temp dir: {e}")))?;
+            let path = Utf8Path::from_path(dir.path())
+                .ok_or_else(|| Error::InvalidValue("invalid temp dir path".to_string()))
+                .map(|x| x.to_path_buf())?;
+            (Some(dir), path)
+        };
+
         let inner = RepoConfig {
-            location: Default::default(),
+            location,
             priority: Default::default(),
-            sync: Some(uri.parse()?),
+            sync: Some(syncer),
             ..RepoFormat::Ebuild.into()
         };
 
-        Ok(Self { name: None, inner, config })
+        Ok(Self {
+            name: None,
+            inner,
+            config,
+            tmpdir,
+        })
     }
 
     /// Modify the repository name.
@@ -107,15 +125,8 @@ impl<'a> RepoConfigBuilder<'a> {
 
         // optionally sync the repo
         let mut synced_repo = None;
-        let mut tmpdir = None;
         if sync {
-            let dir = TempDir::new_in(&self.config.repos_dir)
-                .map_err(|e| Error::InvalidValue(format!("failed creating temp dir: {e}")))?;
-            let path = Utf8Path::from_path(dir.path())
-                .ok_or_else(|| Error::InvalidValue("invalid temp dir path".to_string()))?;
-            self.inner.location = path.to_path_buf();
             self.inner.sync()?;
-            tmpdir = Some(dir);
             synced_repo = Some(self.inner.to_repo()?);
         }
 
@@ -131,13 +142,20 @@ impl<'a> RepoConfigBuilder<'a> {
         let repo_path = self.config.repos_dir.join(&name);
         self.inner.location = repo_path.clone();
 
-        if repo_path.exists() {
-            return Err(Error::Config(format!("existing repo: {name}")));
-        } else if let Some(dir) = tmpdir {
-            // persist the synced repo to disk
-            let path = dir.into_path();
-            fs::rename(&path, &repo_path)
-                .map_err(|e| Error::IO(format!("failed moving repo to: {repo_path}: {e}")))?;
+        // persist the synced temporary repo to disk
+        if sync {
+            if let Some(dir) = self.tmpdir {
+                let path = dir.into_path();
+                if let Err(e) = fs::rename(&path, &repo_path) {
+                    if e.kind() == io::ErrorKind::DirectoryNotEmpty {
+                        return Err(Error::Config(format!("existing repo: {name}")));
+                    } else {
+                        return Err(Error::IO(format!(
+                            "failed moving repo to: {repo_path}: {e}"
+                        )));
+                    }
+                }
+            }
         }
 
         // create config directory

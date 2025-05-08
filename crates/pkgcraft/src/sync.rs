@@ -26,7 +26,7 @@ impl fmt::Display for Syncer {
             #[cfg(feature = "git")]
             Syncer::Git(repo) => write!(f, "{}", repo.uri),
             Syncer::TarHttps(repo) => write!(f, "{}", repo.uri),
-            Syncer::Local(_) => write!(f, "\"\""),
+            Syncer::Local(repo) => write!(f, "{}", repo.path),
         }
     }
 }
@@ -41,7 +41,7 @@ impl Syncer {
         let path = path.as_ref();
 
         // make sure repos dir exists
-        let dir = path.parent().unwrap();
+        let dir = path.parent().expect("invalid repos dir");
         if !dir.exists() {
             fs::create_dir_all(dir).map_err(|e| {
                 Error::RepoSync(format!("failed creating repos dir: {dir}: {e}"))

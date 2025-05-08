@@ -9,13 +9,19 @@ use crate::sync::{Syncable, Syncer};
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {
     pub(crate) path: Utf8PathBuf,
+    pub(crate) name: String,
 }
 
 impl Syncable for Repo {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
         let path = Utf8PathBuf::from(uri);
+        let name = path
+            .file_name()
+            .ok_or_else(|| Error::RepoInit(format!("invalid local repo: {uri}")))
+            .map(|x| x.to_string())?;
+
         if path.exists() {
-            Ok(Syncer::Local(Repo { path }))
+            Ok(Syncer::Local(Repo { path, name }))
         } else {
             Err(Error::RepoInit(format!("invalid local repo: {uri}")))
         }
