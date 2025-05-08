@@ -10,10 +10,11 @@ use tempfile::{NamedTempFile, tempdir};
 
 #[test]
 fn no_matches() {
-    cmd("pkgcruft scan nonexistent/pkg")
+    // no repo targets or configured repos
+    cmd("pkgcruft scan pkg")
         .assert()
         .stdout("")
-        .stderr(contains("no matches found: nonexistent/pkg"))
+        .stderr(contains("no repos available"))
         .failure()
         .code(2);
 

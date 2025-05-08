@@ -221,6 +221,8 @@ impl<'a> Targets<'a> {
             .map(|(target, set, restrict)| {
                 if set.contains(&restrict) {
                     Ok((set, restrict))
+                } else if set.repos.is_empty() {
+                    Err(Error::NoMatches("no repos available".to_string()))
                 } else {
                     Err(Error::NoMatches(target))
                 }

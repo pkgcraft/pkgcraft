@@ -46,10 +46,24 @@ macro_rules! cmd_arg_tests {
 
         #[test]
         fn no_matches() {
+            // no repos
+            let s = "no repos available";
+            pkgcraft::test::cmd($cmd)
+                .arg("cat/pkg")
+                .assert()
+                .stdout("")
+                .stderr(predicates::str::contains(s))
+                .failure()
+                .code(2);
+
+            let data = pkgcraft::test::test_data();
+            let repo = data.ebuild_repo("empty").unwrap();
+
             // Cpn target
-            let cmd = format!("{} cat/pkg", $cmd);
             let s = "no matches found: cat/pkg";
-            pkgcraft::test::cmd(cmd)
+            pkgcraft::test::cmd($cmd)
+                .args(["-r", repo.path().as_str()])
+                .arg("cat/pkg")
                 .assert()
                 .stdout("")
                 .stderr(predicates::str::contains(s))
@@ -57,9 +71,10 @@ macro_rules! cmd_arg_tests {
                 .code(2);
 
             // category target
-            let cmd = format!("{} category", $cmd);
             let s = "no matches found: category";
-            pkgcraft::test::cmd(cmd)
+            pkgcraft::test::cmd($cmd)
+                .args(["-r", repo.path().as_str()])
+                .arg("category")
                 .assert()
                 .stdout("")
                 .stderr(predicates::str::contains(s))
