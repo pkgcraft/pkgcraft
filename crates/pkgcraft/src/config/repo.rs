@@ -60,6 +60,18 @@ impl RepoConfig {
         self.priority.unwrap_or_default()
     }
 
+    /// Remove the repo files.
+    fn remove(&self) -> crate::Result<()> {
+        let path = &self.location;
+
+        let result = match &self.sync {
+            Some(Syncer::Local(_)) => fs::remove_file(path),
+            _ => fs::remove_dir_all(path),
+        };
+
+        result.map_err(|e| Error::IO(format!("failed removing repo: {path}: {e}")))
+    }
+
     /// Sync repository to its configured location.
     pub(crate) fn sync(&self) -> crate::Result<()> {
         match &self.sync {
@@ -267,9 +279,7 @@ impl ConfigRepos {
             // error out if repo config is missing
             // physical repo files are allowed to be missing
             if let Some(repo) = self.repos.shift_remove(name) {
-                fs::remove_dir_all(repo.path()).map_err(|e| {
-                    Error::IO(format!("failed removing repo files: {}: {e}", repo.path()))
-                })?;
+                repo.repo_config().remove()?;
                 let path = self.config_dir.join(name);
                 fs::remove_file(&path).map_err(|e| {
                     Error::IO(format!("failed removing repo config: {path}: {e}"))
