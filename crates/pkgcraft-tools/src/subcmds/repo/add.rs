@@ -6,6 +6,10 @@ use pkgcraft::config::Config;
 #[derive(Args)]
 #[clap(next_help_heading = "Add options")]
 pub(crate) struct Command {
+    /// Only create the config file
+    #[arg(long, short)]
+    file: bool,
+
     /// Repository name
     #[arg(long, short)]
     name: Option<String>,
@@ -13,10 +17,6 @@ pub(crate) struct Command {
     /// Repository priority
     #[arg(long, short)]
     priority: Option<i32>,
-
-    /// Sync the repository
-    #[arg(long, short)]
-    sync: bool,
 
     /// Repository URL
     url: String,
@@ -39,7 +39,7 @@ impl Command {
         }
 
         // serialize RepoConfig to file while optionally syncing
-        repo_config.add_to_config(self.sync)?;
+        repo_config.add_to_config(!self.file)?;
 
         Ok(ExitCode::SUCCESS)
     }
