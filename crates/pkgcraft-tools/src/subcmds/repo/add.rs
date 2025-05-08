@@ -7,9 +7,17 @@ use pkgcraft::config::Config;
 #[clap(next_help_heading = "Add options")]
 pub(crate) struct Command {
     /// Repository name
-    name: String,
+    #[arg(long, short)]
+    name: Option<String>,
 
-    /// Target repositories
+    /// Repository priority
+    #[arg(long, short)]
+    priority: Option<i32>,
+
+    /// Sync the repository
+    #[arg(long, short)]
+    sync: bool,
+
     /// Repository URL
     url: String,
 }
@@ -19,8 +27,19 @@ impl Command {
         // make sure system config is loaded if custom config wasn't specified
         config.load()?;
 
-        // add custom repo to the config
-        config.repos().add_uri(&self.name, 0, &self.url)?;
+        // create a RepoConfig
+        let mut repo_config = config.repos().add_uri(&self.url)?;
+
+        if let Some(value) = self.name.as_deref() {
+            repo_config.name(value);
+        }
+
+        if let Some(value) = self.priority {
+            repo_config.priority(value);
+        }
+
+        // serialize RepoConfig to file while optionally syncing
+        repo_config.add_to_config(self.sync)?;
 
         Ok(ExitCode::SUCCESS)
     }

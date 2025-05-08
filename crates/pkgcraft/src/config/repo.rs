@@ -7,6 +7,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
+use tempfile::TempDir;
 use tracing::error;
 
 use crate::Error;
@@ -48,15 +49,117 @@ impl RepoConfig {
         Ok(config)
     }
 
+    /// Try loading the repository from the config.
+    fn to_repo(&self) -> crate::Result<Repo> {
+        let name = self.location.file_name().unwrap_or_default();
+        self.format.from_path(name, &self.location, self.priority())
+    }
+
+    /// Return the repository's configured priority.
     pub(crate) fn priority(&self) -> i32 {
         self.priority.unwrap_or_default()
     }
 
+    /// Sync repository to its configured location.
     pub(crate) fn sync(&self) -> crate::Result<()> {
         match &self.sync {
             Some(syncer) => syncer.sync(&self.location),
             None => Ok(()),
         }
+    }
+}
+
+/// Builder for adding repos to a configuration.
+pub struct RepoConfigBuilder<'a> {
+    name: Option<String>,
+    inner: RepoConfig,
+    config: &'a ConfigRepos,
+}
+
+impl<'a> RepoConfigBuilder<'a> {
+    fn new(config: &'a ConfigRepos, uri: &str) -> crate::Result<Self> {
+        let inner = RepoConfig {
+            location: Default::default(),
+            priority: Default::default(),
+            sync: Some(uri.parse()?),
+            ..RepoFormat::Ebuild.into()
+        };
+
+        Ok(Self { name: None, inner, config })
+    }
+
+    /// Modify the repository name.
+    pub fn name<S: std::fmt::Display>(&mut self, value: S) {
+        self.name = Some(value.to_string());
+    }
+
+    /// Modify the repository priority.
+    pub fn priority(&mut self, value: i32) {
+        self.inner.priority = Some(value);
+    }
+
+    /// Add the repo to the config, optionally syncing.
+    pub fn add_to_config(mut self, sync: bool) -> crate::Result<()> {
+        // create repos directory
+        let dir = &self.config.repos_dir;
+        fs::create_dir_all(dir)
+            .map_err(|e| Error::Config(format!("failed creating config dir: {dir}: {e}")))?;
+
+        // optionally sync the repo
+        let mut synced_repo = None;
+        let mut tmpdir = None;
+        if sync {
+            let dir = TempDir::new_in(&self.config.repos_dir)
+                .map_err(|e| Error::InvalidValue(format!("failed creating temp dir: {e}")))?;
+            let path = Utf8Path::from_path(dir.path())
+                .ok_or_else(|| Error::InvalidValue("invalid temp dir path".to_string()))?;
+            self.inner.location = path.to_path_buf();
+            self.inner.sync()?;
+            tmpdir = Some(dir);
+            synced_repo = Some(self.inner.to_repo()?);
+        }
+
+        // determine the repo name
+        let name = if let Some(value) = self.name {
+            Ok(value)
+        } else if let Some(repo) = synced_repo {
+            Ok(repo.name().to_string())
+        } else {
+            Err(Error::InvalidValue("missing repo name".to_string()))
+        }?;
+
+        let repo_path = self.config.repos_dir.join(&name);
+        self.inner.location = repo_path.clone();
+
+        if repo_path.exists() {
+            return Err(Error::Config(format!("existing repo: {name}")));
+        } else if let Some(dir) = tmpdir {
+            // persist the synced repo to disk
+            let path = dir.into_path();
+            fs::rename(&path, &repo_path)
+                .map_err(|e| Error::IO(format!("failed moving repo to: {repo_path}: {e}")))?;
+        }
+
+        // create config directory
+        let dir = &self.config.config_dir;
+        fs::create_dir_all(dir)
+            .map_err(|e| Error::Config(format!("failed creating config dir: {dir}: {e}")))?;
+        let config_path = self.config.config_dir.join(&name);
+        if config_path.exists() {
+            return Err(Error::Config(format!("existing repo config: {name}")));
+        }
+
+        // write repo config file to disk
+        let data = toml::to_string(&self.inner)
+            .map_err(|e| Error::Config(format!("failed serializing repo config: {e}")))?;
+        let mut file = fs::File::create(&config_path).map_err(|e| {
+            Error::Config(format!("failed creating repo config file: {config_path}: {e}"))
+        })?;
+        file.write_all(data.as_bytes()).map_err(|e| {
+            Error::Config(format!("failed writing repo config file: {config_path}: {e}"))
+        })?;
+
+        Ok(())
     }
 }
 
@@ -129,46 +232,8 @@ impl ConfigRepos {
     }
 
     /// Create a repo from a URI.
-    pub fn add_uri(&self, name: &str, priority: i32, uri: &str) -> crate::Result<Repo> {
-        let repo_path = self.repos_dir.join(name);
-        if repo_path.exists() {
-            return Err(Error::Config(format!("existing repo: {name}")));
-        }
-
-        let config_path = self.config_dir.join(name);
-        if config_path.exists() {
-            return Err(Error::Config(format!("existing repo config: {name}")));
-        }
-
-        let config = RepoConfig {
-            location: self.repos_dir.join(name),
-            priority: Some(priority),
-            sync: Some(uri.parse()?),
-            ..RepoFormat::Ebuild.into()
-        };
-
-        // sync external repo
-        config.sync()?;
-
-        // verify repo is valid
-        let repo = Repo::from_path(name, &repo_path, priority)?;
-
-        // create config directory
-        let dir = &self.config_dir;
-        fs::create_dir_all(dir)
-            .map_err(|e| Error::Config(format!("failed creating config dir: {dir}: {e}")))?;
-
-        // write repo config file to disk
-        let data = toml::to_string(&config)
-            .map_err(|e| Error::Config(format!("failed serializing repo config: {e}")))?;
-        let mut file = fs::File::create(&config_path).map_err(|e| {
-            Error::Config(format!("failed creating repo config file: {config_path}: {e}"))
-        })?;
-        file.write_all(data.as_bytes()).map_err(|e| {
-            Error::Config(format!("failed writing repo config file: {config_path}: {e}"))
-        })?;
-
-        Ok(repo)
+    pub fn add_uri(&self, uri: &str) -> crate::Result<RepoConfigBuilder> {
+        RepoConfigBuilder::new(self, uri)
     }
 
     /// Remove repos from the config.
