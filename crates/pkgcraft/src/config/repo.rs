@@ -364,11 +364,6 @@ impl ConfigRepos {
             .ok_or_else(|| Error::InvalidValue(format!("nonexistent repo: {key}")))
     }
 
-    /// Returns true if no repos exist and false otherwise.
-    pub(super) fn is_empty(&self) -> bool {
-        self.repos.is_empty()
-    }
-
     /// Extend the config with multiple repos.
     pub(crate) fn extend<I: IntoIterator<Item = Repo>>(
         &mut self,
