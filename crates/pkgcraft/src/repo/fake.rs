@@ -76,6 +76,26 @@ impl FakeRepo {
         Ok(self)
     }
 
+    pub(crate) fn from_config<S: AsRef<str>>(
+        id: S,
+        config: &RepoConfig,
+    ) -> crate::Result<Self> {
+        let id = id.as_ref();
+        let data = fs::read_to_string(&config.location).map_err(|e| Error::NotARepo {
+            kind: RepoFormat::Fake,
+            id: id.to_string(),
+            err: e.to_string(),
+        })?;
+        let mut repo = Self(Arc::new(InternalFakeRepo {
+            id: id.to_string(),
+            repo_config: config.clone(),
+            pkgmap: Default::default(),
+            cpvs: Default::default(),
+        }));
+        repo.extend(data.lines())?;
+        Ok(repo)
+    }
+
     pub fn from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
         id: S,
         priority: i32,

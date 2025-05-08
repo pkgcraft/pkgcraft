@@ -47,6 +47,21 @@ pub enum RepoFormat {
 
 impl RepoFormat {
     /// Try to load a specific repo type from a path.
+    #[expect(clippy::wrong_self_convention)]
+    fn from_config<S: AsRef<str>>(self, id: S, config: &RepoConfig) -> crate::Result<Repo> {
+        let id = id.as_ref();
+        if !config.location.exists() {
+            return Err(Error::NonexistentRepo(config.location.to_string()));
+        }
+
+        match self {
+            Self::Ebuild => Ok(EbuildRepo::from_config(id, config)?.into()),
+            Self::Fake => Ok(FakeRepo::from_config(id, config)?.into()),
+            _ => Err(Error::LoadRepo { kind: self, id: id.to_string() }),
+        }
+    }
+
+    /// Try to load a specific repo type from a path.
     pub fn from_path<P: AsRef<Utf8Path>, S: AsRef<str>>(
         self,
         id: S,
@@ -190,6 +205,14 @@ impl Hash for Repo {
 make_repo_traits!(Repo);
 
 impl Repo {
+    /// Try to load a repo from a RepoConfig.
+    pub(crate) fn from_config<S: AsRef<str>>(
+        id: S,
+        config: &RepoConfig,
+    ) -> crate::Result<Self> {
+        config.format.from_config(id, config)
+    }
+
     /// Try to load a repo from a path.
     pub fn from_path<S: AsRef<str>, P: AsRef<Utf8Path>>(
         id: S,

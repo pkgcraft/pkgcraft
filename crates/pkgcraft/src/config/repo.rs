@@ -224,12 +224,12 @@ impl ConfigRepos {
         // load repos
         let mut repos = vec![];
         let mut nonexistent = IndexMap::new();
-        for (name, c) in configs {
+        for (name, config) in configs {
             // ignore invalid repos
-            match c.format.from_path(&name, &c.location, c.priority()) {
+            match Repo::from_config(&name, &config) {
                 Ok(repo) => repos.push(repo),
                 Err(Error::NonexistentRepo(_)) => {
-                    nonexistent.insert(name, c);
+                    nonexistent.insert(name, config);
                 }
                 Err(err) => error!("{err}"),
             }

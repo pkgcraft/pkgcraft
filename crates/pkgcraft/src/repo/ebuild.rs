@@ -92,6 +92,19 @@ impl From<&EbuildRepo> for Restrict {
 make_repo_traits!(EbuildRepo);
 
 impl EbuildRepo {
+    /// Create an ebuild repo from a RepoConfig.
+    pub(crate) fn from_config<S>(id: S, config: &RepoConfig) -> crate::Result<Self>
+    where
+        S: AsRef<str>,
+    {
+        let metadata = Metadata::try_new(id.as_ref(), &config.location)?;
+        Ok(Self(Arc::new(InternalEbuildRepo {
+            metadata,
+            config: config.clone(),
+            data: Default::default(),
+        })))
+    }
+
     /// Create an ebuild repo from a given path.
     pub(crate) fn from_path<S, P>(id: S, priority: i32, path: P) -> crate::Result<Self>
     where
