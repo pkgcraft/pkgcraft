@@ -237,7 +237,11 @@ impl ConfigRepos {
     }
 
     /// Remove repos from the config.
-    pub fn remove<S: AsRef<str>>(&mut self, repos: &[S]) -> crate::Result<()> {
+    pub fn remove<I>(&mut self, repos: I) -> crate::Result<()>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
         let mut nonexistent = vec![];
 
         for name in repos {
