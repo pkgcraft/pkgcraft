@@ -6,9 +6,9 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use indexmap::IndexMap;
-use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender};
 use itertools::Itertools;
-use nix::unistd::{ForkResult, Pid, dup, dup2_stdout, fork};
+use nix::unistd::{ForkResult, dup, dup2_stdout, fork};
 use scallop::pool::{NamedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
@@ -104,7 +104,7 @@ impl MetadataTask {
 /// Task builder for ebuild package metadata cache generation.
 #[derive(Debug)]
 pub struct MetadataTaskBuilder {
-    tx: IpcSender<Command>,
+    tx: flume::Sender<Command>,
     repo: EbuildRepo,
     cache: Option<MetadataCache>,
     force: bool,
@@ -112,14 +112,23 @@ pub struct MetadataTaskBuilder {
     verify: bool,
 }
 
-// needed due to IpcSender lacking Sync
-unsafe impl Sync for MetadataTaskBuilder {}
+fn run_task<T: IntoTask>(
+    tx: &flume::Sender<Command>,
+    task: T,
+) -> crate::Result<<T as IntoTask>::R> {
+    let (server, name) = IpcOneShotServer::new()?;
+    let task = Command::Task(task.into_task(name));
+    tx.send(task).expect("failed queuing task");
+    let (_, data) = server.accept().expect("failed receiving task result");
+    data
+}
 
 impl MetadataTaskBuilder {
     /// Create a new ebuild package metadata cache task builder.
     fn new(pool: &BuildPool, repo: &EbuildRepo) -> Self {
+        let once = pool.once.get().expect("The pool is not initialized yet");
         Self {
-            tx: pool.tx.clone(),
+            tx: once.tx.clone(),
             repo: repo.clone(),
             cache: Default::default(),
             force: Default::default(),
@@ -174,7 +183,8 @@ impl MetadataTaskBuilder {
         }
 
         let task = MetadataTask::new(&self.repo, cpv, cache.clone(), self.output, self.verify);
-        Command::run_task(&self.tx, task)
+
+        run_task(&self.tx, task)
     }
 }
 
@@ -336,26 +346,18 @@ enum Command {
     Stop,
 }
 
-impl Command {
-    /// Run a task variant and return the result.
-    fn run_task<T: IntoTask>(
-        tx: &IpcSender<Command>,
-        task: T,
-    ) -> crate::Result<<T as IntoTask>::R> {
-        let (server, name) = IpcOneShotServer::new()?;
-        let task = Self::Task(task.into_task(name));
-        tx.send(task).expect("failed queuing task");
-        let (_, data) = server.accept().expect("failed receiving task result");
-        data
-    }
+impl Command {}
+
+#[derive(Debug)]
+struct BuildPoolInner {
+    tx: flume::Sender<Command>,
+    // th: std::thread::JoinHandle<crate::Result<()>>,
 }
 
 #[derive(Debug)]
 pub struct BuildPool {
     jobs: usize,
-    tx: IpcSender<Command>,
-    rx: IpcReceiver<Command>,
-    pid: OnceLock<Pid>,
+    once: OnceLock<BuildPoolInner>,
 }
 
 // needed due to IpcSender lacking Sync
@@ -369,75 +371,95 @@ impl Default for BuildPool {
 
 impl BuildPool {
     pub(crate) fn new(jobs: usize) -> Self {
-        let (tx, rx) = ipc::channel().unwrap();
-        Self {
-            jobs,
-            tx,
-            rx,
-            pid: OnceLock::new(),
-        }
+        Self { jobs, once: OnceLock::new() }
     }
 
     /// Start the build pool loop.
     pub(crate) fn start(&self, config: ConfigRepos) -> crate::Result<()> {
-        if self.pid.get().is_some() {
+        if self.once.get().is_some() {
             // task pool already running
             return Ok(());
         }
 
-        match unsafe { fork() } {
-            Ok(ForkResult::Parent { child }) => {
-                self.pid.set(child).expect("task pool already running");
-                Ok(())
-            }
-            Ok(ForkResult::Child) => {
-                // signal child to exit on parent death
-                #[cfg(target_os = "linux")]
-                {
-                    use nix::sys::{prctl, signal::Signal};
-                    prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
-                }
+        let (tx, rx) = flume::unbounded();
+        let jobs = self.jobs;
 
-                // initialize semaphore to track jobs
-                let pid = std::process::id();
-                let name = format!("/pkgcraft-task-pool-{pid}");
-                let mut sem = NamedSemaphore::new(&name, self.jobs)?;
+        let _th = std::thread::spawn(move || -> crate::Result<()> {
+            let (ipc_tx, ipc_rx) = ipc::channel().unwrap();
 
-                // initialize bash
-                super::init()?;
-
-                // enable internal bash SIGCHLD handler
-                unsafe { scallop::bash::set_sigchld_handler() };
-
-                // suppress global output by default
-                suppress_output()?;
-
-                while let Ok(Command::Task(task)) = self.rx.recv() {
-                    // wait on bounded semaphore for pool space
-                    sem.acquire().unwrap();
-                    match unsafe { fork() } {
-                        Ok(ForkResult::Parent { .. }) => (),
-                        Ok(ForkResult::Child) => {
-                            scallop::shell::fork_init();
-                            task.run(&config);
-                            sem.release().unwrap();
-                            unsafe { libc::_exit(0) };
-                        }
-                        Err(e) => panic!("process pool fork failed: {e}"), // grcov-excl-line
+            match unsafe { fork() } {
+                Ok(ForkResult::Parent { .. }) => {
+                    while let Ok(command) = rx.recv() {
+                        ipc_tx.send(command).expect("Failed to send over ipc");
                     }
-                }
 
-                // wait for forked processes to complete
-                sem.wait().unwrap();
-                unsafe { libc::_exit(0) }
+                    let _todo = nix::sys::wait::wait();
+
+                    Ok(())
+                }
+                Ok(ForkResult::Child) => {
+                    // signal child to exit on parent death
+                    #[cfg(target_os = "linux")]
+                    {
+                        use nix::sys::{prctl, signal::Signal};
+                        prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
+                    }
+
+                    // initialize semaphore to track jobs
+                    let pid = std::process::id();
+                    let name = format!("/pkgcraft-task-pool-{pid}");
+                    let mut sem = NamedSemaphore::new(&name, jobs)?;
+
+                    // initialize bash
+                    super::init()?;
+
+                    // enable internal bash SIGCHLD handler
+                    unsafe { scallop::bash::set_sigchld_handler() };
+
+                    // suppress global output by default
+                    suppress_output()?;
+
+                    while let Ok(Command::Task(task)) = ipc_rx.recv() {
+                        // wait on bounded semaphore for pool space
+                        sem.acquire().unwrap();
+                        match unsafe { fork() } {
+                            Ok(ForkResult::Parent { .. }) => (),
+                            Ok(ForkResult::Child) => {
+                                scallop::shell::fork_init();
+                                task.run(&config);
+                                sem.release().unwrap();
+                                unsafe { libc::_exit(0) };
+                            }
+                            Err(e) => panic!("process pool fork failed: {e}"), // grcov-excl-line
+                        }
+                    }
+
+                    // wait for forked processes to complete
+                    sem.wait().unwrap();
+                    unsafe { libc::_exit(0) }
+                }
+                Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line
             }
-            Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line
-        }
+        });
+
+        let once = BuildPoolInner { tx };
+
+        self.once.set(once).expect("Failed to initialize the pool");
+
+        Ok(())
     }
 
     /// Create an ebuild package metadata regeneration task builder.
     pub fn metadata_task(&self, repo: &EbuildRepo) -> MetadataTaskBuilder {
         MetadataTaskBuilder::new(self, repo)
+    }
+
+    /// Run a task variant and return the result.
+    fn run_task<T: IntoTask>(&self, task: T) -> crate::Result<<T as IntoTask>::R> {
+        let Some(once) = self.once.get() else {
+            return crate::Result::Err(Error::Config("Pool not yet initialized".into()));
+        };
+        run_task(&once.tx, task)
     }
 
     /// Run the pkg_pretend phase for an ebuild package.
@@ -447,7 +469,7 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<Option<String>> {
         let task = PretendTask::new(repo, cpv);
-        Command::run_task(&self.tx, task)
+        self.run_task(task)
     }
 
     /// Return the mapping of global environment variables exported by a package.
@@ -457,7 +479,7 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<IndexMap<String, String>> {
         let task = EnvTask::new(repo, cpv);
-        Command::run_task(&self.tx, task)
+        self.run_task(task)
     }
 
     /// Return the time duration required to source a package.
@@ -467,12 +489,12 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<Duration> {
         let task = DurationTask::new(repo, cpv);
-        Command::run_task(&self.tx, task)
+        self.run_task(task)
     }
 }
 
 impl Drop for BuildPool {
     fn drop(&mut self) {
-        self.tx.send(Command::Stop).ok();
+        self.once.get().map(|o| o.tx.send(Command::Stop).ok());
     }
 }
