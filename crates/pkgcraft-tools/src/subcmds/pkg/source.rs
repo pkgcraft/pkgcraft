@@ -11,7 +11,6 @@ use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::ParallelMap;
 use serde::Serialize;
 use tracing::error;
 
@@ -313,13 +312,13 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
         };
 
     let pkgs = targets.ebuild_raw_pkgs();
-    let mut sorted = if cmd.sort { Some(vec![]) } else { None };
     let stdout = io::stdout().lock();
     let mut out = cmd.format.make_output(stdout);
 
-    for result in pkgs.par_map(func).jobs(cmd.jobs) {
-        match result {
-            Ok((pkg, data)) => {
+    let result: pkgcraft::Result<Vec<_>> = pkgs
+        .par_bridge()
+        .map(|res| {
+            func(res).map(|(pkg, data)| {
                 let n = data.len() as u64;
                 let micros: Vec<u64> = data
                     .iter()
@@ -338,24 +337,23 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
                 let mean = Duration::from_micros(mean);
 
                 let value = Benchmark::new(pkg, mean, min, max, sdev, n);
-                if let Some(values) = sorted.as_mut() {
-                    values.push(value);
-                } else {
-                    out.write(&value)?;
-                }
+                value
+            })
+        })
+        .collect();
+
+    match result {
+        Ok(mut values) => {
+            if cmd.sort {
+                values.sort_by(|t1, t2| t1.mean.cmp(&t2.mean));
             }
-            Err(e) => {
-                failed = true;
-                error!("{e}");
+            for value in values {
+                out.write(&value)?;
             }
         }
-    }
-
-    // output in ascending order if sorting is enabled
-    if let Some(values) = sorted.as_mut() {
-        values.sort_by(|t1, t2| t1.mean.cmp(&t2.mean));
-        for value in values {
-            out.write(&value)?;
+        Err(e) => {
+            println!("{e}");
+            failed = true;
         }
     }
 
@@ -363,7 +361,7 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
 }
 
 /// Run package sourcing benchmark cumulatively across all targets.
-fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
+fn cumulative(limit: u32, targets: PkgTargets, _cmd: &Command) -> anyhow::Result<ExitCode> {
     let func = move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<Duration> {
         result.and_then(|pkg| pkg.duration())
     };
@@ -383,16 +381,23 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
         let pkgs = targets.clone().ebuild_raw_pkgs();
         progress.reset();
 
-        for result in pkgs.par_map(func).jobs(cmd.jobs) {
-            progress.inc(1);
-            match result {
-                Ok(duration) => cpu_time += duration,
-                Err(e) => {
-                    failed = true;
-                    progress.suspend(|| {
-                        error!("{e}");
-                    });
-                }
+        let result: pkgcraft::Result<Vec<_>> = pkgs
+            .par_bridge()
+            .map(|res| {
+                progress.inc(1);
+                func(res)
+            })
+            .collect();
+
+        match result {
+            Ok(durations) => durations
+                .into_iter()
+                .for_each(|duration| cpu_time += duration),
+            Err(e) => {
+                failed = true;
+                progress.suspend(|| {
+                    error!("{e}");
+                });
             }
         }
 
@@ -446,6 +451,8 @@ impl Display for Elapsed {
     }
 }
 
+use rayon::{iter::ParallelBridge, prelude::*};
+
 /// Run package sourcing a single time per package.
 fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let mut failed = false;
@@ -463,9 +470,11 @@ fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     let stdout = io::stdout().lock();
     let mut out = cmd.format.make_output(stdout);
 
-    for result in pkgs.par_map(func).jobs(cmd.jobs) {
-        match result {
-            Ok(value) => {
+    let result: pkgcraft::Result<Vec<_>> = pkgs.par_bridge().map(func).collect();
+
+    match result {
+        Ok(vals) => {
+            for value in vals {
                 if cmd.bound.iter().all(|b| b.matches(&value.elapsed)) {
                     if let Some(values) = sorted.as_mut() {
                         values.push(value);
@@ -474,10 +483,10 @@ fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
                     }
                 }
             }
-            Err(e) => {
-                failed = true;
-                error!("{e}");
-            }
+        }
+        Err(e) => {
+            println!("{e}");
+            failed = true;
         }
     }
 
