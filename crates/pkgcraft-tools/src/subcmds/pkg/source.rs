@@ -12,6 +12,8 @@ use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::traits::ParallelMap;
+use pkgcraft::utils::bounded_thread_pool;
+use rayon::{iter::ParallelBridge, prelude::*};
 use serde::Serialize;
 use tracing::error;
 
@@ -373,28 +375,33 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
     let mut values = vec![];
     let mut stdout = io::stdout().lock();
 
+    bounded_thread_pool(cmd.jobs);
+
     // initialize progress bar
     let progress = ProgressBar::new(targets.len().try_into().unwrap())
         .with_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
 
     while run < limit {
-        let mut cpu_time = Duration::new(0, 0);
+        let cpu_time = Duration::ZERO;
         let start = Instant::now();
         let pkgs = targets.clone().ebuild_raw_pkgs();
         progress.reset();
 
-        for result in pkgs.par_map(func).jobs(cmd.jobs) {
-            progress.inc(1);
-            match result {
-                Ok(duration) => cpu_time += duration,
-                Err(e) => {
-                    failed = true;
-                    progress.suspend(|| {
-                        error!("{e}");
-                    });
-                }
-            }
-        }
+        let result = pkgs
+            .par_bridge()
+            .map(func)
+            .try_fold_with(cpu_time, |cpu_time, duration| {
+                progress.inc(1);
+                duration.map(|duration| duration + cpu_time)
+            })
+            .try_reduce(|| Duration::ZERO, |a, b| Ok(a + b));
+        let cpu_time = result.unwrap_or_else(|e| {
+            progress.suspend(|| {
+                error!("{e}");
+            });
+            failed = true;
+            Duration::ZERO
+        });
 
         run += 1;
         let elapsed = millis!(start.elapsed());
