@@ -358,6 +358,8 @@ pub struct BuildPool {
     pid: OnceLock<Pid>,
 }
 
+unsafe impl Sync for BuildPool {}
+
 impl Default for BuildPool {
     fn default() -> Self {
         Self::new(num_cpus::get())

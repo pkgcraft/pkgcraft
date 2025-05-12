@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{Equivalent, IndexSet};
+use rayon::iter::ParallelBridge;
 use scallop::{ExecStatus, source};
 use tracing::error;
 
@@ -178,7 +179,8 @@ where
 pub trait ParallelMap<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -189,7 +191,8 @@ where
 pub struct ParallelMapBuilder<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -201,7 +204,8 @@ where
 impl<I, F, T, R> ParallelMapBuilder<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -223,7 +227,8 @@ where
 impl<I, F, T, R> IntoIterator for ParallelMapBuilder<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -247,7 +252,8 @@ where
     fn new<I, F, T>(value: I, func: F, _jobs: usize) -> Self
     where
         I: IntoIterator<Item = T> + 'static,
-        F: Fn(T) -> R + Clone + 'static,
+        <I as IntoIterator>::IntoIter: ParallelBridge,
+        F: Fn(T) -> R + Clone + Send + Sync + 'static,
     {
         let iter = value.into_iter().map(func);
         Self { iter: Box::new(iter) }
@@ -257,7 +263,8 @@ where
 impl<I, F, T, R> ParallelMap<I, F, T, R> for I
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -281,7 +288,8 @@ where
 pub trait ParallelMapOrdered<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -291,7 +299,8 @@ where
 impl<I, F, T, R> ParallelMapOrdered<I, F, T, R> for I
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -304,7 +313,8 @@ where
 pub struct ParallelMapOrderedBuilder<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -316,7 +326,8 @@ where
 impl<I, F, T, R> ParallelMapOrderedBuilder<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
 {
     fn new(iterable: I, func: F) -> Self {
         Self {
@@ -336,7 +347,8 @@ where
 impl<I, F, T, R> IntoIterator for ParallelMapOrderedBuilder<I, F, T, R>
 where
     I: IntoIterator<Item = T> + 'static,
-    F: Fn(T) -> R + Clone + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: 'static,
     R: 'static,
 {
@@ -360,7 +372,8 @@ where
     fn new<I, F, T>(value: I, func: F, _jobs: usize) -> Self
     where
         I: IntoIterator<Item = T> + 'static,
-        F: Fn(T) -> R + Clone + 'static,
+        <I as IntoIterator>::IntoIter: ParallelBridge,
+        F: Fn(T) -> R + Clone + Send + Sync + 'static,
         T: 'static,
     {
         let iter = value.into_iter().map(func);

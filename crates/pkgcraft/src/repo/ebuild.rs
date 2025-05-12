@@ -736,17 +736,13 @@ impl Iterator for Iter {
 ///
 /// This constructs packages in parallel and returns them as completed.
 pub struct IterUnordered {
-    iter: ParallelMapIter<crate::Result<EbuildPkg>>,
+    iter: IterRaw,
 }
 
 impl IterUnordered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         let pkgs = IterRaw::new(repo, restrict);
-        let func =
-            move |result: crate::Result<EbuildRawPkg>| result.and_then(|pkg| pkg.try_into());
-        Self {
-            iter: pkgs.par_map(func).into_iter(),
-        }
+        Self { iter: pkgs }
     }
 }
 
@@ -754,7 +750,9 @@ impl Iterator for IterUnordered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter
+            .next()
+            .map(|result| result.and_then(|pkg| pkg.try_into()))
     }
 }
 
@@ -762,17 +760,13 @@ impl Iterator for IterUnordered {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterOrdered {
-    iter: ParallelMapOrderedIter<crate::Result<EbuildPkg>>,
+    iter: IterRaw,
 }
 
 impl IterOrdered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         let pkgs = IterRaw::new(repo, restrict);
-        let func =
-            move |result: crate::Result<EbuildRawPkg>| result.and_then(|pkg| pkg.try_into());
-        Self {
-            iter: pkgs.par_map_ordered(func).into_iter(),
-        }
+        Self { iter: pkgs }
     }
 }
 
@@ -780,7 +774,9 @@ impl Iterator for IterOrdered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter
+            .next()
+            .map(|result| result.and_then(|pkg: EbuildRawPkg| pkg.try_into()))
     }
 }
 
@@ -929,7 +925,7 @@ impl Iterator for IterCpn {
 }
 
 /// Iterable of [`Cpv`] objects.
-pub struct IterCpv(Box<dyn Iterator<Item = Cpv>>);
+pub struct IterCpv(Box<dyn Iterator<Item = Cpv> + Send + Sync>);
 
 impl IterCpv {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
@@ -1172,17 +1168,15 @@ impl Iterator for IterRawRestrict {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterRawOrdered {
-    iter: ParallelMapOrderedIter<crate::Result<EbuildRawPkg>>,
+    iter: IterCpv,
+    repo: EbuildRepo,
 }
 
 impl IterRawOrdered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         let cpvs = IterCpv::new(repo, restrict);
         let repo = repo.clone();
-        let func = move |cpv: Cpv| repo.get_pkg_raw(cpv);
-        Self {
-            iter: cpvs.par_map_ordered(func).into_iter(),
-        }
+        Self { iter: cpvs, repo }
     }
 }
 
@@ -1190,7 +1184,7 @@ impl Iterator for IterRawOrdered {
     type Item = crate::Result<EbuildRawPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter.next().map(|cpv| self.repo.get_pkg_raw(cpv))
     }
 }
 
