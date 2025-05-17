@@ -1,3 +1,4 @@
+mod add;
 mod eapi;
 mod eclass;
 mod leaf;
