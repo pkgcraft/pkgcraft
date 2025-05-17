@@ -6,3 +6,4 @@ mod license;
 mod metadata;
 mod mirror;
 mod revdeps;
+mod sync;
