@@ -4,6 +4,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
+use crate::repo::RepoFormat;
 use crate::sync::{Syncable, Syncer};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -20,10 +21,19 @@ impl Syncable for Repo {
             .ok_or_else(|| Error::RepoInit(format!("invalid local repo: {uri}")))
             .map(|x| x.to_string())?;
 
-        if path.exists() {
-            Ok(Syncer::Local(Repo { path, name }))
-        } else {
-            Err(Error::RepoInit(format!("invalid local repo: {uri}")))
+        match path.canonicalize_utf8() {
+            Ok(path) => Ok(Syncer::Local(Repo { path, name })),
+            Err(e) => {
+                if uri.starts_with('/') {
+                    Err(Error::RepoInit(format!("invalid local repo: {uri}: {e}")))
+                } else {
+                    Err(Error::NotARepo {
+                        kind: RepoFormat::Ebuild,
+                        id: uri.to_string(),
+                        err: "invalid local repo".to_string(),
+                    })
+                }
+            }
         }
     }
 

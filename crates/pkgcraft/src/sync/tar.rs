@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use tempfile::Builder;
 
 use crate::Error;
+use crate::repo::RepoFormat;
 use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: LazyLock<Regex> =
@@ -30,7 +31,11 @@ impl Syncable for Repo {
                 uri: uri.to_string(),
                 url: m.name("url").unwrap().as_str().to_string(),
             })),
-            None => Err(Error::RepoInit(format!("invalid tar+https repo: {uri:?}"))),
+            None => Err(Error::NotARepo {
+                kind: RepoFormat::Ebuild,
+                id: uri.to_string(),
+                err: "invalid tar+https repo".to_string(),
+            }),
         }
     }
 

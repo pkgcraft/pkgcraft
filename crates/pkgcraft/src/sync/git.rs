@@ -6,6 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
+use crate::repo::RepoFormat;
 use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: LazyLock<Regex> =
@@ -21,7 +22,11 @@ impl Syncable for Repo {
         if HANDLED_URI_RE.is_match(uri) {
             Ok(Syncer::Git(Repo { uri: uri.to_string() }))
         } else {
-            Err(Error::RepoInit(format!("invalid git repo: {uri}")))
+            Err(Error::NotARepo {
+                kind: RepoFormat::Ebuild,
+                id: uri.to_string(),
+                err: "invalid git repo".to_string(),
+            })
         }
     }
 

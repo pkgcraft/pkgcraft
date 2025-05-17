@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use camino::Utf8Path;
 use serde_with::{DeserializeFromStr, SerializeDisplay};
+use tracing::debug;
 
 use crate::Error;
 
@@ -62,24 +63,20 @@ impl FromStr for Syncer {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         #[rustfmt::skip]
-        let prioritized_syncers = [
+        let syncers = [
             #[cfg(feature = "git")]
             git::Repo::uri_to_syncer,
             tar::Repo::uri_to_syncer,
             local::Repo::uri_to_syncer,
         ];
 
-        let mut syncer: Option<Syncer> = None;
-        for func in prioritized_syncers {
-            if let Ok(sync) = func(s) {
-                syncer = Some(sync);
-                break;
+        for syncer in syncers {
+            match syncer(s) {
+                Err(e @ Error::NotARepo { .. }) => debug!("{e}"),
+                result => return result,
             }
         }
 
-        match syncer {
-            Some(s) => Ok(s),
-            None => Err(Error::InvalidValue(format!("no syncers available: {s}"))),
-        }
+        Err(Error::InvalidValue(format!("no syncers available: {s}")))
     }
 }
