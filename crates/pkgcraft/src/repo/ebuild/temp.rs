@@ -207,7 +207,7 @@ impl EbuildTempRepo {
 
     /// Persist the temporary repo to disk, returning the [`Utf8PathBuf`] where it is located.
     pub fn persist<P: AsRef<Utf8Path>>(self, path: Option<P>) -> crate::Result<Utf8PathBuf> {
-        let mut repo_path = Utf8PathBuf::from_path_buf(self.tempdir.into_path())
+        let mut repo_path = Utf8PathBuf::from_path_buf(self.tempdir.keep())
             .map_err(|p| Error::IO(format!("non-unicode repo path: {p:?}")))?;
         if let Some(path) = path {
             let path = path.as_ref();
