@@ -242,7 +242,7 @@ impl FormatReporter {
                 "{}: invalid output format: {e}\n  [possible attributes: {supported}]",
                 report.kind
             ));
-            io::Error::new(io::ErrorKind::Other, error)
+            io::Error::other(error)
         })?;
         if !s.is_empty() {
             writeln!(output, "{s}")?;

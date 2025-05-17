@@ -1,4 +1,4 @@
-use std::io::{self, Cursor, Error, ErrorKind, Read, Write};
+use std::io::{self, Cursor, Error, Read, Write};
 use std::sync::{Mutex, OnceLock};
 
 use crate::cli::is_terminal;
@@ -44,13 +44,13 @@ impl Read for Stdin {
         match self.inner.lock().as_deref_mut() {
             Ok(StdinInternal::Real(f)) => {
                 if is_terminal!(f) {
-                    Err(Error::new(ErrorKind::Other, "stdin is a terminal"))
+                    Err(Error::other("stdin is a terminal"))
                 } else {
                     f.read(buf)
                 }
             }
             Ok(StdinInternal::Fake(f)) => f.read(buf),
-            Err(e) => Err(Error::new(ErrorKind::Other, format!("failed getting stdin: {e}"))),
+            Err(e) => Err(Error::other(format!("failed getting stdin: {e}"))),
         }
     }
 }
@@ -59,14 +59,14 @@ impl Write for Stdin {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
             Ok(StdinInternal::Fake(f)) => f.write(buf),
-            _ => Err(Error::new(ErrorKind::Other, "failed getting stdin")),
+            _ => Err(Error::other("failed getting stdin")),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match self.inner.lock().as_deref_mut() {
             Ok(StdinInternal::Fake(f)) => f.flush(),
-            _ => Err(Error::new(ErrorKind::Other, "failed getting stdin")),
+            _ => Err(Error::other("failed getting stdin")),
         }
     }
 }
@@ -110,7 +110,7 @@ impl Read for Stdout {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
             Ok(StdoutInternal::Fake(f)) => f.read(buf),
-            _ => Err(Error::new(ErrorKind::Other, "failed getting stdout")),
+            _ => Err(Error::other("failed getting stdout")),
         }
     }
 }
@@ -120,7 +120,7 @@ impl Write for Stdout {
         match self.inner.lock().as_deref_mut() {
             Ok(StdoutInternal::Fake(f)) => f.write(buf),
             Ok(StdoutInternal::Real(f)) => f.write(buf),
-            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stdout")),
+            Err(_) => Err(Error::other("failed getting stdout")),
         }
     }
 
@@ -128,7 +128,7 @@ impl Write for Stdout {
         match self.inner.lock().as_deref_mut() {
             Ok(StdoutInternal::Fake(f)) => f.flush(),
             Ok(StdoutInternal::Real(f)) => f.flush(),
-            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stdout")),
+            Err(_) => Err(Error::other("failed getting stdout")),
         }
     }
 }
@@ -172,7 +172,7 @@ impl Read for Stderr {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
             Ok(StderrInternal::Fake(f)) => f.read(buf),
-            _ => Err(Error::new(ErrorKind::Other, "failed getting stderr")),
+            _ => Err(Error::other("failed getting stderr")),
         }
     }
 }
@@ -182,7 +182,7 @@ impl Write for Stderr {
         match self.inner.lock().as_deref_mut() {
             Ok(StderrInternal::Fake(f)) => f.write(buf),
             Ok(StderrInternal::Real(f)) => f.write(buf),
-            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stderr")),
+            Err(_) => Err(Error::other("failed getting stderr")),
         }
     }
 
@@ -190,7 +190,7 @@ impl Write for Stderr {
         match self.inner.lock().as_deref_mut() {
             Ok(StderrInternal::Fake(f)) => f.flush(),
             Ok(StderrInternal::Real(f)) => f.flush(),
-            Err(_) => Err(Error::new(ErrorKind::Other, "failed getting stderr")),
+            Err(_) => Err(Error::other("failed getting stderr")),
         }
     }
 }
