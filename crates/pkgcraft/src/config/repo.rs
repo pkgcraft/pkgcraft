@@ -74,9 +74,10 @@ impl RepoConfig {
 
     /// Sync repository to its configured location.
     pub(crate) fn sync(&self) -> crate::Result<()> {
-        match &self.sync {
-            Some(syncer) => syncer.sync(&self.location),
-            None => Ok(()),
+        if let Some(syncer) = &self.sync {
+            futures::executor::block_on(syncer.sync(&self.location))
+        } else {
+            Ok(())
         }
     }
 }

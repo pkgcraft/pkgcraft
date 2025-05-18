@@ -38,7 +38,7 @@ trait Syncable {
 }
 
 impl Syncer {
-    pub(crate) fn sync<P: AsRef<Utf8Path>>(&self, path: P) -> crate::Result<()> {
+    pub(crate) async fn sync<P: AsRef<Utf8Path>>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
 
         // make sure repos dir exists
@@ -51,9 +51,9 @@ impl Syncer {
 
         match self {
             #[cfg(feature = "git")]
-            Syncer::Git(repo) => futures::executor::block_on(repo.sync(path)),
-            Syncer::TarHttps(repo) => futures::executor::block_on(repo.sync(path)),
-            Syncer::Local(repo) => futures::executor::block_on(repo.sync(path)),
+            Syncer::Git(repo) => repo.sync(path).await,
+            Syncer::TarHttps(repo) => repo.sync(path).await,
+            Syncer::Local(repo) => repo.sync(path).await,
         }
     }
 }
