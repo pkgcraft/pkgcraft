@@ -96,11 +96,19 @@ impl<'a> RepoConfigBuilder<'a> {
         let (tmpdir, location) = if let Syncer::Local(repo) = &syncer {
             (None, config.repos_dir.join(&repo.name))
         } else {
-            let dir = TempDir::new_in(&config.repos_dir)
+            // make sure repos dir exists
+            let dir = &config.repos_dir;
+            fs::create_dir_all(dir).map_err(|e| {
+                Error::Config(format!("failed creating repos dir: {dir}: {e}"))
+            })?;
+
+            // create temporary dir to sync repo into
+            let dir = TempDir::new_in(dir)
                 .map_err(|e| Error::InvalidValue(format!("failed creating temp dir: {e}")))?;
             let path = Utf8Path::from_path(dir.path())
                 .ok_or_else(|| Error::InvalidValue("invalid temp dir path".to_string()))
                 .map(|x| x.to_path_buf())?;
+
             (Some(dir), path)
         };
 
@@ -134,7 +142,7 @@ impl<'a> RepoConfigBuilder<'a> {
         // create repos directory
         let dir = &self.config.repos_dir;
         fs::create_dir_all(dir)
-            .map_err(|e| Error::Config(format!("failed creating config dir: {dir}: {e}")))?;
+            .map_err(|e| Error::Config(format!("failed creating repos dir: {dir}: {e}")))?;
 
         // optionally sync the repo
         let mut synced_repo = None;
