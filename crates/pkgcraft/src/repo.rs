@@ -823,6 +823,7 @@ macro_rules! make_repo_traits {
                     _ => {
                         self.iter_cpv_restrict(value).next().is_some()
                             || self.iter_cpn_restrict(value).next().is_some()
+                            || self.iter_restrict(value).next().is_some()
                     }
                 }
             }
