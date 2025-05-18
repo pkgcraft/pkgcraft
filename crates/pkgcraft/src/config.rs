@@ -156,7 +156,8 @@ impl ConfigInner {
 
     /// Load config files from a given path.
     pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
-        if !self.loaded && !path.is_empty() && self.path.config.exists() {
+        if !self.loaded && !path.is_empty() {
+            self.path = ConfigPath::new("pkgcraft", path);
             self.repos = ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
         };
 
