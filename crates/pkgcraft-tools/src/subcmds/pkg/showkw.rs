@@ -132,33 +132,23 @@ impl TableTheme {
 impl TableFormat {
     /// Create a theme for a table format.
     fn theme(self) -> TableTheme {
-        match self {
-            Self::Ascii => {
-                let style = Style::ascii()
-                    .remove_top()
-                    .remove_left()
-                    .remove_right()
-                    .remove_bottom()
-                    .remove_vertical()
-                    .remove_horizontal();
-                TableTheme {
-                    inner: Theme::from_style(style),
-                    format: self,
-                }
-            }
-            Self::Modern => {
-                let style = Style::modern()
-                    .remove_top()
-                    .remove_left()
-                    .remove_right()
-                    .remove_bottom()
-                    .remove_vertical()
-                    .remove_horizontal();
-                TableTheme {
-                    inner: Theme::from_style(style),
-                    format: self,
-                }
-            }
+        let style = match self {
+            Self::Ascii => Style::ascii(),
+            Self::Modern => Style::modern(),
+        };
+
+        // remove default separators
+        let style = style
+            .remove_top()
+            .remove_left()
+            .remove_right()
+            .remove_bottom()
+            .remove_vertical()
+            .remove_horizontal();
+
+        TableTheme {
+            inner: Theme::from_style(style),
+            format: self,
         }
     }
 
