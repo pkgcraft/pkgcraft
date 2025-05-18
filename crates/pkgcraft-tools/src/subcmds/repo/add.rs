@@ -18,8 +18,8 @@ pub(crate) struct Command {
     #[arg(long, short)]
     priority: Option<i32>,
 
-    /// Repository URL
-    url: String,
+    /// Repository URI
+    uri: String,
 }
 
 impl Command {
@@ -28,7 +28,7 @@ impl Command {
         config.load()?;
 
         // create a RepoConfig
-        let mut repo_config = config.repos().add_uri(&self.url)?;
+        let mut repo_config = config.repos().add_uri(&self.uri)?;
 
         if let Some(value) = self.name.as_deref() {
             repo_config.name(value);
