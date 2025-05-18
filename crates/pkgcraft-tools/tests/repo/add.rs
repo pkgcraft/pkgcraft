@@ -1,4 +1,5 @@
 use pkgcraft::test::{cmd, test_data};
+use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
 
@@ -34,6 +35,22 @@ fn local_repo() {
         .arg(repo)
         .assert()
         .stdout("")
+        .stderr("")
+        .success();
+}
+
+#[test]
+#[cfg(feature = "network")]
+fn git_repo() {
+    let temp_dir = tempdir().unwrap();
+    let config_dir = temp_dir.path().to_str().unwrap();
+
+    // TODO: replace with pkgcraft stub ebuild repo
+    cmd("pk repo add")
+        .args(["--config", config_dir])
+        .arg("https://github.com/radhermit/radhermit-overlay.git")
+        .assert()
+        .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
 }
