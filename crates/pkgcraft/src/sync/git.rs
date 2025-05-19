@@ -10,7 +10,7 @@ use crate::repo::RepoFormat;
 use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(https|git)://.+\.git$").unwrap());
+    LazyLock::new(|| Regex::new(r"^(https?|git)://.+\.git$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {
