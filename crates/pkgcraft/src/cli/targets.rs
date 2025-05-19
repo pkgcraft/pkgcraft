@@ -484,6 +484,8 @@ mod tests {
             [Ok(Pkg::Ebuild(ebuild_pkg.clone())), Ok(Pkg::Fake(fake_pkg.clone()))]
         );
         assert_ordered_eq!(targets.clone().ebuild_pkgs(), [Ok(ebuild_pkg.clone())]);
+        assert_ordered_eq!(targets.repos().map(|r| r.to_string()), ["ebuild", "fake"]);
+        assert_ordered_eq!(targets.ebuild_repos(), [&ebuild_repo]);
 
         // no specific repo target uses current working directory if inside a valid repo
         let path = test_data_path().join("repos/valid/metadata");
