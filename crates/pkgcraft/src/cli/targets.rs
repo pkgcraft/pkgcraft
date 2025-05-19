@@ -551,4 +551,46 @@ mod tests {
             .unwrap();
         assert_eq!(targets.len(), 1);
     }
+
+    #[test]
+    fn repo_targets() {
+        let mut config = Config::default();
+
+        // add ebuild repo to config
+        let mut temp = EbuildRepoBuilder::new().name("ebuild").build().unwrap();
+        let ebuild_repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+
+        // add fake repo to config
+        let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-2"]).unwrap();
+        let fake_repo = config.add_repo(fake_repo).unwrap().into_fake().unwrap();
+
+        // finalize config
+        config.finalize().unwrap();
+
+        // no targets
+        let empty: [&str; 0] = [];
+        let r = Targets::new(&mut config).repo_targets(empty);
+        assert_err_re!(r, "no repo targets");
+
+        // single target
+        let targets = Targets::new(&mut config).repo_targets(["ebuild"]).unwrap();
+        assert!(!targets.is_empty());
+        assert_eq!(targets.len(), 1);
+        let repo = targets.ebuild_repo().unwrap();
+        assert_eq!(&repo, &ebuild_repo);
+
+        // multiple target
+        let targets = Targets::new(&mut config)
+            .repo_targets(["ebuild", "fake"])
+            .unwrap();
+        assert_eq!(targets.len(), 2);
+        assert!(targets.clone().ebuild_repo().is_err());
+        assert!(targets.clone().ebuild_repos().is_err());
+        let repo1 = Repo::from(ebuild_repo.clone());
+        let repo2 = Repo::from(fake_repo.clone());
+        let expected = [("ebuild".to_string(), repo1), ("fake".to_string(), repo2)];
+        assert_ordered_eq!(targets.iter().cloned(), expected.clone());
+        assert_ordered_eq!(targets, expected);
+    }
 }
