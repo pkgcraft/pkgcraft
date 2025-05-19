@@ -461,8 +461,7 @@ mod tests {
             .repo(none)
             .unwrap()
             .pkg_targets(["cat/pkg"])
-            .unwrap()
-            .collapse();
+            .unwrap();
         assert!(!targets.is_empty());
         assert_eq!(targets.len(), 1);
         assert_ordered_eq!(
@@ -478,8 +477,7 @@ mod tests {
             .repo(none)
             .unwrap()
             .pkg_targets(["slot/slot"])
-            .unwrap()
-            .collapse();
+            .unwrap();
         assert_eq!(targets.len(), 1);
 
         // nonexistent repo ID
@@ -491,8 +489,7 @@ mod tests {
             .repo(Some("ebuild"))
             .unwrap()
             .pkg_targets(["cat/pkg"])
-            .unwrap()
-            .collapse();
+            .unwrap();
         assert_eq!(targets.len(), 1);
 
         // nonexistent repo path
@@ -514,8 +511,7 @@ mod tests {
             .repo(Some(temp.path()))
             .unwrap()
             .pkg_targets(["cat/pkg"])
-            .unwrap()
-            .collapse();
+            .unwrap();
         assert_eq!(targets.len(), 1);
 
         // nonexistent repo target with dep restriction
@@ -531,15 +527,13 @@ mod tests {
         // existing repo target with dep restriction
         let targets = Targets::new(&mut config)
             .pkg_targets(["cat/pkg::fake"])
-            .unwrap()
-            .collapse();
+            .unwrap();
         assert_eq!(targets.len(), 1);
 
         // existing repo path
         let targets = Targets::new(&mut config)
             .pkg_targets([ebuild_repo.path()])
-            .unwrap()
-            .collapse();
+            .unwrap();
         assert_eq!(targets.len(), 1);
     }
 }
