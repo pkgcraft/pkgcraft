@@ -522,6 +522,12 @@ mod tests {
         let r = Targets::new(&mut config).pkg_targets(["cat/pkg::nonexistent"]);
         assert_err_re!(r, "nonexistent repo: nonexistent");
 
+        // no matches
+        for target in ["cat/pkg:slot", "pkg:slot"] {
+            let r = Targets::new(&mut config).pkg_targets([target]);
+            assert_err_re!(r, format!("no matches found: {target}"));
+        }
+
         // existing repo target with dep restriction
         let targets = Targets::new(&mut config)
             .pkg_targets(["cat/pkg::fake"])
