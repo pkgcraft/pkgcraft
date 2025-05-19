@@ -6,7 +6,8 @@ use pkgcraft::config::Config;
 #[derive(Args)]
 #[clap(next_help_heading = "Remove options")]
 pub(crate) struct Command {
-    /// Repository names
+    /// Repository name
+    #[arg(required = true, value_name = "REPO")]
     repos: Vec<String>,
 }
 
