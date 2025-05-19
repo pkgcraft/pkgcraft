@@ -405,6 +405,21 @@ impl IntoIterator for RepoTargets {
 }
 
 impl RepoTargets {
+    /// Return the number of repository targets.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Return true if no repository targets exist.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Return the iterator of repository targets.
+    pub fn iter(&self) -> impl Iterator<Item = &(String, Repo)> {
+        self.into_iter()
+    }
+
     /// Collapse repos into a single ebuild repo.
     pub fn ebuild_repo(self) -> crate::Result<EbuildRepo> {
         let repos = self.ebuild_repos()?;
