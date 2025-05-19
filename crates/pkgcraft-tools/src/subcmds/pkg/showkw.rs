@@ -11,6 +11,7 @@ use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus};
 use pkgcraft::pkg::{Package, RepoPackage};
+use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
@@ -167,6 +168,37 @@ impl TableFormat {
     }
 }
 
+/// Determine target architectures to output.
+fn determine_arches(
+    set: &RepoSet,
+    selected: &IndexSet<TriState<Arch>>,
+    prefix_enabled: bool,
+) -> anyhow::Result<IndexSet<Arch>> {
+    // determine default arch set
+    let all_arches: IndexSet<_> = set
+        .iter_ebuild()
+        .flat_map(|r| r.arches())
+        .cloned()
+        .collect();
+    let mut target_arches: IndexSet<_> = all_arches
+        .iter()
+        .filter(|arch| !arch.is_prefix() || prefix_enabled)
+        .cloned()
+        .collect();
+
+    // determine target arches, filtering defaults by selected arches
+    TriState::enabled(&mut target_arches, selected.clone());
+
+    // verify target arches exist
+    let mut nonexistent = target_arches.difference(&all_arches).peekable();
+    if nonexistent.peek().is_some() {
+        let nonexistent = nonexistent.join(", ");
+        anyhow::bail!("nonexistent arches: {nonexistent}");
+    }
+
+    Ok(target_arches)
+}
+
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine pkg targets
@@ -175,7 +207,7 @@ impl Command {
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?;
 
-        let selected_arches: IndexSet<_> = self.arches.iter().cloned().collect();
+        let selected_arches = self.arches.iter().cloned().collect();
         let mut stdout = io::stdout().lock();
         let mut failed = false;
 
@@ -183,28 +215,7 @@ impl Command {
         for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
             let mut theme = self.format.theme();
             let scope = Scope::from(restrict);
-
-            // determine default arch set
-            let all_arches: IndexSet<_> = set
-                .iter_ebuild()
-                .flat_map(|r| r.arches())
-                .cloned()
-                .collect();
-            let mut target_arches: IndexSet<_> = all_arches
-                .iter()
-                .filter(|arch| !arch.is_prefix() || self.prefix)
-                .cloned()
-                .collect();
-
-            // determine target arches, filtering defaults by selected arches
-            TriState::enabled(&mut target_arches, selected_arches.clone());
-
-            // verify target arches exist
-            let mut nonexistent = target_arches.difference(&all_arches).peekable();
-            if nonexistent.peek().is_some() {
-                let nonexistent = nonexistent.join(", ");
-                anyhow::bail!("nonexistent arches: {nonexistent}");
-            }
+            let target_arches = determine_arches(set, &selected_arches, self.prefix)?;
 
             // build table headers
             let mut builder = Builder::new();
