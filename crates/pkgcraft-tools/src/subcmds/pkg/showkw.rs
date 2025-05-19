@@ -200,9 +200,9 @@ impl Command {
             TriState::enabled(&mut target_arches, selected_arches.clone());
 
             // verify target arches exist
-            let nonexistent: Vec<_> = target_arches.difference(&all_arches).collect();
-            if !nonexistent.is_empty() {
-                let nonexistent = nonexistent.iter().join(", ");
+            let mut nonexistent = target_arches.difference(&all_arches).peekable();
+            if nonexistent.peek().is_some() {
+                let nonexistent = nonexistent.join(", ");
                 anyhow::bail!("nonexistent arches: {nonexistent}");
             }
 
