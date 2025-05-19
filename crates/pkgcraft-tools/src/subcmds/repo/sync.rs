@@ -6,7 +6,8 @@ use pkgcraft::config::Config;
 #[derive(Args)]
 #[clap(next_help_heading = "Sync options")]
 pub(crate) struct Command {
-    /// Repository names
+    /// Repository name
+    #[arg(value_name = "REPO")]
     repos: Vec<String>,
 }
 
