@@ -235,9 +235,9 @@ impl Command {
                 let mut row = vec![];
 
                 // determine pkg status
-                let statuses: Vec<_> = PkgStatus::from_pkg(&pkg).collect();
-                if !statuses.is_empty() {
-                    row.push(format!("[{}]", statuses.iter().join("")));
+                let mut statuses = PkgStatus::from_pkg(&pkg).peekable();
+                if statuses.peek().is_some() {
+                    row.push(format!("[{}]", statuses.join("")));
                 } else {
                     row.push("".to_string());
                 }
