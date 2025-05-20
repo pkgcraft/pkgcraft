@@ -265,13 +265,6 @@ impl<C: sealed::Config> Config<C> {
 
 // Accessor for repos
 impl<C: sealed::Config> Config<C> {
-    /// Get a repo from the config.
-    pub fn get_repo<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
-        let repo = self.repos().get(key)?;
-
-        Ok(repo)
-    }
-
     /// Determine if the config has all named repos loaded.
     fn has_repos<I>(&self, repos: I) -> bool
     where

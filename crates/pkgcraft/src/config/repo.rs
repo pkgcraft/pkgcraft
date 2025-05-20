@@ -370,8 +370,8 @@ impl ConfigRepos {
         }
     }
 
-    /// Get a repo.
-    pub(crate) fn get<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
+    /// Return the repo related to an identifier if it exists.
+    pub fn get<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
         let key = key.as_ref();
         self.repos
             .get(key)

@@ -72,7 +72,8 @@ impl<'a> Targets<'a> {
             // try to pull repo from config before path fallback
             self.repo_set = self
                 .config
-                .get_repo(id)
+                .repos()
+                .get(id)
                 .cloned()
                 .or_else(|_| self.repo_from_path(id))?
                 .into();
@@ -143,7 +144,7 @@ impl<'a> Targets<'a> {
                 self.config.load()?;
             }
 
-            if let Ok(repo) = self.config.get_repo(id) {
+            if let Ok(repo) = self.config.repos().get(id) {
                 return Ok((repo.clone().into(), Restrict::and(restricts)));
             } else {
                 return Err(Error::InvalidValue(format!("nonexistent repo: {id}")));
@@ -248,7 +249,7 @@ impl<'a> Targets<'a> {
                 self.config.load()?;
             }
 
-            match self.config.get_repo(&target) {
+            match self.config.repos().get(&target) {
                 Ok(repo) => repos.push((target, repo.clone())),
                 Err(e) => {
                     let path = Utf8Path::new(&target);
