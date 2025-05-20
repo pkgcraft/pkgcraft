@@ -7,6 +7,7 @@ mod eapi;
 mod eclass;
 mod leaf;
 mod license;
+mod list;
 mod metadata;
 mod mirror;
 mod remove;
@@ -38,6 +39,8 @@ enum Subcommand {
     Leaf(leaf::Command),
     /// Output license statistics
     License(license::Command),
+    /// List repositories
+    List(list::Command),
     /// Manipulate repo metadata
     Metadata(metadata::Command),
     /// Output mirror statistics
@@ -58,6 +61,7 @@ impl Subcommand {
             Self::Eclass(cmd) => cmd.run(config),
             Self::Leaf(cmd) => cmd.run(config),
             Self::License(cmd) => cmd.run(config),
+            Self::List(cmd) => cmd.run(config),
             Self::Metadata(cmd) => cmd.run(config),
             Self::Mirror(cmd) => cmd.run(config),
             Self::Remove(cmd) => cmd.run(config),
