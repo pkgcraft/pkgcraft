@@ -18,9 +18,9 @@ pub(crate) struct Command {
     #[arg(long, short)]
     priority: Option<i32>,
 
-    /// Repository URI
-    #[arg(help_heading = "Arguments")]
-    uri: String,
+    /// Repository URIs
+    #[arg(required = true, value_name = "URI", help_heading = "Arguments")]
+    uris: Vec<String>,
 }
 
 impl Command {
@@ -28,19 +28,21 @@ impl Command {
         // make sure system config is loaded if custom config wasn't specified
         config.load()?;
 
-        // create a RepoConfig
-        let mut repo_config = config.repos().add_uri(&self.uri)?;
+        for uri in &self.uris {
+            // create a RepoConfig
+            let mut config_builder = config.repos().add_uri(uri)?;
 
-        if let Some(value) = self.name.as_deref() {
-            repo_config.name(value);
+            if let Some(value) = self.name.as_deref() {
+                config_builder.name(value);
+            }
+
+            if let Some(value) = self.priority {
+                config_builder.priority(value);
+            }
+
+            // serialize RepoConfig to file while optionally syncing
+            config_builder.add_to_config(!self.file)?;
         }
-
-        if let Some(value) = self.priority {
-            repo_config.priority(value);
-        }
-
-        // serialize RepoConfig to file while optionally syncing
-        repo_config.add_to_config(!self.file)?;
 
         Ok(ExitCode::SUCCESS)
     }
