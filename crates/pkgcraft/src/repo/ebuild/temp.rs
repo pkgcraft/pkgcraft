@@ -231,12 +231,6 @@ impl From<&EbuildTempRepo> for Repo {
     }
 }
 
-impl AsRef<Utf8Path> for EbuildTempRepo {
-    fn as_ref(&self) -> &Utf8Path {
-        self.path()
-    }
-}
-
 impl AsRef<std::path::Path> for EbuildTempRepo {
     fn as_ref(&self) -> &std::path::Path {
         self.path().as_ref()
@@ -245,12 +239,6 @@ impl AsRef<std::path::Path> for EbuildTempRepo {
 
 impl AsRef<std::ffi::OsStr> for EbuildTempRepo {
     fn as_ref(&self) -> &std::ffi::OsStr {
-        self.path().as_ref()
-    }
-}
-
-impl AsRef<str> for EbuildTempRepo {
-    fn as_ref(&self) -> &str {
         self.path().as_ref()
     }
 }
