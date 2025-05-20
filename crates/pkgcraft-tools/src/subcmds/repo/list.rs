@@ -23,13 +23,20 @@ impl Command {
         config.load()?;
 
         let mut stdout = io::stdout().lock();
-        for (name, repo) in config.repos() {
+        for (idx, (name, repo)) in config.repos().iter().enumerate() {
             if self.path {
                 writeln!(stdout, "{}", repo.path())?;
             } else {
+                // add blank line between repos when outputting all data
+                if self.full && idx > 0 {
+                    writeln!(stdout)?;
+                }
+
                 writeln!(stdout, "{name}")?;
+
+                // output the repo's config
                 if self.full {
-                    writeln!(stdout, "{}", repo.config())?;
+                    write!(stdout, "{}", repo.config())?;
                 }
             }
         }
