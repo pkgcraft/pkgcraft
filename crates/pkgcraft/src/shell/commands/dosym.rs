@@ -7,9 +7,7 @@ use crate::eapi::Feature::DosymRelative;
 use crate::shell::get_build_mut;
 use crate::utils::relpath_utf8;
 
-use super::make_builtin;
-
-const LONG_DOC: &str = "Create symbolic links.";
+use super::{TryParseArgs, make_builtin};
 
 /// Convert link target from an absolute path to a path relative to its name.
 fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<Utf8PathBuf> {
@@ -25,20 +23,36 @@ fn convert_target<P: AsRef<Utf8Path>>(target: P, name: P) -> scallop::Result<Utf
         .ok_or_else(|| Error::Base(format!("invalid relative path: {target} -> {name}")))
 }
 
-#[doc = stringify!(LONG_DOC)]
+#[derive(clap::Parser, Debug)]
+#[command(
+    name = "dosym",
+    disable_help_flag = true,
+    long_about = "Create symbolic links."
+)]
+struct Command {
+    #[arg(short)]
+    relative: bool,
+
+    #[arg(allow_hyphen_values = true)]
+    target: Utf8PathBuf,
+
+    #[arg(allow_hyphen_values = true)]
+    name: Utf8PathBuf,
+}
+
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+    let cmd = Command::try_parse_args(args)?;
+    let mut target = cmd.target;
+    let name = cmd.name;
+
+    // convert target to relative path
     let eapi = get_build_mut().eapi();
-    let (target, name) = match args[..] {
-        ["-r", target, name] if eapi.has(DosymRelative) => {
-            (convert_target(target, name)?, name)
-        }
-        [target, name] => (Utf8PathBuf::from(target), name),
-        _ => return Err(Error::Base(format!("requires 2 args, got {}", args.len()))),
-    };
+    if cmd.relative && eapi.has(DosymRelative) {
+        target = convert_target(&target, &name)?;
+    }
 
     // check for unsupported dir target arg -- https://bugs.gentoo.org/379899
-    let name_path = Utf8Path::new(name);
-    if name.ends_with('/') || (name_path.is_dir() && !name_path.is_symlink()) {
+    if name.as_str().ends_with('/') || (name.is_dir() && !name.is_symlink()) {
         return Err(Error::Base(format!("missing filename target: {target}")));
     }
 
@@ -60,18 +74,18 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, dosym};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, dosym};
     use super::*;
 
     cmd_scope_tests!("dosym path/to/source /path/to/target");
 
     #[test]
     fn invalid_args() {
-        assert_invalid_args(dosym, &[0, 1, 4]);
+        assert_invalid_cmd(dosym, &[0, 1, 4]);
 
         for eapi in EAPIS_OFFICIAL.iter().filter(|e| !e.has(DosymRelative)) {
             BuildData::empty(eapi);
-            assert_invalid_args(dosym, &[3]);
+            assert_invalid_cmd(dosym, &[3]);
         }
     }
 
