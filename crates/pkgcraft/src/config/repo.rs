@@ -1,6 +1,6 @@
-use std::fs;
 use std::io::{self, Write};
 use std::sync::Arc;
+use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
@@ -23,6 +23,12 @@ pub struct RepoConfig {
     pub(crate) format: RepoFormat,
     pub(crate) priority: Option<i32>,
     pub(crate) sync: Option<Syncer>,
+}
+
+impl fmt::Display for RepoConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", toml::to_string(self).unwrap())
+    }
 }
 
 impl From<RepoFormat> for RepoConfig {
