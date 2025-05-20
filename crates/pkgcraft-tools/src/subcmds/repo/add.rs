@@ -19,6 +19,7 @@ pub(crate) struct Command {
     priority: Option<i32>,
 
     /// Repository URI
+    #[arg(help_heading = "Arguments")]
     uri: String,
 }
 
