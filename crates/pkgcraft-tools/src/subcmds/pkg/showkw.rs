@@ -223,8 +223,8 @@ impl<I: Iterator<Item = EbuildPkg>> Iterator for CpnPkgsIter<'_, I> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if let Some(pkg) = self.iter.next() {
-                let cpn = self.prev_cpn.get_or_insert_with(|| pkg.cpn().clone());
-                if cpn != pkg.cpn() {
+                let prev_cpn = self.prev_cpn.get_or_insert_with(|| pkg.cpn().clone());
+                if prev_cpn != pkg.cpn() {
                     let cpn = self.prev_cpn.replace(pkg.cpn().clone()).unwrap();
                     let pkgs = std::mem::take(&mut self.pkgs);
                     self.pkgs.push(pkg);
@@ -233,7 +233,8 @@ impl<I: Iterator<Item = EbuildPkg>> Iterator for CpnPkgsIter<'_, I> {
                     self.pkgs.push(pkg);
                 }
             } else if let Some(cpn) = self.prev_cpn.take() {
-                return Some((cpn, std::mem::take(&mut self.pkgs)));
+                let pkgs = std::mem::take(&mut self.pkgs);
+                return Some((cpn, pkgs));
             } else {
                 return None;
             }
