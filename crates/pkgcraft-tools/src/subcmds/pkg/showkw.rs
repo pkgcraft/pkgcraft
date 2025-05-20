@@ -280,9 +280,9 @@ impl Command {
                 .log_errors(self.ignore);
             let cpn_pkgs_iter = CpnPkgsIter::new(&mut iter);
 
-            let mut prev_slot = None;
-            let mut pkg_row = 0;
             for (cpn, pkgs) in cpn_pkgs_iter {
+                let mut prev_slot = None;
+                let mut pkg_row = 0;
                 let mut builder = builder.clone();
                 idx += 1;
 
@@ -315,15 +315,15 @@ impl Command {
 
                     row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
 
-                    let slot = pkg.slot().to_string();
+                    let slot = pkg.slot();
                     if !prev_slot
                         .as_ref()
-                        .map(|prev| prev == &slot)
+                        .map(|prev| prev == slot)
                         .unwrap_or_default()
                     {
                         theme.insert_hline(pkg_row);
-                        row.push(slot.clone());
-                        prev_slot = Some(slot);
+                        row.push(slot.to_string());
+                        prev_slot = Some(slot.to_string());
                     } else {
                         row.push("".to_string());
                     }
