@@ -8,12 +8,12 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
+use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus};
 use pkgcraft::pkg::{Package, RepoPackage};
 use pkgcraft::repo::set::RepoSet;
 use pkgcraft::repo::{PkgRepository, RepoFormat};
-use pkgcraft::restrict::Scope;
 use pkgcraft::traits::LogErrors;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use tabled::settings::object::{Columns, Rows};
@@ -105,6 +105,7 @@ enum TableFormat {
 }
 
 /// Wrapper for tabular table theming.
+#[derive(Debug, Clone)]
 struct TableTheme {
     inner: Theme,
     format: TableFormat,
@@ -199,6 +200,47 @@ fn determine_arches(
     Ok(target_arches)
 }
 
+/// Iterator collecting packages into Cpn groups.
+struct CpnPkgsIter<'a, I: Iterator<Item = EbuildPkg>> {
+    iter: &'a mut I,
+    prev_cpn: Option<Cpn>,
+    pkgs: Vec<EbuildPkg>,
+}
+
+impl<'a, I: Iterator<Item = EbuildPkg>> CpnPkgsIter<'a, I> {
+    fn new(iter: &'a mut I) -> Self {
+        Self {
+            iter,
+            prev_cpn: Default::default(),
+            pkgs: Default::default(),
+        }
+    }
+}
+
+impl<I: Iterator<Item = EbuildPkg>> Iterator for CpnPkgsIter<'_, I> {
+    type Item = (Cpn, Vec<EbuildPkg>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(pkg) = self.iter.next() {
+                let cpn = self.prev_cpn.get_or_insert_with(|| pkg.cpn().clone());
+                if cpn != pkg.cpn() {
+                    let cpn = self.prev_cpn.replace(pkg.cpn().clone()).unwrap();
+                    let pkgs = std::mem::take(&mut self.pkgs);
+                    self.pkgs.push(pkg);
+                    return Some((cpn, pkgs));
+                } else {
+                    self.pkgs.push(pkg);
+                }
+            } else if let Some(cpn) = self.prev_cpn.take() {
+                return Some((cpn, std::mem::take(&mut self.pkgs)));
+            } else {
+                return None;
+            }
+        }
+    }
+}
+
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine pkg targets
@@ -210,12 +252,12 @@ impl Command {
         let selected_arches = self.arches.iter().cloned().collect();
         let mut stdout = io::stdout().lock();
         let mut failed = false;
+        let mut idx = 0;
 
         // output a table per restriction target
-        for (idx, (set, restrict)) in pkg_targets.iter().enumerate() {
+        for (set, restrict) in pkg_targets {
             let mut theme = self.format.theme();
-            let scope = Scope::from(restrict);
-            let target_arches = determine_arches(set, &selected_arches, self.prefix)?;
+            let target_arches = determine_arches(&set, &selected_arches, self.prefix)?;
 
             // build table headers
             let mut builder = Builder::new();
@@ -235,85 +277,79 @@ impl Command {
                 .iter_restrict(restrict)
                 .map(|result| result.and_then(EbuildPkg::try_from))
                 .log_errors(self.ignore);
+            let cpn_pkgs_iter = CpnPkgsIter::new(&mut iter);
 
-            let mut target: Option<String> = None;
             let mut prev_slot = None;
             let mut pkg_row = 0;
-            for pkg in &mut iter {
-                pkg_row += 1;
-                let mut row = vec![];
+            for (cpn, pkgs) in cpn_pkgs_iter {
+                let mut builder = builder.clone();
+                idx += 1;
 
-                // determine pkg status
-                let mut statuses = PkgStatus::from_pkg(&pkg).peekable();
-                if statuses.peek().is_some() {
-                    row.push(format!("[{}]", statuses.join("")));
-                } else {
-                    row.push("".to_string());
-                }
+                for pkg in pkgs {
+                    pkg_row += 1;
+                    let mut row = vec![];
 
-                // Vary pkg identifier used by target scope.
-                //
-                // Versions for single package or version targets, otherwise cpvs.
-                if scope <= Scope::Package {
-                    target.get_or_insert_with(|| pkg.cpn().to_string());
-                    row.push(pkg.pvr());
-                } else {
-                    row.push(pkg.cpv().to_string());
-                }
-
-                let map: HashMap<_, _> = pkg
-                    .keywords()
-                    .iter()
-                    .map(|k| (k.arch(), k.status()))
-                    .collect();
-
-                row.extend(target_arches.iter().map(|arch| match map.get(arch) {
-                    Some(KeywordStatus::Disabled) => Color::FG_RED.colorize("-"),
-                    Some(KeywordStatus::Stable) => Color::FG_GREEN.colorize("+"),
-                    Some(KeywordStatus::Unstable) => Color::FG_BRIGHT_YELLOW.colorize("~"),
-                    None => " ".to_string(),
-                }));
-
-                row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
-
-                let slot = pkg.slot().to_string();
-                if !prev_slot
-                    .as_ref()
-                    .map(|prev| prev == &slot)
-                    .unwrap_or_default()
-                {
-                    theme.insert_hline(pkg_row);
-                    row.push(slot.clone());
-                    prev_slot = Some(slot);
-                } else {
-                    row.push("".to_string());
-                }
-
-                row.push(Color::FG_YELLOW.colorize(pkg.repo()));
-
-                builder.push_record(row);
-            }
-            failed |= iter.failed();
-
-            // render table
-            let mut table = builder.build();
-            // apply table formatting
-            self.format.style(&mut table, theme);
-            // force vertical header output
-            table.modify(Rows::first(), Width::wrap(1));
-
-            // TODO: output raw targets for non-package scopes
-            // output title for multiple package targets
-            if pkg_targets.len() > 1 {
-                if let Some(target) = target {
-                    if idx > 0 {
-                        writeln!(stdout)?;
+                    // determine pkg status
+                    let mut statuses = PkgStatus::from_pkg(&pkg).peekable();
+                    if statuses.peek().is_some() {
+                        row.push(format!("[{}]", statuses.join("")));
+                    } else {
+                        row.push("".to_string());
                     }
-                    writeln!(stdout, "keywords for {target}:")?;
+
+                    row.push(pkg.pvr());
+
+                    let map: HashMap<_, _> = pkg
+                        .keywords()
+                        .iter()
+                        .map(|k| (k.arch(), k.status()))
+                        .collect();
+
+                    row.extend(target_arches.iter().map(|arch| match map.get(arch) {
+                        Some(KeywordStatus::Disabled) => Color::FG_RED.colorize("-"),
+                        Some(KeywordStatus::Stable) => Color::FG_GREEN.colorize("+"),
+                        Some(KeywordStatus::Unstable) => Color::FG_BRIGHT_YELLOW.colorize("~"),
+                        None => " ".to_string(),
+                    }));
+
+                    row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
+
+                    let slot = pkg.slot().to_string();
+                    if !prev_slot
+                        .as_ref()
+                        .map(|prev| prev == &slot)
+                        .unwrap_or_default()
+                    {
+                        theme.insert_hline(pkg_row);
+                        row.push(slot.clone());
+                        prev_slot = Some(slot);
+                    } else {
+                        row.push("".to_string());
+                    }
+
+                    row.push(Color::FG_YELLOW.colorize(pkg.repo()));
+
+                    builder.push_record(row);
                 }
+
+                // render table
+                let mut table = builder.build();
+                // apply table formatting
+                self.format.style(&mut table, theme.clone());
+                // force vertical header output
+                table.modify(Rows::first(), Width::wrap(1));
+
+                // add blank line between tables
+                if idx > 1 {
+                    writeln!(stdout)?;
+                }
+
+                writeln!(stdout, "keywords for {cpn}:")?;
+                writeln!(stdout, "{table}")?;
             }
 
-            writeln!(stdout, "{table}")?;
+            // combine all failure statuses
+            failed |= iter.failed();
         }
 
         Ok(ExitCode::from(failed as u8))
