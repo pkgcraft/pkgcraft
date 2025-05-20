@@ -279,6 +279,7 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Sender<T> {
     fn new(name: String) -> Self {
         Self { name, _ret: PhantomData }
     }
+
     fn send(self, value: T) {
         let tx = IpcSender::connect(self.name).expect("failed connecting to the server");
         tx.send(value).expect("failed sending task result")
@@ -288,31 +289,37 @@ impl<T: Serialize + for<'a> Deserialize<'a>> Sender<T> {
 /// Convert a task into a Task variant.
 trait IntoTask: Serialize + for<'a> Deserialize<'a> {
     type R: for<'a> Deserialize<'a> + Serialize;
+
     fn into_task(self, name: String) -> Task;
+
+    /// Create an IPC sender that connects to a named IpcOneShotServer.
+    fn sender(name: String) -> Sender<crate::Result<Self::R>> {
+        Sender::new(name)
+    }
 }
 
 impl IntoTask for EnvTask {
     type R = IndexMap<String, String>;
     fn into_task(self, name: String) -> Task {
-        Task::Env(self, Sender::<crate::Result<Self::R>>::new(name))
+        Task::Env(self, Self::sender(name))
     }
 }
 impl IntoTask for MetadataTask {
     type R = Option<String>;
     fn into_task(self, name: String) -> Task {
-        Task::Metadata(self, Sender::<crate::Result<Self::R>>::new(name))
+        Task::Metadata(self, Self::sender(name))
     }
 }
 impl IntoTask for PretendTask {
     type R = Option<String>;
     fn into_task(self, name: String) -> Task {
-        Task::Pretend(self, Sender::<crate::Result<Self::R>>::new(name))
+        Task::Pretend(self, Self::sender(name))
     }
 }
 impl IntoTask for DurationTask {
     type R = Duration;
     fn into_task(self, name: String) -> Task {
-        Task::Duration(self, Sender::<crate::Result<Self::R>>::new(name))
+        Task::Duration(self, Self::sender(name))
     }
 }
 
