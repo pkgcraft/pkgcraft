@@ -219,18 +219,16 @@ impl Command {
 
             // build table headers
             let mut builder = Builder::new();
-            if !target_arches.is_empty() {
-                let mut headers = vec![String::new(), String::new()];
-                headers.extend(
-                    target_arches
-                        .iter()
-                        .map(|a| Color::FG_BRIGHT_WHITE.colorize(a)),
-                );
-                headers.push("eapi".to_string());
-                headers.push("slot".to_string());
-                headers.push("repo".to_string());
-                builder.push_record(headers);
-            }
+            let mut headers = vec![String::new(), String::new()];
+            headers.extend(
+                target_arches
+                    .iter()
+                    .map(|a| Color::FG_BRIGHT_WHITE.colorize(a)),
+            );
+            headers.push("eapi".to_string());
+            headers.push("slot".to_string());
+            headers.push("repo".to_string());
+            builder.push_record(headers);
 
             // determine ebuild pkgs from target restriction
             let mut iter = set
@@ -299,25 +297,23 @@ impl Command {
 
             // render table
             let mut table = builder.build();
-            if !table.is_empty() {
-                // apply table formatting
-                self.format.style(&mut table, theme);
-                // force vertical header output
-                table.modify(Rows::first(), Width::wrap(1));
+            // apply table formatting
+            self.format.style(&mut table, theme);
+            // force vertical header output
+            table.modify(Rows::first(), Width::wrap(1));
 
-                // TODO: output raw targets for non-package scopes
-                // output title for multiple package targets
-                if pkg_targets.len() > 1 {
-                    if let Some(target) = target {
-                        if idx > 0 {
-                            writeln!(stdout)?;
-                        }
-                        writeln!(stdout, "keywords for {target}:")?;
+            // TODO: output raw targets for non-package scopes
+            // output title for multiple package targets
+            if pkg_targets.len() > 1 {
+                if let Some(target) = target {
+                    if idx > 0 {
+                        writeln!(stdout)?;
                     }
+                    writeln!(stdout, "keywords for {target}:")?;
                 }
-
-                writeln!(stdout, "{table}")?;
             }
+
+            writeln!(stdout, "{table}")?;
         }
 
         Ok(ExitCode::from(failed as u8))
