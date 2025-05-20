@@ -258,15 +258,6 @@ impl Repo {
             _ => Ok(()),
         }
     }
-
-    /// Return the repo config.
-    pub fn config(&self) -> &RepoConfig {
-        match self {
-            Self::Configured(repo) => repo.config(),
-            Self::Ebuild(repo) => repo.config(),
-            Self::Fake(repo) => repo.config(),
-        }
-    }
 }
 
 pub enum IterCpn {
@@ -447,8 +438,13 @@ pub trait PkgRepository:
 }
 
 pub trait Repository: PkgRepository + fmt::Display {
+    /// Return the repo's config.
+    fn config(&self) -> &RepoConfig;
+
     /// Return the repo's format.
-    fn format(&self) -> RepoFormat;
+    fn format(&self) -> RepoFormat {
+        self.config().format
+    }
 
     /// Return the repo's locally configured identifier.
     fn id(&self) -> &str;
@@ -459,10 +455,14 @@ pub trait Repository: PkgRepository + fmt::Display {
     }
 
     /// Return the repo's priority.
-    fn priority(&self) -> i32;
+    fn priority(&self) -> i32 {
+        self.config().priority()
+    }
 
     /// Return the repo's path.
-    fn path(&self) -> &Utf8Path;
+    fn path(&self) -> &Utf8Path {
+        &self.config().location
+    }
 
     /// Try converting a path to a [`Restrict`], returns None if the path isn't in the repo.
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, _path: P) -> Option<Restrict> {
@@ -470,7 +470,9 @@ pub trait Repository: PkgRepository + fmt::Display {
     }
 
     /// Try to sync the repo.
-    fn sync(&self) -> crate::Result<()>;
+    fn sync(&self) -> crate::Result<()> {
+        self.config().sync()
+    }
 }
 
 impl<T> PkgRepository for &T
@@ -515,23 +517,14 @@ where
 }
 
 impl<T: Repository + PkgRepository> Repository for &T {
-    fn format(&self) -> RepoFormat {
-        (*self).format()
+    fn config(&self) -> &RepoConfig {
+        (*self).config()
     }
     fn id(&self) -> &str {
         (*self).id()
     }
     fn name(&self) -> &str {
         (*self).name()
-    }
-    fn priority(&self) -> i32 {
-        (*self).priority()
-    }
-    fn path(&self) -> &Utf8Path {
-        (*self).path()
-    }
-    fn sync(&self) -> crate::Result<()> {
-        (*self).sync()
     }
 }
 
@@ -662,11 +655,11 @@ impl Contains<&Dep> for Repo {
 }
 
 impl Repository for Repo {
-    fn format(&self) -> RepoFormat {
+    fn config(&self) -> &RepoConfig {
         match self {
-            Self::Configured(repo) => repo.format(),
-            Self::Ebuild(repo) => repo.format(),
-            Self::Fake(repo) => repo.format(),
+            Self::Configured(repo) => repo.config(),
+            Self::Ebuild(repo) => repo.config(),
+            Self::Fake(repo) => repo.config(),
         }
     }
 
@@ -686,35 +679,11 @@ impl Repository for Repo {
         }
     }
 
-    fn priority(&self) -> i32 {
-        match self {
-            Self::Configured(repo) => repo.priority(),
-            Self::Ebuild(repo) => repo.priority(),
-            Self::Fake(repo) => repo.priority(),
-        }
-    }
-
-    fn path(&self) -> &Utf8Path {
-        match self {
-            Self::Configured(repo) => repo.path(),
-            Self::Ebuild(repo) => repo.path(),
-            Self::Fake(repo) => repo.path(),
-        }
-    }
-
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
         match self {
             Self::Configured(repo) => repo.restrict_from_path(path),
             Self::Ebuild(repo) => repo.restrict_from_path(path),
             Self::Fake(repo) => repo.restrict_from_path(path),
-        }
-    }
-
-    fn sync(&self) -> crate::Result<()> {
-        match self {
-            Self::Configured(repo) => repo.sync(),
-            Self::Ebuild(repo) => repo.sync(),
-            Self::Fake(repo) => repo.sync(),
         }
     }
 }

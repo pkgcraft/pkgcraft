@@ -169,11 +169,6 @@ impl EbuildRepo {
         Ok(())
     }
 
-    /// Return the repo config.
-    pub fn config(&self) -> &RepoConfig {
-        &self.0.config
-    }
-
     /// Return the repo's path.
     pub fn path(&self) -> &Utf8Path {
         &self.config().location
@@ -601,8 +596,8 @@ impl PkgRepository for EbuildRepo {
 }
 
 impl Repository for EbuildRepo {
-    fn format(&self) -> RepoFormat {
-        self.config().format
+    fn config(&self) -> &RepoConfig {
+        &self.0.config
     }
 
     fn id(&self) -> &str {
@@ -611,14 +606,6 @@ impl Repository for EbuildRepo {
 
     fn name(&self) -> &str {
         &self.metadata().name
-    }
-
-    fn priority(&self) -> i32 {
-        self.config().priority()
-    }
-
-    fn path(&self) -> &Utf8Path {
-        self.path()
     }
 
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
@@ -681,10 +668,6 @@ impl Repository for EbuildRepo {
             // non-package path
             Some(Restrict::False)
         }
-    }
-
-    fn sync(&self) -> crate::Result<()> {
-        self.config().sync()
     }
 }
 

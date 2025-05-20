@@ -9,7 +9,7 @@ use indexmap::IndexSet;
 use crate::config::{RepoConfig, Settings};
 use crate::dep::{Cpn, Cpv, Dep, Version};
 use crate::pkg::ebuild::EbuildConfiguredPkg;
-use crate::repo::{PkgRepository, RepoFormat, Repository, make_repo_traits};
+use crate::repo::{PkgRepository, Repository, make_repo_traits};
 use crate::restrict::{Restrict, Restriction};
 use crate::traits::Contains;
 
@@ -63,10 +63,6 @@ make_repo_traits!(ConfiguredRepo);
 impl ConfiguredRepo {
     pub(super) fn new(raw: EbuildRepo, settings: Arc<Settings>) -> Self {
         ConfiguredRepo { raw, settings }
-    }
-
-    pub(crate) fn config(&self) -> &RepoConfig {
-        self.raw.config()
     }
 }
 
@@ -148,24 +144,12 @@ impl Contains<&Dep> for ConfiguredRepo {
 }
 
 impl Repository for ConfiguredRepo {
-    fn format(&self) -> RepoFormat {
-        RepoFormat::Configured
+    fn config(&self) -> &RepoConfig {
+        self.raw.config()
     }
 
     fn id(&self) -> &str {
         self.raw.id()
-    }
-
-    fn priority(&self) -> i32 {
-        self.raw.priority()
-    }
-
-    fn path(&self) -> &Utf8Path {
-        self.raw.path()
-    }
-
-    fn sync(&self) -> crate::Result<()> {
-        self.raw.sync()
     }
 }
 

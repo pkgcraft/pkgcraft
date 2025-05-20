@@ -123,10 +123,6 @@ impl FakeRepo {
         Ok(repo)
     }
 
-    pub(super) fn config(&self) -> &RepoConfig {
-        &self.0.config
-    }
-
     pub fn extend<I>(&mut self, iter: I) -> crate::Result<()>
     where
         I: IntoIterator,
@@ -288,24 +284,12 @@ impl Contains<&Dep> for FakeRepo {
 }
 
 impl Repository for FakeRepo {
-    fn format(&self) -> RepoFormat {
-        self.0.config.format
+    fn config(&self) -> &RepoConfig {
+        &self.0.config
     }
 
     fn id(&self) -> &str {
         &self.0.id
-    }
-
-    fn priority(&self) -> i32 {
-        self.0.config.priority()
-    }
-
-    fn path(&self) -> &Utf8Path {
-        &self.0.config.location
-    }
-
-    fn sync(&self) -> crate::Result<()> {
-        self.0.config.sync()
     }
 }
 
