@@ -17,7 +17,7 @@ use crate::sync::Syncer;
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub(crate) struct RepoConfig {
+pub struct RepoConfig {
     pub(crate) location: Utf8PathBuf,
     #[serde_as(as = "DisplayFromStr")]
     pub(crate) format: RepoFormat,
@@ -288,7 +288,7 @@ impl ConfigRepos {
             // error out if repo config is missing
             // physical repo files are allowed to be missing
             if let Some(repo) = self.repos.shift_remove(name) {
-                repo.repo_config().remove()?;
+                repo.config().remove()?;
                 let path = self.config_dir.join(name);
                 fs::remove_file(&path).map_err(|e| {
                     Error::IO(format!("failed removing repo config: {path}: {e}"))
@@ -318,7 +318,7 @@ impl ConfigRepos {
         for id in values {
             let id = id.to_string();
             if let Some(repo) = self.repos.get(&id) {
-                repos.push((id, repo.repo_config()));
+                repos.push((id, repo.config()));
             } else if let Some(config) = self.nonexistent.get(&id) {
                 repos.push((id, config));
             } else {
@@ -328,11 +328,7 @@ impl ConfigRepos {
 
         // sync all repos if none were passed
         if repos.is_empty() {
-            repos.extend(
-                self.repos
-                    .iter()
-                    .map(|(id, r)| (id.clone(), r.repo_config())),
-            );
+            repos.extend(self.repos.iter().map(|(id, r)| (id.clone(), r.config())));
             repos.extend(self.nonexistent.iter().map(|(id, c)| (id.clone(), c)));
         }
 

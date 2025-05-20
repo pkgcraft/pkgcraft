@@ -259,11 +259,12 @@ impl Repo {
         }
     }
 
-    pub(crate) fn repo_config(&self) -> &RepoConfig {
+    /// Return the repo config.
+    pub fn config(&self) -> &RepoConfig {
         match self {
-            Self::Configured(repo) => repo.repo_config(),
-            Self::Ebuild(repo) => repo.repo_config(),
-            Self::Fake(repo) => repo.repo_config(),
+            Self::Configured(repo) => repo.config(),
+            Self::Ebuild(repo) => repo.config(),
+            Self::Fake(repo) => repo.config(),
         }
     }
 }

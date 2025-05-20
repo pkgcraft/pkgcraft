@@ -65,8 +65,8 @@ impl ConfiguredRepo {
         ConfiguredRepo { raw, settings }
     }
 
-    pub(crate) fn repo_config(&self) -> &RepoConfig {
-        self.raw.repo_config()
+    pub(crate) fn config(&self) -> &RepoConfig {
+        self.raw.config()
     }
 }
 

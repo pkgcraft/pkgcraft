@@ -71,7 +71,7 @@ impl fmt::Debug for EbuildRepo {
 
 impl PartialEq for EbuildRepo {
     fn eq(&self, other: &Self) -> bool {
-        self.id() == other.id() && self.repo_config() == other.repo_config()
+        self.id() == other.id() && self.config() == other.config()
     }
 }
 
@@ -170,13 +170,13 @@ impl EbuildRepo {
     }
 
     /// Return the repo config.
-    pub(super) fn repo_config(&self) -> &RepoConfig {
+    pub fn config(&self) -> &RepoConfig {
         &self.0.config
     }
 
     /// Return the repo's path.
     pub fn path(&self) -> &Utf8Path {
-        &self.repo_config().location
+        &self.config().location
     }
 
     /// Return the build pool for the repo.
@@ -602,7 +602,7 @@ impl PkgRepository for EbuildRepo {
 
 impl Repository for EbuildRepo {
     fn format(&self) -> RepoFormat {
-        self.repo_config().format
+        self.config().format
     }
 
     fn id(&self) -> &str {
@@ -614,7 +614,7 @@ impl Repository for EbuildRepo {
     }
 
     fn priority(&self) -> i32 {
-        self.repo_config().priority()
+        self.config().priority()
     }
 
     fn path(&self) -> &Utf8Path {
@@ -684,7 +684,7 @@ impl Repository for EbuildRepo {
     }
 
     fn sync(&self) -> crate::Result<()> {
-        self.repo_config().sync()
+        self.config().sync()
     }
 }
 

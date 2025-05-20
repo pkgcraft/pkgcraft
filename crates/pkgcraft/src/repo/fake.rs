@@ -22,7 +22,7 @@ type PkgMap = IndexMap<String, VersionMap>;
 #[derive(Clone)]
 struct InternalFakeRepo {
     id: String,
-    repo_config: RepoConfig,
+    config: RepoConfig,
     pkgmap: PkgMap,
     cpvs: OrderedSet<Cpv>,
 }
@@ -57,7 +57,7 @@ impl FakeRepo {
     pub fn new(id: &str, priority: i32) -> Self {
         Self(Arc::new(InternalFakeRepo {
             id: id.to_string(),
-            repo_config: RepoConfig {
+            config: RepoConfig {
                 priority: Some(priority),
                 ..RepoFormat::Fake.into()
             },
@@ -88,7 +88,7 @@ impl FakeRepo {
         })?;
         let mut repo = Self(Arc::new(InternalFakeRepo {
             id: id.to_string(),
-            repo_config: config.clone(),
+            config: config.clone(),
             pkgmap: Default::default(),
             cpvs: Default::default(),
         }));
@@ -108,14 +108,14 @@ impl FakeRepo {
             id: id.to_string(),
             err: e.to_string(),
         })?;
-        let repo_config = RepoConfig {
+        let config = RepoConfig {
             location: Utf8PathBuf::from(path),
             priority: Some(priority),
             ..RepoFormat::Fake.into()
         };
         let mut repo = Self(Arc::new(InternalFakeRepo {
             id: id.to_string(),
-            repo_config,
+            config,
             pkgmap: Default::default(),
             cpvs: Default::default(),
         }));
@@ -123,8 +123,8 @@ impl FakeRepo {
         Ok(repo)
     }
 
-    pub(super) fn repo_config(&self) -> &RepoConfig {
-        &self.0.repo_config
+    pub(super) fn config(&self) -> &RepoConfig {
+        &self.0.config
     }
 
     pub fn extend<I>(&mut self, iter: I) -> crate::Result<()>
@@ -289,7 +289,7 @@ impl Contains<&Dep> for FakeRepo {
 
 impl Repository for FakeRepo {
     fn format(&self) -> RepoFormat {
-        self.0.repo_config.format
+        self.0.config.format
     }
 
     fn id(&self) -> &str {
@@ -297,15 +297,15 @@ impl Repository for FakeRepo {
     }
 
     fn priority(&self) -> i32 {
-        self.0.repo_config.priority()
+        self.0.config.priority()
     }
 
     fn path(&self) -> &Utf8Path {
-        &self.0.repo_config.location
+        &self.0.config.location
     }
 
     fn sync(&self) -> crate::Result<()> {
-        self.0.repo_config.sync()
+        self.0.config.sync()
     }
 }
 
