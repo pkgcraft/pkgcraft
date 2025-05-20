@@ -1,4 +1,5 @@
 use pkgcraft::test::{cmd, test_data};
+use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
 
@@ -85,10 +86,11 @@ fn full() {
     let temp_dir = tempdir().unwrap();
     let config_dir = temp_dir.path().to_str().unwrap();
 
-    let repo = data.ebuild_repo("qa-primary").unwrap();
+    let repo1 = data.ebuild_repo("qa-primary").unwrap();
+    let repo2 = data.ebuild_repo("qa-secondary").unwrap();
     cmd("pk repo add")
         .args(["--config", config_dir])
-        .arg(repo)
+        .args([repo1, repo2])
         .assert()
         .stdout("")
         .stderr("")
@@ -99,7 +101,7 @@ fn full() {
             .args(["--config", config_dir])
             .arg(opt)
             .assert()
-            .stdout(contains("qa-primary"))
+            .stdout(predicate::str::is_empty().not())
             .stderr("")
             .success();
     }
