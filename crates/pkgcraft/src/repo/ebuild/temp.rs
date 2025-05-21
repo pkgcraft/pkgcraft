@@ -14,7 +14,7 @@ use crate::repo::ebuild::Metadata;
 use crate::repo::{Repo, RepoFormat};
 
 /// Temporary ebuild repo builder.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct EbuildRepoBuilder {
     name: String,
     path: Option<Utf8PathBuf>,
@@ -22,20 +22,12 @@ pub struct EbuildRepoBuilder {
     eapi: Option<&'static Eapi>,
 }
 
-impl Default for EbuildRepoBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl EbuildRepoBuilder {
     /// Create the builder.
     pub fn new() -> Self {
         Self {
             name: "test".to_string(),
-            path: None,
-            priority: 0,
-            eapi: None,
+            ..Default::default()
         }
     }
 
