@@ -5,7 +5,9 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
-use pkgcruft_git::proto::{StringRequest, StringResponse, pkgcruft_server::Pkgcruft};
+use pkgcruft_git::proto::{
+    EmptyRequest, StringRequest, StringResponse, pkgcruft_server::Pkgcruft,
+};
 
 #[derive(Debug)]
 pub(crate) struct PkgcruftService {
@@ -16,13 +18,10 @@ pub(crate) struct PkgcruftService {
 impl Pkgcruft for PkgcruftService {
     async fn version(
         &self,
-        request: Request<StringRequest>,
+        _request: Request<EmptyRequest>,
     ) -> Result<Response<StringResponse>, Status> {
-        let version = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
-        let req = request.into_inner();
-        let reply = StringResponse {
-            data: format!("client: {}, server: {version}", req.data),
-        };
+        let data = format!("{}-{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
+        let reply = StringResponse { data };
         Ok(Response::new(reply))
     }
 
