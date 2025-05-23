@@ -66,23 +66,17 @@ async fn main() -> anyhow::Result<()> {
     // initialize global subscriber
     subscriber.init();
 
-    // verify target path is a valid ebuild repo
-    let mut config = PkgcraftConfig::new("pkgcraft", "");
-    config
-        .add_repo_path("repo", &args.repo, 0)?
-        .into_ebuild()
-        .map_err(|repo| anyhow::anyhow!("invalid ebuild repo: {repo}"))?;
-
     // determine network socket
     let socket = if let Some(value) = &args.bind {
         value.clone()
     } else {
         // default to using unix domain socket
+        let config = PkgcraftConfig::new("pkgcraft", "");
         config.path().run.join("pkgcruft.sock").to_string()
     };
 
     // start service
-    let service = PkgcruftService { repo: args.repo.clone() };
+    let service = PkgcruftService::new(&args.repo)?;
     let server = Server::builder().add_service(pkgcruft_git::Server::new(service));
 
     match socket.parse::<SocketAddr>() {

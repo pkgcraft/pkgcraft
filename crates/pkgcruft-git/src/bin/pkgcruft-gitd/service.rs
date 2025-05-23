@@ -5,13 +5,29 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
+use pkgcruft_git::Error;
 use pkgcruft_git::proto::{
     EmptyRequest, StringRequest, StringResponse, pkgcruft_server::Pkgcruft,
 };
 
 #[derive(Debug)]
 pub(crate) struct PkgcruftService {
-    pub repo: Utf8PathBuf,
+    repo: Utf8PathBuf,
+}
+
+impl PkgcruftService {
+    pub(crate) fn new<P: Into<Utf8PathBuf>>(repo: P) -> pkgcruft_git::Result<Self> {
+        let repo = repo.into();
+
+        // verify target path is a valid ebuild repo
+        let mut config = PkgcraftConfig::new("pkgcraft", "");
+        config
+            .add_repo_path("repo", &repo, 0)?
+            .into_ebuild()
+            .map_err(|repo| Error::Start(format!("invalid ebuild repo: {repo}")))?;
+
+        Ok(Self { repo })
+    }
 }
 
 #[tonic::async_trait]
