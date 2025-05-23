@@ -3,7 +3,8 @@ package pkgcruft;
 
 service Pkgcruft {
     rpc Version (EmptyRequest) returns (StringResponse);
-    rpc Scan (StringRequest) returns (stream StringResponse);
+    // TODO: support passing custom restriction targets
+    rpc Scan (EmptyRequest) returns (stream StringResponse);
 }
 
 message EmptyRequest {}

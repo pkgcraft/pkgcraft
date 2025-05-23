@@ -45,7 +45,7 @@ impl Pkgcruft for PkgcruftService {
 
     async fn scan(
         &self,
-        _request: Request<StringRequest>,
+        _request: Request<EmptyRequest>,
     ) -> Result<Response<Self::ScanStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
         let path = self.repo.clone();

@@ -2,7 +2,7 @@ use std::io;
 
 use pkgcruft::report::Report;
 use pkgcruft::reporter::{FancyReporter, Reporter};
-use pkgcruft_git::proto::StringRequest;
+use pkgcruft_git::proto::EmptyRequest;
 
 use crate::Client;
 
@@ -14,8 +14,7 @@ impl Command {
         let mut stdout = io::stdout().lock();
         let mut reporter: Reporter = FancyReporter::default().into();
 
-        // TODO: send git patch data for request
-        let request = tonic::Request::new(StringRequest { data: Default::default() });
+        let request = tonic::Request::new(EmptyRequest {});
         let response = client.scan(request).await?;
 
         // output report stream
