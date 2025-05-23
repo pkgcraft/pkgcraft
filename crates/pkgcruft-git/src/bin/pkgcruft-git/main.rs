@@ -85,8 +85,7 @@ async fn try_main() -> anyhow::Result<()> {
         }
     } else {
         // use unix domain socket by default if no connection URL is given
-        let path = config.path().run.join("pkgcruft.sock");
-        pkgcruft_git::connect_or_spawn(&path, Some(args.timeout)).await?
+        config.path().run.join("pkgcruft.sock").to_string()
     };
 
     // connect to service

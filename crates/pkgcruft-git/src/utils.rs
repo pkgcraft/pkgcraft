@@ -1,8 +1,4 @@
 use std::ffi::OsStr;
-use std::fs;
-use std::io;
-use std::os::unix::net::UnixStream;
-use std::path::Path;
 use std::process::Stdio;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -86,32 +82,4 @@ where
     };
 
     Ok((service, socket?))
-}
-
-pub async fn connect_or_spawn<P: AsRef<Path>>(
-    path: P,
-    timeout: Option<u64>,
-) -> crate::Result<String> {
-    let socket_path = path.as_ref();
-    let socket = socket_path
-        .to_str()
-        .ok_or_else(|| Error::Connect(format!("invalid socket path: {socket_path:?}")))?
-        .to_string();
-
-    if let Err(e) = UnixStream::connect(socket_path) {
-        match e.kind() {
-            // spawn if it's not running
-            io::ErrorKind::ConnectionRefused | io::ErrorKind::NotFound => {
-                // remove potentially existing, old socket file
-                fs::remove_file(socket_path).unwrap_or_default();
-                // spawn and wait for it to start
-                let env: Option<Vec<(&str, &str)>> = None;
-                let args: Option<Vec<&str>> = None;
-                spawn(&socket, env, args, timeout).await?;
-            }
-            _ => return Err(Error::Connect(format!("{e}: {socket_path:?}"))),
-        }
-    }
-
-    Ok(socket)
 }

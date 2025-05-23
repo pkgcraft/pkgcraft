@@ -9,4 +9,4 @@ pub use self::proto::pkgcruft_client::PkgcruftClient as Client;
 pub use self::proto::pkgcruft_server::PkgcruftServer as Server;
 
 pub use self::error::{Error, Result};
-pub use self::utils::{connect_or_spawn, spawn};
+pub use self::utils::spawn;
