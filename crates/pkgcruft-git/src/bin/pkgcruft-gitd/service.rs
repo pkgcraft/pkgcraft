@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use camino::Utf8PathBuf;
 use pkgcraft::config::Config as PkgcraftConfig;
 use pkgcruft::scan::Scanner;
-use tokio::sync::mpsc;
+use tokio::sync::{Semaphore, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
@@ -13,6 +15,8 @@ use pkgcruft_git::proto::{
 #[derive(Debug)]
 pub(crate) struct PkgcruftService {
     repo: Utf8PathBuf,
+    scanning: Semaphore,
+    scanning: Arc<Semaphore>,
 }
 
 impl PkgcruftService {
@@ -26,7 +30,10 @@ impl PkgcruftService {
             .into_ebuild()
             .map_err(|repo| Error::Start(format!("invalid ebuild repo: {repo}")))?;
 
-        Ok(Self { repo })
+        Ok(Self {
+            repo,
+            scanning: Arc::new(Semaphore::new(1)),
+        })
     }
 }
 
@@ -47,6 +54,8 @@ impl Pkgcruft for PkgcruftService {
         &self,
         _request: Request<EmptyRequest>,
     ) -> Result<Response<Self::ScanStream>, Status> {
+        // acquire exclusive scanning permission
+        let permit = self.scanning.clone().acquire_owned().await.unwrap();
         let (tx, rx) = mpsc::channel(4);
         let path = self.repo.clone();
 
@@ -75,6 +84,9 @@ impl Pkgcruft for PkgcruftService {
                     break;
                 }
             }
+
+            // explicitly own the permit until scanning is finished
+            drop(permit);
 
             Ok::<(), Status>(())
         });
