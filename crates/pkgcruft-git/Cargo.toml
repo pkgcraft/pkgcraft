@@ -22,7 +22,10 @@ camino = "1.1.9"
 clap = { version = "4.5.38", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.2"
 config = { version = "0.15.11", default-features = false, features = ["toml"] }
+git2 = "0.20.2"
 hyper-util = "0.1.11"
+indexmap = "2.9.0"
+itertools = "0.14.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.27" }
 pkgcruft = { path = "../pkgcruft", version = "0.0.14" }
 prost = "0.13.5"

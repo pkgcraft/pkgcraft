@@ -7,6 +7,8 @@ pub enum Error {
     Connect(String),
     #[error("failed starting pkgcruft-gitd: {0}")]
     Start(String),
+    #[error("invalid push request: {0}")]
+    InvalidPushRequest(String),
     #[error("{0}")]
     Pkgcraft(#[from] pkgcraft::Error),
 }

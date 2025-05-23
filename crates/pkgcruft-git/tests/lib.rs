@@ -22,8 +22,7 @@ async fn uds() {
     let args = [repo.path().as_str()];
 
     let tmp_dir = Builder::new().prefix("pkgcruft.").tempdir().unwrap();
-    let socket_path = tmp_dir.path().to_owned().join("pkgcruft.sock");
-    let socket = socket_path.to_str().unwrap();
+    let socket = tmp_dir.path().join("pkgcruft.sock");
 
     let (mut service, socket) = pkgcruft_git::spawn(&socket, Some(env), Some(args), Some(5))
         .await

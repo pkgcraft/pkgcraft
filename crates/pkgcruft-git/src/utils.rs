@@ -23,7 +23,7 @@ pub async fn spawn<S, I, A, O>(
     timeout: Option<u64>,
 ) -> crate::Result<(Child, String)>
 where
-    S: AsRef<str>,
+    S: AsRef<OsStr>,
     I: IntoIterator<Item = (O, O)>,
     A: IntoIterator<Item = O>,
     O: AsRef<OsStr>,
@@ -45,7 +45,8 @@ where
 
     // start detached from the current process while capturing stderr
     let mut service = cmd
-        .args(["--bind", socket.as_ref()])
+        .arg("--bind")
+        .arg(socket.as_ref())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::piped())

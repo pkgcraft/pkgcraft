@@ -5,6 +5,7 @@ service Pkgcruft {
     rpc Version (EmptyRequest) returns (StringResponse);
     // TODO: support passing custom restriction targets
     rpc Scan (EmptyRequest) returns (stream StringResponse);
+    rpc Push (PushRequest) returns (stream StringResponse);
 }
 
 message EmptyRequest {}
@@ -15,4 +16,10 @@ message StringRequest {
 
 message StringResponse {
     string data = 1;
+}
+
+message PushRequest {
+    string old_ref = 1;
+    string new_ref = 2;
+    string ref_name = 3;
 }
