@@ -2286,7 +2286,6 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "config",
- "futures",
  "hyper-util",
  "pkgcraft",
  "pkgcruft",

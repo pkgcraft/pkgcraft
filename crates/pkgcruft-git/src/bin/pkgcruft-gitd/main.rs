@@ -5,10 +5,9 @@ use anyhow::Context;
 use camino::Utf8PathBuf;
 use clap::Parser;
 use clap_verbosity_flag::{Verbosity, log::LevelFilter};
-use futures::TryFutureExt;
 use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::{TcpListener, UnixListener};
-use tokio_stream::wrappers::TcpListenerStream;
+use tokio_stream::wrappers::{TcpListenerStream, UnixListenerStream};
 use tonic::transport::Server;
 use tracing_log::AsTrace;
 
@@ -93,14 +92,7 @@ async fn main() -> anyhow::Result<()> {
             let listener = UnixListener::bind(&socket)
                 .context(format!("failed binding to socket: {socket}"))?;
             eprintln!("service listening at: {socket}");
-            let incoming = {
-                async_stream::stream! {
-                    loop {
-                        let item = listener.accept().map_ok(|(st, _)| uds::UnixStream(st)).await;
-                        yield item;
-                    }
-                }
-            };
+            let incoming = UnixListenerStream::new(listener);
             server.serve_with_incoming(incoming).await?;
         }
         Ok(socket) => {
