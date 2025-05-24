@@ -775,13 +775,6 @@ macro_rules! make_repo_traits {
             }
         }
 
-        impl $crate::restrict::TryIntoRestrict<$x> for &$x {
-            fn try_into_restrict(self, repo: &$x) -> crate::Result<$crate::restrict::Restrict> {
-                let path: &Utf8Path = self.as_ref();
-                path.try_into_restrict(repo)
-            }
-        }
-
         impl Contains<&crate::restrict::Restrict> for $x {
             fn contains(&self, value: &crate::restrict::Restrict) -> bool {
                 use $crate::restrict::dep::Restrict as DepRestrict;

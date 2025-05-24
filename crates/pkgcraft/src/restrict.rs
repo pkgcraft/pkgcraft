@@ -43,21 +43,15 @@ pub trait TryIntoRestrict<C> {
     fn try_into_restrict(self, context: &C) -> crate::Result<Restrict>;
 }
 
-macro_rules! make_try_into_restrict {
-    ($($x:ty),+) => {$(
-        impl<C> TryIntoRestrict<C> for $x {
-            fn try_into_restrict(self, _context: &C) -> crate::Result<Restrict> {
-                Ok(self.into())
-            }
-        }
-    )+};
-}
-
-make_try_into_restrict!(&crate::dep::Dep, Restrict, &Restrict);
-
 impl<C> TryIntoRestrict<C> for &str {
     fn try_into_restrict(self, _context: &C) -> crate::Result<Restrict> {
         parse::dep(self)
+    }
+}
+
+impl<C, T: Into<Restrict>> TryIntoRestrict<C> for T {
+    fn try_into_restrict(self, _context: &C) -> crate::Result<Restrict> {
+        Ok(self.into())
     }
 }
 
