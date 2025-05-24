@@ -7,10 +7,11 @@ use tokio::sync::{Semaphore, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
+use pkgcruft_git::Error;
+use pkgcruft_git::git::diff_to_cpns;
 use pkgcruft_git::proto::{
     EmptyRequest, PushRequest, StringResponse, pkgcruft_server::Pkgcruft,
 };
-use pkgcruft_git::{Error, diff_to_cpns};
 
 pub(crate) struct PkgcruftService {
     path: Utf8PathBuf,

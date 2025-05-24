@@ -1,6 +1,3 @@
-/// A `Result` alias where the `Err` case is `pkgcruft_git::Error`.
-pub type Result<T> = std::result::Result<T, Error>;
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("failed connecting to pkgcruft-gitd: {0}")]
