@@ -10,6 +10,7 @@ Highly experimental tooling ecosystem for Gentoo comprised of the following:
 - [pkgcraft-c]: C bindings
 - [pkgcraft-tools]: command-line tools
 - [pkgcruft]: QA library and tools
+- [pkgcruft-git]: QA service providing git hook support
 - [arcanist]: package-building daemon
 
 Compatibility with the official [package management specification][pmspec] is
@@ -49,4 +50,5 @@ For general support or questions use [discussions].
 [pkgcraft-c]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-c>
 [pkgcraft-tools]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft-tools>
 [pkgcruft]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft>
+[pkgcruft-git]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git>
 [arcanist]: <https://github.com/pkgcraft/pkgcraft/tree/main/crates/arcanist>
