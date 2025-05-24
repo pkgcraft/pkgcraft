@@ -16,12 +16,25 @@ use crate::error::Error;
 static PKGCRUFT_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new("^service listening at: (?P<socket>.+)$").unwrap());
 
+/// Wrapper for a running pkgcruft server process.
+pub struct PkgcruftService {
+    service: Child,
+    pub socket: String,
+}
+
+impl Drop for PkgcruftService {
+    fn drop(&mut self) {
+        self.service.start_kill().unwrap();
+        self.service.try_wait().unwrap();
+    }
+}
+
 pub async fn spawn<S, I, A, O>(
     socket: S,
     env: Option<I>,
     args: Option<A>,
     timeout: Option<u64>,
-) -> crate::Result<(Child, String)>
+) -> crate::Result<PkgcruftService>
 where
     S: AsRef<OsStr>,
     I: IntoIterator<Item = (O, O)>,
@@ -82,5 +95,5 @@ where
         }
     };
 
-    Ok((service, socket?))
+    Ok(PkgcruftService { service, socket: socket? })
 }

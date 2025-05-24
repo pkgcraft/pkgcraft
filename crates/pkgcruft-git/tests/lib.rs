@@ -24,18 +24,21 @@ async fn uds() {
     let tmp_dir = Builder::new().prefix("pkgcruft.").tempdir().unwrap();
     let socket = tmp_dir.path().join("pkgcruft.sock");
 
-    let (mut service, socket) = pkgcruft_git::spawn(&socket, Some(env), Some(args), Some(5))
+    let service = pkgcruft_git::spawn(&socket, Some(env), Some(args), Some(5))
         .await
         .unwrap();
 
     let mut cmd = assert_command::cargo_bin("pkgcruft-git").unwrap();
-    let output = cmd.arg("-c").arg(&socket).arg("version").output().unwrap();
+    let output = cmd
+        .arg("-c")
+        .arg(&service.socket)
+        .arg("version")
+        .output()
+        .unwrap();
 
     let ver = env!("CARGO_PKG_VERSION");
     let expected = format!("client: pkgcruft-git-{ver}, server: pkgcruft-gitd-{ver}");
     assert_eq!(str::from_utf8(&output.stdout).unwrap().trim(), expected);
-
-    service.kill().await.unwrap();
 }
 
 #[tokio::test]
@@ -48,27 +51,25 @@ async fn tcp() {
     let args = [repo.path().as_str()];
 
     for addr in ["127.0.0.1:0", "[::]:0"] {
-        let (mut service, socket) = pkgcruft_git::spawn(addr, Some(env), Some(args), Some(5))
+        let service = pkgcruft_git::spawn(addr, Some(env), Some(args), Some(5))
             .await
             .unwrap();
-        let url = format!("http://{}", &socket);
+        let url = format!("http://{}", &service.socket);
 
         let ver = env!("CARGO_PKG_VERSION");
         let expected = format!("client: pkgcruft-git-{ver}, server: pkgcruft-gitd-{ver}");
 
         // verify both raw socket and url args work
-        for serve_addr in [socket, url] {
+        for serve_addr in [&service.socket, &url] {
             let mut cmd = assert_command::cargo_bin("pkgcruft-git").unwrap();
             let output = cmd
                 .arg("-c")
-                .arg(&serve_addr)
+                .arg(serve_addr)
                 .arg("version")
                 .output()
                 .unwrap();
             assert_eq!(str::from_utf8(&output.stdout).unwrap().trim(), expected);
         }
-
-        service.kill().await.unwrap();
     }
 }
 
@@ -84,24 +85,32 @@ async fn scan() {
     let tmp_dir = Builder::new().prefix("pkgcruft.").tempdir().unwrap();
     let socket = tmp_dir.path().join("pkgcruft.sock");
 
-    let (mut service, socket) = pkgcruft_git::spawn(&socket, Some(env), Some(args), Some(5))
+    let service = pkgcruft_git::spawn(&socket, Some(env), Some(args), Some(5))
         .await
         .unwrap();
 
     // empty repo
     let mut cmd = assert_command::cargo_bin("pkgcruft-git").unwrap();
-    let output = cmd.arg("-c").arg(&socket).arg("scan").output().unwrap();
+    let output = cmd
+        .arg("-c")
+        .arg(&service.socket)
+        .arg("scan")
+        .output()
+        .unwrap();
     assert_eq!(str::from_utf8(&output.stdout).unwrap().trim(), "");
 
     // invalid pkg
     repo.create_ebuild("cat/pkg-1", &["EAPI=invalid"]).unwrap();
     let mut cmd = assert_command::cargo_bin("pkgcruft-git").unwrap();
-    let output = cmd.arg("-c").arg(&socket).arg("scan").output().unwrap();
+    let output = cmd
+        .arg("-c")
+        .arg(&service.socket)
+        .arg("scan")
+        .output()
+        .unwrap();
     let expected = indoc::indoc! {"
         cat/pkg
           MetadataError: version 1: unsupported EAPI: invalid
     "};
     assert_eq!(str::from_utf8(&output.stdout).unwrap(), expected);
-
-    service.kill().await.unwrap();
 }
