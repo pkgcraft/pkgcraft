@@ -1021,8 +1021,9 @@ impl Report {
 
     /// Deserialize a JSON string into a [`Report`].
     pub fn from_json(data: &str) -> crate::Result<Self> {
-        serde_json::from_str(data)
-            .map_err(|e| Error::InvalidValue(format!("failed deserializing report: {e}")))
+        serde_json::from_str(data).map_err(|e| {
+            Error::InvalidValue(format!("failed deserializing report JSON: {data}: {e}"))
+        })
     }
 }
 
