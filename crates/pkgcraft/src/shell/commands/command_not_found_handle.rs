@@ -3,14 +3,15 @@ use scallop::{Error, ExecStatus};
 
 use super::make_builtin;
 
-static LONG_DOC: &str = "\
+// TODO: convert to clap parser
+/*static LONG_DOC: &str = "\
 Executed when the search for a command is unsuccessful.
 
 This handles PATH search failures instead of using the command_not_found_handle() function method
 instead.
 ";
+*/
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let Some(cmd) = args.first().copied() else {
         return Err(Error::Base("requires 1 or more args, got 0".into()));

@@ -4,9 +4,9 @@ use super::_new::new;
 use super::doman;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed man pages into /usr/share/man.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed man pages into /usr/share/man.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doman)
 }

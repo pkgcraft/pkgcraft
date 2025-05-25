@@ -4,9 +4,9 @@ use super::_new::new;
 use super::dobin;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed executables into DESTTREE/bin.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed executables into DESTTREE/bin.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dobin)
 }

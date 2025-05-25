@@ -4,9 +4,9 @@ use super::_new::new;
 use super::doexe;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doexe)
 }

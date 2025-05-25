@@ -4,9 +4,9 @@ use super::_new::new;
 use super::doins;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed files into INSDESTREE.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed files into INSDESTREE.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doins)
 }

@@ -4,9 +4,9 @@ use super::_new::new;
 use super::doconfd;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed config files into /etc/conf.d/.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed config files into /etc/conf.d/.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doconfd)
 }

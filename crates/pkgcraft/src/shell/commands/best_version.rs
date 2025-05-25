@@ -7,10 +7,10 @@ use crate::io::stdout;
 use super::_query_cmd::query_cmd;
 use super::make_builtin;
 
-const LONG_DOC: &str =
-    "Output the highest matching version of a package dependency is installed.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str =
+//    "Output the highest matching version of a package dependency is installed.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if let Some(cpv) = query_cmd(args)?.last() {
         write!(stdout(), "{cpv}")?;

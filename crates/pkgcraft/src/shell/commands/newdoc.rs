@@ -4,9 +4,9 @@ use super::_new::new;
 use super::dodoc;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed documentation files.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed documentation files.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dodoc)
 }

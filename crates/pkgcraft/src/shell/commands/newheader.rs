@@ -4,9 +4,9 @@ use super::_new::new;
 use super::doheader;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed header files into /usr/include/.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed header files into /usr/include/.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doheader)
 }

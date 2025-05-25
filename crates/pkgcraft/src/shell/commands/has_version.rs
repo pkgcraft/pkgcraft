@@ -3,9 +3,9 @@ use scallop::ExecStatus;
 use super::_query_cmd::query_cmd;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Determine if a package dependency is installed.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Determine if a package dependency is installed.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cpvs = query_cmd(args)?;
     Ok((!cpvs.is_empty()).into())

@@ -3,10 +3,10 @@ use scallop::ExecStatus;
 use super::_use_conf::use_conf;
 use super::make_builtin;
 
-const LONG_DOC: &str = "\
-Returns --enable-${opt} and --disable-${opt} configure flags based on a given USE flag.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "\
+//Returns --enable-${opt} and --disable-${opt} configure flags based on a given USE flag.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_conf(args, "enable", "disable")
 }

@@ -4,9 +4,9 @@ use super::_new::new;
 use super::dolib_so;
 use super::make_builtin;
 
-const LONG_DOC: &str = "Install renamed shared libraries.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Install renamed shared libraries.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dolib_so)
 }

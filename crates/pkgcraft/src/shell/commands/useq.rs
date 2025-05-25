@@ -3,9 +3,9 @@ use scallop::ExecStatus;
 use super::make_builtin;
 use super::use_;
 
-const LONG_DOC: &str = "Deprecated synonym for use.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Deprecated synonym for use.";
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_(args)
 }

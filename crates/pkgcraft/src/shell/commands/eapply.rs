@@ -10,7 +10,8 @@ use crate::io::stdout;
 
 use super::make_builtin;
 
-const LONG_DOC: &str = "Apply patches to a package's source code.";
+// TODO: convert to clap parser
+//const LONG_DOC: &str = "Apply patches to a package's source code.";
 
 /// Try to apply a path as a patch.
 fn apply_patch<I>(path: &Utf8Path, options: I) -> scallop::Result<()>
@@ -46,7 +47,6 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
             .unwrap_or(false)
 }
 
-#[doc = stringify!(LONG_DOC)]
 fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
