@@ -3,11 +3,12 @@ use std::io::Write;
 
 use itertools::Itertools;
 use pkgcraft::test::*;
-use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
+
+use crate::test::*;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
 pub(crate) fn qa_primary_file() -> NamedTempFile {

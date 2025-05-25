@@ -60,7 +60,6 @@ macro_rules! glob_reports {
 pub use glob_reports;
 
 /// Verify two, ordered report iterables are equal.
-#[cfg(test)]
 #[macro_export]
 macro_rules! assert_ordered_reports {
     ($iter1:expr, $iter2:expr, $msg:expr) => {{
@@ -77,11 +76,9 @@ macro_rules! assert_ordered_reports {
         assert_ordered_reports!($iter1, $iter2, "");
     }};
 }
-#[cfg(test)]
-pub(crate) use assert_ordered_reports;
+pub use assert_ordered_reports;
 
 /// Verify two, unordered report iterables contain the same content.
-#[cfg(test)]
 #[macro_export]
 macro_rules! assert_unordered_reports {
     ($iter1:expr, $iter2:expr, $msg:expr) => {{
@@ -98,8 +95,7 @@ macro_rules! assert_unordered_reports {
         assert_unordered_reports!($iter1, $iter2, "");
     }};
 }
-#[cfg(test)]
-pub(crate) use assert_unordered_reports;
+pub use assert_unordered_reports;
 
 #[cfg(test)]
 mod tests {

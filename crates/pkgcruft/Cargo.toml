@@ -73,6 +73,9 @@ predicates = "3.1.3"
 pretty_assertions = "1.4.1"
 tempfile = "3.20.0"
 tracing-test = "0.2.5"
+assert_cmd = { version = "2.0.17" }
+glob = { version = "0.3.2" }
+pkgcraft = { path = "../pkgcraft", features = ["test"] }
 
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/{ name }-{ version }/{ name }-{ version }-{ target }{ archive-suffix }"
