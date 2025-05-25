@@ -16,15 +16,8 @@ static PKGCRUFT_RE: LazyLock<Regex> =
 
 /// Wrapper for a running pkgcruft server process.
 pub(crate) struct PkgcruftService {
-    service: Child,
+    _service: Child,
     pub(crate) socket: String,
-}
-
-impl Drop for PkgcruftService {
-    fn drop(&mut self) {
-        self.service.start_kill().unwrap();
-        self.service.try_wait().unwrap();
-    }
 }
 
 #[derive(Default)]
@@ -60,6 +53,7 @@ impl PkgcruftServiceBuilder {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
+            .kill_on_drop(true)
             .spawn()
             .unwrap();
 
@@ -93,6 +87,6 @@ impl PkgcruftServiceBuilder {
             }
         };
 
-        PkgcruftService { service, socket }
+        PkgcruftService { _service: service, socket }
     }
 }
