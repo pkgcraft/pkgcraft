@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 
@@ -180,8 +179,8 @@ pub(crate) struct ScannerRun {
     pub(crate) filters: IndexSet<PkgFilter>,
     pub(crate) checks: IndexSet<Check>,
     pub(crate) ignore: Ignore,
-    enabled: HashSet<ReportKind>,
-    exit: HashSet<ReportKind>,
+    enabled: IndexSet<ReportKind>,
+    exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
     pub(crate) sort: bool,
     pub(crate) sender: OnceLock<ReportSender>,
