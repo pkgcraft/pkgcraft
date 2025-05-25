@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use camino::Utf8PathBuf;
+use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
 use pkgcruft::scan::Scanner;
 use tokio::net::{TcpListener, UnixListener};
@@ -154,38 +155,38 @@ impl Pkgcruft for PkgcruftService {
         // acquire exclusive scanning permission
         let permit = self.scanning.clone().acquire_owned().await.unwrap();
 
+        // TODO: partially reload repo or reset lazy metadata fields
+        let mut config = PkgcraftConfig::new("pkgcraft", "");
+        let repo = config
+            .add_repo_path("repo", &self.path, 0)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        let repo = repo
+            .into_ebuild()
+            .map_err(|e| Status::invalid_argument(format!("invalid ebuild repo: {e}")))?;
+        config
+            .finalize()
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+
+        // TODO: process request data into a restrict target
+        let scanner = Scanner::new();
+        let reports = scanner
+            .run(&repo, repo.path())
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+
         let (tx, rx) = mpsc::channel(4);
-        let path = self.path.clone();
 
         tokio::spawn(async move {
-            // TODO: partially reload repo or reset lazy metadata fields
-            let mut config = PkgcraftConfig::new("pkgcraft", "");
-            let repo = config
-                .add_repo_path("repo", path, 0)
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-            let repo = repo
-                .into_ebuild()
-                .map_err(|e| Status::invalid_argument(format!("invalid ebuild repo: {e}")))?;
-            config
-                .finalize()
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-
-            // TODO: process request data into a restrict target
-            let scanner = Scanner::new();
-            let reports = scanner
-                .run(&repo, repo.path())
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-
             for report in reports {
                 if tx.send(Ok(report.into())).await.is_err() {
                     break;
                 }
             }
 
-            // explicitly own the permit until scanning is finished
+            // explicitly own until scanning is finished
             drop(permit);
-
-            Ok::<(), Status>(())
+            drop(scanner);
+            drop(repo);
+            drop(config);
         });
 
         Ok(Response::new(ReceiverStream::new(rx)))
@@ -215,40 +216,39 @@ impl Pkgcruft for PkgcruftService {
         // TODO: use try_acquire_owned() with custom timeout
         // acquire exclusive scanning permission
         let permit = self.scanning.clone().acquire_owned().await.unwrap();
+
+        // TODO: partially reload repo or reset lazy metadata fields
+        let mut config = PkgcraftConfig::new("pkgcraft", "");
+        let repo = config
+            .add_repo_path("repo", path, 0)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        let repo = repo
+            .into_ebuild()
+            .map_err(|e| Status::invalid_argument(format!("invalid ebuild repo: {e}")))?;
+        config
+            .finalize()
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+
+        // TODO: process request data into a restrict target
+        let scanner = Scanner::new();
+        let reports: Vec<_> = cpns
+            .into_iter()
+            .map(move |cpn| scanner.run(&repo, &cpn))
+            .try_collect()
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+
         let (tx, rx) = mpsc::channel(4);
 
         tokio::spawn(async move {
-            // TODO: partially reload repo or reset lazy metadata fields
-            let mut config = PkgcraftConfig::new("pkgcraft", "");
-            let repo = config
-                .add_repo_path("repo", path, 0)
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-            let repo = repo
-                .into_ebuild()
-                .map_err(|e| Status::invalid_argument(format!("invalid ebuild repo: {e}")))?;
-            config
-                .finalize()
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-
-            // TODO: process request data into a restrict target
-            let scanner = Scanner::new();
-
-            for cpn in cpns {
-                let reports = scanner
-                    .run(&repo, &cpn)
-                    .map_err(|e| Status::from_error(Box::new(e)))?;
-
-                for report in reports {
-                    if tx.send(Ok(report.into())).await.is_err() {
-                        break;
-                    }
+            for report in reports.into_iter().flatten() {
+                if tx.send(Ok(report.into())).await.is_err() {
+                    break;
                 }
             }
 
-            // explicitly own the scanning permit until it's finished
+            // explicitly own until scanning is finished
             drop(permit);
-
-            Ok::<(), Status>(())
+            drop(config);
         });
 
         Ok(Response::new(ReceiverStream::new(rx)))
