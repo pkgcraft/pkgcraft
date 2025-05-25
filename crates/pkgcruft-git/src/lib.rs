@@ -1,13 +1,11 @@
 mod error;
 pub mod git;
 pub mod proto;
-pub mod utils;
-
-pub use self::proto::pkgcruft_client::PkgcruftClient as Client;
-pub use self::proto::pkgcruft_server::PkgcruftServer as Server;
+pub mod service;
+mod uds;
 
 pub use self::error::Error;
-pub use self::utils::spawn;
+pub use self::proto::pkgcruft_client::PkgcruftClient as Client;
 
 /// A `Result` alias where the `Err` case is `pkgcruft_git::Error`.
 pub type Result<T> = std::result::Result<T, Error>;

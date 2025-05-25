@@ -1,20 +1,10 @@
 use std::io::stderr;
-use std::net::SocketAddr;
 
-use anyhow::Context;
 use camino::Utf8PathBuf;
 use clap::Parser;
 use clap_verbosity_flag::{Verbosity, log::LevelFilter};
-use pkgcraft::config::Config as PkgcraftConfig;
-use tokio::net::{TcpListener, UnixListener};
-use tokio_stream::wrappers::{TcpListenerStream, UnixListenerStream};
-use tonic::transport::Server;
+use pkgcruft_git::service::PkgcruftServiceBuilder;
 use tracing_log::AsTrace;
-
-use crate::service::PkgcruftService;
-
-mod service;
-mod uds;
 
 #[derive(Parser)]
 #[command(
@@ -66,42 +56,14 @@ async fn main() -> anyhow::Result<()> {
     // initialize global subscriber
     subscriber.init();
 
-    // determine network socket
-    let socket = if let Some(value) = &args.bind {
-        value.clone()
-    } else {
-        // default to using unix domain socket
-        let config = PkgcraftConfig::new("pkgcraft", "");
-        config.path().run.join("pkgcruft.sock").to_string()
-    };
+    // initialize service
+    let mut service = PkgcruftServiceBuilder::new(&args.repo);
 
-    // start service
-    let service = PkgcruftService::new(&args.repo)?;
-    let server = Server::builder().add_service(pkgcruft_git::Server::new(service));
-
-    match socket.parse::<SocketAddr>() {
-        // force unix domain sockets to be absolute paths
-        Err(_) if socket.starts_with('/') => {
-            uds::verify_socket_path(&socket)?;
-            let listener = UnixListener::bind(&socket)
-                .context(format!("failed binding to socket: {socket}"))?;
-            eprintln!("service listening at: {socket}");
-            let incoming = UnixListenerStream::new(listener);
-            server.serve_with_incoming(incoming).await?;
-        }
-        Ok(socket) => {
-            let listener = TcpListener::bind(&socket)
-                .await
-                .context(format!("failed binding to socket: {socket}"))?;
-            let addr = listener
-                .local_addr()
-                .context(format!("invalid local address: {socket}"))?;
-            eprintln!("service listening at: {addr}");
-            let incoming = TcpListenerStream::new(listener);
-            server.serve_with_incoming(incoming).await?
-        }
-        _ => anyhow::bail!("invalid socket: {socket}"),
+    // override default socket
+    if let Some(value) = &args.bind {
+        service = service.socket(value);
     }
 
-    Ok(())
+    // start service
+    Ok(service.start().await?)
 }
