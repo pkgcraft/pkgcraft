@@ -10,10 +10,6 @@ service Pkgcruft {
 
 message EmptyRequest {}
 
-message StringRequest {
-    string data = 1;
-}
-
 message StringResponse {
     string data = 1;
 }
