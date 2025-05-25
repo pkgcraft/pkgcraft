@@ -177,8 +177,7 @@ impl Pkgcruft for PkgcruftService {
                 .map_err(|e| Status::from_error(Box::new(e)))?;
 
             for report in reports {
-                let data = report.to_json();
-                if tx.send(Ok(StringResponse { data })).await.is_err() {
+                if tx.send(Ok(report.into())).await.is_err() {
                     break;
                 }
             }
@@ -240,8 +239,7 @@ impl Pkgcruft for PkgcruftService {
                     .map_err(|e| Status::from_error(Box::new(e)))?;
 
                 for report in reports {
-                    let data = report.to_json();
-                    if tx.send(Ok(StringResponse { data })).await.is_err() {
+                    if tx.send(Ok(report.into())).await.is_err() {
                         break;
                     }
                 }

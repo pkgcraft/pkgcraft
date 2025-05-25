@@ -2,10 +2,17 @@ use std::str::FromStr;
 
 use git2::{Diff, Oid};
 use itertools::Itertools;
+use pkgcruft::report::Report;
 
 use crate::{Error, Result};
 
 tonic::include_proto!("pkgcruft");
+
+impl From<Report> for StringResponse {
+    fn from(value: Report) -> Self {
+        Self { data: value.to_json() }
+    }
+}
 
 impl PushRequest {
     /// Try converting a push request into a git diff.
