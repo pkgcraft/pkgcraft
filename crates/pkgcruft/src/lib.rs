@@ -7,7 +7,7 @@ pub mod reporter;
 mod runner;
 pub mod scan;
 pub mod source;
-#[cfg(feature = "test")]
+#[cfg(any(feature = "test", test))]
 pub mod test;
 mod utils;
 

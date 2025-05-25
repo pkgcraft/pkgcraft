@@ -1,8 +1,9 @@
+use crate::test::*;
+
 use std::{env, fs};
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::*;
-use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;

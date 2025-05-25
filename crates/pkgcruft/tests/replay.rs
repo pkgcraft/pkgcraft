@@ -1,9 +1,10 @@
+use crate::test::*;
+
 use std::fs;
 use std::io::Write;
 
 use itertools::Itertools;
 use pkgcraft::test::*;
-use pkgcruft::test::*;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
