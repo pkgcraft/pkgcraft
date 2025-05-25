@@ -124,7 +124,7 @@ impl PkgcruftService {
         let _ = config
             .add_repo_path("repo", &path, 0)
             .map(|r| r.into_ebuild())
-            .map_err(|_| Error::Start(format!("invalid ebuild repo: {path}")))?;
+            .map_err(|e| Error::Start(format!("invalid ebuild repo: {path}: {e}")))?;
 
         Ok(Self {
             path,
@@ -163,9 +163,9 @@ impl Pkgcruft for PkgcruftService {
             let repo = config
                 .add_repo_path("repo", path, 0)
                 .map_err(|e| Status::from_error(Box::new(e)))?;
-            let repo = repo.into_ebuild().map_err(|repo| {
-                Status::invalid_argument(format!("invalid ebuild repo: {repo}"))
-            })?;
+            let repo = repo
+                .into_ebuild()
+                .map_err(|e| Status::invalid_argument(format!("invalid ebuild repo: {e}")))?;
             config
                 .finalize()
                 .map_err(|e| Status::from_error(Box::new(e)))?;
@@ -224,9 +224,9 @@ impl Pkgcruft for PkgcruftService {
             let repo = config
                 .add_repo_path("repo", path, 0)
                 .map_err(|e| Status::from_error(Box::new(e)))?;
-            let repo = repo.into_ebuild().map_err(|repo| {
-                Status::invalid_argument(format!("invalid ebuild repo: {repo}"))
-            })?;
+            let repo = repo
+                .into_ebuild()
+                .map_err(|e| Status::invalid_argument(format!("invalid ebuild repo: {e}")))?;
             config
                 .finalize()
                 .map_err(|e| Status::from_error(Box::new(e)))?;
