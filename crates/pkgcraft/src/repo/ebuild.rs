@@ -611,15 +611,16 @@ impl Repository for EbuildRepo {
     fn restrict_from_path<P: AsRef<Utf8Path>>(&self, path: P) -> Option<Restrict> {
         // normalize path to inspect relative components
         let path = path.as_ref();
-        let mut abspath = if !path.is_absolute() {
+        let abspath = if !path.is_absolute() {
             self.path().join(path)
         } else {
             path.to_path_buf()
         };
-        abspath = abspath.canonicalize_utf8().ok()?;
-        let Ok(relpath) = abspath.strip_prefix(self.path()) else {
-            // non-repo path
-            return None;
+
+        // extract existing relative path
+        let relpath = match (abspath.exists(), abspath.strip_prefix(self.path())) {
+            (true, Ok(relpath)) => relpath,
+            _ => return None,
         };
 
         let mut restricts = vec![];

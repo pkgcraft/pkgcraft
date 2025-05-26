@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 use std::{fmt, io};
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8Path, Utf8PathBuf, absolute_utf8};
 use enum_as_inner::EnumAsInner;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
@@ -69,7 +69,7 @@ impl RepoFormat {
         priority: i32,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        let abspath = match path.canonicalize_utf8() {
+        let abspath = match path.canonicalize_utf8().and_then(|_| absolute_utf8(path)) {
             Err(e) if e.kind() != io::ErrorKind::NotFound => Err(Error::InvalidRepo {
                 id: path.to_string(),
                 err: e.to_string(),
@@ -98,7 +98,7 @@ impl RepoFormat {
         priority: i32,
     ) -> crate::Result<Repo> {
         let path = path.as_ref();
-        let abspath = match path.canonicalize_utf8() {
+        let abspath = match path.canonicalize_utf8().and_then(|_| absolute_utf8(path)) {
             Err(e) if e.kind() != io::ErrorKind::NotFound => Err(Error::InvalidRepo {
                 id: path.to_string(),
                 err: e.to_string(),

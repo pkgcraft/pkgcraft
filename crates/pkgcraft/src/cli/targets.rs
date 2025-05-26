@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::ops::Deref;
 
-use camino::Utf8Path;
+use camino::{Utf8Path, absolute_utf8};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
@@ -164,9 +164,12 @@ impl<'a> Targets<'a> {
             Ok((self.repo_set()?.clone(), cpn.into()))
         } else {
             // try resolving path target
-            let path_target = Utf8Path::new(s).canonicalize_utf8().map_err(|e| {
-                Error::InvalidValue(format!("invalid path target: {target}: {e}"))
-            });
+            let path_target = Utf8Path::new(s)
+                .canonicalize_utf8()
+                .and_then(|_| absolute_utf8(s))
+                .map_err(|e| {
+                    Error::InvalidValue(format!("invalid path target: {target}: {e}"))
+                });
 
             // try loading repo from path target
             let repo_target = path_target
@@ -176,9 +179,9 @@ impl<'a> Targets<'a> {
 
             match (restrict::parse::dep(s), path_target, repo_target) {
                 (_, Ok(path), Some(Ok(repo))) => {
-                    let restrict = repo
-                        .restrict_from_path(&path)
-                        .unwrap_or_else(|| panic!("invalid repo path: {}", repo.path()));
+                    let restrict = repo.restrict_from_path(&path).ok_or_else(|| {
+                        Error::InvalidValue(format!("invalid repo path: {}", repo.path()))
+                    })?;
                     Ok((repo.into(), restrict))
                 }
                 (Ok(restrict), _, _) => self.dep_restriction(restrict),
