@@ -2298,7 +2298,7 @@ dependencies = [
  "itertools 0.14.0",
  "pkgcraft",
  "pkgcruft",
- "pretty_assertions",
+ "predicates",
  "prost",
  "regex",
  "serde",
