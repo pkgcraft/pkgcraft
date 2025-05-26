@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
 use itertools::Itertools;
+use nix::sys::wait::waitpid;
 use nix::unistd::{ForkResult, Pid, dup, dup2_stdout, fork};
 use scallop::pool::{NamedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
@@ -481,5 +482,9 @@ impl BuildPool {
 impl Drop for BuildPool {
     fn drop(&mut self) {
         self.tx.send(Command::Stop).ok();
+        // TODO: consider combining with bash SIGCHLD handler
+        if let Some(pid) = self.pid.get() {
+            waitpid(*pid, None).ok();
+        }
     }
 }
