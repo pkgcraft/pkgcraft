@@ -271,6 +271,21 @@ impl EbuildRepo {
         })
     }
 
+    /// Try to convert a file path into a Cpn.
+    pub fn cpn_from_path(&self, path: &Utf8Path) -> crate::Result<Cpn> {
+        let relpath = path.strip_prefix(self.path()).unwrap_or(path);
+        let path_err = |s: &str| -> Error {
+            Error::InvalidValue(format!("invalid package path: {relpath}: {s}"))
+        };
+        let (cat, pkg) = relpath
+            .components()
+            .map(|s| s.as_str())
+            .take(2)
+            .collect_tuple()
+            .ok_or_else(|| path_err("mismatched path components"))?;
+        Cpn::try_from((cat, pkg))
+    }
+
     /// Try to convert an ebuild file path into a Cpv.
     fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv> {
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
