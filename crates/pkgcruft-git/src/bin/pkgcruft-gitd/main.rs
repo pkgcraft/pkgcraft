@@ -1,6 +1,5 @@
 use std::io::stderr;
 
-use camino::Utf8PathBuf;
 use clap::Parser;
 use clap_verbosity_flag::{Verbosity, log::LevelFilter};
 use pkgcruft_git::service::PkgcruftServiceBuilder;
@@ -26,8 +25,8 @@ pub(crate) struct Command {
     #[arg(short, long, value_name = "IP:port")]
     bind: Option<String>,
 
-    /// path to ebuild git repo
-    repo: Utf8PathBuf,
+    /// URI to ebuild git repo
+    uri: String,
 }
 
 #[tokio::main]
@@ -57,7 +56,7 @@ async fn main() -> anyhow::Result<()> {
     subscriber.init();
 
     // initialize service
-    let mut service = PkgcruftServiceBuilder::new(&args.repo);
+    let mut service = PkgcruftServiceBuilder::new(&args.uri);
 
     // override default socket
     if let Some(value) = &args.bind {

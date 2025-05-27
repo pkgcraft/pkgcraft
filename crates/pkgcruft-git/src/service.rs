@@ -1,22 +1,23 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use camino::Utf8PathBuf;
-use itertools::Itertools;
+use camino::{Utf8Path, Utf8PathBuf};
+use indexmap::IndexSet;
 use pkgcraft::config::Config as PkgcraftConfig;
+use pkgcraft::restrict::Restrict;
+use pkgcruft::report::ReportLevel;
 use pkgcruft::scan::Scanner;
+use tempfile::{TempDir, tempdir};
 use tokio::net::{TcpListener, UnixListener};
 use tokio::sync::{Semaphore, mpsc};
 use tokio_stream::wrappers::{ReceiverStream, TcpListenerStream, UnixListenerStream};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-use tracing::info;
 
-use crate::Error;
-use crate::git::diff_to_cpns;
 use crate::proto::pkgcruft_server::{Pkgcruft, PkgcruftServer};
-use crate::proto::{EmptyRequest, PushRequest, StringResponse};
+use crate::proto::{EmptyRequest, PushRequest, PushResponse, StringResponse};
 use crate::uds::verify_socket_path;
+use crate::{Error, git};
 
 enum Listener {
     Tcp(TcpListener),
@@ -47,21 +48,21 @@ impl Listener {
             }
         };
 
-        info!("service listening at: {socket}");
+        tracing::info!("service listening at: {socket}");
         Ok(listener)
     }
 }
 
 pub struct PkgcruftServiceBuilder {
-    path: Utf8PathBuf,
+    uri: String,
     socket: Option<String>,
 }
 
 impl PkgcruftServiceBuilder {
     /// Create a new service builder.
-    pub fn new<P: Into<Utf8PathBuf>>(path: P) -> Self {
+    pub fn new(uri: &str) -> Self {
         Self {
-            path: path.into(),
+            uri: uri.to_string(),
             socket: None,
         }
     }
@@ -83,7 +84,7 @@ impl PkgcruftServiceBuilder {
             config.path().run.join("pkgcruft.sock").to_string()
         };
 
-        let service = PkgcruftService::try_new(self.path)?;
+        let service = PkgcruftService::try_new(self.uri)?;
         let server = Server::builder().add_service(PkgcruftServer::new(service));
 
         let listener = Listener::try_new(socket).await?;
@@ -104,21 +105,22 @@ impl PkgcruftServiceBuilder {
 }
 
 struct PkgcruftService {
+    _tempdir: TempDir,
     path: Utf8PathBuf,
     scanning: Arc<Semaphore>,
 }
 
 impl PkgcruftService {
     /// Try creating a new service.
-    fn try_new<P: Into<Utf8PathBuf>>(path: P) -> crate::Result<Self> {
-        let path = path.into();
+    fn try_new(uri: String) -> crate::Result<Self> {
+        let _tempdir =
+            tempdir().map_err(|e| Error::Start(format!("failed creating temp dir: {e}")))?;
+        let path = Utf8PathBuf::from_path_buf(_tempdir.path().to_owned())
+            .map_err(|p| Error::Start(format!("invalid tempdir path: {p:?}")))?;
 
-        // WARNING: This appears to invalidate the environment in some fashion so
-        // std::env::var() calls don't work as expected after it.
-        //
-        // verify target path is a valid git repo
-        git2::Repository::open(&path)
-            .map_err(|e| Error::Start(format!("invalid git repo: {path}: {e}")))?;
+        // clone target git repo into temporary dir
+        git::clone(&uri, &path)
+            .map_err(|e| Error::Start(format!("failed cloning git repo: {uri}: {e}")))?;
 
         // verify target path is a valid ebuild repo
         let mut config = PkgcraftConfig::new("pkgcraft", "");
@@ -128,6 +130,7 @@ impl PkgcruftService {
             .map_err(|e| Error::Start(format!("invalid ebuild repo: {path}: {e}")))?;
 
         Ok(Self {
+            _tempdir,
             path,
             scanning: Arc::new(Semaphore::new(1)),
         })
@@ -192,35 +195,40 @@ impl Pkgcruft for PkgcruftService {
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 
-    type PushStream = ReceiverStream<Result<StringResponse, Status>>;
-
     async fn push(
         &self,
         request: Request<PushRequest>,
-    ) -> Result<Response<Self::ScanStream>, Status> {
+    ) -> Result<Response<PushResponse>, Status> {
+        // TODO: use try_acquire_owned() with custom timeout
+        // acquire exclusive scanning permission
+        let _permit = self.scanning.clone().acquire_owned().await.unwrap();
+
+        let push = request.into_inner();
+        let record = indoc::formatdoc! {"
+            scanning push:
+              old ref: {}
+              new ref: {}
+              ref name: {}
+        ", push.old_ref, push.new_ref, push.ref_name};
+        tracing::info!("{record}");
+
         let path = self.path.clone();
         let git_repo =
             git2::Repository::open(&path).map_err(|e| Status::from_error(Box::new(e)))?;
 
-        // get the difference between push refs
-        let diff = request
-            .into_inner()
-            .diff(&git_repo)
+        // deserialize diff
+        let diff = git2::Diff::from_buffer(&push.patch)
             .map_err(|e| Status::from_error(Box::new(e)))?;
 
-        // TODO: skip pushes where the ref name doesn't match the default branch
+        // apply diff to tree
+        git_repo
+            .apply(&diff, git2::ApplyLocation::Both, None)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
 
-        // determine target Cpns from diff
-        let cpns = diff_to_cpns(&diff).map_err(|e| Status::from_error(Box::new(e)))?;
-
-        // TODO: use try_acquire_owned() with custom timeout
-        // acquire exclusive scanning permission
-        let permit = self.scanning.clone().acquire_owned().await.unwrap();
-
-        // TODO: partially reload repo or reset lazy metadata fields
+        // initialize ebuild repo
         let mut config = PkgcraftConfig::new("pkgcraft", "");
         let repo = config
-            .add_repo_path("repo", path, 0)
+            .add_repo_path("repo", &path, 0)
             .map_err(|e| Status::from_error(Box::new(e)))?;
         let repo = repo
             .into_ebuild()
@@ -229,28 +237,74 @@ impl Pkgcruft for PkgcruftService {
             .finalize()
             .map_err(|e| Status::from_error(Box::new(e)))?;
 
-        // TODO: process request data into a restrict target
-        let scanner = Scanner::new();
-        let reports: Vec<_> = cpns
-            .into_iter()
-            .map(move |cpn| scanner.run(&repo, &cpn))
-            .try_collect()
-            .map_err(|e| Status::from_error(Box::new(e)))?;
-
-        let (tx, rx) = mpsc::channel(4);
-
-        tokio::spawn(async move {
-            for report in reports.into_iter().flatten() {
-                if tx.send(Ok(report.into())).await.is_err() {
-                    break;
+        // determine target Cpns from diff
+        let mut cpns = IndexSet::new();
+        let mut eclass = false;
+        for delta in diff.deltas() {
+            if let Some(path) = delta.new_file().path().and_then(Utf8Path::from_path) {
+                if let Ok(cpn) = repo.cpn_from_path(path) {
+                    cpns.insert(cpn);
+                } else if path.as_str().starts_with("eclass/") {
+                    eclass = true;
                 }
             }
+        }
 
-            // explicitly own until scanning is finished
-            drop(permit);
-            drop(config);
-        });
+        let mut reply = PushResponse { reports: vec![], failed: false };
 
-        Ok(Response::new(ReceiverStream::new(rx)))
+        // scan individual packages that were changed
+        let mut scanner = Scanner::new().exit([ReportLevel::Critical, ReportLevel::Warning]);
+        for cpn in cpns {
+            let reports = scanner
+                .run(&repo, &cpn)
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+            reply
+                .reports
+                .extend(reports.into_iter().map(|r| r.to_json()));
+        }
+
+        // scan full tree for metadata errors on eclass changes
+        if eclass {
+            scanner = scanner.reports([pkgcruft::check::Check::Metadata]);
+            let reports = scanner
+                .run(&repo, Restrict::True)
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+            reply
+                .reports
+                .extend(reports.into_iter().map(|r| r.to_json()));
+        }
+
+        // get the HEAD commit
+        let head_oid = git_repo
+            .refname_to_id("HEAD")
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        let commit = git_repo
+            .find_commit(head_oid)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+
+        if scanner.failed() {
+            reply.failed = true;
+            // revert changes
+            git_repo
+                .reset(&commit.into_object(), git2::ResetType::Hard, None)
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+        } else {
+            // TODO: use actual patches instead of amending
+            // apply changes to the tree
+            let mut index = git_repo
+                .index()
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+            let oid = index
+                .write_tree()
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+            let tree = git_repo
+                .find_tree(oid)
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+            commit
+                .amend(Some("HEAD"), None, None, None, None, Some(&tree))
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+        }
+
+        Ok(Response::new(reply))
     }
 }

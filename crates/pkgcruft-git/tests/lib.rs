@@ -1,3 +1,4 @@
+use camino::Utf8Path;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::cmd;
 use predicates::prelude::*;
@@ -6,10 +7,26 @@ mod utils;
 
 use utils::PkgcruftServiceBuilder;
 
+/// Initialize a git repo at a path, adding all files to an initial commit.
+fn init_git_repo(path: &Utf8Path) {
+    let git_repo = git2::Repository::init(path).unwrap();
+    let mut index = git_repo.index().unwrap();
+    index
+        .add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
+        .unwrap();
+    index.write().unwrap();
+    let oid = index.write_tree().unwrap();
+    let tree = git_repo.find_tree(oid).unwrap();
+    let sig = git2::Signature::new("test", "test@test.test", &git2::Time::new(0, 0)).unwrap();
+    git_repo
+        .commit(Some("HEAD"), &sig, &sig, "initial import", &tree, &[])
+        .unwrap();
+}
+
 #[tokio::test]
 async fn uds() {
     let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
-    git2::Repository::init(repo.path()).unwrap();
+    init_git_repo(repo.path());
 
     let service = PkgcruftServiceBuilder::new(repo.path()).spawn().await;
     let ver = env!("CARGO_PKG_VERSION");
@@ -27,7 +44,7 @@ async fn uds() {
 #[tokio::test]
 async fn tcp() {
     let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
-    git2::Repository::init(repo.path()).unwrap();
+    init_git_repo(repo.path());
 
     for addr in ["127.0.0.1:0", "[::]:0"] {
         let service = PkgcruftServiceBuilder::new(repo.path())
