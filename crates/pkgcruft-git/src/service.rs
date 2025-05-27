@@ -212,9 +212,8 @@ impl Pkgcruft for PkgcruftService {
         ", push.old_ref, push.new_ref, push.ref_name};
         tracing::info!("{record}");
 
-        let path = self.path.clone();
         let git_repo =
-            git2::Repository::open(&path).map_err(|e| Status::from_error(Box::new(e)))?;
+            git2::Repository::open(&self.path).map_err(|e| Status::from_error(Box::new(e)))?;
 
         // deserialize diff
         let diff = git2::Diff::from_buffer(&push.patch)
@@ -228,7 +227,7 @@ impl Pkgcruft for PkgcruftService {
         // initialize ebuild repo
         let mut config = PkgcraftConfig::new("pkgcraft", "");
         let repo = config
-            .add_repo_path("repo", &path, 0)
+            .add_repo_path("repo", &self.path, 0)
             .map_err(|e| Status::from_error(Box::new(e)))?;
         let repo = repo
             .into_ebuild()
