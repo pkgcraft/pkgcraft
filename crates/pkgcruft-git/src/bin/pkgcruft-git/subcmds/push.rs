@@ -52,12 +52,16 @@ impl Command {
         for line in stdin.lines() {
             let line = line?;
             // TODO: skip pushes where the ref name doesn't match the default branch
+            //
             // get push information
             let Some((old_ref, new_ref, ref_name)) = line.split(' ').collect_tuple() else {
                 anyhow::bail!("invalid pre-receive hook arguments: {line}");
             };
 
-            // generate raw pack file data
+            // TODO: Consider streaming pack file entries to the server instead of
+            // building it in a memory buffer and serializing it.
+            //
+            // generate pack file data
             let mut pack_builder = repo
                 .packbuilder()
                 .map_err(|e| anyhow!("failed initializing pack builder: {e}"))?;
