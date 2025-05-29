@@ -18,7 +18,7 @@ message PushRequest {
     string old_ref = 1;
     string new_ref = 2;
     string ref_name = 3;
-    bytes patch = 4;
+    bytes pack = 4;
 }
 
 message PushResponse {

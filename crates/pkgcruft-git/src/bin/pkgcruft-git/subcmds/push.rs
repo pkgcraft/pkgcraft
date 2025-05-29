@@ -5,7 +5,6 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use pkgcruft::report::Report;
 use pkgcruft::reporter::{FancyReporter, Reporter};
-use pkgcruft_git::git;
 use pkgcruft_git::proto::PushRequest;
 
 use crate::Client;
@@ -58,22 +57,30 @@ impl Command {
                 anyhow::bail!("invalid pre-receive hook arguments: {line}");
             };
 
-            // generate patch data
-            let mut data = vec![];
-            let diff = git::diff(&repo, old_ref, new_ref)?;
-            for (idx, _delta) in diff.deltas().enumerate() {
-                if let Ok(Some(mut patch)) = git2::Patch::from_diff(&diff, idx) {
-                    let buf = patch.to_buf()?;
-                    data.extend(buf.deref());
-                }
-            }
+            // generate raw pack file data
+            let mut pack_builder = repo
+                .packbuilder()
+                .map_err(|e| anyhow!("failed initializing pack builder: {e}"))?;
+            let mut revwalk = repo
+                .revwalk()
+                .map_err(|e| anyhow!("failed creating revwalk: {e}"))?;
+            revwalk
+                .push_range(&format!("{old_ref}..{new_ref}"))
+                .map_err(|e| anyhow!("failed limiting revwalk: {e}"))?;
+            pack_builder
+                .insert_walk(&mut revwalk)
+                .map_err(|e| anyhow!("failed targeting pack builder: {e}"))?;
+            let mut buf = git2::Buf::new();
+            pack_builder
+                .write_buf(&mut buf)
+                .map_err(|e| anyhow!("failed writing pack data: {e}"))?;
 
             // send request to server
             let push = PushRequest {
                 old_ref: old_ref.to_string(),
                 new_ref: new_ref.to_string(),
                 ref_name: ref_name.to_string(),
-                patch: data,
+                pack: buf.deref().to_vec(),
             };
             let request = tonic::Request::new(push);
             let response = client.push(request).await?;

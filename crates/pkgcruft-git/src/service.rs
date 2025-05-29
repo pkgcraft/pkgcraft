@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -215,13 +216,34 @@ impl Pkgcruft for PkgcruftService {
         let git_repo =
             git2::Repository::open(&self.path).map_err(|e| Status::from_error(Box::new(e)))?;
 
-        // deserialize diff
-        let diff = git2::Diff::from_buffer(&push.patch)
+        // write pack file to odb
+        let odb = git_repo
+            .odb()
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        let mut pack_writer = odb
+            .packwriter()
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        pack_writer
+            .write(&push.pack)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        pack_writer
+            .commit()
             .map_err(|e| Status::from_error(Box::new(e)))?;
 
-        // apply diff to tree
+        // merge incoming commits to HEAD
+        let new_oid: git2::Oid = push
+            .new_ref
+            .parse()
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        let commit = git_repo
+            .find_annotated_commit(new_oid)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
         git_repo
-            .apply(&diff, git2::ApplyLocation::Both, None)
+            .merge(&[&commit], None, None)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+
+        // determine diff
+        let diff = git::diff(&git_repo, &push.old_ref, &push.new_ref)
             .map_err(|e| Status::from_error(Box::new(e)))?;
 
         // initialize ebuild repo
@@ -273,34 +295,14 @@ impl Pkgcruft for PkgcruftService {
                 .extend(reports.into_iter().map(|r| r.to_json()));
         }
 
-        // get the HEAD commit
-        let head_oid = git_repo
-            .refname_to_id("HEAD")
-            .map_err(|e| Status::from_error(Box::new(e)))?;
-        let commit = git_repo
-            .find_commit(head_oid)
-            .map_err(|e| Status::from_error(Box::new(e)))?;
-
         if scanner.failed() {
             reply.failed = true;
-            // revert changes
+
+            // reset HEAD to the old commit and revert changes
+            let old_oid: git2::Oid = push.old_ref.parse().expect("invalid old ref");
+            let old_commit = git_repo.find_commit(old_oid).expect("invalid old ref");
             git_repo
-                .reset(&commit.into_object(), git2::ResetType::Hard, None)
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-        } else {
-            // TODO: use actual patches instead of amending
-            // apply changes to the tree
-            let mut index = git_repo
-                .index()
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-            let oid = index
-                .write_tree()
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-            let tree = git_repo
-                .find_tree(oid)
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-            commit
-                .amend(Some("HEAD"), None, None, None, None, Some(&tree))
+                .reset(&old_commit.into_object(), git2::ResetType::Hard, None)
                 .map_err(|e| Status::from_error(Box::new(e)))?;
         }
 
