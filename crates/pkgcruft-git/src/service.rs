@@ -224,7 +224,10 @@ impl Pkgcruft for PkgcruftService {
             .packwriter()
             .map_err(|e| Status::from_error(Box::new(e)))?;
         pack_writer
-            .write(&push.pack)
+            .write_all(&push.pack)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        pack_writer
+            .flush()
             .map_err(|e| Status::from_error(Box::new(e)))?;
         pack_writer
             .commit()
