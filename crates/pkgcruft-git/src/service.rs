@@ -125,10 +125,25 @@ impl PkgcruftService {
 
         // verify target path is a valid ebuild repo
         let mut config = PkgcraftConfig::new("pkgcraft", "");
-        let _ = config
+        let repo = config
             .add_repo_path("repo", &path, 0)
-            .map(|r| r.into_ebuild())
+            .map_err(|e| Error::Start(format!("invalid repo: {e}")))?;
+        let repo = repo
+            .into_ebuild()
             .map_err(|e| Error::Start(format!("invalid ebuild repo: {path}: {e}")))?;
+        config
+            .finalize()
+            .map_err(|e| Error::Start(format!("failed finalizing config: {e}")))?;
+
+        // generate ebuild repo metadata ignoring failures
+        repo.metadata()
+            .cache()
+            .regen(&repo)
+            .progress(true)
+            .run()
+            .ok();
+
+        // TODO: generate or verify db of existing pkgcruft reports
 
         Ok(Self {
             _tempdir,
