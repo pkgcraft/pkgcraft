@@ -2,12 +2,14 @@ Client and server for verifying git commits via pkgcruft during server-side pre-
 
 # Demo
 
-To run an interactive service demo, run the examples/pkgcruft-gitd script:
+To start an interactive service demo, run the following script:
 
     ./examples/pkgcruft-gitd
 
-By default it uses the gentoo repo from github, but should work if pointed at
-an accessible, remote git URL for a standalone ebuild repo.
+This will build the required pkgcraft tooling and initialize the files
+necessary to run the service in the `examples/demo` directory. By default it
+uses the gentoo repo from github, but should work if pointed at any accessible,
+remote git URL for a standalone ebuild repo.
 
 The script creates three git repos under the `examples/demo` directory. The
 `client.git` repo is what users should interact with, creating commits and
