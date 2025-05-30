@@ -14,7 +14,7 @@ cargo build -r -p pkgcraft-tools
 # create service repos under the examples directory
 EXAMPLES_DIR=$(realpath ${BASH_SOURCE[0]%/*})
 TARGET_DIR=$(realpath "${EXAMPLES_DIR}"/../../../target/release)
-REPOS_DIR="${EXAMPLES_DIR}"/pkgcruft-git-gentoo
+REPOS_DIR="${EXAMPLES_DIR}"/demo
 
 # add cargo build dir to $PATH
 export PATH="${TARGET_DIR}:${PATH}"
