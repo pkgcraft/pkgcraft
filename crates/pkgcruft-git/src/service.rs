@@ -57,6 +57,7 @@ impl Listener {
 pub struct PkgcruftServiceBuilder {
     uri: String,
     socket: Option<String>,
+    jobs: usize,
 }
 
 impl PkgcruftServiceBuilder {
@@ -65,12 +66,19 @@ impl PkgcruftServiceBuilder {
         Self {
             uri: uri.to_string(),
             socket: None,
+            jobs: num_cpus::get(),
         }
     }
 
     /// Set the network socket to bind.
     pub fn socket<S: Into<String>>(mut self, socket: S) -> Self {
         self.socket = Some(socket.into());
+        self
+    }
+
+    /// Set the number of jobs to run.
+    pub fn jobs(mut self, value: usize) -> Self {
+        self.jobs = value;
         self
     }
 
@@ -85,7 +93,7 @@ impl PkgcruftServiceBuilder {
             config.path().run.join("pkgcruft.sock").to_string()
         };
 
-        let service = PkgcruftService::try_new(self.uri)?;
+        let service = PkgcruftService::try_new(self.uri, self.jobs)?;
         let server = Server::builder().add_service(PkgcruftServer::new(service));
 
         let listener = Listener::try_new(socket).await?;
@@ -109,11 +117,12 @@ struct PkgcruftService {
     _tempdir: TempDir,
     path: Utf8PathBuf,
     scanning: Arc<Semaphore>,
+    jobs: usize,
 }
 
 impl PkgcruftService {
     /// Try creating a new service.
-    fn try_new(uri: String) -> crate::Result<Self> {
+    fn try_new(uri: String, jobs: usize) -> crate::Result<Self> {
         let _tempdir =
             tempdir().map_err(|e| Error::Start(format!("failed creating temp dir: {e}")))?;
         let path = Utf8PathBuf::from_path_buf(_tempdir.path().to_owned())
@@ -149,6 +158,7 @@ impl PkgcruftService {
             _tempdir,
             path,
             scanning: Arc::new(Semaphore::new(1)),
+            jobs,
         })
     }
 }
@@ -187,7 +197,7 @@ impl Pkgcruft for PkgcruftService {
             .map_err(|e| Status::from_error(Box::new(e)))?;
 
         // TODO: process request data into a restrict target
-        let scanner = Scanner::new();
+        let scanner = Scanner::new().jobs(self.jobs);
         let reports = scanner
             .run(&repo, repo.path())
             .map_err(|e| Status::from_error(Box::new(e)))?;
@@ -292,7 +302,9 @@ impl Pkgcruft for PkgcruftService {
         let mut reply = PushResponse { reports: vec![], failed: false };
 
         // scan individual packages that were changed
-        let mut scanner = Scanner::new().exit([ReportLevel::Critical, ReportLevel::Warning]);
+        let mut scanner = Scanner::new()
+            .jobs(self.jobs)
+            .exit([ReportLevel::Critical, ReportLevel::Warning]);
         for cpn in cpns {
             let reports = scanner
                 .run(&repo, &cpn)

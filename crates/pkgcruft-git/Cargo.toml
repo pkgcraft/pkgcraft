@@ -27,6 +27,7 @@ hyper-util = "0.1.12"
 indexmap = "2.9.0"
 indoc = "2.0.6"
 itertools = "0.14.0"
+num_cpus = "1.16.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.27" }
 pkgcruft = { path = "../pkgcruft", version = "0.0.14" }
 prost = "0.13.5"

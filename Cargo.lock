@@ -2296,6 +2296,7 @@ dependencies = [
  "indexmap",
  "indoc",
  "itertools 0.14.0",
+ "num_cpus",
  "pkgcraft",
  "pkgcruft",
  "predicates",

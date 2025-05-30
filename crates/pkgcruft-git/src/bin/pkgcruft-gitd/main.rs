@@ -2,6 +2,7 @@ use std::io::stderr;
 
 use clap::Parser;
 use clap_verbosity_flag::{Verbosity, log::LevelFilter};
+use pkgcraft::utils::bounded_thread_pool;
 use pkgcruft_git::service::PkgcruftServiceBuilder;
 use tracing_log::AsTrace;
 
@@ -20,6 +21,10 @@ pub(crate) struct Command {
     /// enable/disable color support
     #[arg(long, value_name = "BOOL", hide_possible_values = true, global = true)]
     color: Option<bool>,
+
+    /// Parallel jobs to run
+    #[arg(short, long, default_value_t = num_cpus::get())]
+    jobs: usize,
 
     /// bind to network socket
     #[arg(short, long, value_name = "IP:port")]
@@ -55,8 +60,11 @@ async fn main() -> anyhow::Result<()> {
     // initialize global subscriber
     subscriber.init();
 
+    // initialize global rayon thread pool
+    bounded_thread_pool(args.jobs);
+
     // initialize service
-    let mut service = PkgcruftServiceBuilder::new(&args.uri);
+    let mut service = PkgcruftServiceBuilder::new(&args.uri).jobs(args.jobs);
 
     // override default socket
     if let Some(value) = &args.bind {
