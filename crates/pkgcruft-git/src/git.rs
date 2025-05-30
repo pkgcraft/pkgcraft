@@ -68,3 +68,11 @@ pub fn diff<'a>(
             ))
         })
 }
+
+/// Try checking out a branch from a git repository.
+pub fn checkout_branch(repo: &git2::Repository, name: &str) -> crate::Result<()> {
+    let object = repo.revparse_single(name)?;
+    repo.checkout_tree(&object, None)?;
+    repo.set_head(&format!("refs/heads/{name}"))?;
+    Ok(())
+}
