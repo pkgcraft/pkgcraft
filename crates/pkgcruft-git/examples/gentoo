@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+#
+# Set up an example pkgcruft-git service targeting the gentoo repo by default.
+
+set -e
+
+# target git repo (gentoo by default)
+GIT_REPO_URI=${1:-https://github.com/gentoo/gentoo.git}
+
+# build pkgcruft-git and pkgcraft-tools
+cargo build -r -p pkgcruft-git
+cargo build -r -p pkgcraft-tools
+
+# create service repos under the examples directory
+EXAMPLES_DIR=$(realpath ${BASH_SOURCE[0]%/*})
+TARGET_DIR=$(realpath "${EXAMPLES_DIR}"/../../../target/release)
+REPOS_DIR="${EXAMPLES_DIR}"/pkgcruft-git-gentoo
+
+# add cargo build dir to $PATH
+export PATH="${TARGET_DIR}:${PATH}"
+
+# set up git repos if the parent dir doesn't exist
+if [[ ! -d ${REPOS_DIR} ]]; then
+	# clone server and client repos
+	mkdir -p "${REPOS_DIR}"
+	git clone --bare --depth 1 "${GIT_REPO_URI}" "${REPOS_DIR}"/remote.git
+	git clone "${REPOS_DIR}"/remote.git "${REPOS_DIR}"/client.git
+	git clone "${REPOS_DIR}"/remote.git "${REPOS_DIR}"/server.git
+
+	# create pre-receive hook
+	mkdir "${REPOS_DIR}"/remote.git/hooks
+	cat <<-EOF > "${REPOS_DIR}"/remote.git/hooks/pre-receive
+	#!/bin/sh
+	"${TARGET_DIR}"/pkgcruft-git push
+	EOF
+	chmod +x "${REPOS_DIR}"/remote.git/hooks/pre-receive
+
+	# generate metadata for the server repo
+	pk repo metadata regen "${REPOS_DIR}"/server.git
+fi
+
+cat <<-EOF
+
+Starting a demo pkgcruft-git service:
+  REMOTE: ${REPOS_DIR}/remote.git
+  SERVER: ${REPOS_DIR}/server.git
+  CLIENT: ${REPOS_DIR}/client.git
+
+Make changes in the client repo and push them to the origin remote. The pkgcruft-git
+pre-receive hook should intercept them passing them to the server for verification.
+
+EOF
+
+# start the pkgcruft-git server
+pkgcruft-gitd "${REPOS_DIR}"/server.git -vv
