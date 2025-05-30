@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::net::SocketAddr;
-use std::process::{Command, Stdio};
 use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -185,6 +184,7 @@ impl PkgcruftService {
         &self,
         git_repo: &git2::Repository,
         target_branch: &str,
+        git_ref: &mut git2::Reference,
         push: &PushRequest,
     ) -> crate::Result<PushResponse> {
         // write pack file to odb
@@ -253,26 +253,26 @@ impl PkgcruftService {
         if scanner.failed() {
             reply.failed = true;
         } else {
+            let ref_name = &push.ref_name;
+
+            // reset to target branch
             git::checkout_branch(git_repo, target_branch)?;
 
-            // TODO: Replace with native git2 merge once it's determined why it doesn't use
-            // fastfoward merges while `git` does.
-            let status = Command::new("git")
-                .args(["merge", "--ff-only", &push.new_ref])
-                .current_dir(&self.path)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .map_err(|e| Error::InvalidValue(format!("failed running git: {e}")))?;
-            if !status.success() {
-                return Err(Error::InvalidValue("failed merging changes".to_string()));
+            // only handle unborn or fast-forward merge variants
+            let (analysis, _prefs) = git_repo.merge_analysis(&[&commit])?;
+            if analysis.is_unborn() {
+                let msg = format!("unborn: setting {ref_name}: {new_oid}");
+                git_repo.reference("HEAD", new_oid, false, &msg)?;
+            } else if !analysis.is_fast_forward() {
+                return Err(Error::InvalidValue(format!(
+                    "non-fast-forward merge: {analysis:?}"
+                )));
             }
 
-            //let (analysis, _prefs) = git_repo.merge_analysis(&[&commit])?;
-            //if analysis != git2::MergeAnalysis::ANALYSIS_FASTFORWARD {
-            //    return Err(Error::InvalidValue("non-fast-forward merge".to_string()));
-            //}
-            //git_repo.merge(&[&commit], None, None)?;
+            // update target reference and checkout HEAD
+            let msg = format!("fast-forward: setting {ref_name}: {new_oid}");
+            git_ref.set_target(new_oid, &msg)?;
+            git_repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
         }
 
         Ok(reply)
@@ -358,18 +358,18 @@ impl Pkgcruft for PkgcruftService {
             git2::Repository::open(&self.path).map_err(|e| Status::from_error(Box::new(e)))?;
 
         let ref_name = &push.ref_name;
-        let git_ref = git_repo
+        let mut git_ref = git_repo
             .find_reference(ref_name)
             .map_err(|e| Status::from_error(Box::new(e)))?;
-        let target_branch = git_ref.shorthand().ok_or_else(|| {
+        let target_branch = git_ref.shorthand().map(|s| s.to_string()).ok_or_else(|| {
             Status::invalid_argument(format!("invalid ref name: {ref_name}"))
         })?;
 
         // run targeted pkgcruft scanning
-        let result = self.handle_push(&git_repo, target_branch, &push);
+        let result = self.handle_push(&git_repo, &target_branch, &mut git_ref, &push);
 
         // reset to target branch
-        git::checkout_branch(&git_repo, target_branch)
+        git::checkout_branch(&git_repo, &target_branch)
             .map_err(|e| Status::from_error(Box::new(e)))?;
 
         // delete test branch if it exists
