@@ -30,6 +30,10 @@ pub(crate) struct Command {
     #[arg(short, long, value_name = "IP:port")]
     bind: Option<String>,
 
+    /// Use temporary directory for git repo
+    #[arg(short, long)]
+    temp: bool,
+
     /// URI to ebuild git repo
     uri: String,
 }
@@ -64,7 +68,9 @@ async fn main() -> anyhow::Result<()> {
     bounded_thread_pool(args.jobs);
 
     // initialize service
-    let mut service = PkgcruftServiceBuilder::new(&args.uri).jobs(args.jobs);
+    let mut service = PkgcruftServiceBuilder::new(&args.uri)
+        .jobs(args.jobs)
+        .temp(args.temp);
 
     // override default socket
     if let Some(value) = &args.bind {

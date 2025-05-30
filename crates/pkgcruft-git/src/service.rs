@@ -58,6 +58,7 @@ pub struct PkgcruftServiceBuilder {
     uri: String,
     socket: Option<String>,
     jobs: usize,
+    temp: bool,
 }
 
 impl PkgcruftServiceBuilder {
@@ -67,6 +68,7 @@ impl PkgcruftServiceBuilder {
             uri: uri.to_string(),
             socket: None,
             jobs: num_cpus::get(),
+            temp: false,
         }
     }
 
@@ -82,6 +84,12 @@ impl PkgcruftServiceBuilder {
         self
     }
 
+    /// Use a temporary directory for the git repo.
+    pub fn temp(mut self, value: bool) -> Self {
+        self.temp = value;
+        self
+    }
+
     /// Start the service, waiting for it to finish.
     pub async fn start(self) -> crate::Result<()> {
         // determine network socket
@@ -93,7 +101,7 @@ impl PkgcruftServiceBuilder {
             config.path().run.join("pkgcruft.sock").to_string()
         };
 
-        let service = PkgcruftService::try_new(self.uri, self.jobs)?;
+        let service = PkgcruftService::try_new(self.uri, self.temp, self.jobs)?;
         let server = Server::builder().add_service(PkgcruftServer::new(service));
 
         let listener = Listener::try_new(socket).await?;
@@ -114,7 +122,7 @@ impl PkgcruftServiceBuilder {
 }
 
 struct PkgcruftService {
-    _tempdir: TempDir,
+    _tempdir: Option<TempDir>,
     path: Utf8PathBuf,
     scanning: Arc<Semaphore>,
     jobs: usize,
@@ -122,15 +130,24 @@ struct PkgcruftService {
 
 impl PkgcruftService {
     /// Try creating a new service.
-    fn try_new(uri: String, jobs: usize) -> crate::Result<Self> {
-        let _tempdir =
-            tempdir().map_err(|e| Error::Start(format!("failed creating temp dir: {e}")))?;
-        let path = Utf8PathBuf::from_path_buf(_tempdir.path().to_owned())
-            .map_err(|p| Error::Start(format!("invalid tempdir path: {p:?}")))?;
+    fn try_new(uri: String, temp: bool, jobs: usize) -> crate::Result<Self> {
+        let mut _tempdir = None;
+        let path = if temp {
+            // create temporary dir for git repo
+            let tempdir = tempdir()
+                .map_err(|e| Error::Start(format!("failed creating temp dir: {e}")))?;
+            let path = Utf8PathBuf::from_path_buf(tempdir.path().to_owned())
+                .map_err(|p| Error::Start(format!("invalid tempdir path: {p:?}")))?;
+            _tempdir = Some(tempdir);
 
-        // clone target git repo into temporary dir
-        git::clone(&uri, &path)
-            .map_err(|e| Error::Start(format!("failed cloning git repo: {uri}: {e}")))?;
+            // clone git repo into temporary dir
+            git::clone(&uri, &path)
+                .map_err(|e| Error::Start(format!("failed cloning git repo: {uri}: {e}")))?;
+
+            path
+        } else {
+            uri.into()
+        };
 
         // verify target path is a valid ebuild repo
         let mut config = PkgcraftConfig::new("pkgcraft", "");
