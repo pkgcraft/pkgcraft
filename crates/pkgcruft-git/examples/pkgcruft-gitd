@@ -46,8 +46,9 @@ Starting a demo pkgcruft-git service:
   SERVER: ${REPOS_DIR}/server.git
   CLIENT: ${REPOS_DIR}/client.git
 
-Make changes in the client repo and push them to the origin remote. The pkgcruft-git
-pre-receive hook should intercept them passing them to the server for verification.
+Make commits in the client repo and push them to the origin remote. The git
+pre-receive hook will pass them to the pkgcruft-git service for verification,
+merging them on success.
 
 EOF
 
