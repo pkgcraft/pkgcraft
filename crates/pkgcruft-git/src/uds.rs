@@ -5,7 +5,7 @@ use camino::Utf8Path;
 
 use crate::Error;
 
-// Verify if a given path is an accept UNIX domain socket path.
+/// Verify a file path is usable as a UNIX domain socket.
 pub(crate) fn verify_socket_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<()> {
     let path = path.as_ref();
     let socket_dir = &path
