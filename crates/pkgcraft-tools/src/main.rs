@@ -14,7 +14,6 @@ mod subcmds;
 
 #[derive(Parser)]
 #[command(
-    name = env!("CARGO_BIN_NAME"),
     version,
     long_about = None,
     disable_help_subcommand = true,
