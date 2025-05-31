@@ -10,6 +10,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexSet, set::MutableValues};
 use itertools::Either;
 use strum::EnumString;
+use winnow::Parser;
 
 use crate::Error;
 use crate::archive::Archive;
@@ -24,32 +25,79 @@ use crate::shell::hooks::HookBuilder;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::Phase;
 
-peg::parser!(grammar parse() for str {
-    // EAPIs must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule eapi() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("EAPI"))
-        { s }
+mod parser {
+    use winnow::combinator::{alt, delimited, trace};
+    use winnow::prelude::*;
+    use winnow::token::{one_of, take_while};
 
-    rule single_quotes<T>(expr: rule<T>) -> T
-        = "\'" v:expr() "\'" { v }
+    const APOSTROPHE: char = '\'';
+    const QUOTATION_MARK: char = '"';
 
-    rule double_quotes<T>(expr: rule<T>) -> T
-        = "\"" v:expr() "\"" { v }
+    /// Parse an eapi, specified in PMS 3.1.9.
+    fn eapi_value<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
+        trace(
+            "eapi_value",
+            (
+                one_of(('a'..='z', 'A'..='Z', '0'..='9', '_')),
+                take_while(0.., ('a'..='z', 'A'..='Z', '0'..='9', '_', '+', '.', '-')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
 
-    rule optionally_quoted<T>(expr: rule<T>) -> T
-        = s:expr() { s }
-        / s:double_quotes(<expr()>) { s }
-        / s:single_quotes(<expr()>) { s }
+    /// Parse an eapi, optionally quoted with either single or double quotes.
+    pub(super) fn eapi<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
+        trace(
+            "eapi",
+            alt((
+                eapi_value,
+                delimited(QUOTATION_MARK, eapi_value, QUOTATION_MARK),
+                delimited(APOSTROPHE, eapi_value, APOSTROPHE),
+            )),
+        )
+        .parse_next(input)
+    }
 
-    pub(super) rule eapi_value() -> &'input str
-        = s:optionally_quoted(<eapi()>) { s }
-});
+    #[cfg(test)]
+    mod tests {
+        use super::*;
 
-pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
-    parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))
+        #[test]
+        fn value() {
+            assert_eq!(eapi_value.parse("a"), Ok("a"));
+            assert_eq!(eapi_value.parse("A"), Ok("A"));
+            assert_eq!(eapi_value.parse("0"), Ok("0"));
+            assert_eq!(eapi_value.parse("_"), Ok("_"));
+            assert_eq!(eapi_value.parse("aA0_+.-"), Ok("aA0_+.-"));
+
+            assert!(eapi_value.parse("").is_err());
+            assert!(eapi_value.parse("+").is_err());
+            assert!(eapi_value.parse(".").is_err());
+            assert!(eapi_value.parse("*").is_err());
+        }
+
+        #[test]
+        fn quoted() {
+            assert_eq!(eapi.parse("0"), Ok("0"));
+            assert_eq!(eapi.parse("\"0\""), Ok("0"));
+            assert_eq!(eapi.parse("'0'"), Ok("0"));
+
+            assert!(eapi.parse("").is_err());
+            assert!(eapi.parse("'0").is_err());
+            assert!(eapi.parse("\"0").is_err());
+            assert!(eapi.parse("0\"").is_err());
+            assert!(eapi.parse("0'").is_err());
+            assert!(eapi.parse("'0\"").is_err());
+            assert!(eapi.parse("\"0'").is_err());
+        }
+    }
+}
+
+pub(crate) fn parse_value(input: &str) -> crate::Result<&str> {
+    parser::eapi
+        .parse(input)
+        .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {input:?}")))
 }
 
 /// Features that relate to differentiation between EAPIs as specified by PMS.
@@ -231,7 +279,9 @@ impl Eapi {
     /// Verify a string represents a valid EAPI.
     pub fn parse<S: AsRef<str>>(s: S) -> crate::Result<()> {
         let s = s.as_ref();
-        parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
+        parser::eapi
+            .parse(s)
+            .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
         Ok(())
     }
 
