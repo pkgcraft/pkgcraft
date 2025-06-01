@@ -16,19 +16,21 @@ impl Command {
     pub(super) async fn run(&self, client: &mut Client) -> anyhow::Result<()> {
         let mut stdout = io::stdout().lock();
         let stdin = io::stdin().lock();
-        let mut reporter: Reporter = FancyReporter::default().into();
+        if stdin.is_terminal() {
+            anyhow::bail!("requires running as a git pre-receive hook");
+        }
 
         // pull object directories from the environment
         //
         // git2::Repository::open_from_env() doesn't appear to respect the temporary
         // object directory used for incoming objects before they're merged into the tree
         // so we manually add them ourselves.
-        let mut odbs = vec![];
+        let mut odb_paths = vec![];
         if let Ok(value) = std::env::var("GIT_OBJECT_DIRECTORY") {
-            odbs.push(value);
+            odb_paths.push(value);
         }
         if let Ok(values) = std::env::var("GIT_ALTERNATE_OBJECT_DIRECTORIES") {
-            odbs.extend(values.split(':').map(|s| s.to_string()));
+            odb_paths.extend(values.split(':').map(|s| s.to_string()));
         }
 
         // WARNING: This appears to invalidate the environment in some fashion so
@@ -40,15 +42,14 @@ impl Command {
             .map_err(|e| anyhow!("failed opening git repo: {e}"))?;
 
         // manually add all object directories so incoming commits can be found
-        for odb in odbs {
-            repo.odb()?.add_disk_alternate(&odb)?;
-        }
-
-        if stdin.is_terminal() {
-            anyhow::bail!("requires running as a git pre-receive hook");
+        let odb = repo.odb()?;
+        for path in odb_paths {
+            odb.add_disk_alternate(&path)?;
         }
 
         let mut failed = false;
+        let mut reporter: Reporter = FancyReporter::default().into();
+
         for line in stdin.lines() {
             let line = line?;
             // TODO: skip pushes where the ref name doesn't match the default branch
@@ -58,10 +59,10 @@ impl Command {
                 anyhow::bail!("invalid pre-receive hook arguments: {line}");
             };
 
-            // TODO: Consider streaming pack file entries to the server instead of
+            // TODO: Consider streaming packfile entries to the server instead of
             // building it in a memory buffer and serializing it.
             //
-            // generate pack file data
+            // serialize target commits into a packfile
             let mut pack_builder = repo
                 .packbuilder()
                 .map_err(|e| anyhow!("failed initializing pack builder: {e}"))?;
@@ -77,7 +78,7 @@ impl Command {
             let mut buf = git2::Buf::new();
             pack_builder
                 .write_buf(&mut buf)
-                .map_err(|e| anyhow!("failed writing pack data: {e}"))?;
+                .map_err(|e| anyhow!("failed serializing packfile: {e}"))?;
 
             // send request to server
             let push = PushRequest {
