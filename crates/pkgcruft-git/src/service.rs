@@ -133,7 +133,7 @@ impl PkgcruftService {
     fn try_new(uri: String, temp: bool, jobs: usize) -> crate::Result<Self> {
         let mut _tempdir = None;
         let path = if temp {
-            // create temporary dir for git repo
+            // create temporary git repo dir
             let tempdir = tempdir()
                 .map_err(|e| Error::Start(format!("failed creating temp dir: {e}")))?;
             let path = Utf8PathBuf::from_path_buf(tempdir.path().to_owned())
@@ -183,7 +183,6 @@ impl PkgcruftService {
     fn handle_push(
         &self,
         git_repo: &git2::Repository,
-        target_branch: &str,
         git_ref: &mut git2::Reference,
         push: &PushRequest,
     ) -> crate::Result<PushResponse> {
@@ -202,7 +201,8 @@ impl PkgcruftService {
         let new_oid: git2::Oid = push.new_ref.parse()?;
         let commit = git_repo.find_annotated_commit(new_oid)?;
         git_repo.branch_from_annotated_commit("pkgcruft-git-test", &commit, true)?;
-        git::checkout_branch(git_repo, "pkgcruft-git-test")?;
+        git_repo.set_head("refs/heads/pkgcruft-git-test")?;
+        git_repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
 
         // determine diff
         let diff = git::diff(git_repo, &push.old_ref, &push.new_ref)?;
@@ -250,14 +250,14 @@ impl PkgcruftService {
                 .extend(reports.into_iter().map(|r| r.to_json()));
         }
 
+        // reset head to target ref
+        let ref_name = &push.ref_name;
+        git_repo.set_head(ref_name)?;
+        git_repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
+
         if scanner.failed() {
             reply.failed = true;
         } else {
-            let ref_name = &push.ref_name;
-
-            // reset to target branch
-            git::checkout_branch(git_repo, target_branch)?;
-
             // only handle unborn or fast-forward merge variants
             let (analysis, _prefs) = git_repo.merge_analysis(&[&commit])?;
             if analysis.is_unborn() {
@@ -272,7 +272,6 @@ impl PkgcruftService {
             // update target reference and checkout HEAD
             let msg = format!("fast-forward: setting {ref_name}: {new_oid}");
             git_ref.set_target(new_oid, &msg)?;
-            git_repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
         }
 
         Ok(reply)
@@ -361,16 +360,19 @@ impl Pkgcruft for PkgcruftService {
         let mut git_ref = git_repo
             .find_reference(ref_name)
             .map_err(|e| Status::from_error(Box::new(e)))?;
-        let target_branch = git_ref.shorthand().map(|s| s.to_string()).ok_or_else(|| {
-            Status::invalid_argument(format!("invalid ref name: {ref_name}"))
-        })?;
 
         // run targeted pkgcruft scanning
-        let result = self.handle_push(&git_repo, &target_branch, &mut git_ref, &push);
+        let result = self.handle_push(&git_repo, &mut git_ref, &push);
 
-        // reset to target branch
-        git::checkout_branch(&git_repo, &target_branch)
-            .map_err(|e| Status::from_error(Box::new(e)))?;
+        // reset to target branch on error
+        if result.is_err() {
+            git_repo
+                .set_head(ref_name)
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+            git_repo
+                .checkout_head(Some(git2::build::CheckoutBuilder::default().force()))
+                .map_err(|e| Status::from_error(Box::new(e)))?;
+        }
 
         // delete test branch if it exists
         if let Ok(mut branch) =
