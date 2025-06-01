@@ -228,26 +228,22 @@ impl PkgcruftService {
             }
         }
 
-        let mut reply = PushResponse { reports: vec![], failed: false };
+        let mut reports = vec![];
 
         // scan individual packages that were changed
         let mut scanner = Scanner::new()
             .jobs(self.jobs)
             .exit([ReportLevel::Critical, ReportLevel::Warning]);
         for cpn in cpns {
-            let reports = scanner.run(&repo, &cpn)?;
-            reply
-                .reports
-                .extend(reports.into_iter().map(|r| r.to_json()));
+            let reports_iter = scanner.run(&repo, &cpn)?;
+            reports.extend(reports_iter.into_iter().map(|r| r.to_json()));
         }
 
         // scan full tree for metadata errors on eclass changes
         if eclass {
             scanner = scanner.reports([pkgcruft::check::Check::Metadata]);
-            let reports = scanner.run(&repo, Restrict::True)?;
-            reply
-                .reports
-                .extend(reports.into_iter().map(|r| r.to_json()));
+            let reports_iter = scanner.run(&repo, Restrict::True)?;
+            reports.extend(reports_iter.into_iter().map(|r| r.to_json()));
         }
 
         // reset head to target ref
@@ -255,9 +251,9 @@ impl PkgcruftService {
         git_repo.set_head(ref_name)?;
         git_repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
 
-        if scanner.failed() {
-            reply.failed = true;
-        } else {
+        // update target reference for successful runs
+        let failed = scanner.failed();
+        if !failed {
             // only handle unborn or fast-forward merge variants
             let (analysis, _prefs) = git_repo.merge_analysis(&[&commit])?;
             if analysis.is_unborn() {
@@ -269,12 +265,11 @@ impl PkgcruftService {
                 )));
             }
 
-            // update target reference and checkout HEAD
             let msg = format!("fast-forward: setting {ref_name}: {new_oid}");
             git_ref.set_target(new_oid, &msg)?;
         }
 
-        Ok(reply)
+        Ok(PushResponse { reports, failed })
     }
 }
 
