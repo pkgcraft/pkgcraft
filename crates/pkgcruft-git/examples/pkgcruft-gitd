@@ -33,7 +33,8 @@ if [[ ! -d ${REPOS_DIR} ]]; then
 	mkdir "${REPOS_DIR}"/remote.git/hooks
 	cat <<-EOF > "${REPOS_DIR}"/remote.git/hooks/pre-receive
 	#!/bin/sh
-	"${TARGET_DIR}"/pkgcruft-git push
+	export PATH="${TARGET_DIR}"
+	pkgcruft-git push
 	EOF
 	chmod +x "${REPOS_DIR}"/remote.git/hooks/pre-receive
 
