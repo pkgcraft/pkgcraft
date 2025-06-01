@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
+use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
 use pkgcraft::restrict::Restrict;
 use pkgcruft::report::ReportLevel;
@@ -228,7 +229,7 @@ impl PkgcruftService {
             }
         }
 
-        let mut reports = vec![];
+        let mut reports = IndexSet::new();
 
         // scan individual packages that were changed
         let mut scanner = Scanner::new()
@@ -269,7 +270,10 @@ impl PkgcruftService {
             git_ref.set_target(new_oid, &msg)?;
         }
 
-        Ok(PushResponse { reports, failed })
+        Ok(PushResponse {
+            reports: reports.into_iter().sorted().collect(),
+            failed,
+        })
     }
 }
 
