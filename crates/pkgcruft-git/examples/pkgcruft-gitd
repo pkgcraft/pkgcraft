@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
 # Set up an example pkgcruft-git service targeting the gentoo repo by default.
+#
+# Note that this script requires running within the pkgcraft git repo.
 
 set -e
 
