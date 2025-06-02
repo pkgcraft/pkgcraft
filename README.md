@@ -10,7 +10,7 @@ Highly experimental tooling ecosystem for Gentoo comprised of the following:
 - [pkgcraft-c]: C bindings
 - [pkgcraft-tools]: command-line tools
 - [pkgcruft]: QA library and tools
-- [pkgcruft-git]: QA service providing git hook support
+- [pkgcruft-git]: QA support for verifying git commits
 - [arcanist]: package-building daemon
 
 Compatibility with the official [package management specification][pmspec] is

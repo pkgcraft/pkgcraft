@@ -1,6 +1,8 @@
-Client and server for verifying git commits via pkgcruft during server-side pre-receive hook.
+# pkgcruft-git
 
-# Demo
+Tools and services for verifying git commits via pkgcruft.
+
+## Server side commit verification via git pre-receive hook
 
 To start an interactive service demo, run the following script:
 
