@@ -4,7 +4,7 @@ Tools and services for verifying git commits via pkgcruft.
 
 ## Server side commit verification via git pre-receive hook
 
-To start an interactive service demo, run the following script:
+To start a service demo, run the following script:
 
     ./examples/pkgcruft-gitd
 
