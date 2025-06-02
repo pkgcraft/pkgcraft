@@ -64,6 +64,9 @@ name = "pkgcruft-gitd"
 [[bin]]
 name = "pkgcruft-git"
 
+[[bin]]
+name = "pkgcruft-git-pre-push"
+
 [[test]]
 name = "integration"
 path = "tests/lib.rs"
