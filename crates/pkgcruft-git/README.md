@@ -1,6 +1,6 @@
 # pkgcruft-git
 
-Tools and services for verifying git commits via pkgcruft.
+QA support for verifying git commits via pkgcruft.
 
 ## Server side commit verification via git pre-receive hook
 
