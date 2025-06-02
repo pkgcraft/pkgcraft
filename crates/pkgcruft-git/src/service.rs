@@ -258,7 +258,7 @@ impl PkgcruftService {
         // scan individual packages that were changed
         let mut scanner = Scanner::new()
             .jobs(self.jobs)
-            .exit([ReportLevel::Critical, ReportLevel::Warning]);
+            .exit([ReportLevel::Critical, ReportLevel::Error]);
         for cpn in cpns {
             let reports_iter = scanner.run(&repo, &cpn)?;
             reports.extend(reports_iter.into_iter().map(|r| r.to_json()));

@@ -95,7 +95,7 @@ fn main() -> anyhow::Result<ExitCode> {
     let mut reporter: Reporter = FancyReporter::default().into();
     let scanner = Scanner::new()
         .jobs(args.jobs)
-        .exit([ReportLevel::Critical, ReportLevel::Warning]);
+        .exit([ReportLevel::Critical, ReportLevel::Error]);
 
     for line in stdin.lines() {
         let line = line?;
