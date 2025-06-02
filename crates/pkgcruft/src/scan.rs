@@ -16,7 +16,7 @@ use crate::report::{Report, ReportKind, ReportSet, ReportTarget};
 use crate::source::PkgFilter;
 
 /// Scanner builder.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Scanner {
     jobs: usize,
     force: bool,
