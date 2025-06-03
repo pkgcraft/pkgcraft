@@ -505,12 +505,12 @@ impl Eapi {
     }
 }
 
+/// EAPIs that have been dropped by pkgcraft.
 static OLD_EAPIS: LazyLock<IndexSet<String>> = LazyLock::new(|| {
-    let end = EAPIS_OFFICIAL[0]
-        .id
-        .parse()
-        .expect("non-integer based EAPI");
-    (0..end).map(|s| s.to_string()).collect()
+    ["0", "1", "2", "3", "4"]
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect()
 });
 
 pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
