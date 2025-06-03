@@ -384,6 +384,7 @@ async fn custom_mirror() {
         .mount(&server)
         .await;
 
+    // file without subdirectory
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
@@ -422,6 +423,40 @@ async fn custom_mirror() {
         .success();
     let data = fs::read_to_string("file1").unwrap();
     assert_eq!(&data, "test1");
+
+    // file with subdirectory
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with custom mirror"
+        SRC_URI="mirror://{name}/path/to/file2"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+
+    // mirror with subdirectory
+    fs::write(
+        repo.path().join("profiles/thirdpartymirrors"),
+        format!("{name} {uri}/invalid1 {uri}/invalid2 {uri}/mirror-dir/"),
+    )
+    .unwrap();
+
+    // mirrored file combining SRC_URI subdirectory with mirror subdirectory
+    Mock::given(method("GET"))
+        .and(path("/mirror-dir/path/to/file2"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"test2"))
+        .mount(&server)
+        .await;
+
+    // iterate through mirrors until download succeeds
+    cmd("pk pkg fetch")
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+    let data = fs::read_to_string("file2").unwrap();
+    assert_eq!(&data, "test2");
 }
 
 #[tokio::test]
