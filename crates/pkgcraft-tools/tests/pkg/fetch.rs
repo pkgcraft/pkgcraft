@@ -374,6 +374,7 @@ async fn resume() {
 
 #[tokio::test]
 async fn custom_mirror() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let server = MockServer::start().await;
     let uri = server.uri();
     let name = "mocked";
@@ -385,10 +386,9 @@ async fn custom_mirror() {
         .await;
 
     // file without subdirectory
-    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
-        DESCRIPTION="ebuild with custom mirror"
+        DESCRIPTION="ebuild using custom mirror"
         SRC_URI="mirror://{name}/file1"
         SLOT=0
     "#};
@@ -425,10 +425,9 @@ async fn custom_mirror() {
     assert_eq!(&data, "test1");
 
     // file with subdirectory
-    let mut repo = EbuildRepoBuilder::new().build().unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8
-        DESCRIPTION="ebuild with custom mirror"
+        DESCRIPTION="ebuild using custom mirror with subdirectory"
         SRC_URI="mirror://{name}/path/to/file2"
         SLOT=0
     "#};
