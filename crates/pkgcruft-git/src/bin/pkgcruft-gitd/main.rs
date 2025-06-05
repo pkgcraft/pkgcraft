@@ -1,7 +1,7 @@
 use std::io::stderr;
 
 use clap::Parser;
-use clap_verbosity_flag::{Verbosity, log::LevelFilter};
+use clap_verbosity_flag::Verbosity;
 use pkgcraft::utils::bounded_thread_pool;
 use pkgcruft_git::service::PkgcruftServiceBuilder;
 use tracing_log::AsTrace;
@@ -44,11 +44,7 @@ async fn main() -> anyhow::Result<()> {
 
     // custom log event formatter that disables target prefixes by default
     let level = args.verbosity.log_level_filter();
-    let format = tracing_subscriber::fmt::format()
-        .with_level(true)
-        .with_target(level > LevelFilter::Info)
-        .without_time()
-        .compact();
+    let format = tracing_subscriber::fmt::format().with_level(true).compact();
 
     // create formatting subscriber that uses stderr
     let mut subscriber = tracing_subscriber::fmt()

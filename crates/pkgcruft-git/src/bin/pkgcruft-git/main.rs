@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use clap::Parser;
-use clap_verbosity_flag::{Verbosity, log::LevelFilter};
+use clap_verbosity_flag::Verbosity;
 use hyper_util::rt::TokioIo;
 use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::UnixStream;
@@ -54,11 +54,7 @@ async fn try_main() -> anyhow::Result<()> {
 
     // custom log event formatter that disables target prefixes by default
     let level = args.verbosity.log_level_filter();
-    let format = tracing_subscriber::fmt::format()
-        .with_level(true)
-        .with_target(level > LevelFilter::Info)
-        .without_time()
-        .compact();
+    let format = tracing_subscriber::fmt::format().with_level(true).compact();
 
     // create formatting subscriber that uses stderr
     let mut subscriber = tracing_subscriber::fmt()

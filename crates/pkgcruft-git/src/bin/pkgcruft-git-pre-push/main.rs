@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use anyhow::anyhow;
 use camino::Utf8Path;
 use clap::Parser;
-use clap_verbosity_flag::{Verbosity, log::LevelFilter};
+use clap_verbosity_flag::Verbosity;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
@@ -45,11 +45,7 @@ fn main() -> anyhow::Result<ExitCode> {
 
     // custom log event formatter that disables target prefixes by default
     let level = args.verbosity.log_level_filter();
-    let format = tracing_subscriber::fmt::format()
-        .with_level(true)
-        .with_target(level > LevelFilter::Info)
-        .without_time()
-        .compact();
+    let format = tracing_subscriber::fmt::format().with_level(true).compact();
 
     // create formatting subscriber that uses stderr
     let mut subscriber = tracing_subscriber::fmt()
@@ -99,7 +95,7 @@ fn main() -> anyhow::Result<ExitCode> {
 
     for line in stdin.lines() {
         let line = line?;
-        // get hook arguments
+        // get hook input args
         let Some((_local_ref, local_obj, _remote_ref, remote_obj)) =
             line.split(' ').collect_tuple()
         else {
