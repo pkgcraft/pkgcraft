@@ -8,7 +8,7 @@ Build and install from git:
 
     cargo install pkgcruft-git --git https://github.com/pkgcraft/pkgcraft.git
 
-## Client side commit verification via git pre-push hook
+## Client side verification via pre-push hook
 
 To trigger commit verification before pushing to a remote, symlink the
 pkgcruft-git-pre-push binary as a pre-push hook for the target git repo:
@@ -20,7 +20,7 @@ pkgcruft-git-pre-push binary as a pre-push hook for the target git repo:
 When using multiple pre-push hooks, it will have to be called manually passing
 the expected remote arguments.
 
-## Server side commit verification via git pre-receive hook
+## Server side verification via pre-receive hook
 
 To start a service demo, run the following script:
 
