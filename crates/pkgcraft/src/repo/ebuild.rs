@@ -306,7 +306,7 @@ impl EbuildRepo {
         let cpn = Cpn::try_from((cat, pkg))?;
         let p = file
             .strip_suffix(".ebuild")
-            .ok_or_else(|| path_err("missing ebuild ext"))?;
+            .ok_or_else(|| path_err("non-ebuild file"))?;
         let version = p
             .strip_prefix(cpn.package())
             .and_then(|s| s.strip_prefix('-'));
