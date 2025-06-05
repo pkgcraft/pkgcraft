@@ -2,6 +2,24 @@
 
 QA support for verifying git commits via pkgcruft.
 
+## Install
+
+Build and install from git:
+
+    cargo install pkgcruft-git --git https://github.com/pkgcraft/pkgcraft.git
+
+## Client side commit verification via git pre-push hook
+
+To trigger commit verification before pushing to a remote, symlink the
+pkgcruft-git-pre-push binary as a pre-push hook for the target git repo:
+
+    cd path/to/git/repo
+    mkdir -p .git/hooks
+    ln -s $(which pkgcruft-git-pre-push) .git/hooks/pre-push
+
+When using multiple pre-push hooks, it will have to be called manually passing
+the expected remote arguments.
+
 ## Server side commit verification via git pre-receive hook
 
 To start a service demo, run the following script:
