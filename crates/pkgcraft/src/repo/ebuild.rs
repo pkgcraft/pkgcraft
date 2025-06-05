@@ -283,6 +283,12 @@ impl EbuildRepo {
             .take(2)
             .collect_tuple()
             .ok_or_else(|| path_err("mismatched path components"))?;
+
+        // ignore paths from non-categories such as profiles/*
+        if !self.categories().contains(cat) {
+            path_err("non-category path");
+        }
+
         Cpn::try_from((cat, pkg))
     }
 
