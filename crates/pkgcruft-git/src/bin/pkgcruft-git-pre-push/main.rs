@@ -43,13 +43,9 @@ pub(crate) struct Command {
 fn main() -> anyhow::Result<ExitCode> {
     let args = Command::parse();
 
-    // custom log event formatter that disables target prefixes by default
-    let level = args.verbosity.log_level_filter();
-    let format = tracing_subscriber::fmt::format().with_level(true).compact();
-
     // create formatting subscriber that uses stderr
+    let level = args.verbosity.log_level_filter();
     let mut subscriber = tracing_subscriber::fmt()
-        .event_format(format)
         .with_max_level(level.as_trace())
         .with_writer(io::stderr);
 
