@@ -10,7 +10,7 @@ Build and install from git:
 
 ## Client side verification via pre-push hook
 
-To trigger commit verification before pushing to a remote, symlink the
+To perform commit verification locally before pushing to a remote, symlink the
 pkgcruft-git-pre-push binary as a pre-push hook for the target git repo:
 
     cd path/to/git/repo
