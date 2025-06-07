@@ -1,7 +1,7 @@
 [package]
 name = "pkgcruft-git"
 version = "0.0.1"
-description = "Client and server for scanning git commits using pkgcruft"
+description = "QA support for verifying git commits via pkgcruft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
 readme = "README.md"
