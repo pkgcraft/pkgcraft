@@ -65,11 +65,11 @@ impl<'a, T: Ordered> Iterator for IterFlatten<'a, T> {
         while let Some(dep) = self.0.pop_front() {
             match dep {
                 Enabled(val) | Disabled(val) => return Some(val),
-                AllOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                Conditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AllOf(vals) => self.0.extend_left(vals),
+                AnyOf(vals) => self.0.extend_left(vals),
+                ExactlyOneOf(vals) => self.0.extend_left(vals),
+                AtMostOneOf(vals) => self.0.extend_left(vals),
+                Conditional(_, vals) => self.0.extend_left(vals),
             }
         }
         None
@@ -82,11 +82,11 @@ impl<T: Ordered> DoubleEndedIterator for IterFlatten<'_, T> {
         while let Some(dep) = self.0.pop_back() {
             match dep {
                 Enabled(val) | Disabled(val) => return Some(val),
-                AllOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
-                AnyOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
-                ExactlyOneOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
-                AtMostOneOf(vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
-                Conditional(_, vals) => self.0.extend(vals.iter().map(AsRef::as_ref)),
+                AllOf(vals) => self.0.extend(vals),
+                AnyOf(vals) => self.0.extend(vals),
+                ExactlyOneOf(vals) => self.0.extend(vals),
+                AtMostOneOf(vals) => self.0.extend(vals),
+                Conditional(_, vals) => self.0.extend(vals),
             }
         }
         None
@@ -110,11 +110,11 @@ impl<T: Ordered> Iterator for IntoIterFlatten<T> {
         while let Some(dep) = self.0.pop_front() {
             match dep {
                 Enabled(val) | Disabled(val) => return Some(val),
-                AllOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                Conditional(_, vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                AllOf(vals) => self.0.extend_left(vals),
+                AnyOf(vals) => self.0.extend_left(vals),
+                ExactlyOneOf(vals) => self.0.extend_left(vals),
+                AtMostOneOf(vals) => self.0.extend_left(vals),
+                Conditional(_, vals) => self.0.extend_left(vals),
             }
         }
         None
@@ -127,11 +127,11 @@ impl<T: Ordered> DoubleEndedIterator for IntoIterFlatten<T> {
         while let Some(dep) = self.0.pop_back() {
             match dep {
                 Enabled(val) | Disabled(val) => return Some(val),
-                AllOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
-                AnyOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
-                ExactlyOneOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
-                AtMostOneOf(vals) => self.0.extend(vals.into_iter().map(|x| *x)),
-                Conditional(_, vals) => self.0.extend(vals.into_iter().map(|x| *x)),
+                AllOf(vals) => self.0.extend(vals),
+                AnyOf(vals) => self.0.extend(vals),
+                ExactlyOneOf(vals) => self.0.extend(vals),
+                AtMostOneOf(vals) => self.0.extend(vals),
+                Conditional(_, vals) => self.0.extend(vals),
             }
         }
         None
@@ -162,20 +162,20 @@ impl<'a, T: Ordered> Iterator for IterConditionalFlatten<'a, T> {
                 Enabled(val) | Disabled(val) => return Some((use_deps, val)),
                 AllOf(vals) => self
                     .0
-                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d))),
                 AnyOf(vals) => self
                     .0
-                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d))),
                 ExactlyOneOf(vals) => self
                     .0
-                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d))),
                 AtMostOneOf(vals) => self
                     .0
-                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref()))),
+                    .extend_left(vals.iter().map(|d| (use_deps.clone(), d))),
                 Conditional(u, vals) => {
                     use_deps.push(u);
                     self.0
-                        .extend_left(vals.iter().map(|d| (use_deps.clone(), d.as_ref())));
+                        .extend_left(vals.iter().map(|d| (use_deps.clone(), d)));
                 }
             }
         }
@@ -207,20 +207,20 @@ impl<T: Ordered> Iterator for IntoIterConditionalFlatten<T> {
                 Enabled(val) | Disabled(val) => return Some((use_deps, val)),
                 AllOf(vals) => self
                     .0
-                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), x))),
                 AnyOf(vals) => self
                     .0
-                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), x))),
                 ExactlyOneOf(vals) => self
                     .0
-                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), x))),
                 AtMostOneOf(vals) => self
                     .0
-                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x))),
+                    .extend_left(vals.into_iter().map(|x| (use_deps.clone(), x))),
                 Conditional(u, vals) => {
                     use_deps.push(u);
                     self.0
-                        .extend_left(vals.into_iter().map(|x| (use_deps.clone(), *x)));
+                        .extend_left(vals.into_iter().map(|x| (use_deps.clone(), x)));
                 }
             }
         }
@@ -246,11 +246,11 @@ impl<'a, T: Ordered> Iterator for IterRecursive<'a, T> {
         if let Some(dep) = val {
             match dep {
                 Enabled(_) | Disabled(_) => (),
-                AllOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                Conditional(_, vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AllOf(vals) => self.0.extend_left(vals),
+                AnyOf(vals) => self.0.extend_left(vals),
+                ExactlyOneOf(vals) => self.0.extend_left(vals),
+                AtMostOneOf(vals) => self.0.extend_left(vals),
+                Conditional(_, vals) => self.0.extend_left(vals),
             }
         }
 
@@ -276,13 +276,11 @@ impl<T: Ordered> Iterator for IntoIterRecursive<T> {
         if let Some(dep) = &val {
             match dep {
                 Enabled(_) | Disabled(_) => (),
-                AllOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x.clone())),
-                Conditional(_, vals) => {
-                    self.0.extend_left(vals.into_iter().map(|x| *x.clone()))
-                }
+                AllOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
+                AnyOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
+                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
+                Conditional(_, vals) => self.0.extend_left(vals.into_iter().cloned()),
             }
         }
 
@@ -307,12 +305,12 @@ impl<'a, T: Ordered> Iterator for IterConditionals<'a, T> {
         while let Some(dep) = self.0.pop_front() {
             match dep {
                 Enabled(_) | Disabled(_) => (),
-                AllOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                AnyOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                ExactlyOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
-                AtMostOneOf(vals) => self.0.extend_left(vals.iter().map(AsRef::as_ref)),
+                AllOf(vals) => self.0.extend_left(vals),
+                AnyOf(vals) => self.0.extend_left(vals),
+                ExactlyOneOf(vals) => self.0.extend_left(vals),
+                AtMostOneOf(vals) => self.0.extend_left(vals),
                 Conditional(u, vals) => {
-                    self.0.extend_left(vals.iter().map(AsRef::as_ref));
+                    self.0.extend_left(vals);
                     return Some(u);
                 }
             }
@@ -338,12 +336,12 @@ impl<T: Ordered> Iterator for IntoIterConditionals<T> {
         while let Some(dep) = self.0.pop_front() {
             match dep {
                 Enabled(_) | Disabled(_) => (),
-                AllOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                AnyOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
-                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().map(|x| *x)),
+                AllOf(vals) => self.0.extend_left(vals),
+                AnyOf(vals) => self.0.extend_left(vals),
+                ExactlyOneOf(vals) => self.0.extend_left(vals),
+                AtMostOneOf(vals) => self.0.extend_left(vals),
                 Conditional(u, vals) => {
-                    self.0.extend_left(vals.into_iter().map(|x| *x));
+                    self.0.extend_left(vals);
                     return Some(u);
                 }
             }
@@ -352,12 +350,11 @@ impl<T: Ordered> Iterator for IntoIterConditionals<T> {
     }
 }
 
-macro_rules! box_eval {
+macro_rules! eval {
     ($vals:expr, $options:expr) => {
         $vals
             .into_iter()
             .flat_map(|d| d.into_iter_evaluate($options))
-            .map(|d| Box::new(d))
             .collect()
     };
 }
@@ -378,32 +375,32 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
                 Enabled(val) => return Some(Enabled(val)),
                 Disabled(val) => return Some(Disabled(val)),
                 AllOf(vals) => {
-                    let evaluated = AllOf(box_eval!(vals, self.options));
+                    let evaluated = AllOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 AnyOf(vals) => {
-                    let evaluated = AnyOf(box_eval!(vals, self.options));
+                    let evaluated = AnyOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 ExactlyOneOf(vals) => {
-                    let evaluated = ExactlyOneOf(box_eval!(vals, self.options));
+                    let evaluated = ExactlyOneOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 AtMostOneOf(vals) => {
-                    let evaluated = AtMostOneOf(box_eval!(vals, self.options));
+                    let evaluated = AtMostOneOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 Conditional(u, vals) => {
                     if u.matches(self.options) {
-                        self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
+                        self.q.extend_left(vals);
                     }
                 }
             }
@@ -428,32 +425,32 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
                 Enabled(val) => return Some(Enabled(val)),
                 Disabled(val) => return Some(Disabled(val)),
                 AllOf(vals) => {
-                    let evaluated = AllOf(box_eval!(vals, self.options));
+                    let evaluated = AllOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 AnyOf(vals) => {
-                    let evaluated = AnyOf(box_eval!(vals, self.options));
+                    let evaluated = AnyOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 ExactlyOneOf(vals) => {
-                    let evaluated = ExactlyOneOf(box_eval!(vals, self.options));
+                    let evaluated = ExactlyOneOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 AtMostOneOf(vals) => {
-                    let evaluated = AtMostOneOf(box_eval!(vals, self.options));
+                    let evaluated = AtMostOneOf(eval!(vals, self.options));
                     if !evaluated.is_empty() {
                         return Some(evaluated);
                     }
                 }
                 Conditional(u, vals) => {
                     if u.matches(self.options) {
-                        self.q.extend_left(vals.into_iter().map(|x| *x));
+                        self.q.extend_left(vals);
                     }
                 }
             }
@@ -468,7 +465,6 @@ macro_rules! iter_eval_force {
             $vals
                 .into_iter()
                 .flat_map(|d| d.into_iter_evaluate_force($force))
-                .map(|d| Box::new(d))
                 .collect(),
         );
 
@@ -499,7 +495,7 @@ impl<'a, T: Ordered> Iterator for IterEvaluateForce<'a, T> {
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
                 Conditional(_, vals) => {
                     if self.force {
-                        self.q.extend_left(vals.into_iter().map(AsRef::as_ref));
+                        self.q.extend_left(vals);
                     }
                 }
             }
@@ -529,7 +525,7 @@ impl<'a, T: Ordered> Iterator for IntoIterEvaluateForce<'a, T> {
                 AtMostOneOf(vals) => iter_eval_force!(AtMostOneOf, vals, self.force),
                 Conditional(_, vals) => {
                     if self.force {
-                        self.q.extend_left(vals.into_iter().map(|x| *x));
+                        self.q.extend_left(vals);
                     }
                 }
             }

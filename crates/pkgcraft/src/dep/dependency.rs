@@ -1,4 +1,5 @@
 use std::fmt;
+use std::ops::Deref;
 
 use itertools::Itertools;
 
@@ -9,6 +10,120 @@ use crate::types::{Ordered, OrderedSet, SortedSet};
 
 use super::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SortedDeps<T: Ordered>(SortedSet<Dependency<T>>);
+
+impl<T: Ordered> Deref for SortedDeps<T> {
+    type Target = SortedSet<Dependency<T>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T: Ordered> IntoIterator for SortedDeps<T> {
+    type Item = Dependency<T>;
+    type IntoIter = indexmap::set::IntoIter<Dependency<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a, T: Ordered> IntoIterator for &'a SortedDeps<T> {
+    type Item = &'a Dependency<T>;
+    type IntoIter = indexmap::set::Iter<'a, Dependency<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<T: Ordered> FromIterator<Dependency<T>> for SortedDeps<T> {
+    fn from_iter<I: IntoIterator<Item = Dependency<T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
+    }
+}
+
+impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<T>> for SortedDeps<&'a T> {
+    fn from_iter<I: IntoIterator<Item = &'a Dependency<T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().map(|d| d.to_ref()).collect())
+    }
+}
+
+impl<T: Ordered> IntoOwned for SortedDeps<&T> {
+    type Owned = SortedDeps<T>;
+
+    fn into_owned(self) -> Self::Owned {
+        self.0.into_iter().map(|x| x.into_owned()).collect()
+    }
+}
+
+impl<'a, T: Ordered + 'a> ToRef<'a> for SortedDeps<T> {
+    type Ref = SortedDeps<&'a T>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        self.0.iter().collect()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct OrderedDeps<T: Ordered>(OrderedSet<Dependency<T>>);
+
+impl<T: Ordered> Deref for OrderedDeps<T> {
+    type Target = OrderedSet<Dependency<T>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T: Ordered> IntoIterator for OrderedDeps<T> {
+    type Item = Dependency<T>;
+    type IntoIter = ordermap::set::IntoIter<Dependency<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a, T: Ordered> IntoIterator for &'a OrderedDeps<T> {
+    type Item = &'a Dependency<T>;
+    type IntoIter = ordermap::set::Iter<'a, Dependency<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<T: Ordered> FromIterator<Dependency<T>> for OrderedDeps<T> {
+    fn from_iter<I: IntoIterator<Item = Dependency<T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
+    }
+}
+
+impl<'a, T: Ordered + 'a> FromIterator<&'a Dependency<T>> for OrderedDeps<&'a T> {
+    fn from_iter<I: IntoIterator<Item = &'a Dependency<T>>>(iterable: I) -> Self {
+        Self(iterable.into_iter().map(|d| d.to_ref()).collect())
+    }
+}
+
+impl<T: Ordered> IntoOwned for OrderedDeps<&T> {
+    type Owned = OrderedDeps<T>;
+
+    fn into_owned(self) -> Self::Owned {
+        self.0.into_iter().map(|x| x.into_owned()).collect()
+    }
+}
+
+impl<'a, T: Ordered + 'a> ToRef<'a> for OrderedDeps<T> {
+    type Ref = OrderedDeps<&'a T>;
+
+    fn to_ref(&'a self) -> Self::Ref {
+        self.0.iter().collect()
+    }
+}
+
 /// Dependency specification variants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Dependency<T: Ordered> {
@@ -17,24 +132,15 @@ pub enum Dependency<T: Ordered> {
     /// Disabled dependency (REQUIRED_USE only).
     Disabled(T),
     /// All of a given dependency set.
-    AllOf(SortedSet<Box<Dependency<T>>>),
+    AllOf(SortedDeps<T>),
     /// Any of a given dependency set.
-    AnyOf(OrderedSet<Box<Dependency<T>>>),
+    AnyOf(OrderedDeps<T>),
     /// Exactly one of a given dependency set (REQUIRED_USE only).
-    ExactlyOneOf(OrderedSet<Box<Dependency<T>>>),
+    ExactlyOneOf(OrderedDeps<T>),
     /// At most one of a given dependency set (REQUIRED_USE only).
-    AtMostOneOf(OrderedSet<Box<Dependency<T>>>),
+    AtMostOneOf(OrderedDeps<T>),
     /// Conditional dependency.
-    Conditional(UseDep, SortedSet<Box<Dependency<T>>>),
-}
-
-macro_rules! box_owned {
-    ($vals:expr) => {
-        $vals
-            .into_iter()
-            .map(|b| Box::new(b.into_owned()))
-            .collect()
-    };
+    Conditional(UseDep, SortedDeps<T>),
 }
 
 impl<T: Ordered> IntoOwned for Dependency<&T> {
@@ -45,22 +151,13 @@ impl<T: Ordered> IntoOwned for Dependency<&T> {
         match self {
             Enabled(val) => Enabled(val.clone()),
             Disabled(val) => Disabled(val.clone()),
-            AllOf(vals) => AllOf(box_owned!(vals)),
-            AnyOf(vals) => AnyOf(box_owned!(vals)),
-            ExactlyOneOf(vals) => ExactlyOneOf(box_owned!(vals)),
-            AtMostOneOf(vals) => AtMostOneOf(box_owned!(vals)),
-            Conditional(u, vals) => Conditional(u.clone(), box_owned!(vals)),
+            AllOf(vals) => AllOf(vals.into_owned()),
+            AnyOf(vals) => AnyOf(vals.into_owned()),
+            ExactlyOneOf(vals) => ExactlyOneOf(vals.into_owned()),
+            AtMostOneOf(vals) => AtMostOneOf(vals.into_owned()),
+            Conditional(u, vals) => Conditional(u.clone(), vals.into_owned()),
         }
     }
-}
-
-macro_rules! box_ref {
-    ($vals:expr) => {
-        $vals
-            .into_iter()
-            .map(|b| Box::new(b.as_ref().to_ref()))
-            .collect()
-    };
 }
 
 impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<T> {
@@ -71,12 +168,12 @@ impl<'a, T: Ordered + 'a> ToRef<'a> for Dependency<T> {
         match self {
             Enabled(val) => Enabled(val),
             Disabled(val) => Disabled(val),
-            AllOf(vals) => AllOf(box_ref!(vals)),
-            AnyOf(vals) => AnyOf(box_ref!(vals)),
-            ExactlyOneOf(vals) => ExactlyOneOf(box_ref!(vals)),
-            AtMostOneOf(vals) => AtMostOneOf(box_ref!(vals)),
+            AllOf(vals) => AllOf(vals.to_ref()),
+            AnyOf(vals) => AnyOf(vals.to_ref()),
+            ExactlyOneOf(vals) => ExactlyOneOf(vals.to_ref()),
+            AtMostOneOf(vals) => AtMostOneOf(vals.to_ref()),
             // TODO: replace clone with borrowed ref when dep evaluation is reworked
-            Conditional(u, vals) => Conditional(u.clone(), box_ref!(vals)),
+            Conditional(u, vals) => Conditional(u.clone(), vals.to_ref()),
         }
     }
 }
@@ -104,11 +201,11 @@ impl<T: Ordered> Dependency<T> {
                     None
                 }
             }
-            Self::AllOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            Self::AnyOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            Self::ExactlyOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            Self::AtMostOneOf(vals) => vals.get_index(index).map(AsRef::as_ref),
-            Self::Conditional(_, vals) => vals.get_index(index).map(AsRef::as_ref),
+            Self::AllOf(vals) => vals.get_index(index),
+            Self::AnyOf(vals) => vals.get_index(index),
+            Self::ExactlyOneOf(vals) => vals.get_index(index),
+            Self::AtMostOneOf(vals) => vals.get_index(index),
+            Self::Conditional(_, vals) => vals.get_index(index),
         }
     }
 
@@ -252,11 +349,11 @@ impl<'a, T: Ordered> IntoIterator for &'a Dependency<T> {
         use Dependency::*;
         match self {
             Enabled(_) | Disabled(_) => [].into_iter().collect(),
-            AllOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
-            AnyOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
-            ExactlyOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
-            AtMostOneOf(vals) => vals.iter().map(AsRef::as_ref).collect(),
-            Conditional(_, vals) => vals.iter().map(AsRef::as_ref).collect(),
+            AllOf(vals) => vals.iter().collect(),
+            AnyOf(vals) => vals.iter().collect(),
+            ExactlyOneOf(vals) => vals.iter().collect(),
+            AtMostOneOf(vals) => vals.iter().collect(),
+            Conditional(_, vals) => vals.iter().collect(),
         }
     }
 }
@@ -332,11 +429,11 @@ impl<T: Ordered> IntoIterator for Dependency<T> {
     fn into_iter(self) -> Self::IntoIter {
         match self {
             Self::Enabled(_) | Self::Disabled(_) => [].into_iter().collect(),
-            Self::AllOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            Self::AnyOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            Self::ExactlyOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            Self::AtMostOneOf(vals) => vals.into_iter().map(|x| *x).collect(),
-            Self::Conditional(_, vals) => vals.into_iter().map(|x| *x).collect(),
+            Self::AllOf(vals) => vals.into_iter().collect(),
+            Self::AnyOf(vals) => vals.into_iter().collect(),
+            Self::ExactlyOneOf(vals) => vals.into_iter().collect(),
+            Self::AtMostOneOf(vals) => vals.into_iter().collect(),
+            Self::Conditional(_, vals) => vals.into_iter().collect(),
         }
     }
 }

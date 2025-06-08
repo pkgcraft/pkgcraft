@@ -229,11 +229,11 @@ peg::parser!(grammar depspec() for str {
 
     rule all_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = vals:parens(<expr()>)
-        { Dependency::AllOf(vals.into_iter().map(Box::new).collect()) }
+        { Dependency::AllOf(vals.into_iter().collect()) }
 
     rule any_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = "||" __ vals:parens(<expr()>)
-        { Dependency::AnyOf(vals.into_iter().map(Box::new).collect()) }
+        { Dependency::AnyOf(vals.into_iter().collect()) }
 
     rule conditional<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = disabled:"!"? flag:use_flag() "?" __ vals:parens(<expr()>) {
@@ -243,17 +243,17 @@ peg::parser!(grammar depspec() for str {
                 enabled: disabled.is_none(),
                 default: None,
             };
-            let deps = vals.into_iter().map(Box::new).collect();
+            let deps = vals.into_iter().collect();
             Dependency::Conditional(use_dep, deps)
         }
 
     rule exactly_one_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = "^^" __ vals:parens(<expr()>)
-        { Dependency::ExactlyOneOf(vals.into_iter().map(Box::new).collect()) }
+        { Dependency::ExactlyOneOf(vals.into_iter().collect()) }
 
     rule at_most_one_of<T: Ordered>(expr: rule<Dependency<T>>) -> Dependency<T>
         = "??" __ vals:parens(<expr()>)
-        { Dependency::AtMostOneOf(vals.into_iter().map(Box::new).collect()) }
+        { Dependency::AtMostOneOf(vals.into_iter().collect()) }
 
     pub(super) rule license_dependency() -> Dependency<String>
         = conditional(<license_dependency()>)
