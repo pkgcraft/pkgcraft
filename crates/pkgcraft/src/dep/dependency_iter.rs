@@ -276,11 +276,11 @@ impl<T: Ordered> Iterator for IntoIterRecursive<T> {
         if let Some(dep) = &val {
             match dep {
                 Enabled(_) | Disabled(_) => (),
-                AllOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
-                AnyOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
-                ExactlyOneOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
-                AtMostOneOf(vals) => self.0.extend_left(vals.into_iter().cloned()),
-                Conditional(_, vals) => self.0.extend_left(vals.into_iter().cloned()),
+                AllOf(vals) => self.0.extend_left(vals.clone()),
+                AnyOf(vals) => self.0.extend_left(vals.clone()),
+                ExactlyOneOf(vals) => self.0.extend_left(vals.clone()),
+                AtMostOneOf(vals) => self.0.extend_left(vals.clone()),
+                Conditional(_, vals) => self.0.extend_left(vals.clone()),
             }
         }
 
