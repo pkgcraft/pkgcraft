@@ -315,7 +315,7 @@ impl Command {
 
                     row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
 
-                    let slot = pkg.slot();
+                    let slot = pkg.fullslot();
                     if !prev_slot
                         .as_ref()
                         .map(|prev| prev == slot)
@@ -323,7 +323,7 @@ impl Command {
                     {
                         theme.insert_hline(pkg_row);
                         row.push(slot.to_string());
-                        prev_slot = Some(slot.to_string());
+                        prev_slot = Some(slot.clone());
                     } else {
                         row.push("".to_string());
                     }
