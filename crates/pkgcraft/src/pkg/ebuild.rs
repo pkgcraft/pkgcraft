@@ -5,7 +5,7 @@ use camino::Utf8PathBuf;
 use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
-use crate::dep::{Cpv, Dep};
+use crate::dep::{Cpv, Dep, Slot};
 use crate::dep::{DependencySet, Uri};
 use crate::eapi::Eapi;
 use crate::fetch::Fetchable;
@@ -152,7 +152,12 @@ impl EbuildPkg {
         &self.0.meta.description
     }
 
-    /// Return a package's slot.
+    /// Return a package's full slot.
+    pub fn fullslot(&self) -> &Slot {
+        &self.0.meta.slot
+    }
+
+    /// Return a package's main slot.
     pub fn slot(&self) -> &str {
         self.0.meta.slot.slot()
     }
@@ -524,7 +529,7 @@ mod tests {
     }
 
     #[test]
-    fn slot_and_subslot() {
+    fn slots() {
         let data = test_data();
 
         // without slot
@@ -535,11 +540,13 @@ mod tests {
         // without subslot
         let repo = data.ebuild_repo("metadata").unwrap();
         let pkg = repo.get_pkg("slot/slot-8").unwrap();
+        assert_eq!(pkg.fullslot(), "1");
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "1");
 
         // with subslot
         let pkg = repo.get_pkg("slot/subslot-8").unwrap();
+        assert_eq!(pkg.fullslot(), "1/2");
         assert_eq!(pkg.slot(), "1");
         assert_eq!(pkg.subslot(), "2");
     }
