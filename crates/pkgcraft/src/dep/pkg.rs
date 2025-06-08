@@ -94,6 +94,12 @@ impl fmt::Display for Slot {
     }
 }
 
+impl PartialEq<str> for Slot {
+    fn eq(&self, other: &str) -> bool {
+        self.name == other
+    }
+}
+
 /// Package slot dependency.
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash, Clone)]
 pub enum SlotDep {
