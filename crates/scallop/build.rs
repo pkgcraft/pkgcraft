@@ -1,6 +1,6 @@
 use std::{env, fs};
 
-use bindgen::callbacks::ParseCallbacks;
+use bindgen::callbacks::{ItemInfo, ParseCallbacks};
 use camino::Utf8PathBuf;
 
 #[derive(Debug)]
@@ -8,8 +8,8 @@ struct BashCallback;
 
 // rename bash data structures for consistency
 impl ParseCallbacks for BashCallback {
-    fn item_name(&self, original_item_name: &str) -> Option<String> {
-        match original_item_name {
+    fn item_name(&self, item_info: ItemInfo) -> Option<String> {
+        match item_info.name {
             // structs
             "word_desc" => Some("WordDesc".into()),
             "WORD_DESC" => Some("WordDesc".into()),
