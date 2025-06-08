@@ -163,7 +163,7 @@ impl TableFormat {
         table.with(theme.inner);
         table.with(Alignment::bottom());
         table.modify(Columns::first(), Padding::zero());
-        table.modify(Columns::single(1), Padding::new(0, 1, 0, 0));
+        table.modify(Columns::one(1), Padding::new(0, 1, 0, 0));
         table.modify(Columns::new(2..repo_col - 3), Padding::new(1, 0, 0, 0));
         table.modify(Columns::new(repo_col - 2..repo_col - 1), Padding::new(1, 0, 0, 0));
     }
