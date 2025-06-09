@@ -291,7 +291,7 @@ impl Mirror {
     }
 
     /// Return a mirrored url for a path.
-    pub fn get_url(&self, path: &str) -> crate::Result<Url> {
+    pub(crate) fn get_url(&self, path: &str) -> crate::Result<Url> {
         self.url
             .join(path.strip_prefix('/').unwrap_or(path))
             .map_err(|e| Error::InvalidValue(format!("invalid url: {e}")))
