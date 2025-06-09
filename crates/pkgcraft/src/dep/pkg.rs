@@ -78,12 +78,12 @@ impl Slot {
     }
 
     /// Return the main slot value.
-    pub fn slot(&self) -> &str {
+    pub fn main(&self) -> &str {
         self.name.split_once('/').map_or(&self.name, |x| x.0)
     }
 
     /// Return the subslot value if it exists.
-    pub fn subslot(&self) -> Option<&str> {
+    pub fn sub(&self) -> Option<&str> {
         self.name.split_once('/').map(|x| x.1)
     }
 }
@@ -458,7 +458,7 @@ impl Dep {
         self.slot_dep
             .as_ref()
             .and_then(|s| s.slot())
-            .map(|s| s.slot())
+            .map(|s| s.main())
     }
 
     /// Return a package dependency's subslot if it exists.
@@ -466,7 +466,7 @@ impl Dep {
         self.slot_dep
             .as_ref()
             .and_then(|s| s.slot())
-            .and_then(|s| s.subslot())
+            .and_then(|s| s.sub())
     }
 
     /// Return a package dependency's slot operator if it exists.

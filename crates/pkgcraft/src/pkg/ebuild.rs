@@ -159,12 +159,12 @@ impl EbuildPkg {
 
     /// Return a package's main slot.
     pub fn slot(&self) -> &str {
-        self.0.meta.slot.slot()
+        self.0.meta.slot.main()
     }
 
     /// Return a package's subslot.
     pub fn subslot(&self) -> &str {
-        self.0.meta.slot.subslot().unwrap_or_else(|| self.slot())
+        self.0.meta.slot.sub().unwrap_or_else(|| self.slot())
     }
 
     /// Return a package's dependencies for a given iterable of descriptors.
