@@ -32,6 +32,26 @@ fn ignore() {
 }
 
 #[test]
+fn filter() {
+    let data = test_data();
+    let repo = data.ebuild_repo("metadata").unwrap().path().as_str();
+
+    for opt in ["-f", "--filter"] {
+        // variable aliases
+        for value in ["@EAPI", "@META"] {
+            cmd("pk pkg env")
+                .args(["-r", repo])
+                .args([opt, value])
+                .arg("inherit/indirect-8")
+                .assert()
+                .stdout(predicate::str::is_empty().not())
+                .stderr("")
+                .success();
+        }
+    }
+}
+
+#[test]
 fn globs() {
     let data = test_data();
     let repo = data.ebuild_repo("metadata").unwrap().path().as_str();
