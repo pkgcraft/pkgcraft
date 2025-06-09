@@ -42,7 +42,7 @@ hex = "0.4.3"
 indexmap = { version = "2.9.0", features = ["rayon", "serde"] }
 indicatif = "0.17.11"
 indoc = "2.0.6"
-ipc-channel = "0.19.0"
+ipc-channel = "0.20.0"
 is_executable = "1.0.4"
 itertools = "0.14.0"
 libc = "0.2.172"
