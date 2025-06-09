@@ -1,0 +1,106 @@
+use std::process::ExitCode;
+use std::{env, io};
+
+use anyhow::anyhow;
+use camino::Utf8Path;
+use clap::Parser;
+use clap_verbosity_flag::Verbosity;
+use indexmap::IndexSet;
+use pkgcraft::config::Config as PkgcraftConfig;
+use pkgcraft::utils::current_dir;
+use pkgcruft::report::ReportLevel;
+use pkgcruft::reporter::{FancyReporter, Reporter};
+use pkgcruft::scan::Scanner;
+use tracing_log::AsTrace;
+
+#[derive(Parser)]
+#[command(
+    name = env!("CARGO_BIN_NAME"),
+    version,
+    long_about = None,
+    disable_help_subcommand = true,
+)]
+/// pkgcruft-git pre-commit hook
+pub(crate) struct Command {
+    #[command(flatten)]
+    verbosity: Verbosity,
+
+    /// enable/disable color support
+    #[arg(long, value_name = "BOOL", hide_possible_values = true)]
+    color: Option<bool>,
+
+    /// Parallel jobs to run
+    #[arg(short, long, default_value_t = num_cpus::get())]
+    jobs: usize,
+}
+
+fn main() -> anyhow::Result<ExitCode> {
+    let args = Command::parse();
+
+    // create formatting subscriber that uses stderr
+    let level = args.verbosity.log_level_filter();
+    let mut subscriber = tracing_subscriber::fmt()
+        .with_max_level(level.as_trace())
+        .with_writer(io::stderr);
+
+    // forcibly enable or disable subscriber output color
+    if let Some(value) = args.color {
+        subscriber = subscriber.with_ansi(value);
+    }
+
+    // initialize global subscriber
+    subscriber.init();
+
+    let mut stdout = io::stdout().lock();
+
+    // load repo from the current working directory
+    let path = current_dir()?;
+    let mut config = PkgcraftConfig::new("pkgcraft", "");
+    let repo = config
+        .add_nested_repo_path(&path, 0)
+        .map_err(|e| anyhow!("invalid repo: {e}"))?;
+    let repo = repo
+        .into_ebuild()
+        .map_err(|e| anyhow!("invalid ebuild repo: {path}: {e}"))?;
+    config
+        .finalize()
+        .map_err(|e| anyhow!("failed finalizing config: {e}"))?;
+
+    // WARNING: This appears to invalidate the environment in some fashion so
+    // std::env::var() calls don't work as expected after it even though
+    // std::env::vars() will still show all the variables.
+    let git_repo = git2::Repository::open(repo.path())
+        .map_err(|e| anyhow!("failed opening git repo: {path}: {e}"))?;
+
+    let mut reporter: Reporter = FancyReporter::default().into();
+    let scanner = Scanner::new()
+        .jobs(args.jobs)
+        .exit([ReportLevel::Critical, ReportLevel::Error]);
+
+    // determine diff
+    let tree = git_repo.head()?.peel_to_tree()?;
+    let diff = git_repo.diff_tree_to_index(Some(&tree), None, None)?;
+
+    // determine target Cpns from diff
+    let mut cpns = IndexSet::new();
+    for delta in diff.deltas() {
+        if let Some(path) = delta.new_file().path().and_then(Utf8Path::from_path) {
+            if let Ok(cpn) = repo.cpn_from_path(path) {
+                cpns.insert(cpn);
+            }
+        }
+    }
+
+    // scan individual packages that were changed
+    for cpn in cpns {
+        for report in scanner.run(&repo, &cpn)? {
+            reporter.report(&report, &mut stdout)?;
+        }
+    }
+
+    if scanner.failed() {
+        anyhow::bail!("scanning errors found")
+    } else {
+        Ok(ExitCode::SUCCESS)
+    }
+}
