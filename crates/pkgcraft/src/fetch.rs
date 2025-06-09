@@ -149,8 +149,7 @@ impl Fetchable {
             let hash = HashType::Blake2b.hash(filename.as_bytes());
             format!("{}/{filename}", &hash[..2])
         } else {
-            let path = self.url.path();
-            path.strip_prefix('/').unwrap_or(path).to_string()
+            self.url.path().to_string()
         };
 
         mirror.get_url(&path).map(|url| Self {
