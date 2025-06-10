@@ -91,17 +91,21 @@ where
     S1: AsRef<str>,
     S2: AsRef<str>,
 {
-    let name = CString::new(name.as_ref()).unwrap();
-    let value = CString::new(value.as_ref()).unwrap();
-    let val = value.as_ptr() as *mut _;
+    let name = name.as_ref();
+    let value = value.as_ref();
+    let c_name = CString::new(name).unwrap();
+    let c_value = CString::new(value).unwrap();
+    let val = c_value.as_ptr() as *mut _;
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
     ok_or_error(|| unsafe {
-        if let Some(var) = bash::bind_variable(name.as_ptr(), val, flags).as_mut() {
+        if let Some(var) = bash::bind_variable(c_name.as_ptr(), val, flags).as_mut() {
             if let Some(attrs) = attrs {
                 var.attributes |= attrs.bits() as i32;
             }
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed binding variable: {name}={value}")))
         }
-        Ok(ExecStatus::Success)
     })
 }
 
@@ -115,17 +119,21 @@ where
     S1: AsRef<str>,
     S2: AsRef<str>,
 {
-    let name = CString::new(name.as_ref()).unwrap();
-    let value = CString::new(value.as_ref()).unwrap();
-    let val = value.as_ptr() as *mut _;
+    let name = name.as_ref();
+    let value = value.as_ref();
+    let c_name = CString::new(name).unwrap();
+    let c_value = CString::new(value).unwrap();
+    let val = c_value.as_ptr() as *mut _;
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
     ok_or_error(|| unsafe {
-        if let Some(var) = bash::bind_global_variable(name.as_ptr(), val, flags).as_mut() {
+        if let Some(var) = bash::bind_global_variable(c_name.as_ptr(), val, flags).as_mut() {
             if let Some(attrs) = attrs {
                 var.attributes |= attrs.bits() as i32;
             }
+            Ok(ExecStatus::Success)
+        } else {
+            Err(Error::Base(format!("failed binding global variable: {name}={value}")))
         }
-        Ok(ExecStatus::Success)
     })
 }
 
