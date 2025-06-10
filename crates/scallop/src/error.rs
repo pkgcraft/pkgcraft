@@ -82,7 +82,7 @@ pub(crate) fn bash_error(msg: *mut c_char, status: u8) {
 #[unsafe(no_mangle)]
 pub(crate) extern "C" fn bash_warning_log(msg: *mut c_char) {
     let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
-    tracing::warn!("{}", msg.as_ref());
+    tracing::warn!("{msg}");
 }
 // grcov-excl-stop
 
