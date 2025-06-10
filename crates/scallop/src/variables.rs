@@ -104,8 +104,9 @@ where
             }
             Ok(ExecStatus::Success)
         } else {
+            // grcov-excl-start: hard to trigger null reference
             Err(Error::Base(format!("failed binding variable: {name}={value}")))
-        }
+        } // grcov-excl-stop
     })
 }
 
@@ -132,8 +133,9 @@ where
             }
             Ok(ExecStatus::Success)
         } else {
+            // grcov-excl-start: hard to trigger null reference
             Err(Error::Base(format!("failed binding global variable: {name}={value}")))
-        }
+        } // grcov-excl-stop
     })
 }
 
