@@ -24,11 +24,13 @@ pub enum Error {
     Status(i32),
 }
 
+// grcov-excl-start: most I/O errors are hard to emulate
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
         Error::IO(format!("{e}: {}", e.kind()))
     }
 }
+// grcov-excl-stop
 
 static CALL_LEVEL: AtomicUsize = AtomicUsize::new(0);
 
