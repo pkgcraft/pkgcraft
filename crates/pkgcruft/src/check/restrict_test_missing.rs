@@ -20,14 +20,12 @@ pub(super) fn create() -> impl EbuildPkgCheck {
     }
 }
 
-static CHECK: super::Check = super::Check::RestrictTestMissing;
-
 struct Check {
     restricts: DependencySet<String>,
     iuse: Iuse,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::RestrictTestMissing);
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {

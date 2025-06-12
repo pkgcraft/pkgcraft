@@ -18,13 +18,11 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::Restrict;
-
 struct Check {
     allowed: HashSet<String>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Restrict);
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {

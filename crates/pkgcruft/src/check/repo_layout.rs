@@ -29,14 +29,12 @@ pub(super) fn create(run: &ScannerRun) -> Check {
     Check { empty_categories, unused }
 }
 
-static CHECK: super::Check = super::Check::RepoLayout;
-
 pub(super) struct Check {
     empty_categories: DashSet<String>,
     unused: DashSet<String>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::RepoLayout);
 
 impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, run: &ScannerRun) {

@@ -33,8 +33,6 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
     check
 }
 
-static CHECK: super::Check = super::Check::Commands;
-
 struct Check {
     commands: HashMap<&'static Eapi, HashMap<String, Vec<CommandFn>>>,
 }
@@ -75,7 +73,7 @@ impl Check {
     }
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Commands);
 
 /// Flag builtins used as external commands.
 fn builtins<'a>(

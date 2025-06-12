@@ -18,14 +18,12 @@ pub(super) fn create() -> impl EbuildPkgCheck {
     }
 }
 
-static CHECK: super::Check = super::Check::Homepage;
-
 struct Check {
     allowed_protocols: HashSet<String>,
     missing_categories: HashSet<String>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Homepage);
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {

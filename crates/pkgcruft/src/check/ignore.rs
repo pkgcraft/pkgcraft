@@ -6,11 +6,9 @@ use crate::scan::ScannerRun;
 
 use super::{CategoryCheck, CpnCheck, CpvCheck};
 
-static CHECK: super::Check = super::Check::Ignore;
-
 pub(super) struct Check;
 
-super::register!(Check);
+super::register!(Check, super::Check::Ignore);
 
 impl CpvCheck for Check {
     fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {

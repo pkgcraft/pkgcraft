@@ -57,14 +57,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::PythonUpdate;
-
 struct Check {
     targets: HashMap<Eclass, Vec<String>>,
     dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::PythonUpdate);
 
 /// Determine the set of compatible targets for a dependency.
 fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {

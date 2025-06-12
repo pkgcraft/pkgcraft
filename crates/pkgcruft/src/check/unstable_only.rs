@@ -22,13 +22,11 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::UnstableOnly;
-
 struct Check {
     stable: IndexSet<Arch>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::UnstableOnly);
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {

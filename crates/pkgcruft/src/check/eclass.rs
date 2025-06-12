@@ -18,13 +18,11 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     Check { unused }
 }
 
-static CHECK: super::Check = super::Check::Eclass;
-
 struct Check {
     unused: DashSet<Eclass>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Eclass);
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, _run: &ScannerRun) {

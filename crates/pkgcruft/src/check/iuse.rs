@@ -26,14 +26,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::Iuse;
-
 struct Check {
     use_expand: IndexSet<String>,
     unused: DashSet<String>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Iuse);
 
 impl Check {
     /// Return true if an IUSE flag starts with any from a set.

@@ -37,15 +37,13 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::License;
-
 struct Check {
     deprecated: IndexSet<String>,
     missing_categories: HashSet<String>,
     unused: DashSet<String>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::License);
 
 impl EbuildPkgCheck for Check {
     fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {

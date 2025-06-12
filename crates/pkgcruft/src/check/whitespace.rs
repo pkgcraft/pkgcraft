@@ -16,13 +16,11 @@ pub(super) fn create() -> impl EbuildRawPkgCheck {
     }
 }
 
-static CHECK: super::Check = super::Check::Whitespace;
-
 struct Check {
     allowed_leading_whitespace: HashSet<String>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Whitespace);
 
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {

@@ -28,11 +28,9 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
     Check
 }
 
-static CHECK: super::Check = super::Check::VariableOrder;
-
 struct Check;
 
-super::register!(Check);
+super::register!(Check, super::Check::VariableOrder);
 
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {

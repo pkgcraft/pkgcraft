@@ -24,14 +24,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::RubyUpdate;
-
 struct Check {
     targets: Vec<String>,
     dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::RubyUpdate);
 
 /// Determine the set of compatible targets for a dependency.
 fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {

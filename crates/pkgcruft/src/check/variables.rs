@@ -21,11 +21,11 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
     check
 }
 
-static CHECK: super::Check = super::Check::Commands;
-
 struct Check {
     variables: HashMap<&'static Eapi, HashMap<String, Vec<VariableFn>>>,
 }
+
+super::register!(Check, super::Check::Commands);
 
 impl Check {
     /// Register EAPI variables for the check to handle.
@@ -44,8 +44,6 @@ impl Check {
         }
     }
 }
-
-super::register!(Check);
 
 // TODO: handle nested function calls
 /// Flag issues with EAPI variable usage.

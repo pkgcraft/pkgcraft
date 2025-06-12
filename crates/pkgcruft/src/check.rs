@@ -349,8 +349,10 @@ pub enum Context {
 }
 
 macro_rules! register {
-    ($x:ty) => {
-        impl std::fmt::Display for $x {
+    ($check:ty, $variant:expr) => {
+        static CHECK: $crate::check::Check = $variant;
+
+        impl std::fmt::Display for $check {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 write!(f, "{CHECK}")
             }

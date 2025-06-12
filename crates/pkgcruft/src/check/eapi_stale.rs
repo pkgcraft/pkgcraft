@@ -12,11 +12,9 @@ pub(super) fn create() -> impl EbuildPkgSetCheck {
     Check
 }
 
-static CHECK: super::Check = super::Check::EapiStale;
-
 struct Check;
 
-super::register!(Check);
+super::register!(Check, super::Check::EapiStale);
 
 impl EbuildPkgSetCheck for Check {
     fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {

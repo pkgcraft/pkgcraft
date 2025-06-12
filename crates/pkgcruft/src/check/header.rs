@@ -19,13 +19,11 @@ pub(super) fn create() -> impl EbuildRawPkgCheck {
     }
 }
 
-static CHECK: super::Check = super::Check::Header;
-
 struct Check {
     copyright_re: Regex,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Header);
 
 impl EbuildRawPkgCheck for Check {
     fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {

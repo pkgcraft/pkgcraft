@@ -14,13 +14,11 @@ pub(super) fn create() -> impl EbuildPkgCheck {
     Check { dep_slots: Default::default() }
 }
 
-static CHECK: super::Check = super::Check::DependencySlotMissing;
-
 struct Check {
     dep_slots: DashMap<Restrict, Option<String>>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::DependencySlotMissing);
 
 impl Check {
     /// Get the package slots for a dependency if more than one exist.

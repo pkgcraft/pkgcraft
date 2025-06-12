@@ -13,13 +13,11 @@ pub(super) fn create(run: &ScannerRun) -> impl CpvCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::Metadata;
-
 struct Check {
     regen: MetadataTaskBuilder,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Metadata);
 
 impl CpvCheck for Check {
     fn run(&self, cpv: &Cpv, run: &ScannerRun) {

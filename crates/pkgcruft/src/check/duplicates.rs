@@ -11,11 +11,9 @@ pub(super) fn create() -> impl CpnCheck {
     Check
 }
 
-static CHECK: super::Check = super::Check::Duplicates;
-
 struct Check;
 
-super::register!(Check);
+super::register!(Check, super::Check::Duplicates);
 
 impl CpnCheck for Check {
     fn run(&self, cpn: &Cpn, run: &ScannerRun) {

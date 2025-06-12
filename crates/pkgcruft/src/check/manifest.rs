@@ -30,8 +30,6 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
     }
 }
 
-static CHECK: super::Check = super::Check::Manifest;
-
 struct Check {
     thin_manifests: bool,
     colliding: DashMap<String, HashMap<String, HashSet<Cpn>>>,
@@ -39,7 +37,7 @@ struct Check {
     hash: HashType,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Manifest);
 
 impl Check {
     // TODO: support inherited ignore directives from eclasses?

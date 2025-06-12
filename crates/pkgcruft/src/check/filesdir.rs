@@ -42,13 +42,11 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
     Check { eclasses }
 }
 
-static CHECK: super::Check = super::Check::Filesdir;
-
 struct Check {
     eclasses: HashSet<Eclass>,
 }
 
-super::register!(Check);
+super::register!(Check, super::Check::Filesdir);
 
 /// Expand a variable into its actual value.
 fn expand_var<'a>(
