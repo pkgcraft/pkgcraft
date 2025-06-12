@@ -9,6 +9,7 @@ use strum::{EnumString, VariantNames};
 
 use crate::Error;
 use crate::report::{Report, ReportKind, ReportScope};
+use crate::scan::Scanner;
 
 #[derive(EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "kebab-case")]
@@ -20,6 +21,7 @@ pub enum Reporter {
     Null,
     Simple(SimpleReporter),
     Stats(StatsReporter),
+    Time(TimeReporter),
 }
 
 impl Reporter {
@@ -33,6 +35,7 @@ impl Reporter {
             Self::Null => Ok(()),
             Self::Simple(r) => r.report(report, output),
             Self::Stats(r) => r.report(report, output),
+            Self::Time(_) => Ok(()),
         }
     }
 
@@ -41,6 +44,14 @@ impl Reporter {
         match self {
             Self::Count(r) => r.finish(output),
             Self::Stats(r) => r.finish(output),
+            _ => Ok(()),
+        }
+    }
+
+    /// Output scanner statistics for relevant reporters.
+    pub fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> io::Result<()> {
+        match self {
+            Self::Time(r) => r.stats(output, scanner),
             _ => Ok(()),
         }
     }
@@ -63,6 +74,29 @@ impl CountReporter {
 
     fn finish<W: Write>(&mut self, output: &mut W) -> io::Result<()> {
         writeln!(output, "{}", self.0)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TimeReporter;
+
+impl From<TimeReporter> for Reporter {
+    fn from(value: TimeReporter) -> Self {
+        Self::Time(value)
+    }
+}
+
+impl TimeReporter {
+    fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> io::Result<()> {
+        for entry in scanner
+            .stats()
+            .iter()
+            .sorted_by(|e1, e2| e1.value().cmp(e2.value()))
+        {
+            let (check, time) = entry.pair();
+            writeln!(output, "{check}: {time:.2?}")?;
+        }
         Ok(())
     }
 }

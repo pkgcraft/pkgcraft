@@ -1,6 +1,8 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
+use std::time::Duration;
 
+use dashmap::DashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::repo::EbuildRepo;
@@ -25,6 +27,7 @@ pub struct Scanner {
     exit: IndexSet<ReportSet>,
     filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
+    stats: Arc<DashMap<Check, Duration>>,
 }
 
 impl Scanner {
@@ -86,6 +89,11 @@ impl Scanner {
     /// Return true if the scanning process failed, false otherwise.
     pub fn failed(&self) -> bool {
         self.failed.load(Ordering::Relaxed)
+    }
+
+    /// Return the check timing statistics for the scanner.
+    pub fn stats(&self) -> &DashMap<Check, Duration> {
+        &self.stats
     }
 
     /// Run the scanner returning an iterator of reports.
@@ -184,6 +192,7 @@ pub(crate) struct ScannerRun {
     failed: Arc<AtomicBool>,
     pub(crate) sort: bool,
     pub(crate) sender: OnceLock<ReportSender>,
+    pub(crate) stats: Arc<DashMap<Check, Duration>>,
 }
 
 impl ScannerRun {
@@ -213,6 +222,7 @@ impl ScannerRun {
             failed: scanner.failed.clone(),
             sort: scanner.sort,
             sender: Default::default(),
+            stats: scanner.stats.clone(),
         })
     }
 

@@ -96,6 +96,7 @@ impl Command {
         }
 
         reporter.finish(&mut stdout)?;
+        reporter.stats(&mut stdout, &scanner)?;
         Ok(ExitCode::from(scanner.failed() as u8))
     }
 }

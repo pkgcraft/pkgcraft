@@ -5,7 +5,7 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
-use tracing::{debug, warn};
+use tracing::warn;
 
 use crate::check::*;
 use crate::report::ReportScope;
@@ -223,7 +223,7 @@ macro_rules! make_pkg_check_runner {
                             for (check, runner) in &self.pkg_checks {
                                 let now = Instant::now();
                                 runner.run(&pkg, run);
-                                debug!("{check}: {pkg}: {:?}", now.elapsed());
+                                *run.stats.entry(*check).or_default() += now.elapsed();
                             }
 
                             if !self.pkg_set_checks.is_empty() {
@@ -242,7 +242,7 @@ macro_rules! make_pkg_check_runner {
                             for (check, runner) in &self.pkg_set_checks {
                                 let now = Instant::now();
                                 runner.run(cpn, pkgs, run);
-                                debug!("{check}: {cpn}: {:?}", now.elapsed());
+                                *run.stats.entry(*check).or_default() += now.elapsed();
                             }
                         }
                     }
@@ -260,7 +260,7 @@ macro_rules! make_pkg_check_runner {
                             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
                         let now = Instant::now();
                         runner.run(pkg, run);
-                        debug!("{check}: {cpv}: {:?}", now.elapsed());
+                        *run.stats.entry(*check).or_default() += now.elapsed();
                     }
                     Some(Err(e)) => warn!("{check}: skipping due to {e}"),
                     None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
@@ -278,7 +278,7 @@ macro_rules! make_pkg_check_runner {
                                 .unwrap_or_else(|| unreachable!("unknown check: {check}"));
                             let now = Instant::now();
                             runner.run(cpn, pkgs, run);
-                            debug!("{check}: {cpn}: {:?}", now.elapsed());
+                            *run.stats.entry(*check).or_default() += now.elapsed();
                         }
                     }
                     Err(e) => warn!("{check}: skipping due to {e}"),
@@ -300,7 +300,8 @@ macro_rules! make_pkg_check_runner {
                         .unwrap_or_else(|| unreachable!("unknown check: {check}"));
                     runner.finish_check(run);
                 }
-                debug!("{check}: finish: {:?}", now.elapsed());
+
+                *run.stats.entry(*check).or_default() += now.elapsed();
             }
         }
     };
@@ -339,7 +340,7 @@ impl CpnCheckRunner {
         for (check, runner) in &self.checks {
             let now = Instant::now();
             runner.run(cpn, run);
-            debug!("{check}: {cpn}: {:?}", now.elapsed());
+            *run.stats.entry(*check).or_default() += now.elapsed();
 
             // run finalize methods for a target
             if check.finish_target() {
@@ -355,7 +356,7 @@ impl CpnCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.run(cpn, run);
-        debug!("{check}: {cpn}: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 
     fn finish_target(&self, check: &Check, cpn: &Cpn, run: &ScannerRun) {
@@ -365,7 +366,7 @@ impl CpnCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.finish_target(cpn, run);
-        debug!("{check}: {cpn}: finish target: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 
     fn finish_check(&self, check: &Check, run: &ScannerRun) {
@@ -375,7 +376,7 @@ impl CpnCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.finish_check(run);
-        debug!("{check}: finish: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }
 
@@ -395,7 +396,7 @@ impl CpvCheckRunner {
             for (check, runner) in &self.checks {
                 let now = Instant::now();
                 runner.run(&cpv, run);
-                debug!("{check}: {cpv}: {:?}", now.elapsed());
+                *run.stats.entry(*check).or_default() += now.elapsed();
 
                 // run finalize methods for a target
                 if check.finish_target() {
@@ -412,7 +413,7 @@ impl CpvCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.run(cpv, run);
-        debug!("{check}: {cpv}: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 
     fn finish_target(&self, check: &Check, cpv: &Cpv, run: &ScannerRun) {
@@ -422,7 +423,7 @@ impl CpvCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.finish_target(cpv, run);
-        debug!("{check}: {cpv}: finish target: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 
     fn finish_check(&self, check: &Check, run: &ScannerRun) {
@@ -432,7 +433,7 @@ impl CpvCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.finish_check(run);
-        debug!("{check}: finish: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }
 
@@ -454,7 +455,7 @@ impl CategoryCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.run(category, run);
-        debug!("{check}: {category} {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 
     fn finish_target(&self, check: &Check, category: &str, run: &ScannerRun) {
@@ -464,7 +465,7 @@ impl CategoryCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.finish_target(category, run);
-        debug!("{check}: {category}: finish target: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 
     fn finish_check(&self, check: &Check, run: &ScannerRun) {
@@ -474,7 +475,7 @@ impl CategoryCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.finish_check(run);
-        debug!("{check}: finish: {:?}", now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }
 
@@ -496,6 +497,6 @@ impl RepoCheckRunner {
             .unwrap_or_else(|| unreachable!("unknown check: {check}"));
         let now = Instant::now();
         runner.run(run);
-        debug!("{check}: {} {:?}", run.repo, now.elapsed());
+        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }
