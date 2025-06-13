@@ -1,15 +1,18 @@
 use std::collections::HashMap;
 use std::io::Write;
+use std::sync::Arc;
+use std::time::Duration;
 
 use colored::{Color, Colorize};
+use dashmap::DashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use strfmt::strfmt;
 use strum::{EnumString, VariantNames};
 
 use crate::Error;
+use crate::check::Check;
 use crate::report::{Report, ReportKind, ReportScope};
-use crate::scan::Scanner;
 
 #[derive(EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "kebab-case")]
@@ -44,14 +47,7 @@ impl Reporter {
         match self {
             Self::Count(r) => r.finish(output),
             Self::Stats(r) => r.finish(output),
-            _ => Ok(()),
-        }
-    }
-
-    /// Output scanner statistics for relevant reporters.
-    pub fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> crate::Result<()> {
-        match self {
-            Self::Time(r) => r.stats(output, scanner),
+            Self::Time(r) => r.finish(output),
             _ => Ok(()),
         }
     }
@@ -79,7 +75,9 @@ impl CountReporter {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct TimeReporter;
+pub struct TimeReporter {
+    pub stats: Arc<DashMap<Check, Duration>>,
+}
 
 impl From<TimeReporter> for Reporter {
     fn from(value: TimeReporter) -> Self {
@@ -88,9 +86,9 @@ impl From<TimeReporter> for Reporter {
 }
 
 impl TimeReporter {
-    fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> crate::Result<()> {
-        for entry in scanner
-            .stats()
+    fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
+        for entry in self
+            .stats
             .iter()
             .sorted_by(|e1, e2| e1.value().cmp(e2.value()))
         {

@@ -92,7 +92,7 @@ impl Scanner {
     }
 
     /// Return the check timing statistics for the scanner.
-    pub fn stats(&self) -> &DashMap<Check, Duration> {
+    pub fn stats(&self) -> &Arc<DashMap<Check, Duration>> {
         &self.stats
     }
 

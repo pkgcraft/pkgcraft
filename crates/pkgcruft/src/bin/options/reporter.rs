@@ -1,6 +1,7 @@
 use clap::Args;
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use pkgcruft::reporter::Reporter;
+use pkgcruft::scan::Scanner;
 use strum::VariantNames;
 
 #[derive(Debug, Args)]
@@ -32,7 +33,7 @@ pub(crate) struct ReporterOptions {
 }
 
 impl ReporterOptions {
-    pub(crate) fn collapse(&self) -> Reporter {
+    pub(crate) fn collapse(&self, scanner: Option<&Scanner>) -> Reporter {
         let mut reporter = self.reporter.clone();
 
         if let Reporter::Format(r) = &mut reporter {
@@ -41,6 +42,12 @@ impl ReporterOptions {
 
         if let Reporter::Stats(r) = &mut reporter {
             r.sort_by = self.stats.clone().unwrap_or_default();
+        }
+
+        if let Reporter::Time(r) = &mut reporter {
+            if let Some(scanner) = scanner {
+                r.stats = scanner.stats().clone();
+            }
         }
 
         reporter

@@ -67,9 +67,6 @@ impl Command {
     pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
         let mut config = Config::new("pkgcraft", "");
 
-        // determine reporter
-        let mut reporter = self.reporter.collapse();
-
         // determine package restrictions
         let targets = Targets::new(&mut config)
             .repo_format(RepoFormat::Ebuild)
@@ -86,6 +83,9 @@ impl Command {
             .sort(self.sort)
             .exit(self.exit.iter().copied());
 
+        // determine reporter
+        let mut reporter = self.reporter.collapse(Some(&scanner));
+
         // run scanner for all targets
         let mut stdout = io::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {
@@ -96,7 +96,6 @@ impl Command {
         }
 
         reporter.finish(&mut stdout)?;
-        reporter.stats(&mut stdout, &scanner)?;
         Ok(ExitCode::from(scanner.failed() as u8))
     }
 }
