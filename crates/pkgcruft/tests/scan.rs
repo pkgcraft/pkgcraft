@@ -758,7 +758,7 @@ fn reporter() {
             .code(2);
 
         // valid
-        for reporter in ["count", "fancy", "json", "simple"] {
+        for reporter in ["count", "fancy", "json", "simple", "time"] {
             cmd("pkgcruft scan")
                 .args([opt, reporter])
                 .assert()
