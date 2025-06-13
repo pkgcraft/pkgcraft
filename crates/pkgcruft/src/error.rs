@@ -1,3 +1,5 @@
+use std::io;
+
 use crate::check::Check;
 use crate::report::ReportKind;
 
@@ -10,5 +12,13 @@ pub enum Error {
     #[error("{0}: check {1}")]
     CheckInit(Check, String),
     #[error("{0}")]
+    IO(String),
+    #[error("{0}")]
     Pkgcraft(#[from] pkgcraft::Error),
+}
+
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Self {
+        Error::IO(format!("{e}: {}", e.kind()))
+    }
 }

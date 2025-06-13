@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{self, Write};
+use std::io::Write;
 
 use colored::{Color, Colorize};
 use indexmap::IndexMap;
@@ -26,7 +26,7 @@ pub enum Reporter {
 
 impl Reporter {
     /// Run a report through a reporter.
-    pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> io::Result<()> {
+    pub fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         match self {
             Self::Count(r) => r.report(report, output),
             Self::Fancy(r) => r.report(report, output),
@@ -40,7 +40,7 @@ impl Reporter {
     }
 
     /// Perform any relevant reporter finalization.
-    pub fn finish<W: Write>(&mut self, output: &mut W) -> io::Result<()> {
+    pub fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
         match self {
             Self::Count(r) => r.finish(output),
             Self::Stats(r) => r.finish(output),
@@ -49,7 +49,7 @@ impl Reporter {
     }
 
     /// Output scanner statistics for relevant reporters.
-    pub fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> io::Result<()> {
+    pub fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> crate::Result<()> {
         match self {
             Self::Time(r) => r.stats(output, scanner),
             _ => Ok(()),
@@ -67,12 +67,12 @@ impl From<CountReporter> for Reporter {
 }
 
 impl CountReporter {
-    fn report<W: Write>(&mut self, _report: &Report, _output: &mut W) -> io::Result<()> {
+    fn report<W: Write>(&mut self, _report: &Report, _output: &mut W) -> crate::Result<()> {
         self.0 += 1;
         Ok(())
     }
 
-    fn finish<W: Write>(&mut self, output: &mut W) -> io::Result<()> {
+    fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
         writeln!(output, "{}", self.0)?;
         Ok(())
     }
@@ -88,7 +88,7 @@ impl From<TimeReporter> for Reporter {
 }
 
 impl TimeReporter {
-    fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> io::Result<()> {
+    fn stats<W: Write>(&mut self, output: &mut W, scanner: &Scanner) -> crate::Result<()> {
         for entry in scanner
             .stats()
             .iter()
@@ -114,12 +114,12 @@ impl From<StatsReporter> for Reporter {
 }
 
 impl StatsReporter {
-    fn report<W: Write>(&mut self, report: &Report, _output: &mut W) -> io::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, _output: &mut W) -> crate::Result<()> {
         *self.cache.entry(report.kind).or_default() += 1;
         Ok(())
     }
 
-    fn finish<W: Write>(&mut self, output: &mut W) -> io::Result<()> {
+    fn finish<W: Write>(&mut self, output: &mut W) -> crate::Result<()> {
         match self.sort_by.as_str() {
             "count" => self
                 .cache
@@ -149,7 +149,7 @@ impl From<SimpleReporter> for Reporter {
 }
 
 impl SimpleReporter {
-    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> io::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         writeln!(output, "{report}")?;
         Ok(())
     }
@@ -167,7 +167,7 @@ impl From<FancyReporter> for Reporter {
 }
 
 impl FancyReporter {
-    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> io::Result<()> {
+    fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
         let scope = report.scope();
         let key = if let ReportScope::Version(cpv, _) = scope {
             cpv.cpn().to_string()
@@ -216,7 +216,7 @@ impl From<JsonReporter> for Reporter {
 }
 
 impl JsonReporter {
-    fn report<W: Write>(&self, report: &Report, output: &mut W) -> io::Result<()> {
+    fn report<W: Write>(&self, report: &Report, output: &mut W) -> crate::Result<()> {
         writeln!(output, "{}", report.to_json())?;
         Ok(())
     }
@@ -234,7 +234,7 @@ impl From<FormatReporter> for Reporter {
 }
 
 impl FormatReporter {
-    fn report<W: Write>(&self, report: &Report, output: &mut W) -> io::Result<()> {
+    fn report<W: Write>(&self, report: &Report, output: &mut W) -> crate::Result<()> {
         let mut attrs: HashMap<_, _> = [("name".to_string(), report.kind.to_string())]
             .into_iter()
             .collect();
@@ -272,11 +272,10 @@ impl FormatReporter {
 
         let s = strfmt(&self.format, &attrs).map_err(|e| {
             let supported = attrs.keys().sorted().join(", ");
-            let error = Error::InvalidValue(format!(
+            Error::InvalidValue(format!(
                 "{}: invalid output format: {e}\n  [possible attributes: {supported}]",
                 report.kind
-            ));
-            io::Error::other(error)
+            ))
         })?;
         if !s.is_empty() {
             writeln!(output, "{s}")?;
