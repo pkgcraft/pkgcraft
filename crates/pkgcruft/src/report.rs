@@ -259,12 +259,12 @@ impl fmt::Display for ReportSet {
 
 impl ReportSet {
     /// Return true if the related reports should be added to the selected set.
-    pub fn selected(&self) -> bool {
+    fn selected(&self) -> bool {
         matches!(self, Self::Report(_) | Self::Check(_))
     }
 
     /// Expand a report set into an iterator of its variants.
-    pub fn expand<'a>(
+    pub(crate) fn expand<'a>(
         self,
         default: &'a IndexSet<ReportKind>,
         supported: &'a IndexSet<ReportKind>,
