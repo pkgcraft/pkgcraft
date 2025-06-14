@@ -36,18 +36,13 @@ impl ReporterOptions {
     pub(crate) fn collapse(&self, scanner: Option<&Scanner>) -> Reporter {
         let mut reporter = self.reporter.clone();
 
-        if let Reporter::Format(r) = &mut reporter {
-            r.format = self.format.clone().unwrap_or_default();
-        }
-
-        if let Reporter::Stats(r) = &mut reporter {
-            r.sort_by = self.stats.clone().unwrap_or_default();
-        }
-
-        if let Reporter::Time(r) = &mut reporter {
-            if let Some(scanner) = scanner {
-                r.stats = scanner.stats().clone();
+        match &mut reporter {
+            Reporter::Format(r) => r.format = self.format.clone().unwrap_or_default(),
+            Reporter::Stats(r) => r.sort_by = self.stats.clone().unwrap_or_default(),
+            Reporter::Time(r) => {
+                r.stats = scanner.map(|s| s.stats().clone()).unwrap_or_default()
             }
+            _ => (),
         }
 
         reporter
