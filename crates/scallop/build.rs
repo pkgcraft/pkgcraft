@@ -11,10 +11,8 @@ impl ParseCallbacks for BashCallback {
     fn item_name(&self, item_info: ItemInfo) -> Option<String> {
         match item_info.name {
             // structs
-            "word_desc" => Some("WordDesc".into()),
-            "WORD_DESC" => Some("WordDesc".into()),
-            "word_list" => Some("WordList".into()),
-            "WORD_LIST" => Some("WordList".into()),
+            "word_desc" | "WORD_DESC" => Some("WordDesc".into()),
+            "word_list" | "WORD_LIST" => Some("WordList".into()),
             "SHELL_VAR" => Some("ShellVar".into()),
             "ARRAY" => Some("Array".into()),
             "command" => Some("Command".into()),
