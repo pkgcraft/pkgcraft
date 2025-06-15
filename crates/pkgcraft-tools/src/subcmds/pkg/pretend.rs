@@ -6,7 +6,7 @@ use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
+use pkgcraft::traits::LogErrors;
 
 #[derive(Args)]
 #[clap(next_help_heading = "Pretend options")]
@@ -51,7 +51,7 @@ impl Command {
 
         // run pkg_pretend across selected pkgs
         let mut stdout = io::stdout().lock();
-        let iter = pkgs.par_map_ordered(pretend).log_errors(self.ignore);
+        let iter = pkgs.into_iter().map(pretend).log_errors(self.ignore);
         let failed = iter.failed.clone();
         for output in iter.flatten() {
             writeln!(stdout, "{output}")?;
