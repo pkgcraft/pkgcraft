@@ -50,7 +50,7 @@ pub fn bench_pkg_deps(c: &mut Criterion) {
     c.bench_function("dep-cmp-sort", |b| {
         let mut deps: Vec<_> = (0..100)
             .rev()
-            .map(|s| Dep::try_new(format!("=cat/pkg-{}", s)).unwrap())
+            .map(|s| Dep::try_new(format!("=cat/pkg-{s}")).unwrap())
             .collect();
         b.iter(|| deps.sort());
     });

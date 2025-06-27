@@ -30,7 +30,7 @@ pub fn string<S: AsRef<str>>(s: S) -> crate::Result<ExecStatus> {
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
-            Err(Error::Base(format!("failed sourcing string: exit status {}", ret)))
+            Err(Error::Base(format!("failed sourcing string: exit status {ret}")))
         }
     })
 }
@@ -43,7 +43,7 @@ pub fn file<S: AsRef<str>>(path: S) -> crate::Result<ExecStatus> {
         if ret == 0 {
             Ok(ExecStatus::Success)
         } else {
-            Err(Error::Base(format!("failed sourcing file: {path}: exit status {}", ret)))
+            Err(Error::Base(format!("failed sourcing file: {path}: exit status {ret}")))
         }
     })
 }
@@ -131,7 +131,7 @@ mod tests {
         let mut file2 = NamedTempFile::new().unwrap();
         let file1_path = file1.path().to_str().unwrap().to_string();
         let file2_path = file2.path().to_str().unwrap().to_string();
-        writeln!(file1, "source {:?}", file2_path).unwrap();
+        writeln!(file1, "source {file2_path:?}").unwrap();
         writeln!(file2, "VAR=1\nlocal VAR\nVAR=2").unwrap();
         let err = source::file(file1_path).unwrap_err();
         assert_eq!(optional("VAR").unwrap(), "2");
