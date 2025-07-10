@@ -29,7 +29,7 @@ blake3 = { version = "1.8.2", features = ["traits-preview"] }
 cached = "0.55.1"
 camino = { version = "1.1.10", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.5.40", features = ["derive"] }
+clap = { version = "4.5.41", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 dashmap = "6.1.0"
 digest = "0.10.7"
@@ -40,7 +40,7 @@ git2 = { version = "0.20.2", optional = true }
 glob = "0.3.2"
 hex = "0.4.3"
 indexmap = { version = "2.10.0", features = ["rayon", "serde"] }
-indicatif = "0.17.11"
+indicatif = "0.18.0"
 indoc = "2.0.6"
 ipc-channel = "0.20.0"
 is_executable = "1.0.4"
@@ -53,20 +53,20 @@ ordermap = { version = "0.5.8", features = ["rayon", "serde"] }
 peg = "0.8.5"
 rayon = "1.10.0"
 regex = "1.11.1"
-reqwest = { version = "0.12.20", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
+reqwest = { version = "0.12.22", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 roxmltree = "0.20.0"
-rust-ini = "0.21.1"
+rust-ini = "0.21.2"
 scallop = { path = "../scallop", version = "0.0.26" }
 serde = { version = "1.0.219", features = ["derive"] }
-serde_with = { version = "3.13.0", default-features = false, features = ["macros"] }
+serde_with = { version = "3.14.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.9"
 strum = { version = "0.27.1", features = ["derive"] }
 tempfile = "3.20.0"
 thiserror = "2.0.12"
 tree-sitter = "0.25.6"
 tree-sitter-bash = "0.25.0"
-tokio = { version = "1.45.1", features = ["full"] }
-toml = "0.8.23"
+tokio = { version = "1.46.1", features = ["full"] }
+toml = "0.9.0"
 tracing = "0.1.41"
 url = { version = "2.5.4", features = ["serde"] }
 walkdir = "2.5.0"

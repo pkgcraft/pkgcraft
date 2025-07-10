@@ -19,11 +19,11 @@ workspace = true
 anyhow = "1.0.98"
 async-stream = "0.3.6"
 camino = "1.1.10"
-clap = { version = "4.5.40", features = ["derive", "string"] }
+clap = { version = "4.5.41", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.3"
-config = { version = "0.15.11", default-features = false, features = ["toml"] }
+config = { version = "0.15.13", default-features = false, features = ["toml"] }
 git2 = "0.20.2"
-hyper-util = "0.1.14"
+hyper-util = "0.1.15"
 indexmap = "2.10.0"
 indoc = "2.0.6"
 itertools = "0.14.0"
@@ -34,7 +34,7 @@ prost = "0.13.5"
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"] }
 thiserror = "2.0.12"
-tokio = { version = "1.45", features = ["full"] }
+tokio = { version = "1.46", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["net"] }
 tonic = { version = "0.13.1", features = ["tls-ring", "gzip"] }
 tracing = "0.1.41"
