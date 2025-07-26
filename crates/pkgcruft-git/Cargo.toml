@@ -23,7 +23,7 @@ clap = { version = "4.5.41", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.3"
 config = { version = "0.15.13", default-features = false, features = ["toml"] }
 git2 = "0.20.2"
-hyper-util = "0.1.15"
+hyper-util = "0.1.16"
 indexmap = "2.10.0"
 indoc = "2.0.6"
 itertools = "0.14.0"
