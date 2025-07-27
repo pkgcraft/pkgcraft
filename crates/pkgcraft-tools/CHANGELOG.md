@@ -1,3 +1,15 @@
+# 0.0.27
+
+## Added
+- pk pkg source: support specifying a number of runs for benchmarking
+- pk pkg source: add -c/--cumulative option for performing multiple runs
+- pk pkg env: support glob-based filters (#265)
+- pk pkg showkw: provide a tabular view by default
+- pk repo add: add initial support for adding repos to the config (#284)
+- pk repo remove: add initial support for removing repos from the config (#284)
+- pk repo sync: add initial repo syncing support (#284)
+- pk repo list: add initial support for listing repos from the config
+
 # 0.0.26
 
 ## Added
