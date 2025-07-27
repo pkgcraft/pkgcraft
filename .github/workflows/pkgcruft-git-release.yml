@@ -1,11 +1,11 @@
-name: pkgcruft-release
+name: pkgcruft-git-release
 
 on:
   push:
-    tags: [pkgcruft-[0-9]*]
+    tags: [pkgcruft-git-*]
     branches: ['**']
     paths:
-      - ".github/workflows/pkgcruft-release.yml"
+      - ".github/workflows/pkgcruft-git-release.yml"
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,8 @@ jobs:
           exit 1
         fi
 
-  shell:
+  source:
+    if: startsWith(github.ref, 'refs/tags/')
     needs: msrv
     runs-on: ubuntu-latest
     steps:
@@ -41,45 +42,11 @@ jobs:
       with:
         toolchain: ${{ needs.msrv.outputs.version }}
 
-    - name: Generate files
-      run: cargo run --bin pkgcruft completion --dir shell
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: shell
-        path: shell
-        if-no-files-found: error
-        retention-days: 3
-
-  source:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [msrv, shell]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-
-    - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ needs.msrv.outputs.version }}
-
     - name: Create vendored release
-      run: .ci/vendor-release pkgcruft
-
-    - name: Download shell completion
-      uses: actions/download-artifact@v4
-      with:
-        name: shell
-        path: shell
+      run: .ci/vendor-release pkgcruft-git
 
     - name: Create archive
       run: |
-        # move shell completion files into the release
-        mv shell ${{ github.ref_name }}
         # create the release tarball
         tar -cv -I "xz -9 -T0" -f ${{ github.ref_name }}.tar.xz ${{ github.ref_name }}
 
@@ -118,14 +85,14 @@ jobs:
     - name: Install cross
       run: cargo install cross --git https://github.com/cross-rs/cross
 
-    - name: Build pkgcruft
-      run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcruft
+    - name: Build pkgcruft-git
+      run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcruft-git
 
     - name: Create archive
       run: |
         tar -C target/${{ matrix.target }}/release-strip \
           -cv -I "xz -9 -T0" -f ${{ github.ref_name }}-${{ matrix.target }}.tar.xz \
-          pkgcruft
+          pkgcruft-git pkgcruft-gitd pkgcruft-git-pre-commit pkgcruft-git-pre-push
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
