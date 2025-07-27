@@ -2,7 +2,7 @@ name: pkgcruft-git-release
 
 on:
   push:
-    tags: [pkgcruft-git-*]
+    tags: ['pkgcruft-git-*']
     branches: ['**']
     paths:
       - ".github/workflows/pkgcruft-git-release.yml"
