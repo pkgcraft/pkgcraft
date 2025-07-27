@@ -43,6 +43,9 @@ jobs:
       with:
         toolchain: ${{ needs.msrv.outputs.version }}
 
+    - name: Install protoc for arcanist
+      uses: taiki-e/install-action@protoc
+
     - name: Create vendored release
       run: .ci/vendor-release pkgcruft-git
 
