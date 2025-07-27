@@ -83,8 +83,6 @@ jobs:
 
     - name: Build pkgcruft-git
       run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcruft-git
-      env:
-        CROSS_CONFIG: crates/pkgcruft-git/Cross.toml
 
     - name: Create archive
       run: |
