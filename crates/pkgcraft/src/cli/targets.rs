@@ -378,7 +378,9 @@ impl PkgTargets {
     }
 
     /// Convert target restrictions to raw ebuild packages.
-    pub fn ebuild_raw_pkgs(self) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> {
+    pub fn ebuild_raw_pkgs(
+        self,
+    ) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> + Send + Sync {
         self.into_iter().flat_map(|(set, restrict)| {
             set.into_iter()
                 .filter_map(|r| r.into_ebuild().ok())
