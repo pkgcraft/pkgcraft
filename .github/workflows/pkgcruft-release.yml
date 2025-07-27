@@ -98,11 +98,9 @@ jobs:
       matrix:
         target:
           - aarch64-unknown-linux-gnu
-          - aarch64-unknown-linux-musl
           - powerpc64-unknown-linux-gnu
           - powerpc64le-unknown-linux-gnu
           - x86_64-unknown-linux-gnu
-          - x86_64-unknown-linux-musl
 
     steps:
     - name: Checkout code
