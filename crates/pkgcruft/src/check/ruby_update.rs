@@ -95,16 +95,20 @@ impl EbuildPkgCheck for Check {
         }
 
         // drop targets with missing dependencies
-        for dep_targets in deps
+        for dep in deps
             .iter()
             .filter(|x| use_starts_with(x, &[IUSE_PREFIX]))
-            .filter_map(|dep| self.get_targets(&run.repo, dep.no_use_deps()))
+            .map(|x| x.no_use_deps())
         {
-            targets.retain(|&x| dep_targets.contains(x));
-            if targets.is_empty() {
-                // no updates available
-                return;
+            if let Some(dep_targets) = self.get_targets(&run.repo, dep.no_use_deps()) {
+                targets.retain(|&x| dep_targets.contains(x));
+                if !targets.is_empty() {
+                    continue;
+                }
             }
+
+            // no updates available
+            return;
         }
 
         RubyUpdate
