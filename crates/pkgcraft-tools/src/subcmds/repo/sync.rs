@@ -16,7 +16,7 @@ impl Command {
         // make sure system config is loaded if custom config wasn't specified
         config.load()?;
 
-        // remove specified repos
+        // sync specified repos
         config.repos().sync(&self.repos)?;
 
         Ok(ExitCode::SUCCESS)
