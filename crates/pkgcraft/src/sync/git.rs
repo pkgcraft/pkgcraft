@@ -1,4 +1,3 @@
-use std::fs;
 use std::sync::LazyLock;
 
 use camino::Utf8Path;
@@ -36,9 +35,6 @@ impl Syncable for Repo {
         let url = gix::url::parse(uri.into())
             .map_err(|e| Error::RepoSync(format!("invalid repo URL: {uri}: {e}")))?;
 
-        // remove empty repo dir if it exists, ignoring any errors
-        let _ = fs::remove_dir(path);
-
         match gix::open(path) {
             Ok(repo) => {
                 let mut remote = repo
@@ -70,7 +66,7 @@ impl Syncable for Repo {
                         Error::RepoSync(format!("failed fetching git repo: {uri}: {e}"))
                     })?;
             }
-            Err(_) if !path.exists() => {
+            Err(_) => {
                 let mut prepare_fetch = gix::prepare_clone(url, path).map_err(|e| {
                     Error::RepoSync(format!("failed cloning repo: {uri}: {e}"))
                 })?;
@@ -87,11 +83,6 @@ impl Syncable for Repo {
                     .map_err(|e| {
                         Error::RepoSync(format!("failed checking out git repo: {uri}: {e}"))
                     })?;
-            }
-            Err(e) => {
-                return Err(Error::RepoSync(format!(
-                    "failed initializing git repo: {uri}: {e}"
-                )));
             }
         }
 
