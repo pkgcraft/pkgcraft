@@ -9,7 +9,7 @@ use crate::repo::RepoFormat;
 use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(https?|git)://.+\.git$").unwrap());
+    LazyLock::new(|| Regex::new(r"^(https?|git)://(?P<path>.+)(\.git|)$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {
@@ -27,6 +27,17 @@ impl Syncable for Repo {
                 err: "invalid git repo".to_string(),
             })
         }
+    }
+
+    fn fallback_name(&self) -> Option<String> {
+        HANDLED_URI_RE
+            .captures(&self.uri)
+            .map(|m| {
+                Utf8Path::new(m.name("path").unwrap().as_str())
+                    .file_stem()
+                    .map(|n| n.to_owned())
+            })
+            .flatten()
     }
 
     async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {

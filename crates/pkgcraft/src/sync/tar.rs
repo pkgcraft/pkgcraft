@@ -4,7 +4,7 @@ use std::process::{Command, Stdio};
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 use futures::StreamExt;
 use regex::Regex;
 use reqwest::header::{ETAG, HeaderMap};
@@ -16,12 +16,13 @@ use crate::repo::RepoFormat;
 use crate::sync::{Syncable, Syncer};
 
 static HANDLED_URI_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^tar\+(?P<url>https://.+)$").unwrap());
+    LazyLock::new(|| Regex::new(r"^tar\+(?P<url>https://(?P<path>.+))$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {
     pub(crate) uri: String,
     url: String,
+    path: Utf8PathBuf,
 }
 
 impl Syncable for Repo {
@@ -30,6 +31,7 @@ impl Syncable for Repo {
             Some(m) => Ok(Syncer::TarHttps(Repo {
                 uri: uri.to_string(),
                 url: m.name("url").unwrap().as_str().to_string(),
+                path: Utf8Path::new(m.name("path").unwrap().as_str()).to_owned(),
             })),
             None => Err(Error::NotARepo {
                 kind: RepoFormat::Ebuild,
@@ -37,6 +39,10 @@ impl Syncable for Repo {
                 err: "invalid tar+https repo".to_string(),
             }),
         }
+    }
+
+    fn fallback_name(&self) -> Option<String> {
+        self.path.file_stem().map(|n| n.to_owned())
     }
 
     async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
