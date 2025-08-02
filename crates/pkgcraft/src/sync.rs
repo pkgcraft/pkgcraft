@@ -8,14 +8,12 @@ use tracing::debug;
 
 use crate::Error;
 
-#[cfg(feature = "git")]
 mod git;
 mod local;
 mod tar;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, SerializeDisplay)]
 pub(crate) enum Syncer {
-    #[cfg(feature = "git")]
     Git(git::Repo),
     Local(local::Repo),
     TarHttps(tar::Repo),
@@ -24,7 +22,6 @@ pub(crate) enum Syncer {
 impl fmt::Display for Syncer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            #[cfg(feature = "git")]
             Syncer::Git(repo) => write!(f, "{}", repo.uri),
             Syncer::TarHttps(repo) => write!(f, "{}", repo.uri),
             Syncer::Local(repo) => write!(f, "{}", repo.path),
@@ -47,7 +44,6 @@ impl Syncer {
             .map_err(|e| Error::RepoSync(format!("failed creating repos dir: {dir}: {e}")))?;
 
         match self {
-            #[cfg(feature = "git")]
             Syncer::Git(repo) => repo.sync(path).await,
             Syncer::TarHttps(repo) => repo.sync(path).await,
             Syncer::Local(repo) => repo.sync(path).await,
@@ -61,7 +57,6 @@ impl FromStr for Syncer {
     fn from_str(s: &str) -> crate::Result<Self> {
         #[rustfmt::skip]
         let syncers = [
-            #[cfg(feature = "git")]
             git::Repo::uri_to_syncer,
             tar::Repo::uri_to_syncer,
             local::Repo::uri_to_syncer,

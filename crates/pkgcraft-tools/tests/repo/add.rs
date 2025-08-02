@@ -1,5 +1,4 @@
 use pkgcraft::test::{cmd, test_data};
-use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
 
@@ -50,7 +49,7 @@ fn git_repo() {
         .args(["--config", config_dir])
         .arg("https://github.com/radhermit/radhermit-overlay.git")
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout("")
         .stderr("")
         .success();
 }

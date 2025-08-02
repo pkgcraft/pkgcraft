@@ -1,5 +1,4 @@
 use pkgcraft::test::{cmd, test_data};
-use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
 
@@ -69,7 +68,7 @@ fn git_repo() {
     cmd("pk repo sync test")
         .args(["--config", config_dir])
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout("")
         .stderr("")
         .success();
 
@@ -77,7 +76,7 @@ fn git_repo() {
     cmd("pk repo sync test")
         .args(["--config", config_dir])
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout("")
         .stderr("")
         .success();
 }
