@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::Write;
 use std::sync::Arc;
 use std::{fmt, fs};
 
@@ -7,7 +7,6 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
-use tempfile::TempDir;
 use tracing::error;
 
 use crate::Error;
@@ -55,12 +54,6 @@ impl RepoConfig {
         Ok(config)
     }
 
-    /// Try loading the repository from the config.
-    fn to_repo(&self) -> crate::Result<Repo> {
-        let name = self.location.file_name().unwrap_or_default();
-        self.format.from_path(name, &self.location, self.priority())
-    }
-
     /// Return the repository's configured priority.
     pub(crate) fn priority(&self) -> i32 {
         self.priority.unwrap_or_default()
@@ -90,46 +83,21 @@ impl RepoConfig {
 
 /// Builder for adding repos to a configuration.
 pub struct RepoConfigBuilder<'a> {
-    name: Option<String>,
-    inner: RepoConfig,
     config: &'a ConfigRepos,
-    tmpdir: Option<TempDir>,
+    name: Option<String>,
+    priority: Option<i32>,
+    syncer: Syncer,
 }
 
 impl<'a> RepoConfigBuilder<'a> {
     fn new(config: &'a ConfigRepos, uri: &str) -> crate::Result<Self> {
         let syncer: Syncer = uri.parse()?;
-        let (tmpdir, location) = if let Syncer::Local(repo) = &syncer {
-            (None, config.repos_dir.join(&repo.name))
-        } else {
-            // make sure repos dir exists
-            let dir = &config.repos_dir;
-            fs::create_dir_all(dir).map_err(|e| {
-                Error::Config(format!("failed creating repos dir: {dir}: {e}"))
-            })?;
-
-            // create temporary dir to sync repo into
-            let dir = TempDir::new_in(dir)
-                .map_err(|e| Error::InvalidValue(format!("failed creating temp dir: {e}")))?;
-            let path = Utf8Path::from_path(dir.path())
-                .ok_or_else(|| Error::InvalidValue("invalid temp dir path".to_string()))
-                .map(|x| x.to_path_buf())?;
-
-            (Some(dir), path)
-        };
-
-        let inner = RepoConfig {
-            location,
-            priority: Default::default(),
-            sync: Some(syncer),
-            ..RepoFormat::Ebuild.into()
-        };
 
         Ok(Self {
             name: None,
-            inner,
+            priority: None,
+            syncer,
             config,
-            tmpdir,
         })
     }
 
@@ -140,61 +108,48 @@ impl<'a> RepoConfigBuilder<'a> {
 
     /// Modify the repository priority.
     pub fn priority(&mut self, value: i32) {
-        self.inner.priority = Some(value);
+        self.priority = Some(value);
     }
 
     /// Add the repo to the config, optionally syncing.
-    pub fn add_to_config(mut self, sync: bool) -> crate::Result<()> {
-        // create repos directory
-        let dir = &self.config.repos_dir;
-        fs::create_dir_all(dir)
-            .map_err(|e| Error::Config(format!("failed creating repos dir: {dir}: {e}")))?;
-
-        // optionally sync the repo
-        let mut synced_repo = None;
-        if sync {
-            self.inner.sync()?;
-            synced_repo = Some(self.inner.to_repo()?);
-        }
-
+    pub fn add_to_config(self, sync: bool) -> crate::Result<()> {
         // determine the repo name
         let name = if let Some(value) = self.name {
             Ok(value)
-        } else if let Some(repo) = synced_repo {
-            Ok(repo.name().to_string())
         } else {
-            Err(Error::InvalidValue("missing repo name".to_string()))
+            self.syncer
+                .fallback_name()
+                .ok_or_else(|| Error::InvalidValue("missing repo name".to_string()))
         }?;
 
-        let repo_path = self.config.repos_dir.join(&name);
-        self.inner.location = repo_path.clone();
-
-        // persist the synced temporary repo to disk
-        if sync {
-            if let Some(dir) = self.tmpdir {
-                if let Err(e) = fs::rename(dir.path(), &repo_path) {
-                    if e.kind() == io::ErrorKind::DirectoryNotEmpty {
-                        return Err(Error::Config(format!("existing repo: {name}")));
-                    } else {
-                        return Err(Error::IO(format!(
-                            "failed moving repo to: {repo_path}: {e}"
-                        )));
-                    }
-                }
-            }
-        }
-
-        // create config directory
-        let dir = &self.config.config_dir;
-        fs::create_dir_all(dir)
-            .map_err(|e| Error::Config(format!("failed creating config dir: {dir}: {e}")))?;
+        // make sure we aren't trying to create a repo with the same name
         let config_path = self.config.config_dir.join(&name);
         if config_path.exists() {
             return Err(Error::Config(format!("existing repo config: {name}")));
         }
+        // create repos directory if it does not exist
+        let dir = &self.config.repos_dir;
+        fs::create_dir_all(dir)
+            .map_err(|e| Error::Config(format!("failed creating repos dir: {dir}: {e}")))?;
+        // create config directory if it does not exists
+        fs::create_dir_all(&self.config.config_dir)
+            .map_err(|e| Error::Config(format!("failed creating config dir: {dir}: {e}")))?;
+
+        let location = self.config.repos_dir.join(&name);
+        // optionally sync the repo
+        if sync {
+            futures::executor::block_on(self.syncer.sync(&location))?;
+        }
+
+        let repo = RepoConfig {
+            location,
+            priority: self.priority,
+            sync: Some(self.syncer),
+            ..RepoFormat::Ebuild.into()
+        };
 
         // write repo config file to disk
-        let data = toml::to_string(&self.inner)
+        let data = toml::to_string(&repo)
             .map_err(|e| Error::Config(format!("failed serializing repo config: {e}")))?;
         let mut file = fs::File::create(&config_path).map_err(|e| {
             Error::Config(format!("failed creating repo config file: {config_path}: {e}"))
