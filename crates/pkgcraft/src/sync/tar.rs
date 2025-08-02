@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -13,26 +14,32 @@ use tempfile::Builder;
 
 use crate::Error;
 use crate::repo::RepoFormat;
-use crate::sync::{Syncable, Syncer};
+use crate::sync::Syncable;
 
 static HANDLED_URI_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^tar\+(?P<url>https://(?P<path>.+))$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub(crate) struct Repo {
-    pub(crate) uri: String,
+    uri: String,
     url: String,
     path: Utf8PathBuf,
 }
 
+impl Display for Repo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.uri)
+    }
+}
+
 impl Syncable for Repo {
-    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
+    fn uri_to_syncer(uri: &str) -> crate::Result<Self> {
         match HANDLED_URI_RE.captures(uri) {
-            Some(m) => Ok(Syncer::TarHttps(Repo {
+            Some(m) => Ok(Repo {
                 uri: uri.to_string(),
                 url: m.name("url").unwrap().as_str().to_string(),
                 path: Utf8PathBuf::from(m.name("path").unwrap().as_str()),
-            })),
+            }),
             None => Err(Error::NotARepo {
                 kind: RepoFormat::Ebuild,
                 id: uri.to_string(),
@@ -141,6 +148,11 @@ impl Syncable for Repo {
             })?;
         }
 
+        Ok(())
+    }
+
+    fn remove<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
+        fs::remove_dir_all(path.as_ref())?;
         Ok(())
     }
 }
