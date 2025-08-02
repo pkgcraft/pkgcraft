@@ -481,9 +481,9 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.2.30"
+version = "1.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deec109607ca693028562ed836a5f1c4b8bd77755c4e132fc5ce11b0b6211ae7"
+checksum = "c3a42d84bb6b69d3a8b3eaacf0d88f179e1929695e1ad012b6cf64d9caaa5fd2"
 dependencies = [
  "jobserver",
  "libc",
@@ -560,9 +560,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.41"
+version = "4.5.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be92d32e80243a54711e5d7ce823c35c41c9d929dc4ab58e1276f625841aadf9"
+checksum = "ed87a9d530bb41a67537289bafcac159cb3ee28460e0a4571123d2a778a6a882"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -580,9 +580,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.41"
+version = "4.5.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707eab41e9622f9139419d573eca0900137718000c517d47da73045f54331c3d"
+checksum = "64f4f3f3c77c94aff3c7e9aac9a2ca1974a5adf392a8bb751e827d6d127ab966"
 dependencies = [
  "anstream",
  "anstyle",
@@ -829,9 +829,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4735f265ba6a1188052ca32d461028a7d1125868be18e287e756019da7607b5"
+checksum = "ec09e802f5081de6157da9a75701d6c713d8dc3ba52571fd4bd25f412644e8a6"
 dependencies = [
  "ctor-proc-macro",
  "dtor",
@@ -839,9 +839,9 @@ dependencies = [
 
 [[package]]
 name = "ctor-proc-macro"
-version = "0.0.5"
+version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f211af61d8efdd104f96e57adf5e426ba1bc3ed7a4ead616e15e5881fd79c4d"
+checksum = "e2931af7e13dc045d8e9d26afccc6fa115d64e115c9c84b1166288b46f6782c2"
 
 [[package]]
 name = "darling"
@@ -2805,14 +2805,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.53.2",
+ "windows-targets 0.53.3",
 ]
 
 [[package]]
 name = "libredox"
-version = "0.1.6"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4488594b9328dee448adb906d8b126d9b7deb7cf5c22161ee591610bb1be83c0"
+checksum = "391290121bad3d37fbddad76d8f5d1c1c314cfc646d143d7e07a3086ddff0ce3"
 dependencies = [
  "bitflags",
  "libc",
@@ -3803,9 +3803,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.5.15"
+version = "0.5.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e8af0dde094006011e6a740d4879319439489813bd0bcdc7d821beaeeff48ec"
+checksum = "5407465600fb0548f1442edf71dd20683c6ed326200ace4b1ef0763521bb3b77"
 dependencies = [
  "bitflags",
 ]
@@ -3939,9 +3939,9 @@ dependencies = [
 
 [[package]]
 name = "rustc-demangle"
-version = "0.1.25"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "989e6739f80c4ad5b13e0fd7fe89531180375b18520cc8c82080e4dc4035b84f"
+checksum = "56f7d92ca342cea22a06f2121d944b4fd82af56988c270852495420f961d4ace"
 
 [[package]]
 name = "rustc-hash"
@@ -3964,9 +3964,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.29"
+version = "0.23.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2491382039b29b9b11ff08b76ff6c97cf287671dbb74f0be44bda389fffe9bd1"
+checksum = "c0ebcbd2f03de0fc1122ad9bb24b127a5a6cd51d72604a3f3c50ac459762b6cc"
 dependencies = [
  "log",
  "once_cell",
@@ -4067,9 +4067,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.141"
+version = "1.0.142"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b9eff21ebe718216c6ec64e1d9ac57087aad11efc64e32002bce4a0d4c03d3"
+checksum = "030fedb782600dcbd6f02d479bf0d817ac3bb40d644745b769d6a96bc3afc5a7"
 dependencies = [
  "indexmap",
  "itoa",
@@ -4485,9 +4485,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.46.1"
+version = "1.47.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cc3a2344dafbe23a245241fe8b09735b521110d30fcefbbd5feb1797ca35d17"
+checksum = "89e49afdadebb872d3145a5638b59eb0691ea23e46ca484037cfab3b76b95038"
 dependencies = [
  "backtrace",
  "bytes",
@@ -4498,9 +4498,9 @@ dependencies = [
  "pin-project-lite",
  "signal-hook-registry",
  "slab",
- "socket2 0.5.10",
+ "socket2 0.6.0",
  "tokio-macros",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4550,9 +4550,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.9.2"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed0aee96c12fa71097902e0bb061a5e1ebd766a6636bb605ba401c45c1650eac"
+checksum = "41ae868b5a0f67631c14589f7e250c1ea2c574ee5ba21c6c8dd4b1485705a5a1"
 dependencies = [
  "indexmap",
  "serde",
@@ -5193,9 +5193,9 @@ checksum = "5e6ad25900d524eaabdbbb96d20b4311e1e7ae1699af4fb28c17ae66c80d798a"
 
 [[package]]
 name = "windows-registry"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3bab093bdd303a1240bb99b8aba8ea8a69ee19d34c9e2ef9594e708a4878820"
+checksum = "5b8a9ed28765efc97bbc954883f4e6796c33a06546ebafacbabee9696967499e"
 dependencies = [
  "windows-link",
  "windows-result 0.3.4",
@@ -5272,7 +5272,7 @@ version = "0.60.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2f500e4d28234f72040990ec9d39e3a6b950f9f22d3dba18416c35882612bcb"
 dependencies = [
- "windows-targets 0.53.2",
+ "windows-targets 0.53.3",
 ]
 
 [[package]]
@@ -5308,10 +5308,11 @@ dependencies = [
 
 [[package]]
 name = "windows-targets"
-version = "0.53.2"
+version = "0.53.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c66f69fcc9ce11da9966ddb31a40968cad001c5bedeb5c2b82ede4253ab48aef"
+checksum = "d5fe6031c4041849d7c496a8ded650796e7b6ecc19df1a431c1a363342e5dc91"
 dependencies = [
+ "windows-link",
  "windows_aarch64_gnullvm 0.53.0",
  "windows_aarch64_msvc 0.53.0",
  "windows_i686_gnu 0.53.0",
