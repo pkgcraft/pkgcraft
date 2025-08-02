@@ -31,10 +31,19 @@ impl fmt::Display for Syncer {
 
 trait Syncable {
     fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
+    fn fallback_name(&self) -> Option<String>;
     async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()>;
 }
 
 impl Syncer {
+    pub(crate) fn fallback_name(&self) -> Option<String> {
+        match self {
+            Syncer::Git(repo) => repo.fallback_name(),
+            Syncer::TarHttps(repo) => repo.fallback_name(),
+            Syncer::Local(repo) => repo.fallback_name(),
+        }
+    }
+
     pub(crate) async fn sync<P: AsRef<Utf8Path>>(&self, path: P) -> crate::Result<()> {
         let path = path.as_ref();
 
