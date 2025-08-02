@@ -22,17 +22,19 @@ pub(crate) enum Syncer {
 impl fmt::Display for Syncer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Syncer::Git(repo) => write!(f, "{}", repo.uri),
-            Syncer::TarHttps(repo) => write!(f, "{}", repo.uri),
-            Syncer::Local(repo) => write!(f, "{}", repo.path),
+            Syncer::Git(repo) => write!(f, "{}", repo),
+            Syncer::TarHttps(repo) => write!(f, "{}", repo),
+            Syncer::Local(repo) => write!(f, "{}", repo),
         }
     }
 }
 
-trait Syncable {
-    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer>;
+trait Syncable: fmt::Display + fmt::Debug + Sized {
+    fn uri_to_syncer(uri: &str) -> crate::Result<Self>;
     fn fallback_name(&self) -> Option<String>;
     async fn sync<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()>;
+    // TODO decide if we want it async as well.
+    fn remove<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()>;
 }
 
 impl Syncer {
@@ -58,6 +60,13 @@ impl Syncer {
             Syncer::Local(repo) => repo.sync(path).await,
         }
     }
+    pub(crate) fn remove<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
+        match self {
+            Syncer::Git(repo) => repo.remove(path),
+            Syncer::TarHttps(repo) => repo.remove(path),
+            Syncer::Local(repo) => repo.remove(path),
+        }
+    }
 }
 
 impl FromStr for Syncer {
@@ -66,9 +75,9 @@ impl FromStr for Syncer {
     fn from_str(s: &str) -> crate::Result<Self> {
         #[rustfmt::skip]
         let syncers = [
-            git::Repo::uri_to_syncer,
-            tar::Repo::uri_to_syncer,
-            local::Repo::uri_to_syncer,
+            |uri| git::Repo::uri_to_syncer(uri).map(|r| Syncer::Git(r)),
+            |uri| tar::Repo::uri_to_syncer(uri).map(|r| Syncer::TarHttps(r)),
+            |uri| local::Repo::uri_to_syncer(uri).map(|r| Syncer::Local(r)),
         ];
 
         for syncer in syncers {
