@@ -172,8 +172,7 @@ impl<'a> RepoConfigBuilder<'a> {
         // persist the synced temporary repo to disk
         if sync {
             if let Some(dir) = self.tmpdir {
-                let path = dir.keep();
-                if let Err(e) = fs::rename(&path, &repo_path) {
+                if let Err(e) = fs::rename(dir.path(), &repo_path) {
                     if e.kind() == io::ErrorKind::DirectoryNotEmpty {
                         return Err(Error::Config(format!("existing repo: {name}")));
                     } else {
