@@ -1,3 +1,5 @@
+use std::fmt::Display;
+use std::fs;
 use std::sync::LazyLock;
 
 use camino::Utf8Path;
@@ -6,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Error;
 use crate::repo::RepoFormat;
-use crate::sync::{Syncable, Syncer};
+use crate::sync::Syncable;
 
 static HANDLED_URI_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(https?|git)://(?P<path>.+)(\.git|)$").unwrap());
@@ -16,10 +18,16 @@ pub(crate) struct Repo {
     pub(crate) uri: String,
 }
 
+impl Display for Repo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.uri)
+    }
+}
+
 impl Syncable for Repo {
-    fn uri_to_syncer(uri: &str) -> crate::Result<Syncer> {
+    fn uri_to_syncer(uri: &str) -> crate::Result<Self> {
         if HANDLED_URI_RE.is_match(uri) {
-            Ok(Syncer::Git(Repo { uri: uri.to_string() }))
+            Ok(Repo { uri: uri.to_string() })
         } else {
             Err(Error::NotARepo {
                 kind: RepoFormat::Ebuild,
@@ -93,6 +101,12 @@ impl Syncable for Repo {
                     })?;
             }
         }
+
+        Ok(())
+    }
+
+    fn remove<P: AsRef<Utf8Path> + Send>(&self, path: P) -> crate::Result<()> {
+        fs::remove_dir_all(path.as_ref())?;
 
         Ok(())
     }

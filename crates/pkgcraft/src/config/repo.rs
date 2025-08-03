@@ -63,12 +63,11 @@ impl RepoConfig {
     fn remove(&self) -> crate::Result<()> {
         let path = &self.location;
 
-        let result = match &self.sync {
-            Some(Syncer::Local(_)) => fs::remove_file(path),
-            _ => fs::remove_dir_all(path),
-        };
-
-        result.map_err(|e| Error::IO(format!("failed removing repo: {path}: {e}")))
+        match &self.sync {
+            Some(sync) => sync.remove(path),
+            _ => fs::remove_dir_all(path)
+                .map_err(|e| Error::IO(format!("failed removing repo: {path}: {e}"))),
+        }
     }
 
     /// Sync repository to its configured location.
