@@ -25,9 +25,9 @@ test = ["dep:assert_cmd", "dep:pretty_assertions"]
 blake2 = "0.10.6"
 blake3 = { version = "1.8.2", features = ["traits-preview"] }
 cached = "0.56.0"
-camino = { version = "1.1.10", features = ["serde1"] }
+camino = { version = "1.1.11", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.5.42", features = ["derive"] }
+clap = { version = "4.5.43", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 dashmap = "6.1.0"
 digest = "0.10.7"
@@ -64,7 +64,7 @@ thiserror = "2.0.12"
 tree-sitter = "0.25.8"
 tree-sitter-bash = "0.25.0"
 tokio = { version = "1.47.1", features = ["full"] }
-toml = "0.9.4"
+toml = "0.9.5"
 tracing = "0.1.41"
 url = { version = "2.5.4", features = ["serde"] }
 walkdir = "2.5.0"

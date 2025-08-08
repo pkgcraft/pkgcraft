@@ -18,8 +18,8 @@ workspace = true
 [dependencies]
 anyhow = "1.0.98"
 async-stream = "0.3.6"
-camino = "1.1.10"
-clap = { version = "4.5.42", features = ["derive", "string"] }
+camino = "1.1.11"
+clap = { version = "4.5.43", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.3"
 config = { version = "0.15.13", default-features = false, features = ["toml"] }
 git2 = "0.20.2"

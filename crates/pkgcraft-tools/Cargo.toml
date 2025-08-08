@@ -27,9 +27,9 @@ network = []
 [dependencies]
 aho-corasick = "1.1.3"
 anyhow = "1.0.98"
-camino = "1.1.10"
-clap = { version = "4.5.42", features = ["derive"] }
-clap_complete = "4.5.55"
+camino = "1.1.11"
+clap = { version = "4.5.43", features = ["derive"] }
+clap_complete = "4.5.56"
 clap-verbosity-flag = "3.0.3"
 futures = "0.3.31"
 humantime = "2.2.0"
