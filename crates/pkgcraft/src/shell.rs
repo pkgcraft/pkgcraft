@@ -194,7 +194,7 @@ impl BuildData {
     }
 
     /// Get the current ebuild package being built if it exists.
-    fn ebuild_pkg(&self) -> EbuildPackage {
+    fn ebuild_pkg(&self) -> EbuildPackage<'_> {
         match &self.state {
             BuildState::Build(pkg) => EbuildPackage::Pkg(pkg),
             BuildState::Replace { new, .. } => EbuildPackage::Pkg(new),

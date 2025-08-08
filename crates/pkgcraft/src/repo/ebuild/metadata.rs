@@ -50,7 +50,7 @@ impl Ini {
     }
 
     /// Iterate over the config values for a key, splitting by whitespace.
-    fn iter(&self, key: &str) -> SplitWhitespace {
+    fn iter(&self, key: &str) -> SplitWhitespace<'_> {
         self.get(key).unwrap_or_default().split_whitespace()
     }
 

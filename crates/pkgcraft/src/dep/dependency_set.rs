@@ -60,23 +60,23 @@ impl<T: Ordered> DependencySet<T> {
         self.0 = sort_set!(self.0).collect();
     }
 
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter(&self) -> Iter<'_, T> {
         self.into_iter()
     }
 
-    pub fn iter_flatten(&self) -> IterFlatten<T> {
+    pub fn iter_flatten(&self) -> IterFlatten<'_, T> {
         self.into_iter_flatten()
     }
 
-    pub fn iter_recursive(&self) -> IterRecursive<T> {
+    pub fn iter_recursive(&self) -> IterRecursive<'_, T> {
         self.into_iter_recursive()
     }
 
-    pub fn iter_conditionals(&self) -> IterConditionals<T> {
+    pub fn iter_conditionals(&self) -> IterConditionals<'_, T> {
         self.into_iter_conditionals()
     }
 
-    pub fn iter_conditional_flatten(&self) -> IterConditionalFlatten<T> {
+    pub fn iter_conditional_flatten(&self) -> IterConditionalFlatten<'_, T> {
         self.into_iter_conditional_flatten()
     }
 }

@@ -57,7 +57,7 @@ impl<C, T: Into<Restrict>> TryIntoRestrict<C> for T {
 
 impl Restrict {
     /// Flatten a restriction, returning an iterator of its component restrictions.
-    pub fn iter_flatten(&self) -> IterFlatten {
+    pub fn iter_flatten(&self) -> IterFlatten<'_> {
         IterFlatten([self].into_iter().collect())
     }
 }

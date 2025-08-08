@@ -231,7 +231,7 @@ impl ConfigRepos {
     }
 
     /// Create a repo from a URI.
-    pub fn add_uri(&self, uri: &str) -> crate::Result<RepoConfigBuilder> {
+    pub fn add_uri(&self, uri: &str) -> crate::Result<RepoConfigBuilder<'_>> {
         RepoConfigBuilder::new(self, uri)
     }
 

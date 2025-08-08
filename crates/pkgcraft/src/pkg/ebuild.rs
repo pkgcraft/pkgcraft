@@ -305,7 +305,7 @@ impl EbuildPkg {
         &self,
         override_restrict: bool,
         use_default_mirrors: bool,
-    ) -> IterFetchable {
+    ) -> IterFetchable<'_> {
         IterFetchable {
             pkg: self,
             uris: self.src_uri().iter_flatten(),

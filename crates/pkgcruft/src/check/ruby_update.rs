@@ -46,7 +46,7 @@ impl Check {
         &self,
         repo: &EbuildRepo,
         dep: R,
-    ) -> Option<MappedRef<Restrict, Option<HashSet<String>>, HashSet<String>>> {
+    ) -> Option<MappedRef<'_, Restrict, Option<HashSet<String>>, HashSet<String>>> {
         let restrict = dep.into();
         self.dep_targets
             .entry(restrict.clone())

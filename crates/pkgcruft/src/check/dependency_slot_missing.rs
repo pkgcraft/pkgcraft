@@ -26,7 +26,7 @@ impl Check {
         &self,
         repo: &EbuildRepo,
         dep: R,
-    ) -> Ref<Restrict, Option<String>> {
+    ) -> Ref<'_, Restrict, Option<String>> {
         let restrict = dep.into();
         self.dep_slots
             .entry(restrict.clone())

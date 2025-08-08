@@ -46,7 +46,7 @@ impl Array<'_> {
     }
 
     /// Return a shared iterator for the array.
-    pub fn iter(&self) -> ArrayIter {
+    pub fn iter(&self) -> ArrayIter<'_> {
         self.into_iter()
     }
 

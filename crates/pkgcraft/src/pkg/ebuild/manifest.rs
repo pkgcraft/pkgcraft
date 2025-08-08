@@ -250,7 +250,7 @@ impl Manifest {
         self.0.get(name)
     }
 
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&self) -> Iter<'_> {
         self.into_iter()
     }
 

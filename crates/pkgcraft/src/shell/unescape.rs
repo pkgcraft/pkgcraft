@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 /// Unescape a given string.
-pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
+pub(crate) fn unescape(s: &str) -> Result<Cow<'_, str>, Error> {
     UnescapeString::unescape(s)
 }
 
@@ -12,7 +12,7 @@ pub(crate) struct UnescapeString<'a> {
 }
 
 impl UnescapeString<'_> {
-    pub(crate) fn unescape(s: &str) -> Result<Cow<str>, Error> {
+    pub(crate) fn unescape(s: &str) -> Result<Cow<'_, str>, Error> {
         let unescape = UnescapeString {
             s: s.chars(),
             mutated: s.is_empty(),

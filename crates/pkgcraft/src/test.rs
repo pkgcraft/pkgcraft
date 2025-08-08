@@ -92,7 +92,7 @@ impl DepToml {
             .map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
     }
 
-    pub fn compares(&self) -> ComparesIter {
+    pub fn compares(&self) -> ComparesIter<'_> {
         ComparesIter { iter: self.compares.iter() }
     }
 }
@@ -121,7 +121,7 @@ impl VersionToml {
             .map_err(|e| Error::IO(format!("invalid data format: {path}: {e}")))
     }
 
-    pub fn compares(&self) -> ComparesIter {
+    pub fn compares(&self) -> ComparesIter<'_> {
         ComparesIter { iter: self.compares.iter() }
     }
 }

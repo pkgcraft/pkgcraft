@@ -39,11 +39,11 @@ pub(crate) trait RunCommand {
     /// Run the command while capturing output.
     fn run_with_output(&mut self) -> crate::Result<()>;
     /// Convert the command into a vector of its arguments.
-    fn to_vec(&self) -> Vec<Cow<str>>;
+    fn to_vec(&self) -> Vec<Cow<'_, str>>;
 }
 
 impl RunCommand for Command {
-    fn to_vec(&self) -> Vec<Cow<str>> {
+    fn to_vec(&self) -> Vec<Cow<'_, str>> {
         [self.get_program()]
             .into_iter()
             .chain(self.get_args())

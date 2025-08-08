@@ -158,7 +158,7 @@ impl Cache for MetadataCache {
 
 impl MetadataCache {
     /// Create a regeneration builder for the cache.
-    pub fn regen(&self, repo: &EbuildRepo) -> MetadataCacheRegen {
+    pub fn regen(&self, repo: &EbuildRepo) -> MetadataCacheRegen<'_> {
         MetadataCacheRegen {
             cache: self,
             progress: false,

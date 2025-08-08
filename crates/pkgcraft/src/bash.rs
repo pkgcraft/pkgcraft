@@ -37,18 +37,18 @@ impl<'a> Tree<'a> {
     }
 
     /// Return an iterator over global nodes, skipping function scope.
-    pub fn iter_global(&self) -> impl Iterator<Item = Node> {
+    pub fn iter_global(&self) -> impl Iterator<Item = Node<'_>> {
         self.into_iter().skip(["function_definition"])
     }
 
     /// Return an iterator over function nodes, skipping global scope.
-    pub fn iter_func(&self) -> impl Iterator<Item = Node> {
+    pub fn iter_func(&self) -> impl Iterator<Item = Node<'_>> {
         self.into_iter()
             .filter(|x| x.kind() == "function_definition")
     }
 
     /// Return the last node for a given position if one exists.
-    pub fn last_node_for_position(&self, row: usize, column: usize) -> Option<Node> {
+    pub fn last_node_for_position(&self, row: usize, column: usize) -> Option<Node<'_>> {
         let mut cursor = self.tree.walk();
         let point = tree_sitter::Point::new(row, column);
         cursor.goto_first_child_for_point(point).map(|_| {

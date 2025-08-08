@@ -480,7 +480,7 @@ impl Dep {
     }
 
     /// Return a key value used to implement various traits, e.g. Eq, Ord, and Hash.
-    fn key(&self) -> DepKey {
+    fn key(&self) -> DepKey<'_> {
         (
             self.cpn(),
             self.version(),
