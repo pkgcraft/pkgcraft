@@ -75,6 +75,9 @@ name = "pkgcruft-git-pre-push"
 [[bin]]
 name = "pkgcruft-git-pre-commit"
 
+[[bin]]
+name = "pkgcruft-git-prepare-commit-msg"
+
 [[test]]
 name = "integration"
 path = "tests/lib.rs"
