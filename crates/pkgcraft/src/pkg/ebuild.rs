@@ -38,8 +38,8 @@ struct InternalEbuildPkg {
     cpv: Cpv,
     repo: EbuildRepo,
     meta: Metadata,
-    data: OnceLock<String>,
-    tree: OnceLock<bash::Tree<'static>>,
+    data: OnceLock<Arc<str>>,
+    tree: OnceLock<bash::Tree>,
     iuse_effective: OnceLock<OrderedSet<String>>,
     metadata: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
@@ -94,11 +94,15 @@ impl EbuildPkg {
         self.0.repo.path().join(self.relpath())
     }
 
-    /// Return a package's ebuild file content.
-    pub fn data(&self) -> &str {
+    fn data_inner(&self) -> &Arc<str> {
         self.0
             .data
-            .get_or_init(|| fs::read_to_string(self.path()).unwrap_or_default())
+            .get_or_init(|| fs::read_to_string(self.path()).unwrap_or_default().into())
+    }
+
+    /// Return a package's ebuild file content.
+    pub fn data(&self) -> &str {
+        self.data_inner()
     }
 
     /// Return the mapping of global environment variables exported by the package.
@@ -114,12 +118,9 @@ impl EbuildPkg {
     }
 
     /// Return the bash parse tree for the ebuild.
-    pub fn tree(&self) -> &bash::Tree<'static> {
-        self.0.tree.get_or_init(|| {
-            // HACK: figure out better method for self-referential lifetimes
-            let data: &'static [u8] = unsafe { std::mem::transmute(self.data().as_bytes()) };
-            bash::Tree::new(data)
-        })
+    pub fn tree(&self) -> &bash::Tree {
+        let data = Arc::clone(self.data_inner());
+        self.0.tree.get_or_init(|| bash::Tree::new(data))
     }
 
     /// Return true if a package is globally deprecated in its repo, false otherwise.

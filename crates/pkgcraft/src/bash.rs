@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use crate::Error;
 use crate::shell::phase::PhaseKind;
@@ -20,19 +20,21 @@ static LANGUAGE: LazyLock<tree_sitter::Language> =
 
 /// Wrapper for a lazily parsed bash tree.
 #[derive(Debug, Clone)]
-pub struct Tree<'a> {
-    data: &'a [u8],
+pub struct Tree {
+    data: Arc<str>,
     tree: tree_sitter::Tree,
 }
 
-impl<'a> Tree<'a> {
+impl Tree {
     /// Create a new bash parse tree from the given data.
-    pub fn new(data: &'a [u8]) -> Self {
+    pub fn new(data: Arc<str>) -> Self {
         let mut parser = tree_sitter::Parser::new();
         parser
             .set_language(&LANGUAGE)
             .expect("failed loading bash grammar");
-        let tree = parser.parse(data, None).expect("failed parsing bash");
+        let tree = parser
+            .parse(data.as_bytes(), None)
+            .expect("failed parsing bash");
         Self { data, tree }
     }
 
@@ -48,12 +50,16 @@ impl<'a> Tree<'a> {
     }
 
     /// Return the last node for a given position if one exists.
-    pub fn last_node_for_position(&self, row: usize, column: usize) -> Option<Node<'_>> {
+    pub fn last_node_for_position<'a>(
+        &'a self,
+        row: usize,
+        column: usize,
+    ) -> Option<Node<'a>> {
         let mut cursor = self.tree.walk();
         let point = tree_sitter::Point::new(row, column);
         cursor.goto_first_child_for_point(point).map(|_| {
             let mut prev_node = cursor.node();
-            let iter = IterRecursive::new(self.data, cursor);
+            let iter = IterRecursive::new(self.data.as_bytes(), cursor);
             for node in iter {
                 if node.start_position().row > row {
                     break;
@@ -62,13 +68,13 @@ impl<'a> Tree<'a> {
             }
             Node {
                 inner: prev_node,
-                data: self.data,
+                data: self.data.as_bytes(),
             }
         })
     }
 }
 
-impl Deref for Tree<'_> {
+impl Deref for Tree {
     type Target = tree_sitter::Tree;
 
     fn deref(&self) -> &Self::Target {
@@ -76,12 +82,12 @@ impl Deref for Tree<'_> {
     }
 }
 
-impl<'a> IntoIterator for &'a Tree<'a> {
+impl<'a> IntoIterator for &'a Tree {
     type Item = Node<'a>;
     type IntoIter = IterRecursive<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IterRecursive::new(self.data, self.tree.walk())
+        IterRecursive::new(self.data.as_bytes(), self.tree.walk())
     }
 }
 

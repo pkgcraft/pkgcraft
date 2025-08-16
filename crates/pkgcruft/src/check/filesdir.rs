@@ -26,8 +26,8 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
         .eclasses()
         .into_par_iter()
         .filter_map(|e| {
-            if let Ok(data) = fs::read(e.path()) {
-                if Tree::new(&data)
+            if let Ok(data) = fs::read_to_string(e.path()) {
+                if Tree::new(data.into())
                     .into_iter()
                     .any(|x| x.kind() == "variable_name" && x.as_str() == "FILESDIR")
                 {
