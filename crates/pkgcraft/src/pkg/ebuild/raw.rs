@@ -22,9 +22,9 @@ struct InternalEbuildRawPkg {
     pub(super) cpv: Cpv,
     pub(super) repo: EbuildRepo,
     pub(super) eapi: &'static Eapi,
-    data: String,
+    data: Arc<str>,
     chksum: String,
-    tree: OnceLock<bash::Tree<'static>>,
+    tree: OnceLock<bash::Tree>,
 }
 
 #[derive(Clone)]
@@ -63,7 +63,7 @@ impl EbuildRawPkg {
             cpv,
             repo,
             eapi,
-            data,
+            data: data.into(),
             chksum,
             tree,
         })))
@@ -106,10 +106,10 @@ impl EbuildRawPkg {
     }
 
     /// Return the bash parse tree for the ebuild.
-    pub fn tree(&self) -> &bash::Tree<'static> {
+    pub fn tree(&self) -> &bash::Tree {
         self.0.tree.get_or_init(|| {
             // HACK: figure out better method for self-referential lifetimes
-            let data: &'static [u8] = unsafe { std::mem::transmute(self.0.data.as_bytes()) };
+            let data = Arc::clone(&self.0.data);
             bash::Tree::new(data)
         })
     }
