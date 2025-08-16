@@ -53,14 +53,14 @@ rayon = "1.11.0"
 regex = "1.11.1"
 reqwest = { version = "0.12.23", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 roxmltree = "0.20.0"
-rust-ini = "0.21.2"
+rust-ini = "0.21.1"
 scallop = { path = "../scallop", version = "0.0.26" }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_with = { version = "3.14.0", default-features = false, features = ["macros"] }
 sha2 = "0.10.9"
 strum = { version = "0.27.2", features = ["derive"] }
 tempfile = "3.20.0"
-thiserror = "2.0.14"
+thiserror = "2.0.15"
 tree-sitter = "0.25.8"
 tree-sitter-bash = "0.25.0"
 tokio = { version = "1.47.1", features = ["full"] }
