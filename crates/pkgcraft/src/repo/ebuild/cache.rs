@@ -1,7 +1,6 @@
 use camino::Utf8Path;
 use indexmap::IndexSet;
 use indicatif::{ProgressBar, ProgressStyle};
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use tracing::error;
@@ -43,7 +42,7 @@ pub trait Cache {
     /// Remove the cache entry for a Cpv.
     fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()>;
     /// Remove outdated entries from the cache.
-    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()>;
+    fn clean<C: for<'a> Contains<&'a Cpv>>(&self, collection: C) -> crate::Result<()>;
 }
 
 #[derive(
@@ -149,7 +148,7 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
+    fn clean<C: for<'a> Contains<&'a Cpv>>(&self, collection: C) -> crate::Result<()> {
         match self {
             Self::Md5Dict(cache) => cache.clean(collection),
         }
@@ -224,7 +223,7 @@ impl MetadataCacheRegen<'_> {
             // pull all package Cpvs from the repo
             self.repo
                 .categories()
-                .into_par_iter()
+                .into_iter()
                 .flat_map(|s| self.repo.cpvs_from_category(&s))
                 .collect()
         });
@@ -251,7 +250,7 @@ impl MetadataCacheRegen<'_> {
         // run cache verification in a thread pool that runs blocking metadata tasks
         // in build pool processes as necessary
         let errors = cpvs
-            .into_par_iter()
+            .into_iter()
             .map(|cpv| {
                 progress.inc(1);
                 self.regen.run(cpv)
