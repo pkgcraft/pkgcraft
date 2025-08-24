@@ -304,16 +304,23 @@ impl PkgTargets {
         self.0.len()
     }
 
-    /// Return the number of match packages.
+    /// Return true if no restriction targets exist.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Return the number of package matches.
     pub fn len_pkgs(&self) -> usize {
         self.into_iter()
             .flat_map(|(set, restrict)| set.iter_cpv_restrict(restrict))
             .count()
     }
 
-    /// Return true if no restriction targets exist.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+    /// Return true if no package matches exist.
+    pub fn is_empty_pkgs(&self) -> bool {
+        !self
+            .into_iter()
+            .any(|(set, restrict)| set.contains(restrict))
     }
 
     /// Return the iterator of package targets.
@@ -481,15 +488,17 @@ mod tests {
         let ebuild_pkg = ebuild_repo.get_pkg("cat/pkg-1").unwrap();
         let fake_pkg = fake_repo.get_pkg("cat/pkg-2").unwrap();
 
-        // no specific repo target
+        // no specific repo target uses all configured repos
         let none: Option<&str> = None;
         let targets = Targets::new(&mut config)
             .repo(none)
             .unwrap()
             .pkg_targets(["cat/pkg"])
             .unwrap();
-        assert!(!targets.is_empty());
         assert_eq!(targets.len(), 1);
+        assert!(!targets.is_empty());
+        assert_eq!(targets.len_pkgs(), 2);
+        assert!(!targets.is_empty_pkgs());
         assert_ordered_eq!(
             targets.clone().pkgs(),
             [Ok(Pkg::Ebuild(ebuild_pkg.clone())), Ok(Pkg::Fake(fake_pkg.clone()))]
@@ -501,12 +510,22 @@ mod tests {
         // no specific repo target uses current working directory if inside a valid repo
         let path = test_data_path().join("repos/valid/metadata");
         env::set_current_dir(path).unwrap();
+        // single target with single pkg
         let targets = Targets::new(&mut config)
             .repo(none)
             .unwrap()
             .pkg_targets(["slot/slot"])
             .unwrap();
         assert_eq!(targets.len(), 1);
+        assert_eq!(targets.len_pkgs(), 1);
+        // single target with multiple pkgs
+        let targets = Targets::new(&mut config)
+            .repo(none)
+            .unwrap()
+            .pkg_targets(["properties/inherit"])
+            .unwrap();
+        assert_eq!(targets.len(), 1);
+        assert_eq!(targets.len_pkgs(), 2);
 
         // nonexistent repo ID
         let r = Targets::new(&mut config).repo(Some("nonexistent"));
