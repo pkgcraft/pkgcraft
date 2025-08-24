@@ -304,6 +304,13 @@ impl PkgTargets {
         self.0.len()
     }
 
+    /// Return the number of match packages.
+    pub fn len_pkgs(&self) -> usize {
+        self.into_iter()
+            .flat_map(|(set, restrict)| set.iter_cpv_restrict(restrict))
+            .count()
+    }
+
     /// Return true if no restriction targets exist.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
