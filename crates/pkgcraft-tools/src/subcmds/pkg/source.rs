@@ -374,7 +374,7 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
     let mut stdout = io::stdout().lock();
 
     // initialize progress bar
-    let progress = ProgressBar::new(targets.len().try_into().unwrap())
+    let progress = ProgressBar::new(targets.len_pkgs().try_into().unwrap())
         .with_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
 
     while run < limit {
