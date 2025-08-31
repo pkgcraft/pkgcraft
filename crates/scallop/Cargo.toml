@@ -1,6 +1,6 @@
 [package]
 name = "scallop"
-version = "0.0.26"
+version = "0.0.27"
 description = "Wrapper library for bash"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/scallop"
