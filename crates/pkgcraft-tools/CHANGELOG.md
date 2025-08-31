@@ -1,3 +1,9 @@
+# 0.0.28
+
+## Changed
+- Update MSRV to 1.88.
+- Migrate from git2 to gix for repo syncing support.
+
 # 0.0.27
 
 ## Added
