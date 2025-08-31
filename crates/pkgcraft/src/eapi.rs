@@ -826,7 +826,7 @@ pub static EAPI9: LazyLock<Eapi> = LazyLock::new(|| {
 
     Eapi::new("9", Some(&EAPI8))
         .update_commands([pipestatus.allowed_in([All]), ver_replacing.allowed_in([Pkg])])
-        .disable_commands([assert])
+        .disable_commands([assert, domo])
 });
 
 /// Reference to the most recent, official EAPI.
