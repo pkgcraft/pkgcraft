@@ -25,9 +25,9 @@ test = ["dep:assert_cmd", "dep:pretty_assertions"]
 blake2 = "0.10.6"
 blake3 = { version = "1.8.2", features = ["traits-preview"] }
 cached = "0.56.0"
-camino = { version = "1.1.11", features = ["serde1"] }
+camino = { version = "1.1.12", features = ["serde1"] }
 chic = "1.2.2"
-clap = { version = "4.5.45", features = ["derive"] }
+clap = { version = "4.5.46", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 dashmap = "6.1.0"
 digest = "0.10.7"
@@ -41,7 +41,7 @@ indexmap = { version = "2.11.0", features = ["rayon", "serde"] }
 indicatif = "0.18.0"
 indoc = "2.0.6"
 ipc-channel = "0.20.1"
-is_executable = "1.0.4"
+is_executable = "1.0.5"
 itertools = "0.14.0"
 libc = "0.2.175"
 md-5 = "0.10.6"
@@ -53,7 +53,7 @@ rayon = "1.11.0"
 regex = "1.11.2"
 reqwest = { version = "0.12.23", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 roxmltree = "0.20.0"
-rust-ini = "0.21.1"
+rust-ini = "0.21.3"
 scallop = { path = "../scallop", version = "0.0.26" }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_with = { version = "3.14.0", default-features = false, features = ["macros"] }
