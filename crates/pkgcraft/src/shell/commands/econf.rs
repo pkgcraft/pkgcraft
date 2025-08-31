@@ -149,17 +149,17 @@ fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     .collect();
 
     // set libdir if unspecified
-    if !args.contains_key("--libdir") {
-        if let Some(libdir) = get_libdir(None) {
-            let value = if let Some(Some(prefix)) = args.get("--exec-prefix") {
-                format!("{prefix}/{libdir}")
-            } else if let Some(Some(prefix)) = args.get("--prefix") {
-                format!("{prefix}/{libdir}")
-            } else {
-                format!("{eprefix}/usr/{libdir}")
-            };
-            options.insert("--libdir", Some(value));
-        }
+    if !args.contains_key("--libdir")
+        && let Some(libdir) = get_libdir(None)
+    {
+        let value = if let Some(Some(prefix)) = args.get("--exec-prefix") {
+            format!("{prefix}/{libdir}")
+        } else if let Some(Some(prefix)) = args.get("--prefix") {
+            format!("{prefix}/{libdir}")
+        } else {
+            format!("{eprefix}/usr/{libdir}")
+        };
+        options.insert("--libdir", Some(value));
     }
 
     // inject cross-compile options if enabled

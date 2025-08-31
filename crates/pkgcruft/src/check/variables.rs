@@ -49,14 +49,14 @@ impl Check {
 /// Flag issues with EAPI variable usage.
 fn eapi_variable(var: &str, var_node: &Node, pkg: &EbuildRawPkg, run: &ScannerRun) {
     let eapi_var = pkg.eapi().env().get(var).unwrap();
-    if let Ok(Some(scope)) = var_node.in_scope() {
-        if !eapi_var.is_allowed(&scope) {
-            VariableScopeInvalid
-                .version(pkg)
-                .message(format!("{var}: disabled in {scope} scope"))
-                .location(var_node)
-                .report(run);
-        }
+    if let Ok(Some(scope)) = var_node.in_scope()
+        && !eapi_var.is_allowed(&scope)
+    {
+        VariableScopeInvalid
+            .version(pkg)
+            .message(format!("{var}: disabled in {scope} scope"))
+            .location(var_node)
+            .report(run);
     }
 }
 

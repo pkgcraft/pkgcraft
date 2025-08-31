@@ -7,16 +7,16 @@ use crate::shell::commands::{eapply, eapply_user, einstalldocs};
 use super::emake_install;
 
 pub(crate) fn src_prepare(_build: &mut BuildData) -> scallop::Result<ExecStatus> {
-    if let Some(patches) = var_to_vec("PATCHES") {
-        if !patches.is_empty() {
-            // Note that not allowing options in PATCHES is technically from EAPI 8, but it's
-            // backported here for EAPI 6 onwards.
-            let args: Vec<_> = ["--"]
-                .into_iter()
-                .chain(patches.iter().map(|s| s.as_str()))
-                .collect();
-            eapply(&args)?;
-        }
+    if let Some(patches) = var_to_vec("PATCHES")
+        && !patches.is_empty()
+    {
+        // Note that not allowing options in PATCHES is technically from EAPI 8, but it's
+        // backported here for EAPI 6 onwards.
+        let args: Vec<_> = ["--"]
+            .into_iter()
+            .chain(patches.iter().map(|s| s.as_str()))
+            .collect();
+        eapply(&args)?;
     }
 
     eapply_user(&[])

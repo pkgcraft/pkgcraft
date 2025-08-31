@@ -108,10 +108,11 @@ impl Fetchable {
         let mut mirrors = IndexSet::new();
 
         // add default mirrors
-        if use_default_mirrors && !mirror_restricted {
-            if let Some(values) = repo.mirrors().get(&default_mirror) {
-                mirrors.extend(values.clone());
-            }
+        if use_default_mirrors
+            && !mirror_restricted
+            && let Some(values) = repo.mirrors().get(&default_mirror)
+        {
+            mirrors.extend(values.clone());
         }
 
         // validate mirror URIs
@@ -324,10 +325,10 @@ impl Fetcher {
             match self.fetch_internal(&f, path, &pb, size).await {
                 Err(e @ Error::FetchFailed { .. }) => {
                     // skip all alternative URLs from failed, default mirrors
-                    if let Some(name) = mirror.map(|x| x.name()) {
-                        if name == fetchable.default_mirror {
-                            fetchables.skip_mirrors.insert(name);
-                        }
+                    if let Some(name) = mirror.map(|x| x.name())
+                        && name == fetchable.default_mirror
+                    {
+                        fetchables.skip_mirrors.insert(name);
                     }
                     result = Err(e);
                 }
@@ -367,12 +368,10 @@ impl Fetcher {
             let current_size = meta.len();
             if current_size != 0 && current_size == size.unwrap_or_default() {
                 return Ok(());
-            } else if let Some(value) = size {
-                if current_size > value {
-                    return Err(Error::InvalidValue(format!(
-                        "file larger than expected: {path}"
-                    )));
-                }
+            } else if let Some(value) = size
+                && current_size > value
+            {
+                return Err(Error::InvalidValue(format!("file larger than expected: {path}")));
             }
 
             // request remaining data assuming sequential downloads

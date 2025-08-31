@@ -361,16 +361,16 @@ impl Config<ConfigInner> {
             self.load()?;
 
             // if repos are still missing, try loading from the parent dir
-            if !self.has_repos(&repos) {
-                if let Some(parent) = repo.path().parent() {
-                    for name in &repos {
-                        let path = parent.join(name);
-                        if self
-                            .add_format_repo_path(name, &path, repo.priority(), repo.format())
-                            .is_err()
-                        {
-                            break;
-                        }
+            if !self.has_repos(&repos)
+                && let Some(parent) = repo.path().parent()
+            {
+                for name in &repos {
+                    let path = parent.join(name);
+                    if self
+                        .add_format_repo_path(name, &path, repo.priority(), repo.format())
+                        .is_err()
+                    {
+                        break;
                     }
                 }
             }

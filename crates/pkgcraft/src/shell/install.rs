@@ -163,15 +163,15 @@ impl Install {
             })?;
         }
 
-        if let Some(mode) = &opts.mode {
-            if !path.is_symlink() {
-                fchmodat(AT_FDCWD, path, **mode, FollowSymlink).map_err(|e| {
-                    Error::Base(format!(
-                        "failed setting file mode: {}: {e}",
-                        path.to_string_lossy()
-                    ))
-                })?;
-            }
+        if let Some(mode) = &opts.mode
+            && !path.is_symlink()
+        {
+            fchmodat(AT_FDCWD, path, **mode, FollowSymlink).map_err(|e| {
+                Error::Base(format!(
+                    "failed setting file mode: {}: {e}",
+                    path.to_string_lossy()
+                ))
+            })?;
         }
 
         Ok(())

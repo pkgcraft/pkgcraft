@@ -43,10 +43,10 @@ impl EbuildPkgSetCheck for Check {
                     .report(run);
             }
 
-            if let Some(global_desc) = run.repo.metadata().use_global().get(flag) {
-                if global_desc == desc {
-                    UseLocalGlobal.package(cpn).message(flag).report(run);
-                }
+            if let Some(global_desc) = run.repo.metadata().use_global().get(flag)
+                && global_desc == desc
+            {
+                UseLocalGlobal.package(cpn).message(flag).report(run);
             }
         }
 

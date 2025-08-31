@@ -150,14 +150,14 @@ fn eapi_command<'a>(
             .message(format!("{phase}"))
             .location(cmd_node)
             .report(run);
-    } else if let Ok(phase) = func_name.parse::<PhaseKind>() {
-        if !eapi_cmd.is_allowed(&phase) {
-            CommandScopeInvalid
-                .version(pkg)
-                .message(format!("{cmd}: disabled in {phase} scope"))
-                .location(cmd_node)
-                .report(run);
-        }
+    } else if let Ok(phase) = func_name.parse::<PhaseKind>()
+        && !eapi_cmd.is_allowed(&phase)
+    {
+        CommandScopeInvalid
+            .version(pkg)
+            .message(format!("{cmd}: disabled in {phase} scope"))
+            .location(cmd_node)
+            .report(run);
     }
 
     // flag unnecessary `die` usage for fatal EAPI commands
@@ -168,18 +168,16 @@ fn eapi_command<'a>(
             .next_sibling()
             .filter(|x| x.kind() == "||")
             .and_then(|x| x.next_sibling())
-        {
-            if node
+            && node
                 .into_iter()
                 .next()
                 .is_some_and(|x| x.kind() == "command_name" && x.as_str() == "die")
-            {
-                CommandDieUnneeded
-                    .version(pkg)
-                    .message(cmd)
-                    .location(cmd_node)
-                    .report(run);
-            }
+        {
+            CommandDieUnneeded
+                .version(pkg)
+                .message(cmd)
+                .location(cmd_node)
+                .report(run);
         }
     }
 }

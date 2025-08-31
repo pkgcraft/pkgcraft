@@ -1097,24 +1097,24 @@ impl<'a, R: BufRead> Iter<'a, R> {
     /// Determine if a given [`Report`] should be filtered.
     fn filtered(&self, report: &Report) -> bool {
         // skip excluded report variants
-        if let Some(reports) = self.reports {
-            if !reports.contains(&report.kind) {
-                return true;
-            }
+        if let Some(reports) = self.reports
+            && !reports.contains(&report.kind)
+        {
+            return true;
         }
 
         // skip excluded scope variants
-        if let Some(scopes) = self.scopes {
-            if !scopes.contains(&report.scope().scope()) {
-                return true;
-            }
+        if let Some(scopes) = self.scopes
+            && !scopes.contains(&report.scope().scope())
+        {
+            return true;
         }
 
         // skip excluded restrictions
-        if let Some(filter) = self.restrict {
-            if !filter.matches(report) {
-                return true;
-            }
+        if let Some(filter) = self.restrict
+            && !filter.matches(report)
+        {
+            return true;
         }
 
         false

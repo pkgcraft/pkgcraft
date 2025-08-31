@@ -60,10 +60,10 @@ impl Syncable for Repo {
         // use cached ETag to check if update exists
         let etag_path = path.join(".etag");
         let mut req_headers = HeaderMap::new();
-        if let Ok(previous_etag) = fs::read_to_string(&etag_path) {
-            if let Ok(value) = previous_etag.parse() {
-                req_headers.insert("If-None-Match", value);
-            }
+        if let Ok(previous_etag) = fs::read_to_string(&etag_path)
+            && let Ok(value) = previous_etag.parse()
+        {
+            req_headers.insert("If-None-Match", value);
         }
 
         let resp = reqwest::Client::new()

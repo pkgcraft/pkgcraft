@@ -90,14 +90,15 @@ impl EbuildRawPkgCheck for Check {
                 eapi_assign = true;
             }
 
-            if let Some(prev) = prev_line {
-                if prev.trim().is_empty() && whitespace_only_line {
-                    WhitespaceUnneeded
-                        .version(pkg)
-                        .message("empty line")
-                        .location(lineno)
-                        .report(run);
-                }
+            if let Some(prev) = prev_line
+                && prev.trim().is_empty()
+                && whitespace_only_line
+            {
+                WhitespaceUnneeded
+                    .version(pkg)
+                    .message("empty line")
+                    .location(lineno)
+                    .report(run);
             }
 
             prev_line = Some(line);

@@ -340,14 +340,14 @@ impl Iterator for ReportIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.sort {
-                if let Some(reports) = self.id_cache.remove(&self.id) {
-                    self.id += 1;
-                    if reports.is_empty() {
-                        continue;
-                    }
-                    self.reports.extend(reports);
+            if self.sort
+                && let Some(reports) = self.id_cache.remove(&self.id)
+            {
+                self.id += 1;
+                if reports.is_empty() {
+                    continue;
                 }
+                self.reports.extend(reports);
             }
 
             if let Some(report) = self.reports.pop_front() {

@@ -427,10 +427,8 @@ fn fmt(f: &mut fmt::Formatter, v: &Version, rev: bool, op: bool) -> fmt::Result 
         write!(s, "_{suffix}")?;
     }
 
-    if rev {
-        if let Some(rev) = v.revision() {
-            write!(s, "-r{rev}")?;
-        }
+    if rev && let Some(rev) = v.revision() {
+        write!(s, "-r{rev}")?;
     }
 
     if op {

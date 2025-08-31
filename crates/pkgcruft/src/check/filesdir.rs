@@ -26,13 +26,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
         .eclasses()
         .into_par_iter()
         .filter_map(|e| {
-            if let Ok(data) = fs::read_to_string(e.path()) {
-                if Tree::new(data.into())
+            if let Ok(data) = fs::read_to_string(e.path())
+                && Tree::new(data.into())
                     .into_iter()
                     .any(|x| x.kind() == "variable_name" && x.as_str() == "FILESDIR")
-                {
-                    return Some(e);
-                }
+            {
+                return Some(e);
             }
             None
         })
@@ -213,16 +212,14 @@ impl EbuildPkgSetCheck for Check {
                             } else if !used_files.contains(path)
                                 && !Path::new(path).exists()
                                 && !node.in_conditional()
+                                && let Some(file) = path.strip_prefix(filesdir.as_str())
+                                && file.starts_with('/')
                             {
-                                if let Some(file) = path.strip_prefix(filesdir.as_str()) {
-                                    if file.starts_with('/') {
-                                        FileUnknown
-                                            .version(pkg)
-                                            .message(file.trim_start_matches('/'))
-                                            .location(location)
-                                            .report(run);
-                                    }
-                                }
+                                FileUnknown
+                                    .version(pkg)
+                                    .message(file.trim_start_matches('/'))
+                                    .location(location)
+                                    .report(run);
                             }
                         };
 

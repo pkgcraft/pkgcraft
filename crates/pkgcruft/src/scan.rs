@@ -136,11 +136,11 @@ impl Scanner {
                 }
             })
             .filter(|result| {
-                if let Err(Error::ReportInit(report, msg)) = &result {
-                    if !selected.contains(report) {
-                        warn!("skipping {report} report: {msg}");
-                        return false;
-                    }
+                if let Err(Error::ReportInit(report, msg)) = &result
+                    && !selected.contains(report)
+                {
+                    warn!("skipping {report} report: {msg}");
+                    return false;
                 }
                 true
             })
@@ -163,11 +163,11 @@ impl Scanner {
                 }
             })
             .filter(|result| {
-                if let Err(Error::CheckInit(check, msg)) = &result {
-                    if !selected.contains(check) {
-                        warn!("skipping {check} check: {msg}");
-                        return false;
-                    }
+                if let Err(Error::CheckInit(check, msg)) = &result
+                    && !selected.contains(check)
+                {
+                    warn!("skipping {check} check: {msg}");
+                    return false;
                 }
                 true
             })

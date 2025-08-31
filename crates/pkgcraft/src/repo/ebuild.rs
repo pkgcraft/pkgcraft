@@ -481,21 +481,20 @@ impl EbuildRepo {
 
     /// Scan the deprecated package list returning the first match for a given dependency.
     pub fn deprecated(&self, dep: &Dep) -> Option<&Dep> {
-        if dep.blocker().is_none() {
-            if let Some(pkg) = self
+        if dep.blocker().is_none()
+            && let Some(pkg) = self
                 .metadata()
                 .pkg_deprecated()
                 .iter()
                 .find(|x| x.intersects(dep))
-            {
-                match (pkg.slot_dep(), dep.slot_dep()) {
-                    // deprecated pkg matches all slots
-                    (None, _) => return Some(pkg),
-                    // deprecated slot dep matches the dependency
-                    (Some(s1), Some(s2)) if s1.slot() == s2.slot() => return Some(pkg),
-                    // TODO: query slot cache for remaining mismatched variants?
-                    _ => (),
-                }
+        {
+            match (pkg.slot_dep(), dep.slot_dep()) {
+                // deprecated pkg matches all slots
+                (None, _) => return Some(pkg),
+                // deprecated slot dep matches the dependency
+                (Some(s1), Some(s2)) if s1.slot() == s2.slot() => return Some(pkg),
+                // TODO: query slot cache for remaining mismatched variants?
+                _ => (),
             }
         }
         None
@@ -658,14 +657,14 @@ impl Repository for EbuildRepo {
                     restricts.push(DepRestrict::package(s));
                 }
                 [_, _] => {
-                    if let Some(p) = s.strip_suffix(".ebuild") {
-                        if let Ok(cpv) = Cpv::try_new(format!("{cat}/{p}")) {
-                            if pn == cpv.package() {
-                                restricts.push(DepRestrict::Version(Some(cpv.version)));
-                                continue;
-                            } else {
-                                warn!("{}: unmatched ebuild: {path}", self.id());
-                            }
+                    if let Some(p) = s.strip_suffix(".ebuild")
+                        && let Ok(cpv) = Cpv::try_new(format!("{cat}/{p}"))
+                    {
+                        if pn == cpv.package() {
+                            restricts.push(DepRestrict::Version(Some(cpv.version)));
+                            continue;
+                        } else {
+                            warn!("{}: unmatched ebuild: {path}", self.id());
                         }
                     }
 

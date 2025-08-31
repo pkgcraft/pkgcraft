@@ -261,10 +261,10 @@ pub fn test_data_patched() -> TestDataPatched {
                         .unwrap_or_else(|e| panic!("failed creating dir {dest}: {e}"));
                 } else if src.is_file() && !is_change(&entry) {
                     // ignore missing transient metadata cache files
-                    if let Err(e) = fs::copy(src, &dest) {
-                        if e.kind() != io::ErrorKind::NotFound {
-                            panic!("failed copying {src} to {dest}: {e}");
-                        }
+                    if let Err(e) = fs::copy(src, &dest)
+                        && e.kind() != io::ErrorKind::NotFound
+                    {
+                        panic!("failed copying {src} to {dest}: {e}");
                     }
                 }
             }

@@ -290,12 +290,11 @@ impl Dep {
             .unwrap_or_else(|e| panic!("{e}"));
 
         // set the version operator to '=' if necessary
-        if let Some(op) = dep.version().and_then(|v| v.op()) {
-            if op != Operator::Equal {
-                if let Some(ver) = dep.to_mut().version.as_mut() {
-                    ver.op = Some(Operator::Equal);
-                }
-            }
+        if let Some(op) = dep.version().and_then(|v| v.op())
+            && op != Operator::Equal
+            && let Some(ver) = dep.to_mut().version.as_mut()
+        {
+            ver.op = Some(Operator::Equal);
         }
 
         dep

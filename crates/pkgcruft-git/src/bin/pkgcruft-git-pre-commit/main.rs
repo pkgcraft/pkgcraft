@@ -84,10 +84,10 @@ fn main() -> anyhow::Result<ExitCode> {
     // determine target Cpns from diff
     let mut cpns = IndexSet::new();
     for delta in diff.deltas() {
-        if let Some(path) = delta.new_file().path().and_then(Utf8Path::from_path) {
-            if let Ok(cpn) = repo.cpn_from_path(path) {
-                cpns.insert(cpn);
-            }
+        if let Some(path) = delta.new_file().path().and_then(Utf8Path::from_path)
+            && let Ok(cpn) = repo.cpn_from_path(path)
+        {
+            cpns.insert(cpn);
         }
     }
 

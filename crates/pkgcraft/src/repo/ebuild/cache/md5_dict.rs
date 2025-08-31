@@ -291,10 +291,10 @@ impl Cache for Md5Dict {
             })?;
 
             let dir = path.parent().unwrap();
-            if let Err(e) = fs::remove_dir(dir) {
-                if e.kind() != io::ErrorKind::DirectoryNotEmpty {
-                    return Err(Error::IO(format!("failed removing cache dir: {dir}: {e}")));
-                }
+            if let Err(e) = fs::remove_dir(dir)
+                && e.kind() != io::ErrorKind::DirectoryNotEmpty
+            {
+                return Err(Error::IO(format!("failed removing cache dir: {dir}: {e}")));
             }
 
             Ok(())
