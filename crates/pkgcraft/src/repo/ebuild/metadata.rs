@@ -827,7 +827,7 @@ impl Metadata {
         // TODO: use native parallel Cpn iterator
         let data = repo
             .categories()
-            .into_par_iter()
+            .into_iter()
             .flat_map(|cat| {
                 repo.packages(&cat)
                     .into_iter()
@@ -841,8 +841,8 @@ impl Metadata {
             .collect::<Vec<_>>();
 
         let mut data = data
-            .par_iter()
-            .flat_map_iter(|(meta, cpn)| {
+            .iter()
+            .flat_map(|(meta, cpn)| {
                 meta.local_use()
                     .iter()
                     .map(|(name, desc)| (cpn, name, desc))

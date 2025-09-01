@@ -5,7 +5,6 @@ use std::{fmt, fs, io};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use walkdir::WalkDir;
@@ -276,7 +275,7 @@ impl Cache for Md5Dict {
         }
     }
 
-    fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
+    fn clean<C: for<'a> Contains<&'a Cpv>>(&self, collection: C) -> crate::Result<()> {
         // TODO: replace with parallelized cache iterator
         let entries: Vec<_> = WalkDir::new(self.path())
             .min_depth(2)
@@ -303,7 +302,7 @@ impl Cache for Md5Dict {
         // Remove outdated, invalid, and unrelated files as well as their parent
         // directories if empty.
         entries
-            .into_par_iter()
+            .into_iter()
             .filter_map(Result::ok)
             .filter(is_file)
             .filter_map(|e| Utf8PathBuf::from_path_buf(e.into_path()).ok())

@@ -366,7 +366,6 @@ pub struct BuildPool {
     pid: OnceLock<Pid>,
 }
 
-// needed due to IpcSender lacking Sync
 unsafe impl Sync for BuildPool {}
 
 impl Default for BuildPool {

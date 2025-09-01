@@ -1,11 +1,10 @@
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, OnceLock, Weak};
+use std::sync::{Arc, OnceLock};
 use std::{fmt, fs, iter, mem};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
-use rayon::prelude::*;
 use tracing::warn;
 
 use crate::config::{Config, RepoConfig, Settings};
@@ -48,7 +47,7 @@ struct InternalEbuildRepo {
 #[derive(Default)]
 struct LazyMetadata {
     masters: OnceLock<Vec<EbuildRepo>>,
-    pool: OnceLock<Weak<BuildPool>>,
+    pool: OnceLock<Arc<BuildPool>>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -158,7 +157,7 @@ impl EbuildRepo {
         self.0
             .data
             .pool
-            .set(Arc::downgrade(config.pool()))
+            .set(Arc::clone(config.pool()))
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         // collapse lazy fields
@@ -181,8 +180,7 @@ impl EbuildRepo {
             .pool
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
-            .upgrade()
-            .unwrap_or_else(|| panic!("destroyed ebuild repo: {self}"))
+            .clone()
     }
 
     pub fn metadata(&self) -> &Metadata {
@@ -412,14 +410,14 @@ impl EbuildRepo {
     /// Return an ordered iterator of ebuild packages for the repo.
     ///
     /// This constructs packages in parallel and returns them in repo order.
-    pub fn iter_ordered(&self) -> IterOrdered {
+    pub fn iter_ordered(&self) -> impl Iterator<Item = crate::Result<EbuildPkg>> {
         IterOrdered::new(self, None)
     }
 
     /// Return an unordered iterator of ebuild packages for the repo.
     ///
     /// This constructs packages in parallel and returns them in completion order.
-    pub fn iter_unordered(&self) -> IterUnordered {
+    pub fn iter_unordered(&self) -> impl Iterator<Item = crate::Result<EbuildPkg>> {
         IterUnordered::new(self, None)
     }
 
@@ -432,14 +430,14 @@ impl EbuildRepo {
     }
 
     /// Return an iterator of raw packages for the repo.
-    pub fn iter_raw(&self) -> IterRaw {
+    pub fn iter_raw(&self) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> {
         IterRaw::new(self, None)
     }
 
     /// Return an ordered iterator of raw packages for the repo.
     ///
     /// This constructs packages in parallel and returns them in repo order.
-    pub fn iter_raw_ordered(&self) -> IterRawOrdered {
+    pub fn iter_raw_ordered(&self) -> impl Iterator<Item = crate::Result<EbuildRawPkg>> {
         IterRawOrdered::new(self, None)
     }
 
@@ -742,17 +740,13 @@ impl Iterator for Iter {
 ///
 /// This constructs packages in parallel and returns them as completed.
 pub struct IterUnordered {
-    iter: ParallelMapIter<crate::Result<EbuildPkg>>,
+    iter: IterRaw,
 }
 
 impl IterUnordered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         let pkgs = IterRaw::new(repo, restrict);
-        let func =
-            move |result: crate::Result<EbuildRawPkg>| result.and_then(|pkg| pkg.try_into());
-        Self {
-            iter: pkgs.par_map(func).into_iter(),
-        }
+        Self { iter: pkgs }
     }
 }
 
@@ -760,7 +754,9 @@ impl Iterator for IterUnordered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter
+            .next()
+            .map(|result| result.and_then(|pkg| pkg.try_into()))
     }
 }
 
@@ -768,17 +764,13 @@ impl Iterator for IterUnordered {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterOrdered {
-    iter: ParallelMapOrderedIter<crate::Result<EbuildPkg>>,
+    iter: IterRaw,
 }
 
 impl IterOrdered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         let pkgs = IterRaw::new(repo, restrict);
-        let func =
-            move |result: crate::Result<EbuildRawPkg>| result.and_then(|pkg| pkg.try_into());
-        Self {
-            iter: pkgs.par_map_ordered(func).into_iter(),
-        }
+        Self { iter: pkgs }
     }
 }
 
@@ -786,7 +778,9 @@ impl Iterator for IterOrdered {
     type Item = crate::Result<EbuildPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter
+            .next()
+            .map(|result| result.and_then(|pkg: EbuildRawPkg| pkg.try_into()))
     }
 }
 
@@ -816,7 +810,7 @@ impl Iterator for IterRaw {
 }
 
 /// Iterable of [`Cpn`] objects.
-pub struct IterCpn(Box<dyn Iterator<Item = Cpn> + Send>);
+pub struct IterCpn(Box<dyn Iterator<Item = Cpn>>);
 
 impl IterCpn {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
@@ -846,7 +840,7 @@ impl IterCpn {
                 // TODO: revert to serialized iteration once repos provide parallel iterators
                 let mut cpns = repo
                     .categories()
-                    .into_par_iter()
+                    .into_iter()
                     .flat_map(|cat| {
                         repo.packages(&cat)
                             .into_iter()
@@ -857,7 +851,7 @@ impl IterCpn {
                             .collect::<Vec<_>>()
                     })
                     .collect::<Vec<_>>();
-                cpns.par_sort();
+                cpns.sort();
                 Box::new(cpns.into_iter())
             }
             ([Equal(cat)], [Equal(pn)]) => {
@@ -935,7 +929,7 @@ impl Iterator for IterCpn {
 }
 
 /// Iterable of [`Cpv`] objects.
-pub struct IterCpv(Box<dyn Iterator<Item = Cpv> + Send>);
+pub struct IterCpv(Box<dyn Iterator<Item = Cpv> + Send + Sync>);
 
 impl IterCpv {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
@@ -967,10 +961,10 @@ impl IterCpv {
                 // TODO: revert to serialized iteration once repos provide parallel iterators
                 let mut cpvs = repo
                     .categories()
-                    .into_par_iter()
+                    .into_iter()
                     .flat_map(|s| repo.cpvs_from_category(&s))
                     .collect::<Vec<_>>();
-                cpvs.par_sort();
+                cpvs.sort();
                 Box::new(cpvs.into_iter())
             }
             ([Category(Equal(cat))], [Package(Equal(pn))], [Version(Some(ver))])
@@ -1178,17 +1172,15 @@ impl Iterator for IterRawRestrict {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterRawOrdered {
-    iter: ParallelMapOrderedIter<crate::Result<EbuildRawPkg>>,
+    iter: IterCpv,
+    repo: EbuildRepo,
 }
 
 impl IterRawOrdered {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         let cpvs = IterCpv::new(repo, restrict);
         let repo = repo.clone();
-        let func = move |cpv: Cpv| repo.get_pkg_raw(cpv);
-        Self {
-            iter: cpvs.par_map_ordered(func).into_iter(),
-        }
+        Self { iter: cpvs, repo }
     }
 }
 
@@ -1196,7 +1188,7 @@ impl Iterator for IterRawOrdered {
     type Item = crate::Result<EbuildRawPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter.next().map(|cpv| self.repo.get_pkg_raw(cpv))
     }
 }
 
