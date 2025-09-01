@@ -11,7 +11,7 @@ use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::pkg::ebuild::metadata::Key;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
-use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
+use pkgcraft::traits::LogErrors;
 use strum::IntoEnumIterator;
 
 #[derive(Args)]
@@ -107,7 +107,7 @@ impl Command {
 
         // source ebuilds and output ebuild-specific environment variables
         let mut stdout = io::stdout().lock();
-        let iter = pkgs.par_map_ordered(get_env).log_errors(self.ignore);
+        let iter = pkgs.into_iter().map(get_env).log_errors(self.ignore);
         let failed = iter.failed.clone();
         let mut iter = iter.peekable();
         let mut multiple = false;
