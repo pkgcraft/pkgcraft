@@ -32,6 +32,10 @@ pub(crate) struct Command {
     #[arg(long, value_name = "PATH", global = true)]
     config: Option<String>,
 
+    /// Load repos from portage
+    #[arg(long, global = true, conflicts_with = "config")]
+    portage: bool,
+
     // positional
     #[command(subcommand)]
     subcmd: Subcommand,
@@ -43,6 +47,8 @@ impl Command {
         let mut config = Config::new("pkgcraft", "");
         if let Some(path) = self.config.as_deref() {
             config.load_path(path)?;
+        } else if self.portage {
+            config.load_portage_conf(None)?;
         }
         Ok(config)
     }
