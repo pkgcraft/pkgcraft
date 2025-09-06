@@ -133,6 +133,8 @@ pub struct ConfigInner {
     settings: Arc<Settings>,
     /// Flag used to denote when config files have been loaded.
     loaded: bool,
+    /// Flag used to denote when portage repos have been loaded.
+    portage: bool,
     // TODO: Remove it later
     pool: Arc<shell::BuildPool>,
 }
@@ -196,6 +198,7 @@ impl ConfigInner {
         }
 
         self.loaded = true;
+        self.portage = true;
         Ok(())
     }
 }
@@ -386,8 +389,12 @@ impl Config<ConfigInner> {
     }
 
     /// Return the mutable repos configuration.
-    pub fn repos_mut(&mut self) -> &mut ConfigRepos {
-        &mut self.inner.repos
+    pub fn repos_mut(&mut self) -> crate::Result<&mut ConfigRepos> {
+        if self.inner.portage {
+            Err(Error::Config("can't alter portage repos".to_string()))
+        } else {
+            Ok(&mut self.inner.repos)
+        }
     }
 
     // TODO: Move to ConfigFinalized once repo is generic over Config.

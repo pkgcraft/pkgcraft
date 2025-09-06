@@ -17,7 +17,7 @@ impl Command {
         config.load()?;
 
         // sync specified repos
-        config.repos().sync(&self.repos)?;
+        config.repos_mut()?.sync(&self.repos)?;
 
         Ok(ExitCode::SUCCESS)
     }

@@ -30,7 +30,7 @@ impl Command {
 
         for uri in &self.uris {
             // create a RepoConfig
-            let mut config_builder = config.repos().add_uri(uri)?;
+            let mut config_builder = config.repos_mut()?.add_uri(uri)?;
 
             if let Some(value) = self.name.as_deref() {
                 config_builder.name(value);

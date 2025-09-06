@@ -82,14 +82,14 @@ impl RepoConfig {
 
 /// Builder for adding repos to a configuration.
 pub struct RepoConfigBuilder<'a> {
-    config: &'a ConfigRepos,
+    config: &'a mut ConfigRepos,
     name: Option<String>,
     priority: Option<i32>,
     syncer: Syncer,
 }
 
 impl<'a> RepoConfigBuilder<'a> {
-    fn new(config: &'a ConfigRepos, uri: &str) -> crate::Result<Self> {
+    fn new(config: &'a mut ConfigRepos, uri: &str) -> crate::Result<Self> {
         let syncer: Syncer = uri.parse()?;
 
         Ok(Self {
@@ -230,7 +230,7 @@ impl ConfigRepos {
     }
 
     /// Create a repo from a URI.
-    pub fn add_uri(&self, uri: &str) -> crate::Result<RepoConfigBuilder<'_>> {
+    pub fn add_uri(&mut self, uri: &str) -> crate::Result<RepoConfigBuilder<'_>> {
         RepoConfigBuilder::new(self, uri)
     }
 
@@ -268,7 +268,7 @@ impl ConfigRepos {
     }
 
     // TODO: add concurrent syncing support with output progress
-    pub fn sync<I>(&self, values: I) -> crate::Result<()>
+    pub fn sync<I>(&mut self, values: I) -> crate::Result<()>
     where
         I: IntoIterator,
         I::Item: std::fmt::Display,
@@ -465,16 +465,16 @@ mod tests {
         let mut config = Config::new("pkgcraft", "");
 
         // nonexistent repo
-        let r = config.repos().sync(["nonexistent"]);
+        let r = config.repos_mut().unwrap().sync(["nonexistent"]);
         assert_err_re!(r, "nonexistent repo: nonexistent");
 
         // fake repo with no-op syncing
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
         config.add_repo(fake_repo).unwrap();
-        assert!(config.repos().sync(["fake"]).is_ok());
+        assert!(config.repos_mut().unwrap().sync(["fake"]).is_ok());
 
         // all repos
         let repos: [&str; 0] = [];
-        assert!(config.repos().sync(repos).is_ok());
+        assert!(config.repos_mut().unwrap().sync(repos).is_ok());
     }
 }

@@ -17,7 +17,7 @@ impl Command {
         config.load()?;
 
         // remove specified repos
-        config.repos_mut().remove(&self.repos)?;
+        config.repos_mut()?.remove(&self.repos)?;
 
         Ok(ExitCode::SUCCESS)
     }
