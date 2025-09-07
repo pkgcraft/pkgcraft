@@ -36,7 +36,7 @@ harness = false
 [dependencies]
 anyhow = "1.0.99"
 camino = "1.1.12"
-clap = { version = "4.5.46", features = ["derive", "string"] }
+clap = { version = "4.5.47", features = ["derive", "string"] }
 clap_complete = "4.5.57"
 clap-verbosity-flag = "3.0.4"
 colored = "3.0.0"
@@ -59,7 +59,7 @@ thiserror = "2.0.16"
 tracing = "0.1.41"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.20"
-tree-sitter = "0.25.8"
+tree-sitter = "0.25.9"
 url = "2.5.7"
 walkdir = "2.5.0"
 

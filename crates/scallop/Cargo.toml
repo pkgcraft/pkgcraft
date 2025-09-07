@@ -33,7 +33,7 @@ name = "scallop"
 test = []
 
 [dependencies]
-bitflags = "2.9.3"
+bitflags = "2.9.4"
 indexmap = { version = "2.11.0", features = ["rayon", "serde"] }
 itertools = "0.14.0"
 libc = "0.2.175"
@@ -44,7 +44,7 @@ tracing = "0.1.41"
 
 [build-dependencies]
 autotools = "0.2.7"
-bindgen = "0.72.0"
+bindgen = "0.72.1"
 camino = "1.1.12"
 num_cpus = "1.17.0"
 
