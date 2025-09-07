@@ -181,20 +181,13 @@ impl ConfigInner {
             .map(|s| Utf8Path::new(s).join("repos.conf"));
 
         // use the repos.conf file that exists
-        let repos_conf = if let Some(p) = find_existing_path(paths) {
-            p
-        } else {
-            let err = if let Some(s) = path {
-                Error::Config(format!("nonexistent portage config path: {s}"))
-            } else {
-                Error::ConfigMissing("no portage config found".to_string())
-            };
-            return Err(err);
-        };
-
-        let repos = portage::load_repos_conf(repos_conf)?;
-        if !repos.is_empty() {
-            self.repos.extend(repos, &self.settings)?;
+        if let Some(path) = find_existing_path(paths) {
+            let repos = portage::load_repos_conf(path)?;
+            if !repos.is_empty() {
+                self.repos.extend(repos, &self.settings)?;
+            }
+        } else if let Some(s) = path {
+            return Err(Error::Config(format!("nonexistent portage config path: {s}")));
         }
 
         self.loaded = true;
