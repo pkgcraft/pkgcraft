@@ -1,4 +1,5 @@
 use std::ffi::{CStr, CString, c_void};
+use std::ptr;
 
 use crate::error::{Error, ok_or_error};
 use crate::traits::Words;
@@ -51,7 +52,7 @@ where
     let func_name = CString::new(name).expect("invalid function name");
     unsafe { bash::push_context(func_name.as_ptr() as *mut _, 0, bash::TEMPORARY_ENV) };
     let result = func();
-    unsafe { bash::pop_context() };
+    unsafe { bash::pop_context(ptr::null_mut()) };
     result
 }
 
