@@ -13,6 +13,16 @@ fn nonexistent_repo() {
 }
 
 #[test]
+fn portage_repos() {
+    cmd("pk repo remove --portage repo")
+        .assert()
+        .stdout("")
+        .stderr(contains("config error: can't alter portage repos"))
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn remove() {
     let data = test_data();
     let temp_dir = tempdir().unwrap();

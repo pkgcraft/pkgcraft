@@ -23,6 +23,16 @@ fn nonexistent_local_repo() {
 }
 
 #[test]
+fn portage_repos() {
+    cmd("pk repo add --portage /path/to/repo")
+        .assert()
+        .stdout("")
+        .stderr(contains("config error: can't alter portage repos"))
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn local_repo() {
     let data = test_data();
     let repo = data.ebuild_repo("qa-primary").unwrap();

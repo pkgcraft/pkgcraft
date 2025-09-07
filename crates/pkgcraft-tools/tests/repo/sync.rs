@@ -13,6 +13,16 @@ fn nonexistent_repo() {
 }
 
 #[test]
+fn portage_repos() {
+    cmd("pk repo sync --portage repo")
+        .assert()
+        .stdout("")
+        .stderr(contains("config error: can't alter portage repos"))
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn no_repos() {
     cmd("pk repo sync").assert().stdout("").stderr("").success();
 }
