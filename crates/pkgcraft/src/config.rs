@@ -167,8 +167,8 @@ impl ConfigInner {
         Ok(())
     }
 
-    /// Load portage config files from a given directory, falling back to the default locations.
-    pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<()> {
+    /// Load portage repos from a given config directory, falling back to the default locations.
+    pub fn load_portage_repos(&mut self, path: Option<&str>) -> crate::Result<()> {
         // use specified path or use fallbacks
         let config_dirs = if let Some(value) = path {
             &[value]
@@ -289,8 +289,8 @@ impl Config<ConfigInner> {
     }
 
     /// Load portage config files from a given directory, falling back to the default locations.
-    pub fn load_portage_conf(&mut self, path: Option<&str>) -> crate::Result<()> {
-        self.inner.load_portage_conf(path)
+    pub fn load_portage_repos(&mut self, path: Option<&str>) -> crate::Result<()> {
+        self.inner.load_portage_repos(path)
     }
 
     /// Add local repo from a filesystem path.
@@ -480,7 +480,7 @@ mod tests {
 
     #[traced_test]
     #[test]
-    fn load_portage_conf() {
+    fn load_portage_repos() {
         let mut config = Config::new("pkgcraft", "");
         let tmpdir = tempdir().unwrap();
         let conf_path = tmpdir.path().to_str().unwrap();
@@ -490,7 +490,7 @@ mod tests {
         let repos_dir = data.path().join("repos");
 
         // nonexistent
-        let r = config.load_portage_conf(Some("unknown/path"));
+        let r = config.load_portage_repos(Some("unknown/path"));
         assert_err_re!(r, "nonexistent portage config path: unknown/path");
 
         // invalid ini format
@@ -502,7 +502,7 @@ mod tests {
             location = /path/to/overlay
         "#};
         fs::write(path, data).unwrap();
-        let r = config.load_portage_conf(Some(conf_path));
+        let r = config.load_portage_repos(Some(conf_path));
         assert_err_re!(r, "invalid repos.conf file");
 
         // invalid ini format
@@ -513,12 +513,12 @@ mod tests {
             [overlay]
         "#};
         fs::write(path, data).unwrap();
-        assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert!(config.load_portage_repos(Some(conf_path)).is_ok());
         assert_logs_re!(".+: missing location field: overlay");
 
         // empty
         fs::write(path, "").unwrap();
-        assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert!(config.load_portage_repos(Some(conf_path)).is_ok());
         assert!(config.repos().is_empty());
 
         // single repo
@@ -528,7 +528,7 @@ mod tests {
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        config.load_portage_conf(Some(conf_path)).unwrap();
+        config.load_portage_repos(Some(conf_path)).unwrap();
         assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["a"]);
 
         // single repo with unsupported EAPI
@@ -538,7 +538,7 @@ mod tests {
             location = {repos_dir}/invalid/unsupported-eapi
         "#};
         fs::write(path, data).unwrap();
-        assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert!(config.load_portage_repos(Some(conf_path)).is_ok());
         assert_logs_re!(".+: invalid repo: unsupported: profiles/eapi: unsupported EAPI: 0");
 
         // invalid and valid repos
@@ -550,7 +550,7 @@ mod tests {
             location = {repos_dir}/valid/empty
         "#};
         fs::write(path, data).unwrap();
-        assert!(config.load_portage_conf(Some(conf_path)).is_ok());
+        assert!(config.load_portage_repos(Some(conf_path)).is_ok());
         assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["empty"]);
 
         // multiple, prioritized repos
@@ -564,7 +564,7 @@ mod tests {
             priority = 1
         "#, t1.path(), t2.path()};
         fs::write(path, data).unwrap();
-        config.load_portage_conf(Some(conf_path)).unwrap();
+        config.load_portage_repos(Some(conf_path)).unwrap();
         assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["c", "b"]);
 
         // reloading existing repo using a different id succeeds
@@ -573,7 +573,7 @@ mod tests {
             location = {}
         "#, t1.path()};
         fs::write(path, data).unwrap();
-        config.load_portage_conf(Some(conf_path)).unwrap();
+        config.load_portage_repos(Some(conf_path)).unwrap();
         assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["c", "b", "r4"]);
 
         // nonexistent masters causes finalization failure
@@ -585,7 +585,7 @@ mod tests {
             location = {repos_dir}/invalid/nonexistent-masters
         "#};
         fs::write(path, data).unwrap();
-        config.load_portage_conf(Some(conf_path)).unwrap();
+        config.load_portage_repos(Some(conf_path)).unwrap();
         let r = config.finalize();
         assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
 
@@ -613,12 +613,12 @@ mod tests {
             priority = 1
         "#, t3.path()};
         fs::write(conf_dir.join("repos.conf/r3.conf"), data).unwrap();
-        config.load_portage_conf(Some(conf_path)).unwrap();
+        config.load_portage_repos(Some(conf_path)).unwrap();
         config.finalize().unwrap();
         assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
 
         // reloading directory succeeds
-        config.load_portage_conf(Some(conf_path)).unwrap();
+        config.load_portage_repos(Some(conf_path)).unwrap();
         assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
     }
 

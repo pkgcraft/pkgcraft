@@ -79,14 +79,14 @@ pub unsafe extern "C" fn pkgcraft_config_load(c: *mut Config) -> *mut Config {
 /// # Safety
 /// The path argument should be a valid path on the system.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pkgcraft_config_load_portage_conf(
+pub unsafe extern "C" fn pkgcraft_config_load_portage_repos(
     c: *mut Config,
     path: *const c_char,
 ) -> *mut Config {
     ffi_catch_panic! {
         let path = try_opt_str_from_ptr!(path);
         let config = try_mut_from_ptr!(c);
-        unwrap_or_panic!(config.load_portage_conf(path));
+        unwrap_or_panic!(config.load_portage_repos(path));
         c
     }
 }

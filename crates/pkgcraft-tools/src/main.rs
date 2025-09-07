@@ -48,7 +48,7 @@ impl Command {
         if let Some(path) = self.config.as_deref() {
             config.load_path(path)?;
         } else if self.portage {
-            config.load_portage_conf(None)?;
+            config.load_portage_repos(None)?;
         }
         Ok(config)
     }
