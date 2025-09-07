@@ -1,9 +1,11 @@
 use std::fs;
 
+use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::ebuild::cache::Cache;
 use pkgcraft::test::cmd;
+use tempfile::tempdir;
 
 #[test]
 fn run() {
@@ -76,4 +78,45 @@ fn run() {
     assert!(!path.join("cat/.a-1").exists());
     assert!(!path.join("cat/.random").exists());
     assert!(!path.join("cat/random").exists());
+}
+
+#[test]
+fn custom_cache_path() {
+    let dir = tempdir().unwrap();
+    let cache_path = Utf8Path::new(dir.path().to_str().unwrap());
+    let mut config = Config::default();
+    let mut temp = EbuildRepoBuilder::new().build().unwrap();
+    temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+    temp.create_ebuild("a/b-1", &[]).unwrap();
+    let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+    let repo_cache = repo.metadata().cache().path();
+
+    // generate cache to custom path
+    cmd("pk repo metadata regen")
+        .args(["--path", cache_path.as_str()])
+        .arg(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    assert!(!repo_cache.exists());
+    assert!(cache_path.exists());
+    assert!(cache_path.join("cat/pkg-1").exists());
+    assert!(cache_path.join("a/b-1").exists());
+    fs::remove_dir_all(repo.path().join("a")).unwrap();
+
+    // clean custom cache path
+    for opt in ["-p", "--path"] {
+        cmd("pk repo metadata clean")
+            .args([opt, cache_path.as_str()])
+            .arg(&repo)
+            .assert()
+            .stdout("")
+            .stderr("")
+            .success();
+    }
+
+    assert!(cache_path.join("cat/pkg-1").exists());
+    assert!(!cache_path.join("a/b-1").exists());
 }
