@@ -184,9 +184,8 @@ pub fn test_data() -> TestData {
         let entry = entry.unwrap();
         let name = entry.file_name().to_str().unwrap();
         let path = entry.path().to_str().unwrap();
-        config
-            .add_repo(Repo::from_path(name, path, 0).unwrap())
-            .unwrap();
+        let repo = Repo::from_path(name, path, 0).unwrap();
+        config.add_repo(repo).unwrap();
     }
 
     config.finalize().unwrap();
@@ -308,9 +307,8 @@ pub fn test_data_patched() -> TestDataPatched {
                 }
             }
 
-            config
-                .add_repo(Repo::from_path(name, new_path, 0).unwrap())
-                .unwrap();
+            let repo = Repo::from_path(name, new_path, 0).unwrap();
+            config.add_repo(repo).unwrap();
         }
     }
 
