@@ -85,16 +85,10 @@ mod tests {
         let mut reports = scanner.run(repo, repo).unwrap();
         assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
 
-        // check run when all supported reports targeted
+        // return all report variants in order to trigger ignore filtering
         let scanner = Scanner::new().reports([ReportSet::All]);
-        let reports: Vec<_> = scanner
-            .run(repo, repo)
-            .unwrap()
-            .filter(|x| CHECK.reports().contains(&x.kind))
-            .collect();
-        assert_unordered_reports!(&reports, &all);
 
-        // verify reports in version scope
+        // version scope
         let reports: Vec<_> = scanner
             .run(repo, "Ignore/IgnoreUnused-0")
             .unwrap()
@@ -102,7 +96,7 @@ mod tests {
             .collect();
         assert_ordered_reports!(&reports, &unused[..1]);
 
-        // verify reports in package scope
+        // package scope
         let reports: Vec<_> = scanner
             .run(repo, "Ignore/IgnoreUnused")
             .unwrap()
@@ -110,12 +104,20 @@ mod tests {
             .collect();
         assert_ordered_reports!(&reports, &unused[..2]);
 
-        // verify reports in category scope
+        // category scope
         let reports: Vec<_> = scanner
             .run(repo, "Ignore/*")
             .unwrap()
             .filter(|x| x.kind == IgnoreUnused)
             .collect();
         assert_ordered_reports!(&reports, &unused[..3]);
+
+        // repo scope
+        let reports: Vec<_> = scanner
+            .run(repo, repo)
+            .unwrap()
+            .filter(|x| CHECK.reports().contains(&x.kind))
+            .collect();
+        assert_unordered_reports!(&reports, &all);
     }
 }
