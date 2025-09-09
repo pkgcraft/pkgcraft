@@ -63,7 +63,7 @@ jobs:
         haskell: true
         docker-images: false
         tool-cache: false
-        large-packages: false
+        large-packages: true
         swap-storage: false
 
     - name: Checkout code
