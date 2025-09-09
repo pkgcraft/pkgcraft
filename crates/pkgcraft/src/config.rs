@@ -167,27 +167,36 @@ impl ConfigInner {
         Ok(())
     }
 
-    /// Load portage repos from a given config directory, falling back to the default locations.
+    /// Load portage repos from a given config directory.
+    ///
+    /// If no path is specified, the `PORTAGE_CONFIG` environment variable is used,
+    /// falling back to the default locations if it's undefined.
     pub fn load_portage_repos(&mut self, path: Option<&str>) -> crate::Result<()> {
+        let env_var = env::var("PORTAGE_CONFIG");
+
         // use specified path or use fallbacks
-        let config_dirs = if let Some(value) = path {
+        let config_dirs: &[&str] = if let Some(value) = path {
             &[value]
+        } else if let Ok(value) = env_var.as_deref() {
+            if value.is_empty() { &[] } else { &[value] }
         } else {
             PORTAGE_CONFIG_PATHS
         };
 
-        let paths = config_dirs
-            .iter()
-            .map(|s| Utf8Path::new(s).join("repos.conf"));
+        if !config_dirs.is_empty() {
+            let paths = config_dirs
+                .iter()
+                .map(|s| Utf8Path::new(s).join("repos.conf"));
 
-        // use the repos.conf file that exists
-        if let Some(path) = find_existing_path(paths) {
-            let repos = portage::load_repos_conf(path)?;
-            if !repos.is_empty() {
-                self.repos.extend(repos, &self.settings)?;
+            // use the repos.conf file that exists
+            if let Some(path) = find_existing_path(paths) {
+                let repos = portage::load_repos_conf(path)?;
+                if !repos.is_empty() {
+                    self.repos.extend(repos, &self.settings)?;
+                }
+            } else if let Some(s) = path {
+                return Err(Error::Config(format!("nonexistent portage config path: {s}")));
             }
-        } else if let Some(s) = path {
-            return Err(Error::Config(format!("nonexistent portage config path: {s}")));
         }
 
         self.loaded = true;
