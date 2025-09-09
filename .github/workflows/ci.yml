@@ -50,6 +50,7 @@ jobs:
     - name: Free disk space for coverage data
       if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
       uses: jlumbroso/free-disk-space@main
+      timeout-minutes: 5
       with:
         android: true
         dotnet: true
