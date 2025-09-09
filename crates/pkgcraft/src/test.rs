@@ -23,6 +23,7 @@ pub fn cmd<S: AsRef<str>>(cmd: S) -> Command {
     cmd.args(&args[1..]);
     // disable config loading by default
     cmd.env("PKGCRAFT_CONFIG", "");
+    cmd.env("PORTAGE_CONFIG", "");
     cmd
 }
 
