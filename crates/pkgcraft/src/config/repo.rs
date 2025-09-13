@@ -367,12 +367,14 @@ impl ConfigRepos {
             }
         }
 
-        // add new repos to config
-        self.repos.extend(new_repos);
+        if !new_repos.is_empty() {
+            // add new repos to config
+            self.repos.extend(new_repos);
 
-        // sort raw and configured repos
-        self.repos.sort_unstable_by(|_, r1, _, r2| r1.cmp(r2));
-        self.configured.sort_unstable();
+            // sort raw and configured repos
+            self.repos.sort_unstable_by(|_, r1, _, r2| r1.cmp(r2));
+            self.configured.sort_unstable();
+        }
 
         Ok(())
     }
