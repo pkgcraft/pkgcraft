@@ -1,3 +1,10 @@
+# 0.0.29
+
+## Added
+- Support loading portage repos via global --portage option. Automatic portage
+  repo loading functionality was previously dropped so this option will need to
+  be used if registering repos with pkgcraft isn't done.
+
 # 0.0.28
 
 ## Changed
