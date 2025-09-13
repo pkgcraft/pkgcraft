@@ -64,11 +64,12 @@ impl CategoryCheck for Check {
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
     use pkgcraft::test::test_data;
 
     use crate::report::ReportSet;
     use crate::scan::Scanner;
-    use crate::test::{assert_ordered_reports, assert_unordered_reports, glob_reports};
+    use crate::test::{assert_ordered_reports, glob_reports};
 
     use super::*;
 
@@ -77,8 +78,9 @@ mod tests {
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let dir = repo.path().join(CHECK);
+        let invalid = glob_reports!("{dir}/IgnoreInvalid.json");
         let unused = glob_reports!("{dir}/IgnoreUnused.json");
-        let all = glob_reports!("{dir}/IgnoreUnused.json", "{dir}/IgnoreInvalid.json");
+        let expected: Vec<_> = invalid.into_iter().interleave(unused).collect();
 
         // check isn't run by default
         let scanner = Scanner::new();
@@ -92,25 +94,16 @@ mod tests {
         let reports: Vec<_> = scanner
             .run(repo, "Ignore/IgnoreUnused-0")
             .unwrap()
-            .filter(|x| x.kind == IgnoreUnused)
             .collect();
-        assert_ordered_reports!(&reports, &unused[..1]);
+        assert_ordered_reports!(&reports, &expected[..2]);
 
         // package scope
-        let reports: Vec<_> = scanner
-            .run(repo, "Ignore/IgnoreUnused")
-            .unwrap()
-            .filter(|x| x.kind == IgnoreUnused)
-            .collect();
-        assert_ordered_reports!(&reports, &unused[..2]);
+        let reports: Vec<_> = scanner.run(repo, "Ignore/IgnoreUnused").unwrap().collect();
+        assert_ordered_reports!(&reports, &expected[..4]);
 
         // category scope
-        let reports: Vec<_> = scanner
-            .run(repo, "Ignore/*")
-            .unwrap()
-            .filter(|x| x.kind == IgnoreUnused)
-            .collect();
-        assert_ordered_reports!(&reports, &unused[..3]);
+        let reports: Vec<_> = scanner.run(repo, "Ignore/*").unwrap().collect();
+        assert_ordered_reports!(&reports, &expected[..6]);
 
         // repo scope
         let reports: Vec<_> = scanner
@@ -118,6 +111,6 @@ mod tests {
             .unwrap()
             .filter(|x| CHECK.reports().contains(&x.kind))
             .collect();
-        assert_unordered_reports!(&reports, &all);
+        assert_ordered_reports!(&reports, &expected);
     }
 }
