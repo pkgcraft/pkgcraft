@@ -1,6 +1,6 @@
 [package]
 name = "pkgcruft-git"
-version = "0.0.2"
+version = "0.0.3"
 description = "QA support for verifying git commits via pkgcruft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft-git"
@@ -28,8 +28,8 @@ indexmap = "2.11.1"
 indoc = "2.0.6"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
-pkgcraft = { path = "../pkgcraft", version = "0.0.28" }
-pkgcruft = { path = "../pkgcruft", version = "0.0.15" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.29" }
+pkgcruft = { path = "../pkgcruft", version = "0.0.16" }
 prost = "0.14.1"
 regex = "1.11.2"
 serde = { version = "1.0.219", features = ["derive"] }
@@ -52,7 +52,7 @@ tonic-prost-build = "0.14.2"
 
 [dev-dependencies]
 assert_cmd = "2.0.17"
-pkgcraft = { path = "../pkgcraft", version = "0.0.28", features = ["test"] }
+pkgcraft = { path = "../pkgcraft", version = "0.0.29", features = ["test"] }
 predicates = "3.1.3"
 regex = "1.11.2"
 
