@@ -244,10 +244,13 @@ impl ScannerRun {
                 || kind == ReportKind::IgnoreInvalid
                 || !self.ignore.ignored(&report, self))
         {
-            if self.exit.contains(&kind) {
-                self.failed.store(true, Ordering::Relaxed);
+            // skip reports with scopes above the current scan scope
+            if report.scope() <= &self.scope {
+                if self.exit.contains(&kind) {
+                    self.failed.store(true, Ordering::Relaxed);
+                }
+                self.sender().report(report);
             }
-            self.sender().report(report);
         }
     }
 

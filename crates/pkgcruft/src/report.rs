@@ -965,6 +965,18 @@ impl PartialOrd for ReportScope {
     }
 }
 
+impl PartialEq<Scope> for ReportScope {
+    fn eq(&self, other: &Scope) -> bool {
+        self.scope() == *other
+    }
+}
+
+impl PartialOrd<Scope> for ReportScope {
+    fn partial_cmp(&self, other: &Scope) -> Option<Ordering> {
+        Some(self.scope().cmp(other))
+    }
+}
+
 impl fmt::Debug for ReportScope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
