@@ -75,11 +75,11 @@ jobs:
 
     - name: Run tests for vendored release
       run: |
-        cp -a ${{ github.ref_name }} ${{ github.ref_name }}-test
-        pushd ${{ github.ref_name }}-test
+        cp -a ${{ github.ref_name }} ${GITHUB_WORKSPACE}/${{ github.ref_name }}
+        pushd ${GITHUB_WORKSPACE}/${{ github.ref_name }}
         cargo nextest run --all-features --tests
         popd
-        rm -rf ${{ github.ref_name }}-test
+        rm -rf ${GITHUB_WORKSPACE}/${{ github.ref_name }}
 
     - name: Download shell completion
       uses: actions/download-artifact@v4
