@@ -70,6 +70,17 @@ jobs:
     - name: Create vendored release
       run: .ci/vendor-release pkgcraft-tools
 
+    - name: Install cargo-nextest
+      uses: taiki-e/install-action@nextest
+
+    - name: Run tests for vendored release
+      run: |
+        cp -a ${{ github.ref_name }} ${{ github.ref_name }}-test
+        pushd ${{ github.ref_name }}-test
+        cargo nextest run --all-features --tests
+        popd
+        rm -rf ${{ github.ref_name }}-test
+
     - name: Download shell completion
       uses: actions/download-artifact@v4
       with:
