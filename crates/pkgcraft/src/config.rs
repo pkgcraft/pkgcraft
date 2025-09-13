@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::macros::build_path;
 use crate::repo::{Repo, RepoFormat, Repository};
-use crate::utils::find_existing_path;
 use crate::{Error, shell};
 pub(crate) use repo::RepoConfig;
 
@@ -171,11 +170,11 @@ impl ConfigInner {
     ///
     /// If no path is specified, the `PORTAGE_CONFIG` environment variable is used,
     /// falling back to the default locations if it's undefined.
-    pub fn load_portage_repos(&mut self, path: Option<&str>) -> crate::Result<()> {
+    pub fn load_portage_repos(&mut self, config_dir: Option<&str>) -> crate::Result<()> {
         let env_var = env::var("PORTAGE_CONFIG");
 
         // use specified path or use fallbacks
-        let config_dirs: &[&str] = if let Some(value) = path {
+        let config_dirs: &[&str] = if let Some(value) = config_dir {
             &[value]
         } else if let Ok(value) = env_var.as_deref() {
             if value.is_empty() { &[] } else { &[value] }
@@ -183,18 +182,13 @@ impl ConfigInner {
             PORTAGE_CONFIG_PATHS
         };
 
-        if !config_dirs.is_empty() {
-            let paths = config_dirs
-                .iter()
-                .map(|s| Utf8Path::new(s).join("repos.conf"));
-
-            // use the repos.conf file that exists
-            if let Some(path) = find_existing_path(paths) {
+        // load repos from all defined config dirs
+        for dir in config_dirs {
+            let path = Utf8Path::new(dir).join("repos.conf");
+            if let Ok(true) = path.try_exists() {
                 let repos = portage::load_repos_conf(path)?;
-                if !repos.is_empty() {
-                    self.repos.extend(repos, &self.settings)?;
-                }
-            } else if let Some(s) = path {
+                self.repos.extend(repos, &self.settings)?;
+            } else if let Some(s) = config_dir {
                 return Err(Error::Config(format!("nonexistent portage config path: {s}")));
             }
         }

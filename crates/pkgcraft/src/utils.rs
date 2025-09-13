@@ -49,21 +49,6 @@ pub fn current_dir() -> crate::Result<Utf8PathBuf> {
         .map_err(|e| Error::InvalidValue(format!("invalid unicode path: {e}")))
 }
 
-/// Find and return the first existing path from a list of paths, otherwise return None.
-pub(crate) fn find_existing_path<I>(paths: I) -> Option<Utf8PathBuf>
-where
-    I: IntoIterator,
-    I::Item: AsRef<Utf8Path>,
-{
-    for p in paths {
-        let path = p.as_ref();
-        if let Ok(true) = path.try_exists() {
-            return Some(path.into());
-        }
-    }
-    None
-}
-
 /// Determines if a path is a single component with no separators.
 pub(crate) fn is_single_component<S: AsRef<str>>(path: S) -> bool {
     !path.as_ref().contains(is_separator)
