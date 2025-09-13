@@ -24,7 +24,7 @@ clap-verbosity-flag = "3.0.4"
 config = { version = "0.15.15", default-features = false, features = ["toml"] }
 git2 = "0.20.2"
 hyper-util = "0.1.16"
-indexmap = "2.11.0"
+indexmap = "2.11.1"
 indoc = "2.0.6"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
@@ -41,7 +41,7 @@ tonic-prost = "0.14.2"
 tracing = "0.1.41"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.20"
-tempfile = "3.21.0"
+tempfile = "3.22.0"
 url = "2.5.7"
 
 # client specific deps

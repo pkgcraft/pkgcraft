@@ -40,7 +40,7 @@ tonic-prost-build = "0.14.2"
 [dev-dependencies]
 assert_cmd = "2.0.17"
 regex = "1.11.2"
-tempfile = "3.21.0"
+tempfile = "3.22.0"
 
 [lib]
 name = "arcanist"
