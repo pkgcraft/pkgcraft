@@ -75,11 +75,12 @@ jobs:
 
     - name: Run tests for vendored release
       run: |
-        cp -a ${{ github.ref_name }} ${GITHUB_WORKSPACE}/${{ github.ref_name }}
-        pushd ${GITHUB_WORKSPACE}/${{ github.ref_name }}
+        # copy vendored release outside of the workspace to avoid cargo errors
+        cp -a ${{ github.ref_name }} ${HOME}
+        pushd ${HOME}/${{ github.ref_name }}
         cargo nextest run --all-features --tests
         popd
-        rm -rf ${GITHUB_WORKSPACE}/${{ github.ref_name }}
+        rm -rf ${HOME}/${{ github.ref_name }}
 
     - name: Download shell completion
       uses: actions/download-artifact@v4
