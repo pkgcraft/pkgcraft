@@ -37,14 +37,6 @@ replace-with = "vendored-sources"
 directory = "vendor"
 EOF
 
-# HACK: Use testdata dir from repo root for pkgcraft so the bundled, hidden
-# files exist since `cargo vendor` strips them.
-# (upstream issue: https://github.com/rust-lang/cargo/issues/13662)
-if [[ -d vendor/pkgcraft/testdata ]]; then
-	rm -rf vendor/pkgcraft/testdata
-	cp -a testdata vendor/pkgcraft/testdata
-fi
-
 # remove unused, windows-only static libs to decrease archive size
 #
 # TODO: drop this once `cargo vendor` supports platform targeting:

@@ -10,27 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  msrv:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.msrv.outputs.version }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Get the minimum supported rust version (MSRV)
-      id: msrv
-      run: |
-        version=$(sed -rn '/^rust-version\s*=/ s/^.*=\s*"([0-9](\.[0-9]+)+)(.*)/\1/p' Cargo.toml)
-        if [[ -n ${version} ]]; then
-          echo "version=${version}" >> $GITHUB_OUTPUT
-        else
-          exit 1
-        fi
-
   source:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: msrv
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -39,9 +20,7 @@ jobs:
         submodules: true
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ needs.msrv.outputs.version }}
+      uses: dtolnay/rust-toolchain@stable
 
     - name: Install protoc for arcanist
       uses: taiki-e/install-action@protoc
@@ -63,7 +42,6 @@ jobs:
         retention-days: 3
 
   linux:
-    needs: msrv
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -79,9 +57,7 @@ jobs:
         submodules: true
 
     - name: Set up rust toolchain
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ needs.msrv.outputs.version }}
+      uses: dtolnay/rust-toolchain@stable
 
     - name: Install cross
       run: cargo install cross --git https://github.com/cross-rs/cross
