@@ -42,7 +42,7 @@ EOF
 # (upstream issue: https://github.com/rust-lang/cargo/issues/13662)
 if [[ -d vendor/pkgcraft/testdata ]]; then
 	rm -rf vendor/pkgcraft/testdata
-	ln -s ../../testdata vendor/pkgcraft/testdata
+	cp -a testdata vendor/pkgcraft/testdata
 fi
 
 # remove unused, windows-only static libs to decrease archive size
