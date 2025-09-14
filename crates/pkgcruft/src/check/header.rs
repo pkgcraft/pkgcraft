@@ -1,32 +1,43 @@
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
+use pkgcraft::restrict::Scope;
 use regex::Regex;
 
 use crate::report::ReportKind::HeaderInvalid;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildRawPkgCheck;
+use super::Context::Gentoo;
+
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Header,
+        reports: &[HeaderInvalid],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildRawPkg],
+        context: &[Gentoo],
+        create,
+    }
+}
 
 static GENTOO_LICENSE_HEADER: &str =
     "# Distributed under the terms of the GNU General Public License v2";
 
-pub(super) fn create() -> impl EbuildRawPkgCheck {
-    Check {
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         copyright_re: Regex::new(
             r"^# Copyright ((?P<begin>\d{4})-)?(?P<end>\d{4}) (?P<holder>.+)$",
         )
         .unwrap(),
-    }
+    })
 }
 
 struct Check {
     copyright_re: Regex,
 }
 
-super::register!(Check, super::Check::Header);
-
-impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_raw_pkg(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let lines: Vec<_> = pkg
             .data()
             .lines()
@@ -89,13 +100,13 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let scanner = Scanner::new();
         let mut reports = scanner.run(repo, repo).unwrap();
-        assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
+        assert!(!reports.any(|r| CHECK.reports.contains(&r.kind)));
 
         let scanner = Scanner::new().reports([CHECK]);
 
         // check explicitly run in non-gentoo repo
         let mut reports = scanner.run(repo, repo).unwrap();
-        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+        assert!(reports.any(|r| CHECK.reports.contains(&r.kind)));
 
         // gentoo unfixed
         let repo = data.ebuild_repo("gentoo").unwrap();

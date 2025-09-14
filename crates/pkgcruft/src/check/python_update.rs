@@ -7,14 +7,26 @@ use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
 use pkgcraft::repo::{EbuildRepo, PkgRepository};
-use pkgcraft::restrict::Restrict;
+use pkgcraft::restrict::{Restrict, Scope};
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
 use crate::report::ReportKind::PythonUpdate;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 use crate::utils::{impl_targets, use_starts_with};
 
-use super::EbuildPkgCheck;
+use super::Context::GentooInherited;
+
+super::register! {
+    super::Check {
+        kind: super::CheckKind::PythonUpdate,
+        reports: &[PythonUpdate],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[GentooInherited],
+        create,
+    }
+}
 
 static IMPL_PKG: &str = "dev-lang/python";
 static IUSE_PREFIXES: &[&str] = &["python_targets_", "python_single_target_"];
@@ -48,21 +60,19 @@ impl Eclass {
     }
 }
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
-    Check {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         targets: Eclass::iter()
             .map(|e| (e, e.targets(&run.repo).collect()))
             .collect(),
         dep_targets: Default::default(),
-    }
+    })
 }
 
 struct Check {
     targets: HashMap<Eclass, Vec<String>>,
     dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
-
-super::register!(Check, super::Check::PythonUpdate);
 
 /// Determine the set of compatible targets for a dependency.
 fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {
@@ -102,8 +112,8 @@ impl Check {
     }
 }
 
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         let Some(eclass) = Eclass::iter().find(|x| pkg.inherited().contains(x.as_ref()))
         else {
             return;

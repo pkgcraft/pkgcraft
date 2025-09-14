@@ -4,7 +4,6 @@ use itertools::Itertools;
 use pkgcraft::test::{cmd, test_data};
 use pkgcruft::check::Check;
 use predicates::prelude::*;
-use strum::IntoEnumIterator;
 
 #[test]
 fn all() {

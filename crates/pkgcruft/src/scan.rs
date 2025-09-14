@@ -266,7 +266,7 @@ mod tests {
     use pkgcraft::test::*;
     use tracing_test::traced_test;
 
-    use crate::check::{Check, Context};
+    use crate::check::{CheckKind, Context};
     use crate::report::ReportLevel;
     use crate::test::*;
 
@@ -328,24 +328,26 @@ mod tests {
         assert!(reports > 0);
 
         // check
-        let scanner = Scanner::new().reports([Check::Dependency]);
+        let scanner = Scanner::new().reports([CheckKind::Dependency]);
         let expected = glob_reports!("{path}/Dependency/**/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_reports!(reports, expected);
 
         // filter failure
         let latest = "latest".parse().unwrap();
-        let scanner = Scanner::new().reports([Check::Filesdir]).filters([latest]);
+        let scanner = Scanner::new()
+            .reports([CheckKind::Filesdir])
+            .filters([latest]);
         let result = scanner.run(repo, repo);
         assert_err_re!(result, "Filesdir: check requires no package filtering");
 
         // context failure
-        let scanner = Scanner::new().reports([Check::PythonUpdate]);
+        let scanner = Scanner::new().reports([CheckKind::PythonUpdate]);
         let result = scanner.run(repo, repo);
         assert_err_re!(result, "PythonUpdate: check requires gentoo-inherited context");
 
         // scope failure
-        let scanner = Scanner::new().reports([Check::Filesdir]);
+        let scanner = Scanner::new().reports([CheckKind::Filesdir]);
         let result = scanner.run(repo, "Filesdir/FilesUnused-0");
         assert_err_re!(result, "FilesUnused: report requires package scope");
 
@@ -491,7 +493,7 @@ mod tests {
         assert!(scanner.failed());
 
         // fail on specified check variant
-        let scanner = scanner.exit([Check::Dependency]);
+        let scanner = scanner.exit([CheckKind::Dependency]);
         scanner.run(repo, repo).unwrap().count();
         assert!(scanner.failed());
 

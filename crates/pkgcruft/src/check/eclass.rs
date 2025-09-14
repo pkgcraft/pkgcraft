@@ -2,30 +2,39 @@ use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::ebuild::Eclass;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::EclassUnused;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Eclass,
+        reports: &[EclassUnused],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
     let unused = if run.enabled(EclassUnused) {
         run.repo.metadata().eclasses().iter().cloned().collect()
     } else {
         Default::default()
     };
 
-    Check { unused }
+    Box::new(Check { unused })
 }
 
 struct Check {
     unused: DashSet<Eclass>,
 }
 
-super::register!(Check, super::Check::Eclass);
-
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, _run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, _run: &ScannerRun) {
         for eclass in pkg.inherited() {
             self.unused.remove(eclass);
         }

@@ -3,6 +3,7 @@ use itertools::Itertools;
 use pkgcraft::dep::{Dep, Dependency, Operator, SlotOperator, UseDepKind};
 use pkgcraft::pkg::Package;
 use pkgcraft::pkg::ebuild::{EbuildPkg, metadata::Key};
+use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Intersects;
 
 use crate::report::ReportKind::{
@@ -10,10 +11,25 @@ use crate::report::ReportKind::{
     PackageDeprecatedUnused,
 };
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Dependency,
+        reports: &[
+            DependencyDeprecated,
+            DependencyInvalid,
+            DependencyRevisionMissing,
+            PackageDeprecatedUnused,
+        ],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
     let unused = if run.enabled(PackageDeprecatedUnused) {
         run.repo
             .metadata()
@@ -25,17 +41,15 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
         Default::default()
     };
 
-    Check { unused }
+    Box::new(Check { unused })
 }
 
 struct Check {
     unused: DashSet<Dep>,
 }
 
-super::register!(Check, super::Check::Dependency);
-
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for key in pkg.eapi().dep_keys().iter().copied() {
             let deps = pkg.dependencies([key]);
             for dep in deps.iter_flatten().unique() {

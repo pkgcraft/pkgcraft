@@ -4,22 +4,31 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::keyword::KeywordStatus::Disabled;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::KeywordsDropped;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgSetCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::KeywordsDropped,
+        reports: &[KeywordsDropped],
+        scope: Scope::Package,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl EbuildPkgSetCheck {
-    Check
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
 }
 
 struct Check;
 
-super::register!(Check, super::Check::KeywordsDropped);
-
-impl EbuildPkgSetCheck for Check {
-    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg_set(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let mut seen = HashSet::new();
         let mut previous = HashSet::new();
         let mut changes = HashMap::<_, _>::new();

@@ -3,15 +3,28 @@ use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::keyword::{Arch, KeywordStatus::Unstable};
+use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 
 use crate::report::ReportKind::UnstableOnly;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgSetCheck;
+use super::Context::Optional;
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
-    Check {
+super::register! {
+    super::Check {
+        kind: super::CheckKind::UnstableOnly,
+        reports: &[UnstableOnly],
+        scope: Scope::Package,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[Optional],
+        create,
+    }
+}
+
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         stable: run
             .repo
             .metadata()
@@ -19,17 +32,15 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
             .get("stable")
             .cloned()
             .unwrap_or_default(),
-    }
+    })
 }
 
 struct Check {
     stable: IndexSet<Arch>,
 }
 
-super::register!(Check, super::Check::UnstableOnly);
-
-impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let arches = pkgs
             .iter()
             .flat_map(|pkg| pkg.keywords())

@@ -3,24 +3,33 @@ use std::collections::HashSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{
     UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
 };
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgSetCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::UseLocal,
+        reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused],
+        scope: Scope::Package,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl EbuildPkgSetCheck {
-    Check
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
 }
 
 struct Check;
 
-super::register!(Check, super::Check::UseLocal);
-
-impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let metadata = run.repo.metadata().pkg_metadata(cpn);
         let local_use = metadata.local_use();
         let sorted_flags = local_use

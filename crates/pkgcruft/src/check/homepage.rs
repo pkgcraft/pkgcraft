@@ -1,21 +1,32 @@
 use std::collections::HashSet;
 
 use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
+use pkgcraft::restrict::Scope;
 use url::Url;
 
 use crate::report::ReportKind::HomepageInvalid;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Homepage,
+        reports: &[HomepageInvalid],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl EbuildPkgCheck {
-    Check {
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         allowed_protocols: ["http", "https"].into_iter().map(Into::into).collect(),
         missing_categories: ["acct-group", "acct-user", "virtual"]
             .iter()
             .map(|x| x.to_string())
             .collect(),
-    }
+    })
 }
 
 struct Check {
@@ -23,10 +34,8 @@ struct Check {
     missing_categories: HashSet<String>,
 }
 
-super::register!(Check, super::Check::Homepage);
-
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         let allowed_missing = self.missing_categories.contains(pkg.category());
         if pkg.homepage().is_empty() {
             if !allowed_missing {

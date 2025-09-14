@@ -1,17 +1,33 @@
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
+use pkgcraft::restrict::Scope;
 
-use crate::report::{ReportKind::IgnoreUnused, ReportScope};
+use crate::report::ReportKind::{IgnoreInvalid, IgnoreUnused};
+use crate::report::ReportScope;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::{CategoryCheck, CpnCheck, CpvCheck};
+use super::Context::Optional;
 
-pub(super) struct Check;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Ignore,
+        reports: &[IgnoreInvalid, IgnoreUnused],
+        scope: Scope::Version,
+        sources: &[SourceKind::Cpv, SourceKind::Cpn, SourceKind::Category],
+        context: &[Optional],
+        create,
+    }
+}
 
-super::register!(Check, super::Check::Ignore);
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
+}
 
-impl CpvCheck for Check {
-    fn finish_target(&self, cpv: &Cpv, run: &ScannerRun) {
+struct Check;
+
+impl super::CheckRun for Check {
+    fn finish_cpv(&self, cpv: &Cpv, run: &ScannerRun) {
         let scope = ReportScope::Version(cpv.clone(), None);
 
         // forciby populate the cache
@@ -24,17 +40,7 @@ impl CpvCheck for Check {
         }
     }
 
-    fn finish_check(&self, run: &ScannerRun) {
-        let scope = ReportScope::Repo(run.repo.to_string());
-        if let Some(sets) = run.ignore.unused(&scope) {
-            let sets = sets.iter().join(", ");
-            IgnoreUnused.repo(&run.repo).message(sets).report(run);
-        }
-    }
-}
-
-impl CpnCheck for Check {
-    fn finish_target(&self, cpn: &Cpn, run: &ScannerRun) {
+    fn finish_cpn(&self, cpn: &Cpn, run: &ScannerRun) {
         let scope = ReportScope::Package(cpn.clone());
 
         // forciby populate the cache
@@ -46,10 +52,8 @@ impl CpnCheck for Check {
             IgnoreUnused.package(cpn).message(sets).report(run);
         }
     }
-}
 
-impl CategoryCheck for Check {
-    fn finish_target(&self, category: &str, run: &ScannerRun) {
+    fn finish_category(&self, category: &str, run: &ScannerRun) {
         let scope = ReportScope::Category(category.to_string());
 
         // forciby populate the cache
@@ -58,6 +62,14 @@ impl CategoryCheck for Check {
         if let Some(sets) = run.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");
             IgnoreUnused.category(category).message(sets).report(run);
+        }
+    }
+
+    fn finish_check(&self, run: &ScannerRun) {
+        let scope = ReportScope::Repo(run.repo.to_string());
+        if let Some(sets) = run.ignore.unused(&scope) {
+            let sets = sets.iter().join(", ");
+            IgnoreUnused.repo(&run.repo).message(sets).report(run);
         }
     }
 }
@@ -85,7 +97,7 @@ mod tests {
         // check isn't run by default
         let scanner = Scanner::new();
         let mut reports = scanner.run(repo, repo).unwrap();
-        assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
+        assert!(!reports.any(|r| CHECK.reports.contains(&r.kind)));
 
         // return all report variants in order to trigger ignore filtering
         let scanner = Scanner::new().reports([ReportSet::All]);
@@ -109,7 +121,7 @@ mod tests {
         let reports: Vec<_> = scanner
             .run(repo, repo)
             .unwrap()
-            .filter(|x| CHECK.reports().contains(&x.kind))
+            .filter(|x| CHECK.reports.contains(&x.kind))
             .collect();
         assert_ordered_reports!(&reports, &expected);
     }

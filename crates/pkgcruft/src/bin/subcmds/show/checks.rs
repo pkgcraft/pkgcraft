@@ -7,7 +7,6 @@ use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::restrict::Scope;
 use pkgcruft::check::Check;
-use strum::IntoEnumIterator;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Check options")]
@@ -37,11 +36,11 @@ impl Subcommand {
         for check in checks {
             writeln!(stdout, "{check}")?;
             if self.info {
-                if !check.context().is_empty() {
-                    let contexts = check.context().iter().join(", ");
+                if !check.context.is_empty() {
+                    let contexts = check.context.iter().join(", ");
                     writeln!(stdout, "  context: {contexts}")?;
                 }
-                let reports = check.reports().iter().join(", ");
+                let reports = check.reports.iter().join(", ");
                 writeln!(stdout, "  reports: {reports}\n")?;
             }
         }

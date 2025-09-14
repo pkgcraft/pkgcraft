@@ -1,21 +1,32 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::LiveOnly;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgSetCheck;
+use super::Context::Gentoo;
 
-pub(super) fn create() -> impl EbuildPkgSetCheck {
-    Check
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Live,
+        reports: &[LiveOnly],
+        scope: Scope::Package,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[Gentoo],
+        create,
+    }
+}
+
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
 }
 
 struct Check;
 
-super::register!(Check, super::Check::Live);
-
-impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         if pkgs.iter().all(|pkg| pkg.live()) {
             LiveOnly.package(cpn).report(run);
         }

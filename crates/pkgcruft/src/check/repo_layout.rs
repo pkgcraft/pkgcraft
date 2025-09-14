@@ -2,13 +2,24 @@ use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::repo::PkgRepository;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{RepoCategoriesUnused, RepoCategoryEmpty, RepoPackageEmpty};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::{CategoryCheck, CpnCheck};
+super::register! {
+    super::Check {
+        kind: super::CheckKind::RepoLayout,
+        reports: &[RepoCategoryEmpty, RepoCategoriesUnused, RepoPackageEmpty],
+        scope: Scope::Package,
+        sources: &[SourceKind::Cpn, SourceKind::Category],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> Check {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
     let empty_categories = if run.enabled(RepoPackageEmpty) {
         run.repo.categories().iter().map(Into::into).collect()
     } else {
@@ -26,18 +37,16 @@ pub(super) fn create(run: &ScannerRun) -> Check {
         Default::default()
     };
 
-    Check { empty_categories, unused }
+    Box::new(Check { empty_categories, unused })
 }
 
-pub(super) struct Check {
+struct Check {
     empty_categories: DashSet<String>,
     unused: DashSet<String>,
 }
 
-super::register!(Check, super::Check::RepoLayout);
-
-impl CpnCheck for Check {
-    fn run(&self, cpn: &Cpn, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_cpn(&self, cpn: &Cpn, run: &ScannerRun) {
         let (category, package) = (cpn.category(), cpn.package());
         if run
             .repo
@@ -51,19 +60,15 @@ impl CpnCheck for Check {
         }
     }
 
-    fn finish_check(&self, run: &ScannerRun) {
-        for category in self.empty_categories.iter() {
-            RepoCategoryEmpty.category(category.to_string()).report(run);
-        }
-    }
-}
-
-impl CategoryCheck for Check {
-    fn run(&self, category: &str, _run: &ScannerRun) {
+    fn run_category(&self, category: &str, _run: &ScannerRun) {
         self.unused.remove(category);
     }
 
     fn finish_check(&self, run: &ScannerRun) {
+        for category in self.empty_categories.iter() {
+            RepoCategoryEmpty.category(category.to_string()).report(run);
+        }
+
         if run.enabled(RepoCategoriesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused

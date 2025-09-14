@@ -7,14 +7,25 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::error::Error::UnversionedPkg;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgSetCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Manifest,
+        reports: &[ManifestCollide, ManifestConflict, ManifestInvalid],
+        scope: Scope::Package,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
-    Check {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         thin_manifests: run.repo.metadata().config.thin_manifests,
         colliding: Default::default(),
         conflicting: Default::default(),
@@ -27,7 +38,7 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
             .next()
             .copied()
             .unwrap_or(HashType::Blake2b),
-    }
+    })
 }
 
 struct Check {
@@ -37,8 +48,6 @@ struct Check {
     hash: HashType,
 }
 
-super::register!(Check, super::Check::Manifest);
-
 impl Check {
     // TODO: support inherited ignore directives from eclasses?
     /// Ignore ManifestMatch for go modules since go.mod files are designed to collide.
@@ -47,8 +56,8 @@ impl Check {
     }
 }
 
-impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         // parse manifest
         let result = run.repo.metadata().pkg_manifest_parse(cpn);
         let Ok(manifest) = result else {

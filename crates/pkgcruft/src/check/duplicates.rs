@@ -1,22 +1,33 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::repo::Repository;
+use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Contains;
 
 use crate::report::ReportKind::PackageOverride;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::CpnCheck;
+use super::Context::{Optional, Overlay};
 
-pub(super) fn create() -> impl CpnCheck {
-    Check
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Duplicates,
+        reports: &[PackageOverride],
+        scope: Scope::Package,
+        sources: &[SourceKind::Cpn],
+        context: &[Optional, Overlay],
+        create,
+    }
+}
+
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
 }
 
 struct Check;
 
-super::register!(Check, super::Check::Duplicates);
-
-impl CpnCheck for Check {
-    fn run(&self, cpn: &Cpn, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_cpn(&self, cpn: &Cpn, run: &ScannerRun) {
         for repo in run.repo.masters() {
             if repo.contains(cpn) {
                 PackageOverride
@@ -43,7 +54,7 @@ mod tests {
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         let scanner = Scanner::new();
         let mut reports = scanner.run(repo, repo).unwrap();
-        assert!(!reports.any(|r| CHECK.reports().contains(&r.kind)));
+        assert!(!reports.any(|r| CHECK.reports.contains(&r.kind)));
 
         let scanner = Scanner::new().reports([CHECK]);
 
@@ -55,6 +66,6 @@ mod tests {
         // secondary
         let repo = data.ebuild_repo("qa-secondary").unwrap();
         let mut reports = scanner.run(repo, repo).unwrap();
-        assert!(reports.any(|r| CHECK.reports().contains(&r.kind)));
+        assert!(reports.any(|r| CHECK.reports.contains(&r.kind)));
     }
 }

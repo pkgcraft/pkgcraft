@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::Error;
-use crate::check::{Check, Context};
+use crate::check::{Check, CheckKind, Context};
 use crate::scan::ScannerRun;
 
 /// The severity of the report.
@@ -195,6 +195,12 @@ impl From<Check> for ReportSet {
     }
 }
 
+impl From<CheckKind> for ReportSet {
+    fn from(value: CheckKind) -> Self {
+        Self::Check(value.into())
+    }
+}
+
 impl From<Context> for ReportSet {
     fn from(value: Context) -> Self {
         Self::Context(value)
@@ -277,11 +283,11 @@ impl ReportSet {
                     .filter(|r| r.finish_check(Scope::Repo))
                     .copied(),
             ),
-            Self::Check(check) => Box::new(check.reports().iter().copied()),
+            Self::Check(check) => Box::new(check.reports.iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter_report(supported)
-                    .filter(move |x| x.context().contains(&context))
-                    .flat_map(|x| x.reports())
+                    .filter(move |x| x.context.contains(&context))
+                    .flat_map(|x| x.reports)
                     .copied(),
             ),
             Self::Level(range) => Box::new(
@@ -805,7 +811,7 @@ impl ReportKind {
     /// Return the sorted set of reports enabled by default for an ebuild repo.
     pub fn defaults(repo: &EbuildRepo) -> IndexSet<Self> {
         let mut set: IndexSet<_> = Check::iter_default(repo)
-            .flat_map(|x| x.reports())
+            .flat_map(|x| x.reports)
             .copied()
             .collect();
         set.sort_unstable();
@@ -816,7 +822,7 @@ impl ReportKind {
     pub fn supported<T: Into<Scope>>(repo: &EbuildRepo, value: T) -> IndexSet<Self> {
         let scope = value.into();
         let mut set: IndexSet<_> = Check::iter_supported(repo, scope)
-            .flat_map(|c| c.reports())
+            .flat_map(|c| c.reports)
             .filter(|r| scope >= r.scope())
             .copied()
             .collect();
@@ -1263,7 +1269,7 @@ mod tests {
         assert!(selected.is_empty());
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         // repo specific checks enabled when scanning the matching repo
-        assert!(checks.contains(&Check::Header));
+        assert!(checks.contains(&CheckKind::Header));
 
         // default checks
         let repo = data.ebuild_repo("qa-primary").unwrap();
@@ -1272,11 +1278,11 @@ mod tests {
         let (enabled, selected) = ReportTarget::collapse([], &defaults, &supported).unwrap();
         assert!(selected.is_empty());
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
-        assert!(checks.contains(&Check::Dependency));
+        assert!(checks.contains(&CheckKind::Dependency));
         // optional checks aren't run by default when scanning
-        assert!(!checks.contains(&Check::UnstableOnly));
+        assert!(!checks.contains(&CheckKind::UnstableOnly));
         // repo specific checks aren't run by default when scanning non-matching repo
-        assert!(!checks.contains(&Check::Header));
+        assert!(!checks.contains(&CheckKind::Header));
 
         // non-default reports aren't enabled when their matching level is targeted
         let report = ReportKind::HeaderInvalid;

@@ -1,11 +1,22 @@
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
+use pkgcraft::restrict::Scope;
 use strum::{Display, EnumString};
 
 use crate::report::ReportKind::VariableOrder;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildRawPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::VariableOrder,
+        reports: &[VariableOrder],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildRawPkg],
+        context: &[],
+        create,
+    }
+}
 
 #[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord)]
 #[strum(serialize_all = "UPPERCASE")]
@@ -24,16 +35,14 @@ enum Variable {
     PROPERTIES,
 }
 
-pub(crate) fn create() -> impl EbuildRawPkgCheck {
-    Check
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
 }
 
 struct Check;
 
-super::register!(Check, super::Check::VariableOrder);
-
-impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_raw_pkg(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let mut variables = vec![];
         for node in pkg
             .tree()

@@ -54,7 +54,7 @@ fn pkg_producer(
         for check in run
             .checks
             .iter()
-            .filter(|c| c.sources().contains(&SourceKind::Repo))
+            .filter(|c| c.sources.contains(&SourceKind::Repo))
         {
             tx.send((Some(*check), Target::Repo, 0)).ok();
         }
@@ -69,7 +69,7 @@ fn pkg_producer(
         let category_checks: Vec<_> = run
             .checks
             .iter()
-            .filter(|c| c.sources().contains(&SourceKind::Category))
+            .filter(|c| c.sources.contains(&SourceKind::Category))
             .copied()
             .collect();
 
@@ -81,7 +81,7 @@ fn pkg_producer(
         }
 
         // parallelize running checks per package
-        if run.checks.iter().any(|c| c.scope() <= Scope::Package) {
+        if run.checks.iter().any(|c| c.scope <= Scope::Package) {
             for (id, cpn) in run.repo.iter_cpn_restrict(&run.restrict).enumerate() {
                 tx.send((None, cpn.into(), id)).ok();
             }
@@ -165,13 +165,13 @@ fn version_producer(
         let cpns: Vec<_> = run.repo.iter_cpn_restrict(&run.restrict).collect();
 
         for cpv in &cpvs {
-            for check in run.checks.iter().filter(|c| c.scope() == Scope::Version) {
+            for check in run.checks.iter().filter(|c| c.scope == Scope::Version) {
                 tx.send((*check, cpv.clone().into())).ok();
             }
         }
 
         for cpn in &cpns {
-            for check in run.checks.iter().filter(|c| c.scope() == Scope::Package) {
+            for check in run.checks.iter().filter(|c| c.scope == Scope::Package) {
                 tx.send((*check, cpn.clone().into())).ok();
             }
         }

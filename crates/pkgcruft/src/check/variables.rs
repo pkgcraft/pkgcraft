@@ -3,29 +3,38 @@ use std::collections::HashMap;
 use pkgcraft::bash::Node;
 use pkgcraft::eapi::{EAPIS, Eapi};
 use pkgcraft::pkg::{Package, ebuild::EbuildRawPkg};
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::VariableScopeInvalid;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildRawPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Variables,
+        reports: &[VariableScopeInvalid],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildRawPkg],
+        context: &[],
+        create,
+    }
+}
 
 type VariableFn = for<'a> fn(&str, &Node<'a>, &EbuildRawPkg, &ScannerRun);
 
-pub(crate) fn create() -> impl EbuildRawPkgCheck {
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
     let mut check = Check { variables: Default::default() };
 
     for eapi in &*EAPIS {
         check.register_eapi(eapi, eapi.env(), eapi_variable);
     }
 
-    check
+    Box::new(check)
 }
 
 struct Check {
     variables: HashMap<&'static Eapi, HashMap<String, Vec<VariableFn>>>,
 }
-
-super::register!(Check, super::Check::Commands);
 
 impl Check {
     /// Register EAPI variables for the check to handle.
@@ -60,8 +69,8 @@ fn eapi_variable(var: &str, var_node: &Node, pkg: &EbuildRawPkg, run: &ScannerRu
     }
 }
 
-impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_raw_pkg(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let eapi = pkg.eapi();
         let vars = self
             .variables

@@ -2,13 +2,24 @@ use dashmap::DashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{IuseInvalid, UseGlobalUnused};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Iuse,
+        reports: &[IuseInvalid, UseGlobalUnused],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
     let unused = if run.enabled(UseGlobalUnused) {
         run.repo
             .metadata()
@@ -20,18 +31,16 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
         Default::default()
     };
 
-    Check {
+    Box::new(Check {
         use_expand: ["cpu_flags_"].into_iter().map(Into::into).collect(),
         unused,
-    }
+    })
 }
 
 struct Check {
     use_expand: IndexSet<String>,
     unused: DashSet<String>,
 }
-
-super::register!(Check, super::Check::Iuse);
 
 impl Check {
     /// Return true if an IUSE flag starts with any from a set.
@@ -40,8 +49,8 @@ impl Check {
     }
 }
 
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for x in pkg.iuse() {
             if x.is_disabled() || (x.is_enabled() && self.use_expand(x.flag())) {
                 IuseInvalid

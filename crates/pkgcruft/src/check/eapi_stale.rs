@@ -1,23 +1,32 @@
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::Package;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 use pkgcraft::types::OrderedMap;
 
 use crate::report::ReportKind::EapiStale;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgSetCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::EapiStale,
+        reports: &[EapiStale],
+        scope: Scope::Package,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl EbuildPkgSetCheck {
-    Check
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
 }
 
 struct Check;
 
-super::register!(Check, super::Check::EapiStale);
-
-impl EbuildPkgSetCheck for Check {
-    fn run(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg_set(&self, _cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         pkgs.iter()
             .map(|pkg| (pkg.slot(), pkg))
             .collect::<OrderedMap<_, Vec<_>>>()

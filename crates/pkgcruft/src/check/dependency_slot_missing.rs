@@ -3,22 +3,30 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::repo::{EbuildRepo, PkgRepository};
-use pkgcraft::restrict::Restrict;
+use pkgcraft::restrict::{Restrict, Scope};
 
 use crate::report::ReportKind::DependencySlotMissing;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::DependencySlotMissing,
+        reports: &[DependencySlotMissing],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl EbuildPkgCheck {
-    Check { dep_slots: Default::default() }
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check { dep_slots: Default::default() })
 }
 
 struct Check {
     dep_slots: DashMap<Restrict, Option<String>>,
 }
-
-super::register!(Check, super::Check::DependencySlotMissing);
 
 impl Check {
     /// Get the package slots for a dependency if more than one exist.
@@ -46,8 +54,8 @@ impl Check {
     }
 }
 
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for dep in pkg
             .rdepend()
             .intersection(pkg.depend())

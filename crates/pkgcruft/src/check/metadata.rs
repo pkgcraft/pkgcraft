@@ -1,26 +1,35 @@
 use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
+use pkgcraft::restrict::Scope;
 use pkgcraft::shell::pool::MetadataTaskBuilder;
 
 use crate::report::ReportKind::MetadataError;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::CpvCheck;
-
-pub(super) fn create(run: &ScannerRun) -> impl CpvCheck + 'static {
-    Check {
-        regen: run.repo.pool().metadata_task(&run.repo),
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Metadata,
+        reports: &[MetadataError],
+        scope: Scope::Version,
+        sources: &[SourceKind::Cpv],
+        context: &[],
+        create,
     }
+}
+
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
+        regen: run.repo.pool().metadata_task(&run.repo),
+    })
 }
 
 struct Check {
     regen: MetadataTaskBuilder,
 }
 
-super::register!(Check, super::Check::Metadata);
-
-impl CpvCheck for Check {
-    fn run(&self, cpv: &Cpv, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_cpv(&self, cpv: &Cpv, run: &ScannerRun) {
         if let Err(InvalidPkg { err, .. }) = self.regen.run(cpv) {
             MetadataError.version(cpv).message(err).report(run)
         }

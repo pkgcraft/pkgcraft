@@ -6,30 +6,40 @@ use itertools::Itertools;
 use pkgcraft::dep::Flatten;
 use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 use pkgcraft::repo::{EbuildRepo, PkgRepository};
-use pkgcraft::restrict::Restrict;
+use pkgcraft::restrict::{Restrict, Scope};
 
 use crate::report::ReportKind::RubyUpdate;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 use crate::utils::{impl_targets, use_starts_with};
 
-use super::EbuildPkgCheck;
+use super::Context::GentooInherited;
+
+super::register! {
+    super::Check {
+        kind: super::CheckKind::RubyUpdate,
+        reports: &[RubyUpdate],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[GentooInherited],
+        create,
+    }
+}
 
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
-    Check {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         targets: impl_targets(&run.repo, "ruby_targets", "ruby").collect(),
         dep_targets: Default::default(),
-    }
+    })
 }
 
 struct Check {
     targets: Vec<String>,
     dep_targets: DashMap<Restrict, Option<HashSet<String>>>,
 }
-
-super::register!(Check, super::Check::RubyUpdate);
 
 /// Determine the set of compatible targets for a dependency.
 fn dep_targets(pkg: EbuildPkg) -> HashSet<String> {
@@ -62,8 +72,8 @@ impl Check {
     }
 }
 
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if pkg.category() == "virtual" || !pkg.inherited().contains("ruby-ng") {
             return;
         };

@@ -3,30 +3,39 @@ use itertools::Itertools;
 use pkgcraft::error::Error;
 use pkgcraft::fetch::Fetchable;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{MirrorsUnused, UriInvalid};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::SrcUri,
+        reports: &[MirrorsUnused, UriInvalid],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
     let unused = if run.enabled(MirrorsUnused) {
         run.repo.metadata().mirrors().keys().cloned().collect()
     } else {
         Default::default()
     };
 
-    Check { unused }
+    Box::new(Check { unused })
 }
 
 struct Check {
     unused: DashSet<String>,
 }
 
-super::register!(Check, super::Check::SrcUri);
-
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         for uri in pkg.src_uri().iter_flatten() {
             let result = Fetchable::from_uri(uri, pkg, false);
             let Ok(fetchable) = result else {

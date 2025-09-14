@@ -266,7 +266,7 @@ impl PkgcruftService {
 
         // scan full tree for metadata errors on eclass changes
         if eclass {
-            scanner = scanner.reports([pkgcruft::check::Check::Metadata]);
+            scanner = scanner.reports([pkgcruft::check::CheckKind::Metadata]);
             let reports_iter = scanner.run(&repo, Restrict::True)?;
             reports.extend(reports_iter.into_iter().map(|r| r.to_json()));
         }

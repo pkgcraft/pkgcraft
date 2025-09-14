@@ -124,7 +124,9 @@ fn main() -> anyhow::Result<ExitCode> {
 
         // scan full tree for metadata errors on eclass changes
         if eclass {
-            let scanner = scanner.clone().reports([pkgcruft::check::Check::Metadata]);
+            let scanner = scanner
+                .clone()
+                .reports([pkgcruft::check::CheckKind::Metadata]);
             for report in scanner.run(&repo, Restrict::True)? {
                 reporter.report(&report, &mut stdout)?;
             }

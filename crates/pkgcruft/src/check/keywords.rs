@@ -3,15 +3,32 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::pkg::Package;
 use pkgcraft::pkg::ebuild::{EbuildPkg, keyword::KeywordStatus::Stable};
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{
     ArchesUnused, EapiUnstable, KeywordsLive, KeywordsOverlapping, KeywordsUnsorted,
 };
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Keywords,
+        reports: &[
+            ArchesUnused,
+            EapiUnstable,
+            KeywordsLive,
+            KeywordsOverlapping,
+            KeywordsUnsorted,
+        ],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
     let unused = if run.enabled(ArchesUnused) {
         run.repo
             .metadata()
@@ -23,17 +40,15 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
         Default::default()
     };
 
-    Check { unused }
+    Box::new(Check { unused })
 }
 
 struct Check {
     unused: DashSet<String>,
 }
 
-super::register!(Check, super::Check::Keywords);
-
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if !pkg.keywords().is_empty() && pkg.live() {
             KeywordsLive
                 .version(pkg)

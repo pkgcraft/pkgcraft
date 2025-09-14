@@ -4,6 +4,7 @@ use pkgcraft::bash::Node;
 use pkgcraft::dep::Dep;
 use pkgcraft::eapi::{EAPIS, Eapi};
 use pkgcraft::pkg::{Package, RepoPackage, ebuild::EbuildRawPkg};
+use pkgcraft::restrict::Scope;
 use pkgcraft::shell::phase::PhaseKind;
 use pkgcraft::traits::Contains;
 use tree_sitter::TreeCursor;
@@ -12,13 +13,29 @@ use crate::report::ReportKind::{
     Builtin, CommandDieUnneeded, CommandScopeInvalid, Optfeature, PhaseCall,
 };
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildRawPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Commands,
+        reports: &[
+            Builtin,
+            CommandDieUnneeded,
+            CommandScopeInvalid,
+            Optfeature,
+            PhaseCall,
+        ],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildRawPkg],
+        context: &[],
+        create,
+    }
+}
 
 type CommandFn =
     for<'a> fn(&str, &Node<'a>, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ScannerRun);
 
-pub(crate) fn create() -> impl EbuildRawPkgCheck {
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
     let mut check = Check { commands: Default::default() };
 
     // register non-EAPI commands
@@ -30,7 +47,7 @@ pub(crate) fn create() -> impl EbuildRawPkgCheck {
         check.register_eapi(eapi, eapi.commands(), eapi_command);
     }
 
-    check
+    Box::new(check)
 }
 
 struct Check {
@@ -72,8 +89,6 @@ impl Check {
         }
     }
 }
-
-super::register!(Check, super::Check::Commands);
 
 /// Flag builtins used as external commands.
 fn builtins<'a>(
@@ -182,8 +197,8 @@ fn eapi_command<'a>(
     }
 }
 
-impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_raw_pkg(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let eapi = pkg.eapi();
         let cmds = self
             .commands

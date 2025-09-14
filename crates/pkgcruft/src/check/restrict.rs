@@ -2,30 +2,39 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 use pkgcraft::pkg::ebuild::EbuildPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::RestrictInvalid;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Restrict,
+        reports: &[RestrictInvalid],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgCheck + 'static {
-    Check {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         allowed: run
             .repo
             .trees()
             .flat_map(|r| r.metadata().config.restrict_allowed.clone())
             .collect(),
-    }
+    })
 }
 
 struct Check {
     allowed: HashSet<String>,
 }
 
-super::register!(Check, super::Check::Restrict);
-
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if !self.allowed.is_empty() {
             let vals = pkg
                 .restrict()

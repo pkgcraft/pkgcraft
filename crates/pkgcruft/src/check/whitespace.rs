@@ -1,29 +1,38 @@
 use std::collections::HashSet;
 
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{EapiFormat, WhitespaceInvalid, WhitespaceUnneeded};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildRawPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Whitespace,
+        reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildRawPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl EbuildRawPkgCheck {
-    Check {
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         allowed_leading_whitespace: ["heredoc_body", "raw_string"]
             .iter()
             .map(|s| s.to_string())
             .collect(),
-    }
+    })
 }
 
 struct Check {
     allowed_leading_whitespace: HashSet<String>,
 }
 
-super::register!(Check, super::Check::Whitespace);
-
-impl EbuildRawPkgCheck for Check {
-    fn run(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_raw_pkg(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
         let mut prev_line: Option<&str> = None;
         let mut eapi_assign = false;
         let mut lines = pkg.data().lines().peekable();

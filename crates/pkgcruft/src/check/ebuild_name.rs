@@ -2,22 +2,31 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use pkgcraft::dep::{Cpn, Cpv};
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{EbuildNameInvalid, EbuildVersionsEqual};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::CpnCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::EbuildName,
+        reports: &[EbuildNameInvalid, EbuildVersionsEqual],
+        scope: Scope::Package,
+        sources: &[SourceKind::Cpn],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl CpnCheck {
-    Check
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check)
 }
 
 struct Check;
 
-super::register!(Check, super::Check::EbuildName);
-
-impl CpnCheck for Check {
-    fn run(&self, cpn: &Cpn, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_cpn(&self, cpn: &Cpn, run: &ScannerRun) {
         let mut cpvs = HashMap::<Cpv, Vec<_>>::new();
 
         for result in run.repo.cpvs_from_package(cpn.category(), cpn.package()) {

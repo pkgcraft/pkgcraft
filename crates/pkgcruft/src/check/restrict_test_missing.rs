@@ -1,14 +1,25 @@
 use pkgcraft::dep::{Dependency, DependencySet};
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::pkg::ebuild::iuse::Iuse;
+use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::RestrictMissing;
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::RestrictTestMissing,
+        reports: &[RestrictMissing],
+        scope: Scope::Version,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create() -> impl EbuildPkgCheck {
-    Check {
+pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+    Box::new(Check {
         restricts: ["test", "!test? ( test )"]
             .iter()
             .map(|s| {
@@ -17,7 +28,7 @@ pub(super) fn create() -> impl EbuildPkgCheck {
             })
             .collect(),
         iuse: Iuse::try_new("test").unwrap(),
-    }
+    })
 }
 
 struct Check {
@@ -25,10 +36,8 @@ struct Check {
     iuse: Iuse,
 }
 
-super::register!(Check, super::Check::RestrictTestMissing);
-
-impl EbuildPkgCheck for Check {
-    fn run(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
         if pkg.iuse().contains(&self.iuse)
             && pkg
                 .restrict()

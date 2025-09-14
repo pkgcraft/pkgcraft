@@ -45,6 +45,7 @@ crossbeam-utils = "0.8.21"
 dashmap = { version = "6.1.0", features = ["rayon", "serde"] }
 indexmap = { version = "2.11.1", features = ["rayon", "serde"] }
 indoc = "2.0.6"
+inventory = "0.3.21"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.29" }

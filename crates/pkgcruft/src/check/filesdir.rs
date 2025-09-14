@@ -9,6 +9,7 @@ use pkgcraft::dep::Cpn;
 use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 use pkgcraft::repo::ebuild::Eclass;
+use pkgcraft::restrict::Scope;
 use rayon::prelude::*;
 use tracing::warn;
 use walkdir::WalkDir;
@@ -17,10 +18,20 @@ use crate::Error;
 use crate::report::Location;
 use crate::report::ReportKind::{FileUnknown, FilesUnused};
 use crate::scan::ScannerRun;
+use crate::source::SourceKind;
 
-use super::EbuildPkgSetCheck;
+super::register! {
+    super::Check {
+        kind: super::CheckKind::Filesdir,
+        reports: &[FileUnknown, FilesUnused],
+        scope: Scope::Package,
+        sources: &[SourceKind::EbuildPkg],
+        context: &[],
+        create,
+    }
+}
 
-pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
+pub(super) fn create(run: &ScannerRun) -> super::Runner {
     let eclasses = run
         .repo
         .eclasses()
@@ -38,14 +49,12 @@ pub(super) fn create(run: &ScannerRun) -> impl EbuildPkgSetCheck + 'static {
         .cloned()
         .collect();
 
-    Check { eclasses }
+    Box::new(Check { eclasses })
 }
 
 struct Check {
     eclasses: HashSet<Eclass>,
 }
-
-super::register!(Check, super::Check::Filesdir);
 
 /// Expand a variable into its actual value.
 fn expand_var<'a>(
@@ -153,8 +162,8 @@ fn expand_node<'a>(
     Ok(path)
 }
 
-impl EbuildPkgSetCheck for Check {
-    fn run(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+impl super::CheckRun for Check {
+    fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         let filesdir = build_path!(run.repo.path(), cpn.category(), cpn.package(), "files");
         // TODO: flag non-utf8 file names?
         let mut files: HashSet<_> = WalkDir::new(&filesdir)
