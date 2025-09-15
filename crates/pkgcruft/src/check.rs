@@ -418,11 +418,15 @@ mod tests {
 
     #[test]
     fn kind() {
-        // verify checks are registered in lexical order
-        let kinds: Vec<_> = Check::iter().collect();
-        let ordered: Vec<_> = Check::iter().map(|x| x.to_string()).sorted().collect();
+        // verify check variants are in lexical order
+        let kinds: Vec<_> = CheckKind::iter().collect();
+        let ordered: Vec<_> = CheckKind::iter().map(|x| x.to_string()).sorted().collect();
         let ordered: Vec<_> = ordered.iter().map(|s| s.parse().unwrap()).collect();
         assert_ordered_eq!(&kinds, &ordered);
+
+        // verify all check variants have a registered check
+        let checks: Vec<_> = Check::iter().map(|c| c.kind).collect();
+        assert_ordered_eq!(&kinds, &checks);
     }
 
     #[test]
