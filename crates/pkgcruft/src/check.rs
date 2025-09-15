@@ -384,24 +384,6 @@ impl Hash for CheckRunner {
     }
 }
 
-impl Borrow<Check> for CheckRunner {
-    fn borrow(&self) -> &Check {
-        &self.check
-    }
-}
-
-impl Ord for CheckRunner {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.check.cmp(&other.check)
-    }
-}
-
-impl PartialOrd for CheckRunner {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 /// The mapping of all report variants to the checks that can generate them.
 static REPORTS: LazyLock<OrderedMap<ReportKind, OrderedSet<Check>>> = LazyLock::new(|| {
     Check::iter()
