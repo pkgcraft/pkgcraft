@@ -64,7 +64,7 @@ impl super::CheckRun for Check {
         self.unused.remove(category);
     }
 
-    fn finish_check(&self, run: &ScannerRun) {
+    fn finish(&self, run: &ScannerRun) {
         for category in self.empty_categories.iter() {
             RepoCategoryEmpty.category(category.to_string()).report(run);
         }

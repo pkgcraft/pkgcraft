@@ -10,7 +10,7 @@ use pkgcraft::restrict::{Restrict, Scope, TryIntoRestrict};
 use pkgcraft::utils::bounded_jobs;
 use tracing::{info, warn};
 
-use crate::check::Check;
+use crate::check::{Check, CheckRunner};
 use crate::error::Error;
 use crate::ignore::Ignore;
 use crate::iter::{ReportIter, ReportSender};
@@ -148,7 +148,7 @@ impl Scanner {
 
         // determine enabled checks -- errors if incompatible check is selected
         let selected = Check::iter_report(&selected).collect();
-        run.checks = Check::iter_report(&enabled)
+        run.runners = Check::iter_report(&enabled)
             .unique()
             .sorted()
             .map(|check| {
@@ -159,7 +159,7 @@ impl Scanner {
                 } else if let Some(scope) = check.scoped(run.scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))
                 } else {
-                    Ok(check)
+                    Ok(check.to_runner(&run))
                 }
             })
             .filter(|result| {
@@ -185,7 +185,7 @@ pub(crate) struct ScannerRun {
     force: bool,
     pub(crate) jobs: usize,
     pub(crate) filters: IndexSet<PkgFilter>,
-    pub(crate) checks: IndexSet<Check>,
+    pub(crate) runners: IndexSet<CheckRunner>,
     pub(crate) ignore: Ignore,
     enabled: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
@@ -215,7 +215,7 @@ impl ScannerRun {
             force: scanner.force,
             jobs: bounded_jobs(scanner.jobs),
             filters: scanner.filters.clone(),
-            checks: Default::default(),
+            runners: Default::default(),
             ignore: Ignore::new(repo),
             enabled: Default::default(),
             exit: Default::default(),

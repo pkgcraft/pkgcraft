@@ -65,7 +65,7 @@ impl super::CheckRun for Check {
         }
     }
 
-    fn finish_check(&self, run: &ScannerRun) {
+    fn finish(&self, run: &ScannerRun) {
         let scope = ReportScope::Repo(run.repo.to_string());
         if let Some(sets) = run.ignore.unused(&scope) {
             let sets = sets.iter().join(", ");

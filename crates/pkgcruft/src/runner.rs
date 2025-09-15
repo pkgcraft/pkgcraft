@@ -7,7 +7,7 @@ use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 use tracing::warn;
 
-use crate::check::{Check, CheckRunner};
+use crate::check::CheckRunner;
 use crate::report::ReportScope;
 use crate::scan::ScannerRun;
 use crate::source::*;
@@ -19,6 +19,18 @@ pub(super) enum Target {
     Cpn(Cpn),
     Category(String),
     Repo,
+}
+
+impl Target {
+    /// Run finalization for a target.
+    fn finish(&self, runner: &CheckRunner, run: &ScannerRun) {
+        match self {
+            Self::Cpn(cpn) => runner.finish_cpn(cpn, run),
+            Self::Cpv(cpv) => runner.finish_cpv(cpv, run),
+            Self::Category(cat) => runner.finish_category(cat, run),
+            _ => (),
+        }
+    }
 }
 
 impl From<Cpn> for Target {
@@ -54,18 +66,17 @@ impl SyncCheckRunner {
     pub(super) fn new(run: &ScannerRun) -> Self {
         let mut runner = Self::default();
 
-        for check in &run.checks {
-            runner.add_check(*check, run);
+        for r in &run.runners {
+            runner.add_runner(r, run);
         }
 
         runner
     }
 
     /// Add a check to the runner.
-    fn add_check(&mut self, check: Check, run: &ScannerRun) {
-        let runner = check.to_runner(run);
-
-        for source in check
+    fn add_runner(&mut self, runner: &CheckRunner, run: &ScannerRun) {
+        for source in runner
+            .check
             .sources
             .iter()
             .filter(|source| source.scope() <= run.scope)
@@ -86,27 +97,36 @@ impl SyncCheckRunner {
     }
 
     /// Run a check for a target.
-    pub(super) fn run_check(&self, check: &Check, target: &Target, run: &ScannerRun) {
-        for runner in check.sources.iter().filter_map(|x| self.runners.get(x)) {
-            runner.run_check(check, target, run);
+    pub(super) fn run(&self, runner: &CheckRunner, target: &Target, run: &ScannerRun) {
+        for r in runner
+            .check
+            .sources
+            .iter()
+            .filter_map(|x| self.runners.get(x))
+        {
+            r.run(runner, target, run);
         }
     }
 
     /// Run finalization for a target.
-    pub(super) fn finish_target(&self, check: &Check, target: &Target, run: &ScannerRun) {
-        for runner in check.sources.iter().filter_map(|x| self.runners.get(x)) {
-            runner.finish_target(check, target, run);
-        }
+    pub(super) fn finish_target(
+        &self,
+        runner: &CheckRunner,
+        target: &Target,
+        run: &ScannerRun,
+    ) {
+        let now = Instant::now();
+        target.finish(runner, run);
+        *run.stats.entry(runner.check).or_default() += now.elapsed();
     }
 
     /// Run finalization for a check.
     ///
     /// This is only run once even if a check has multiple source variants.
-    pub(super) fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        let mut runners = check.sources.iter().filter_map(|x| self.runners.get(x));
-        if let Some(runner) = runners.next() {
-            runner.finish_check(check, run);
-        }
+    pub(super) fn finish_check(&self, runner: &CheckRunner, run: &ScannerRun) {
+        let now = Instant::now();
+        runner.finish(run);
+        *run.stats.entry(runner.check).or_default() += now.elapsed();
     }
 }
 
@@ -116,8 +136,8 @@ enum GenericCheckRunner {
     EbuildRawPkg(EbuildRawPkgCheckRunner),
     Cpn(CpnCheckRunner),
     Cpv(CpvCheckRunner),
-    Category(CategoryCheckRunner),
-    Repo(RepoCheckRunner),
+    Category,
+    Repo,
 }
 
 impl GenericCheckRunner {
@@ -127,8 +147,8 @@ impl GenericCheckRunner {
             SourceKind::EbuildRawPkg => Self::EbuildRawPkg(Default::default()),
             SourceKind::Cpn => Self::Cpn(Default::default()),
             SourceKind::Cpv => Self::Cpv(Default::default()),
-            SourceKind::Category => Self::Category(Default::default()),
-            SourceKind::Repo => Self::Repo(Default::default()),
+            SourceKind::Category => Self::Category,
+            SourceKind::Repo => Self::Repo,
         }
     }
 
@@ -138,8 +158,8 @@ impl GenericCheckRunner {
             Self::EbuildRawPkg(r) => r.add_runner(runner),
             Self::Cpn(r) => r.add_runner(runner),
             Self::Cpv(r) => r.add_runner(runner),
-            Self::Category(r) => r.add_runner(runner),
-            Self::Repo(r) => r.add_runner(runner),
+            Self::Category => (),
+            Self::Repo => (),
         }
     }
 
@@ -153,46 +173,28 @@ impl GenericCheckRunner {
         }
     }
 
-    fn run_check(&self, check: &Check, target: &Target, run: &ScannerRun) {
+    fn run(&self, runner: &CheckRunner, target: &Target, run: &ScannerRun) {
+        let now = Instant::now();
         match (self, target) {
-            (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_pkg(check, cpv, run),
-            (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, run),
-            (Self::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_pkg(check, cpv, run),
-            (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(check, cpn, run),
-            (Self::Cpn(r), Target::Cpn(cpn)) => r.run_check(check, cpn, run),
-            (Self::Cpv(r), Target::Cpv(cpv)) => r.run_check(check, cpv, run),
-            (Self::Category(r), Target::Category(cat)) => r.run_check(check, cat, run),
-            (Self::Repo(r), Target::Repo) => r.run_check(check, run),
+            (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_pkg(runner, cpv, run),
+            (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(runner, cpn, run),
+            (Self::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_pkg(runner, cpv, run),
+            (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(runner, cpn, run),
+            (Self::Cpn(_), Target::Cpn(cpn)) => runner.run_cpn(cpn, run),
+            (Self::Cpv(_), Target::Cpv(cpv)) => runner.run_cpv(cpv, run),
+            (Self::Category, Target::Category(cat)) => runner.run_category(cat, run),
+            (Self::Repo, Target::Repo) => runner.run_repo(run),
             _ => (),
         }
-    }
-
-    fn finish_target(&self, check: &Check, target: &Target, run: &ScannerRun) {
-        match (self, target) {
-            (Self::Cpn(r), Target::Cpn(cpn)) => r.finish_target(check, cpn, run),
-            (Self::Cpv(r), Target::Cpv(cpv)) => r.finish_target(check, cpv, run),
-            (Self::Category(r), Target::Category(cat)) => r.finish_target(check, cat, run),
-            _ => (),
-        }
-    }
-
-    fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        match self {
-            Self::EbuildPkg(r) => r.finish_check(check, run),
-            Self::EbuildRawPkg(r) => r.finish_check(check, run),
-            Self::Cpn(r) => r.finish_check(check, run),
-            Self::Cpv(r) => r.finish_check(check, run),
-            Self::Category(r) => r.finish_check(check, run),
-            _ => (),
-        }
+        *run.stats.entry(runner.check).or_default() += now.elapsed();
     }
 }
 
 /// Check runner for ebuild package checks.
 #[derive(Default)]
 struct EbuildPkgCheckRunner {
-    pkg_checks: IndexSet<CheckRunner>,
-    pkg_set_checks: IndexSet<CheckRunner>,
+    pkg_runners: IndexSet<CheckRunner>,
+    pkg_set_runners: IndexSet<CheckRunner>,
     source: std::sync::OnceLock<EbuildPkgSource>,
     cache: std::sync::OnceLock<PkgCache<EbuildPkg>>,
 }
@@ -209,9 +211,9 @@ impl EbuildPkgCheckRunner {
 
     fn add_runner(&mut self, runner: CheckRunner) {
         if runner.check.scope == Scope::Version {
-            self.pkg_checks.insert(runner);
+            self.pkg_runners.insert(runner);
         } else {
-            self.pkg_set_checks.insert(runner);
+            self.pkg_set_runners.insert(runner);
         }
     }
 
@@ -222,13 +224,13 @@ impl EbuildPkgCheckRunner {
         for result in source.iter_restrict(cpn) {
             match result {
                 Ok(pkg) => {
-                    for runner in &self.pkg_checks {
+                    for runner in &self.pkg_runners {
                         let now = Instant::now();
                         runner.run_ebuild_pkg(&pkg, run);
                         *run.stats.entry(runner.check).or_default() += now.elapsed();
                     }
 
-                    if !self.pkg_set_checks.is_empty()
+                    if !self.pkg_set_runners.is_empty()
                         && let Ok(pkgs) = pkgs.as_mut()
                     {
                         pkgs.push(pkg);
@@ -241,7 +243,7 @@ impl EbuildPkgCheckRunner {
         match &pkgs {
             Ok(pkgs) => {
                 if !pkgs.is_empty() {
-                    for runner in &self.pkg_set_checks {
+                    for runner in &self.pkg_set_runners {
                         let now = Instant::now();
                         runner.run_ebuild_pkg_set(cpn, pkgs, run);
                         *run.stats.entry(runner.check).or_default() += now.elapsed();
@@ -253,65 +255,32 @@ impl EbuildPkgCheckRunner {
     }
 
     /// Run a check for a [`Cpv`].
-    fn run_pkg(&self, check: &Check, cpv: &Cpv, run: &ScannerRun) {
+    fn run_pkg(&self, runner: &CheckRunner, cpv: &Cpv, run: &ScannerRun) {
         match self.cache(run).get_pkg(cpv) {
-            Some(Ok(pkg)) => {
-                let runner = self
-                    .pkg_checks
-                    .get(check)
-                    .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                let now = Instant::now();
-                runner.run_ebuild_pkg(pkg, run);
-                *run.stats.entry(*check).or_default() += now.elapsed();
-            }
-            Some(Err(e)) => warn!("{check}: skipping due to {e}"),
-            None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
+            Some(Ok(pkg)) => runner.run_ebuild_pkg(pkg, run),
+            Some(Err(e)) => warn!("{runner}: skipping due to {e}"),
+            None => warn!("{runner}: skipping due to filtered pkg: {cpv}"),
         }
     }
 
     /// Run a check for a [`Cpn`].
-    fn run_pkg_set(&self, check: &Check, cpn: &Cpn, run: &ScannerRun) {
+    fn run_pkg_set(&self, runner: &CheckRunner, cpn: &Cpn, run: &ScannerRun) {
         match self.cache(run).get_pkgs() {
             Ok(pkgs) => {
                 if !pkgs.is_empty() {
-                    let runner = self
-                        .pkg_set_checks
-                        .get(check)
-                        .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                    let now = Instant::now();
                     runner.run_ebuild_pkg_set(cpn, pkgs, run);
-                    *run.stats.entry(*check).or_default() += now.elapsed();
                 }
             }
-            Err(e) => warn!("{check}: skipping due to {e}"),
+            Err(e) => warn!("{runner}: skipping due to {e}"),
         }
-    }
-
-    fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        let now = Instant::now();
-        if check.scope == Scope::Version {
-            let runner = self
-                .pkg_checks
-                .get(check)
-                .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-            runner.finish_check(run);
-        } else {
-            let runner = self
-                .pkg_set_checks
-                .get(check)
-                .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-            runner.finish_check(run);
-        }
-
-        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }
 
 /// Check runner for raw ebuild package checks.
 #[derive(Default)]
 struct EbuildRawPkgCheckRunner {
-    pkg_checks: IndexSet<CheckRunner>,
-    pkg_set_checks: IndexSet<CheckRunner>,
+    pkg_runners: IndexSet<CheckRunner>,
+    pkg_set_runners: IndexSet<CheckRunner>,
     source: std::sync::OnceLock<EbuildRawPkgSource>,
     cache: std::sync::OnceLock<PkgCache<EbuildRawPkg>>,
 }
@@ -328,9 +297,9 @@ impl EbuildRawPkgCheckRunner {
 
     fn add_runner(&mut self, runner: CheckRunner) {
         if runner.check.scope == Scope::Version {
-            self.pkg_checks.insert(runner);
+            self.pkg_runners.insert(runner);
         } else {
-            self.pkg_set_checks.insert(runner);
+            self.pkg_set_runners.insert(runner);
         }
     }
 
@@ -341,13 +310,13 @@ impl EbuildRawPkgCheckRunner {
         for result in source.iter_restrict(cpn) {
             match result {
                 Ok(pkg) => {
-                    for runner in &self.pkg_checks {
+                    for runner in &self.pkg_runners {
                         let now = Instant::now();
                         runner.run_ebuild_raw_pkg(&pkg, run);
                         *run.stats.entry(runner.check).or_default() += now.elapsed();
                     }
 
-                    if !self.pkg_set_checks.is_empty()
+                    if !self.pkg_set_runners.is_empty()
                         && let Ok(pkgs) = pkgs.as_mut()
                     {
                         pkgs.push(pkg);
@@ -360,7 +329,7 @@ impl EbuildRawPkgCheckRunner {
         match &pkgs {
             Ok(pkgs) => {
                 if !pkgs.is_empty() {
-                    for runner in &self.pkg_set_checks {
+                    for runner in &self.pkg_set_runners {
                         let now = Instant::now();
                         runner.run_ebuild_raw_pkg_set(cpn, pkgs, run);
                         *run.stats.entry(runner.check).or_default() += now.elapsed();
@@ -372,232 +341,79 @@ impl EbuildRawPkgCheckRunner {
     }
 
     /// Run a check for a [`Cpv`].
-    fn run_pkg(&self, check: &Check, cpv: &Cpv, run: &ScannerRun) {
+    fn run_pkg(&self, runner: &CheckRunner, cpv: &Cpv, run: &ScannerRun) {
         match self.cache(run).get_pkg(cpv) {
             Some(Ok(pkg)) => {
-                let runner = self
-                    .pkg_checks
-                    .get(check)
-                    .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                let now = Instant::now();
                 runner.run_ebuild_raw_pkg(pkg, run);
-                *run.stats.entry(*check).or_default() += now.elapsed();
             }
-            Some(Err(e)) => warn!("{check}: skipping due to {e}"),
-            None => warn!("{check}: skipping due to filtered pkg: {cpv}"),
+            Some(Err(e)) => warn!("{runner}: skipping due to {e}"),
+            None => warn!("{runner}: skipping due to filtered pkg: {cpv}"),
         }
     }
 
     /// Run a check for a [`Cpn`].
-    fn run_pkg_set(&self, check: &Check, cpn: &Cpn, run: &ScannerRun) {
+    fn run_pkg_set(&self, runner: &CheckRunner, cpn: &Cpn, run: &ScannerRun) {
         match self.cache(run).get_pkgs() {
             Ok(pkgs) => {
                 if !pkgs.is_empty() {
-                    let runner = self
-                        .pkg_set_checks
-                        .get(check)
-                        .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-                    let now = Instant::now();
                     runner.run_ebuild_raw_pkg_set(cpn, pkgs, run);
-                    *run.stats.entry(*check).or_default() += now.elapsed();
                 }
             }
-            Err(e) => warn!("{check}: skipping due to {e}"),
+            Err(e) => warn!("{runner}: skipping due to {e}"),
         }
-    }
-
-    fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        let now = Instant::now();
-        if check.scope == Scope::Version {
-            let runner = self
-                .pkg_checks
-                .get(check)
-                .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-            runner.finish_check(run);
-        } else {
-            let runner = self
-                .pkg_set_checks
-                .get(check)
-                .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-            runner.finish_check(run);
-        }
-
-        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }
 
 /// Check runner for [`Cpn`] objects.
 #[derive(Default)]
 struct CpnCheckRunner {
-    checks: IndexSet<CheckRunner>,
+    runners: IndexSet<CheckRunner>,
 }
 
 impl CpnCheckRunner {
     fn add_runner(&mut self, runner: CheckRunner) {
-        self.checks.insert(runner);
+        self.runners.insert(runner);
     }
 
     fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
-        for runner in &self.checks {
+        for runner in &self.runners {
             let now = Instant::now();
             runner.run_cpn(cpn, run);
-            *run.stats.entry(runner.check).or_default() += now.elapsed();
 
             // run finalize methods for a target
             if runner.check.finish_target() {
-                self.finish_target(&runner.check, cpn, run);
+                runner.finish_cpn(cpn, run);
             }
+
+            *run.stats.entry(runner.check).or_default() += now.elapsed();
         }
-    }
-
-    fn run_check(&self, check: &Check, cpn: &Cpn, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.run_cpn(cpn, run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-
-    fn finish_target(&self, check: &Check, cpn: &Cpn, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.finish_cpn(cpn, run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-
-    fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.finish_check(run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }
 
 /// Check runner for [`Cpv`] objects.
 #[derive(Default)]
 struct CpvCheckRunner {
-    checks: IndexSet<CheckRunner>,
+    runners: IndexSet<CheckRunner>,
 }
 
 impl CpvCheckRunner {
     fn add_runner(&mut self, runner: CheckRunner) {
-        self.checks.insert(runner);
+        self.runners.insert(runner);
     }
 
     fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
         for cpv in run.repo.iter_cpv_restrict(cpn) {
-            for runner in &self.checks {
+            for runner in &self.runners {
                 let now = Instant::now();
                 runner.run_cpv(&cpv, run);
-                *run.stats.entry(runner.check).or_default() += now.elapsed();
 
                 // run finalize methods for a target
                 if runner.check.finish_target() {
-                    self.finish_target(&runner.check, &cpv, run);
+                    runner.finish_cpv(&cpv, run);
                 }
+
+                *run.stats.entry(runner.check).or_default() += now.elapsed();
             }
         }
-    }
-
-    fn run_check(&self, check: &Check, cpv: &Cpv, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.run_cpv(cpv, run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-
-    fn finish_target(&self, check: &Check, cpv: &Cpv, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.finish_cpv(cpv, run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-
-    fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.finish_check(run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-}
-
-/// Check runner for category targets.
-#[derive(Default)]
-struct CategoryCheckRunner {
-    checks: IndexSet<CheckRunner>,
-}
-
-impl CategoryCheckRunner {
-    fn add_runner(&mut self, runner: CheckRunner) {
-        self.checks.insert(runner);
-    }
-
-    fn run_check(&self, check: &Check, category: &str, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.run_category(category, run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-
-    fn finish_target(&self, check: &Check, category: &str, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.finish_category(category, run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-
-    fn finish_check(&self, check: &Check, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.finish_check(run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
-    }
-}
-
-/// Check runner for repo targets.
-#[derive(Default)]
-struct RepoCheckRunner {
-    checks: IndexSet<CheckRunner>,
-}
-
-impl RepoCheckRunner {
-    fn add_runner(&mut self, runner: CheckRunner) {
-        self.checks.insert(runner);
-    }
-
-    fn run_check(&self, check: &Check, run: &ScannerRun) {
-        let runner = self
-            .checks
-            .get(check)
-            .unwrap_or_else(|| unreachable!("unknown check: {check}"));
-        let now = Instant::now();
-        runner.run_repo(run);
-        *run.stats.entry(*check).or_default() += now.elapsed();
     }
 }

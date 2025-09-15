@@ -107,7 +107,7 @@ impl super::CheckRun for Check {
         }
     }
 
-    fn finish_check(&self, run: &ScannerRun) {
+    fn finish(&self, run: &ScannerRun) {
         if run.enabled(ArchesUnused) && !self.unused.is_empty() {
             let unused = self
                 .unused

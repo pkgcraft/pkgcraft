@@ -337,7 +337,7 @@ pub(crate) trait CheckRun {
     fn run_ebuild_raw_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], run: &ScannerRun) {}
 
     // finalization support
-    fn finish_check(&self, run: &ScannerRun) {}
+    fn finish(&self, run: &ScannerRun) {}
 }
 
 type Runner = Box<dyn CheckRun + Send + Sync>;
