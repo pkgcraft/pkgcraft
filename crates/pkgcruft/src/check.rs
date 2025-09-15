@@ -127,7 +127,7 @@ impl Check {
     pub(crate) fn to_runner(self, run: &ScannerRun) -> CheckRunner {
         CheckRunner {
             check: self,
-            runner: (self.create)(run),
+            runner: Arc::new((self.create)(run)),
         }
     }
 
@@ -343,9 +343,10 @@ pub(crate) trait CheckRun {
 type Runner = Box<dyn CheckRun + Send + Sync>;
 
 /// Wrapper for running checks.
+#[derive(Clone)]
 pub(crate) struct CheckRunner {
     pub(crate) check: Check,
-    runner: Runner,
+    runner: Arc<Runner>,
 }
 
 impl Deref for CheckRunner {
@@ -377,12 +378,6 @@ impl Hash for CheckRunner {
 }
 
 impl Borrow<Check> for CheckRunner {
-    fn borrow(&self) -> &Check {
-        &self.check
-    }
-}
-
-impl Borrow<Check> for Arc<CheckRunner> {
     fn borrow(&self) -> &Check {
         &self.check
     }

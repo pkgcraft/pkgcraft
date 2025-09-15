@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Instant;
 
 use indexmap::{IndexMap, IndexSet};
@@ -64,7 +63,7 @@ impl SyncCheckRunner {
 
     /// Add a check to the runner.
     fn add_check(&mut self, check: Check, run: &ScannerRun) {
-        let runner = Arc::new(check.to_runner(run));
+        let runner = check.to_runner(run);
 
         for source in check
             .sources
@@ -133,7 +132,7 @@ impl GenericCheckRunner {
         }
     }
 
-    fn add_runner(&mut self, runner: Arc<CheckRunner>) {
+    fn add_runner(&mut self, runner: CheckRunner) {
         match self {
             Self::EbuildPkg(r) => r.add_runner(runner),
             Self::EbuildRawPkg(r) => r.add_runner(runner),
@@ -192,8 +191,8 @@ impl GenericCheckRunner {
 /// Check runner for ebuild package checks.
 #[derive(Default)]
 struct EbuildPkgCheckRunner {
-    pkg_checks: IndexSet<Arc<CheckRunner>>,
-    pkg_set_checks: IndexSet<Arc<CheckRunner>>,
+    pkg_checks: IndexSet<CheckRunner>,
+    pkg_set_checks: IndexSet<CheckRunner>,
     source: std::sync::OnceLock<EbuildPkgSource>,
     cache: std::sync::OnceLock<PkgCache<EbuildPkg>>,
 }
@@ -208,7 +207,7 @@ impl EbuildPkgCheckRunner {
             .get_or_init(|| PkgCache::new(self.source(run), run))
     }
 
-    fn add_runner(&mut self, runner: Arc<CheckRunner>) {
+    fn add_runner(&mut self, runner: CheckRunner) {
         if runner.check.scope == Scope::Version {
             self.pkg_checks.insert(runner);
         } else {
@@ -311,8 +310,8 @@ impl EbuildPkgCheckRunner {
 /// Check runner for raw ebuild package checks.
 #[derive(Default)]
 struct EbuildRawPkgCheckRunner {
-    pkg_checks: IndexSet<Arc<CheckRunner>>,
-    pkg_set_checks: IndexSet<Arc<CheckRunner>>,
+    pkg_checks: IndexSet<CheckRunner>,
+    pkg_set_checks: IndexSet<CheckRunner>,
     source: std::sync::OnceLock<EbuildRawPkgSource>,
     cache: std::sync::OnceLock<PkgCache<EbuildRawPkg>>,
 }
@@ -327,7 +326,7 @@ impl EbuildRawPkgCheckRunner {
             .get_or_init(|| PkgCache::new(self.source(run), run))
     }
 
-    fn add_runner(&mut self, runner: Arc<CheckRunner>) {
+    fn add_runner(&mut self, runner: CheckRunner) {
         if runner.check.scope == Scope::Version {
             self.pkg_checks.insert(runner);
         } else {
@@ -430,11 +429,11 @@ impl EbuildRawPkgCheckRunner {
 /// Check runner for [`Cpn`] objects.
 #[derive(Default)]
 struct CpnCheckRunner {
-    checks: IndexSet<Arc<CheckRunner>>,
+    checks: IndexSet<CheckRunner>,
 }
 
 impl CpnCheckRunner {
-    fn add_runner(&mut self, runner: Arc<CheckRunner>) {
+    fn add_runner(&mut self, runner: CheckRunner) {
         self.checks.insert(runner);
     }
 
@@ -485,11 +484,11 @@ impl CpnCheckRunner {
 /// Check runner for [`Cpv`] objects.
 #[derive(Default)]
 struct CpvCheckRunner {
-    checks: IndexSet<Arc<CheckRunner>>,
+    checks: IndexSet<CheckRunner>,
 }
 
 impl CpvCheckRunner {
-    fn add_runner(&mut self, runner: Arc<CheckRunner>) {
+    fn add_runner(&mut self, runner: CheckRunner) {
         self.checks.insert(runner);
     }
 
@@ -542,11 +541,11 @@ impl CpvCheckRunner {
 /// Check runner for category targets.
 #[derive(Default)]
 struct CategoryCheckRunner {
-    checks: IndexSet<Arc<CheckRunner>>,
+    checks: IndexSet<CheckRunner>,
 }
 
 impl CategoryCheckRunner {
-    fn add_runner(&mut self, runner: Arc<CheckRunner>) {
+    fn add_runner(&mut self, runner: CheckRunner) {
         self.checks.insert(runner);
     }
 
@@ -584,11 +583,11 @@ impl CategoryCheckRunner {
 /// Check runner for repo targets.
 #[derive(Default)]
 struct RepoCheckRunner {
-    checks: IndexSet<Arc<CheckRunner>>,
+    checks: IndexSet<CheckRunner>,
 }
 
 impl RepoCheckRunner {
-    fn add_runner(&mut self, runner: Arc<CheckRunner>) {
+    fn add_runner(&mut self, runner: CheckRunner) {
         self.checks.insert(runner);
     }
 
