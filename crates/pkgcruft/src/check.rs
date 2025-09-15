@@ -273,8 +273,15 @@ impl AsRef<Utf8Path> for Check {
 inventory::collect!(Check);
 
 /// The ordered set of all checks.
-static CHECKS: LazyLock<IndexSet<Check>> =
-    LazyLock::new(|| inventory::iter::<Check>().copied().sorted().collect());
+static CHECKS: LazyLock<IndexSet<Check>> = LazyLock::new(|| {
+    let mut checks = IndexSet::new();
+    for check in inventory::iter::<Check>().copied().sorted() {
+        if !checks.insert(check) {
+            unreachable!("re-registering check: {check}");
+        }
+    }
+    checks
+});
 
 /// Context required to operate by check or report.
 #[derive(
