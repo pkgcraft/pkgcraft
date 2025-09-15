@@ -6,7 +6,6 @@ on:
     branches: ['**']
     paths:
       - ".github/workflows/pkgcruft-git-release.yml"
-      - "crates/pkgcruft-git/Cross.toml"
   workflow_dispatch:
 
 jobs:
