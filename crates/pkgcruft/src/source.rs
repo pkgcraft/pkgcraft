@@ -8,7 +8,7 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg, keyword::KeywordStatus};
-use pkgcraft::repo::{EbuildRepo, PkgRepository};
+use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::{self, Restrict, Restriction, Scope};
 use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
@@ -155,22 +155,22 @@ impl FromStr for PkgFilter {
 
 /// Layered package filtering support.
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct PkgFilters(IndexSet<PkgFilter>);
+struct PkgFilters<'a>(&'a IndexSet<PkgFilter>);
 
-impl PkgFilters {
+impl<'a> PkgFilters<'a> {
     fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
     fn iter_restrict<R: Into<Restrict>>(
         &self,
-        repo: &EbuildRepo,
+        run: &ScannerRun,
         val: R,
-    ) -> Box<dyn Iterator<Item = EbuildPkg> + '_> {
+    ) -> Box<dyn Iterator<Item = EbuildPkg> + 'a> {
         let mut iter: Box<dyn Iterator<Item = EbuildPkg>> =
-            Box::new(repo.iter_restrict(val).filter_map(Result::ok));
+            Box::new(run.repo.iter_restrict(val).filter_map(Result::ok));
 
-        for f in &self.0 {
+        for f in self.0 {
             iter = f.filter(iter);
         }
 
@@ -179,13 +179,13 @@ impl PkgFilters {
 
     fn iter_restrict_ordered<R: Into<Restrict>>(
         &self,
-        repo: &EbuildRepo,
+        run: &ScannerRun,
         val: R,
-    ) -> Box<dyn Iterator<Item = EbuildPkg> + '_> {
+    ) -> Box<dyn Iterator<Item = EbuildPkg> + 'a> {
         let mut iter: Box<dyn Iterator<Item = EbuildPkg>> =
-            Box::new(repo.iter_restrict_ordered(val).filter_map(Result::ok));
+            Box::new(run.repo.iter_restrict_ordered(val).filter_map(Result::ok));
 
-        for f in &self.0 {
+        for f in self.0 {
             iter = f.filter(iter);
         }
 
@@ -199,20 +199,19 @@ pub(crate) trait Source: fmt::Display {
     /// Return the [`SourceKind`] for the source.
     fn kind(&self) -> SourceKind;
 
-    /// Return true of the source is filtered, otherwise false.
-    fn is_filtered(&self) -> bool;
-
     /// Return the iterator of items matching a restriction.
-    fn iter_restrict<R: Into<Restrict>>(
+    fn iter_restrict<'a, R: Into<Restrict>>(
         &self,
+        run: &'a ScannerRun,
         val: R,
-    ) -> impl Iterator<Item = Self::Item> + '_;
+    ) -> impl Iterator<Item = Self::Item> + 'a;
 
     /// Return the parallelized, ordered iterator of items matching a restriction.
-    fn iter_restrict_ordered<R: Into<Restrict>>(
+    fn iter_restrict_ordered<'a, R: Into<Restrict>>(
         &self,
+        run: &'a ScannerRun,
         val: R,
-    ) -> impl Iterator<Item = Self::Item> + '_;
+    ) -> impl Iterator<Item = Self::Item> + 'a;
 }
 
 pub(crate) trait PkgSource {
@@ -239,19 +238,8 @@ pub(crate) enum Pkg {
     EbuildRawPkg,
 }
 
-pub(crate) struct EbuildPkgSource {
-    repo: EbuildRepo,
-    filters: PkgFilters,
-}
-
-impl EbuildPkgSource {
-    pub(crate) fn new(run: &ScannerRun) -> Self {
-        Self {
-            repo: run.repo.clone(),
-            filters: PkgFilters(run.filters.clone()),
-        }
-    }
-}
+#[derive(Default)]
+pub(crate) struct EbuildPkgSource;
 
 impl fmt::Display for EbuildPkgSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -266,37 +254,37 @@ impl Source for EbuildPkgSource {
         SourceKind::EbuildPkg
     }
 
-    fn is_filtered(&self) -> bool {
-        !self.filters.is_empty()
-    }
-
-    fn iter_restrict<R: Into<Restrict>>(
+    fn iter_restrict<'a, R: Into<Restrict>>(
         &self,
+        run: &'a ScannerRun,
         val: R,
-    ) -> impl Iterator<Item = Self::Item> + '_ {
-        if self.is_filtered() {
+    ) -> impl Iterator<Item = Self::Item> + 'a {
+        let filters = PkgFilters(&run.filters);
+        if !filters.is_empty() {
             Either::Left(
-                self.filters
-                    .iter_restrict(&self.repo, val)
-                    .flat_map(|pkg| self.repo.iter_restrict(&pkg)),
+                filters
+                    .iter_restrict(run, val)
+                    .flat_map(|pkg| run.repo.iter_restrict(&pkg)),
             )
         } else {
-            Either::Right(self.repo.iter_restrict(val))
+            Either::Right(run.repo.iter_restrict(val))
         }
     }
 
-    fn iter_restrict_ordered<R: Into<Restrict>>(
+    fn iter_restrict_ordered<'a, R: Into<Restrict>>(
         &self,
+        run: &'a ScannerRun,
         val: R,
-    ) -> impl Iterator<Item = Self::Item> + '_ {
-        if self.is_filtered() {
+    ) -> impl Iterator<Item = Self::Item> + 'a {
+        let filters = PkgFilters(&run.filters);
+        if !filters.is_empty() {
             Either::Left(
-                self.filters
-                    .iter_restrict_ordered(&self.repo, val)
-                    .flat_map(|pkg| self.repo.iter_restrict_ordered(&pkg)),
+                filters
+                    .iter_restrict_ordered(run, val)
+                    .flat_map(|pkg| run.repo.iter_restrict_ordered(&pkg)),
             )
         } else {
-            Either::Right(self.repo.iter_restrict_ordered(val))
+            Either::Right(run.repo.iter_restrict_ordered(val))
         }
     }
 }
@@ -319,19 +307,8 @@ impl PkgSource for EbuildPkgSource {
     }
 }
 
-pub(crate) struct EbuildRawPkgSource {
-    repo: EbuildRepo,
-    filters: PkgFilters,
-}
-
-impl EbuildRawPkgSource {
-    pub(crate) fn new(run: &ScannerRun) -> Self {
-        Self {
-            repo: run.repo.clone(),
-            filters: PkgFilters(run.filters.clone()),
-        }
-    }
-}
+#[derive(Default)]
+pub(crate) struct EbuildRawPkgSource;
 
 impl fmt::Display for EbuildRawPkgSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -346,37 +323,37 @@ impl Source for EbuildRawPkgSource {
         SourceKind::EbuildRawPkg
     }
 
-    fn is_filtered(&self) -> bool {
-        !self.filters.is_empty()
-    }
-
-    fn iter_restrict<R: Into<Restrict>>(
+    fn iter_restrict<'a, R: Into<Restrict>>(
         &self,
+        run: &'a ScannerRun,
         val: R,
-    ) -> impl Iterator<Item = Self::Item> + '_ {
-        if self.is_filtered() {
+    ) -> impl Iterator<Item = Self::Item> + 'a {
+        let filters = PkgFilters(&run.filters);
+        if !filters.is_empty() {
             Either::Left(
-                self.filters
-                    .iter_restrict(&self.repo, val)
-                    .flat_map(|pkg| self.repo.iter_raw_restrict(&pkg)),
+                filters
+                    .iter_restrict(run, val)
+                    .flat_map(|pkg| run.repo.iter_raw_restrict(&pkg)),
             )
         } else {
-            Either::Right(self.repo.iter_raw_restrict(val))
+            Either::Right(run.repo.iter_raw_restrict(val))
         }
     }
 
-    fn iter_restrict_ordered<R: Into<Restrict>>(
+    fn iter_restrict_ordered<'a, R: Into<Restrict>>(
         &self,
+        run: &'a ScannerRun,
         val: R,
-    ) -> impl Iterator<Item = Self::Item> + '_ {
-        if self.is_filtered() {
+    ) -> impl Iterator<Item = Self::Item> + 'a {
+        let filters = PkgFilters(&run.filters);
+        if !filters.is_empty() {
             Either::Left(
-                self.filters
-                    .iter_restrict_ordered(&self.repo, val)
-                    .flat_map(|pkg| self.repo.iter_raw_restrict_ordered(&pkg)),
+                filters
+                    .iter_restrict_ordered(run, val)
+                    .flat_map(|pkg| run.repo.iter_raw_restrict_ordered(&pkg)),
             )
         } else {
-            Either::Right(self.repo.iter_raw_restrict_ordered(val))
+            Either::Right(run.repo.iter_raw_restrict_ordered(val))
         }
     }
 }
@@ -414,7 +391,7 @@ impl<T: Package + Clone> PkgCache<T> {
     {
         let mut cache = IndexMap::new();
 
-        for result in source.iter_restrict_ordered(&run.restrict) {
+        for result in source.iter_restrict_ordered(run, &run.restrict) {
             if let Ok(pkg) = &result {
                 cache.insert(pkg.cpv().clone(), result);
             } else if let Err(InvalidPkg { cpv, .. }) = &result {

@@ -84,7 +84,7 @@ impl SyncCheckRunner {
         {
             self.runners
                 .entry(source)
-                .or_insert_with(|| GenericCheckRunner::new(source, run))
+                .or_insert_with(|| GenericCheckRunner::new(source))
                 .add_runner(runner.clone())
         }
     }
@@ -141,10 +141,10 @@ enum GenericCheckRunner {
 }
 
 impl GenericCheckRunner {
-    fn new(source: SourceKind, run: &ScannerRun) -> Self {
+    fn new(source: SourceKind) -> Self {
         match source {
-            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(run)),
-            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(run)),
+            SourceKind::EbuildPkg => Self::EbuildPkg(Default::default()),
+            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(Default::default()),
             SourceKind::Cpn => Self::Cpn(Default::default()),
             SourceKind::Cpv => Self::Cpv(Default::default()),
             SourceKind::Category => Self::Category,
@@ -194,6 +194,7 @@ impl GenericCheckRunner {
 macro_rules! make_pkg_check_runner {
     ($pkg_check_runner:ident, $source:ty, $pkg:ty) => {
         /// Check runner for package checks.
+        #[derive(Default)]
         struct $pkg_check_runner {
             pkg_runners: IndexSet<CheckRunner>,
             pkg_set_runners: IndexSet<CheckRunner>,
@@ -202,15 +203,6 @@ macro_rules! make_pkg_check_runner {
         }
 
         impl $pkg_check_runner {
-            fn new(run: &ScannerRun) -> Self {
-                Self {
-                    pkg_runners: Default::default(),
-                    pkg_set_runners: Default::default(),
-                    source: <$source>::new(run),
-                    cache: Default::default(),
-                }
-            }
-
             fn cache(&self, run: &ScannerRun) -> &PkgCache<$pkg> {
                 self.cache.get_or_init(|| PkgCache::new(&self.source, run))
             }
@@ -227,7 +219,7 @@ macro_rules! make_pkg_check_runner {
                 let source = &self.source;
                 let mut pkgs = Ok(vec![]);
 
-                for result in source.iter_restrict(cpn) {
+                for result in source.iter_restrict(run, cpn) {
                     match result {
                         Ok(pkg) => {
                             for runner in &self.pkg_runners {
