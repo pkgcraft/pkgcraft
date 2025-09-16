@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use indexmap::{IndexMap, IndexSet};
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
@@ -7,7 +5,7 @@ use pkgcraft::repo::PkgRepository;
 use pkgcraft::restrict::Scope;
 use tracing::warn;
 
-use crate::check::CheckRunner;
+use crate::check::{CheckRun, CheckRunner};
 use crate::report::ReportScope;
 use crate::scan::ScannerRun;
 use crate::source::*;
@@ -115,18 +113,14 @@ impl SyncCheckRunner {
         target: &Target,
         run: &ScannerRun,
     ) {
-        let now = Instant::now();
         target.finish(runner, run);
-        *run.stats.entry(runner.check).or_default() += now.elapsed();
     }
 
     /// Run finalization for a check.
     ///
     /// This is only run once even if a check has multiple source variants.
     pub(super) fn finish_check(&self, runner: &CheckRunner, run: &ScannerRun) {
-        let now = Instant::now();
         runner.finish(run);
-        *run.stats.entry(runner.check).or_default() += now.elapsed();
     }
 }
 
@@ -174,7 +168,6 @@ impl GenericCheckRunner {
     }
 
     fn run(&self, runner: &CheckRunner, target: &Target, run: &ScannerRun) {
-        let now = Instant::now();
         match (self, target) {
             (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_pkg(runner, cpv, run),
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(runner, cpn, run),
@@ -186,7 +179,6 @@ impl GenericCheckRunner {
             (Self::Repo, Target::Repo) => runner.run_repo(run),
             _ => (),
         }
-        *run.stats.entry(runner.check).or_default() += now.elapsed();
     }
 }
 
@@ -223,9 +215,7 @@ macro_rules! make_pkg_check_runner {
                     match result {
                         Ok(pkg) => {
                             for runner in &self.pkg_runners {
-                                let now = Instant::now();
                                 source.run_pkg(runner, &pkg, run);
-                                *run.stats.entry(runner.check).or_default() += now.elapsed();
                             }
 
                             if !self.pkg_set_runners.is_empty()
@@ -242,9 +232,7 @@ macro_rules! make_pkg_check_runner {
                     Ok(pkgs) => {
                         if !pkgs.is_empty() {
                             for runner in &self.pkg_set_runners {
-                                let now = Instant::now();
                                 source.run_pkg_set(runner, cpn, pkgs, run);
-                                *run.stats.entry(runner.check).or_default() += now.elapsed();
                             }
                         }
                     }
@@ -295,15 +283,12 @@ impl CpnCheckRunner {
 
     fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
         for runner in &self.runners {
-            let now = Instant::now();
             runner.run_cpn(cpn, run);
 
             // run finalize methods for a target
             if runner.check.finish_target() {
                 runner.finish_cpn(cpn, run);
             }
-
-            *run.stats.entry(runner.check).or_default() += now.elapsed();
         }
     }
 }
@@ -322,15 +307,12 @@ impl CpvCheckRunner {
     fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
         for cpv in run.repo.iter_cpv_restrict(cpn) {
             for runner in &self.runners {
-                let now = Instant::now();
                 runner.run_cpv(&cpv, run);
 
                 // run finalize methods for a target
                 if runner.check.finish_target() {
                     runner.finish_cpv(&cpv, run);
                 }
-
-                *run.stats.entry(runner.check).or_default() += now.elapsed();
             }
         }
     }

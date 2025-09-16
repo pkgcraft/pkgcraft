@@ -13,7 +13,7 @@ use pkgcraft::restrict::{self, Restrict, Restriction, Scope};
 use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
-use crate::check::CheckRunner;
+use crate::check::{CheckRun, CheckRunner};
 use crate::error::Error;
 use crate::scan::ScannerRun;
 

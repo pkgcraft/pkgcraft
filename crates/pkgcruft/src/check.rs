@@ -2,9 +2,10 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::{Deref, Not};
+use std::ops::Not;
 use std::str::FromStr;
 use std::sync::{Arc, LazyLock};
+use std::time::Instant;
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -356,11 +357,64 @@ pub(crate) struct CheckRunner {
     runner: Arc<Runner>,
 }
 
-impl Deref for CheckRunner {
-    type Target = Runner;
+/// Record check running time for the time reporter.
+fn time<F>(runner: &CheckRunner, run: &ScannerRun, func: F)
+where
+    F: FnOnce(),
+{
+    let now = Instant::now();
+    func();
+    *run.stats.entry(runner.check).or_default() += now.elapsed();
+}
 
-    fn deref(&self) -> &Self::Target {
-        &self.runner
+impl CheckRun for CheckRunner {
+    fn run_repo(&self, run: &ScannerRun) {
+        time(self, run, || self.runner.run_repo(run));
+    }
+
+    // category support
+    fn run_category(&self, category: &str, run: &ScannerRun) {
+        time(self, run, || self.runner.run_category(category, run));
+    }
+    fn finish_category(&self, category: &str, run: &ScannerRun) {
+        time(self, run, || self.runner.finish_category(category, run));
+    }
+
+    // Cpv support
+    fn run_cpv(&self, cpv: &Cpv, run: &ScannerRun) {
+        time(self, run, || self.runner.run_cpv(cpv, run));
+    }
+    fn finish_cpv(&self, cpv: &Cpv, run: &ScannerRun) {
+        time(self, run, || self.runner.finish_cpv(cpv, run));
+    }
+
+    // Cpn support
+    fn run_cpn(&self, cpn: &Cpn, run: &ScannerRun) {
+        time(self, run, || self.runner.run_cpn(cpn, run));
+    }
+    fn finish_cpn(&self, cpn: &Cpn, run: &ScannerRun) {
+        time(self, run, || self.runner.finish_cpn(cpn, run));
+    }
+
+    // ebuild pkg support
+    fn run_ebuild_pkg(&self, pkg: &EbuildPkg, run: &ScannerRun) {
+        time(self, run, || self.runner.run_ebuild_pkg(pkg, run));
+    }
+    fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
+        time(self, run, || self.runner.run_ebuild_pkg_set(cpn, pkgs, run));
+    }
+
+    // raw ebuild pkg support
+    fn run_ebuild_raw_pkg(&self, pkg: &EbuildRawPkg, run: &ScannerRun) {
+        time(self, run, || self.runner.run_ebuild_raw_pkg(pkg, run));
+    }
+    fn run_ebuild_raw_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildRawPkg], run: &ScannerRun) {
+        time(self, run, || self.runner.run_ebuild_raw_pkg_set(cpn, pkgs, run));
+    }
+
+    // finalization support
+    fn finish(&self, run: &ScannerRun) {
+        time(self, run, || self.runner.finish(run));
     }
 }
 
