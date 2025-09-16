@@ -4,7 +4,7 @@ use std::str::FromStr;
 use colored::{Color, Colorize};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
-use pkgcraft::dep::Cpv;
+use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::Package;
 use pkgcraft::pkg::ebuild::{EbuildPkg, EbuildRawPkg, keyword::KeywordStatus};
@@ -13,6 +13,7 @@ use pkgcraft::restrict::{self, Restrict, Restriction, Scope};
 use pkgcraft::types::OrderedMap;
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
 
+use crate::check::CheckRunner;
 use crate::error::Error;
 use crate::scan::ScannerRun;
 
@@ -214,6 +215,30 @@ pub(crate) trait Source: fmt::Display {
     ) -> impl Iterator<Item = Self::Item> + '_;
 }
 
+pub(crate) trait PkgSource {
+    type Pkg;
+
+    /// Run all checks for a pkg.
+    fn run_pkg(&self, runner: &CheckRunner, pkg: &Self::Pkg, run: &ScannerRun);
+
+    /// Run all checks for a set of pkgs.
+    fn run_pkg_set(
+        &self,
+        runner: &CheckRunner,
+        cpn: &Cpn,
+        pkgs: &[Self::Pkg],
+        run: &ScannerRun,
+    );
+}
+
+/// All check runner source variants.
+#[derive(Display, EnumIter, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[strum(serialize_all = "kebab-case")]
+pub(crate) enum Pkg {
+    EbuildPkg,
+    EbuildRawPkg,
+}
+
 pub(crate) struct EbuildPkgSource {
     repo: EbuildRepo,
     filters: PkgFilters,
@@ -276,6 +301,24 @@ impl Source for EbuildPkgSource {
     }
 }
 
+impl PkgSource for EbuildPkgSource {
+    type Pkg = EbuildPkg;
+
+    fn run_pkg(&self, runner: &CheckRunner, pkg: &Self::Pkg, run: &ScannerRun) {
+        runner.run_ebuild_pkg(pkg, run)
+    }
+
+    fn run_pkg_set(
+        &self,
+        runner: &CheckRunner,
+        cpn: &Cpn,
+        pkgs: &[Self::Pkg],
+        run: &ScannerRun,
+    ) {
+        runner.run_ebuild_pkg_set(cpn, pkgs, run)
+    }
+}
+
 pub(crate) struct EbuildRawPkgSource {
     repo: EbuildRepo,
     filters: PkgFilters,
@@ -335,6 +378,24 @@ impl Source for EbuildRawPkgSource {
         } else {
             Either::Right(self.repo.iter_raw_restrict_ordered(val))
         }
+    }
+}
+
+impl PkgSource for EbuildRawPkgSource {
+    type Pkg = EbuildRawPkg;
+
+    fn run_pkg(&self, runner: &CheckRunner, pkg: &Self::Pkg, run: &ScannerRun) {
+        runner.run_ebuild_raw_pkg(pkg, run)
+    }
+
+    fn run_pkg_set(
+        &self,
+        runner: &CheckRunner,
+        cpn: &Cpn,
+        pkgs: &[Self::Pkg],
+        run: &ScannerRun,
+    ) {
+        runner.run_ebuild_raw_pkg_set(cpn, pkgs, run)
     }
 }
 

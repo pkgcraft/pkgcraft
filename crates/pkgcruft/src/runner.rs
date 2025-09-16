@@ -84,7 +84,7 @@ impl SyncCheckRunner {
         {
             self.runners
                 .entry(source)
-                .or_insert_with(|| GenericCheckRunner::new(source))
+                .or_insert_with(|| GenericCheckRunner::new(source, run))
                 .add_runner(runner.clone())
         }
     }
@@ -141,10 +141,10 @@ enum GenericCheckRunner {
 }
 
 impl GenericCheckRunner {
-    fn new(source: SourceKind) -> Self {
+    fn new(source: SourceKind, run: &ScannerRun) -> Self {
         match source {
-            SourceKind::EbuildPkg => Self::EbuildPkg(Default::default()),
-            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(Default::default()),
+            SourceKind::EbuildPkg => Self::EbuildPkg(EbuildPkgCheckRunner::new(run)),
+            SourceKind::EbuildRawPkg => Self::EbuildRawPkg(EbuildRawPkgCheckRunner::new(run)),
             SourceKind::Cpn => Self::Cpn(Default::default()),
             SourceKind::Cpv => Self::Cpv(Default::default()),
             SourceKind::Category => Self::Category,
@@ -190,179 +190,105 @@ impl GenericCheckRunner {
     }
 }
 
-/// Check runner for ebuild package checks.
-#[derive(Default)]
-struct EbuildPkgCheckRunner {
-    pkg_runners: IndexSet<CheckRunner>,
-    pkg_set_runners: IndexSet<CheckRunner>,
-    source: std::sync::OnceLock<EbuildPkgSource>,
-    cache: std::sync::OnceLock<PkgCache<EbuildPkg>>,
+/// Create generic package check runners.
+macro_rules! make_pkg_check_runner {
+    ($pkg_check_runner:ident, $source:ty, $pkg:ty) => {
+        /// Check runner for package checks.
+        struct $pkg_check_runner {
+            pkg_runners: IndexSet<CheckRunner>,
+            pkg_set_runners: IndexSet<CheckRunner>,
+            source: $source,
+            cache: std::sync::OnceLock<PkgCache<$pkg>>,
+        }
+
+        impl $pkg_check_runner {
+            fn new(run: &ScannerRun) -> Self {
+                Self {
+                    pkg_runners: Default::default(),
+                    pkg_set_runners: Default::default(),
+                    source: <$source>::new(run),
+                    cache: Default::default(),
+                }
+            }
+
+            fn cache(&self, run: &ScannerRun) -> &PkgCache<$pkg> {
+                self.cache.get_or_init(|| PkgCache::new(&self.source, run))
+            }
+
+            fn add_runner(&mut self, runner: CheckRunner) {
+                if runner.check.scope == Scope::Version {
+                    self.pkg_runners.insert(runner);
+                } else {
+                    self.pkg_set_runners.insert(runner);
+                }
+            }
+
+            fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
+                let source = &self.source;
+                let mut pkgs = Ok(vec![]);
+
+                for result in source.iter_restrict(cpn) {
+                    match result {
+                        Ok(pkg) => {
+                            for runner in &self.pkg_runners {
+                                let now = Instant::now();
+                                source.run_pkg(runner, &pkg, run);
+                                *run.stats.entry(runner.check).or_default() += now.elapsed();
+                            }
+
+                            if !self.pkg_set_runners.is_empty()
+                                && let Ok(pkgs) = pkgs.as_mut()
+                            {
+                                pkgs.push(pkg);
+                            }
+                        }
+                        Err(e) => pkgs = Err(e),
+                    }
+                }
+
+                match &pkgs {
+                    Ok(pkgs) => {
+                        if !pkgs.is_empty() {
+                            for runner in &self.pkg_set_runners {
+                                let now = Instant::now();
+                                source.run_pkg_set(runner, cpn, pkgs, run);
+                                *run.stats.entry(runner.check).or_default() += now.elapsed();
+                            }
+                        }
+                    }
+                    Err(e) => warn!("skipping {source} set checks due to {e}"),
+                }
+            }
+
+            /// Run a check for a [`Cpv`].
+            fn run_pkg(&self, runner: &CheckRunner, cpv: &Cpv, run: &ScannerRun) {
+                match self.cache(run).get_pkg(cpv) {
+                    Some(Ok(pkg)) => self.source.run_pkg(runner, pkg, run),
+                    Some(Err(e)) => warn!("{runner}: skipping due to {e}"),
+                    None => warn!("{runner}: skipping due to filtered pkg: {cpv}"),
+                }
+            }
+
+            /// Run a check for a [`Cpn`].
+            fn run_pkg_set(&self, runner: &CheckRunner, cpn: &Cpn, run: &ScannerRun) {
+                match self.cache(run).get_pkgs() {
+                    Ok(pkgs) => {
+                        if !pkgs.is_empty() {
+                            self.source.run_pkg_set(runner, cpn, pkgs, run);
+                        }
+                    }
+                    Err(e) => warn!("{runner}: skipping due to {e}"),
+                }
+            }
+        }
+    };
 }
 
-impl EbuildPkgCheckRunner {
-    fn source(&self, run: &ScannerRun) -> &EbuildPkgSource {
-        self.source.get_or_init(|| EbuildPkgSource::new(run))
-    }
+// Check runner for ebuild package checks.
+make_pkg_check_runner!(EbuildPkgCheckRunner, EbuildPkgSource, EbuildPkg);
 
-    fn cache(&self, run: &ScannerRun) -> &PkgCache<EbuildPkg> {
-        self.cache
-            .get_or_init(|| PkgCache::new(self.source(run), run))
-    }
-
-    fn add_runner(&mut self, runner: CheckRunner) {
-        if runner.check.scope == Scope::Version {
-            self.pkg_runners.insert(runner);
-        } else {
-            self.pkg_set_runners.insert(runner);
-        }
-    }
-
-    fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
-        let source = self.source(run);
-        let mut pkgs = Ok(vec![]);
-
-        for result in source.iter_restrict(cpn) {
-            match result {
-                Ok(pkg) => {
-                    for runner in &self.pkg_runners {
-                        let now = Instant::now();
-                        runner.run_ebuild_pkg(&pkg, run);
-                        *run.stats.entry(runner.check).or_default() += now.elapsed();
-                    }
-
-                    if !self.pkg_set_runners.is_empty()
-                        && let Ok(pkgs) = pkgs.as_mut()
-                    {
-                        pkgs.push(pkg);
-                    }
-                }
-                Err(e) => pkgs = Err(e),
-            }
-        }
-
-        match &pkgs {
-            Ok(pkgs) => {
-                if !pkgs.is_empty() {
-                    for runner in &self.pkg_set_runners {
-                        let now = Instant::now();
-                        runner.run_ebuild_pkg_set(cpn, pkgs, run);
-                        *run.stats.entry(runner.check).or_default() += now.elapsed();
-                    }
-                }
-            }
-            Err(e) => warn!("skipping {source} set checks due to {e}"),
-        }
-    }
-
-    /// Run a check for a [`Cpv`].
-    fn run_pkg(&self, runner: &CheckRunner, cpv: &Cpv, run: &ScannerRun) {
-        match self.cache(run).get_pkg(cpv) {
-            Some(Ok(pkg)) => runner.run_ebuild_pkg(pkg, run),
-            Some(Err(e)) => warn!("{runner}: skipping due to {e}"),
-            None => warn!("{runner}: skipping due to filtered pkg: {cpv}"),
-        }
-    }
-
-    /// Run a check for a [`Cpn`].
-    fn run_pkg_set(&self, runner: &CheckRunner, cpn: &Cpn, run: &ScannerRun) {
-        match self.cache(run).get_pkgs() {
-            Ok(pkgs) => {
-                if !pkgs.is_empty() {
-                    runner.run_ebuild_pkg_set(cpn, pkgs, run);
-                }
-            }
-            Err(e) => warn!("{runner}: skipping due to {e}"),
-        }
-    }
-}
-
-/// Check runner for raw ebuild package checks.
-#[derive(Default)]
-struct EbuildRawPkgCheckRunner {
-    pkg_runners: IndexSet<CheckRunner>,
-    pkg_set_runners: IndexSet<CheckRunner>,
-    source: std::sync::OnceLock<EbuildRawPkgSource>,
-    cache: std::sync::OnceLock<PkgCache<EbuildRawPkg>>,
-}
-
-impl EbuildRawPkgCheckRunner {
-    fn source(&self, run: &ScannerRun) -> &EbuildRawPkgSource {
-        self.source.get_or_init(|| EbuildRawPkgSource::new(run))
-    }
-
-    fn cache(&self, run: &ScannerRun) -> &PkgCache<EbuildRawPkg> {
-        self.cache
-            .get_or_init(|| PkgCache::new(self.source(run), run))
-    }
-
-    fn add_runner(&mut self, runner: CheckRunner) {
-        if runner.check.scope == Scope::Version {
-            self.pkg_runners.insert(runner);
-        } else {
-            self.pkg_set_runners.insert(runner);
-        }
-    }
-
-    fn run_checks(&self, cpn: &Cpn, run: &ScannerRun) {
-        let source = self.source(run);
-        let mut pkgs = Ok(vec![]);
-
-        for result in source.iter_restrict(cpn) {
-            match result {
-                Ok(pkg) => {
-                    for runner in &self.pkg_runners {
-                        let now = Instant::now();
-                        runner.run_ebuild_raw_pkg(&pkg, run);
-                        *run.stats.entry(runner.check).or_default() += now.elapsed();
-                    }
-
-                    if !self.pkg_set_runners.is_empty()
-                        && let Ok(pkgs) = pkgs.as_mut()
-                    {
-                        pkgs.push(pkg);
-                    }
-                }
-                Err(e) => pkgs = Err(e),
-            }
-        }
-
-        match &pkgs {
-            Ok(pkgs) => {
-                if !pkgs.is_empty() {
-                    for runner in &self.pkg_set_runners {
-                        let now = Instant::now();
-                        runner.run_ebuild_raw_pkg_set(cpn, pkgs, run);
-                        *run.stats.entry(runner.check).or_default() += now.elapsed();
-                    }
-                }
-            }
-            Err(e) => warn!("skipping {source} set checks due to {e}"),
-        }
-    }
-
-    /// Run a check for a [`Cpv`].
-    fn run_pkg(&self, runner: &CheckRunner, cpv: &Cpv, run: &ScannerRun) {
-        match self.cache(run).get_pkg(cpv) {
-            Some(Ok(pkg)) => {
-                runner.run_ebuild_raw_pkg(pkg, run);
-            }
-            Some(Err(e)) => warn!("{runner}: skipping due to {e}"),
-            None => warn!("{runner}: skipping due to filtered pkg: {cpv}"),
-        }
-    }
-
-    /// Run a check for a [`Cpn`].
-    fn run_pkg_set(&self, runner: &CheckRunner, cpn: &Cpn, run: &ScannerRun) {
-        match self.cache(run).get_pkgs() {
-            Ok(pkgs) => {
-                if !pkgs.is_empty() {
-                    runner.run_ebuild_raw_pkg_set(cpn, pkgs, run);
-                }
-            }
-            Err(e) => warn!("{runner}: skipping due to {e}"),
-        }
-    }
-}
+// Check runner for raw ebuild package checks.
+make_pkg_check_runner!(EbuildRawPkgCheckRunner, EbuildRawPkgSource, EbuildRawPkg);
 
 /// Check runner for [`Cpn`] objects.
 #[derive(Default)]
