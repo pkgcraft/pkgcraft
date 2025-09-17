@@ -154,7 +154,6 @@ impl FromStr for PkgFilter {
 }
 
 /// Layered package filtering support.
-#[derive(Debug, PartialEq, Eq, Clone)]
 struct PkgFilters<'a>(&'a IndexSet<PkgFilter>);
 
 impl<'a> PkgFilters<'a> {
