@@ -20,6 +20,16 @@ pub(super) enum Target {
 }
 
 impl Target {
+    /// Run check for a target.
+    fn run(&self, runner: &CheckRunner, run: &ScannerRun) {
+        match self {
+            Self::Cpn(cpn) => runner.run_cpn(cpn, run),
+            Self::Cpv(cpv) => runner.run_cpv(cpv, run),
+            Self::Category(cat) => runner.run_category(cat, run),
+            Self::Repo => runner.run_repo(run),
+        }
+    }
+
     /// Run finalization for a target.
     fn finish(&self, runner: &CheckRunner, run: &ScannerRun) {
         match self {
@@ -152,13 +162,13 @@ impl GenericCheckRunner {
             Self::EbuildRawPkg(r) => r.add_runner(runner),
             Self::Cpn(r) => r.add_runner(runner),
             Self::Cpv(r) => r.add_runner(runner),
-            Self::Category => (),
-            Self::Repo => (),
+            _ => (),
         }
     }
 
     fn run_checks(&self, target: &Target, run: &ScannerRun) {
         match (self, target) {
+            // run checks for all versions of a package
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, run),
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_checks(cpn, run),
             (Self::Cpn(r), Target::Cpn(cpn)) => r.run_checks(cpn, run),
@@ -169,15 +179,13 @@ impl GenericCheckRunner {
 
     fn run(&self, runner: &CheckRunner, target: &Target, run: &ScannerRun) {
         match (self, target) {
+            // pull pkgs from cache for check runs
             (Self::EbuildPkg(r), Target::Cpv(cpv)) => r.run_pkg(runner, cpv, run),
             (Self::EbuildPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(runner, cpn, run),
             (Self::EbuildRawPkg(r), Target::Cpv(cpv)) => r.run_pkg(runner, cpv, run),
             (Self::EbuildRawPkg(r), Target::Cpn(cpn)) => r.run_pkg_set(runner, cpn, run),
-            (Self::Cpn(_), Target::Cpn(cpn)) => runner.run_cpn(cpn, run),
-            (Self::Cpv(_), Target::Cpv(cpv)) => runner.run_cpv(cpv, run),
-            (Self::Category, Target::Category(cat)) => runner.run_category(cat, run),
-            (Self::Repo, Target::Repo) => runner.run_repo(run),
-            _ => (),
+            // uncached check runs
+            _ => target.run(runner, run),
         }
     }
 }
