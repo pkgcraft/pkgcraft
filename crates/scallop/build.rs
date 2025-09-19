@@ -64,8 +64,6 @@ fn main() {
         .enable("restricted", None)
         // build as a static library
         .enable("library", None)
-        // NOTE: Fix build issues with GCC 15. Only required for bash < 5.3.
-        .cflag("-std=gnu17")
         .make_target("libbash.a")
         .build();
 
