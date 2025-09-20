@@ -8,7 +8,7 @@ REPO_DIR=${PWD}
 PACKAGE=$1
 
 # build crate
-cargo package -p ${PACKAGE}
+cargo package --no-verify -p ${PACKAGE}
 
 pushd target/package >/dev/null
 
