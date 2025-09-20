@@ -10,6 +10,7 @@ on:
         type: string
 
 jobs:
+  publish:
     steps:
     - name: Parse tag name
       run: |
