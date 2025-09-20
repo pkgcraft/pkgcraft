@@ -16,15 +16,15 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 async-stream = "0.3.6"
-camino = "1.1.12"
-clap = { version = "4.5.47", features = ["derive", "string"] }
+camino = "1.2.0"
+clap = { version = "4.5.48", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.4"
-config = { version = "0.15.15", default-features = false, features = ["toml"] }
+config = { version = "0.15.16", default-features = false, features = ["toml"] }
 git2 = "0.20.2"
-hyper-util = "0.1.16"
-indexmap = "2.11.1"
+hyper-util = "0.1.17"
+indexmap = "2.11.4"
 indoc = "2.0.6"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
@@ -32,7 +32,7 @@ pkgcraft = { path = "../pkgcraft", version = "0.0.29" }
 pkgcruft = { path = "../pkgcruft", version = "0.0.16" }
 prost = "0.14.1"
 regex = "1.11.2"
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { version = "1.0.225", features = ["derive"] }
 thiserror = "2.0.16"
 tokio = { version = "1.47", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["net"] }
