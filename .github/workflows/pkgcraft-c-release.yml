@@ -3,9 +3,6 @@ name: pkgcraft-c-release
 on:
   push:
     tags: [pkgcraft-c-*]
-    branches: ['**']
-    paths:
-      - ".github/workflows/pkgcraft-c-release.yml"
   workflow_dispatch:
 
 jobs:

@@ -3,9 +3,6 @@ name: pkgcruft-release
 on:
   push:
     tags: ['pkgcruft-[0-9]*']
-    branches: ['**']
-    paths:
-      - ".github/workflows/pkgcruft-release.yml"
   workflow_dispatch:
 
 jobs:
