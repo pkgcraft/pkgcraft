@@ -229,14 +229,6 @@ pub(crate) trait PkgSource {
     );
 }
 
-/// All check runner source variants.
-#[derive(Display, EnumIter, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-#[strum(serialize_all = "kebab-case")]
-pub(crate) enum Pkg {
-    EbuildPkg,
-    EbuildRawPkg,
-}
-
 #[derive(Default)]
 pub(crate) struct EbuildPkgSource;
 
