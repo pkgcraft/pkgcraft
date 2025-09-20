@@ -194,9 +194,7 @@ impl<'a> PkgFilters<'a> {
 
 pub(crate) trait Source: fmt::Display {
     type Item;
-
-    /// Return the [`SourceKind`] for the source.
-    fn kind(&self) -> SourceKind;
+    const KIND: SourceKind;
 
     /// Return the iterator of items matching a restriction.
     fn iter_restrict<'a, R: Into<Restrict>>(
@@ -234,16 +232,13 @@ pub(crate) struct EbuildPkgSource;
 
 impl fmt::Display for EbuildPkgSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.kind().fmt(f)
+        Self::KIND.fmt(f)
     }
 }
 
 impl Source for EbuildPkgSource {
     type Item = pkgcraft::Result<EbuildPkg>;
-
-    fn kind(&self) -> SourceKind {
-        SourceKind::EbuildPkg
-    }
+    const KIND: SourceKind = SourceKind::EbuildPkg;
 
     fn iter_restrict<'a, R: Into<Restrict>>(
         &self,
@@ -303,16 +298,13 @@ pub(crate) struct EbuildRawPkgSource;
 
 impl fmt::Display for EbuildRawPkgSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.kind().fmt(f)
+        Self::KIND.fmt(f)
     }
 }
 
 impl Source for EbuildRawPkgSource {
     type Item = pkgcraft::Result<EbuildRawPkg>;
-
-    fn kind(&self) -> SourceKind {
-        SourceKind::EbuildRawPkg
-    }
+    const KIND: SourceKind = SourceKind::EbuildRawPkg;
 
     fn iter_restrict<'a, R: Into<Restrict>>(
         &self,
