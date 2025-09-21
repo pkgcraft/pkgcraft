@@ -3,6 +3,8 @@ use std::io::{self, Write};
 use std::num::NonZero;
 use std::process::ExitCode;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use clap::{Args, ValueEnum, builder::ArgPredicate};
@@ -11,7 +13,8 @@ use pkgcraft::cli::{MaybeStdinVec, PkgTargets, Targets};
 use pkgcraft::config::Config;
 use pkgcraft::pkg::ebuild::EbuildRawPkg;
 use pkgcraft::repo::RepoFormat;
-use pkgcraft::traits::ParallelMap;
+use pkgcraft::utils::bounded_thread_pool;
+use rayon::{iter::ParallelBridge, prelude::*};
 use serde::Serialize;
 use tracing::error;
 
@@ -287,7 +290,7 @@ impl<W: std::io::Write> Output for FormattedOutput<W> {
 
 /// Run package sourcing benchmarks for a given duration per package.
 fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
-    let mut failed = false;
+    let failed: AtomicBool = AtomicBool::new(false);
     let func =
         move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<(String, Vec<Duration>)> {
             let pkg = result?;
@@ -313,57 +316,58 @@ fn benchmark(bench: Bench, targets: PkgTargets, cmd: &Command) -> anyhow::Result
         };
 
     let pkgs = targets.ebuild_raw_pkgs();
-    let mut sorted = if cmd.sort { Some(vec![]) } else { None };
-    let stdout = io::stdout().lock();
+    let stdout = io::stdout();
     let mut out = cmd.format.make_output(stdout);
 
-    for result in pkgs.par_map(func).jobs(cmd.jobs) {
-        match result {
-            Ok((pkg, data)) => {
-                let n = data.len() as u64;
-                let micros: Vec<u64> = data
-                    .iter()
-                    .map(|v| v.as_micros().try_into().unwrap())
-                    .collect();
-                let min = Duration::from_micros(*micros.iter().min().unwrap());
-                let max = Duration::from_micros(*micros.iter().max().unwrap());
-                let total: u64 = micros.iter().sum();
-                let mean: u64 = total / n;
-                let variance = (micros
-                    .iter()
-                    .map(|v| (*v as i64 - mean as i64).pow(2))
-                    .sum::<i64>()) as f64
-                    / n as f64;
-                let sdev = Duration::from_micros(variance.sqrt().round() as u64);
-                let mean = Duration::from_micros(mean);
+    let result = pkgs.par_bridge().filter_map(|result| match func(result) {
+        Ok((pkg, data)) => {
+            let n = data.len() as u64;
+            let micros: Vec<u64> = data
+                .iter()
+                .map(|v| v.as_micros().try_into().unwrap())
+                .collect();
+            let min = Duration::from_micros(*micros.iter().min().unwrap());
+            let max = Duration::from_micros(*micros.iter().max().unwrap());
+            let total: u64 = micros.iter().sum();
+            let mean: u64 = total / n;
+            let variance = (micros
+                .iter()
+                .map(|v| (*v as i64 - mean as i64).pow(2))
+                .sum::<i64>()) as f64
+                / n as f64;
+            let sdev = Duration::from_micros(variance.sqrt().round() as u64);
+            let mean = Duration::from_micros(mean);
 
-                let value = Benchmark::new(pkg, mean, min, max, sdev, n);
-                if let Some(values) = sorted.as_mut() {
-                    values.push(value);
-                } else {
-                    out.write(&value)?;
-                }
+            Some(Benchmark::new(pkg, mean, min, max, sdev, n))
+        }
+        Err(e) => {
+            error!("{e}");
+            failed.store(true, Ordering::Relaxed);
+            None
+        }
+    });
+
+    if !failed.load(Ordering::Relaxed) {
+        if cmd.sort {
+            let mut values: Vec<Benchmark> = result.collect();
+            values.sort_by(|t1, t2| t1.mean.cmp(&t2.mean));
+            for value in values {
+                out.write(&value)?;
             }
-            Err(e) => {
-                failed = true;
-                error!("{e}");
-            }
+        } else {
+            let out = Arc::new(Mutex::new(out));
+            result.try_for_each_with(out, |out, value| {
+                let mut out = out.lock().unwrap();
+                out.write(&value)
+            })?;
         }
     }
 
-    // output in ascending order if sorting is enabled
-    if let Some(values) = sorted.as_mut() {
-        values.sort_by(|t1, t2| t1.mean.cmp(&t2.mean));
-        for value in values {
-            out.write(&value)?;
-        }
-    }
-
-    Ok(ExitCode::from(failed as u8))
+    Ok(ExitCode::from(failed.load(Ordering::Relaxed) as u8))
 }
 
 /// Run package sourcing benchmark cumulatively across all targets.
-fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
+fn cumulative(limit: u32, targets: PkgTargets, _cmd: &Command) -> anyhow::Result<ExitCode> {
     let func = move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<Duration> {
         result.and_then(|pkg| pkg.duration())
     };
@@ -371,32 +375,42 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
     let mut failed = false;
     let mut run = 0;
     let mut values = vec![];
-    let mut stdout = io::stdout().lock();
+    let mut stdout = io::stdout();
 
     // initialize progress bar
     let progress = ProgressBar::new(targets.len_pkgs().try_into().unwrap())
         .with_style(ProgressStyle::with_template("{wide_bar} {msg} {pos}/{len}").unwrap());
 
     while run < limit {
-        let mut cpu_time = Duration::new(0, 0);
+        let cpu_time = Duration::ZERO;
         let start = Instant::now();
         let pkgs = targets.clone().ebuild_raw_pkgs();
+        run += 1;
         progress.reset();
 
-        for result in pkgs.par_map(func).jobs(cmd.jobs) {
-            progress.inc(1);
-            match result {
-                Ok(duration) => cpu_time += duration,
-                Err(e) => {
-                    failed = true;
+        let result = pkgs
+            .par_bridge()
+            .map(|result| {
+                func(result).map_err(|e| {
                     progress.suspend(|| {
                         error!("{e}");
                     });
-                }
+                    e
+                })
+            })
+            .try_fold_with(cpu_time, |cpu_time, duration| {
+                progress.inc(1);
+                duration.map(|duration| duration + cpu_time)
+            })
+            .try_reduce(|| Duration::ZERO, |a, b| Ok(a + b));
+        let cpu_time = match result {
+            Ok(cpu_time) => cpu_time,
+            Err(_) => {
+                failed = true;
+                continue;
             }
-        }
+        };
 
-        run += 1;
         let elapsed = millis!(start.elapsed());
         let cpu_time = millis!(cpu_time);
         progress.suspend(|| {
@@ -408,7 +422,7 @@ fn cumulative(limit: u32, targets: PkgTargets, cmd: &Command) -> anyhow::Result<
     progress.finish_and_clear();
 
     // output statistics across multiple runs
-    if limit > 1 {
+    if limit > 1 && !failed {
         let n = run as u64;
         let millis: Vec<u64> = values
             .iter()
@@ -448,7 +462,7 @@ impl Display for Elapsed {
 
 /// Run package sourcing a single time per package.
 fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
-    let mut failed = false;
+    let failed = AtomicBool::new(false);
     let func = move |result: pkgcraft::Result<EbuildRawPkg>| -> pkgcraft::Result<Elapsed> {
         let pkg = result?;
         let elapsed = micros!(pkg.duration()?);
@@ -459,37 +473,41 @@ fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
     };
 
     let pkgs = targets.ebuild_raw_pkgs();
-    let mut sorted = if cmd.sort { Some(vec![]) } else { None };
-    let stdout = io::stdout().lock();
+    let stdout = io::stdout();
     let mut out = cmd.format.make_output(stdout);
 
-    for result in pkgs.par_map(func).jobs(cmd.jobs) {
-        match result {
-            Ok(value) => {
-                if cmd.bound.iter().all(|b| b.matches(&value.elapsed)) {
-                    if let Some(values) = sorted.as_mut() {
-                        values.push(value);
-                    } else {
-                        out.write(&value)?;
-                    }
-                }
+    let result = pkgs.par_bridge().filter_map(|result| match func(result) {
+        Ok(value) => {
+            if cmd.bound.iter().all(|b| b.matches(&value.elapsed)) {
+                Some(value)
+            } else {
+                None
             }
-            Err(e) => {
-                failed = true;
-                error!("{e}");
+        }
+        Err(e) => {
+            failed.store(true, Ordering::Relaxed);
+            error!("{e}");
+            None
+        }
+    });
+
+    if !failed.load(Ordering::Relaxed) {
+        if cmd.sort {
+            let mut values: Vec<Elapsed> = result.collect();
+            values.sort_by(|t1, t2| t1.elapsed.cmp(&t2.elapsed));
+            for value in values {
+                out.write(&value)?;
             }
+        } else {
+            let out = Arc::new(Mutex::new(out));
+            result.try_for_each_with(out, |out, value| {
+                let mut out = out.lock().unwrap();
+                out.write(&value)
+            })?;
         }
     }
 
-    // output in ascending order if sorting is enabled
-    if let Some(values) = sorted.as_mut() {
-        values.sort_by(|t1, t2| t1.elapsed.cmp(&t2.elapsed));
-        for value in values {
-            out.write(&value)?;
-        }
-    }
-
-    Ok(ExitCode::from(failed as u8))
+    Ok(ExitCode::from(failed.load(Ordering::Relaxed) as u8))
 }
 
 impl Command {
@@ -500,6 +518,8 @@ impl Command {
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?
             .collapse();
+
+        bounded_thread_pool(self.jobs);
 
         if let Some(value) = self.bench {
             benchmark(value, targets, self)
