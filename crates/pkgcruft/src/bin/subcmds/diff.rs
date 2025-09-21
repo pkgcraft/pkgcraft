@@ -83,7 +83,7 @@ impl Replay {
     fn run(
         &self,
         target: &Utf8Path,
-    ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
+    ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>>> {
         let iter =
             Iter::try_from_file(target, self.reports.as_ref(), self.pkgs.as_ref(), None)?;
         Ok(iter)

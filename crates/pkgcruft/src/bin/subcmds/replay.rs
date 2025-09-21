@@ -102,7 +102,7 @@ impl Replay {
     fn run(
         &self,
         target: &str,
-    ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>> + '_> {
+    ) -> anyhow::Result<impl Iterator<Item = pkgcruft::Result<Report>>> {
         let reports = self.reports.as_ref();
         let pkgs = self.pkgs.as_ref();
         let scopes = self.scopes.as_ref();

@@ -138,7 +138,7 @@ impl Check {
     }
 
     /// Return an iterator of checks enabled by default for a full repo scan.
-    pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> + '_ {
+    pub fn iter_default(repo: &EbuildRepo) -> impl Iterator<Item = Check> {
         let selected = Default::default();
         Self::iter().filter(move |x| x.skipped(repo, &selected).is_none())
     }
@@ -147,7 +147,7 @@ impl Check {
     pub fn iter_supported<T: Into<Scope>>(
         repo: &EbuildRepo,
         value: T,
-    ) -> impl Iterator<Item = Check> + '_ {
+    ) -> impl Iterator<Item = Check> {
         let scope = value.into();
         let selected = Self::iter().collect();
         Self::iter().filter(move |x| x.skipped(repo, &selected).is_none() && scope >= x.scope)
@@ -167,7 +167,7 @@ impl Check {
     }
 
     /// Return an iterator of checks that use a given source.
-    pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> + '_ {
+    pub fn iter_source(source: &SourceKind) -> impl Iterator<Item = Check> {
         Self::iter().filter(move |c| c.sources.contains(source))
     }
 
