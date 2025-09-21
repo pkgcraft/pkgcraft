@@ -318,6 +318,7 @@ macro_rules! register {
 }
 use register;
 
+// grcov-excl-start: most no-op trait methods aren't run
 /// Check running machinery.
 #[allow(unused_variables)]
 pub(crate) trait CheckRun {
@@ -347,6 +348,7 @@ pub(crate) trait CheckRun {
     // finalization support
     fn finish(&self, run: &ScannerRun) {}
 }
+// grcov-excl-stop
 
 type Runner = Box<dyn CheckRun + Send + Sync>;
 
