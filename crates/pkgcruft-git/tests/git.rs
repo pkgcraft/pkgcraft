@@ -1,5 +1,14 @@
+use std::io::Write;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
+use std::sync::LazyLock;
+
+use assert_cmd::Command;
+use tempfile::NamedTempFile;
+
+/// Determine if the `git` binary exists in the system path.
+pub(crate) static GIT_EXISTS: LazyLock<bool> =
+    LazyLock::new(|| Command::new("git").arg("-v").ok().is_ok());
 
 /// Git repository wrapper.
 pub(crate) struct GitRepo(git2::Repository);
@@ -42,5 +51,51 @@ impl Deref for GitRepo {
 impl DerefMut for GitRepo {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+/// Git command wrapper.
+pub(crate) struct GitCmd {
+    cmd: Command,
+    _config: NamedTempFile,
+}
+
+impl Deref for GitCmd {
+    type Target = Command;
+
+    fn deref(&self) -> &Self::Target {
+        &self.cmd
+    }
+}
+
+impl DerefMut for GitCmd {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cmd
+    }
+}
+
+impl GitCmd {
+    /// Construct a git command that uses custom config files.
+    pub(crate) fn new<S: AsRef<str>>(cmd: S) -> Self {
+        let args: Vec<_> = cmd.as_ref().split_whitespace().collect();
+        let mut cmd = Command::new("git");
+        cmd.args(&args);
+
+        // create custom git config
+        let data = indoc::indoc! {"
+            [user]
+                name = Pkgcruft Git
+                email = pkgcruft-git@pkgcruft.pkgcraft
+        "};
+        let mut config = NamedTempFile::new().unwrap();
+        config.write_all(data.as_bytes()).unwrap();
+        let config_path = config.path().to_str().unwrap();
+
+        // disable system config
+        cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
+        // use custom user config
+        cmd.env("GIT_CONFIG_GLOBAL", config_path);
+
+        Self { cmd, _config: config }
     }
 }
