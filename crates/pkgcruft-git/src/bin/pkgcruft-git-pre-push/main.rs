@@ -1,4 +1,3 @@
-use std::env;
 use std::io::{self, BufRead, IsTerminal};
 use std::process::ExitCode;
 
@@ -10,6 +9,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
 use pkgcraft::restrict::Restrict;
+use pkgcraft::utils::current_dir;
 use pkgcruft::report::ReportLevel;
 use pkgcruft::reporter::{FancyReporter, Reporter};
 use pkgcruft::scan::Scanner;
@@ -65,10 +65,10 @@ fn main() -> anyhow::Result<ExitCode> {
 
     // git appears to mangle $PWD to the repo's root path instead of exporting $GIT_DIR or
     // $GIT_WORK_TREE like other hooks use.
-    let path = env::var("PWD")?;
+    let path = current_dir()?;
     let mut config = PkgcraftConfig::new("pkgcraft", "");
     let repo = config
-        .add_repo_path("repo", &path, 0)
+        .add_nested_repo_path(&path, 0)
         .map_err(|e| anyhow!("invalid repo: {e}"))?;
     let repo = repo
         .into_ebuild()
