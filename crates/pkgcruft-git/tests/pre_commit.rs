@@ -1,0 +1,118 @@
+use std::fs;
+
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
+use pkgcraft::test::cmd;
+use predicates::str::contains;
+use tempfile::tempdir;
+
+use crate::git::GitRepo;
+
+#[tokio::test]
+async fn invalid_repo() {
+    let dir = tempdir().unwrap();
+    let path = dir.path().to_str().unwrap();
+    GitRepo::init(path).unwrap();
+
+    cmd("pkgcruft-git-pre-commit")
+        .current_dir(&dir)
+        .assert()
+        .stdout("")
+        .stderr(contains(format!("invalid repo: {path}")))
+        .failure()
+        .code(1);
+}
+
+#[tokio::test]
+async fn no_changes() {
+    let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    GitRepo::init(&repo).unwrap();
+
+    cmd("pkgcruft-git-pre-commit")
+        .current_dir(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+}
+
+#[tokio::test]
+async fn good_changes() {
+    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    let dir = repo.path().join("licenses");
+    fs::create_dir(&dir).unwrap();
+    fs::write(dir.join("abc"), "stub license").unwrap();
+    let data = indoc::indoc! {r#"
+        EAPI=8
+
+        DESCRIPTION="committed package"
+        HOMEPAGE="https://pkgcraft.pkgcraft"
+        LICENSE="abc"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+
+    // initialize git repo
+    let git_repo = GitRepo::init(&repo).unwrap();
+
+    // create package
+    let data = indoc::indoc! {r#"
+        EAPI=8
+
+        DESCRIPTION="uncommitted package"
+        HOMEPAGE="https://pkgcraft.pkgcraft"
+        LICENSE="abc"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-2", data).unwrap();
+    // add package to index
+    git_repo.stage(&["*"]).unwrap();
+
+    cmd("pkgcruft-git-pre-commit")
+        .current_dir(&repo)
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+}
+
+#[tokio::test]
+async fn bad_changes() {
+    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    let dir = repo.path().join("licenses");
+    fs::create_dir(&dir).unwrap();
+    fs::write(dir.join("abc"), "stub license").unwrap();
+    let data = indoc::indoc! {r#"
+        EAPI=8
+
+        DESCRIPTION="test git pre-commit hook"
+        HOMEPAGE="https://pkgcraft.pkgcraft"
+        LICENSE="abc"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+
+    // initialize git repo
+    let git_repo = GitRepo::init(&repo).unwrap();
+
+    // create package
+    let data = indoc::indoc! {r#"
+        DESCRIPTION="uncommitted package"
+        HOMEPAGE="https://pkgcraft.pkgcraft"
+        LICENSE="abc"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-2", data).unwrap();
+    // add package to index
+    git_repo.stage(&["*"]).unwrap();
+
+    cmd("pkgcruft-git-pre-commit")
+        .current_dir(&repo)
+        .assert()
+        .stdout(indoc::indoc! {"
+            cat/pkg
+              MetadataError: version 2: unsupported EAPI: 0
+        "})
+        .stderr(contains("Error: scanning errors found"))
+        .failure()
+        .code(1);
+}

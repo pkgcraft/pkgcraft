@@ -3,6 +3,7 @@ use pkgcraft::test::cmd;
 use predicates::prelude::*;
 
 mod git;
+mod pre_commit;
 mod utils;
 
 use git::GitRepo;
