@@ -6,7 +6,7 @@ use pkgcraft::test::cmd;
 use predicates::str::contains;
 use tempfile::tempdir;
 
-use crate::git::{GIT_EXISTS, GitCmd, GitRepo};
+use crate::git::{GitRepo, git};
 
 #[tokio::test]
 async fn invalid_repo() {
@@ -123,17 +123,15 @@ async fn bad_changes() {
     symlink(env!("CARGO_BIN_EXE_pkgcruft-git-pre-commit"), hook_path).unwrap();
 
     // trigger hook via `git commit`
-    if *GIT_EXISTS {
-        GitCmd::new("commit -m test")
-            .current_dir(&repo)
-            .assert()
-            .stdout("")
-            .stderr(indoc::indoc! {"
-                cat/pkg
-                  MetadataError: version 2: unsupported EAPI: 0
-                Error: scanning errors found
-            "})
-            .failure()
-            .code(1);
-    }
+    git!("commit -m test")
+        .current_dir(&repo)
+        .assert()
+        .stdout("")
+        .stderr(indoc::indoc! {"
+            cat/pkg
+              MetadataError: version 2: unsupported EAPI: 0
+            Error: scanning errors found
+        "})
+        .failure()
+        .code(1);
 }

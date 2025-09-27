@@ -99,3 +99,16 @@ impl GitCmd {
         Self { cmd, _config: config }
     }
 }
+
+/// Run a git command if `git` exists on the system path.
+#[macro_export]
+macro_rules! git {
+    ($cmd:expr) => {
+        if *$crate::git::GIT_EXISTS {
+            $crate::git::GitCmd::new($cmd)
+        } else {
+            return;
+        }
+    };
+}
+pub(crate) use git;
