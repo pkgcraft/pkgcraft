@@ -7,6 +7,7 @@ use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use indexmap::IndexSet;
 use pkgcraft::config::Config as PkgcraftConfig;
+use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::current_dir;
 use pkgcruft::report::ReportLevel;
 use pkgcruft::reporter::{FancyReporter, Reporter};
@@ -57,11 +58,9 @@ fn main() -> anyhow::Result<ExitCode> {
     let path = current_dir()?;
     let mut config = PkgcraftConfig::new("pkgcraft", "");
     let repo = config
-        .add_nested_repo_path(&path, 0)
-        .map_err(|e| anyhow!("invalid repo: {e}"))?;
-    let repo = repo
+        .add_format_repo_nested_path(&path, 0, RepoFormat::Ebuild)?
         .into_ebuild()
-        .map_err(|e| anyhow!("invalid ebuild repo: {path}: {e}"))?;
+        .expect("failed loading repo");
     config
         .finalize()
         .map_err(|e| anyhow!("failed finalizing config: {e}"))?;

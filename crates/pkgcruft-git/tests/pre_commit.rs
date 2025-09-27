@@ -18,7 +18,7 @@ async fn invalid_repo() {
         .current_dir(&dir)
         .assert()
         .stdout("")
-        .stderr(contains(format!("invalid repo: {path}")))
+        .stderr(contains(format!("invalid ebuild repo: {path}")))
         .failure()
         .code(1);
 }
