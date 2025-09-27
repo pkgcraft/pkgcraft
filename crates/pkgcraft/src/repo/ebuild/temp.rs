@@ -142,8 +142,8 @@ impl EbuildTempRepo {
         // ebuild defaults
         let mut values = indexmap::IndexMap::from([
             (Key::EAPI, EAPI_LATEST_OFFICIAL.as_str()),
-            (Key::SLOT, "0"),
             (Key::DESCRIPTION, "stub package description"),
+            (Key::SLOT, "0"),
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"
