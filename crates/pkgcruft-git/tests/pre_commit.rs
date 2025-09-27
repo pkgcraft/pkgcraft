@@ -1,11 +1,12 @@
 use std::fs;
+use std::os::unix::fs::symlink;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::cmd;
 use predicates::str::contains;
 use tempfile::tempdir;
 
-use crate::git::GitRepo;
+use crate::git::{GIT_EXISTS, GitCmd, GitRepo};
 
 #[tokio::test]
 async fn invalid_repo() {
@@ -105,6 +106,7 @@ async fn bad_changes() {
     // add package to index
     git_repo.stage(&["*"]).unwrap();
 
+    // run hook by itself
     cmd("pkgcruft-git-pre-commit")
         .current_dir(&repo)
         .assert()
@@ -115,4 +117,23 @@ async fn bad_changes() {
         .stderr(contains("Error: scanning errors found"))
         .failure()
         .code(1);
+
+    // inject hook into repo
+    let hook_path = git_repo.path().join("hooks/pre-commit");
+    symlink(env!("CARGO_BIN_EXE_pkgcruft-git-pre-commit"), hook_path).unwrap();
+
+    // trigger hook via `git commit`
+    if *GIT_EXISTS {
+        GitCmd::new("commit -m test")
+            .current_dir(&repo)
+            .assert()
+            .stdout("")
+            .stderr(indoc::indoc! {"
+                cat/pkg
+                  MetadataError: version 2: unsupported EAPI: 0
+                Error: scanning errors found
+            "})
+            .failure()
+            .code(1);
+    }
 }
