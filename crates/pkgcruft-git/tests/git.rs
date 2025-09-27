@@ -7,24 +7,27 @@ pub(crate) struct GitRepo(git2::Repository);
 impl GitRepo {
     /// Initialize a git repo at a path, adding all files to an initial commit.
     pub(crate) fn init<P: AsRef<Path>>(path: P) -> pkgcruft_git::Result<Self> {
-        let repo = git2::Repository::init(path)?;
+        let repo = Self(git2::Repository::init(path)?);
+        let oid = repo.stage(&["*"])?;
+        repo.commit(oid, "initial import")?;
+        Ok(repo)
+    }
 
-        // create initial commit inside block so the tree ref is dropped
-        {
-            let mut index = repo.index().unwrap();
-            index
-                .add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
-                .unwrap();
-            index.write().unwrap();
-            let oid = index.write_tree().unwrap();
-            let tree = repo.find_tree(oid).unwrap();
-            let sig = git2::Signature::new("test", "test@test.test", &git2::Time::new(0, 0))
-                .unwrap();
-            repo.commit(Some("HEAD"), &sig, &sig, "initial import", &tree, &[])
-                .unwrap();
-        }
+    /// Stage the given file paths, updating the index, and returning the index tree's Oid.
+    pub(crate) fn stage(&self, paths: &[&str]) -> pkgcruft_git::Result<git2::Oid> {
+        let mut index = self.0.index().unwrap();
+        index.add_all(paths, git2::IndexAddOption::DEFAULT, None)?;
+        index.write()?;
+        let oid = index.write_tree()?;
+        Ok(oid)
+    }
 
-        Ok(Self(repo))
+    /// Create a commit for a tree Oid using the given commit message.
+    pub(crate) fn commit(&self, oid: git2::Oid, msg: &str) -> pkgcruft_git::Result<()> {
+        let tree = self.0.find_tree(oid)?;
+        let sig = git2::Signature::new("test", "test@test.test", &git2::Time::new(0, 0))?;
+        self.0.commit(Some("HEAD"), &sig, &sig, msg, &tree, &[])?;
+        Ok(())
     }
 }
 
