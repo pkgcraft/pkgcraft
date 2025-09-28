@@ -16,12 +16,20 @@ pub(crate) struct GitRepo(git2::Repository);
 impl GitRepo {
     /// Initialize a git repo at a path.
     pub(crate) fn init<P: AsRef<Path>>(path: P) -> pkgcruft_git::Result<Self> {
-        Ok(Self(git2::Repository::init(path)?))
+        let mut opts = git2::RepositoryInitOptions::new();
+        opts.bare(false)
+            .external_template(false)
+            .initial_head("main");
+        Ok(Self(git2::Repository::init_opts(path, &opts)?))
     }
 
     /// Initialize a bare git repo at a path.
     pub(crate) fn init_bare<P: AsRef<Path>>(path: P) -> pkgcruft_git::Result<Self> {
-        Ok(Self(git2::Repository::init_bare(path)?))
+        let mut opts = git2::RepositoryInitOptions::new();
+        opts.bare(true)
+            .external_template(false)
+            .initial_head("main");
+        Ok(Self(git2::Repository::init_opts(path, &opts)?))
     }
 
     /// Stage the given file paths, updating the index, and returning the index tree's Oid.
