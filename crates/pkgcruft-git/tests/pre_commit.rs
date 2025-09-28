@@ -46,6 +46,8 @@ async fn success() {
 
     // initialize git repo
     let git_repo = GitRepo::init(&repo).unwrap();
+    let oid = git_repo.stage(&["*"]).unwrap();
+    git_repo.commit(oid, "initial import").unwrap();
 
     // create package
     let data = indoc::indoc! {r#"
@@ -91,6 +93,8 @@ async fn failure() {
 
     // initialize git repo
     let git_repo = GitRepo::init(&repo).unwrap();
+    let oid = git_repo.stage(&["*"]).unwrap();
+    git_repo.commit(oid, "initial import").unwrap();
 
     // create package
     let data = indoc::indoc! {r#"

@@ -14,15 +14,12 @@ pub(crate) static GIT_EXISTS: LazyLock<bool> =
 pub(crate) struct GitRepo(git2::Repository);
 
 impl GitRepo {
-    /// Initialize a git repo at a path, adding all files to an initial commit.
+    /// Initialize a git repo at a path.
     pub(crate) fn init<P: AsRef<Path>>(path: P) -> pkgcruft_git::Result<Self> {
-        let repo = Self(git2::Repository::init(path)?);
-        let oid = repo.stage(&["*"])?;
-        repo.commit(oid, "initial import")?;
-        Ok(repo)
+        Ok(Self(git2::Repository::init(path)?))
     }
 
-    /// Initialize a bare git repo at a path, adding all files to an initial commit.
+    /// Initialize a bare git repo at a path.
     pub(crate) fn init_bare<P: AsRef<Path>>(path: P) -> pkgcruft_git::Result<Self> {
         Ok(Self(git2::Repository::init_bare(path)?))
     }
