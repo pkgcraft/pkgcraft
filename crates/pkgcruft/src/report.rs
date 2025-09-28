@@ -1,5 +1,6 @@
+use std::borrow::Cow;
 use std::cmp::Ordering;
-use std::fmt;
+use std::fmt::{self, Display};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::str::FromStr;
@@ -308,7 +309,8 @@ impl ReportSet {
 }
 
 /// Wrapper for report set targets.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone, Deserialize, Serialize)]
+#[serde(try_from = "Cow<str>", into = "String")]
 pub struct ReportTarget(TriState<ReportSet>);
 
 impl ReportTarget {
@@ -376,6 +378,26 @@ impl FromStr for ReportTarget {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         s.parse().map(Self)
+    }
+}
+
+impl Display for ReportTarget {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl TryFrom<Cow<'_, str>> for ReportTarget {
+    type Error = Error;
+
+    fn try_from(value: Cow<'_, str>) -> Result<Self, Self::Error> {
+        Self::from_str(&value)
+    }
+}
+
+impl Into<String> for ReportTarget {
+    fn into(self) -> String {
+        self.to_string()
     }
 }
 

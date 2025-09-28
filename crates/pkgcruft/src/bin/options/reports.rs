@@ -3,9 +3,10 @@ use std::ops::Deref;
 use clap::Args;
 use indexmap::IndexSet;
 use pkgcruft::report::{ReportKind, ReportTarget};
+use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Deserialize, Serialize)]
 #[clap(next_help_heading = Some("Report options"))]
 pub(crate) struct Reports {
     /// Restrict by report target
