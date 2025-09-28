@@ -4,6 +4,7 @@ use predicates::prelude::*;
 
 mod git;
 mod pre_commit;
+mod pre_push;
 mod utils;
 
 use git::GitRepo;

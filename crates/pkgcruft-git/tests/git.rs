@@ -22,6 +22,11 @@ impl GitRepo {
         Ok(repo)
     }
 
+    /// Initialize a bare git repo at a path, adding all files to an initial commit.
+    pub(crate) fn init_bare<P: AsRef<Path>>(path: P) -> pkgcruft_git::Result<Self> {
+        Ok(Self(git2::Repository::init_bare(path)?))
+    }
+
     /// Stage the given file paths, updating the index, and returning the index tree's Oid.
     pub(crate) fn stage(&self, paths: &[&str]) -> pkgcruft_git::Result<git2::Oid> {
         let mut index = self.0.index().unwrap();
