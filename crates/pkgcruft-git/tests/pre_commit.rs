@@ -2,7 +2,7 @@ use std::fs;
 use std::os::unix::fs::symlink;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::cmd;
+use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
 
@@ -12,10 +12,15 @@ use crate::git::{GitRepo, git};
 async fn invalid_repo() {
     let dir = tempdir().unwrap();
     let path = dir.path().to_str().unwrap();
-    GitRepo::init(path).unwrap();
+    let git_repo = GitRepo::init(path).unwrap();
 
-    cmd("pkgcruft-git-pre-commit")
-        .current_dir(&dir)
+    // inject hook into repo
+    let hook_path = git_repo.path().join("hooks/pre-commit");
+    symlink(env!("CARGO_BIN_EXE_pkgcruft-git-pre-commit"), hook_path).unwrap();
+
+    // trigger hook via `git commit`
+    git!("commit -m test")
+        .current_dir(path)
         .assert()
         .stdout("")
         .stderr(contains(format!("invalid ebuild repo: {path}")))
@@ -24,20 +29,7 @@ async fn invalid_repo() {
 }
 
 #[tokio::test]
-async fn no_changes() {
-    let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
-    GitRepo::init(&repo).unwrap();
-
-    cmd("pkgcruft-git-pre-commit")
-        .current_dir(&repo)
-        .assert()
-        .stdout("")
-        .stderr("")
-        .success();
-}
-
-#[tokio::test]
-async fn good_changes() {
+async fn success() {
     let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
     let dir = repo.path().join("licenses");
     fs::create_dir(&dir).unwrap();
@@ -68,16 +60,21 @@ async fn good_changes() {
     // add package to index
     git_repo.stage(&["*"]).unwrap();
 
-    cmd("pkgcruft-git-pre-commit")
+    // inject hook into repo
+    let hook_path = git_repo.path().join("hooks/pre-commit");
+    symlink(env!("CARGO_BIN_EXE_pkgcruft-git-pre-commit"), hook_path).unwrap();
+
+    // trigger hook via `git commit`
+    git!("commit -m test")
         .current_dir(&repo)
         .assert()
-        .stdout("")
+        .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
 }
 
 #[tokio::test]
-async fn bad_changes() {
+async fn failure() {
     let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
     let dir = repo.path().join("licenses");
     fs::create_dir(&dir).unwrap();
@@ -105,18 +102,6 @@ async fn bad_changes() {
     repo.create_ebuild_from_str("cat/pkg-2", data).unwrap();
     // add package to index
     git_repo.stage(&["*"]).unwrap();
-
-    // run hook by itself
-    cmd("pkgcruft-git-pre-commit")
-        .current_dir(&repo)
-        .assert()
-        .stdout(indoc::indoc! {"
-            cat/pkg
-              MetadataError: version 2: unsupported EAPI: 0
-        "})
-        .stderr(contains("Error: scanning errors found"))
-        .failure()
-        .code(1);
 
     // inject hook into repo
     let hook_path = git_repo.path().join("hooks/pre-commit");
