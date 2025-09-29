@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::hash::Hash;
 use std::str::FromStr;
 
@@ -51,6 +52,16 @@ impl<T: FromStr> FromStr for TriState<T> {
             value.parse().map(Self::Remove)
         } else {
             s.parse().map(Self::Set)
+        }
+    }
+}
+
+impl<T: Display> Display for TriState<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Add(v) => write!(f, "+{v}"),
+            Self::Remove(v) => write!(f, "-{v}"),
+            Self::Set(v) => write!(f, "{v}"),
         }
     }
 }
