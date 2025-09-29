@@ -112,11 +112,11 @@ fn main() -> anyhow::Result<ExitCode> {
             }
         }
 
+        let mut reports = IndexSet::new();
+
         // scan individual packages that were changed
         for cpn in cpns {
-            for report in scanner.run(&repo, &cpn)? {
-                reporter.report(&report, &mut stdout)?;
-            }
+            reports.extend(scanner.run(&repo, &cpn)?);
         }
         failed |= scanner.failed();
 
@@ -125,10 +125,14 @@ fn main() -> anyhow::Result<ExitCode> {
             let scanner = scanner
                 .clone()
                 .reports([pkgcruft::check::CheckKind::Metadata]);
-            for report in scanner.run(&repo, Restrict::True)? {
-                reporter.report(&report, &mut stdout)?;
-            }
+            reports.extend(scanner.run(&repo, Restrict::True)?);
             failed |= scanner.failed();
+        }
+
+        // output reports
+        reports.sort();
+        for report in reports {
+            reporter.report(&report, &mut stdout)?;
         }
     }
 

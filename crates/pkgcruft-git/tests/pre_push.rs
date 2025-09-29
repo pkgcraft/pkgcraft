@@ -28,7 +28,7 @@ async fn hook() {
         LICENSE="abc"
         SLOT=0
     "#};
-    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+    repo.create_ebuild_from_str("a/b-1", data).unwrap();
 
     // initialize git repo
     let git_repo = GitRepo::init(&repo).unwrap();
@@ -50,10 +50,11 @@ async fn hook() {
     let hook_path = git_repo.path().join("hooks/pre-push");
     symlink(env!("CARGO_BIN_EXE_pkgcruft-git-pre-push"), hook_path).unwrap();
 
-    // create eclass
-    let data = indoc::indoc! {"
+    // create good eclass
+    let data = indoc::indoc! {r#"
         # stub eclass
-    "};
+        DEPEND="a/b"
+    "#};
     repo.create_eclass("e1", data).unwrap();
     // create package
     let data = indoc::indoc! {r#"
@@ -66,10 +67,10 @@ async fn hook() {
         LICENSE="abc"
         SLOT=0
     "#};
-    repo.create_ebuild_from_str("cat/pkg-2", data).unwrap();
+    repo.create_ebuild_from_str("a/b-2", data).unwrap();
 
-    // add good commit to client repo
-    git_repo.stage(&["eclass", "cat/pkg"]).unwrap();
+    // add commit to client repo
+    git_repo.stage(&["eclass", "a/b"]).unwrap();
     git!("commit -m good").current_dir(&repo).assert().success();
 
     // trigger hook via `git push`
@@ -89,15 +90,47 @@ async fn hook() {
     "#};
     repo.create_ebuild_from_str("cat/pkg-2", data).unwrap();
 
-    // add bad commit to client repo
+    // add commit to client repo
     git_repo.stage(&["cat/pkg"]).unwrap();
-    git!("commit -m bad").current_dir(&repo).assert().success();
+    git!("commit -m bad-pkg")
+        .current_dir(&repo)
+        .assert()
+        .success();
 
     // trigger hook via `git push`
     git!("push")
         .current_dir(&repo)
         .assert()
         .stdout(indoc::indoc! {"
+            cat/pkg
+              MetadataError: version 2: unsupported EAPI: 0
+        "})
+        .stderr(contains("Error: scanning errors found"))
+        .failure()
+        .code(1);
+
+    // create bad eclass
+    let data = indoc::indoc! {r#"
+        # stub eclass
+        cd path
+    "#};
+    repo.create_eclass("e1", data).unwrap();
+
+    // add commit to client repo
+    git_repo.stage(&["eclass"]).unwrap();
+    git!("commit -m bad-eclass")
+        .current_dir(&repo)
+        .assert()
+        .success();
+
+    // trigger hook via `git push`
+    git!("push")
+        .current_dir(&repo)
+        .assert()
+        .stdout(indoc::indoc! {"
+            a/b
+              MetadataError: version 2: line 3: inherit: error: failed loading eclass: e1: line 2: disabled builtin: cd
+
             cat/pkg
               MetadataError: version 2: unsupported EAPI: 0
         "})
