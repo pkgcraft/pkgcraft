@@ -37,34 +37,26 @@ pub(crate) fn clone<P: AsRef<Path>>(uri: &str, path: P) -> Result<(), git2::Erro
     Ok(())
 }
 
-/// Try converting pre-receive hook references into a diff.
-pub fn diff<'a>(
-    repo: &'a git2::Repository,
-    old_ref: &str,
-    new_ref: &str,
-) -> crate::Result<Diff<'a>> {
+/// Determine the file differences between two references.
+pub fn diff<'a>(repo: &'a git2::Repository, old: &str, new: &str) -> crate::Result<Diff<'a>> {
     // parse old reference and get related tree
-    let old_oid: Oid = old_ref
+    let old_oid: Oid = old
         .parse()
-        .map_err(|_| Error::InvalidPushRequest(format!("invalid old ref: {old_ref}")))?;
+        .map_err(|_| Error::InvalidPushRequest(format!("invalid old ref: {old}")))?;
     let old_commit = repo
         .find_commit(old_oid)
-        .map_err(|_| Error::InvalidPushRequest(format!("nonexistent old ref: {old_ref}")))?;
+        .map_err(|_| Error::InvalidPushRequest(format!("nonexistent old ref: {old}")))?;
     let old_tree = old_commit.tree().unwrap();
 
     // parse new reference and get related tree
-    let new_oid: Oid = new_ref
+    let new_oid: Oid = new
         .parse()
-        .map_err(|_| Error::InvalidPushRequest(format!("invalid new ref: {new_ref}")))?;
+        .map_err(|_| Error::InvalidPushRequest(format!("invalid new ref: {new}")))?;
     let new_commit = repo
         .find_commit(new_oid)
-        .map_err(|_| Error::InvalidPushRequest(format!("nonexistent new ref: {new_ref}")))?;
+        .map_err(|_| Error::InvalidPushRequest(format!("nonexistent new ref: {new}")))?;
     let new_tree = new_commit.tree().unwrap();
 
     repo.diff_tree_to_tree(Some(&old_tree), Some(&new_tree), None)
-        .map_err(|e| {
-            Error::InvalidPushRequest(format!(
-                "failed creating diff: {old_ref} -> {new_ref}: {e}"
-            ))
-        })
+        .map_err(|e| Error::InvalidPushRequest(format!("failed diff: {old} -> {new}: {e}")))
 }
