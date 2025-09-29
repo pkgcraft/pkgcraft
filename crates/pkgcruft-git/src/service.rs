@@ -247,7 +247,7 @@ impl PkgcruftService {
             if let Some(path) = delta.new_file().path().and_then(Utf8Path::from_path) {
                 if let Ok(cpn) = repo.cpn_from_path(path) {
                     cpns.insert(cpn);
-                } else if path.as_str().starts_with("eclass/") {
+                } else if path.starts_with("eclass") {
                     eclass = true;
                 }
             }
