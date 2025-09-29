@@ -125,6 +125,7 @@ fn main() -> anyhow::Result<ExitCode> {
             let scanner = scanner
                 .clone()
                 .reports([pkgcruft::check::CheckKind::Metadata]);
+            // TODO: use eclass restriction instead of scanning entire repo
             reports.extend(scanner.run(&repo, Restrict::True)?);
             failed |= scanner.failed();
         }
