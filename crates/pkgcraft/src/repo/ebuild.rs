@@ -297,10 +297,13 @@ impl EbuildRepo {
     }
 
     /// Try to convert an ebuild file path into a Cpv.
-    fn cpv_from_path(&self, path: &Utf8Path) -> crate::Result<Cpv> {
+    fn cpv_from_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv> {
+        let path = path.as_ref();
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
+        let relpath = Utf8Path::from_path(relpath)
+            .ok_or_else(|| Error::InvalidValue(format!("invalid cpv path: {relpath:?}")))?;
         let path_err = |s: &str| -> Error {
-            Error::InvalidValue(format!("invalid ebuild path: {relpath}: {s}"))
+            Error::InvalidValue(format!("invalid cpv path: {relpath}: {s}"))
         };
         let (cat, pkg, file) = relpath
             .components()
