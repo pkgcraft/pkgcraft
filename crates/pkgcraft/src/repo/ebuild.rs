@@ -279,7 +279,7 @@ impl EbuildRepo {
         let relpath = Utf8Path::from_path(relpath)
             .ok_or_else(|| Error::InvalidValue(format!("invalid cpn path: {relpath:?}")))?;
         let path_err = |s: &str| -> Error {
-            Error::InvalidValue(format!("invalid package path: {relpath}: {s}"))
+            Error::InvalidValue(format!("invalid cpn path: {relpath}: {s}"))
         };
         let (cat, pkg) = relpath
             .components()
