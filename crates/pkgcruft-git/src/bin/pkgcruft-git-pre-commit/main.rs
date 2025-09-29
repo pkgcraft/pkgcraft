@@ -2,7 +2,6 @@ use std::process::ExitCode;
 use std::{env, io};
 
 use anyhow::anyhow;
-use camino::Utf8Path;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use indexmap::IndexSet;
@@ -83,7 +82,7 @@ fn main() -> anyhow::Result<ExitCode> {
     // determine target Cpns from diff
     let mut cpns = IndexSet::new();
     for delta in diff.deltas() {
-        if let Some(path) = delta.new_file().path().and_then(Utf8Path::from_path)
+        if let Some(path) = delta.new_file().path()
             && let Ok(cpn) = repo.cpn_from_path(path)
         {
             cpns.insert(cpn);
