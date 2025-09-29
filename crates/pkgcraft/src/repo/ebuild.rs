@@ -1,4 +1,5 @@
 use std::hash::{Hash, Hasher};
+use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
 use std::{fmt, fs, iter, mem};
 
@@ -272,8 +273,11 @@ impl EbuildRepo {
     }
 
     /// Try to convert a file path into a Cpn.
-    pub fn cpn_from_path(&self, path: &Utf8Path) -> crate::Result<Cpn> {
+    pub fn cpn_from_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpn> {
+        let path = path.as_ref();
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
+        let relpath = Utf8Path::from_path(relpath)
+            .ok_or_else(|| Error::InvalidValue(format!("invalid cpn path: {relpath:?}")))?;
         let path_err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid package path: {relpath}: {s}"))
         };
