@@ -18,10 +18,10 @@ workspace = true
 [dependencies]
 anyhow = "1.0.100"
 async-stream = "0.3.6"
-camino = "1.2.0"
-clap = { version = "4.5.48", features = ["derive", "string"] }
+camino = "1.2.1"
+clap = { version = "4.5.49", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.4"
-config = { version = "0.15.17", default-features = false, features = ["toml"] }
+config = { version = "0.15.18", default-features = false, features = ["toml"] }
 git2 = "0.20.2"
 hyper-util = "0.1.17"
 indexmap = "2.11.4"
@@ -31,9 +31,9 @@ num_cpus = "1.17.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.29" }
 pkgcruft = { path = "../pkgcruft", version = "0.0.16" }
 prost = "0.14.1"
-regex = "1.11.3"
-serde = { version = "1.0.227", features = ["derive"] }
-thiserror = "2.0.16"
+regex = "1.12.2"
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.17"
 tokio = { version = "1.47", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["net"] }
 tonic = { version = "0.14.2", features = ["tls-ring", "gzip"] }
@@ -54,7 +54,7 @@ tonic-prost-build = "0.14.2"
 assert_cmd = "2.0.17"
 pkgcraft = { path = "../pkgcraft", version = "0.0.29", features = ["test"] }
 predicates = "3.1.3"
-regex = "1.11.3"
+regex = "1.12.2"
 
 [lib]
 name = "pkgcruft_git"
