@@ -115,27 +115,28 @@ impl EbuildRawPkg {
     }
 
     /// Try to deserialize the package's metadata from the cache.
-    ///
-    /// Optionally, try to regenerate it and update the cache on failure.
+    fn get_metadata(&self) -> crate::Result<Metadata> {
+        self.0
+            .repo
+            .metadata()
+            .cache()
+            .get(self)
+            .ok_or_else(|| Error::InvalidValue(format!("{self}: missing metadata entry")))
+            .flatten()
+            .and_then(|entry| entry.to_metadata(self))
+    }
+
+    /// Deserialize or regenerate a package's metadata.
     pub(crate) fn metadata(&self, regen_on_failure: bool) -> crate::Result<Metadata> {
-        let repo = &self.0.repo;
-
-        // get and deserialize raw metadata cache entry
-        let get_metadata = || {
-            if let Some(result) = repo.metadata().cache().get(self) {
-                result.and_then(|entry| entry.to_metadata(self))
-            } else {
-                Err(Error::InvalidValue(format!("{self}: missing metadata entry")))
-            }
-        };
-
-        get_metadata().or_else(|e| {
+        self.get_metadata().or_else(|e| {
             if regen_on_failure {
-                repo.pool()
-                    .metadata_task(repo)
+                self.0
+                    .repo
+                    .pool()
+                    .metadata_task(&self.0.repo)
                     .force(true)
                     .run(&self.0.cpv)?;
-                get_metadata()
+                self.get_metadata()
             } else {
                 Err(e)
             }
