@@ -67,6 +67,7 @@ walkdir = "2.5.0"
 # exported test support deps
 assert_cmd = { version = "2.0.17", optional = true }
 glob = { version = "0.3.3", optional = true }
+toml = "0.9.8"
 
 [dev-dependencies]
 criterion = "0.7"
