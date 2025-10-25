@@ -1,5 +1,5 @@
-use std::io::stderr;
 use std::process::ExitCode;
+use std::{io::stderr, path::PathBuf};
 
 use clap::Parser;
 use clap_verbosity_flag::{Verbosity, log::LevelFilter};
@@ -20,6 +20,10 @@ pub(crate) struct Command {
     /// enable/disable color support
     #[arg(long, value_name = "BOOL", hide_possible_values = true, global = true)]
     color: Option<bool>,
+
+    /// read the configuration from the paths provided
+    #[arg(short, long, value_name = "PATH", global = true)]
+    config: Vec<PathBuf>,
 
     // positional
     #[command(subcommand)]
