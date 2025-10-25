@@ -3258,6 +3258,7 @@ dependencies = [
  "strum",
  "tempfile",
  "thiserror",
+ "toml",
  "tracing",
  "tracing-log",
  "tracing-subscriber",

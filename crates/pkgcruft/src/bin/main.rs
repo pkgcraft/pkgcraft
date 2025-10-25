@@ -69,7 +69,7 @@ fn main() -> anyhow::Result<ExitCode> {
     subscriber.init();
 
     let cmd = args.cmd().join(" ");
-    args.subcmd.run().or_else(|err| {
+    args.subcmd.run(&args.config).or_else(|err| {
         eprintln!("{cmd}: error: {err}");
         Ok(ExitCode::from(2))
     })

@@ -1,4 +1,4 @@
-use std::process::ExitCode;
+use std::{path::PathBuf, process::ExitCode};
 
 use strum::AsRefStr;
 
@@ -33,13 +33,13 @@ impl Subcommand {
 }
 
 impl Subcommand {
-    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, cfg: &[PathBuf]) -> anyhow::Result<ExitCode> {
         match self {
             Self::Completion(cmd) => cmd.run(),
             Self::Diff(cmd) => cmd.run(),
             Self::Ignore(cmd) => cmd.run(),
             Self::Replay(cmd) => cmd.run(),
-            Self::Scan(cmd) => cmd.run(),
+            Self::Scan(cmd) => cmd.run(cfg),
             Self::Show(cmd) => cmd.run(),
         }
     }
