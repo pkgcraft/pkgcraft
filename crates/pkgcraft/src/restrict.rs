@@ -27,6 +27,7 @@ boolean::restrict_with_boolean! {Restrict,
     Str(str::Restrict),
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for Restrict {
     fn default() -> Self {
         Self::False
