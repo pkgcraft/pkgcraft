@@ -1,4 +1,6 @@
-use std::io;
+use std::fs::File;
+use std::io::{self, Read};
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Args;
@@ -11,6 +13,7 @@ use pkgcruft::scan::Scanner;
 use pkgcruft::source::PkgFilter;
 
 use crate::options;
+use crate::options::reports::Reports;
 
 #[derive(Debug, Args)]
 #[clap(next_help_heading = "Scan options")]
@@ -64,7 +67,7 @@ pub(crate) struct Command {
 }
 
 impl Command {
-    pub(super) fn run(&self) -> anyhow::Result<ExitCode> {
+    pub(super) fn run(&self, cfg: &[PathBuf]) -> anyhow::Result<ExitCode> {
         let mut config = Config::new("pkgcraft", "");
 
         // determine package restrictions
@@ -74,10 +77,23 @@ impl Command {
             .pkg_targets(self.targets.iter().flatten())?
             .collapse();
 
+        let reports: Vec<_> = cfg
+            .iter()
+            .map(|p| {
+                let mut f = File::open(p)?;
+                let mut t = String::new();
+                f.read_to_string(&mut t)?;
+                let r: Reports = toml::from_str(&t)?;
+                Ok(r)
+            })
+            .collect::<anyhow::Result<Vec<Reports>>>()?;
+
+        let reports = reports.iter().flatten().chain(self.reports.iter());
+
         // create report scanner
         let scanner = Scanner::new()
             .jobs(self.jobs)
-            .reports(self.reports.iter().copied())
+            .reports(reports.copied())
             .filters(self.filters.iter().cloned())
             .force(self.force)
             .sort(self.sort)

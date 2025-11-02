@@ -3,9 +3,10 @@ use std::ops::Deref;
 use clap::Args;
 use indexmap::IndexSet;
 use pkgcruft::report::{ReportKind, ReportTarget};
+use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Args, Deserialize, Serialize, PartialEq, Eq)]
 #[clap(next_help_heading = Some("Report options"))]
 pub(crate) struct Reports {
     /// Restrict by report target
@@ -16,7 +17,7 @@ pub(crate) struct Reports {
         value_delimiter = ',',
         allow_hyphen_values = true
     )]
-    reports: Vec<ReportTarget>,
+    pub reports: Vec<ReportTarget>,
 }
 
 impl Reports {
@@ -42,5 +43,23 @@ impl Deref for Reports {
 
     fn deref(&self) -> &Self::Target {
         &self.reports
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::options::reports::Reports;
+    use pkgcruft::report::ReportTarget;
+
+    #[test]
+    fn serde() {
+        let s = r#"["@all","-@<=warning"]"#;
+        let reports: Vec<ReportTarget> = serde_json::from_str(s).unwrap();
+        let r2 = Reports { reports };
+        let json = serde_json::to_string(&r2).unwrap();
+
+        let r: Reports = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(r, r2);
     }
 }
