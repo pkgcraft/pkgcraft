@@ -16,6 +16,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
+anstream = "0.6.21"
 anyhow = "1.0.100"
 async-stream = "0.3.6"
 camino = "1.2.1"

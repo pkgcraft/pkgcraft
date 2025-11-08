@@ -57,7 +57,7 @@ fn main() -> anyhow::Result<ExitCode> {
     // initialize global subscriber
     subscriber.init();
 
-    let mut stdout = io::stdout().lock();
+    let mut stdout = anstream::stdout().lock();
     let stdin = io::stdin().lock();
     if stdin.is_terminal() {
         anyhow::bail!("requires running as a git pre-push hook");

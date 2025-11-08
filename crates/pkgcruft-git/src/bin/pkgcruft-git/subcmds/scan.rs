@@ -1,5 +1,3 @@
-use std::io;
-
 use pkgcruft::report::Report;
 use pkgcruft::reporter::{FancyReporter, Reporter};
 use pkgcruft_git::proto::EmptyRequest;
@@ -11,7 +9,7 @@ pub(crate) struct Command {}
 
 impl Command {
     pub(super) async fn run(&self, client: &mut Client) -> anyhow::Result<()> {
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         let mut reporter: Reporter = FancyReporter::default().into();
 
         let request = tonic::Request::new(EmptyRequest {});

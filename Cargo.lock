@@ -3279,6 +3279,7 @@ dependencies = [
 name = "pkgcruft-git"
 version = "0.0.3"
 dependencies = [
+ "anstream",
  "anyhow",
  "assert_cmd",
  "async-stream",

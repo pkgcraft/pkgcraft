@@ -14,7 +14,7 @@ pub(crate) struct Command {}
 
 impl Command {
     pub(super) async fn run(&self, client: &mut Client) -> anyhow::Result<()> {
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         let stdin = io::stdin().lock();
         if stdin.is_terminal() {
             anyhow::bail!("requires running as a git pre-receive hook");

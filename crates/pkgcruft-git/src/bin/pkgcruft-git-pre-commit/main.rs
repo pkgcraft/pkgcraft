@@ -51,7 +51,7 @@ fn main() -> anyhow::Result<ExitCode> {
     // initialize global subscriber
     subscriber.init();
 
-    let mut stdout = io::stdout().lock();
+    let mut stdout = anstream::stdout().lock();
 
     // load repo from the current working directory
     let path = current_dir()?;
