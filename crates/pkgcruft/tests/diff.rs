@@ -161,14 +161,14 @@ fn output() {
         assert_eq!(&output, &expected);
     }
 
-    // color enabled
+    // color forcibly enabled
     let expected = indoc::indoc! {"
-        \u{1b}[31m-cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated\u{1b}[0m
-        \u{1b}[31m-a/b: UnstableOnly: arch\u{1b}[0m
-        \u{1b}[32m+cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line\u{1b}[0m
+        \u{1b}[31m-cat/pkg-1-r2: DependencyDeprecated: BDEPEND: cat/deprecated\u{1b}[39m
+        \u{1b}[31m-a/b: UnstableOnly: arch\u{1b}[39m
+        \u{1b}[32m+cat/pkg-1-r2, line 3: WhitespaceUnneeded: empty line\u{1b}[39m
     "};
     let expected: Vec<_> = expected.lines().collect();
-    let output = cmd("pkgcruft diff --color true")
+    let output = cmd("pkgcruft diff --color always")
         .args([old_file.path(), new_file.path()])
         .output()
         .unwrap()

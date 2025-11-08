@@ -1,13 +1,13 @@
 use std::cmp::Ordering;
 use std::fmt;
-use std::io::{self, Write};
+use std::io::Write;
 use std::process::ExitCode;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::{Args, ValueHint};
-use colored::{Color, Colorize};
 use indexmap::IndexSet;
 use itertools::Itertools;
+use owo_colors::OwoColorize;
 use pkgcraft::restrict::{self, Restrict};
 use pkgcruft::report::{Iter, Report, ReportKind};
 
@@ -145,14 +145,13 @@ impl PartialOrd for Change<'_> {
 
 impl fmt::Display for Change<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let color = match self.kind {
-            ChangeKind::Removed => Color::Red,
-            ChangeKind::Added => Color::Green,
-        };
-
         let kind = &self.kind;
         let report = &self.report;
-        write!(f, "{}", format!("{kind}{report}").color(color))
+        let s = format!("{kind}{report}");
+        match kind {
+            ChangeKind::Removed => write!(f, "{}", s.red()),
+            ChangeKind::Added => write!(f, "{}", s.green()),
+        }
     }
 }
 
@@ -173,7 +172,7 @@ impl Command {
             changes.sort();
         }
 
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         for change in changes {
             writeln!(stdout, "{change}")?;
         }

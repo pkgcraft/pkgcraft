@@ -1,9 +1,9 @@
 use std::fmt;
 use std::str::FromStr;
 
-use colored::{Color, Colorize};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
+use owo_colors::OwoColorize;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::pkg::Package;
@@ -137,7 +137,7 @@ impl FromStr for PkgFilter {
             s => {
                 let possible = Self::iter()
                     .filter(|r| !matches!(r, Self::Restrict(_, _)))
-                    .map(|r| r.as_ref().color(Color::Green))
+                    .map(|r| r.as_ref().green().to_string())
                     .join(", ");
                 let message = indoc::formatdoc! {r#"
                     invalid filter: {s}

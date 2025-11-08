@@ -3,10 +3,10 @@ use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
 
-use colored::{Color, Colorize};
 use dashmap::DashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use owo_colors::OwoColorize;
 use strfmt::strfmt;
 use strum::{EnumString, VariantNames};
 
@@ -103,6 +103,8 @@ impl TimeReporter {
 pub struct StatsReporter {
     cache: IndexMap<ReportKind, u64>,
     pub sort_by: String,
+    // HACK: conditional to disable color support for direct API tests
+    no_color: bool,
 }
 
 impl From<StatsReporter> for Reporter {
@@ -129,7 +131,11 @@ impl StatsReporter {
         }
 
         for (kind, count) in &self.cache {
-            write!(output, "{}", kind.as_ref().color(kind.level()))?;
+            if self.no_color {
+                write!(output, "{kind}")?;
+            } else {
+                write!(output, "{}", kind.colorize())?;
+            }
             writeln!(output, ": {count}")?;
         }
 
@@ -156,6 +162,8 @@ impl SimpleReporter {
 #[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
     prev_key: Option<String>,
+    // HACK: conditional to disable color support for direct API tests
+    no_color: bool,
 }
 
 impl From<FancyReporter> for Reporter {
@@ -182,11 +190,19 @@ impl FancyReporter {
             if self.prev_key.is_some() {
                 writeln!(output)?;
             }
-            writeln!(output, "{}", key.color(Color::Blue).bold())?;
+            if self.no_color {
+                writeln!(output, "{key}")?;
+            } else {
+                writeln!(output, "{}", key.bright_blue())?;
+            }
             self.prev_key = Some(key);
         }
 
-        write!(output, "  {}", report.kind.as_ref().color(report.level()))?;
+        if self.no_color {
+            write!(output, "  {}", report.kind)?;
+        } else {
+            write!(output, "  {}", report.kind.colorize())?;
+        }
 
         if let ReportScope::Version(cpv, location) = scope {
             write!(output, ": version {}", cpv.version())?;
@@ -345,7 +361,10 @@ mod tests {
             WhitespaceInvalid: 1
             WhitespaceUnneeded: 1
         "#};
-        let mut reporter = StatsReporter::default();
+        let mut reporter = StatsReporter {
+            no_color: true,
+            ..Default::default()
+        };
         let output = report(reporter.clone());
         assert_eq!(expected, &output);
 
@@ -395,7 +414,11 @@ mod tests {
               LicensesUnused: unused
         "#};
 
-        let output = report(FancyReporter::default());
+        let reporter = FancyReporter {
+            no_color: true,
+            ..Default::default()
+        };
+        let output = report(reporter);
         assert_eq!(expected, &output);
     }
 

@@ -17,9 +17,8 @@ pub(crate) struct Command {
     #[command(flatten)]
     verbosity: Verbosity,
 
-    /// enable/disable color support
-    #[arg(long, value_name = "BOOL", hide_possible_values = true, global = true)]
-    color: Option<bool>,
+    #[command(flatten)]
+    color: colorchoice_clap::Color,
 
     // positional
     #[command(subcommand)]
@@ -41,6 +40,9 @@ fn main() -> anyhow::Result<ExitCode> {
 
     let args = Command::parse();
 
+    // set color choice
+    args.color.write_global();
+
     // custom log event formatter that disables target prefixes by default
     let level = args.verbosity.log_level_filter();
     let format = tracing_subscriber::fmt::format()
@@ -50,16 +52,10 @@ fn main() -> anyhow::Result<ExitCode> {
         .compact();
 
     // create formatting subscriber that uses stderr
-    let mut subscriber = tracing_subscriber::fmt()
+    let subscriber = tracing_subscriber::fmt()
         .event_format(format)
         .with_max_level(level.as_trace())
         .with_writer(stderr);
-
-    // forcibly enable or disable color support
-    if let Some(value) = args.color {
-        colored::control::set_override(value);
-        subscriber = subscriber.with_ansi(value);
-    }
 
     // initialize global subscriber
     subscriber.init();

@@ -1,8 +1,7 @@
-use std::io::{self, Write};
+use std::io::Write;
 use std::process::ExitCode;
 
 use clap::Args;
-use colored::Colorize;
 use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::restrict::Scope;
@@ -44,9 +43,9 @@ impl Subcommand {
             }
         };
 
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         for report in reports {
-            writeln!(stdout, "{}", report.as_ref().color(report.level()))?;
+            writeln!(stdout, "{}", report.colorize())?;
         }
 
         Ok(ExitCode::SUCCESS)

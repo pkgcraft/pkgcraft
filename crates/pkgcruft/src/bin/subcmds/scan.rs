@@ -1,4 +1,3 @@
-use std::io;
 use std::process::ExitCode;
 
 use clap::Args;
@@ -87,7 +86,7 @@ impl Command {
         let mut reporter = self.reporter.collapse(Some(&scanner));
 
         // run scanner for all targets
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {
             // output reports
             for report in scanner.run(repo, restrict)? {

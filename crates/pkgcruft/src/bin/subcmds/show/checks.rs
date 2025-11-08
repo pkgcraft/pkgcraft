@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::Write;
 use std::process::ExitCode;
 
 use clap::Args;
@@ -32,7 +32,7 @@ impl Subcommand {
             Check::iter().collect()
         };
 
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         for check in checks {
             writeln!(stdout, "{check}")?;
             if self.info {

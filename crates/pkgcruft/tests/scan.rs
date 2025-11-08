@@ -292,7 +292,7 @@ fn color() {
           KeywordsDropped: version 2: x86
     "};
     let expected: Vec<_> = reports.lines().collect();
-    let output = cmd("pkgcruft scan --color false")
+    let output = cmd("pkgcruft scan --color never")
         .args(["--repo", repo.as_ref()])
         .arg("KeywordsDropped")
         .output()
@@ -304,11 +304,11 @@ fn color() {
 
     // forcibly enable color
     let reports = indoc::indoc! {"
-        \u{1b}[1;34mKeywordsDropped/KeywordsDropped\u{1b}[0m
-          \u{1b}[33mKeywordsDropped\u{1b}[0m: version 2: x86
+        \u{1b}[94mKeywordsDropped/KeywordsDropped\u{1b}[39m
+          \u{1b}[33mKeywordsDropped\u{1b}[39m: version 2: x86
     "};
     let expected: Vec<_> = reports.lines().collect();
-    let output = cmd("pkgcruft scan --color true")
+    let output = cmd("pkgcruft scan --color always")
         .args(["--repo", repo.as_ref()])
         .arg("KeywordsDropped")
         .output()

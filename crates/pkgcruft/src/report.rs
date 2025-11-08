@@ -6,8 +6,8 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use colored::Color;
 use indexmap::IndexSet;
+use owo_colors::OwoColorize;
 use pkgcraft::bash::Node;
 use pkgcraft::cli::TriState;
 use pkgcraft::dep::{Cpn, Cpv};
@@ -32,18 +32,6 @@ pub enum ReportLevel {
     Warning,
     Style,
     Info,
-}
-
-impl From<ReportLevel> for Color {
-    fn from(level: ReportLevel) -> Self {
-        match level {
-            ReportLevel::Critical => Color::Red,
-            ReportLevel::Error => Color::TrueColor { r: 255, g: 140, b: 0 },
-            ReportLevel::Warning => Color::Yellow,
-            ReportLevel::Style => Color::Cyan,
-            ReportLevel::Info => Color::Green,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
@@ -704,6 +692,18 @@ impl ReportKind {
             Self::VariableScopeInvalid => Error,
             Self::WhitespaceInvalid => Warning,
             Self::WhitespaceUnneeded => Style,
+        }
+    }
+
+    /// Render the report variant into a string using its defined level color.
+    pub fn colorize(&self) -> String {
+        let s = self.as_ref();
+        match self.level() {
+            ReportLevel::Critical => s.red().to_string(),
+            ReportLevel::Error => s.fg_rgb::<255, 140, 0>().to_string(),
+            ReportLevel::Warning => s.yellow().to_string(),
+            ReportLevel::Style => s.cyan().to_string(),
+            ReportLevel::Info => s.green().to_string(),
         }
     }
 

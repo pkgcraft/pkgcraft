@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::Write;
 use std::process::ExitCode;
 
 use clap::Args;
@@ -38,7 +38,7 @@ impl Command {
             .pkg_targets(self.targets.iter().flatten())?
             .collapse();
 
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         for (repo, restrict) in targets.ebuild_repo_restricts() {
             let ignore = Ignore::new(repo).populate(restrict);
             write!(stdout, "{ignore}")?;
