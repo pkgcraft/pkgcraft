@@ -1,3 +1,6 @@
+use std::{env, fs};
+
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::test_data;
 use predicates::prelude::*;
 
@@ -29,4 +32,35 @@ fn ignore() {
             .stderr("")
             .success();
     }
+}
+
+#[test]
+fn output() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    fs::write(repo.path().join("profiles/arch.list"), "amd64\narm64\nx86\n").unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="ebuild with keywords"
+        SLOT=0
+        KEYWORDS="amd64 ~arm64 -x86"
+    "#};
+    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+
+    env::set_current_dir(repo.path()).unwrap();
+
+    // dep restriction
+    cmd("pk pkg showkw cat/pkg-1")
+        .assert()
+        .stdout(indoc::indoc! {"
+            keywords for cat/pkg:
+              │ a a   │     │
+              │ m r   │ e s │ r
+              │ d m x │ a l │ e
+              │ 6 6 8 │ p o │ p
+              │ 4 4 6 │ i t │ o
+            ──┼───────┼─────┼──────
+            1 │ + ~ - │ 8 0 │ test
+        "})
+        .stderr("")
+        .success();
 }
