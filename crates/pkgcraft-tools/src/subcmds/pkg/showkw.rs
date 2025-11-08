@@ -346,7 +346,11 @@ impl Command {
                 }
 
                 writeln!(stdout, "keywords for {cpn}:")?;
-                writeln!(stdout, "{table}")?;
+
+                // strip trailing whitespace from rendered table lines
+                for line in table.to_string().lines() {
+                    writeln!(stdout, "{}", line.trim_end())?;
+                }
             }
 
             // combine all failure statuses
