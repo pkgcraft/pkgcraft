@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{self, Write};
+use std::io::Write;
 use std::process::ExitCode;
 
 use clap::Args;
@@ -251,7 +251,7 @@ impl Command {
             .pkg_targets(self.targets.iter().flatten())?;
 
         let selected_arches = self.arches.iter().cloned().collect();
-        let mut stdout = io::stdout().lock();
+        let mut stdout = anstream::stdout().lock();
         let mut failed = false;
         let mut idx = 0;
 
