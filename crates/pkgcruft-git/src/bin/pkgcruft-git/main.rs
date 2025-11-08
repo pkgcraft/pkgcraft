@@ -32,9 +32,8 @@ pub(crate) struct Command {
     #[command(flatten)]
     verbosity: Verbosity,
 
-    /// enable/disable color support
-    #[arg(long, value_name = "BOOL", hide_possible_values = true, global = true)]
-    color: Option<bool>,
+    #[command(flatten)]
+    color: colorchoice_clap::Color,
 
     /// connect to service
     #[arg(short, long, value_name = "URL")]
@@ -52,16 +51,14 @@ pub(crate) struct Command {
 async fn try_main() -> anyhow::Result<()> {
     let args = Command::parse();
 
+    // set color choice
+    args.color.write_global();
+
     // create formatting subscriber that uses stderr
     let level = args.verbosity.log_level_filter();
-    let mut subscriber = tracing_subscriber::fmt()
+    let subscriber = tracing_subscriber::fmt()
         .with_max_level(level.as_trace())
         .with_writer(stderr);
-
-    // forcibly enable or disable subscriber output color
-    if let Some(value) = args.color {
-        subscriber = subscriber.with_ansi(value);
-    }
 
     // initialize global subscriber
     subscriber.init();

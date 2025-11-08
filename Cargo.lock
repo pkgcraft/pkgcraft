@@ -3286,6 +3286,7 @@ dependencies = [
  "camino",
  "clap",
  "clap-verbosity-flag",
+ "colorchoice-clap",
  "config",
  "git2",
  "hyper-util",
