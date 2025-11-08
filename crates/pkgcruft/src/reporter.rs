@@ -103,8 +103,6 @@ impl TimeReporter {
 pub struct StatsReporter {
     cache: IndexMap<ReportKind, u64>,
     pub sort_by: String,
-    // HACK: conditional to disable color support for direct API tests
-    no_color: bool,
 }
 
 impl From<StatsReporter> for Reporter {
@@ -131,11 +129,7 @@ impl StatsReporter {
         }
 
         for (kind, count) in &self.cache {
-            if self.no_color {
-                write!(output, "{kind}")?;
-            } else {
-                write!(output, "{}", kind.colorize())?;
-            }
+            write!(output, "{}", kind.colorize())?;
             writeln!(output, ": {count}")?;
         }
 
@@ -162,8 +156,6 @@ impl SimpleReporter {
 #[derive(Debug, Default, Clone)]
 pub struct FancyReporter {
     prev_key: Option<String>,
-    // HACK: conditional to disable color support for direct API tests
-    no_color: bool,
 }
 
 impl From<FancyReporter> for Reporter {
@@ -190,19 +182,11 @@ impl FancyReporter {
             if self.prev_key.is_some() {
                 writeln!(output)?;
             }
-            if self.no_color {
-                writeln!(output, "{key}")?;
-            } else {
-                writeln!(output, "{}", key.bright_blue())?;
-            }
+            writeln!(output, "{}", key.bright_blue())?;
             self.prev_key = Some(key);
         }
 
-        if self.no_color {
-            write!(output, "  {}", report.kind)?;
-        } else {
-            write!(output, "  {}", report.kind.colorize())?;
-        }
+        write!(output, "  {}", report.kind.colorize())?;
 
         if let ReportScope::Version(cpv, location) = scope {
             write!(output, ": version {}", cpv.version())?;
@@ -318,14 +302,14 @@ mod tests {
     fn report<R: Into<Reporter>>(reporter: R) -> String {
         let mut reporter = reporter.into();
         let reports = REPORTS.lines().map(|x| Report::from_json(x).unwrap());
-        let mut output = Vec::new();
+        let mut output = anstream::AutoStream::never(Vec::new());
 
         for report in reports {
             reporter.report(&report, &mut output).unwrap();
         }
         reporter.finish(&mut output).unwrap();
 
-        String::from_utf8(output).unwrap()
+        String::from_utf8(output.as_inner().to_vec()).unwrap()
     }
 
     #[test]
@@ -361,10 +345,7 @@ mod tests {
             WhitespaceInvalid: 1
             WhitespaceUnneeded: 1
         "#};
-        let mut reporter = StatsReporter {
-            no_color: true,
-            ..Default::default()
-        };
+        let mut reporter = StatsReporter::default();
         let output = report(reporter.clone());
         assert_eq!(expected, &output);
 
@@ -414,11 +395,7 @@ mod tests {
               LicensesUnused: unused
         "#};
 
-        let reporter = FancyReporter {
-            no_color: true,
-            ..Default::default()
-        };
-        let output = report(reporter);
+        let output = report(FancyReporter::default());
         assert_eq!(expected, &output);
     }
 
