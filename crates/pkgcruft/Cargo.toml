@@ -41,7 +41,6 @@ clap = { version = "4.5.51", features = ["derive", "string"] }
 clap_complete = "4.5.60"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.7"
-colored = "3.0.0"
 crossbeam-channel = "0.5.15"
 crossbeam-utils = "0.8.21"
 dashmap = { version = "6.1.0", features = ["rayon", "serde"] }
