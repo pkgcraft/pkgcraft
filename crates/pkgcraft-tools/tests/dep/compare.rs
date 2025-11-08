@@ -1,6 +1,7 @@
 use itertools::Itertools;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 
+use crate::cmd;
 use crate::predicates::lines_contain;
 
 #[test]

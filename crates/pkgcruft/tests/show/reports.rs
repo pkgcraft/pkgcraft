@@ -2,12 +2,14 @@ use std::env;
 
 use itertools::Itertools;
 use pkgcraft::restrict::Scope;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 use pkgcruft::check::{Check, Context};
 use pkgcruft::report::{ReportKind, ReportLevel};
 use predicates::prelude::*;
 use predicates::str::contains;
 use strum::IntoEnumIterator;
+
+use crate::cmd;
 
 #[test]
 fn all() {

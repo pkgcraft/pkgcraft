@@ -2,12 +2,13 @@ use std::fs;
 use std::io::Write;
 
 use itertools::Itertools;
-use pkgcraft::test::*;
+use pkgcraft::test::test_data;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
 
+use crate::cmd;
 use crate::test::*;
 
 /// Temporary file of all serialized reports from the primary QA test repo.

@@ -4,8 +4,9 @@ use camino::Utf8Path;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::test::cmd;
 use tempfile::tempdir;
+
+use crate::cmd;
 
 #[test]
 fn run() {

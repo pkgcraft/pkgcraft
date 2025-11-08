@@ -1,10 +1,10 @@
 use std::io::Write;
 
-use pkgcraft::test::cmd;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::NamedTempFile;
 
+use crate::cmd;
 use crate::replay::qa_primary_file;
 
 #[test]

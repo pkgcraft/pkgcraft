@@ -5,3 +5,5 @@ mod pkg;
 mod predicates;
 mod repo;
 mod version;
+
+pkgcraft::test::define_cmd!("pk");

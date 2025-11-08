@@ -1,7 +1,9 @@
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
+
+use crate::cmd;
 
 #[test]
 fn no_repos() {

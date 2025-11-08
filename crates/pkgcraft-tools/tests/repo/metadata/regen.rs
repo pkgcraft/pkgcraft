@@ -5,13 +5,14 @@ use indexmap::IndexMap;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::test::{assert_ordered_eq, cmd, test_data};
+use pkgcraft::test::{assert_ordered_eq, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::tempdir;
 use walkdir::WalkDir;
 
+use crate::cmd;
 use crate::predicates::lines_contain;
 
 #[test]

@@ -8,3 +8,5 @@ mod replay;
 mod scan;
 mod show;
 pub mod test;
+
+pkgcraft::test::define_cmd!("pkgcruft");

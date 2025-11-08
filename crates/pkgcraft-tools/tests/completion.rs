@@ -1,8 +1,9 @@
 use std::fs;
 
-use pkgcraft::test::cmd;
 use predicates::prelude::*;
 use tempfile::tempdir;
+
+use crate::cmd;
 
 #[test]
 fn no_target() {

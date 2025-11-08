@@ -1,5 +1,4 @@
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::cmd;
 use predicates::prelude::*;
 
 mod git;
@@ -9,6 +8,8 @@ mod utils;
 
 use git::GitRepo;
 use utils::PkgcruftServiceBuilder;
+
+pkgcraft::test::define_cmd!("pkgcruft-git");
 
 #[tokio::test]
 async fn uds() {

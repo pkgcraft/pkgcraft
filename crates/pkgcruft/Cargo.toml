@@ -65,16 +65,16 @@ url = "2.5.7"
 walkdir = "2.5.0"
 
 # exported test support deps
-assert_cmd = { version = "2.0.17", optional = true }
+assert_cmd = { version = "2.1.1", optional = true }
 glob = { version = "0.3.3", optional = true }
 
 [dev-dependencies]
+assert_cmd = { version = "2.1.1" }
 criterion = "0.7"
 predicates = "3.1.3"
 pretty_assertions = "1.4.1"
 tempfile = "3.23.0"
 tracing-test = "0.2.5"
-assert_cmd = { version = "2.0.17" }
 glob = { version = "0.3.3" }
 pkgcraft = { path = "../pkgcraft", version = "0.0.29", features = ["test"] }
 

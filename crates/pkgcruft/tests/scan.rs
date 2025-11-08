@@ -1,12 +1,13 @@
 use std::{env, fs};
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::*;
+use pkgcraft::test::{assert_ordered_eq, assert_unordered_eq, test_data, test_data_path};
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
 use tempfile::{NamedTempFile, tempdir};
 
+use crate::cmd;
 use crate::test::*;
 
 #[test]

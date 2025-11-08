@@ -1,10 +1,12 @@
 use std::{env, fs};
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
+
+use crate::cmd;
 
 #[test]
 fn empty_repo() {

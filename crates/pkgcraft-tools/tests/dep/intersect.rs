@@ -1,6 +1,7 @@
-use pkgcraft::test::cmd;
 use predicates::prelude::*;
 use predicates::str::contains;
+
+use crate::cmd;
 
 #[test]
 fn args() {

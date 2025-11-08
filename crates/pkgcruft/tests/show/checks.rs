@@ -1,9 +1,11 @@
 use std::env;
 
 use itertools::Itertools;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 use pkgcruft::check::Check;
 use predicates::prelude::*;
+
+use crate::cmd;
 
 #[test]
 fn all() {

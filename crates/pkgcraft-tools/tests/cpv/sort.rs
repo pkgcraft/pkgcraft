@@ -1,5 +1,7 @@
 use pkgcraft::dep::Version;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
+
+use crate::cmd;
 
 #[test]
 fn stdin() {

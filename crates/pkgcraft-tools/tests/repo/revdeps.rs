@@ -1,10 +1,12 @@
 use std::{env, fs};
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::{assert_ordered_eq, cmd, test_data};
+use pkgcraft::test::{assert_ordered_eq, test_data};
 use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
+
+use crate::cmd;
 
 #[test]
 fn nonexistent_repo() {

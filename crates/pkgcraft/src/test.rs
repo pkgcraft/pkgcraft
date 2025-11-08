@@ -1,6 +1,5 @@
 use std::{env, fs, io, process};
 
-use assert_cmd::Command;
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
 use serde::Deserialize;
@@ -16,16 +15,27 @@ use crate::repo::{EbuildRepo, Repo, Repository};
 use crate::types::SortedSet;
 use crate::utils::relpath_utf8;
 
-/// Construct a Command from a given string.
-pub fn cmd<S: AsRef<str>>(cmd: S) -> Command {
-    let args: Vec<_> = cmd.as_ref().split_whitespace().collect();
-    let mut cmd = Command::cargo_bin(args[0]).unwrap();
-    cmd.args(&args[1..]);
-    // disable config loading by default
-    cmd.env("PKGCRAFT_CONFIG", "");
-    cmd.env("PORTAGE_CONFIG", "");
-    cmd
+/// Define a function to support testing a given list of commands.
+#[macro_export]
+macro_rules! define_cmd {
+    ($($cmd:expr),+) => {
+        /// Construct a Command from a given string.
+        pub(crate) fn cmd<S: AsRef<str>>(cmd: S) -> assert_cmd::Command {
+            let mut args = cmd.as_ref().split_whitespace();
+            let mut cmd = match args.next() {
+                $(Some($cmd) => assert_cmd::cargo::cargo_bin_cmd!($cmd),)+
+                Some(x) => panic!("unknown command: {x}"),
+                None => panic!("invalid command"),
+            };
+            cmd.args(args);
+            // disable config loading by default
+            cmd.env("PKGCRAFT_CONFIG", "");
+            cmd.env("PORTAGE_CONFIG", "");
+            cmd
+        }
+    };
 }
+pub use define_cmd;
 
 /// Initialization for all test executables.
 #[cfg(test)]

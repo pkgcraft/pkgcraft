@@ -1,8 +1,9 @@
 use std::env;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 
+use crate::cmd;
 use crate::predicates::lines_contain;
 
 const SUCCESS_WITH_OUTPUT: &str = indoc::indoc! {r#"

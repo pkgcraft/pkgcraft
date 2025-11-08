@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::str;
 use std::sync::LazyLock;
 
-use assert_cmd::Command as assert_command;
+use assert_cmd::cargo::cargo_bin_cmd;
 use tempfile::Builder;
 
 static TARGET_DIR: LazyLock<String> = LazyLock::new(|| {
@@ -24,7 +24,7 @@ async fn test_uds() {
         .await
         .unwrap();
 
-    let mut cmd = assert_command::cargo_bin("pakt").unwrap();
+    let mut cmd = cargo_bin_cmd!("pakt");
     let output = cmd
         .arg("--config-none")
         .arg("-c")
@@ -57,7 +57,7 @@ async fn test_tcp() {
 
         // verify both raw socket and url args work
         for serve_addr in [socket, url] {
-            let mut cmd = assert_command::cargo_bin("pakt").unwrap();
+            let mut cmd = cargo_bin_cmd!("pakt");
             let output = cmd
                 .arg("--config-none")
                 .arg("-c")

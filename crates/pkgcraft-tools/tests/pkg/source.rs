@@ -1,9 +1,10 @@
 use std::env;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 use predicates::prelude::*;
 
+use crate::cmd;
 use crate::predicates::lines_contain;
 
 super::cmd_arg_tests!("pk pkg source");

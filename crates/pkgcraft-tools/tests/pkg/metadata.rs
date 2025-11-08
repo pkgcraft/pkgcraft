@@ -3,9 +3,11 @@ use std::env;
 use pkgcraft::config::Config;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::repo::ebuild::cache::Cache;
-use pkgcraft::test::{cmd, test_data};
+use pkgcraft::test::test_data;
 use predicates::prelude::*;
 use tempfile::tempdir;
+
+use crate::cmd;
 
 super::cmd_arg_tests!("pk pkg metadata");
 
