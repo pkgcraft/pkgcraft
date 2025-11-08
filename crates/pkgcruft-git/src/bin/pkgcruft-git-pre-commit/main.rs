@@ -5,6 +5,7 @@ use anyhow::anyhow;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use indexmap::IndexSet;
+use pkgcraft::cli::colorize;
 use pkgcraft::config::Config as PkgcraftConfig;
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::utils::current_dir;
@@ -43,7 +44,8 @@ fn main() -> anyhow::Result<ExitCode> {
     let level = args.verbosity.log_level_filter();
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(level.as_trace())
-        .with_writer(io::stderr);
+        .with_writer(io::stderr)
+        .with_ansi(colorize!(&io::stderr()));
 
     // initialize global subscriber
     subscriber.init();

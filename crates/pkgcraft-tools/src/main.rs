@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use clap_verbosity_flag::{Verbosity, log::LevelFilter};
-use pkgcraft::cli::reset_sigpipe;
+use pkgcraft::cli::{colorize, reset_sigpipe};
 use pkgcraft::config::Config;
 use tracing_log::AsTrace;
 
@@ -74,7 +74,8 @@ fn main() -> anyhow::Result<ExitCode> {
     let subscriber = tracing_subscriber::fmt()
         .event_format(format)
         .with_max_level(level.as_trace())
-        .with_writer(stderr);
+        .with_writer(stderr)
+        .with_ansi(colorize!(&stderr()));
 
     // initialize global subscriber
     subscriber.init();

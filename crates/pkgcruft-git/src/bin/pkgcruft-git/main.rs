@@ -7,6 +7,7 @@ use anyhow::Context;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use hyper_util::rt::TokioIo;
+use pkgcraft::cli::colorize;
 use pkgcraft::config::Config as PkgcraftConfig;
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
@@ -58,7 +59,8 @@ async fn try_main() -> anyhow::Result<()> {
     let level = args.verbosity.log_level_filter();
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(level.as_trace())
-        .with_writer(stderr);
+        .with_writer(stderr)
+        .with_ansi(colorize!(&stderr()));
 
     // initialize global subscriber
     subscriber.init();

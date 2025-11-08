@@ -2,6 +2,7 @@ use std::io::stderr;
 
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
+use pkgcraft::cli::colorize;
 use pkgcraft::utils::bounded_thread_pool;
 use pkgcruft_git::service::PkgcruftServiceBuilder;
 use tracing_log::AsTrace;
@@ -48,7 +49,8 @@ async fn main() -> anyhow::Result<()> {
     let level = args.verbosity.log_level_filter();
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(level.as_trace())
-        .with_writer(stderr);
+        .with_writer(stderr)
+        .with_ansi(colorize!(&stderr()));
 
     // initialize global subscriber
     subscriber.init();

@@ -17,6 +17,15 @@ macro_rules! is_terminal {
 }
 pub use is_terminal;
 
+/// Return true if a given output stream should enable color support, otherwise false.
+#[macro_export]
+macro_rules! colorize {
+    ($stream:expr) => {
+        !matches!(anstream::AutoStream::choice($stream), anstream::ColorChoice::Never)
+    };
+}
+pub use colorize;
+
 // TODO: drop this once stable rust supports `unix_sigpipe`,
 // see https://github.com/rust-lang/rust/issues/97889.
 //
