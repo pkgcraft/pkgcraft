@@ -49,5 +49,5 @@ camino = "1.2.1"
 num_cpus = "1.17.0"
 
 [dev-dependencies]
-ctor = "0.6.0"
+ctor = "0.6.1"
 tempfile = "3.23.0"

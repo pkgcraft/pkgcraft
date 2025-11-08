@@ -14,7 +14,7 @@ rust-version.workspace = true
 [dependencies]
 anyhow = "1.0.100"
 async-stream = "0.3.6"
-clap = { version = "4.5.49", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.5.51", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.15.18", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 hyper-util = "0.1.17"
