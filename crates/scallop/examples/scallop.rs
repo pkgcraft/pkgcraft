@@ -4,7 +4,7 @@ use scallop::{builtins, shell};
 
 fn main() {
     // load and enable builtins
-    let builtins = [builtins::profile::BUILTIN];
+    let builtins = [builtins::profile];
     builtins::register(builtins);
     builtins::enable(builtins).expect("failed enabling builtins");
 
