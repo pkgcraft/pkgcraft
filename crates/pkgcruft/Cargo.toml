@@ -1,6 +1,6 @@
 [package]
 name = "pkgcruft"
-version = "0.0.16"
+version = "0.0.17"
 description = "QA library and tools based on pkgcraft"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcruft"
@@ -50,10 +50,10 @@ inventory = "0.3.21"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
 owo-colors = "4.2.3"
-pkgcraft = { path = "../pkgcraft", version = "0.0.29" }
+pkgcraft = { path = "../pkgcraft", version = "0.0.30" }
 rayon = "1.11.0"
 regex = "1.12.2"
-scallop = { path = "../scallop", version = "0.0.28" }
+scallop = { path = "../scallop", version = "0.0.29" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 strfmt = "0.2.5"
@@ -78,7 +78,7 @@ pretty_assertions = "1.4.1"
 tempfile = "3.23.0"
 tracing-test = "0.2.5"
 glob = { version = "0.3.3" }
-pkgcraft = { path = "../pkgcraft", version = "0.0.29", features = ["test"] }
+pkgcraft = { path = "../pkgcraft", version = "0.0.30", features = ["test"] }
 
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/{ name }-{ version }/{ name }-{ version }-{ target }{ archive-suffix }"
