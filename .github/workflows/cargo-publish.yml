@@ -43,6 +43,11 @@ jobs:
     - name: Run tests for package
       run: cargo nextest run --all-features --tests -p ${PKG}
 
+    - name: Clean up git repos
+      run: |
+        git clean -fxd
+        git submodule foreach --recursive git clean -fxd
+
     - name: Publish crate
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
