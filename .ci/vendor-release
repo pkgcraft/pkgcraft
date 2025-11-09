@@ -16,9 +16,6 @@ pushd target/package >/dev/null
 RELEASE=$(echo ${PACKAGE}-*.crate)
 RELEASE=${RELEASE%.crate}
 
-# rename old workdir
-mv ${RELEASE} ${RELEASE}.old
-
 # unpack crate
 tar -zvxf ${RELEASE}.crate
 
