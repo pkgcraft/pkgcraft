@@ -1,3 +1,9 @@
+# 0.0.30
+
+## Changed
+- Update MSRV to 1.89.
+- pk: Respect color choice via --color in a consistent fashion.
+
 # 0.0.29
 
 ## Added
