@@ -15,11 +15,12 @@ jobs:
     steps:
     - name: Parse tag name
       run: |
-        if [[ -n ${{ inputs.tag }} ]]; then
-          TAG=${{ inputs.tag }}
+        TAG=${{ inputs.tag }}
+        if [[ -n ${TAG} ]]; then
           echo "Doing a dry run for tag: ${TAG}"
         else
           TAG=${{ github.ref_name }}
+          echo "PUBLISH_CRATE=true" >> $GITHUB_ENV
         fi
 
         echo "PKG=${TAG%%-[0-9]*}" >> $GITHUB_ENV
@@ -46,8 +47,8 @@ jobs:
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       run: |
-        if [[ -n ${{ inputs.tag }} ]]; then
-          cargo publish --no-verify --dry-run -p ${PKG}
-        else
+        if ${PUBLISH_CRATE}; then
           cargo publish --no-verify -p ${PKG}
+        else
+          cargo publish --no-verify --dry-run -p ${PKG}
         fi
