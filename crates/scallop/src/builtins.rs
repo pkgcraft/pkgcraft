@@ -475,6 +475,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn traits() {
+        // PartialEq and PartialOrd
+        assert!(profile == profile);
+        assert!(profile >= profile);
+
+        // Display, Debug, and AsRef<str>
+        assert_eq!(profile.to_string(), "profile");
+        assert!(format!("{profile:?}").contains("profile"));
+        assert_eq!(profile.as_ref(), "profile");
+
+        // Hash and Borrow<str>
+        let builtins = HashSet::from([profile]);
+        assert_eq!(builtins.get("profile").unwrap(), &profile);
+    }
+
+    #[test]
     fn toggle_builtins() {
         // select a builtin to toggle
         let (enabled, disabled) = shell_builtins();
