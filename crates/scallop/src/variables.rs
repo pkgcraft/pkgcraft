@@ -551,6 +551,18 @@ mod tests {
 
     #[test]
     fn test_expand() {
+        source::string("FOO=1").unwrap();
+        for (s, expected) in [
+            ("VAR", Some("VAR")),
+            ("$VAR", None),
+            ("${VAR:-a}", Some("a")),
+            ("${VAR:=$FOO}", Some("1")),
+            ("${BAR:+$FOO}", None),
+            ("${VAR:+$FOO}", Some("1")),
+        ] {
+            assert_eq!(expand(s).as_deref(), expected, "failed: {s}");
+        }
+
         let mut var1 = Variable::new("VAR1");
         let mut var2 = Variable::new("VAR2");
         var1.bind("1", None, None).unwrap();
