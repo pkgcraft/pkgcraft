@@ -433,6 +433,8 @@ mod tests {
 
     use tempfile::tempdir;
 
+    use crate::source;
+
     use super::*;
 
     #[test]
@@ -492,6 +494,8 @@ mod tests {
     #[test]
     fn test_variable() {
         let mut var = Variable::new("VAR");
+
+        // nonexistent
         assert_eq!(var.as_ref(), "VAR");
         assert!(HashSet::from([var.clone()]).contains("VAR"));
         assert_eq!(var.to_string(), "VAR");
@@ -499,6 +503,20 @@ mod tests {
         assert!(var.required().is_err());
         assert!(!var.is_readonly());
         assert!(!var.is_array());
+
+        // empty
+        source::string("VAR=").unwrap();
+        assert_eq!(var.optional().unwrap(), "");
+        assert_eq!(var.required().unwrap(), "");
+        assert!(!var.is_readonly());
+        assert!(!var.is_array());
+
+        // array
+        source::string("VAR=(a b c)").unwrap();
+        assert_eq!(var.optional().unwrap(), "a");
+        assert_eq!(var.required().unwrap(), "a");
+        assert!(!var.is_readonly());
+        assert!(var.is_array());
 
         var.bind("", None, None).unwrap();
         assert_eq!(var.optional().unwrap(), "");
