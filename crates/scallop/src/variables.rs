@@ -95,10 +95,11 @@ where
     let value = value.as_ref();
     let c_name = CString::new(name).unwrap();
     let c_value = CString::new(value).unwrap();
-    let val = c_value.as_ptr() as *mut _;
+    let name_ptr = c_name.as_ptr();
+    let value_ptr = c_value.as_ptr();
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
     ok_or_error(|| unsafe {
-        if let Some(var) = bash::bind_variable(c_name.as_ptr(), val, flags).as_mut() {
+        if let Some(var) = bash::bind_variable(name_ptr, value_ptr, flags).as_mut() {
             if let Some(attrs) = attrs {
                 var.attributes |= attrs.bits() as i32;
             }
@@ -124,10 +125,11 @@ where
     let value = value.as_ref();
     let c_name = CString::new(name).unwrap();
     let c_value = CString::new(value).unwrap();
-    let val = c_value.as_ptr() as *mut _;
+    let name_ptr = c_name.as_ptr();
+    let value_ptr = c_value.as_ptr();
     let flags = flags.unwrap_or(Assign::NONE).bits() as i32;
     ok_or_error(|| unsafe {
-        if let Some(var) = bash::bind_global_variable(c_name.as_ptr(), val, flags).as_mut() {
+        if let Some(var) = bash::bind_global_variable(name_ptr, value_ptr, flags).as_mut() {
             if let Some(attrs) = attrs {
                 var.attributes |= attrs.bits() as i32;
             }
@@ -357,7 +359,7 @@ pub fn glob_files<S: AsRef<str>>(val: S) -> Vec<String> {
     let mut files = vec![];
     let val = CString::new(val.as_ref()).unwrap();
     unsafe {
-        let paths = bash::shell_glob_filename(val.as_ptr() as *mut _, 0);
+        let paths = bash::shell_glob_filename(val.as_ptr(), 0);
         if !paths.is_null() {
             let mut i = 0;
             while let Some(s) = (*paths.offset(i)).as_ref() {
