@@ -1,0 +1,88 @@
+use pkgcraft::repo::ebuild::EbuildRepoBuilder;
+use pkgcruft_git::service::PkgcruftServiceBuilder;
+use tokio::process::Command;
+
+use crate::git::GitRepo;
+
+#[tokio::test]
+async fn uds() {
+    let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    GitRepo::init(&repo).unwrap();
+
+    let service = PkgcruftServiceBuilder::new(repo.path())
+        .spawn()
+        .await
+        .unwrap();
+    let ver = env!("CARGO_PKG_VERSION");
+    let expected = format!("client: {ver}, server: {ver}\n");
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_pkgcruft-git"));
+    cmd.arg("-c");
+    cmd.arg(&service.socket);
+    cmd.arg("version");
+    let output = cmd.output().await.unwrap();
+    let data = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(data, expected);
+}
+
+#[tokio::test]
+async fn tcp() {
+    let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    GitRepo::init(&repo).unwrap();
+
+    for addr in ["127.0.0.1:0", "[::]:0"] {
+        let service = PkgcruftServiceBuilder::new(repo.path())
+            .socket(addr)
+            .spawn()
+            .await
+            .unwrap();
+        let url = format!("http://{}", &service.socket);
+
+        let ver = env!("CARGO_PKG_VERSION");
+        let expected = format!("client: {ver}, server: {ver}\n");
+
+        // verify both raw socket and url args work
+        for serve_addr in [&service.socket, &url] {
+            let mut cmd = Command::new(env!("CARGO_BIN_EXE_pkgcruft-git"));
+            cmd.arg("-c");
+            cmd.arg(serve_addr);
+            cmd.arg("version");
+            let output = cmd.output().await.unwrap();
+            let data = String::from_utf8(output.stdout).unwrap();
+            assert_eq!(data, expected);
+        }
+    }
+}
+
+// TODO: fix failures due to stream disconnects under testing
+/*#[tokio::test]
+async fn scan() {
+    let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    git2::Repository::init(repo.path()).unwrap();
+
+    let service = PkgcruftServiceBuilder::new(repo.path()).spawn().await;
+
+    // empty repo
+    cmd("pkgcruft-git")
+        .arg("-c")
+        .arg(&service.socket)
+        .arg("scan")
+        .assert()
+        .stdout("")
+        .stderr("")
+        .success();
+
+    // invalid pkg
+    repo.create_ebuild("cat/pkg-1", &["EAPI=invalid"]).unwrap();
+    cmd("pkgcruft-git")
+        .arg("-c")
+        .arg(&service.socket)
+        .arg("scan")
+        .assert()
+        .stdout(indoc::indoc! {"
+            cat/pkg
+              MetadataError: version 1: unsupported EAPI: invalid
+        "})
+        .stderr("")
+        .success();
+}*/
