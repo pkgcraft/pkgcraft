@@ -61,7 +61,7 @@ impl ConfigPath {
                 cache = prefixed(Utf8PathBuf::from(format!("/var/cache/{name}")));
                 data = prefixed(Utf8PathBuf::from(format!("/usr/share/{name}")));
                 db = prefixed(Utf8PathBuf::from(format!("/var/db/{name}")));
-                run = prefixed(Utf8PathBuf::from(format!("/run/{name}")));
+                run = prefixed(Utf8PathBuf::from(format!("/tmp/{name}")));
                 tmp = prefixed(Utf8PathBuf::from(format!("/var/tmp/{name}")));
                 system_config
             }
@@ -478,7 +478,7 @@ mod tests {
         let config = Config::new("pkgcraft", "");
         assert_eq!(config.path().cache, Utf8PathBuf::from("/var/cache/pkgcraft"));
         assert_eq!(config.path().config, Utf8PathBuf::from("/etc/pkgcraft"));
-        assert_eq!(config.path().run, Utf8PathBuf::from("/run/pkgcraft"));
+        assert_eq!(config.path().run, Utf8PathBuf::from("/tmp/pkgcraft"));
     }
 
     #[traced_test]
