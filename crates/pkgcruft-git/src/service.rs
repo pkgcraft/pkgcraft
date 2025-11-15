@@ -13,6 +13,7 @@ use pkgcruft::scan::Scanner;
 use tempfile::{TempDir, tempdir};
 use tokio::net::{TcpListener, UnixListener};
 use tokio::sync::{Semaphore, mpsc, oneshot};
+use tokio::task::JoinHandle;
 use tokio_stream::wrappers::{ReceiverStream, TcpListenerStream, UnixListenerStream};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -29,7 +30,7 @@ enum Listener {
 
 impl Listener {
     /// Try creating a new listener for the pkgcruft service.
-    async fn try_new<S: AsRef<str>>(socket: S) -> crate::Result<Self> {
+    async fn try_new<S: AsRef<str>>(socket: S) -> crate::Result<(String, Self)> {
         let socket = socket.as_ref();
         let (socket, listener) = match socket.parse::<SocketAddr>() {
             Err(_) if socket.starts_with('/') => {
@@ -51,8 +52,7 @@ impl Listener {
             }
         };
 
-        tracing::info!("service listening at: {socket}");
-        Ok(listener)
+        Ok((socket, listener))
     }
 }
 
@@ -65,7 +65,7 @@ pub struct PkgcruftServiceBuilder {
 
 impl PkgcruftServiceBuilder {
     /// Create a new service builder.
-    pub fn new(uri: &str) -> Self {
+    pub fn new<S: ToString>(uri: S) -> Self {
         Self {
             uri: uri.to_string(),
             socket: None,
@@ -92,21 +92,24 @@ impl PkgcruftServiceBuilder {
         self
     }
 
-    /// Start the service, waiting for it to finish.
-    pub async fn start(self) -> crate::Result<Pkgcruftd> {
+    /// Create a network listener for the service.
+    async fn create_listener(&self) -> crate::Result<(String, Listener)> {
         // determine network socket
-        let socket = if let Some(value) = self.socket {
-            value
+        let socket = if let Some(value) = &self.socket {
+            value.to_string()
         } else {
             // default to using UNIX domain socket for the executing user
             let config = PkgcraftConfig::new("pkgcraft", "");
             config.path().run.join("pkgcruft.sock").to_string()
         };
+        Listener::try_new(&socket).await
+    }
 
-        let service = PkgcruftService::try_new(self.uri, self.temp, self.jobs)?;
+    /// Start the service listening on the given Listener.
+    async fn listen(self, listener: Listener) -> crate::Result<Pkgcruftd> {
+        let service = PkgcruftService::try_new(&self.uri, self.temp, self.jobs)?;
         let server = Server::builder().add_service(PkgcruftServer::new(service));
 
-        let listener = Listener::try_new(socket).await?;
         let (tx, rx) = oneshot::channel::<()>();
         match listener {
             Listener::Unix(listener) => {
@@ -130,6 +133,26 @@ impl PkgcruftServiceBuilder {
 
         Ok(Pkgcruftd { _tx: tx })
     }
+
+    /// Start the service.
+    pub async fn start(self) -> crate::Result<Pkgcruftd> {
+        let (socket, listener) = self.create_listener().await?;
+        tracing::info!("service listening at: {socket}");
+        self.listen(listener).await
+    }
+
+    /// Spawn the service in a tokio task.
+    pub async fn spawn(self) -> crate::Result<PkgcruftdTask> {
+        let (socket, listener) = self.create_listener().await?;
+        let _service = tokio::spawn(async move { self.listen(listener).await });
+        Ok(PkgcruftdTask { socket, _service })
+    }
+}
+
+/// Pkgcruft service spawned into a tokio task providing socket access for tests.
+pub struct PkgcruftdTask {
+    pub socket: String,
+    _service: JoinHandle<crate::Result<Pkgcruftd>>,
 }
 
 /// Pkgcruft service wrapper that forces the service to end when dropped.
@@ -146,7 +169,7 @@ struct PkgcruftService {
 
 impl PkgcruftService {
     /// Try creating a new service.
-    fn try_new(uri: String, temp: bool, jobs: usize) -> crate::Result<Self> {
+    fn try_new(uri: &str, temp: bool, jobs: usize) -> crate::Result<Self> {
         let mut _tempdir = None;
         let path = if temp {
             // create temporary git repo dir
@@ -157,7 +180,7 @@ impl PkgcruftService {
             _tempdir = Some(tempdir);
 
             // clone git repo into temporary dir
-            git::clone(&uri, &path)
+            git::clone(uri, &path)
                 .map_err(|e| Error::Start(format!("failed cloning git repo: {uri}: {e}")))?;
 
             path
