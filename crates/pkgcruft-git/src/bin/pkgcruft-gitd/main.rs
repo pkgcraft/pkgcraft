@@ -69,5 +69,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // start service
-    Ok(service.start().await?)
+    service.start().await?;
+
+    Ok(())
 }

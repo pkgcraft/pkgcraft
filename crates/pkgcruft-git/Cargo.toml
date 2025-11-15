@@ -24,6 +24,7 @@ clap = { version = "4.5.51", features = ["derive", "string"] }
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.7"
 config = { version = "0.15.18", default-features = false, features = ["toml"] }
+futures = "0.3.31"
 git2 = "0.20.2"
 hyper-util = "0.1.17"
 indexmap = "2.12.0"

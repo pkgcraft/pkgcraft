@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use camino::Utf8PathBuf;
+use futures::FutureExt;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
@@ -11,7 +12,7 @@ use pkgcruft::report::ReportLevel;
 use pkgcruft::scan::Scanner;
 use tempfile::{TempDir, tempdir};
 use tokio::net::{TcpListener, UnixListener};
-use tokio::sync::{Semaphore, mpsc};
+use tokio::sync::{Semaphore, mpsc, oneshot};
 use tokio_stream::wrappers::{ReceiverStream, TcpListenerStream, UnixListenerStream};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
@@ -92,7 +93,7 @@ impl PkgcruftServiceBuilder {
     }
 
     /// Start the service, waiting for it to finish.
-    pub async fn start(self) -> crate::Result<()> {
+    pub async fn start(self) -> crate::Result<Pkgcruftd> {
         // determine network socket
         let socket = if let Some(value) = self.socket {
             value
@@ -106,20 +107,34 @@ impl PkgcruftServiceBuilder {
         let server = Server::builder().add_service(PkgcruftServer::new(service));
 
         let listener = Listener::try_new(socket).await?;
+        let (tx, rx) = oneshot::channel::<()>();
         match listener {
             Listener::Unix(listener) => {
                 server
-                    .serve_with_incoming(UnixListenerStream::new(listener))
+                    .serve_with_incoming_shutdown(
+                        UnixListenerStream::new(listener),
+                        rx.map(drop),
+                    )
                     .await
             }
             Listener::Tcp(listener) => {
                 server
-                    .serve_with_incoming(TcpListenerStream::new(listener))
+                    .serve_with_incoming_shutdown(
+                        TcpListenerStream::new(listener),
+                        rx.map(drop),
+                    )
                     .await
             }
         }
-        .map_err(|e| Error::Service(e.to_string()))
+        .map_err(|e| Error::Service(e.to_string()))?;
+
+        Ok(Pkgcruftd { _tx: tx })
     }
+}
+
+/// Pkgcruft service wrapper that forces the service to end when dropped.
+pub struct Pkgcruftd {
+    _tx: oneshot::Sender<()>,
 }
 
 struct PkgcruftService {

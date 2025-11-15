@@ -3288,6 +3288,7 @@ dependencies = [
  "clap-verbosity-flag",
  "colorchoice-clap",
  "config",
+ "futures",
  "git2",
  "hyper-util",
  "indexmap",
