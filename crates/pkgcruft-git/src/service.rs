@@ -100,7 +100,7 @@ impl PkgcruftServiceBuilder {
         } else {
             // default to using UNIX domain socket for the executing user
             let config = PkgcraftConfig::new("pkgcraft", "");
-            config.path().run.join("pkgcruft.sock").to_string()
+            config.path().run.join("pkgcruft-gitd.sock").to_string()
         };
         Listener::try_new(&socket).await
     }
