@@ -1,5 +1,6 @@
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcruft_git::service::PkgcruftServiceBuilder;
+use tempfile::NamedTempFile;
 use tokio::process::Command;
 
 use crate::git::GitRepo;
@@ -8,21 +9,29 @@ use crate::git::GitRepo;
 async fn uds() {
     let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
     GitRepo::init(&repo).unwrap();
+    let tmp = NamedTempFile::new().unwrap();
+    let socket = tmp.path().to_str().unwrap();
 
-    let service = PkgcruftServiceBuilder::new(repo.path())
-        .spawn()
-        .await
-        .unwrap();
-    let ver = env!("CARGO_PKG_VERSION");
-    let expected = format!("client: {ver}, server: {ver}\n");
+    // try connecting specific and default socket path
+    for socket in [Some(socket), None] {
+        let mut service = PkgcruftServiceBuilder::new(repo.path());
+        if let Some(value) = socket {
+            service = service.socket(value);
+        }
 
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_pkgcruft-git"));
-    cmd.arg("-c");
-    cmd.arg(&service.socket);
-    cmd.arg("version");
-    let output = cmd.output().await.unwrap();
-    let data = String::from_utf8(output.stdout).unwrap();
-    assert_eq!(data, expected);
+        service.spawn().await.unwrap();
+        let ver = env!("CARGO_PKG_VERSION");
+        let expected = format!("client: {ver}, server: {ver}\n");
+
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_pkgcruft-git"));
+        if let Some(value) = socket {
+            cmd.args(["-c", value]);
+        }
+        cmd.arg("version");
+        let output = cmd.output().await.unwrap();
+        let data = String::from_utf8(output.stdout).unwrap();
+        assert_eq!(data, expected);
+    }
 }
 
 #[tokio::test]
