@@ -59,3 +59,17 @@ async fn socket_errors() {
         .failure()
         .code(1);
 }
+
+#[tokio::test]
+async fn start() {
+    let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    GitRepo::init(&repo).unwrap();
+
+    // create temp file for socket location
+    let tmp = NamedTempFile::new().unwrap();
+    let socket = tmp.path().to_str().unwrap();
+
+    // custom socket
+    let service = PkgcruftServiceBuilder::new(repo.path()).socket(socket);
+    tokio::spawn(async move { service.start().await });
+}
