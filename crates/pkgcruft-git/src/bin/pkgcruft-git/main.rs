@@ -110,6 +110,7 @@ async fn try_main() -> anyhow::Result<()> {
 }
 
 fn main() {
+    // TODO: improve error chain output
     // extract error message from tonic status responses
     if let Err(error) = try_main() {
         eprintln!("error: {error}\n");
