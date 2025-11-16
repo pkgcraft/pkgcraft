@@ -150,12 +150,14 @@ impl PkgcruftServiceBuilder {
 }
 
 /// Pkgcruft service spawned into a tokio task providing socket access for tests.
+#[derive(Debug)]
 pub struct PkgcruftdTask {
     pub socket: String,
     _service: JoinHandle<crate::Result<Pkgcruftd>>,
 }
 
 /// Pkgcruft service wrapper that forces the service to end when dropped.
+#[derive(Debug)]
 pub struct Pkgcruftd {
     _tx: oneshot::Sender<()>,
 }
