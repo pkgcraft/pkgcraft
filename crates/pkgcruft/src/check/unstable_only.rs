@@ -13,14 +13,12 @@ use crate::source::SourceKind;
 use super::Context::Optional;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::UnstableOnly,
-        reports: &[UnstableOnly],
-        scope: Scope::Package,
-        sources: &[SourceKind::EbuildPkg],
-        context: &[Optional],
-        create,
-    }
+    kind: super::CheckKind::UnstableOnly,
+    reports: &[UnstableOnly],
+    scope: Scope::Package,
+    sources: &[SourceKind::EbuildPkg],
+    context: &[Optional],
+    create,
 }
 
 pub(super) fn create(run: &ScannerRun) -> super::Runner {

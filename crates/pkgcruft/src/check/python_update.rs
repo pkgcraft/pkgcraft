@@ -18,14 +18,12 @@ use crate::utils::{impl_targets, use_starts_with};
 use super::Context::GentooInherited;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::PythonUpdate,
-        reports: &[PythonUpdate],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildPkg],
-        context: &[GentooInherited],
-        create,
-    }
+    kind: super::CheckKind::PythonUpdate,
+    reports: &[PythonUpdate],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildPkg],
+    context: &[GentooInherited],
+    create,
 }
 
 static IMPL_PKG: &str = "dev-lang/python";

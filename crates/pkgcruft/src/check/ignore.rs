@@ -10,14 +10,12 @@ use crate::source::SourceKind;
 use super::Context::Optional;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Ignore,
-        reports: &[IgnoreInvalid, IgnoreUnused],
-        scope: Scope::Version,
-        sources: &[SourceKind::Cpv, SourceKind::Cpn, SourceKind::Category],
-        context: &[Optional],
-        create,
-    }
+    kind: super::CheckKind::Ignore,
+    reports: &[IgnoreInvalid, IgnoreUnused],
+    scope: Scope::Version,
+    sources: &[SourceKind::Cpv, SourceKind::Cpn, SourceKind::Category],
+    context: &[Optional],
+    create,
 }
 
 pub(super) fn create(_run: &ScannerRun) -> super::Runner {

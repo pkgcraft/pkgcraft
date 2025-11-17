@@ -16,14 +16,12 @@ use crate::utils::{impl_targets, use_starts_with};
 use super::Context::GentooInherited;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::RubyUpdate,
-        reports: &[RubyUpdate],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildPkg],
-        context: &[GentooInherited],
-        create,
-    }
+    kind: super::CheckKind::RubyUpdate,
+    reports: &[RubyUpdate],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildPkg],
+    context: &[GentooInherited],
+    create,
 }
 
 static IUSE_PREFIX: &str = "ruby_targets_";

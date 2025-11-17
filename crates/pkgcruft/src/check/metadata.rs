@@ -8,14 +8,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Metadata,
-        reports: &[MetadataError],
-        scope: Scope::Version,
-        sources: &[SourceKind::Cpv],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::Metadata,
+    reports: &[MetadataError],
+    scope: Scope::Version,
+    sources: &[SourceKind::Cpv],
+    context: &[],
+    create,
 }
 
 pub(super) fn create(run: &ScannerRun) -> super::Runner {

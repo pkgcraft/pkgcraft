@@ -16,20 +16,18 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Commands,
-        reports: &[
-            Builtin,
-            CommandDieUnneeded,
-            CommandScopeInvalid,
-            Optfeature,
-            PhaseCall,
-        ],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildRawPkg],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::Commands,
+    reports: &[
+        Builtin,
+        CommandDieUnneeded,
+        CommandScopeInvalid,
+        Optfeature,
+        PhaseCall,
+    ],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildRawPkg],
+    context: &[],
+    create,
 }
 
 type CommandFn =

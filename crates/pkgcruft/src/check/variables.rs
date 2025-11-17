@@ -10,14 +10,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Variables,
-        reports: &[VariableScopeInvalid],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildRawPkg],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::Variables,
+    reports: &[VariableScopeInvalid],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildRawPkg],
+    context: &[],
+    create,
 }
 
 type VariableFn = for<'a> fn(&str, &Node<'a>, &EbuildRawPkg, &ScannerRun);

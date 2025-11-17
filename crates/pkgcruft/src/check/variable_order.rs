@@ -8,14 +8,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::VariableOrder,
-        reports: &[VariableOrder],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildRawPkg],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::VariableOrder,
+    reports: &[VariableOrder],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildRawPkg],
+    context: &[],
+    create,
 }
 
 #[derive(Display, EnumString, PartialEq, Eq, PartialOrd, Ord)]

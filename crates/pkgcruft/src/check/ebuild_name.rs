@@ -9,14 +9,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::EbuildName,
-        reports: &[EbuildNameInvalid, EbuildVersionsEqual],
-        scope: Scope::Package,
-        sources: &[SourceKind::Cpn],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::EbuildName,
+    reports: &[EbuildNameInvalid, EbuildVersionsEqual],
+    scope: Scope::Package,
+    sources: &[SourceKind::Cpn],
+    context: &[],
+    create,
 }
 
 pub(super) fn create(_run: &ScannerRun) -> super::Runner {

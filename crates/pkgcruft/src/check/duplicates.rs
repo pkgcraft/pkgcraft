@@ -10,14 +10,12 @@ use crate::source::SourceKind;
 use super::Context::{Optional, Overlay};
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Duplicates,
-        reports: &[PackageOverride],
-        scope: Scope::Package,
-        sources: &[SourceKind::Cpn],
-        context: &[Optional, Overlay],
-        create,
-    }
+    kind: super::CheckKind::Duplicates,
+    reports: &[PackageOverride],
+    scope: Scope::Package,
+    sources: &[SourceKind::Cpn],
+    context: &[Optional, Overlay],
+    create,
 }
 
 pub(super) fn create(_run: &ScannerRun) -> super::Runner {

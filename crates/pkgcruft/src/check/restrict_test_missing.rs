@@ -8,14 +8,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::RestrictTestMissing,
-        reports: &[RestrictMissing],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildPkg],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::RestrictTestMissing,
+    reports: &[RestrictMissing],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildPkg],
+    context: &[],
+    create,
 }
 
 pub(super) fn create(_run: &ScannerRun) -> super::Runner {

@@ -9,14 +9,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::EapiStatus,
-        reports: &[EapiBanned, EapiDeprecated, EapiUnused],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildRawPkg],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::EapiStatus,
+    reports: &[EapiBanned, EapiDeprecated, EapiUnused],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildRawPkg],
+    context: &[],
+    create,
 }
 
 pub(super) fn create(run: &ScannerRun) -> super::Runner {

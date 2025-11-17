@@ -9,14 +9,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::RepoLayout,
-        reports: &[RepoCategoryEmpty, RepoCategoriesUnused, RepoPackageEmpty],
-        scope: Scope::Package,
-        sources: &[SourceKind::Cpn, SourceKind::Category],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::RepoLayout,
+    reports: &[RepoCategoryEmpty, RepoCategoriesUnused, RepoPackageEmpty],
+    scope: Scope::Package,
+    sources: &[SourceKind::Cpn, SourceKind::Category],
+    context: &[],
+    create,
 }
 
 pub(super) fn create(run: &ScannerRun) -> super::Runner {

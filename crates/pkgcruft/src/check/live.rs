@@ -9,14 +9,12 @@ use crate::source::SourceKind;
 use super::Context::Gentoo;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Live,
-        reports: &[LiveOnly],
-        scope: Scope::Package,
-        sources: &[SourceKind::EbuildPkg],
-        context: &[Gentoo],
-        create,
-    }
+    kind: super::CheckKind::Live,
+    reports: &[LiveOnly],
+    scope: Scope::Package,
+    sources: &[SourceKind::EbuildPkg],
+    context: &[Gentoo],
+    create,
 }
 
 pub(super) fn create(_run: &ScannerRun) -> super::Runner {

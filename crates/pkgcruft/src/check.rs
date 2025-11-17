@@ -305,8 +305,11 @@ pub enum Context {
 
 /// Register a check.
 macro_rules! register {
-    ($check:expr) => {
-        static CHECK: $crate::check::Check = $check;
+    ($($fields:tt)+) => {
+        static CHECK: $crate::check::Check = $crate::check::Check {
+            $($fields)+
+        };
+
         inventory::submit! { CHECK }
 
         impl std::fmt::Display for Check {

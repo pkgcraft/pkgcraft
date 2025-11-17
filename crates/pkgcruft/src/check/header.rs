@@ -10,14 +10,12 @@ use crate::source::SourceKind;
 use super::Context::Gentoo;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Header,
-        reports: &[HeaderInvalid],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildRawPkg],
-        context: &[Gentoo],
-        create,
-    }
+    kind: super::CheckKind::Header,
+    reports: &[HeaderInvalid],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildRawPkg],
+    context: &[Gentoo],
+    create,
 }
 
 static GENTOO_LICENSE_HEADER: &str =

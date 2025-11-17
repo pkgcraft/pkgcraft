@@ -12,20 +12,18 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Keywords,
-        reports: &[
-            ArchesUnused,
-            EapiUnstable,
-            KeywordsLive,
-            KeywordsOverlapping,
-            KeywordsUnsorted,
-        ],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildPkg],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::Keywords,
+    reports: &[
+        ArchesUnused,
+        EapiUnstable,
+        KeywordsLive,
+        KeywordsOverlapping,
+        KeywordsUnsorted,
+    ],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildPkg],
+    context: &[],
+    create,
 }
 
 pub(super) fn create(run: &ScannerRun) -> super::Runner {

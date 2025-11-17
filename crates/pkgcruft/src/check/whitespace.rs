@@ -8,14 +8,12 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    super::Check {
-        kind: super::CheckKind::Whitespace,
-        reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
-        scope: Scope::Version,
-        sources: &[SourceKind::EbuildRawPkg],
-        context: &[],
-        create,
-    }
+    kind: super::CheckKind::Whitespace,
+    reports: &[EapiFormat, WhitespaceInvalid, WhitespaceUnneeded],
+    scope: Scope::Version,
+    sources: &[SourceKind::EbuildRawPkg],
+    context: &[],
+    create,
 }
 
 pub(super) fn create(_run: &ScannerRun) -> super::Runner {
