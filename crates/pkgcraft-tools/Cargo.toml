@@ -29,14 +29,14 @@ aho-corasick = "1.1.4"
 anstream = "0.6.21"
 anyhow = "1.0.100"
 camino = "1.2.1"
-clap = { version = "4.5.51", features = ["derive"] }
-clap_complete = "4.5.60"
+clap = { version = "4.5.53", features = ["derive"] }
+clap_complete = "4.5.61"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.7"
 futures = "0.3.31"
 humantime = "2.3.0"
-indexmap = { version = "2.12.0", features = ["rayon", "serde"] }
-indicatif = "0.18.2"
+indexmap = { version = "2.12.1", features = ["rayon", "serde"] }
+indicatif = "0.18.3"
 indoc = "2.0.7"
 itertools = "0.14.0"
 num_cpus = "1.17.0"
