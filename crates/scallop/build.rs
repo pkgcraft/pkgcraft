@@ -64,12 +64,12 @@ fn main() {
         .enable("restricted", None)
         // build as a static library
         .enable("library", None)
-        .make_target("libbash.a")
+        .make_target("libscallop.a")
         .build();
 
     // statically link with bash library
     println!("cargo::rustc-link-search=native={bash_build_dir}");
-    println!("cargo::rustc-link-lib=static=bash");
+    println!("cargo::rustc-link-lib=static=scallop");
 
     // `cargo llvm-cov` currently appears to have somewhat naive object detection and erroneously
     // includes the config.status file causing it to error out
