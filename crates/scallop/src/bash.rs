@@ -32,7 +32,7 @@ pub static SET_OPTS: LazyLock<HashSet<String>> = LazyLock::new(|| {
             opts.insert(CStr::from_ptr(p).to_string_lossy().into());
             i += 1;
         }
-        bash::xfree(opt_ptrs as *mut c_void);
+        libc::free(opt_ptrs as *mut c_void);
     }
     opts
 });

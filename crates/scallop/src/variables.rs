@@ -331,7 +331,7 @@ pub fn expand<S: AsRef<str>>(val: S) -> Option<String> {
         let ptr = bash::expand_string_to_string(val.as_ptr() as *mut _, 0);
         if !ptr.is_null() {
             let s = CStr::from_ptr(ptr).to_str().map(|s| s.to_string());
-            bash::xfree(ptr as *mut c_void);
+            libc::free(ptr as *mut c_void);
             s.ok()
         } else {
             None
@@ -406,7 +406,7 @@ macro_rules! shell_variables {
                     vars.insert(var.into());
                     i += 1;
                 }
-                bash::xfree(shell_vars as *mut c_void);
+                libc::free(shell_vars as *mut c_void);
             }
         }
         vars

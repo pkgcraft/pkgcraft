@@ -195,8 +195,6 @@ fn main() {
         .allowlist_var("restricted")
         .allowlist_var("restricted_shell")
 
-        .header("bash/xmalloc.h")
-        .allowlist_function("xfree")
 
         // mangle type names to expected values
         .parse_callbacks(Box::new(BashCallback))

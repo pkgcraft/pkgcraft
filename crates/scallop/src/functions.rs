@@ -67,7 +67,7 @@ pub fn visible() -> Vec<String> {
                 names.push(CStr::from_ptr(var.name).to_string_lossy().into());
                 i += 1;
             }
-            bash::xfree(shell_vars as *mut c_void);
+            libc::free(shell_vars as *mut c_void);
         }
     }
     names
