@@ -71,13 +71,6 @@ fn main() {
     println!("cargo::rustc-link-search=native={build_dir}");
     println!("cargo::rustc-link-lib=static=scallop");
 
-    // `cargo llvm-cov` currently appears to have somewhat naive object detection and erroneously
-    // includes the config.status file causing it to error out
-    let config_status = out_dir.join("config.status");
-    if config_status.exists() {
-        fs::remove_file(config_status).expect("failed removing config.status");
-    }
-
     #[rustfmt::skip]
     // generate bash bindings
     let bindings = bindgen::Builder::default()
