@@ -1,7 +1,7 @@
 use std::{env, fs};
 
 use bindgen::callbacks::{ItemInfo, ParseCallbacks};
-use camino::Utf8PathBuf;
+use camino::Utf8Path;
 
 #[derive(Debug)]
 struct BashCallback;
@@ -38,16 +38,16 @@ impl ParseCallbacks for BashCallback {
 }
 
 fn main() {
-    let repo_dir = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let bash_repo_dir = repo_dir.join("bash");
-    let out_dir = Utf8PathBuf::from(env::var("OUT_DIR").unwrap());
-    let bash_out_dir = out_dir.join("bash");
-    let bash_build_dir = bash_out_dir.join("build");
-    fs::create_dir_all(&bash_out_dir).unwrap();
+    let repo_dir = &Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("bash");
+    let out_dir = &Utf8Path::new(&env::var("OUT_DIR").unwrap()).join("bash");
+    let build_dir = out_dir.join("build");
+    // TODO: conditionalize header dir location for external shared library
+    let header_dir = &repo_dir;
+    fs::create_dir_all(out_dir).unwrap();
 
-    let mut bash = autotools::Config::new(&bash_repo_dir);
+    let mut bash = autotools::Config::new(repo_dir);
     bash.make_args(vec![format!("-j{}", num_cpus::get())])
-        .out_dir(&bash_out_dir)
+        .out_dir(out_dir)
         .forbid("--disable-shared")
         .forbid("--enable-static")
         .disable("readline", None)
@@ -68,12 +68,12 @@ fn main() {
         .build();
 
     // statically link with bash library
-    println!("cargo::rustc-link-search=native={bash_build_dir}");
+    println!("cargo::rustc-link-search=native={build_dir}");
     println!("cargo::rustc-link-lib=static=scallop");
 
     // `cargo llvm-cov` currently appears to have somewhat naive object detection and erroneously
     // includes the config.status file causing it to error out
-    let config_status = bash_out_dir.join("config.status");
+    let config_status = out_dir.join("config.status");
     if config_status.exists() {
         fs::remove_file(config_status).expect("failed removing config.status");
     }
@@ -81,22 +81,16 @@ fn main() {
     #[rustfmt::skip]
     // generate bash bindings
     let bindings = bindgen::Builder::default()
-        // add include dirs for clang
-        .clang_arg(format!("-I{bash_build_dir}"))
-        .clang_arg(format!("-I{bash_repo_dir}"))
-        .clang_arg(format!("-I{bash_repo_dir}/include"))
-        .clang_arg(format!("-I{bash_repo_dir}/builtins"))
-
-        .header("bash/builtins.h")
+        .header("builtins.h")
         .allowlist_var("BUILTIN_.*")
         .allowlist_var(".*_BUILTIN")
         .allowlist_var("num_shell_builtins")
         .allowlist_var("shell_builtins")
 
-        .header("bash/error.h")
+        .header("error.h")
         .allowlist_var("SHM_BUF")
 
-        .header("bash/shell.h")
+        .header("shell.h")
         .allowlist_function("bash_main")
         .allowlist_function("lib_error_handlers")
         .allowlist_function("lib_init")
@@ -110,7 +104,7 @@ fn main() {
         .allowlist_var("EXECUTION_SUCCESS")
         .allowlist_var("EX_LONGJMP")
 
-        .header("bash/builtins/common.h")
+        .header("builtins/common.h")
         .allowlist_function("scallop_evalstring")
         .allowlist_function("scallop_source_file")
         .allowlist_function("register_builtins")
@@ -119,20 +113,20 @@ fn main() {
         .allowlist_function("get_shopt_options")
         .allowlist_var("SEVAL_.*")
 
-        .header("bash/command.h")
+        .header("command.h")
         .allowlist_type("word_desc")
         .allowlist_type("word_list")
         .allowlist_var("global_command")
         .allowlist_function("copy_command")
         .allowlist_var("CMD_.*")
 
-        .header("bash/execute_cmd.h")
+        .header("execute_cmd.h")
         .allowlist_var("subshell_level")
         .allowlist_function("executing_line_number")
         .allowlist_function("scallop_execute_command")
         .allowlist_function("scallop_execute_shell_function")
 
-        .header("bash/variables.h")
+        .header("variables.h")
         .allowlist_function("all_shell_variables")
         .allowlist_function("all_shell_functions")
         .allowlist_function("all_visible_variables")
@@ -156,45 +150,51 @@ fn main() {
         .allowlist_var("temporary_env")
         .allowlist_var("att_.*") // variable attributes
 
-        .header("bash/jobs.h")
+        .header("jobs.h")
         .allowlist_function("set_sigchld_handler")
         .allowlist_var("shell_pgrp")
 
-        .header("bash/externs.h")
+        .header("externs.h")
         .allowlist_function("parse_command")
         .allowlist_function("strvec_dispose")
         .allowlist_function("strvec_to_word_list")
 
-        .header("bash/input.h")
+        .header("input.h")
         .allowlist_function("with_input_from_string")
         .allowlist_function("push_stream")
         .allowlist_function("pop_stream")
 
-        .header("bash/dispose_cmd.h")
+        .header("dispose_cmd.h")
         .allowlist_function("dispose_command")
         .allowlist_function("dispose_words")
 
-        .header("bash/subst.h")
+        .header("subst.h")
         .allowlist_function("expand_string_to_string")
         .allowlist_function("expand_words_no_vars")
         .allowlist_function("list_string")
         .allowlist_var("ifs_value")
         .allowlist_var("ASS_.*")
 
-        .header("bash/pathexp.h")
+        .header("pathexp.h")
         .allowlist_function("shell_glob_filename")
 
-        .header("bash/array.h")
+        .header("array.h")
         .allowlist_type("ARRAY")
         .allowlist_function("array_insert")
         .allowlist_function("array_reference")
         .allowlist_function("array_remove")
         .allowlist_function("array_dispose_element")
 
-        .header("bash/flags.h")
+        // HACK: The last header is flagged as nonexistent if it doesn't use a path prefix
+        // even when it exists in an explicitly defined include directory.
+        .header(format!("{header_dir}/flags.h"))
         .allowlist_var("restricted")
         .allowlist_var("restricted_shell")
 
+        // add include dirs for clang
+        .clang_arg(format!("-I{header_dir}"))
+        .clang_arg(format!("-I{header_dir}/include"))
+        .clang_arg(format!("-I{build_dir}"))
 
         // mangle type names to expected values
         .parse_callbacks(Box::new(BashCallback))
@@ -202,7 +202,7 @@ fn main() {
         .expect("unable to generate bindings");
 
     bindings
-        .write_to_file(out_dir.join("bash-bindings.rs"))
+        .write_to_file(out_dir.join("bindings.rs"))
         .expect("failed writing bindings");
 
     // rerun if any bash file changes

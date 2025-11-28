@@ -10,7 +10,7 @@
 
 use std::ffi::c_int;
 
-include!(concat!(env!("OUT_DIR"), "/bash-bindings.rs"));
+include!(concat!(env!("OUT_DIR"), "/bash/bindings.rs"));
 
 // Provide external access to builtins since they aren't explicitly exported.
 unsafe extern "C" {
