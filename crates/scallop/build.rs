@@ -38,38 +38,55 @@ impl ParseCallbacks for BashCallback {
 }
 
 fn main() {
+    // export SCALLOP_NO_VENDOR=1 to force system libscallop usage
+    println!("cargo:rerun-if-env-changed=SCALLOP_NO_VENDOR");
+    let forced_no_vendor = env::var_os("SCALLOP_NO_VENDOR").is_some_and(|s| s != "0");
+
     let repo_dir = &Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("bash");
     let out_dir = &Utf8Path::new(&env::var("OUT_DIR").unwrap()).join("bash");
     let build_dir = out_dir.join("build");
-    // TODO: conditionalize header dir location for external shared library
-    let header_dir = &repo_dir;
     fs::create_dir_all(out_dir).unwrap();
 
-    let mut bash = autotools::Config::new(repo_dir);
-    bash.make_args(vec![format!("-j{}", num_cpus::get())])
-        .out_dir(out_dir)
-        .forbid("--disable-shared")
-        .forbid("--enable-static")
-        .disable("readline", None)
-        .disable("history", None)
-        .disable("bang-history", None)
-        .disable("progcomp", None)
-        .without("bash-malloc", None)
-        .disable("mem-scramble", None)
-        .disable("net-redirections", None)
-        .disable("nls", None)
-        // job control is required for $PIPESTATUS
-        .enable("job-control", None)
-        // enable restricted shell support
-        .enable("restricted", None)
-        // build as a static library
-        .enable("library", None)
-        .make_target("libscallop.a")
-        .build();
+    // determine shared or static library usage
+    let header_dir = if forced_no_vendor {
+        // link using shared library
+        println!("cargo::rustc-link-lib=dylib=scallop");
 
-    // statically link with bash library
-    println!("cargo::rustc-link-search=native={build_dir}");
-    println!("cargo::rustc-link-lib=static=scallop");
+        // TODO: use pkg-config to determine installed header path and verify version
+        Utf8Path::new("/usr/include/scallop")
+    } else {
+        // build static library
+        let mut bash = autotools::Config::new(repo_dir);
+        bash.make_args(vec![format!("-j{}", num_cpus::get())])
+            .out_dir(out_dir)
+            .forbid("--disable-shared")
+            .forbid("--enable-static")
+            .disable("readline", None)
+            .disable("history", None)
+            .disable("bang-history", None)
+            .disable("progcomp", None)
+            .without("bash-malloc", None)
+            .disable("mem-scramble", None)
+            .disable("net-redirections", None)
+            .disable("nls", None)
+            // job control is required for $PIPESTATUS
+            .enable("job-control", None)
+            // enable restricted shell support
+            .enable("restricted", None)
+            // build as a static library
+            .enable("library", None)
+            .make_target("libscallop.a")
+            .build();
+
+        // link using static library
+        println!("cargo::rustc-link-search=native={build_dir}");
+        println!("cargo::rustc-link-lib=static=scallop");
+
+        // rerun if any bash file changes
+        println!("cargo::rerun-if-changed=bash");
+
+        repo_dir
+    };
 
     #[rustfmt::skip]
     // generate bash bindings
@@ -197,7 +214,4 @@ fn main() {
     bindings
         .write_to_file(out_dir.join("bindings.rs"))
         .expect("failed writing bindings");
-
-    // rerun if any bash file changes
-    println!("cargo::rerun-if-changed=bash");
 }
