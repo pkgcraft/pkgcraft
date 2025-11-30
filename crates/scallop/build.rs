@@ -42,10 +42,11 @@ fn main() {
     println!("cargo:rerun-if-env-changed=SCALLOP_NO_VENDOR");
     let forced_no_vendor = env::var_os("SCALLOP_NO_VENDOR").is_some_and(|s| s != "0");
 
-    let repo_dir = &Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("bash");
+    let vendor_dir = &Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("bash");
     let out_dir = &Utf8Path::new(&env::var("OUT_DIR").unwrap()).join("bash");
-    let build_dir = out_dir.join("build");
     fs::create_dir_all(out_dir).unwrap();
+
+    let mut bindings = bindgen::Builder::default();
 
     // determine shared or static library usage
     let header_dir = if forced_no_vendor {
@@ -56,8 +57,8 @@ fn main() {
         Utf8Path::new("/usr/include/scallop")
     } else {
         // build static library
-        let mut bash = autotools::Config::new(repo_dir);
-        bash.make_args(vec![format!("-j{}", num_cpus::get())])
+        autotools::Config::new(vendor_dir)
+            .make_args(vec![format!("-j{}", num_cpus::get())])
             .out_dir(out_dir)
             .forbid("--disable-shared")
             .forbid("--enable-static")
@@ -78,6 +79,10 @@ fn main() {
             .make_target("libscallop.a")
             .build();
 
+        // add build dir to header search path
+        let build_dir = out_dir.join("build");
+        bindings = bindings.clang_arg(format!("-I{build_dir}"));
+
         // link using static library
         println!("cargo::rustc-link-search=native={build_dir}");
         println!("cargo::rustc-link-lib=static=scallop");
@@ -85,12 +90,12 @@ fn main() {
         // rerun if any bash file changes
         println!("cargo::rerun-if-changed=bash");
 
-        repo_dir
+        vendor_dir
     };
 
     #[rustfmt::skip]
     // generate bash bindings
-    let bindings = bindgen::Builder::default()
+    bindings
         .header("builtins.h")
         .allowlist_var("BUILTIN_.*")
         .allowlist_var(".*_BUILTIN")
@@ -204,14 +209,11 @@ fn main() {
         // add include dirs for clang
         .clang_arg(format!("-I{header_dir}"))
         .clang_arg(format!("-I{header_dir}/include"))
-        .clang_arg(format!("-I{build_dir}"))
 
         // mangle type names to expected values
         .parse_callbacks(Box::new(BashCallback))
         .generate()
-        .expect("unable to generate bindings");
-
-    bindings
+        .expect("unable to generate bindings")
         .write_to_file(out_dir.join("bindings.rs"))
         .expect("failed writing bindings");
 }
