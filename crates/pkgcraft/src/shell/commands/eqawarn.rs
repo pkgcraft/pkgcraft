@@ -21,7 +21,7 @@ struct Command {
     message: String,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let msg = unescape(&cmd.message)?;
     writeln!(stderr(), "* {msg}")?;
@@ -32,7 +32,7 @@ make_builtin!("eqawarn", eqawarn_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, eqawarn};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::eqawarn};
     use super::*;
 
     cmd_scope_tests!(r#"eqawarn "a message""#);

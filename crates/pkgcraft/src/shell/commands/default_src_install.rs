@@ -17,7 +17,7 @@ struct Command {
     help: Option<bool>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
     get_build_mut().phase().default()
 }
@@ -34,7 +34,7 @@ mod tests {
     use crate::shell::{BuildData, test::FileTree};
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, default_src_install};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::default_src_install};
 
     cmd_scope_tests!("default_src_install");
 

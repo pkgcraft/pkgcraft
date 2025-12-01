@@ -4,7 +4,7 @@ use scallop::ExecStatus;
 
 use crate::io::stdout;
 
-use super::{TryParseArgs, make_builtin, use_};
+use super::{TryParseArgs, functions::use_, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -32,7 +32,7 @@ struct Command {
     disabled2: String,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let mut stdout = stdout();
     match use_(&[&cmd.flag])? {
@@ -56,7 +56,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, usex};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::usex};
     use super::*;
 
     cmd_scope_tests!("usex flag");

@@ -47,7 +47,7 @@ fn is_patch(entry: &Utf8DirEntry) -> bool {
             .unwrap_or(false)
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if args.is_empty() {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     }
@@ -113,7 +113,7 @@ mod tests {
 
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, eapply};
+    use super::super::{assert_invalid_args, cmd_scope_tests, functions::eapply};
 
     cmd_scope_tests!("eapply file.patch");
 

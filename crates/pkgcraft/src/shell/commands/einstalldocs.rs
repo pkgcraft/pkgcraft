@@ -93,7 +93,7 @@ pub(crate) fn install_docs_from(var: &str) -> scallop::Result<ExecStatus> {
     Ok(ExecStatus::Success)
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
 
     for var in ["DOCS", "HTML_DOCS"] {
@@ -114,7 +114,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, einstalldocs};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::einstalldocs};
     use super::*;
 
     cmd_scope_tests!("einstalldocs");

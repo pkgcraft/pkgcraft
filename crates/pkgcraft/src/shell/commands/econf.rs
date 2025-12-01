@@ -97,7 +97,7 @@ struct Command {
     args: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
 
     // verify configure scripts is executable
@@ -213,7 +213,7 @@ mod tests {
     use crate::shell::{BuildData, Scope};
     use crate::test::assert_err_re;
 
-    use super::super::{cmd_scope_tests, econf};
+    use super::super::{cmd_scope_tests, functions::econf};
     use super::*;
 
     cmd_scope_tests!("econf --enable-feature");

@@ -5,7 +5,10 @@ use scallop::ExecStatus;
 
 use crate::io::stderr;
 use crate::shell::BuildData;
-use crate::shell::commands::{econf, einstalldocs::install_docs_from, emake, unpack};
+use crate::shell::commands::{
+    einstalldocs::install_docs_from,
+    functions::{econf, emake, unpack},
+};
 use crate::shell::utils::{configure, makefile_exists};
 
 use super::emake_install;

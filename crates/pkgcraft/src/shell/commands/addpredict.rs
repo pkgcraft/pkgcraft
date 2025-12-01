@@ -20,7 +20,7 @@ struct Command {
     path: Utf8PathBuf,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
     // TODO: fill out this stub
     Ok(ExecStatus::Success)
@@ -30,7 +30,7 @@ make_builtin!("addpredict", addpredict_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{addpredict, assert_invalid_cmd, cmd_scope_tests};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::addpredict};
 
     cmd_scope_tests!("addpredict /proc");
 

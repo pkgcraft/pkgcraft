@@ -38,7 +38,7 @@ pub(super) fn install_bin(paths: &[Utf8PathBuf], dest: &str) -> scallop::Result<
     Ok(ExecStatus::Success)
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     install_bin(&cmd.paths, "bin")
 }
@@ -52,7 +52,10 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, dobin, exeopts, into};
+    use super::super::{
+        assert_invalid_cmd, cmd_scope_tests,
+        functions::{dobin, exeopts, into},
+    };
 
     cmd_scope_tests!("dobin path/to/executable");
 

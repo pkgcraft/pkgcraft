@@ -21,7 +21,7 @@ struct Command {
     args: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let mut cmd = Command::try_parse_args(args)?;
     let version = if cmd.args.len() % 2 == 0 {
         get_build_mut().cpv().pv()
@@ -67,7 +67,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, ver_rs};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::ver_rs};
     use super::*;
 
     cmd_scope_tests!("ver_rs 2 - 1.2.3");

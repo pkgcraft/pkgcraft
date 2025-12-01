@@ -23,7 +23,7 @@ struct Command {
     args: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
 
     if !makefile_exists() {
@@ -61,7 +61,7 @@ mod tests {
     use crate::command::commands;
     use crate::test::assert_err_re;
 
-    use super::super::{cmd_scope_tests, emake};
+    use super::super::{cmd_scope_tests, functions::emake};
 
     cmd_scope_tests!("emake -C builddir");
 

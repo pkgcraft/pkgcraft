@@ -12,7 +12,7 @@ instead.
 ";
 */
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let Some(cmd) = args.first().copied() else {
         return Err(Error::Base("requires 1 or more args, got 0".into()));
     };

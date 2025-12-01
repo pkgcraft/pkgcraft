@@ -25,7 +25,7 @@ struct Command {
     paths: Vec<Utf8PathBuf>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let install = build.install();
@@ -58,7 +58,7 @@ mod tests {
     use crate::shell::BuildData;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, keepdir};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::keepdir};
 
     cmd_scope_tests!("keepdir path/to/dir");
 

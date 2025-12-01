@@ -20,7 +20,7 @@ struct Command {
     args: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
 
     std::process::Command::new("chmod")
@@ -43,7 +43,7 @@ mod tests {
     use crate::shell::{BuildData, test::FileTree};
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, fperms};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::fperms};
 
     cmd_scope_tests!("fperms mode /path/to/file");
 

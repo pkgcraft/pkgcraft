@@ -1,9 +1,9 @@
 use scallop::ExecStatus;
 use scallop::array::PipeStatus;
 
-use super::{die, make_builtin};
+use super::{functions::die, make_builtin};
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     if PipeStatus::get().failed() {
         die(args)
     } else {
@@ -22,7 +22,7 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert, assert_invalid_cmd, cmd_scope_tests};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::assert};
 
     cmd_scope_tests!("assert \"error message\"");
 

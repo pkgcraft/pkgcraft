@@ -1,12 +1,12 @@
 use scallop::ExecStatus;
 
+use super::functions::use_;
 use super::make_builtin;
-use super::use_;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Deprecated synonym for use.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_(args)
 }
 
@@ -20,7 +20,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, useq};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::useq};
     use super::*;
 
     cmd_scope_tests!("useq flag");

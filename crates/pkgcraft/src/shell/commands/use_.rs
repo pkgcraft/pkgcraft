@@ -20,7 +20,7 @@ struct Command {
     use_flag: UseFlag,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let flag = &cmd.use_flag.flag;
     let build = get_build_mut();
@@ -44,7 +44,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, use_};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::use_};
     use super::*;
 
     cmd_scope_tests!("use flag");

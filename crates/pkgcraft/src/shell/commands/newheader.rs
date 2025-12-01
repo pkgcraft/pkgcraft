@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doheader;
+use super::functions::doheader;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed header files into /usr/include/.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doheader)
 }
 
@@ -20,7 +20,7 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, newheader};
+    use super::super::{assert_invalid_args, cmd_scope_tests, functions::newheader};
 
     cmd_scope_tests!("newheader path/to/header.h new_filename");
 

@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doman;
+use super::functions::doman;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed man pages into /usr/share/man.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doman)
 }
 
@@ -20,7 +20,7 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, newman};
+    use super::super::{assert_invalid_args, cmd_scope_tests, functions::newman};
 
     cmd_scope_tests!("newman path/to/man/page new_filename");
 

@@ -23,7 +23,7 @@ struct Command {
     paths: Vec<Utf8PathBuf>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let dest = if build.eapi().has(DomoUsesDesttree) {
@@ -69,7 +69,10 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, domo, into};
+    use super::super::{
+        assert_invalid_cmd, cmd_scope_tests,
+        functions::{domo, into},
+    };
     use super::*;
 
     cmd_scope_tests!("domo path/to/mo/file");

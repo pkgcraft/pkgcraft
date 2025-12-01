@@ -2,7 +2,7 @@ use scallop::ExecStatus;
 use scallop::variables::var_to_vec;
 
 use crate::shell::BuildData;
-use crate::shell::commands::{eapply, eapply_user, einstalldocs};
+use crate::shell::commands::functions::{eapply, eapply_user, einstalldocs};
 
 use super::emake_install;
 

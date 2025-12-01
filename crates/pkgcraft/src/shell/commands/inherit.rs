@@ -20,7 +20,7 @@ struct Command {
     eclasses: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let mut eclass_var = ScopedVariable::new("ECLASS");
@@ -98,7 +98,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::{assert_ordered_eq, test_data};
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, inherit};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::inherit};
     use super::*;
 
     cmd_scope_tests!("inherit eclass1 eclass2");

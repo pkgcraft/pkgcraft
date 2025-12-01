@@ -91,7 +91,7 @@ struct Command {
     manpages: Vec<ManPage>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
 
     let install = get_build_mut()
@@ -127,7 +127,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, doman};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::doman};
 
     cmd_scope_tests!("doman path/to/man/page");
 

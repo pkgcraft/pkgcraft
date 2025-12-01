@@ -7,7 +7,7 @@ use super::make_builtin;
 //const LONG_DOC: &str = "\
 //Returns --with-${opt} and --without-${opt} configure flags based on a given USE flag.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     use_conf(args, "with", "without")
 }
 
@@ -23,7 +23,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, use_with};
+    use super::super::{assert_invalid_args, cmd_scope_tests, functions::use_with};
     use super::*;
 
     cmd_scope_tests!("use_with flag");

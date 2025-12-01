@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doinitd;
+use super::functions::doinitd;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed init scripts into /etc/init.d/.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doinitd)
 }
 
@@ -20,7 +20,7 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, newinitd};
+    use super::super::{assert_invalid_args, cmd_scope_tests, functions::newinitd};
 
     cmd_scope_tests!("newinitd path/to/init/file new_filename");
 

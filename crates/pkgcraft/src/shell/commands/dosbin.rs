@@ -14,7 +14,7 @@ struct Command {
     paths: Vec<Utf8PathBuf>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     install_bin(&cmd.paths, "sbin")
 }
@@ -28,7 +28,10 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, dosbin, exeopts, into};
+    use super::super::{
+        assert_invalid_cmd, cmd_scope_tests,
+        functions::{dosbin, exeopts, into},
+    };
 
     cmd_scope_tests!("dosbin /path/to/executable");
 

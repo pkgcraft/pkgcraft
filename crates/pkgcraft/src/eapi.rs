@@ -515,7 +515,7 @@ static OLD_EAPIS: LazyLock<IndexSet<String>> = LazyLock::new(|| {
 
 pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
-    use crate::shell::commands::*;
+    use crate::shell::commands::builtins::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks;
     use crate::shell::operations::OperationKind::*;
@@ -726,7 +726,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
 });
 
 pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
-    use crate::shell::commands::*;
+    use crate::shell::commands::builtins::*;
     use crate::shell::hooks;
     use crate::shell::phase::{PhaseKind::*, eapi6};
     use crate::shell::scope::EbuildScope::*;
@@ -761,7 +761,7 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
 
 pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
-    use crate::shell::commands::*;
+    use crate::shell::commands::builtins::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks;
     use crate::shell::phase::PhaseKind::*;
@@ -805,7 +805,7 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
 
 pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::pkg::ebuild::metadata::Key::*;
-    use crate::shell::commands::*;
+    use crate::shell::commands::builtins::*;
     use Feature::*;
 
     Eapi::new("8", Some(&EAPI7))

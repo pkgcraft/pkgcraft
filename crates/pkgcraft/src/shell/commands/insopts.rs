@@ -18,7 +18,7 @@ struct Command {
     options: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     get_build_mut().insopts = cmd.options.into_iter().collect();
     Ok(ExecStatus::Success)
@@ -32,7 +32,10 @@ mod tests {
 
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, doins, insopts};
+    use super::super::{
+        assert_invalid_cmd, cmd_scope_tests,
+        functions::{doins, insopts},
+    };
 
     cmd_scope_tests!("insopts -m0644");
 

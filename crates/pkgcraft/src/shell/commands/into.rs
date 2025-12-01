@@ -18,7 +18,7 @@ struct Command {
     path: String,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     DESTTREE.set(cmd.path)?;
     Ok(ExecStatus::Success)
@@ -36,7 +36,7 @@ mod tests {
     use crate::shell::phase::PhaseKind;
     use crate::shell::{BuildData, Scope, get_build_mut};
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, into};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::into};
     use super::*;
 
     cmd_scope_tests!("into /install/path");

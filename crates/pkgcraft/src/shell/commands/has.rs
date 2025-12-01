@@ -22,7 +22,7 @@ struct Command {
     haystack: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let found = cmd.haystack.contains(&cmd.needle);
     Ok(ExecStatus::from(found))
@@ -32,7 +32,7 @@ make_builtin!("has", has_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, has};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::has};
     use super::*;
 
     cmd_scope_tests!("has needle ${haystack}");

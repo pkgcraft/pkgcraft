@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::dosbin;
+use super::functions::dosbin;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed executables into DESTTREE/sbin.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dosbin)
 }
 
@@ -20,7 +20,10 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, into, newsbin};
+    use super::super::{
+        assert_invalid_args, cmd_scope_tests,
+        functions::{into, newsbin},
+    };
 
     cmd_scope_tests!("newsbin path/to/executable new_filename");
 

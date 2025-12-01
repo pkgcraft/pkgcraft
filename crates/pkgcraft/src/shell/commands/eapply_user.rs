@@ -2,7 +2,7 @@ use scallop::ExecStatus;
 
 use crate::shell::get_build_mut;
 
-use super::{TryParseArgs, eapply, make_builtin};
+use super::{TryParseArgs, functions::eapply, make_builtin};
 
 #[derive(clap::Parser, Debug)]
 #[command(
@@ -15,7 +15,7 @@ struct Command {
     help: Option<bool>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
 
@@ -43,7 +43,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, eapply_user};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::eapply_user};
     use super::*;
 
     cmd_scope_tests!("eapply_user");

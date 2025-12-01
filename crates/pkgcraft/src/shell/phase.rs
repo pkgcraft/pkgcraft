@@ -8,7 +8,7 @@ use indexmap::IndexSet;
 use scallop::{ExecStatus, functions};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
-use super::commands::emake;
+use super::commands::functions::emake;
 use super::environment::Variable::D;
 use super::hooks::{Hook, HookBuilder, HookKind};
 use super::utils::makefile_exists;

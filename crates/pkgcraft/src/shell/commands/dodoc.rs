@@ -53,7 +53,7 @@ pub(crate) fn install_docs<P: AsRef<Utf8Path>>(
     Ok(ExecStatus::Success)
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let dest = get_build_mut().env(DOCDESTTREE);
     install_docs(cmd.recursive, &cmd.paths, dest)
@@ -73,7 +73,10 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, docinto, dodoc};
+    use super::super::{
+        assert_invalid_cmd, cmd_scope_tests,
+        functions::{docinto, dodoc},
+    };
 
     cmd_scope_tests!("dodoc path/to/doc/file");
 

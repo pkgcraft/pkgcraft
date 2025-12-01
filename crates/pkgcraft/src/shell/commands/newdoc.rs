@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::dodoc;
+use super::functions::dodoc;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed documentation files.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dodoc)
 }
 
@@ -22,7 +22,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, newdoc};
+    use super::super::{assert_invalid_args, cmd_scope_tests, functions::newdoc};
 
     cmd_scope_tests!("newdoc path/to/doc/file new_filename");
 

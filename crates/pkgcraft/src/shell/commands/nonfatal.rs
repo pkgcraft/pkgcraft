@@ -24,7 +24,7 @@ struct Command {
     args: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let program = cmd.command.as_str();
     let mut command = scallop::command::Command::new(program);
@@ -55,7 +55,7 @@ mod tests {
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, nonfatal};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::nonfatal};
     use super::*;
 
     cmd_scope_tests!("nonfatal cmd arg1 arg2");

@@ -15,7 +15,7 @@ struct Command {
     help: Option<bool>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let phase = build.phase();
@@ -38,7 +38,7 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, default};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::default};
     use super::*;
 
     cmd_scope_tests!("default");

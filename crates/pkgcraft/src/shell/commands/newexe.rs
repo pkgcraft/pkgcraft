@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doexe;
+use super::functions::doexe;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed environment files into /etc/env.d/.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doexe)
 }
 
@@ -20,7 +20,10 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, exeinto, exeopts, newexe};
+    use super::super::{
+        assert_invalid_args, cmd_scope_tests,
+        functions::{exeinto, exeopts, newexe},
+    };
 
     cmd_scope_tests!("newexe path/to/executable new_filename");
 

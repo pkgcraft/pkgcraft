@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::dolib_a;
+use super::functions::dolib_a;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed static libraries.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, dolib_a)
 }
 
@@ -20,7 +20,10 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, into, newlib_a};
+    use super::super::{
+        assert_invalid_args, cmd_scope_tests,
+        functions::{into, newlib_a},
+    };
 
     cmd_scope_tests!("newlib.a path/to/lib.a new_filename");
 

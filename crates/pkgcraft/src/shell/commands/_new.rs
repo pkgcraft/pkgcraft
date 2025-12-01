@@ -1,16 +1,15 @@
 use std::fs::File;
 use std::{fs, io};
 
+use scallop::builtins::BuiltinFn;
 use scallop::{Error, ExecStatus};
 use tempfile::tempdir;
 
 use crate::io::stdin;
 use crate::utils::is_single_component;
 
-use super::Builtin;
-
 // Underlying implementation for new* builtins.
-pub(super) fn new(args: &[&str], builtin: Builtin) -> scallop::Result<ExecStatus> {
+pub(super) fn new(args: &[&str], cmd: BuiltinFn) -> scallop::Result<ExecStatus> {
     let [source, name] = args[..] else {
         return Err(Error::Base(format!("requires 2 args, got {}", args.len())));
     };
@@ -40,14 +39,14 @@ pub(super) fn new(args: &[&str], builtin: Builtin) -> scallop::Result<ExecStatus
     let path = dest
         .to_str()
         .ok_or_else(|| Error::Base(format!("invalid utf8 path: {dest:?}")))?;
-    builtin(&[path])
+    cmd(&[path])
 }
 
 #[cfg(test)]
 mod tests {
     use crate::test::assert_err_re;
 
-    use super::super::newbin;
+    use super::super::functions::newbin;
     use super::*;
 
     #[test]

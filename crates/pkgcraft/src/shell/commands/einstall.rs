@@ -3,12 +3,12 @@ use scallop::ExecStatus;
 use crate::shell::get_build_mut;
 use crate::shell::utils::get_libdir;
 
-use super::{emake, make_builtin};
+use super::{functions::emake, make_builtin};
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Run `emake install` for a package.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let destdir = get_build_mut().destdir();
     let paths: &[&str] = &[
         &format!("prefix={destdir}/usr"),

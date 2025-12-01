@@ -19,7 +19,7 @@ struct Command {
     args: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let (op, cmp) = match &cmd.args[..] {
         [op, rhs] => {
@@ -60,7 +60,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, ver_test};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::ver_test};
     use super::*;
 
     cmd_scope_tests!("ver_test 1 -lt 2-r1");

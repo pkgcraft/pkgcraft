@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doins;
+use super::functions::doins;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed files into INSDESTREE.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doins)
 }
 
@@ -20,7 +20,10 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, insinto, newins};
+    use super::super::{
+        assert_invalid_args, cmd_scope_tests,
+        functions::{insinto, newins},
+    };
 
     cmd_scope_tests!("newins path/to/file new_filename");
 

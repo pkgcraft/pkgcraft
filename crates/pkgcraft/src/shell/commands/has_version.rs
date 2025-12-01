@@ -6,7 +6,7 @@ use super::make_builtin;
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Determine if a package dependency is installed.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cpvs = query_cmd(args)?;
     Ok((!cpvs.is_empty()).into())
 }

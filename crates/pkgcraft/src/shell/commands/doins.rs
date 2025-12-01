@@ -24,7 +24,7 @@ struct Command {
     paths: Vec<Utf8PathBuf>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let dest = build.env(INSDESTTREE);
@@ -60,7 +60,10 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, doins, insinto, insopts};
+    use super::super::{
+        assert_invalid_cmd, cmd_scope_tests,
+        functions::{doins, insinto, insopts},
+    };
 
     cmd_scope_tests!("doins path/to/file");
 

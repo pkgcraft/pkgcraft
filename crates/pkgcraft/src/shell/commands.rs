@@ -57,8 +57,8 @@ mod domo;
 mod dosbin;
 mod dostrip;
 mod dosym;
-pub(super) mod eapply;
-pub(super) mod eapply_user;
+mod eapply;
+mod eapply_user;
 mod ebegin;
 pub(crate) mod econf;
 mod eend;
@@ -68,7 +68,7 @@ mod einfon;
 mod einstall;
 pub(super) mod einstalldocs;
 mod elog;
-pub(super) mod emake;
+mod emake;
 mod eqawarn;
 mod ewarn;
 mod exeinto;
@@ -112,118 +112,219 @@ mod ver_cut;
 mod ver_rs;
 mod ver_test;
 
-// export builtins for internal use
-pub(crate) use adddeny::BUILTIN as adddeny;
-pub(crate) use addpredict::BUILTIN as addpredict;
-pub(crate) use addread::BUILTIN as addread;
-pub(crate) use addwrite::BUILTIN as addwrite;
-pub(crate) use assert::BUILTIN as assert;
-pub(crate) use best_version::BUILTIN as best_version;
-pub(crate) use command_not_found_handle::BUILTIN as command_not_found_handle;
-pub(crate) use debug_print::BUILTIN as debug_print;
-pub(crate) use debug_print_function::BUILTIN as debug_print_function;
-pub(crate) use debug_print_section::BUILTIN as debug_print_section;
-pub(crate) use default::BUILTIN as default;
-pub(crate) use default_pkg_nofetch::BUILTIN as default_pkg_nofetch;
-pub(crate) use default_src_compile::BUILTIN as default_src_compile;
-pub(crate) use default_src_configure::BUILTIN as default_src_configure;
-pub(crate) use default_src_install::BUILTIN as default_src_install;
-pub(crate) use default_src_prepare::BUILTIN as default_src_prepare;
-pub(crate) use default_src_test::BUILTIN as default_src_test;
-pub(crate) use default_src_unpack::BUILTIN as default_src_unpack;
-pub(crate) use die::BUILTIN as die;
-pub(crate) use diropts::BUILTIN as diropts;
-pub(crate) use dobin::BUILTIN as dobin;
-pub(crate) use docinto::BUILTIN as docinto;
-pub(crate) use docompress::BUILTIN as docompress;
-pub(crate) use doconfd::BUILTIN as doconfd;
-pub(crate) use dodir::BUILTIN as dodir;
-pub(crate) use dodoc::BUILTIN as dodoc;
-pub(crate) use doenvd::BUILTIN as doenvd;
-pub(crate) use doexe::BUILTIN as doexe;
-pub(crate) use doheader::BUILTIN as doheader;
-pub(crate) use dohtml::BUILTIN as dohtml;
-pub(crate) use doinfo::BUILTIN as doinfo;
-pub(crate) use doinitd::BUILTIN as doinitd;
-pub(crate) use doins::BUILTIN as doins;
-pub(crate) use dolib::BUILTIN as dolib;
-pub(crate) use dolib_a::BUILTIN as dolib_a;
-pub(crate) use dolib_so::BUILTIN as dolib_so;
-pub(crate) use doman::BUILTIN as doman;
-pub(crate) use domo::BUILTIN as domo;
-pub(crate) use dosbin::BUILTIN as dosbin;
-pub(crate) use dostrip::BUILTIN as dostrip;
-pub(crate) use dosym::BUILTIN as dosym;
-pub(crate) use eapply::BUILTIN as eapply;
-pub(crate) use eapply_user::BUILTIN as eapply_user;
-pub(crate) use ebegin::BUILTIN as ebegin;
-pub(crate) use econf::BUILTIN as econf;
-pub(crate) use eend::BUILTIN as eend;
-pub(crate) use eerror::BUILTIN as eerror;
-pub(crate) use einfo::BUILTIN as einfo;
-pub(crate) use einfon::BUILTIN as einfon;
-pub(crate) use einstall::BUILTIN as einstall;
-pub(crate) use einstalldocs::BUILTIN as einstalldocs;
-pub(crate) use elog::BUILTIN as elog;
-pub(crate) use emake::BUILTIN as emake;
-pub(crate) use eqawarn::BUILTIN as eqawarn;
-pub(crate) use ewarn::BUILTIN as ewarn;
-pub(crate) use exeinto::BUILTIN as exeinto;
-pub(crate) use exeopts::BUILTIN as exeopts;
-pub(crate) use export_functions::BUILTIN as export_functions;
-pub(crate) use fowners::BUILTIN as fowners;
-pub(crate) use fperms::BUILTIN as fperms;
-pub(crate) use get_libdir::BUILTIN as get_libdir;
-pub(crate) use has::BUILTIN as has;
-pub(crate) use has_version::BUILTIN as has_version;
-pub(crate) use hasq::BUILTIN as hasq;
-pub(crate) use hasv::BUILTIN as hasv;
-pub(crate) use in_iuse::BUILTIN as in_iuse;
-pub(crate) use inherit::BUILTIN as inherit;
-pub(crate) use insinto::BUILTIN as insinto;
-pub(crate) use insopts::BUILTIN as insopts;
-pub(crate) use into::BUILTIN as into;
-pub(crate) use keepdir::BUILTIN as keepdir;
-pub(crate) use libopts::BUILTIN as libopts;
-pub(crate) use newbin::BUILTIN as newbin;
-pub(crate) use newconfd::BUILTIN as newconfd;
-pub(crate) use newdoc::BUILTIN as newdoc;
-pub(crate) use newenvd::BUILTIN as newenvd;
-pub(crate) use newexe::BUILTIN as newexe;
-pub(crate) use newheader::BUILTIN as newheader;
-pub(crate) use newinitd::BUILTIN as newinitd;
-pub(crate) use newins::BUILTIN as newins;
-pub(crate) use newlib_a::BUILTIN as newlib_a;
-pub(crate) use newlib_so::BUILTIN as newlib_so;
-pub(crate) use newman::BUILTIN as newman;
-pub(crate) use newsbin::BUILTIN as newsbin;
-pub(crate) use nonfatal::BUILTIN as nonfatal;
-pub(crate) use unpack::BUILTIN as unpack;
-pub(crate) use use_::BUILTIN as use_;
-pub(crate) use use_enable::BUILTIN as use_enable;
-pub(crate) use use_with::BUILTIN as use_with;
-pub(crate) use useq::BUILTIN as useq;
-pub(crate) use usev::BUILTIN as usev;
-pub(crate) use usex::BUILTIN as usex;
-pub(crate) use ver_cut::BUILTIN as ver_cut;
-pub(crate) use ver_rs::BUILTIN as ver_rs;
-pub(crate) use ver_test::BUILTIN as ver_test;
-// phase stubs
-pub(crate) use _phases::PKG_CONFIG as pkg_config;
-pub(crate) use _phases::PKG_INFO as pkg_info;
-pub(crate) use _phases::PKG_NOFETCH as pkg_nofetch;
-pub(crate) use _phases::PKG_POSTINST as pkg_postinst;
-pub(crate) use _phases::PKG_POSTRM as pkg_postrm;
-pub(crate) use _phases::PKG_PREINST as pkg_preinst;
-pub(crate) use _phases::PKG_PRERM as pkg_prerm;
-pub(crate) use _phases::PKG_PRETEND as pkg_pretend;
-pub(crate) use _phases::PKG_SETUP as pkg_setup;
-pub(crate) use _phases::SRC_COMPILE as src_compile;
-pub(crate) use _phases::SRC_CONFIGURE as src_configure;
-pub(crate) use _phases::SRC_INSTALL as src_install;
-pub(crate) use _phases::SRC_PREPARE as src_prepare;
-pub(crate) use _phases::SRC_TEST as src_test;
-pub(crate) use _phases::SRC_UNPACK as src_unpack;
+// export command builtins for internal use
+pub(crate) mod builtins {
+    pub(crate) use super::adddeny::BUILTIN as adddeny;
+    pub(crate) use super::addpredict::BUILTIN as addpredict;
+    pub(crate) use super::addread::BUILTIN as addread;
+    pub(crate) use super::addwrite::BUILTIN as addwrite;
+    pub(crate) use super::assert::BUILTIN as assert;
+    pub(crate) use super::best_version::BUILTIN as best_version;
+    pub(crate) use super::command_not_found_handle::BUILTIN as command_not_found_handle;
+    pub(crate) use super::debug_print::BUILTIN as debug_print;
+    pub(crate) use super::debug_print_function::BUILTIN as debug_print_function;
+    pub(crate) use super::debug_print_section::BUILTIN as debug_print_section;
+    pub(crate) use super::default::BUILTIN as default;
+    pub(crate) use super::default_pkg_nofetch::BUILTIN as default_pkg_nofetch;
+    pub(crate) use super::default_src_compile::BUILTIN as default_src_compile;
+    pub(crate) use super::default_src_configure::BUILTIN as default_src_configure;
+    pub(crate) use super::default_src_install::BUILTIN as default_src_install;
+    pub(crate) use super::default_src_prepare::BUILTIN as default_src_prepare;
+    pub(crate) use super::default_src_test::BUILTIN as default_src_test;
+    pub(crate) use super::default_src_unpack::BUILTIN as default_src_unpack;
+    pub(crate) use super::die::BUILTIN as die;
+    pub(crate) use super::diropts::BUILTIN as diropts;
+    pub(crate) use super::dobin::BUILTIN as dobin;
+    pub(crate) use super::docinto::BUILTIN as docinto;
+    pub(crate) use super::docompress::BUILTIN as docompress;
+    pub(crate) use super::doconfd::BUILTIN as doconfd;
+    pub(crate) use super::dodir::BUILTIN as dodir;
+    pub(crate) use super::dodoc::BUILTIN as dodoc;
+    pub(crate) use super::doenvd::BUILTIN as doenvd;
+    pub(crate) use super::doexe::BUILTIN as doexe;
+    pub(crate) use super::doheader::BUILTIN as doheader;
+    pub(crate) use super::dohtml::BUILTIN as dohtml;
+    pub(crate) use super::doinfo::BUILTIN as doinfo;
+    pub(crate) use super::doinitd::BUILTIN as doinitd;
+    pub(crate) use super::doins::BUILTIN as doins;
+    pub(crate) use super::dolib::BUILTIN as dolib;
+    pub(crate) use super::dolib_a::BUILTIN as dolib_a;
+    pub(crate) use super::dolib_so::BUILTIN as dolib_so;
+    pub(crate) use super::doman::BUILTIN as doman;
+    pub(crate) use super::domo::BUILTIN as domo;
+    pub(crate) use super::dosbin::BUILTIN as dosbin;
+    pub(crate) use super::dostrip::BUILTIN as dostrip;
+    pub(crate) use super::dosym::BUILTIN as dosym;
+    pub(crate) use super::eapply::BUILTIN as eapply;
+    pub(crate) use super::eapply_user::BUILTIN as eapply_user;
+    pub(crate) use super::ebegin::BUILTIN as ebegin;
+    pub(crate) use super::econf::BUILTIN as econf;
+    pub(crate) use super::eend::BUILTIN as eend;
+    pub(crate) use super::eerror::BUILTIN as eerror;
+    pub(crate) use super::einfo::BUILTIN as einfo;
+    pub(crate) use super::einfon::BUILTIN as einfon;
+    pub(crate) use super::einstall::BUILTIN as einstall;
+    pub(crate) use super::einstalldocs::BUILTIN as einstalldocs;
+    pub(crate) use super::elog::BUILTIN as elog;
+    pub(crate) use super::emake::BUILTIN as emake;
+    pub(crate) use super::eqawarn::BUILTIN as eqawarn;
+    pub(crate) use super::ewarn::BUILTIN as ewarn;
+    pub(crate) use super::exeinto::BUILTIN as exeinto;
+    pub(crate) use super::exeopts::BUILTIN as exeopts;
+    pub(crate) use super::export_functions::BUILTIN as export_functions;
+    pub(crate) use super::fowners::BUILTIN as fowners;
+    pub(crate) use super::fperms::BUILTIN as fperms;
+    pub(crate) use super::get_libdir::BUILTIN as get_libdir;
+    pub(crate) use super::has::BUILTIN as has;
+    pub(crate) use super::has_version::BUILTIN as has_version;
+    pub(crate) use super::hasq::BUILTIN as hasq;
+    pub(crate) use super::hasv::BUILTIN as hasv;
+    pub(crate) use super::in_iuse::BUILTIN as in_iuse;
+    pub(crate) use super::inherit::BUILTIN as inherit;
+    pub(crate) use super::insinto::BUILTIN as insinto;
+    pub(crate) use super::insopts::BUILTIN as insopts;
+    pub(crate) use super::into::BUILTIN as into;
+    pub(crate) use super::keepdir::BUILTIN as keepdir;
+    pub(crate) use super::libopts::BUILTIN as libopts;
+    pub(crate) use super::newbin::BUILTIN as newbin;
+    pub(crate) use super::newconfd::BUILTIN as newconfd;
+    pub(crate) use super::newdoc::BUILTIN as newdoc;
+    pub(crate) use super::newenvd::BUILTIN as newenvd;
+    pub(crate) use super::newexe::BUILTIN as newexe;
+    pub(crate) use super::newheader::BUILTIN as newheader;
+    pub(crate) use super::newinitd::BUILTIN as newinitd;
+    pub(crate) use super::newins::BUILTIN as newins;
+    pub(crate) use super::newlib_a::BUILTIN as newlib_a;
+    pub(crate) use super::newlib_so::BUILTIN as newlib_so;
+    pub(crate) use super::newman::BUILTIN as newman;
+    pub(crate) use super::newsbin::BUILTIN as newsbin;
+    pub(crate) use super::nonfatal::BUILTIN as nonfatal;
+    pub(crate) use super::unpack::BUILTIN as unpack;
+    pub(crate) use super::use_::BUILTIN as use_;
+    pub(crate) use super::use_enable::BUILTIN as use_enable;
+    pub(crate) use super::use_with::BUILTIN as use_with;
+    pub(crate) use super::useq::BUILTIN as useq;
+    pub(crate) use super::usev::BUILTIN as usev;
+    pub(crate) use super::usex::BUILTIN as usex;
+    pub(crate) use super::ver_cut::BUILTIN as ver_cut;
+    pub(crate) use super::ver_rs::BUILTIN as ver_rs;
+    pub(crate) use super::ver_test::BUILTIN as ver_test;
+    // phase stubs
+    pub(crate) use super::_phases::PKG_CONFIG as pkg_config;
+    pub(crate) use super::_phases::PKG_INFO as pkg_info;
+    pub(crate) use super::_phases::PKG_NOFETCH as pkg_nofetch;
+    pub(crate) use super::_phases::PKG_POSTINST as pkg_postinst;
+    pub(crate) use super::_phases::PKG_POSTRM as pkg_postrm;
+    pub(crate) use super::_phases::PKG_PREINST as pkg_preinst;
+    pub(crate) use super::_phases::PKG_PRERM as pkg_prerm;
+    pub(crate) use super::_phases::PKG_PRETEND as pkg_pretend;
+    pub(crate) use super::_phases::PKG_SETUP as pkg_setup;
+    pub(crate) use super::_phases::SRC_COMPILE as src_compile;
+    pub(crate) use super::_phases::SRC_CONFIGURE as src_configure;
+    pub(crate) use super::_phases::SRC_INSTALL as src_install;
+    pub(crate) use super::_phases::SRC_PREPARE as src_prepare;
+    pub(crate) use super::_phases::SRC_TEST as src_test;
+    pub(crate) use super::_phases::SRC_UNPACK as src_unpack;
+}
+
+// export command functions for internal use
+#[allow(unused_imports)]
+pub(crate) mod functions {
+    pub(crate) use super::adddeny::run as adddeny;
+    pub(crate) use super::addpredict::run as addpredict;
+    pub(crate) use super::addread::run as addread;
+    pub(crate) use super::addwrite::run as addwrite;
+    pub(crate) use super::assert::run as assert;
+    pub(crate) use super::best_version::run as best_version;
+    pub(crate) use super::debug_print::run as debug_print;
+    pub(crate) use super::debug_print_function::run as debug_print_function;
+    pub(crate) use super::debug_print_section::run as debug_print_section;
+    pub(crate) use super::default::run as default;
+    pub(crate) use super::default_pkg_nofetch::run as default_pkg_nofetch;
+    pub(crate) use super::default_src_compile::run as default_src_compile;
+    pub(crate) use super::default_src_configure::run as default_src_configure;
+    pub(crate) use super::default_src_install::run as default_src_install;
+    pub(crate) use super::default_src_prepare::run as default_src_prepare;
+    pub(crate) use super::default_src_test::run as default_src_test;
+    pub(crate) use super::default_src_unpack::run as default_src_unpack;
+    pub(crate) use super::die::run as die;
+    pub(crate) use super::diropts::run as diropts;
+    pub(crate) use super::dobin::run as dobin;
+    pub(crate) use super::docinto::run as docinto;
+    pub(crate) use super::docompress::run as docompress;
+    pub(crate) use super::doconfd::run as doconfd;
+    pub(crate) use super::dodir::run as dodir;
+    pub(crate) use super::dodoc::run as dodoc;
+    pub(crate) use super::doenvd::run as doenvd;
+    pub(crate) use super::doexe::run as doexe;
+    pub(crate) use super::doheader::run as doheader;
+    pub(crate) use super::dohtml::run as dohtml;
+    pub(crate) use super::doinfo::run as doinfo;
+    pub(crate) use super::doinitd::run as doinitd;
+    pub(crate) use super::doins::run as doins;
+    pub(crate) use super::dolib::run as dolib;
+    pub(crate) use super::dolib_a::run as dolib_a;
+    pub(crate) use super::dolib_so::run as dolib_so;
+    pub(crate) use super::doman::run as doman;
+    pub(crate) use super::domo::run as domo;
+    pub(crate) use super::dosbin::run as dosbin;
+    pub(crate) use super::dostrip::run as dostrip;
+    pub(crate) use super::dosym::run as dosym;
+    pub(crate) use super::eapply::run as eapply;
+    pub(crate) use super::eapply_user::run as eapply_user;
+    pub(crate) use super::ebegin::run as ebegin;
+    pub(crate) use super::econf::run as econf;
+    pub(crate) use super::eend::run as eend;
+    pub(crate) use super::eerror::run as eerror;
+    pub(crate) use super::einfo::run as einfo;
+    pub(crate) use super::einfon::run as einfon;
+    pub(crate) use super::einstall::run as einstall;
+    pub(crate) use super::einstalldocs::run as einstalldocs;
+    pub(crate) use super::elog::run as elog;
+    pub(crate) use super::emake::run as emake;
+    pub(crate) use super::eqawarn::run as eqawarn;
+    pub(crate) use super::ewarn::run as ewarn;
+    pub(crate) use super::exeinto::run as exeinto;
+    pub(crate) use super::exeopts::run as exeopts;
+    pub(crate) use super::export_functions::run as export_functions;
+    pub(crate) use super::fowners::run as fowners;
+    pub(crate) use super::fperms::run as fperms;
+    pub(crate) use super::get_libdir::run as get_libdir;
+    pub(crate) use super::has::run as has;
+    pub(crate) use super::has_version::run as has_version;
+    pub(crate) use super::hasq::run as hasq;
+    pub(crate) use super::hasv::run as hasv;
+    pub(crate) use super::in_iuse::run as in_iuse;
+    pub(crate) use super::inherit::run as inherit;
+    pub(crate) use super::insinto::run as insinto;
+    pub(crate) use super::insopts::run as insopts;
+    pub(crate) use super::into::run as into;
+    pub(crate) use super::keepdir::run as keepdir;
+    pub(crate) use super::libopts::run as libopts;
+    pub(crate) use super::newbin::run as newbin;
+    pub(crate) use super::newconfd::run as newconfd;
+    pub(crate) use super::newdoc::run as newdoc;
+    pub(crate) use super::newenvd::run as newenvd;
+    pub(crate) use super::newexe::run as newexe;
+    pub(crate) use super::newheader::run as newheader;
+    pub(crate) use super::newinitd::run as newinitd;
+    pub(crate) use super::newins::run as newins;
+    pub(crate) use super::newlib_a::run as newlib_a;
+    pub(crate) use super::newlib_so::run as newlib_so;
+    pub(crate) use super::newman::run as newman;
+    pub(crate) use super::newsbin::run as newsbin;
+    pub(crate) use super::nonfatal::run as nonfatal;
+    pub(crate) use super::unpack::run as unpack;
+    pub(crate) use super::use_::run as use_;
+    pub(crate) use super::use_enable::run as use_enable;
+    pub(crate) use super::use_with::run as use_with;
+    pub(crate) use super::useq::run as useq;
+    pub(crate) use super::usev::run as usev;
+    pub(crate) use super::usex::run as usex;
+    pub(crate) use super::ver_cut::run as ver_cut;
+    pub(crate) use super::ver_rs::run as ver_rs;
+    pub(crate) use super::ver_test::run as ver_test;
+}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
 pub(crate) struct Builtin(scallop::builtins::Builtin);
@@ -399,117 +500,117 @@ impl<'a> Iterator for RawArgsIter<'a> {
 /// Ordered set of all known builtins.
 pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
     [
-        adddeny,
-        addpredict,
-        addread,
-        addwrite,
-        assert,
-        best_version,
-        command_not_found_handle,
-        debug_print,
-        debug_print_function,
-        debug_print_section,
-        default,
-        default_pkg_nofetch,
-        default_src_compile,
-        default_src_configure,
-        default_src_install,
-        default_src_prepare,
-        default_src_test,
-        default_src_unpack,
-        die,
-        diropts,
-        dobin,
-        docinto,
-        docompress,
-        doconfd,
-        dodir,
-        dodoc,
-        doenvd,
-        doexe,
-        doheader,
-        dohtml,
-        doinfo,
-        doinitd,
-        doins,
-        dolib,
-        dolib_a,
-        dolib_so,
-        doman,
-        domo,
-        dosbin,
-        dostrip,
-        dosym,
-        eapply,
-        eapply_user,
-        ebegin,
-        econf,
-        eend,
-        eerror,
-        einfo,
-        einfon,
-        einstall,
-        einstalldocs,
-        elog,
-        emake,
-        eqawarn,
-        ewarn,
-        exeinto,
-        exeopts,
-        export_functions,
-        fowners,
-        fperms,
-        get_libdir,
-        has,
-        has_version,
-        hasq,
-        hasv,
-        in_iuse,
-        inherit,
-        insinto,
-        insopts,
-        into,
-        keepdir,
-        libopts,
-        newbin,
-        newconfd,
-        newdoc,
-        newenvd,
-        newexe,
-        newheader,
-        newinitd,
-        newins,
-        newlib_a,
-        newlib_so,
-        newman,
-        newsbin,
-        nonfatal,
-        unpack,
-        use_,
-        use_enable,
-        use_with,
-        useq,
-        usev,
-        usex,
-        ver_cut,
-        ver_rs,
-        ver_test,
+        builtins::adddeny,
+        builtins::addpredict,
+        builtins::addread,
+        builtins::addwrite,
+        builtins::assert,
+        builtins::best_version,
+        builtins::command_not_found_handle,
+        builtins::debug_print,
+        builtins::debug_print_function,
+        builtins::debug_print_section,
+        builtins::default,
+        builtins::default_pkg_nofetch,
+        builtins::default_src_compile,
+        builtins::default_src_configure,
+        builtins::default_src_install,
+        builtins::default_src_prepare,
+        builtins::default_src_test,
+        builtins::default_src_unpack,
+        builtins::die,
+        builtins::diropts,
+        builtins::dobin,
+        builtins::docinto,
+        builtins::docompress,
+        builtins::doconfd,
+        builtins::dodir,
+        builtins::dodoc,
+        builtins::doenvd,
+        builtins::doexe,
+        builtins::doheader,
+        builtins::dohtml,
+        builtins::doinfo,
+        builtins::doinitd,
+        builtins::doins,
+        builtins::dolib,
+        builtins::dolib_a,
+        builtins::dolib_so,
+        builtins::doman,
+        builtins::domo,
+        builtins::dosbin,
+        builtins::dostrip,
+        builtins::dosym,
+        builtins::eapply,
+        builtins::eapply_user,
+        builtins::ebegin,
+        builtins::econf,
+        builtins::eend,
+        builtins::eerror,
+        builtins::einfo,
+        builtins::einfon,
+        builtins::einstall,
+        builtins::einstalldocs,
+        builtins::elog,
+        builtins::emake,
+        builtins::eqawarn,
+        builtins::ewarn,
+        builtins::exeinto,
+        builtins::exeopts,
+        builtins::export_functions,
+        builtins::fowners,
+        builtins::fperms,
+        builtins::get_libdir,
+        builtins::has,
+        builtins::has_version,
+        builtins::hasq,
+        builtins::hasv,
+        builtins::in_iuse,
+        builtins::inherit,
+        builtins::insinto,
+        builtins::insopts,
+        builtins::into,
+        builtins::keepdir,
+        builtins::libopts,
+        builtins::newbin,
+        builtins::newconfd,
+        builtins::newdoc,
+        builtins::newenvd,
+        builtins::newexe,
+        builtins::newheader,
+        builtins::newinitd,
+        builtins::newins,
+        builtins::newlib_a,
+        builtins::newlib_so,
+        builtins::newman,
+        builtins::newsbin,
+        builtins::nonfatal,
+        builtins::unpack,
+        builtins::use_,
+        builtins::use_enable,
+        builtins::use_with,
+        builtins::useq,
+        builtins::usev,
+        builtins::usex,
+        builtins::ver_cut,
+        builtins::ver_rs,
+        builtins::ver_test,
         // phase stubs
-        pkg_config,
-        pkg_info,
-        pkg_nofetch,
-        pkg_postinst,
-        pkg_postrm,
-        pkg_preinst,
-        pkg_prerm,
-        pkg_pretend,
-        pkg_setup,
-        src_compile,
-        src_configure,
-        src_install,
-        src_prepare,
-        src_test,
-        src_unpack,
+        builtins::pkg_config,
+        builtins::pkg_info,
+        builtins::pkg_nofetch,
+        builtins::pkg_postinst,
+        builtins::pkg_postrm,
+        builtins::pkg_preinst,
+        builtins::pkg_prerm,
+        builtins::pkg_pretend,
+        builtins::pkg_setup,
+        builtins::src_compile,
+        builtins::src_configure,
+        builtins::src_install,
+        builtins::src_prepare,
+        builtins::src_test,
+        builtins::src_unpack,
     ]
     .into_iter()
     .collect()
@@ -658,21 +759,21 @@ macro_rules! make_builtin {
 use make_builtin;
 
 #[cfg(test)]
-fn assert_invalid_args(builtin: Builtin, nums: &[u32]) {
+fn assert_invalid_args(cmd: scallop::builtins::BuiltinFn, nums: &[u32]) {
     for n in nums {
         let args: Vec<_> = (0..*n).map(|n| n.to_string()).collect();
         let args: Vec<_> = args.iter().map(|s| s.as_str()).collect();
         let re = format!("^.*, got {n}");
-        crate::test::assert_err_re!(builtin(&args), re);
+        crate::test::assert_err_re!(cmd(&args), re);
     }
 }
 
 #[cfg(test)]
-fn assert_invalid_cmd(builtin: Builtin, nums: &[u32]) {
+fn assert_invalid_cmd(cmd: scallop::builtins::BuiltinFn, nums: &[u32]) {
     for n in nums {
         let args: Vec<_> = (0..*n).map(|n| n.to_string()).collect();
         let args: Vec<_> = args.iter().map(|s| s.as_str()).collect();
-        assert!(builtin(&args).is_err());
+        assert!(cmd(&args).is_err());
     }
 }
 

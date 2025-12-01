@@ -11,7 +11,7 @@ use super::{TryParseArgs, make_builtin};
 #[command(name = "get_libdir", long_about = "Output the libdir name.")]
 struct Command;
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
     let libdir = get_libdir(Some("lib")).unwrap();
     write!(stdout(), "{libdir}")?;
@@ -26,7 +26,7 @@ mod tests {
 
     use crate::io::stdout;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, get_libdir};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::get_libdir};
     use super::*;
 
     cmd_scope_tests!("get_libdir");

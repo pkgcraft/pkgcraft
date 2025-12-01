@@ -17,7 +17,7 @@ struct Command {
     help: Option<bool>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let _cmd = Command::try_parse_args(args)?;
     get_build_mut().phase().default()
 }
@@ -26,7 +26,7 @@ make_builtin!("default_src_unpack", default_src_unpack_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, default_src_unpack};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::default_src_unpack};
 
     cmd_scope_tests!("default_src_unpack");
 

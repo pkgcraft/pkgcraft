@@ -25,7 +25,7 @@ struct Command {
     message: String,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
     let eapi = build.eapi();
     let cmd = Command::try_parse_args(args)?;
@@ -57,7 +57,7 @@ mod tests {
     use crate::shell::{BuildData, BuildState, Scope};
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, die};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::die};
     use super::*;
 
     cmd_scope_tests!("die \"error message\"");

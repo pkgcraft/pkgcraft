@@ -25,7 +25,7 @@ struct Command {
     phases: Vec<PhaseKind>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let eclass = build.eclass();
@@ -54,7 +54,7 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, export_functions};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::export_functions};
 
     cmd_scope_tests!("EXPORT_FUNCTIONS src_configure src_compile");
 

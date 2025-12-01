@@ -23,7 +23,7 @@ struct Command {
     version: Option<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let version = cmd.version.unwrap_or_else(|| get_build_mut().cpv().pv());
     let version_parts = parse::version_split(&version)?;
@@ -55,7 +55,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, ver_cut};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::ver_cut};
     use super::*;
 
     cmd_scope_tests!("ver_cut 1-2 1.2.3");

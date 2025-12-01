@@ -24,7 +24,7 @@ struct Command {
     output: Option<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let flag = &cmd.use_flag.flag;
     let eapi = get_build_mut().eapi();
@@ -65,7 +65,7 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, usev};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::usev};
     use super::*;
 
     cmd_scope_tests!("usev flag");

@@ -21,7 +21,7 @@ struct Command {
     message: String,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let msg = unescape(&cmd.message)?;
     let mut stderr = stderr();
@@ -34,7 +34,7 @@ make_builtin!("einfon", einfon_builtin);
 
 #[cfg(test)]
 mod tests {
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, einfon};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::einfon};
     use super::*;
 
     cmd_scope_tests!(r#"einfon "a message""#);

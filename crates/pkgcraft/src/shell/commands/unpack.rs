@@ -84,7 +84,7 @@ struct Command {
     paths: Vec<Archive>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let eapi = build.eapi();
@@ -150,7 +150,7 @@ mod tests {
     use crate::shell::BuildData;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, unpack};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::unpack};
     use super::*;
 
     cmd_scope_tests!("unpack file.tar.gz");

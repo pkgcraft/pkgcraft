@@ -21,7 +21,7 @@ struct Command {
     args: Vec<String>,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     debug!("{}: entering function {}", cmd.function, cmd.args.join(" "));
     Ok(ExecStatus::Success)
@@ -38,7 +38,7 @@ mod tests {
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::assert_logs_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, debug_print_function};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::debug_print_function};
 
     cmd_scope_tests!("debug-print-function arg1 arg2");
 

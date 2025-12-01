@@ -81,7 +81,7 @@ impl fmt::Display for Command {
     }
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
 
     if cmd.verbose {
@@ -178,7 +178,10 @@ mod tests {
     use crate::test::assert_err_re;
     use crate::test::test_data;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, docinto, dohtml};
+    use super::super::{
+        assert_invalid_cmd, cmd_scope_tests,
+        functions::{docinto, dohtml},
+    };
     use super::*;
 
     cmd_scope_tests!("dohtml path/to/html/files");

@@ -1,13 +1,13 @@
 use scallop::ExecStatus;
 
 use super::_new::new;
-use super::doconfd;
+use super::functions::doconfd;
 use super::make_builtin;
 
 // TODO: convert to clap parser
 //const LONG_DOC: &str = "Install renamed config files into /etc/conf.d/.";
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     new(args, doconfd)
 }
 
@@ -20,7 +20,7 @@ mod tests {
     use crate::io::stdin;
     use crate::shell::test::FileTree;
 
-    use super::super::{assert_invalid_args, cmd_scope_tests, newconfd};
+    use super::super::{assert_invalid_args, cmd_scope_tests, functions::newconfd};
 
     cmd_scope_tests!("newconfd path/to/config/file new_filename");
 

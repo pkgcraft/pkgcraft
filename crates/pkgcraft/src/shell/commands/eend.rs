@@ -22,7 +22,7 @@ struct Command {
     message: String,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     // TODO: support column-based formatting for success/failure indicators
     let mut stderr = stderr();
@@ -45,7 +45,7 @@ make_builtin!("eend", eend_builtin);
 mod tests {
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, eend};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::eend};
     use super::*;
 
     cmd_scope_tests!("eend $?");

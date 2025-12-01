@@ -18,7 +18,7 @@ struct Command {
     flag: String,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let pkg = get_build_mut().ebuild_pkg();
     Ok(ExecStatus::from(pkg.iuse_effective().contains(&cmd.flag)))
@@ -32,7 +32,7 @@ mod tests {
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::shell::BuildData;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, in_iuse};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::in_iuse};
     use super::*;
 
     cmd_scope_tests!("in_iuse flag");

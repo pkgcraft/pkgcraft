@@ -40,7 +40,7 @@ struct Command {
     name: Utf8PathBuf,
 }
 
-fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
+pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let mut target = cmd.target;
     let name = cmd.name;
@@ -74,7 +74,7 @@ mod tests {
     use crate::shell::test::FileTree;
     use crate::test::assert_err_re;
 
-    use super::super::{assert_invalid_cmd, cmd_scope_tests, dosym};
+    use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::dosym};
     use super::*;
 
     cmd_scope_tests!("dosym path/to/source /path/to/target");
