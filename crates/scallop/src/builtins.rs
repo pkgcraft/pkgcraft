@@ -158,27 +158,31 @@ impl From<Builtin> for bash::Builtin {
     }
 }
 
-// Enable or disable function overriding for an iterable of builtins.
+/// Return the bash builtin for a given name.
+pub(crate) fn find_builtin<S: AsRef<str>>(
+    name: S,
+    all: bool,
+) -> crate::Result<&'static mut bash::Builtin> {
+    let name = name.as_ref();
+    let builtin_name = CString::new(name).unwrap();
+    let builtin_ptr = builtin_name.as_ptr() as *mut _;
+    let all = all as i32;
+    let builtin = unsafe { bash::builtin_address_internal(builtin_ptr, all).as_mut() };
+    builtin.ok_or_else(|| Error::Base(format!("unknown builtin: {name}")))
+}
+
+/// Enable or disable function overriding for an iterable of builtins.
 pub fn override_funcs<I>(builtins: I, enable: bool) -> crate::Result<()>
 where
     I: IntoIterator,
     I::Item: AsRef<str>,
 {
     for name in builtins {
-        let name = name.as_ref();
-        let builtin_name = CString::new(name).unwrap();
-        let builtin_ptr = builtin_name.as_ptr() as *mut _;
-        match unsafe { bash::builtin_address_internal(builtin_ptr, 1).as_mut() } {
-            Some(b) => {
-                if enable {
-                    b.flags |= Attr::SPECIAL.bits() as i32;
-                } else {
-                    b.flags &= !Attr::SPECIAL.bits() as i32;
-                }
-            }
-            None => {
-                return Err(Error::Base(format!("failed overriding unknown builtin: {name}")));
-            }
+        let builtin = find_builtin(name, true)?;
+        if enable {
+            builtin.flags |= Attr::SPECIAL.bits() as i32;
+        } else {
+            builtin.flags &= !Attr::SPECIAL.bits() as i32;
         }
     }
 
@@ -186,30 +190,23 @@ where
 }
 
 /// Toggle an iterable of builtins, returning those were.
-fn toggle_status<I>(builtins: I, enable: bool) -> crate::Result<Vec<String>>
+fn toggle_status<I, S>(builtins: I, enable: bool) -> crate::Result<Vec<S>>
 where
-    I: IntoIterator,
-    I::Item: AsRef<str>,
+    S: AsRef<str>,
+    I: IntoIterator<Item = S>,
 {
     let mut toggled = vec![];
 
     for name in builtins {
-        let name = name.as_ref();
-        let builtin_name = CString::new(name).unwrap();
-        let builtin_ptr = builtin_name.as_ptr() as *mut _;
-        match unsafe { bash::builtin_address_internal(builtin_ptr, 1).as_mut() } {
-            Some(b) => {
-                let enabled = (b.flags & Attr::ENABLED.bits() as i32) == 1;
-                if enabled != enable {
-                    if enable {
-                        b.flags |= Attr::ENABLED.bits() as i32;
-                    } else {
-                        b.flags &= !Attr::ENABLED.bits() as i32;
-                    }
-                    toggled.push(name.to_string());
-                }
+        let builtin = find_builtin(&name, true)?;
+        let enabled = (builtin.flags & Attr::ENABLED.bits() as i32) == 1;
+        if enabled != enable {
+            if enable {
+                builtin.flags |= Attr::ENABLED.bits() as i32;
+            } else {
+                builtin.flags &= !Attr::ENABLED.bits() as i32;
             }
-            None => return Err(Error::Base(format!("unknown builtin: {name}"))),
+            toggled.push(name);
         }
     }
 
@@ -217,19 +214,19 @@ where
 }
 
 /// Disable a given list of builtins by name.
-pub fn disable<I>(builtins: I) -> crate::Result<Vec<String>>
+pub fn disable<I, S>(builtins: I) -> crate::Result<Vec<S>>
 where
-    I: IntoIterator,
-    I::Item: AsRef<str>,
+    S: AsRef<str>,
+    I: IntoIterator<Item = S>,
 {
     toggle_status(builtins, false)
 }
 
 /// Enable a given list of builtins by name.
-pub fn enable<I>(builtins: I) -> crate::Result<Vec<String>>
+pub fn enable<I, S>(builtins: I) -> crate::Result<Vec<S>>
 where
-    I: IntoIterator,
-    I::Item: AsRef<str>,
+    S: AsRef<str>,
+    I: IntoIterator<Item = S>,
 {
     toggle_status(builtins, true)
 }
@@ -282,16 +279,15 @@ where
 
 /// Enable/disable builtins, automatically reverting their status when leaving scope.
 #[derive(Debug, Default)]
-pub struct ScopedBuiltins {
-    names: Vec<String>,
+pub struct ScopedBuiltins<S: AsRef<str>> {
+    names: Vec<S>,
     enabled: bool,
 }
 
-impl ScopedBuiltins {
+impl<S: AsRef<str>> ScopedBuiltins<S> {
     pub fn disable<I>(values: I) -> crate::Result<Self>
     where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
+        I: IntoIterator<Item = S>,
     {
         Ok(Self {
             names: disable(values)?,
@@ -301,8 +297,7 @@ impl ScopedBuiltins {
 
     pub fn enable<I>(values: I) -> crate::Result<Self>
     where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
+        I: IntoIterator<Item = S>,
     {
         Ok(Self {
             names: enable(values)?,
@@ -311,7 +306,7 @@ impl ScopedBuiltins {
     }
 }
 
-impl Drop for ScopedBuiltins {
+impl<S: AsRef<str>> Drop for ScopedBuiltins<S> {
     fn drop(&mut self) {
         if self.enabled {
             disable(&self.names).unwrap_or_else(|_| panic!("failed disabling builtins"));
