@@ -122,16 +122,16 @@ impl ManifestEntry {
         let hashes = hashes.into_iter();
         // TODO: switch to is_empty() when stabilized
         let hashes = if hashes.len() == 0 {
-            Either::Left(DEFAULT_HASHES.iter().copied())
+            Either::Left(DEFAULT_HASHES.iter())
         } else {
-            Either::Right(hashes.copied())
+            Either::Right(hashes)
         };
 
         Ok(Self {
             kind,
             name: name.to_string(),
             size: data.len() as u64,
-            hashes: hashes.map(|kind| (kind, kind.hash(&data))).collect(),
+            hashes: hashes.map(|kind| (*kind, kind.hash(&data))).collect(),
         })
     }
 
