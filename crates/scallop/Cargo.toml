@@ -47,6 +47,8 @@ autotools = "0.2.7"
 bindgen = "0.72.1"
 camino = "1.2.1"
 num_cpus = "1.17.0"
+pkg-config = "0.3.32"
+regex = "1.12.2"
 
 [dev-dependencies]
 ctor = "0.6.1"

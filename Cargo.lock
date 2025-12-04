@@ -3878,6 +3878,8 @@ dependencies = [
  "libc",
  "nix",
  "num_cpus",
+ "pkg-config",
+ "regex",
  "serde",
  "tempfile",
  "thiserror",

@@ -2,6 +2,7 @@ use std::{env, fs};
 
 use bindgen::callbacks::{ItemInfo, ParseCallbacks};
 use camino::Utf8Path;
+use regex::Regex;
 
 #[derive(Debug)]
 struct BashCallback;
@@ -49,12 +50,29 @@ fn main() {
     let mut bindings = bindgen::Builder::default();
 
     // determine shared or static library usage
-    let header_dir = if forced_no_vendor {
+    if forced_no_vendor {
+        // determine bundled bash version
+        let data = fs::read_to_string(vendor_dir.join("configure")).unwrap();
+        let re = Regex::new(r"(?m)^PACKAGE_VERSION='(?<version>.+)'$").unwrap();
+        let caps = re.captures(&data).unwrap();
+        let version = &caps["version"];
+
+        // use pkg-config to determine header paths and verify version
+        match pkg_config::Config::new()
+            .exactly_version(version)
+            .probe("scallop")
+        {
+            Ok(lib) => {
+                // add include paths to header search path
+                for path in &lib.include_paths {
+                    bindings = bindings.clang_arg(format!("-I{}", path.display()));
+                }
+            }
+            Err(_) => panic!("unable to find system library: scallop-{version}"),
+        }
+
         // link using shared library
         println!("cargo::rustc-link-lib=dylib=scallop");
-
-        // TODO: use pkg-config to determine installed header path and verify version
-        Utf8Path::new("/usr/include/scallop")
     } else {
         // build static library
         autotools::Config::new(vendor_dir)
@@ -79,9 +97,12 @@ fn main() {
             .make_target("libscallop.a")
             .build();
 
-        // add build dir to header search path
+        // add dirs to header search path
         let build_dir = out_dir.join("build");
-        bindings = bindings.clang_arg(format!("-I{build_dir}"));
+        bindings = bindings
+            .clang_arg(format!("-I{build_dir}"))
+            .clang_arg(format!("-I{vendor_dir}"))
+            .clang_arg(format!("-I{vendor_dir}/include"));
 
         // link using static library
         println!("cargo::rustc-link-search=native={build_dir}");
@@ -89,8 +110,6 @@ fn main() {
 
         // rerun if any bash file changes
         println!("cargo::rerun-if-changed=bash");
-
-        vendor_dir
     };
 
     #[rustfmt::skip]
@@ -205,13 +224,9 @@ fn main() {
 
         // HACK: The last header is flagged as nonexistent if it doesn't use a path prefix
         // even when it exists in an explicitly defined include directory.
-        .header(format!("{header_dir}/flags.h"))
+        .header(format!("{vendor_dir}/flags.h"))
         .allowlist_var("restricted")
         .allowlist_var("restricted_shell")
-
-        // add include dirs for clang
-        .clang_arg(format!("-I{header_dir}"))
-        .clang_arg(format!("-I{header_dir}/include"))
 
         // mangle type names to expected values
         .parse_callbacks(Box::new(BashCallback))
