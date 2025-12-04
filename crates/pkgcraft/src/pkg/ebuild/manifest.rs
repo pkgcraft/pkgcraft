@@ -5,7 +5,7 @@ use std::{fmt, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
-use itertools::Itertools;
+use itertools::{Either, Itertools};
 use ordermap::OrderMap;
 use rayon::prelude::*;
 use strum::{Display, EnumIter, EnumString};
@@ -14,6 +14,9 @@ use crate::Error;
 use crate::files::relative_paths;
 use crate::macros::build_path;
 use crate::utils::digest;
+
+// default hash variants used when an ebuild repo lacks the related metadata settings
+static DEFAULT_HASHES: &[HashType] = &[HashType::Blake2b, HashType::Sha512];
 
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
@@ -109,21 +112,26 @@ impl ManifestEntry {
     where
         P: AsRef<Utf8Path>,
         I: IntoIterator<Item = &'a HashType>,
+        <I as IntoIterator>::IntoIter: ExactSizeIterator,
         S: fmt::Display,
     {
         let path = path.as_ref();
         let data = fs::read(path)
             .map_err(|e| Error::InvalidValue(format!("failed reading: {path}: {e}")))?;
-        let hashes = hashes
-            .into_iter()
-            .map(|kind| (*kind, kind.hash(&data)))
-            .collect();
+
+        let hashes = hashes.into_iter();
+        // TODO: switch to is_empty() when stabilized
+        let hashes = if hashes.len() == 0 {
+            Either::Left(DEFAULT_HASHES.iter().copied())
+        } else {
+            Either::Right(hashes.copied())
+        };
 
         Ok(Self {
             kind,
             name: name.to_string(),
             size: data.len() as u64,
-            hashes,
+            hashes: hashes.map(|kind| (kind, kind.hash(&data))).collect(),
         })
     }
 
@@ -298,6 +306,7 @@ impl Manifest {
     ) -> crate::Result<()>
     where
         I: IntoIterator<Item = &'a HashType> + Send + Sync + Copy,
+        <I as IntoIterator>::IntoIter: ExactSizeIterator,
     {
         // generate distfile hashes
         let mut files: Vec<_> = distfiles
