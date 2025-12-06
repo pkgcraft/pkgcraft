@@ -74,28 +74,28 @@ fn main() {
         // link using shared library
         println!("cargo::rustc-link-lib=dylib=scallop");
     } else {
+        let mut cfg = autotools::Config::new(vendor_dir);
+        cfg.make_args(vec![format!("-j{}", num_cpus::get())]);
+        cfg.make_target("libscallop.a");
+        cfg.out_dir(out_dir);
+
+        // load required configure options
+        let options =
+            fs::read_to_string(vendor_dir.join("configure-scallop-options")).unwrap();
+        let options = options
+            .lines()
+            .filter(|x| !x.is_empty() && !x.starts_with('#'));
+        let re = Regex::new(r"^--(?<option>.+)$").unwrap();
+        for option in options {
+            if let Some(caps) = re.captures(option) {
+                cfg.config_option(&caps["option"], None);
+            } else {
+                panic!("invalid configure option: {option}");
+            }
+        }
+
         // build static library
-        autotools::Config::new(vendor_dir)
-            .make_args(vec![format!("-j{}", num_cpus::get())])
-            .out_dir(out_dir)
-            .forbid("--disable-shared")
-            .forbid("--enable-static")
-            .disable("readline", None)
-            .disable("history", None)
-            .disable("bang-history", None)
-            .disable("progcomp", None)
-            .without("bash-malloc", None)
-            .disable("mem-scramble", None)
-            .disable("net-redirections", None)
-            .disable("nls", None)
-            // job control is required for $PIPESTATUS
-            .enable("job-control", None)
-            // enable restricted shell support
-            .enable("restricted", None)
-            // build as a static library
-            .enable("library", None)
-            .make_target("libscallop.a")
-            .build();
+        cfg.build();
 
         // add dirs to header search path
         let build_dir = out_dir.join("build");
