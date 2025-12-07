@@ -1,4 +1,4 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ptr;
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -24,9 +24,31 @@ bitflags! {
     }
 }
 
+/// Return the currently executing command string if it exists.
+///
+/// This is the raw command string without any bash manipulation.
+pub fn current_command_string() -> crate::Result<String> {
+    unsafe {
+        bash::CURRENT_COMMAND_STRING
+            .as_ref()
+            .map(|p| CStr::from_ptr(p).to_string_lossy().to_string())
+            .ok_or_else(|| Error::Base("no running command".to_string()))
+    }
+}
+
+/// Return the currently executing command name if it exists.
+pub fn current_command_name() -> crate::Result<String> {
+    unsafe {
+        bash::CURRENT_COMMAND_NAME
+            .as_ref()
+            .map(|p| CStr::from_ptr(p).to_string_lossy().to_string())
+            .ok_or_else(|| Error::Base("no running command".to_string()))
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Command {
-    args: Vec<String>,
+    pub args: Vec<String>,
     flags: Flags,
 }
 
@@ -149,6 +171,7 @@ static COMMAND_MARKER: LazyLock<CString> =
 
 #[cfg(test)]
 mod tests {
+    use crate::test::assert_err_re;
     use crate::variables::optional;
 
     use super::*;
@@ -169,6 +192,14 @@ mod tests {
 
         let cmd: Command = "exit 1".parse().unwrap();
         assert!(cmd.execute().is_err());
+    }
+
+    #[test]
+    fn current() {
+        let r = current_command_string();
+        assert_err_re!(r, "no running command");
+        let r = current_command_name();
+        assert_err_re!(r, "no running command");
     }
 
     #[test]

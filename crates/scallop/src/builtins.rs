@@ -14,6 +14,8 @@ use crate::{ExecStatus, bash, shell};
 
 mod _bash;
 mod _profile;
+#[cfg(test)]
+mod _scallop;
 
 // export native bash builtins
 pub use _bash::*;
@@ -549,6 +551,8 @@ macro_rules! make_builtin {
             i32::from($crate::builtins::run(&BUILTIN, args))
         }
 
+        // ignore unreachable test builtins
+        #[allow(unreachable_pub)]
         pub static BUILTIN: Builtin = Builtin {
             name: $name,
             func: $func,

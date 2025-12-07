@@ -21,6 +21,7 @@ impl ParseCallbacks for BashCallback {
             // global mutables
             "global_command" => Some("GLOBAL_COMMAND".into()),
             "this_command_name" => Some("CURRENT_COMMAND_NAME".into()),
+            "the_printed_command" => Some("CURRENT_COMMAND_STRING".into()),
             "this_shell_builtin" => Some("CURRENT_BUILTIN_FUNC".into()),
             "current_builtin" => Some("CURRENT_BUILTIN".into()),
             "temporary_env" => Some("TEMPORARY_ENV".into()),
@@ -169,6 +170,7 @@ fn main() {
         .allowlist_function("scallop_execute_shell_function")
         .allowlist_var("this_command_name")
         .allowlist_var("subshell_level")
+        .allowlist_var("the_printed_command")
 
         .header("variables.h")
         .allowlist_function("all_shell_variables")
