@@ -6,10 +6,10 @@ Scallop wraps a forked version of [bash] supporting shell interactions (e.g.
 writing builtins or modifying variables, arrays, and functions) natively in
 rust.
 
-## Development
-
-Note that currently the development workflow involves force pushing to the
-[bash] repo in order to keep the patch stack in order when upstream changes are
-merged.
+By default, a vendored copy of bash is built and linked into binaries as a
+static library. Using a shared library is possible by exporting
+`SCALLOP_NO_VENDOR=1` during the build process; however, the library version
+must always match the vendored version as bash doesn't use semantic versioning
+(mostly because upstream doesn't support building as a library).
 
 [bash]: <https://github.com/pkgcraft/bash>
