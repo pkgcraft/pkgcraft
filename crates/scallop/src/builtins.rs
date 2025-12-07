@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 use std::{cmp, fmt, mem, process, ptr};
 
 use bitflags::bitflags;
+use indexmap::IndexSet;
 
 use crate::error::{Error, ok_or_error};
 use crate::macros::*;
@@ -416,10 +417,10 @@ impl<S: AsRef<str>> Drop for ScopedBuiltins<S> {
 /// Toggle shell options, automatically reverting their status when leaving scope.
 #[derive(Debug, Default)]
 pub struct ScopedOptions {
-    shopt_enabled: Vec<String>,
-    shopt_disabled: Vec<String>,
-    set_enabled: Vec<String>,
-    set_disabled: Vec<String>,
+    shopt_enabled: IndexSet<String>,
+    shopt_disabled: IndexSet<String>,
+    set_enabled: IndexSet<String>,
+    set_disabled: IndexSet<String>,
 }
 
 impl ScopedOptions {
@@ -435,14 +436,12 @@ impl ScopedOptions {
         for opt in options {
             let opt = opt.as_ref();
             if bash::SET_OPTS.contains(opt) {
-                if !enabled_set.contains(opt) {
+                if !enabled_set.contains(opt) && self.set_enabled.insert(opt.into()) {
                     set::enable([opt])?;
-                    self.set_enabled.push(opt.into());
                 }
             } else if bash::SHOPT_OPTS.contains(opt) {
-                if !enabled_shopt.contains(opt) {
+                if !enabled_shopt.contains(opt) && self.shopt_enabled.insert(opt.into()) {
                     shopt::enable([opt])?;
-                    self.shopt_enabled.push(opt.into());
                 }
             } else {
                 return Err(Error::Base(format!("unknown option: {opt}")));
@@ -464,14 +463,12 @@ impl ScopedOptions {
         for opt in options {
             let opt = opt.as_ref();
             if bash::SET_OPTS.contains(opt) {
-                if enabled_set.contains(opt) {
+                if enabled_set.contains(opt) && self.set_disabled.insert(opt.into()) {
                     set::disable([opt])?;
-                    self.set_disabled.push(opt.into());
                 }
             } else if bash::SHOPT_OPTS.contains(opt) {
-                if enabled_shopt.contains(opt) {
+                if enabled_shopt.contains(opt) && self.shopt_disabled.insert(opt.into()) {
                     shopt::disable([opt])?;
-                    self.shopt_disabled.push(opt.into());
                 }
             } else {
                 return Err(Error::Base(format!("unknown option: {opt}")));
