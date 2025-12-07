@@ -196,7 +196,6 @@ fn main() {
 
         .header("externs.h")
         .allowlist_function("parse_command")
-        .allowlist_function("strvec_dispose")
         .allowlist_function("strvec_to_word_list")
 
         .header("input.h")
