@@ -41,24 +41,52 @@ bitflags! {
 pub mod set {
     use super::*;
 
-    pub fn enable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        set(["-o"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
+    pub fn enable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
+    where
+        I: IntoIterator<Item = &'a S>,
+        S: AsRef<str> + 'a,
+    {
+        set(["-o"]
+            .into_iter()
+            .chain(opts.into_iter().map(|s| s.as_ref())))
     }
 
-    pub fn disable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        set(["+o"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
+    pub fn disable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
+    where
+        I: IntoIterator<Item = &'a S>,
+        S: AsRef<str> + 'a,
+    {
+        set(["+o"]
+            .into_iter()
+            .chain(opts.into_iter().map(|s| s.as_ref())))
     }
 }
 
 pub mod shopt {
     use super::*;
 
-    pub fn enable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        shopt(["-s"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
+    pub fn enable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
+    where
+        I: IntoIterator<Item = &'a S>,
+        S: AsRef<str> + 'a,
+    {
+        shopt(
+            ["-s"]
+                .into_iter()
+                .chain(opts.into_iter().map(|s| s.as_ref())),
+        )
     }
 
-    pub fn disable<S: AsRef<str>>(opts: &[S]) -> crate::Result<ExecStatus> {
-        shopt(["-u"].into_iter().chain(opts.iter().map(|s| s.as_ref())))
+    pub fn disable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
+    where
+        I: IntoIterator<Item = &'a S>,
+        S: AsRef<str> + 'a,
+    {
+        shopt(
+            ["-u"]
+                .into_iter()
+                .chain(opts.into_iter().map(|s| s.as_ref())),
+        )
     }
 }
 
