@@ -11,6 +11,7 @@ use crate::{ExecStatus, bash};
 
 bitflags! {
     /// Flag values used with commands.
+    #[derive(Debug, Default)]
     pub struct Flags: u32 {
         const NONE = 0;
         const WANT_SUBSHELL = bash::CMD_WANT_SUBSHELL;
@@ -23,16 +24,17 @@ bitflags! {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Command {
     args: Vec<String>,
-    flags: Option<Flags>,
+    flags: Flags,
 }
 
 impl Command {
     pub fn new<S: std::fmt::Display>(program: S) -> Self {
         Self {
             args: vec![program.to_string()],
-            flags: None,
+            ..Default::default()
         }
     }
 
@@ -47,14 +49,14 @@ impl Command {
 
     pub fn subshell(&mut self, value: bool) -> &mut Self {
         if value {
-            self.flags = Some(Flags::FORCE_SUBSHELL);
+            self.flags = Flags::FORCE_SUBSHELL;
         }
         self
     }
 
     pub fn invert(&mut self, value: bool) -> &mut Self {
         if value {
-            self.flags = Some(Flags::INVERT_RETURN);
+            self.flags = Flags::INVERT_RETURN;
         }
         self
     }
@@ -72,7 +74,7 @@ impl FromStr for Command {
         // TODO: use shlex to split string
         Ok(Self {
             args: s.split(' ').map(Into::into).collect(),
-            flags: None,
+            ..Default::default()
         })
     }
 }
@@ -84,9 +86,7 @@ impl TryFrom<&Command> for RawCommand {
         let cmd: Self = value.args.iter().join(" ").parse()?;
 
         // apply flags
-        if let Some(flags) = &value.flags {
-            unsafe { (*cmd.ptr).flags |= flags.bits() as i32 };
-        }
+        unsafe { (*cmd.ptr).flags |= value.flags.bits() as i32 };
 
         Ok(cmd)
     }
