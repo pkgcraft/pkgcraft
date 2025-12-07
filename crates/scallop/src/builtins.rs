@@ -424,14 +424,16 @@ pub struct ScopedOptions {
 
 impl ScopedOptions {
     /// Enable shell options.
-    pub fn enable<'a, I>(&mut self, options: I) -> crate::Result<()>
+    pub fn enable<I, S>(&mut self, options: I) -> crate::Result<()>
     where
-        I: IntoIterator<Item = &'a str>,
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
     {
         let enabled_shopt = bash::shopt_opts();
         let enabled_set = bash::set_opts();
 
         for opt in options {
+            let opt = opt.as_ref();
             if bash::SET_OPTS.contains(opt) {
                 if !enabled_set.contains(opt) {
                     set::enable([opt])?;
@@ -451,14 +453,16 @@ impl ScopedOptions {
     }
 
     /// Disable shell options.
-    pub fn disable<'a, I>(&mut self, options: I) -> crate::Result<()>
+    pub fn disable<I, S>(&mut self, options: I) -> crate::Result<()>
     where
-        I: IntoIterator<Item = &'a str>,
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
     {
         let enabled_shopt = bash::shopt_opts();
         let enabled_set = bash::set_opts();
 
         for opt in options {
+            let opt = opt.as_ref();
             if bash::SET_OPTS.contains(opt) {
                 if enabled_set.contains(opt) {
                     set::disable([opt])?;
