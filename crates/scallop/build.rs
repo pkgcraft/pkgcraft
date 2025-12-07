@@ -82,6 +82,10 @@ fn main() {
         cfg.make_target("libscallop.a");
         cfg.out_dir(out_dir);
 
+        // avoid injecting invalid options as bash doesn't have them
+        cfg.forbid("--disable-shared");
+        cfg.forbid("--enable-static");
+
         // load required configure options
         let options =
             fs::read_to_string(vendor_dir.join("configure-scallop-options")).unwrap();
