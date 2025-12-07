@@ -20,6 +20,9 @@ impl ParseCallbacks for BashCallback {
             "builtin" => Some("Builtin".into()),
             // global mutables
             "global_command" => Some("GLOBAL_COMMAND".into()),
+            "this_command_name" => Some("CURRENT_COMMAND".into()),
+            "this_shell_builtin" => Some("CURRENT_BUILTIN_FUNC".into()),
+            "current_builtin" => Some("CURRENT_BUILTIN".into()),
             "temporary_env" => Some("TEMPORARY_ENV".into()),
             "ifs_value" => Some("IFS".into()),
             "shell_builtins" => Some("SHELL_BUILTINS".into()),
@@ -118,6 +121,7 @@ fn main() {
         .header("builtins.h")
         .allowlist_var("BUILTIN_.*")
         .allowlist_var(".*_BUILTIN")
+        .allowlist_var("current_builtin")
         .allowlist_var("num_shell_builtins")
         .allowlist_var("shell_builtins")
 
@@ -149,19 +153,21 @@ fn main() {
         .allowlist_function("get_minus_o_opts")
         .allowlist_function("get_shopt_options")
         .allowlist_var("SEVAL_.*")
+        .allowlist_var("this_shell_builtin")
 
         .header("command.h")
+        .allowlist_function("copy_command")
         .allowlist_type("word_desc")
         .allowlist_type("word_list")
         .allowlist_var("global_command")
-        .allowlist_function("copy_command")
         .allowlist_var("CMD_.*")
 
         .header("execute_cmd.h")
-        .allowlist_var("subshell_level")
         .allowlist_function("executing_line_number")
         .allowlist_function("scallop_execute_command")
         .allowlist_function("scallop_execute_shell_function")
+        .allowlist_var("this_command_name")
+        .allowlist_var("subshell_level")
 
         .header("variables.h")
         .allowlist_function("all_shell_variables")
@@ -216,11 +222,11 @@ fn main() {
         .allowlist_function("shell_glob_filename")
 
         .header("array.h")
-        .allowlist_type("ARRAY")
         .allowlist_function("array_insert")
         .allowlist_function("array_reference")
         .allowlist_function("array_remove")
         .allowlist_function("array_dispose_element")
+        .allowlist_type("ARRAY")
 
         // HACK: The last header is flagged as nonexistent if it doesn't use a path prefix
         // even when it exists in an explicitly defined include directory.

@@ -6,9 +6,10 @@ use std::{cmp, fmt, mem, process, ptr};
 
 use bitflags::bitflags;
 
+use crate::error::{Error, ok_or_error};
 use crate::macros::*;
-use crate::traits::IntoWords;
-use crate::{Error, ExecStatus, bash, shell};
+use crate::traits::{IntoWords, Words};
+use crate::{ExecStatus, bash, shell};
 
 mod _bash;
 mod profile;
@@ -155,17 +156,87 @@ impl From<Builtin> for bash::Builtin {
     }
 }
 
-/// Return the bash builtin for a given name.
-pub(crate) fn find_builtin<S: AsRef<str>>(
-    name: S,
-    all: bool,
-) -> crate::Result<&'static mut bash::Builtin> {
-    let name = name.as_ref();
-    let builtin_name = CString::new(name).unwrap();
-    let builtin_ptr = builtin_name.as_ptr() as *mut _;
-    let all = all as i32;
-    let builtin = unsafe { bash::builtin_address_internal(builtin_ptr, all).as_mut() };
-    builtin.ok_or_else(|| Error::Base(format!("unknown builtin: {name}")))
+/// Wrapper for a registered bash builtin.
+pub(crate) struct BashBuiltin {
+    name: &'static CStr,
+    cfunc: BuiltinFnPtr,
+    flags: &'static mut i32,
+}
+
+impl BashBuiltin {
+    /// Call the builtin with the given arguments.
+    pub(crate) fn call<I>(&self, args: I) -> crate::Result<ExecStatus>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        // convert args to bash word list
+        let args: Words = args.into_iter().collect();
+
+        // Update global variables used to track execution state as similarly done in
+        // the `builtin` builtin before running the target builtin.
+        unsafe {
+            bash::CURRENT_COMMAND = self.name.as_ptr() as *mut _;
+            bash::CURRENT_BUILTIN_FUNC = Some(self.cfunc);
+        }
+
+        ok_or_error(|| {
+            let ret = unsafe { (self.cfunc)(args.as_ptr()) };
+            if ret == 0 {
+                Ok(ExecStatus::Success)
+            } else {
+                Err(Error::Base(format!("failed running {self} builtin: exit status {ret}")))
+            }
+        })
+    }
+
+    /// Return the bash builtin for a given name.
+    pub(crate) fn find<S: AsRef<str>>(name: S, all: bool) -> crate::Result<Self> {
+        let name = name.as_ref();
+        let builtin_name = CString::new(name).unwrap();
+        let builtin_ptr = builtin_name.as_ptr() as *mut _;
+        let all = all as i32;
+        let builtin = unsafe {
+            // search for registered builtin
+            let builtin = bash::builtin_address_internal(builtin_ptr, all);
+            // Update global variable used to track execution state as similarly done in
+            // bash builtin search functionality such as find_shell_builtin().
+            bash::CURRENT_BUILTIN = builtin;
+            builtin.as_mut().map(Into::into)
+        };
+
+        builtin.ok_or_else(|| Error::Base(format!("unknown builtin: {name}")))
+    }
+
+    /// Return true if the builtin is enabled, otherwise false.
+    pub(crate) fn is_enabled(&self) -> bool {
+        *self.flags & Attr::ENABLED.bits() as i32 == 1
+    }
+
+    /// Enable or disable the builtin.
+    pub(crate) fn enable(&mut self, status: bool) {
+        if status {
+            *self.flags |= Attr::ENABLED.bits() as i32;
+        } else {
+            *self.flags &= !Attr::ENABLED.bits() as i32;
+        }
+    }
+}
+
+impl fmt::Display for BashBuiltin {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name.to_str().unwrap())
+    }
+}
+
+impl From<&'static mut bash::Builtin> for BashBuiltin {
+    fn from(builtin: &'static mut bash::Builtin) -> BashBuiltin {
+        Self {
+            name: unsafe { CStr::from_ptr(builtin.name) },
+            cfunc: builtin.function.unwrap(),
+            flags: &mut builtin.flags,
+        }
+    }
 }
 
 /// Enable or disable function overriding for an iterable of builtins.
@@ -175,11 +246,11 @@ where
     I::Item: AsRef<str>,
 {
     for name in builtins {
-        let builtin = find_builtin(name, true)?;
+        let builtin = BashBuiltin::find(name, true)?;
         if enable {
-            builtin.flags |= Attr::SPECIAL.bits() as i32;
+            *builtin.flags |= Attr::SPECIAL.bits() as i32;
         } else {
-            builtin.flags &= !Attr::SPECIAL.bits() as i32;
+            *builtin.flags &= !Attr::SPECIAL.bits() as i32;
         }
     }
 
@@ -195,14 +266,9 @@ where
     let mut toggled = vec![];
 
     for name in builtins {
-        let builtin = find_builtin(&name, true)?;
-        let enabled = (builtin.flags & Attr::ENABLED.bits() as i32) == 1;
-        if enabled != enable {
-            if enable {
-                builtin.flags |= Attr::ENABLED.bits() as i32;
-            } else {
-                builtin.flags &= !Attr::ENABLED.bits() as i32;
-            }
+        let mut builtin = BashBuiltin::find(&name, true)?;
+        if builtin.is_enabled() != enable {
+            builtin.enable(enable);
             toggled.push(name);
         }
     }
@@ -235,14 +301,14 @@ pub fn shell_builtins() -> (HashSet<String>, HashSet<String>) {
     unsafe {
         let end = (bash::NUM_SHELL_BUILTINS - 1) as isize;
         for i in 0..end {
-            let builtin = *bash::SHELL_BUILTINS.offset(i);
+            let builtin = bash::SHELL_BUILTINS.offset(i).as_mut().unwrap();
             // builtins with null functions are stubs for reserved keywords
             if builtin.function.is_some() {
-                let name = String::from(CStr::from_ptr(builtin.name).to_str().unwrap());
-                if (builtin.flags & Attr::ENABLED.bits() as i32) == 1 {
-                    enabled.insert(name);
+                let builtin = BashBuiltin::from(builtin);
+                if builtin.is_enabled() {
+                    enabled.insert(builtin.to_string());
                 } else {
-                    disabled.insert(name);
+                    disabled.insert(builtin.to_string());
                 }
             }
         }
