@@ -142,9 +142,6 @@ fn main() {
         .allowlist_var("EXECUTION_SUCCESS")
         .allowlist_var("EX_LONGJMP")
 
-        .header("builtins/builtext.h")
-        .allowlist_function("builtin_builtin")
-
         .header("builtins/common.h")
         .allowlist_function("scallop_evalstring")
         .allowlist_function("scallop_source_file")
