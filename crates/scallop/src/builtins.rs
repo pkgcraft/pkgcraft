@@ -197,10 +197,8 @@ impl BashBuiltin {
         // convert args to bash word list
         let args: Words = args.into_iter().collect();
 
-        let Some(function) = self.0.function else {
-            assert!(self.is_keyword());
-            return Err(Error::Base(format!("reserved keyword is not callable: {self}")));
-        };
+        // stub builtins for reserved keywords with null functions can't get here
+        let function = self.0.function.unwrap();
 
         // Update global variables used to track execution state as similarly done in
         // the `builtin` builtin before running the target builtin.
@@ -210,7 +208,7 @@ impl BashBuiltin {
         }
 
         ok_or_error(|| {
-            let ret = unsafe { (function)(args.as_ptr()) };
+            let ret = unsafe { function(args.as_ptr()) };
             if ret == 0 {
                 Ok(ExecStatus::Success)
             } else {
