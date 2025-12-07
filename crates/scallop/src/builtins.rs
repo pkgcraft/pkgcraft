@@ -703,6 +703,7 @@ mod tests {
         let name = enabled.iter().next().unwrap();
         let mut builtin = BashBuiltin::find(name).unwrap();
         assert_eq!(name, builtin.name());
+        assert!(format!("{builtin:?}").contains(name));
         assert!(builtin.is_enabled());
         // disabled
         builtin.enable(false);
