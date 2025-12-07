@@ -1,6 +1,7 @@
-use std::collections::HashSet;
 use std::ffi::{CStr, c_void};
 use std::sync::LazyLock;
+
+use indexmap::IndexSet;
 
 use crate::variables::optional;
 
@@ -10,20 +11,20 @@ mod internal;
 pub use internal::*;
 
 /// Return the set of enabled shell options used with the `set` builtin.
-pub fn set_opts() -> HashSet<String> {
+pub fn set_opts() -> IndexSet<String> {
     let opts = optional("SHELLOPTS").unwrap_or_default();
     opts.split(':').map(|s| s.to_string()).collect()
 }
 
 /// Return the set of enabled shell options used with `shopt` builtin.
-pub fn shopt_opts() -> HashSet<String> {
+pub fn shopt_opts() -> IndexSet<String> {
     let opts = optional("BASHOPTS").unwrap_or_default();
     opts.split(':').map(|s| s.to_string()).collect()
 }
 
 /// Return the set of all shell options used with the `set` builtin.
-pub static SET_OPTS: LazyLock<HashSet<&str>> = LazyLock::new(|| {
-    let mut opts = HashSet::new();
+pub static SET_OPTS: LazyLock<IndexSet<&str>> = LazyLock::new(|| {
+    let mut opts = IndexSet::new();
     let mut i = 0;
     unsafe {
         let opt_ptrs = get_set_options();
@@ -37,8 +38,8 @@ pub static SET_OPTS: LazyLock<HashSet<&str>> = LazyLock::new(|| {
 });
 
 /// Return the set of all shell options used with the `shopt` builtin.
-pub static SHOPT_OPTS: LazyLock<HashSet<&str>> = LazyLock::new(|| {
-    let mut opts = HashSet::new();
+pub static SHOPT_OPTS: LazyLock<IndexSet<&str>> = LazyLock::new(|| {
+    let mut opts = IndexSet::new();
     let mut i = 0;
     unsafe {
         let opt_ptrs = get_shopt_options();
