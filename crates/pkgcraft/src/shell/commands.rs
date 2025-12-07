@@ -61,6 +61,7 @@ mod eapply;
 mod eapply_user;
 mod ebegin;
 pub(crate) mod econf;
+mod edo;
 mod eend;
 mod eerror;
 mod einfo;
@@ -161,6 +162,7 @@ pub(crate) mod builtins {
     pub(crate) use super::eapply_user::BUILTIN as eapply_user;
     pub(crate) use super::ebegin::BUILTIN as ebegin;
     pub(crate) use super::econf::BUILTIN as econf;
+    pub(crate) use super::edo::BUILTIN as edo;
     pub(crate) use super::eend::BUILTIN as eend;
     pub(crate) use super::eerror::BUILTIN as eerror;
     pub(crate) use super::einfo::BUILTIN as einfo;
@@ -278,6 +280,7 @@ pub(crate) mod functions {
     pub(crate) use super::eapply_user::run as eapply_user;
     pub(crate) use super::ebegin::run as ebegin;
     pub(crate) use super::econf::run as econf;
+    pub(crate) use super::edo::run as edo;
     pub(crate) use super::eend::run as eend;
     pub(crate) use super::eerror::run as eerror;
     pub(crate) use super::einfo::run as einfo;
@@ -551,6 +554,7 @@ pub(crate) static BUILTINS: LazyLock<IndexSet<Builtin>> = LazyLock::new(|| {
         builtins::eapply_user,
         builtins::ebegin,
         builtins::econf,
+        builtins::edo,
         builtins::eend,
         builtins::eerror,
         builtins::einfo,
