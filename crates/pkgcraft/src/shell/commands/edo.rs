@@ -33,13 +33,11 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let subshell = program == "die" || !build.eapi().commands().contains(program);
 
     // output command to stderr
-    let mut stderr = stderr();
     let command_string = current_command_string()?;
     let msg = command_string
         .strip_prefix("edo ")
         .expect("invalid `edo` call");
-    write!(stderr, "{msg}")?;
-    stderr.flush()?;
+    writeln!(stderr(), "{msg}")?;
 
     // run specified command
     command.args(cmd.args).subshell(subshell).execute()
@@ -88,7 +86,7 @@ mod tests {
         BuildData::from_pkg(&pkg);
         let r = pkg.build();
         assert!(r.is_ok(), "{}", r.unwrap_err());
-        assert_eq!(stderr().get(), r#"echo 1 2 3 $foo ${bar} "" "white space""#);
+        assert_eq!(stderr().get(), "echo 1 2 3 $foo ${bar} \"\" \"white space\"\n");
     }
 
     #[test]
@@ -143,6 +141,6 @@ mod tests {
         BuildData::from_pkg(&pkg);
         let r = pkg.build();
         assert!(r.is_ok(), "{}", r.unwrap_err());
-        assert_eq!(stderr().get(), "nonexistent arg1 arg2");
+        assert_eq!(stderr().get(), "nonexistent arg1 arg2\n");
     }
 }
