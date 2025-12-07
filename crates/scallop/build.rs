@@ -110,10 +110,10 @@ fn main() {
         // link using static library
         println!("cargo::rustc-link-search=native={build_dir}");
         println!("cargo::rustc-link-lib=static=scallop");
-
-        // rerun if any bash file changes
-        println!("cargo::rerun-if-changed=bash");
     };
+
+    // rerun if any vendored bash file changes
+    println!("cargo::rerun-if-changed={vendor_dir}");
 
     #[rustfmt::skip]
     // generate bash bindings
