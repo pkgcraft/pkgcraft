@@ -715,7 +715,7 @@ fn run(name: &str, args: *mut scallop::bash::WordList) -> scallop::ExecStatus {
             let args: Result<Vec<_>, _> = args.into_iter().collect();
             // run command if args are valid utf8
             match args {
-                Ok(args) => cmd(&args),
+                Ok(args) => cmd.call(&args),
                 Err(e) => Err(Error::Base(format!("invalid args: {e}"))),
             }
         }
@@ -749,8 +749,8 @@ macro_rules! make_builtin {
             $crate::shell::commands::Builtin(scallop::builtins::Builtin {
                 name: $name,
                 func: run,
-                flags: scallop::builtins::Attr::ENABLED.bits(),
                 cfunc: $func_name,
+                flags: scallop::builtins::Attr::ENABLED.bits(),
                 help: "",
                 usage: $usage,
             });

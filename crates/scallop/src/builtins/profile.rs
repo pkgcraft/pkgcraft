@@ -53,7 +53,7 @@ mod tests {
         builtins::enable([profile]).unwrap();
 
         // no args
-        assert!(profile(&[]).is_err());
+        assert!(profile.call(&[]).is_err());
 
         // TODO: use shorter timeout once supported
         // verify basic command directly from bash

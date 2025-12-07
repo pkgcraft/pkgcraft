@@ -22,7 +22,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let default_phase = format!("default_{phase}");
 
     if let Some(cmd) = build.eapi().commands().get(default_phase.as_str()) {
-        cmd(&[])
+        cmd.call(&[])
     } else {
         Err(Error::Base(format!("{phase} phase has no default")))
     }

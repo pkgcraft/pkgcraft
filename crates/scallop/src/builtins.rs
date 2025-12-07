@@ -2,7 +2,6 @@ use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::ffi::{CStr, CString, c_int};
 use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::{cmp, fmt, mem, process, ptr};
 
 use bitflags::bitflags;
@@ -66,10 +65,19 @@ pub mod shopt {
 pub struct Builtin {
     pub name: &'static str,
     pub func: BuiltinFn,
-    pub flags: u32,
     pub cfunc: BuiltinFnPtr,
+    pub flags: u32,
     pub help: &'static str,
     pub usage: &'static str,
+}
+
+impl Builtin {
+    // TODO: Implement callable trait support if it's ever stabilized
+    // https://github.com/rust-lang/rust/issues/29625
+    /// Call the builtin with the given arguments.
+    pub fn call(&self, args: &[&str]) -> crate::Result<ExecStatus> {
+        (self.func)(args)
+    }
 }
 
 impl fmt::Debug for Builtin {
@@ -122,17 +130,6 @@ impl Borrow<str> for Builtin {
     }
 }
 
-// TODO: replace with callable trait implementation if it's ever stabilized
-// https://github.com/rust-lang/rust/issues/29625
-impl Deref for Builtin {
-    type Target = BuiltinFn;
-
-    fn deref(&self) -> &Self::Target {
-        &self.func
-    }
-}
-
-/// Convert a Builtin to its C equivalent.
 impl From<Builtin> for bash::Builtin {
     fn from(builtin: Builtin) -> bash::Builtin {
         let name_str = CString::new(builtin.name).unwrap();
@@ -430,7 +427,7 @@ fn run(builtin: &Builtin, args: *mut bash::WordList) -> ExecStatus {
 
     // run command if args are valid utf8
     let result = match args {
-        Ok(args) => builtin(&args),
+        Ok(args) => builtin.call(&args),
         Err(e) => Err(Error::Base(format!("invalid args: {e}"))),
     };
 
@@ -454,8 +451,8 @@ macro_rules! make_builtin {
         pub static BUILTIN: Builtin = Builtin {
             name: $name,
             func: $func,
-            flags: 0,
             cfunc: $func_name,
+            flags: 0,
             help: $long_doc,
             usage: $usage,
         };
