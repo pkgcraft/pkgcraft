@@ -20,7 +20,7 @@ impl ParseCallbacks for BashCallback {
             "builtin" => Some("Builtin".into()),
             // global mutables
             "global_command" => Some("GLOBAL_COMMAND".into()),
-            "this_command_name" => Some("CURRENT_COMMAND".into()),
+            "this_command_name" => Some("CURRENT_COMMAND_NAME".into()),
             "this_shell_builtin" => Some("CURRENT_BUILTIN_FUNC".into()),
             "current_builtin" => Some("CURRENT_BUILTIN".into()),
             "temporary_env" => Some("TEMPORARY_ENV".into()),

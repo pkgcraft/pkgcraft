@@ -204,7 +204,7 @@ impl BashBuiltin {
         // Update global variables used to track execution state as similarly done in
         // the `builtin` builtin before running the target builtin.
         unsafe {
-            bash::CURRENT_COMMAND = self.0.name;
+            bash::CURRENT_COMMAND_NAME = self.0.name;
             bash::CURRENT_BUILTIN_FUNC = Some(function);
         }
 
