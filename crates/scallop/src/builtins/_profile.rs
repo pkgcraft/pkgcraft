@@ -41,10 +41,8 @@ make_builtin!("profile", profile_builtin, run, LONG_DOC, "profile func arg1 arg2
 
 #[cfg(test)]
 mod tests {
-    use crate::builtins;
+    use crate::builtins::{self, profile};
     use crate::source;
-
-    use super::BUILTIN as profile;
 
     #[test]
     fn builtin() {

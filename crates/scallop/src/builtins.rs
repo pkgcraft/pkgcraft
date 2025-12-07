@@ -12,13 +12,13 @@ use crate::traits::{IntoWords, Words};
 use crate::{ExecStatus, bash, shell};
 
 mod _bash;
-mod profile;
+mod _profile;
 
 // export native bash builtins
 pub use _bash::*;
 
 // export builtins for external registry
-pub use profile::BUILTIN as profile;
+pub use _profile::BUILTIN as profile;
 
 pub type BuiltinFn = fn(&[&str]) -> crate::Result<ExecStatus>;
 pub type BuiltinFnPtr = unsafe extern "C" fn(list: *mut bash::WordList) -> c_int;
