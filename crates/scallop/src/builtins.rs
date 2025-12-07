@@ -44,7 +44,7 @@ pub mod set {
     pub fn enable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
     where
         I: IntoIterator<Item = &'a S>,
-        S: AsRef<str> + 'a,
+        S: AsRef<str> + 'a + ?Sized,
     {
         set(["-o"]
             .into_iter()
@@ -54,7 +54,7 @@ pub mod set {
     pub fn disable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
     where
         I: IntoIterator<Item = &'a S>,
-        S: AsRef<str> + 'a,
+        S: AsRef<str> + 'a + ?Sized,
     {
         set(["+o"]
             .into_iter()
@@ -68,7 +68,7 @@ pub mod shopt {
     pub fn enable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
     where
         I: IntoIterator<Item = &'a S>,
-        S: AsRef<str> + 'a,
+        S: AsRef<str> + 'a + ?Sized,
     {
         shopt(
             ["-s"]
@@ -80,7 +80,7 @@ pub mod shopt {
     pub fn disable<'a, I, S>(opts: I) -> crate::Result<ExecStatus>
     where
         I: IntoIterator<Item = &'a S>,
-        S: AsRef<str> + 'a,
+        S: AsRef<str> + 'a + ?Sized,
     {
         shopt(
             ["-u"]
@@ -434,12 +434,12 @@ impl ScopedOptions {
         for opt in options {
             if bash::SET_OPTS.contains(opt) {
                 if !enabled_set.contains(opt) {
-                    set::enable(&[opt])?;
+                    set::enable([opt])?;
                     self.set_enabled.push(opt.into());
                 }
             } else if bash::SHOPT_OPTS.contains(opt) {
                 if !enabled_shopt.contains(opt) {
-                    shopt::enable(&[opt])?;
+                    shopt::enable([opt])?;
                     self.shopt_enabled.push(opt.into());
                 }
             } else {
@@ -461,12 +461,12 @@ impl ScopedOptions {
         for opt in options {
             if bash::SET_OPTS.contains(opt) {
                 if enabled_set.contains(opt) {
-                    set::disable(&[opt])?;
+                    set::disable([opt])?;
                     self.set_disabled.push(opt.into());
                 }
             } else if bash::SHOPT_OPTS.contains(opt) {
                 if enabled_shopt.contains(opt) {
-                    shopt::disable(&[opt])?;
+                    shopt::disable([opt])?;
                     self.shopt_disabled.push(opt.into());
                 }
             } else {
@@ -649,8 +649,8 @@ mod tests {
 
         // shopt options
         let (enable, disable) = ("autocd", "sourcepath");
-        shopt::disable(&[enable]).unwrap();
-        shopt::enable(&[disable]).unwrap();
+        shopt::disable([enable]).unwrap();
+        shopt::enable([disable]).unwrap();
 
         assert!(!bash::shopt_opts().contains(enable));
         assert!(bash::shopt_opts().contains(disable));
@@ -669,8 +669,8 @@ mod tests {
 
         // set options
         let (enable, disable) = ("noglob", "verbose");
-        set::disable(&[enable]).unwrap();
-        set::enable(&[disable]).unwrap();
+        set::disable([enable]).unwrap();
+        set::enable([disable]).unwrap();
 
         assert!(!bash::set_opts().contains(enable));
         assert!(bash::set_opts().contains(disable));

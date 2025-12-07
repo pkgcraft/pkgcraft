@@ -64,11 +64,11 @@ mod tests {
         // but isn't currently enabled
         assert!(!set_opts().contains("noexec"));
         // enable it
-        set::enable(&["noexec"]).unwrap();
+        set::enable(["noexec"]).unwrap();
         // and now it's currently enabled
         assert!(set_opts().contains("noexec"));
         // disable it
-        set::disable(&["noexec"]).unwrap();
+        set::disable(["noexec"]).unwrap();
         assert!(!set_opts().contains("noexec"));
     }
 
@@ -79,11 +79,11 @@ mod tests {
         // but isn't currently enabled
         assert!(!shopt_opts().contains("autocd"));
         // enable it
-        shopt::enable(&["autocd"]).unwrap();
+        shopt::enable(["autocd"]).unwrap();
         // and now it's currently enabled
         assert!(shopt_opts().contains("autocd"));
         // disable it
-        shopt::disable(&["autocd"]).unwrap();
+        shopt::disable(["autocd"]).unwrap();
         assert!(!shopt_opts().contains("autocd"));
     }
 }
