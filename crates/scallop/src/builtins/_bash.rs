@@ -7,7 +7,7 @@ where
     I: IntoIterator,
     I::Item: AsRef<str>,
 {
-    BashBuiltin::find("declare", false)?.call(args)
+    BashBuiltin::find("declare")?.call(args)
 }
 
 /// Run the `local` builtin with the given arguments.
@@ -16,7 +16,7 @@ where
     I: IntoIterator,
     I::Item: AsRef<str>,
 {
-    BashBuiltin::find("local", false)?.call(args)
+    BashBuiltin::find("local")?.call(args)
 }
 
 /// Run the `set` builtin with the given arguments.
@@ -25,7 +25,7 @@ where
     I: IntoIterator,
     I::Item: AsRef<str>,
 {
-    BashBuiltin::find("set", false)?.call(args)
+    BashBuiltin::find("set")?.call(args)
 }
 
 /// Run the `shopt` builtin with the given arguments.
@@ -34,7 +34,7 @@ where
     I: IntoIterator,
     I::Item: AsRef<str>,
 {
-    BashBuiltin::find("shopt", false)?.call(args)
+    BashBuiltin::find("shopt")?.call(args)
 }
 
 #[cfg(test)]
