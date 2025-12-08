@@ -84,7 +84,7 @@ impl Command {
     }
 
     pub fn execute(&self) -> crate::Result<ExecStatus> {
-        let cmd: RawCommand = self.try_into()?;
+        let cmd: BashCommand = self.try_into()?;
         cmd.execute()
     }
 }
@@ -101,7 +101,7 @@ impl FromStr for Command {
     }
 }
 
-impl TryFrom<&Command> for RawCommand {
+impl TryFrom<&Command> for BashCommand {
     type Error = Error;
 
     fn try_from(value: &Command) -> crate::Result<Self> {
@@ -114,10 +114,11 @@ impl TryFrom<&Command> for RawCommand {
     }
 }
 
+/// Wrapper for a raw bash command.
 #[derive(Debug)]
-struct RawCommand(*mut bash::Command);
+struct BashCommand(*mut bash::Command);
 
-impl RawCommand {
+impl BashCommand {
     fn execute(&self) -> crate::Result<ExecStatus> {
         ok_or_error(|| match unsafe { bash::scallop_execute_command(self.0) } {
             0 => Ok(ExecStatus::Success),
@@ -126,7 +127,7 @@ impl RawCommand {
     }
 }
 
-impl FromStr for RawCommand {
+impl FromStr for BashCommand {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -161,7 +162,7 @@ impl FromStr for RawCommand {
     }
 }
 
-impl Drop for RawCommand {
+impl Drop for BashCommand {
     fn drop(&mut self) {
         unsafe { bash::dispose_command(self.0) };
     }
@@ -218,6 +219,6 @@ mod tests {
 
     #[test]
     fn invalid() {
-        assert!(RawCommand::from_str("|| {").is_err());
+        assert!(BashCommand::from_str("|| {").is_err());
     }
 }
