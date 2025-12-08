@@ -3874,6 +3874,7 @@ dependencies = [
  "camino",
  "ctor",
  "indexmap",
+ "indoc",
  "itertools 0.14.0",
  "libc",
  "nix",

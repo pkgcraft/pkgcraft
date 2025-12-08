@@ -202,6 +202,7 @@ impl Iterator for ArrayIntoIter<'_> {
 }
 
 /// Provide access to bash's $PIPESTATUS shell variable.
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PipeStatus(Vec<i32>);
 
 impl PipeStatus {
@@ -216,7 +217,12 @@ impl PipeStatus {
 
     /// Determine if a process failed in the related pipeline.
     pub fn failed(&self) -> bool {
-        self.iter().any(|s| *s != 0)
+        self.status() != 0
+    }
+
+    /// Return the last non-zero exit status, otherwise zero.
+    pub fn status(&self) -> i32 {
+        self.iter().rev().copied().find(|s| *s != 0).unwrap_or(0)
     }
 }
 
@@ -365,25 +371,47 @@ mod tests {
     fn pipestatus() {
         // nonexistent
         let pipestatus = PipeStatus::get();
+        assert_eq!(pipestatus.status(), 0);
         assert!(!pipestatus.failed());
         assert!(pipestatus.is_empty());
 
         // single success
         source::string("true").ok();
         let pipestatus = PipeStatus::get();
+        assert_eq!(pipestatus.status(), 0);
         assert!(!pipestatus.failed());
         assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [0]);
 
         // single failure
         source::string("false").ok();
         let pipestatus = PipeStatus::get();
+        assert_eq!(pipestatus.status(), 1);
         assert!(pipestatus.failed());
         assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [1]);
 
         // multiple commands
         source::string("true | false | true").ok();
         let pipestatus = PipeStatus::get();
+        assert_eq!(pipestatus.status(), 1);
         assert!(pipestatus.failed());
         assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [0, 1, 0]);
+
+        // custom return status
+        source::string(indoc::indoc! {"
+            func1() {
+                return 1
+            }
+
+            func2() {
+                return 123
+            }
+
+            func1 | func2 | true
+        "})
+        .unwrap();
+        let pipestatus = PipeStatus::get();
+        assert_eq!(pipestatus.status(), 123);
+        assert!(pipestatus.failed());
+        assert_eq!(pipestatus.iter().copied().collect::<Vec<_>>(), [1, 123, 0]);
     }
 }
