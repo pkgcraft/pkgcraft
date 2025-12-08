@@ -113,7 +113,7 @@ mod tests {
         let r = pkg.build();
         assert_err_re!(
             r,
-            "^cat/pkg-1::test: line 6: edo: error: line 1: unknown command: nonexistent$"
+            "^cat/pkg-1::test: line 6: edo: error: unknown command: nonexistent$"
         );
     }
 

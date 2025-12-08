@@ -503,11 +503,18 @@ impl Drop for ScopedOptions {
 
 /// Handle builtin errors.
 pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
-    // command_not_found_handle builtin messages are unprefixed
+    // add error line prolog for relevant line numbers
     let lineno = shell::executing_line_number();
+    let prolog = if lineno > 0 {
+        format!("line {lineno}: ")
+    } else {
+        String::new()
+    };
+
+    // command_not_found_handle builtin messages are unprefixed
     let msg = match cmd.as_ref() {
-        "command_not_found_handle" => format!("line {lineno}: {err}"),
-        s => format!("line {lineno}: {s}: error: {err}"),
+        "command_not_found_handle" => format!("{prolog}{err}"),
+        s => format!("{prolog}{s}: error: {err}"),
     };
 
     let bail = matches!(err, Error::Bail(_));

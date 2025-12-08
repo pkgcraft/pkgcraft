@@ -148,6 +148,10 @@ impl FromStr for RawCommand {
                 _ => return Err(Error::Base(format!("failed parsing: {s}"))),
             };
 
+            // Override line number to avoid "line 1" being used as an error prolog. Since the
+            // value field is a union type it doesn't matter which one is used.
+            (*(*cmd).value.Simple).line = 0;
+
             // clean up global command
             bash::dispose_command(bash::GLOBAL_COMMAND);
             bash::GLOBAL_COMMAND = ptr::null_mut();
@@ -171,6 +175,7 @@ static COMMAND_MARKER: LazyLock<CString> =
 
 #[cfg(test)]
 mod tests {
+    use crate::source;
     use crate::test::assert_err_re;
     use crate::variables::optional;
 
@@ -192,6 +197,18 @@ mod tests {
 
         let cmd: Command = "exit 1".parse().unwrap();
         assert!(cmd.execute().is_err());
+    }
+
+    #[test]
+    fn no_line_in_error() {
+        // regular command errors have line numbers
+        let r = source::string("enable nonexistent");
+        assert_err_re!(r, "^line 1: enable: nonexistent: not a shell builtin$");
+
+        // skipped for custom commands because a line number isn't relevant
+        let cmd: Command = "enable nonexistent".parse().unwrap();
+        let r = cmd.execute();
+        assert_err_re!(r, "^enable: nonexistent: not a shell builtin$");
     }
 
     #[test]
