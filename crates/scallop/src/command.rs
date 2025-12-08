@@ -108,20 +108,18 @@ impl TryFrom<&Command> for RawCommand {
         let cmd: Self = value.args.iter().join(" ").parse()?;
 
         // apply flags
-        unsafe { (*cmd.ptr).flags |= value.flags.bits() as i32 };
+        unsafe { (*cmd.0).flags |= value.flags.bits() as i32 };
 
         Ok(cmd)
     }
 }
 
 #[derive(Debug)]
-struct RawCommand {
-    ptr: *mut bash::Command,
-}
+struct RawCommand(*mut bash::Command);
 
 impl RawCommand {
     fn execute(&self) -> crate::Result<ExecStatus> {
-        ok_or_error(|| match unsafe { bash::scallop_execute_command(self.ptr) } {
+        ok_or_error(|| match unsafe { bash::scallop_execute_command(self.0) } {
             0 => Ok(ExecStatus::Success),
             n => Err(Error::Status(n)),
         })
@@ -135,7 +133,6 @@ impl FromStr for RawCommand {
         let cmd_str = CString::new(s).unwrap();
         let cmd_ptr = cmd_str.as_ptr() as *mut _;
         let name_ptr = COMMAND_MARKER.as_ptr();
-        let cmd: *mut bash::Command;
 
         unsafe {
             // save input stream
@@ -143,7 +140,7 @@ impl FromStr for RawCommand {
 
             // parse command from string
             bash::with_input_from_string(cmd_ptr, name_ptr);
-            cmd = match bash::parse_command() {
+            let cmd = match bash::parse_command() {
                 0 => bash::copy_command(bash::GLOBAL_COMMAND),
                 _ => return Err(Error::Base(format!("failed parsing: {s}"))),
             };
@@ -158,15 +155,15 @@ impl FromStr for RawCommand {
 
             // restore input stream
             bash::pop_stream();
-        }
 
-        Ok(Self { ptr: cmd })
+            Ok(Self(cmd))
+        }
     }
 }
 
 impl Drop for RawCommand {
     fn drop(&mut self) {
-        unsafe { bash::dispose_command(self.ptr) };
+        unsafe { bash::dispose_command(self.0) };
     }
 }
 
