@@ -103,7 +103,7 @@ mod tests {
 
         // nonfatal requires `die -n` call
         let r = source::string("true | false; nonfatal assert");
-        assert_err_re!(r, r"assert: error: \(no error message\)$");
+        assert_err_re!(r, r"^nonfatal: error: assert: error: \(no error message\)$");
 
         // nonfatal die in main process
         bind("VAR", "1", None, None).unwrap();
