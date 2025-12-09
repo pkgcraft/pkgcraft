@@ -43,7 +43,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     // arguments override user options
     emake.args(&cmd.args);
 
-    write!(stdout(), "{}", emake.to_vec().join(" "))?;
+    writeln!(stdout(), "{}", emake.to_vec().join(" "))?;
     emake.run()?;
     Ok(ExecStatus::Success)
 }
@@ -62,6 +62,7 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{cmd_scope_tests, functions::emake};
+    use super::*;
 
     cmd_scope_tests!("emake -C builddir");
 
@@ -85,31 +86,37 @@ mod tests {
         emake(&[]).unwrap();
         let cmd = commands().pop().unwrap();
         assert_eq!(cmd[0], "make");
+        assert_eq!(stdout().get(), "make\n");
 
         // custom args
         let args = ["-C", "build", "install"];
         emake(&args).unwrap();
         let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], args);
+        assert_eq!(stdout().get(), "make -C build install\n");
 
         // using $MAKEOPTS settings
         bind("MAKEOPTS", "-j10", None, None).unwrap();
         emake(&[]).unwrap();
         let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], ["-j10"]);
+        assert_eq!(stdout().get(), "make -j10\n");
         bind("MAKEOPTS", "-j20 -l 20", None, None).unwrap();
         emake(&[]).unwrap();
         let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], ["-j20", "-l", "20"]);
+        assert_eq!(stdout().get(), "make -j20 -l 20\n");
         // args override $MAKEOPTS
         emake(&["-j1"]).unwrap();
         let cmd = commands().pop().unwrap();
         assert_eq!(cmd[1..], ["-j20", "-l", "20", "-j1"]);
+        assert_eq!(stdout().get(), "make -j20 -l 20 -j1\n");
 
         // custom $MAKE prog
         bind("MAKE", "custom-make", None, None).unwrap();
         emake(&[]).unwrap();
         let cmd = commands().pop().unwrap();
         assert_eq!(cmd[0], "custom-make");
+        assert_eq!(stdout().get(), "custom-make -j20 -l 20\n");
     }
 }
