@@ -114,6 +114,7 @@ mod tests {
     use crate::test::assert_err_re;
 
     use super::super::{assert_invalid_args, cmd_scope_tests, functions::eapply};
+    use super::*;
 
     cmd_scope_tests!("eapply file.patch");
 
@@ -211,6 +212,7 @@ mod tests {
             let args = [opts, vec!["file.patch"]].concat();
             eapply(&args).unwrap();
             assert_eq!(fs::read_to_string("file.txt").unwrap().trim(), expected);
+            assert_eq!(stdout().get(), "Applying file.patch...\n");
         }
     }
 
@@ -251,5 +253,13 @@ mod tests {
         assert_eq!(fs::read_to_string("file.txt").unwrap(), "0\n");
         eapply(&["files"]).unwrap();
         assert_eq!(fs::read_to_string("file.txt").unwrap(), "2\n");
+        assert_eq!(
+            stdout().get(),
+            indoc::indoc! {"
+            Applying patches from files
+              files/0.patch...
+              files/1.patch...
+        "}
+        );
     }
 }

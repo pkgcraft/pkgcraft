@@ -39,9 +39,9 @@ mod tests {
 
     use tempfile::tempdir;
 
+    use crate::io::stdout;
     use crate::shell::BuildData;
-    use crate::test::assert_err_re;
-    use crate::test::test_data;
+    use crate::test::{assert_err_re, test_data};
 
     use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::eapply_user};
     use super::*;
@@ -129,7 +129,16 @@ mod tests {
         assert_eq!(fs::read_to_string("file.txt").unwrap(), "0\n");
         eapply_user(&[]).unwrap();
         assert_eq!(fs::read_to_string("file.txt").unwrap(), "2\n");
+        assert_eq!(
+            stdout().get(),
+            indoc::indoc! {"
+                Applying files/0.patch...
+                Applying files/1.patch...
+            "}
+        );
+
         // re-running doesn't apply patches
         eapply_user(&[]).unwrap();
+        assert_eq!(stdout().get(), "");
     }
 }
