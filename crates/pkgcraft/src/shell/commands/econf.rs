@@ -190,7 +190,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     }
 
     // run configure script
-    write!(stdout(), "{}", econf.to_vec().join(" "))?;
+    writeln!(stdout(), "{}", econf.to_vec().join(" "))?;
     econf.run()?;
 
     Ok(ExecStatus::Success)
@@ -220,6 +220,16 @@ mod tests {
 
     fn get_opts(args: &[&str]) -> IndexMap<String, Option<String>> {
         econf(args).unwrap();
+
+        // basic output verification
+        let stdout = stdout().get();
+        assert!(stdout.starts_with("./configure "));
+        for arg in args {
+            assert!(stdout.contains(arg));
+        }
+        assert!(stdout.ends_with("\n"));
+
+        // split command arguments in an ordered key/value map
         let cmd = commands().pop().unwrap();
         cmd[1..]
             .iter()
