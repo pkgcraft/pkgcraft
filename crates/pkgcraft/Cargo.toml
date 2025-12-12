@@ -51,7 +51,7 @@ ordermap = { version = "1.0.0", features = ["rayon", "serde"] }
 peg = "0.8.5"
 rayon = "1.11.0"
 regex = "1.12.2"
-reqwest = { version = "0.12.24", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
+reqwest = { version = "0.12.25", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 roxmltree = "0.21.1"
 rust-ini = "0.21.3"
 scallop = { path = "../scallop", version = "0.0.29" }
@@ -61,7 +61,7 @@ sha2 = "0.10.9"
 strum = { version = "0.27.2", features = ["derive"] }
 tempfile = "3.23.0"
 thiserror = "2.0.17"
-tree-sitter = "0.25.10"
+tree-sitter = "0.26.2"
 tree-sitter-bash = "0.25.1"
 tokio = { version = "1.48.0", features = ["full"] }
 toml = "0.9.8"
