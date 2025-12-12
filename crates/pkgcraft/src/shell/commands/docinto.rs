@@ -35,7 +35,6 @@ mod tests {
 
     use crate::shell::BuildData;
     use crate::shell::test::FileTree;
-    use crate::test::assert_err_re;
     use crate::test::test_data;
 
     use super::super::{

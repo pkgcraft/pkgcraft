@@ -35,5 +35,4 @@ macro_rules! make_set_restriction {
         }
     )+};
 }
-pub(crate) use make_set_restriction;
 make_set_restriction!((OrderedSet<String>, String, StrRestrict));

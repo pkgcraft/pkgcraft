@@ -39,8 +39,6 @@ make_builtin!("dostrip", dostrip_builtin);
 
 #[cfg(test)]
 mod tests {
-    use crate::test::assert_err_re;
-
     use super::super::{assert_invalid_cmd, cmd_scope_tests, functions::dostrip};
     use super::*;
 
