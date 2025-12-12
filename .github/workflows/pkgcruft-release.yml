@@ -21,7 +21,7 @@ jobs:
       run: cargo run --bin pkgcruft completion --dir shell
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: shell
         path: shell
@@ -57,7 +57,7 @@ jobs:
         rm -rf ${HOME}/${{ github.ref_name }}
 
     - name: Download shell completion
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         name: shell
         path: shell
@@ -70,7 +70,7 @@ jobs:
         tar -cv -I "xz -9 -T0" -f ${{ github.ref_name }}.tar.xz ${{ github.ref_name }}
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: source
         path: ./*.tar.xz
@@ -108,7 +108,7 @@ jobs:
           pkgcruft
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ github.ref_name }}-${{ matrix.target }}
         path: ./*.tar.xz
@@ -124,7 +124,7 @@ jobs:
 
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         path: artifacts
         merge-multiple: true
