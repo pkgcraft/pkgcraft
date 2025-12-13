@@ -1,6 +1,6 @@
 [package]
 name = "pkgcraft"
-version = "0.0.30"
+version = "0.0.31"
 description = "library of Gentoo functionality"
 homepage = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft"
 repository = "https://github.com/pkgcraft/pkgcraft/tree/main/crates/pkgcraft"
@@ -54,7 +54,7 @@ regex = "1.12.2"
 reqwest = { version = "0.12.25", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 roxmltree = "0.21.1"
 rust-ini = "0.21.3"
-scallop = { path = "../scallop", version = "0.0.29" }
+scallop = { path = "../scallop", version = "0.0.30" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_with = { version = "3.16.1", default-features = false, features = ["macros"] }
 sha2 = "0.10.9"

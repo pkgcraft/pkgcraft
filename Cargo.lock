@@ -3124,7 +3124,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "pkgcraft"
-version = "0.0.30"
+version = "0.0.31"
 dependencies = [
  "blake2",
  "blake3",
@@ -3181,7 +3181,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcraft-c"
-version = "0.0.30"
+version = "0.0.31"
 dependencies = [
  "pkgcraft",
  "tracing",
@@ -3190,7 +3190,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcraft-tools"
-version = "0.0.30"
+version = "0.0.31"
 dependencies = [
  "aho-corasick",
  "anstream",
@@ -3229,7 +3229,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcruft"
-version = "0.0.17"
+version = "0.0.18"
 dependencies = [
  "anstream",
  "anyhow",
@@ -3273,7 +3273,7 @@ dependencies = [
 
 [[package]]
 name = "pkgcruft-git"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anstream",
  "anyhow",
@@ -3866,7 +3866,7 @@ dependencies = [
 
 [[package]]
 name = "scallop"
-version = "0.0.29"
+version = "0.0.30"
 dependencies = [
  "autotools",
  "bindgen",
