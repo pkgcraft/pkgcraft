@@ -1,3 +1,11 @@
+# 0.0.31
+
+## Added
+- Preliminary EAPI 9 support.
+
+## Changed
+- Update MSRV to 1.90.
+
 # 0.0.30
 
 ## Changed
