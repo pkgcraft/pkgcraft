@@ -56,11 +56,7 @@ impl Write for Stdin {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        match self.inner.lock().as_deref_mut() {
-            Ok(StdinInternal::Real(_)) => unreachable!("stdin can't be written to"),
-            Ok(StdinInternal::Fake(f)) => f.flush(),
-            Err(e) => unreachable!("failed getting stdin: {e}"),
-        }
+        unreachable!("stdin can't be flushed")
     }
 }
 
