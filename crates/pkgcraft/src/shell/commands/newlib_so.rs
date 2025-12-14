@@ -16,6 +16,7 @@ make_builtin!("newlib.so", newlib_so_builtin);
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::io::Write;
 
     use crate::io::stdin;
     use crate::shell::test::FileTree;
@@ -47,7 +48,7 @@ mod tests {
         );
 
         // custom install dir using data from stdin
-        stdin().inject("pkgcraft").unwrap();
+        stdin().write_all(b"pkgcraft").unwrap();
         into(&["/"]).unwrap();
         newlib_so(&["-", "pkgcraft.so"]).unwrap();
         file_tree.assert(

@@ -16,6 +16,7 @@ make_builtin!("newenvd", newenvd_builtin);
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::io::Write;
 
     use crate::io::stdin;
     use crate::shell::test::FileTree;
@@ -44,7 +45,7 @@ mod tests {
         );
 
         // re-run using data from stdin
-        stdin().inject("pkgcraft").unwrap();
+        stdin().write_all(b"pkgcraft").unwrap();
         newenvd(&["-", "pkgcraft"]).unwrap();
         file_tree.assert(
             r#"

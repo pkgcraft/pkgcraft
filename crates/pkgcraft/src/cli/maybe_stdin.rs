@@ -218,6 +218,8 @@ impl<'a, T> IntoIterator for &'a MaybeStdinVec<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
     use crate::test::assert_ordered_eq;
 
     use super::*;
@@ -235,7 +237,7 @@ mod tests {
         for use_stdin in [false, true] {
             let mut value: MaybeStdin<String> = if use_stdin {
                 let mut stdin = stdin();
-                stdin.inject("test\n").unwrap();
+                stdin.write_all(b"test\n").unwrap();
                 "-".parse().unwrap()
             } else {
                 "test".parse().unwrap()
@@ -253,7 +255,7 @@ mod tests {
         for use_stdin in [false, true] {
             let mut values: MaybeStdinVec<usize> = if use_stdin {
                 let mut stdin = stdin();
-                stdin.inject("12\n").unwrap();
+                stdin.write_all(b"12\n").unwrap();
                 "-".parse().unwrap()
             } else {
                 "12".parse().unwrap()

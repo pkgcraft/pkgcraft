@@ -16,6 +16,7 @@ make_builtin!("newexe", newexe_builtin);
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::io::Write;
 
     use crate::io::stdin;
     use crate::shell::test::FileTree;
@@ -69,7 +70,7 @@ mod tests {
         );
 
         // custom mode and install dir using data from stdin
-        stdin().inject("pkgcraft").unwrap();
+        stdin().write_all(b"pkgcraft").unwrap();
         exeinto(&["/opt/bin"]).unwrap();
         exeopts(&["-m0777"]).unwrap();
         newexe(&["-", "pkgcraft"]).unwrap();

@@ -25,20 +25,6 @@ pub(crate) struct Stdin {
     inner: &'static Mutex<StdinInternal>,
 }
 
-impl Stdin {
-    /// Inject data into fake stdin for testing.
-    #[cfg(test)]
-    pub(crate) fn inject(&mut self, data: &str) -> io::Result<usize> {
-        if let Ok(StdinInternal::Fake(f)) = self.inner.lock().as_deref_mut() {
-            let result = f.write(data.as_bytes());
-            f.set_position(0);
-            result
-        } else {
-            unreachable!("stdin injection only valid during testing");
-        }
-    }
-}
-
 impl Read for Stdin {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
@@ -58,7 +44,12 @@ impl Read for Stdin {
 impl Write for Stdin {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
-            Ok(StdinInternal::Fake(f)) => f.write(buf),
+            Ok(StdinInternal::Fake(f)) => {
+                // inject data into fake stdin for testing
+                let result = f.write(buf);
+                f.set_position(0);
+                result
+            }
             _ => Err(Error::other("failed getting stdin")),
         }
     }

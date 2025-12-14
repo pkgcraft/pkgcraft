@@ -16,6 +16,7 @@ make_builtin!("newins", newins_builtin);
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::io::Write;
 
     use crate::io::stdin;
     use crate::shell::test::FileTree;
@@ -69,7 +70,7 @@ mod tests {
         );
 
         // install data from stdin
-        stdin().inject("pkgcraft").unwrap();
+        stdin().write_all(b"pkgcraft").unwrap();
         insinto(&["/opt"]).unwrap();
         newins(&["-", "pkgcraft"]).unwrap();
         file_tree.assert(
