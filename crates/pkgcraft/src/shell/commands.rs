@@ -762,7 +762,7 @@ macro_rules! make_builtin {
                 name: $name,
                 func: run,
                 cfunc: $func_name,
-                flags: scallop::builtins::Attr::ENABLED.bits(),
+                flags: scallop::builtins::Attr::ENABLED,
                 help: "",
                 usage: $usage,
             });

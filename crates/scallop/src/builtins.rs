@@ -28,6 +28,7 @@ pub type BuiltinFnPtr = unsafe extern "C" fn(list: *mut bash::WordList) -> c_int
 
 bitflags! {
     /// Flag values describing builtin attributes.
+    #[derive(Clone, Copy)]
     pub struct Attr: u32 {
         const NONE = 0;
         const ENABLED = bash::BUILTIN_ENABLED;
@@ -98,7 +99,7 @@ pub struct Builtin {
     pub name: &'static str,
     pub func: BuiltinFn,
     pub cfunc: BuiltinFnPtr,
-    pub flags: u32,
+    pub flags: Attr,
     pub help: &'static str,
     pub usage: &'static str,
 }
@@ -176,10 +177,13 @@ impl From<Builtin> for bash::Builtin {
         let long_doc = long_docs.as_ptr();
         mem::forget(long_docs);
 
+        // register as static builtin
+        let flags = builtin.flags | Attr::STATIC;
+
         bash::Builtin {
             name,
             function: Some(builtin.cfunc),
-            flags: (builtin.flags | Attr::STATIC.bits()) as i32,
+            flags: flags.bits() as i32,
             long_doc,
             short_doc,
             handle: ptr::null_mut(),
@@ -564,7 +568,7 @@ macro_rules! make_builtin {
             name: $name,
             func: $func,
             cfunc: $func_name,
-            flags: 0,
+            flags: $crate::builtins::Attr::NONE,
             help: $long_doc,
             usage: $usage,
         };
