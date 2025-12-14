@@ -36,7 +36,7 @@ impl Read for Stdin {
                 }
             }
             Ok(StdinInternal::Fake(f)) => f.read(buf),
-            Err(e) => Err(Error::other(format!("failed getting stdin: {e}"))),
+            Err(e) => unreachable!("failed getting stdin: {e}"),
         }
     }
 }
@@ -44,20 +44,22 @@ impl Read for Stdin {
 impl Write for Stdin {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
+            Ok(StdinInternal::Real(_)) => unreachable!("stdin can't be written to"),
             Ok(StdinInternal::Fake(f)) => {
                 // inject data into fake stdin for testing
                 let result = f.write(buf);
                 f.set_position(0);
                 result
             }
-            _ => Err(Error::other("failed getting stdin")),
+            Err(e) => unreachable!("failed getting stdin: {e}"),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match self.inner.lock().as_deref_mut() {
+            Ok(StdinInternal::Real(_)) => unreachable!("stdin can't be written to"),
             Ok(StdinInternal::Fake(f)) => f.flush(),
-            _ => Err(Error::other("failed getting stdin")),
+            Err(e) => unreachable!("failed getting stdin: {e}"),
         }
     }
 }
@@ -100,8 +102,9 @@ impl Stdout {
 impl Read for Stdout {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
+            Ok(StdoutInternal::Real(_)) => unreachable!("stdout can't be read"),
             Ok(StdoutInternal::Fake(f)) => f.read(buf),
-            _ => Err(Error::other("failed getting stdout")),
+            Err(e) => unreachable!("failed getting stdout: {e}"),
         }
     }
 }
@@ -111,7 +114,7 @@ impl Write for Stdout {
         match self.inner.lock().as_deref_mut() {
             Ok(StdoutInternal::Fake(f)) => f.write(buf),
             Ok(StdoutInternal::Real(f)) => f.write(buf),
-            Err(_) => Err(Error::other("failed getting stdout")),
+            Err(e) => unreachable!("failed getting stdout: {e}"),
         }
     }
 
@@ -119,7 +122,7 @@ impl Write for Stdout {
         match self.inner.lock().as_deref_mut() {
             Ok(StdoutInternal::Fake(f)) => f.flush(),
             Ok(StdoutInternal::Real(f)) => f.flush(),
-            Err(_) => Err(Error::other("failed getting stdout")),
+            Err(e) => unreachable!("failed getting stdout: {e}"),
         }
     }
 }
@@ -162,8 +165,9 @@ impl Stderr {
 impl Read for Stderr {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
+            Ok(StderrInternal::Real(_)) => unreachable!("stderr can't be read"),
             Ok(StderrInternal::Fake(f)) => f.read(buf),
-            _ => Err(Error::other("failed getting stderr")),
+            Err(e) => unreachable!("failed getting stderr: {e}"),
         }
     }
 }
@@ -171,17 +175,17 @@ impl Read for Stderr {
 impl Write for Stderr {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.inner.lock().as_deref_mut() {
-            Ok(StderrInternal::Fake(f)) => f.write(buf),
             Ok(StderrInternal::Real(f)) => f.write(buf),
-            Err(_) => Err(Error::other("failed getting stderr")),
+            Ok(StderrInternal::Fake(f)) => f.write(buf),
+            Err(e) => unreachable!("failed getting stderr: {e}"),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match self.inner.lock().as_deref_mut() {
-            Ok(StderrInternal::Fake(f)) => f.flush(),
             Ok(StderrInternal::Real(f)) => f.flush(),
-            Err(_) => Err(Error::other("failed getting stderr")),
+            Ok(StderrInternal::Fake(f)) => f.flush(),
+            Err(e) => unreachable!("failed getting stderr: {e}"),
         }
     }
 }
