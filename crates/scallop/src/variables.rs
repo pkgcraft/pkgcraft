@@ -431,10 +431,11 @@ pub fn exported() -> IndexSet<Variable> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
-    use std::fs::File;
+    use std::{env, fs};
 
     use tempfile::tempdir;
 
+    use crate::builtins::shopt;
     use crate::source;
 
     use super::*;
@@ -602,18 +603,24 @@ mod tests {
 
     #[test]
     fn glob_file() {
+        // use temp dir for the working directory
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap();
+        env::set_current_dir(path).unwrap();
 
-        // dir path
+        // static path
         assert_eq!(glob_files(path), [path]);
 
         // empty dir
-        assert!(glob_files(format!("{path}/*")).is_empty());
+        assert!(glob_files("*").is_empty());
 
         // non-empty dir
-        let file = format!("{path}/test");
-        File::create(&file).unwrap();
-        assert_eq!(glob_files(format!("{path}/*")), [file]);
+        fs::create_dir_all("a/b").unwrap();
+        assert_eq!(glob_files("*"), ["a"]);
+
+        // recursive paths
+        assert_eq!(glob_files("**"), ["a"]);
+        shopt::enable(["globstar"]).unwrap();
+        assert_eq!(glob_files("**"), ["a", "a/b"]);
     }
 }
