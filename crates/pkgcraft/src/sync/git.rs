@@ -24,6 +24,13 @@ impl Display for Repo {
     }
 }
 
+/// Create an Error::RepoSync error using a given format string.
+macro_rules! sync_error {
+    ($msg:expr) => {
+        Error::RepoSync(format!($msg))
+    };
+}
+
 impl Syncable for Repo {
     fn uri_to_syncer(uri: &str) -> crate::Result<Self> {
         if HANDLED_URI_RE.is_match(uri) {
@@ -55,43 +62,33 @@ impl Syncable for Repo {
             let mut remote = repo
                 .find_default_remote(gix::remote::Direction::Fetch)
                 .transpose()
-                .map_err(|e| Error::RepoSync(format!("invalid git repo: {path}: {e}")))?
-                .ok_or_else(|| {
-                    Error::RepoSync(format!("no remote found for git repo: {path}"))
-                })?;
+                .map_err(|e| sync_error!("invalid git repo: {path}: {e}"))?
+                .ok_or_else(|| sync_error!("no remote found for git repo: {path}"))?;
 
             // don't fetch tags
             remote = remote.with_fetch_tags(gix::remote::fetch::Tags::None);
 
-            let connection = remote.connect(gix::remote::Direction::Fetch).map_err(|e| {
-                Error::RepoSync(format!("failed connecting to git repo: {uri}: {e}"))
-            })?;
+            let connection = remote
+                .connect(gix::remote::Direction::Fetch)
+                .map_err(|e| sync_error!("failed connecting to git repo: {uri}: {e}"))?;
 
             let prepare_fetch = connection
                 .prepare_fetch(gix::progress::Discard, Default::default())
-                .map_err(|e| {
-                    Error::RepoSync(format!("failed fetching git repo: {uri}: {e}"))
-                })?;
+                .map_err(|e| sync_error!("failed fetching git repo: {uri}: {e}"))?;
 
             // TODO: support shallow repos
             prepare_fetch
                 .receive(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
-                .map_err(|e| {
-                    Error::RepoSync(format!("failed fetching git repo: {uri}: {e}"))
-                })?;
+                .map_err(|e| sync_error!("failed fetching git repo: {uri}: {e}"))?;
         } else {
             let mut prepare_fetch = gix::prepare_clone(url, path)
                 .map_err(|e| Error::RepoSync(format!("failed cloning repo: {uri}: {e}")))?;
             let (mut prepare_checkout, _) = prepare_fetch
                 .fetch_then_checkout(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
-                .map_err(|e| {
-                    Error::RepoSync(format!("failed fetching git repo: {uri}: {e}"))
-                })?;
+                .map_err(|e| sync_error!("failed fetching git repo: {uri}: {e}"))?;
             let (_repo, _) = prepare_checkout
                 .main_worktree(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
-                .map_err(|e| {
-                    Error::RepoSync(format!("failed checking out git repo: {uri}: {e}"))
-                })?;
+                .map_err(|e| sync_error!("failed checking out git repo: {uri}: {e}"))?;
         }
 
         Ok(())
