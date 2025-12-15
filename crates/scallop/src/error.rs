@@ -60,23 +60,28 @@ pub(crate) fn ok_or_error<F: FnOnce() -> Result<ExecStatus>>(func: F) -> Result<
 
 /// Wrapper to convert bash errors into native errors.
 pub(crate) fn bash_error(msg: *mut c_char, status: u8) {
-    let msg = unsafe { CStr::from_ptr(msg).to_string_lossy() };
+    let raw_msg = unsafe { CStr::from_ptr(msg) };
+    // panic on error messages with invalid UTF-8
+    let msg = raw_msg
+        .to_str()
+        .unwrap_or_else(|e| panic!("invalid error message: {e}"));
 
     // Strip the shell name prefix that bash adds -- can't easily do this in bash since the same
     // functionality is used for shell script names which shouldn't be stripped.
-    let msg = msg.strip_prefix("scallop: ").unwrap_or(&msg);
+    let msg = msg.strip_prefix("scallop: ").unwrap_or(msg);
 
-    if !msg.is_empty() {
-        let level = CALL_LEVEL.load(Ordering::Relaxed);
-        ERRORS.with(|errors| {
-            let e = if status == bash::EX_LONGJMP as u8 {
-                Error::Bail(msg.to_string())
-            } else {
-                Error::Base(msg.to_string())
-            };
-            errors.borrow_mut().insert(level, e);
-        });
-    }
+    // panic on empty messages
+    assert!(!msg.is_empty());
+
+    let level = CALL_LEVEL.load(Ordering::Relaxed);
+    ERRORS.with(|errors| {
+        let e = if status == bash::EX_LONGJMP as u8 {
+            Error::Bail(msg.to_string())
+        } else {
+            Error::Base(msg.to_string())
+        };
+        errors.borrow_mut().insert(level, e);
+    })
 }
 
 // grcov-excl-start: bash only uses warnings for internal issues
