@@ -11,7 +11,7 @@ use crate::cmd;
 use crate::test::*;
 
 #[test]
-fn no_matches() {
+fn no_match() {
     // no repo targets or configured repos
     cmd("pkgcruft scan pkg")
         .assert()
@@ -35,7 +35,7 @@ fn no_matches() {
         .args(["--repo", repo.path().as_str()])
         .assert()
         .stdout("")
-        .stderr(contains("no matches found: cat/pkg"))
+        .stderr("pkgcruft scan: error: no match: cat/pkg\n")
         .failure()
         .code(2);
 }
@@ -116,7 +116,7 @@ fn dep_restrict_targets() {
         .arg("nonexistent/pkg")
         .assert()
         .stdout("")
-        .stderr(contains("no matches found"))
+        .stderr("pkgcruft scan: error: no match: nonexistent/pkg\n")
         .failure()
         .code(2);
 }
@@ -223,11 +223,12 @@ fn path_targets() {
     assert_unordered_eq!(&expected, &reports);
 
     // non-package dir
+    let dir = repo.join("licenses");
     cmd("pkgcruft scan -R json")
-        .arg(repo.join("licenses"))
+        .arg(&dir)
         .assert()
         .stdout("")
-        .stderr(contains("no matches found"))
+        .stderr(format!("pkgcruft scan: error: no match: {dir}\n"))
         .failure()
         .code(2);
 

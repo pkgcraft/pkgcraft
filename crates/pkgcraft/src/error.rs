@@ -34,8 +34,8 @@ pub enum Error {
     InvalidRepo { id: String, err: String },
     #[error("nonexistent repo: {0}")]
     NonexistentRepo(String),
-    #[error("no matches found: {0}")]
-    NoMatches(String),
+    #[error("no match: {0}")]
+    NoMatch(String),
     #[error("nonexistent masters: {}", repos.join(", "))]
     NonexistentRepoMasters { repos: Vec<String> },
     #[error("invalid {kind} repo: {id}: {err}")]

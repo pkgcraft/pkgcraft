@@ -226,9 +226,9 @@ impl<'a> Targets<'a> {
                 if set.contains(&restrict) {
                     Ok((set, restrict))
                 } else if set.repos.is_empty() {
-                    Err(Error::NoMatches("no repos available".to_string()))
+                    Err(Error::NoMatch("no repos available".to_string()))
                 } else {
-                    Err(Error::NoMatches(target))
+                    Err(Error::NoMatch(target))
                 }
             })
             .try_collect()?;
@@ -565,10 +565,10 @@ mod tests {
         let r = Targets::new(&mut config).pkg_targets(["cat/pkg::nonexistent"]);
         assert_err_re!(r, "nonexistent repo: nonexistent");
 
-        // no matches
+        // no match
         for target in ["cat/pkg:slot", "pkg:slot"] {
             let r = Targets::new(&mut config).pkg_targets([target]);
-            assert_err_re!(r, format!("no matches found: {target}"));
+            assert_err_re!(r, format!("no match: {target}"));
         }
 
         // existing repo target with dep restriction

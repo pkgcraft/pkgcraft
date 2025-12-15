@@ -45,7 +45,7 @@ macro_rules! cmd_arg_tests {
         }
 
         #[test]
-        fn no_matches() {
+        fn no_match() {
             // no repos
             let s = "no repos available";
             $crate::cmd($cmd)
@@ -60,7 +60,7 @@ macro_rules! cmd_arg_tests {
             let repo = data.ebuild_repo("empty").unwrap();
 
             // Cpn target
-            let s = "no matches found: cat/pkg";
+            let s = "no match: cat/pkg";
             $crate::cmd($cmd)
                 .args(["-r", repo.path().as_str()])
                 .arg("cat/pkg")
@@ -71,7 +71,7 @@ macro_rules! cmd_arg_tests {
                 .code(2);
 
             // category target
-            let s = "no matches found: category";
+            let s = "no match: category";
             $crate::cmd($cmd)
                 .args(["-r", repo.path().as_str()])
                 .arg("category")
