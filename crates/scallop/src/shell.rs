@@ -23,7 +23,7 @@ impl Env {
         let mut env = Self::default();
 
         // pass through code coverage variables when testing
-        if cfg!(feature = "test") && env::var("CARGO_LLVM_COV").is_ok() {
+        if cfg!(any(feature = "test", test)) && env::var("CARGO_LLVM_COV").is_ok() {
             env = env.allow(["LLVM_PROFILE_FILE"]);
             env.extend(env::vars().filter(|(name, _)| name.starts_with("CARGO_LLVM_COV")));
         }

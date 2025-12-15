@@ -4,7 +4,7 @@
 #[ctor::ctor]
 fn initialize() {
     // initialize bash
-    crate::shell::init(crate::shell::Env::default());
+    crate::shell::init(crate::shell::Env::new());
 }
 
 /// Assert an error matches a given regular expression for testing.
