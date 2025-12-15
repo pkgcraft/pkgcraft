@@ -366,7 +366,7 @@ pub fn glob_files<S: AsRef<str>>(val: S) -> Vec<String> {
                 files.push(CStr::from_ptr(s).to_string_lossy().into());
                 i += 1;
             }
-        }
+        } // grcov-excl-line: returns null for memory errors
     }
     files
 }
