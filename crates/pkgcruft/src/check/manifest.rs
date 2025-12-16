@@ -27,7 +27,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         thin_manifests: run.repo.metadata().config.thin_manifests,
         colliding: Default::default(),
         conflicting: Default::default(),
-        hash: run
+        required_hash: run
             .repo
             .metadata()
             .config
@@ -43,7 +43,7 @@ struct Check {
     thin_manifests: bool,
     colliding: DashMap<String, HashMap<String, HashSet<Cpn>>>,
     conflicting: DashMap<String, HashMap<String, Cpn>>,
-    hash: HashType,
+    required_hash: HashType,
 }
 
 impl Check {
@@ -65,30 +65,37 @@ impl super::CheckRun for Check {
             return;
         };
 
-        // determine distfiles for pkgs and manifest
         let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
         let mut manifest_distfiles = HashSet::new();
         let mut colliding = HashMap::<_, HashSet<_>>::new();
-        for entry in manifest.distfiles() {
+        let mut unneeded = HashSet::new();
+
+        // determine distfiles for pkgs and manifest
+        for entry in &manifest {
             let name = entry.name();
-            manifest_distfiles.insert(name);
 
-            if let Some(hash) = entry.hashes().get(&self.hash) {
-                // track duplicate names with different hashes
-                if run.enabled(ManifestConflict) {
-                    self.conflicting
-                        .entry(name.to_string())
-                        .or_default()
-                        .insert(hash.clone(), cpn.clone());
-                }
+            if entry.kind() == ManifestType::Dist {
+                manifest_distfiles.insert(name);
 
-                // track duplicate hashes with different names
-                if run.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
-                    colliding
-                        .entry(hash.clone())
-                        .or_default()
-                        .insert(name.to_string());
+                if let Some(hash) = entry.hashes().get(&self.required_hash) {
+                    // track duplicate names with different hashes
+                    if run.enabled(ManifestConflict) {
+                        self.conflicting
+                            .entry(name.to_string())
+                            .or_default()
+                            .insert(hash.clone(), cpn.clone());
+                    }
+
+                    // track duplicate hashes with different names
+                    if run.enabled(ManifestCollide) && !self.is_go_module(pkgs) {
+                        colliding
+                            .entry(hash.clone())
+                            .or_default()
+                            .insert(name.to_string());
+                    }
                 }
+            } else if self.thin_manifests {
+                unneeded.insert(name);
             }
         }
 
@@ -120,7 +127,7 @@ impl super::CheckRun for Check {
                 .report(run);
         }
 
-        // flag pkg distfiles that don't have manifest entries
+        // flag pkg distfiles with missing manifest entries
         let missing = pkg_distfiles
             .difference(&manifest_distfiles)
             .sorted()
@@ -133,19 +140,12 @@ impl super::CheckRun for Check {
         }
 
         // flag non-distfile manifest entries for thin manifests
-        if self.thin_manifests {
-            let files: HashSet<_> = manifest
-                .iter()
-                .filter(|x| x.kind() != ManifestType::Dist)
-                .map(|x| x.name())
-                .collect();
-            if !files.is_empty() {
-                let files = files.iter().sorted().join(", ");
-                ManifestInvalid
-                    .package(cpn)
-                    .message(format!("unneeded: {files}"))
-                    .report(run);
-            }
+        let unneeded = unneeded.iter().sorted().join(", ");
+        if !unneeded.is_empty() {
+            ManifestInvalid
+                .package(cpn)
+                .message(format!("unneeded: {unneeded}"))
+                .report(run);
         }
     }
 
