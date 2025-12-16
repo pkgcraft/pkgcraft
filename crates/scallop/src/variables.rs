@@ -360,13 +360,14 @@ pub fn glob_files<S: AsRef<str>>(val: S) -> Vec<String> {
     let val = CString::new(val.as_ref()).unwrap();
     unsafe {
         let paths = bash::shell_glob_filename(val.as_ptr(), 0);
-        if !paths.is_null() {
-            let mut i = 0;
-            while let Some(s) = (*paths.offset(i)).as_ref() {
-                files.push(CStr::from_ptr(s).to_string_lossy().into());
-                i += 1;
-            }
-        } // grcov-excl-line: returns null for memory errors
+        // returns null for memory errors
+        assert!(!paths.is_null());
+
+        let mut i = 0;
+        while let Some(s) = (*paths.offset(i)).as_ref() {
+            files.push(CStr::from_ptr(s).to_string_lossy().into());
+            i += 1;
+        }
     }
     files
 }
