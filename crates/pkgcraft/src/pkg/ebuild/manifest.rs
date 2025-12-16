@@ -16,7 +16,7 @@ use crate::macros::build_path;
 use crate::utils::digest;
 
 // default hash variants used when an ebuild repo lacks the related metadata settings
-static DEFAULT_HASHES: &[HashType] = &[HashType::Blake2b, HashType::Sha512];
+pub static DEFAULT_HASHES: &[HashType] = &[HashType::Blake2b, HashType::Sha512];
 
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Copy, Clone)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]

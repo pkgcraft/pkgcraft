@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use dashmap::DashMap;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
 use pkgcraft::error::Error::UnversionedPkg;
 use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::pkg::ebuild::manifest::{HashType, ManifestType};
+use pkgcraft::pkg::ebuild::manifest::{DEFAULT_HASHES, HashType, ManifestType};
 use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{ManifestCollide, ManifestConflict, ManifestInvalid};
@@ -23,19 +23,33 @@ super::register! {
 }
 
 pub(super) fn create(run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
-        thin_manifests: run.repo.metadata().config.thin_manifests,
-        colliding: Default::default(),
-        conflicting: Default::default(),
-        required_hash: run
-            .repo
-            .metadata()
-            .config
+    let config = &run.repo.metadata().config;
+
+    // determine default hashes
+    let manifest_hashes = if config.manifest_hashes.is_empty() {
+        DEFAULT_HASHES.iter().copied().collect()
+    } else {
+        config.manifest_hashes.iter().copied().collect()
+    };
+
+    // determine required hash
+    let required_hash = if config.manifest_required_hashes.is_empty() {
+        DEFAULT_HASHES.iter().next().copied().unwrap()
+    } else {
+        config
             .manifest_required_hashes
             .iter()
             .next()
             .copied()
-            .unwrap_or(HashType::Blake2b),
+            .unwrap()
+    };
+
+    Box::new(Check {
+        thin_manifests: config.thin_manifests,
+        colliding: Default::default(),
+        conflicting: Default::default(),
+        manifest_hashes,
+        required_hash,
     })
 }
 
@@ -43,6 +57,7 @@ struct Check {
     thin_manifests: bool,
     colliding: DashMap<String, HashMap<String, HashSet<Cpn>>>,
     conflicting: DashMap<String, HashMap<String, Cpn>>,
+    manifest_hashes: IndexSet<HashType>,
     required_hash: HashType,
 }
 
@@ -96,6 +111,19 @@ impl super::CheckRun for Check {
                 }
             } else if self.thin_manifests {
                 unneeded.insert(name);
+            }
+
+            // flag missing hash variants
+            let missing_hashes = self
+                .manifest_hashes
+                .iter()
+                .filter(|&x| !entry.hashes().contains_key(x))
+                .join(", ");
+            if !missing_hashes.is_empty() {
+                ManifestInvalid
+                    .package(cpn)
+                    .message(format!("{name}: missing hashes: {missing_hashes}"))
+                    .report(run);
             }
         }
 
