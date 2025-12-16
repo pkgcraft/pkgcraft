@@ -258,7 +258,7 @@ impl Manifest {
         self.0.get(name)
     }
 
-    pub fn iter(&self) -> Iter<'_> {
+    pub fn iter(&self) -> impl Iterator<Item = &ManifestEntry> {
         self.into_iter()
     }
 
@@ -407,21 +407,10 @@ impl fmt::Display for Manifest {
 
 impl<'a> IntoIterator for &'a Manifest {
     type Item = &'a ManifestEntry;
-    type IntoIter = Iter<'a>;
+    type IntoIter = indexmap::set::Iter<'a, ManifestEntry>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter(self.0.iter())
-    }
-}
-
-/// An iterator over the entries of a [`Manifest`].
-pub struct Iter<'a>(indexmap::set::Iter<'a, ManifestEntry>);
-
-impl<'a> Iterator for Iter<'a> {
-    type Item = &'a ManifestEntry;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        self.0.iter()
     }
 }
 
