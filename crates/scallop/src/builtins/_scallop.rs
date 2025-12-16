@@ -17,6 +17,7 @@ make_builtin!("scallop", scallop_builtin, run, LONG_DOC, "scallop arg1 arg2");
 
 #[cfg(test)]
 mod tests {
+    use crate::test::assert_err_re;
     use crate::{builtins, source};
 
     use super::BUILTIN as scallop;
@@ -29,5 +30,9 @@ mod tests {
 
         // verify basic command directly from bash
         assert!(source::string(r#"scallop 1 2 3 $foo ${bar} """#).is_ok());
+
+        // invalid utf-8 in args
+        let r = source::string(r#"scallop 1 $'\x02\xc5\xd8' 2"#);
+        assert_err_re!(r, "invalid args: invalid utf-8");
     }
 }
