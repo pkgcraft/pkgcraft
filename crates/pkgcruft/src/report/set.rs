@@ -1,0 +1,273 @@
+use std::fmt;
+use std::str::FromStr;
+use std::sync::LazyLock;
+
+use indexmap::IndexSet;
+use pkgcraft::restrict::Scope;
+use regex::Regex;
+
+use crate::Error;
+use crate::check::{Check, CheckKind, Context};
+
+use super::{ReportKind, ReportLevel};
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub enum RangeOrValue<T: Eq + Copy> {
+    Value(T),
+    RangeOp(RangeOp<T>),
+}
+
+impl<T: PartialEq + Eq + Copy> RangeOrValue<T>
+where
+    T: PartialOrd,
+{
+    /// Determine if the given value is contained.
+    fn contains(&self, value: &T) -> bool {
+        match self {
+            Self::Value(x) => x == value,
+            Self::RangeOp(range) => range.contains(value),
+        }
+    }
+}
+
+impl<T> FromStr for RangeOrValue<T>
+where
+    T: FromStr + Eq + Copy,
+    T::Err: fmt::Display + fmt::Debug,
+{
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(value) = s.parse() {
+            Ok(RangeOrValue::Value(value))
+        } else if let Ok(value) = s.parse() {
+            Ok(RangeOrValue::RangeOp(value))
+        } else {
+            Err(Error::InvalidValue(format!("invalid range or value: {s}")))
+        }
+    }
+}
+
+impl<T: fmt::Display + Eq + Copy> fmt::Display for RangeOrValue<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Value(value) => value.fmt(f),
+            Self::RangeOp(value) => value.fmt(f),
+        }
+    }
+}
+
+impl From<ReportLevel> for RangeOrValue<ReportLevel> {
+    fn from(value: ReportLevel) -> Self {
+        Self::Value(value)
+    }
+}
+
+impl From<Scope> for RangeOrValue<Scope> {
+    fn from(value: Scope) -> Self {
+        Self::Value(value)
+    }
+}
+
+// TODO: replace regex with value parser
+static RANGE_OP_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?<op>[<>]=?|!?=)(?<value>.+)$").unwrap());
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub enum RangeOp<T: Eq + Copy> {
+    Less(T),
+    LessOrEqual(T),
+    Equal(T),
+    NotEqual(T),
+    GreaterOrEqual(T),
+    Greater(T),
+}
+
+impl<T: PartialEq + Eq + Copy> RangeOp<T>
+where
+    T: PartialOrd,
+{
+    /// Determine if a range contains a value.
+    fn contains(&self, value: &T) -> bool {
+        match self {
+            Self::Less(x) => value < x,
+            Self::LessOrEqual(x) => value <= x,
+            Self::Equal(x) => value == x,
+            Self::NotEqual(x) => value != x,
+            Self::GreaterOrEqual(x) => value >= x,
+            Self::Greater(x) => value > x,
+        }
+    }
+}
+
+impl<T> FromStr for RangeOp<T>
+where
+    T: FromStr + Eq + Copy,
+    T::Err: fmt::Display + fmt::Debug,
+{
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(caps) = RANGE_OP_RE.captures(s) {
+            let op = caps.name("op").map_or("", |m| m.as_str());
+            let value = caps.name("value").map_or("", |m| m.as_str());
+            let value = value.parse().map_err(|e| {
+                Error::InvalidValue(format!("invalid range value: {value}: {e}"))
+            })?;
+            match op {
+                "<" => Ok(Self::Less(value)),
+                "<=" => Ok(Self::LessOrEqual(value)),
+                "=" => Ok(Self::Equal(value)),
+                "!=" => Ok(Self::NotEqual(value)),
+                ">=" => Ok(Self::GreaterOrEqual(value)),
+                ">" => Ok(Self::Greater(value)),
+                _ => unreachable!("invalid RangeOp regex"),
+            }
+        } else {
+            Err(Error::InvalidValue(format!("invalid range op: {s}")))
+        }
+    }
+}
+
+impl<T: fmt::Display + Eq + Copy> fmt::Display for RangeOp<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Less(value) => write!(f, "<{value}"),
+            Self::LessOrEqual(value) => write!(f, "<={value}"),
+            Self::Equal(value) => write!(f, "={value}"),
+            Self::NotEqual(value) => write!(f, "!={value}"),
+            Self::GreaterOrEqual(value) => write!(f, ">={value}"),
+            Self::Greater(value) => write!(f, ">{value}"),
+        }
+    }
+}
+
+/// Report sets that relate to one or more variants.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+pub enum ReportSet {
+    All,
+    Finalize,
+    Check(Check),
+    Context(Context),
+    Level(RangeOrValue<ReportLevel>),
+    Report(ReportKind),
+    Scope(RangeOrValue<Scope>),
+}
+
+impl From<Check> for ReportSet {
+    fn from(value: Check) -> Self {
+        Self::Check(value)
+    }
+}
+
+impl From<CheckKind> for ReportSet {
+    fn from(value: CheckKind) -> Self {
+        Self::Check(value.into())
+    }
+}
+
+impl From<Context> for ReportSet {
+    fn from(value: Context) -> Self {
+        Self::Context(value)
+    }
+}
+
+impl From<ReportLevel> for ReportSet {
+    fn from(value: ReportLevel) -> Self {
+        Self::Level(value.into())
+    }
+}
+
+impl From<ReportKind> for ReportSet {
+    fn from(value: ReportKind) -> Self {
+        Self::Report(value)
+    }
+}
+
+impl From<Scope> for ReportSet {
+    fn from(value: Scope) -> Self {
+        Self::Scope(value.into())
+    }
+}
+
+impl FromStr for ReportSet {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(val) = s.strip_prefix('@') {
+            match val {
+                "all" => Ok(Self::All),
+                "finalize" => Ok(Self::Finalize),
+                _ => val
+                    .parse()
+                    .map(Self::Check)
+                    .or_else(|_| val.parse().map(Self::Context))
+                    .or_else(|_| val.parse().map(Self::Level))
+                    .or_else(|_| val.parse().map(Self::Scope))
+                    .map_err(|_| Error::InvalidValue(format!("invalid report set: {val}"))),
+            }
+        } else {
+            s.parse()
+                .map(Self::Report)
+                .map_err(|_| Error::InvalidValue(format!("invalid report: {s}")))
+        }
+    }
+}
+
+impl fmt::Display for ReportSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::All => write!(f, "@all"),
+            Self::Finalize => write!(f, "@finalize"),
+            Self::Check(check) => write!(f, "@{check}"),
+            Self::Context(context) => write!(f, "@{context}"),
+            Self::Level(level) => write!(f, "@{level}"),
+            Self::Report(report) => write!(f, "{report}"),
+            Self::Scope(scope) => write!(f, "@{scope}"),
+        }
+    }
+}
+
+impl ReportSet {
+    /// Return true if the related reports should be added to the selected set.
+    pub(super) fn selected(&self) -> bool {
+        matches!(self, Self::Report(_) | Self::Check(_))
+    }
+
+    /// Expand a report set into an iterator of its variants.
+    pub(crate) fn expand<'a>(
+        self,
+        default: &'a IndexSet<ReportKind>,
+        supported: &'a IndexSet<ReportKind>,
+    ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
+        match self {
+            Self::All => Box::new(supported.iter().copied()),
+            Self::Finalize => Box::new(
+                default
+                    .iter()
+                    .filter(|r| r.finish_check(Scope::Repo))
+                    .copied(),
+            ),
+            Self::Check(check) => Box::new(check.reports.iter().copied()),
+            Self::Context(context) => Box::new(
+                Check::iter_report(supported)
+                    .filter(move |x| x.context.contains(&context))
+                    .flat_map(|x| x.reports)
+                    .copied(),
+            ),
+            Self::Level(range) => Box::new(
+                default
+                    .iter()
+                    .filter(move |r| range.contains(&r.level()))
+                    .copied(),
+            ),
+            Self::Report(kind) => Box::new([kind].into_iter()),
+            Self::Scope(range) => Box::new(
+                default
+                    .iter()
+                    .filter(move |r| range.contains(&r.scope()))
+                    .copied(),
+            ),
+        }
+    }
+}

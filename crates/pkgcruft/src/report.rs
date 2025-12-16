@@ -2,24 +2,25 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::str::FromStr;
-use std::sync::LazyLock;
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use owo_colors::OwoColorize;
 use pkgcraft::bash::Node;
-use pkgcraft::cli::TriState;
 use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::repo::{EbuildRepo, Repository};
 use pkgcraft::restrict::{Restrict, Restriction, Scope};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use crate::Error;
-use crate::check::{Check, CheckKind, Context};
+use crate::check::Check;
 use crate::scan::ScannerRun;
+
+mod set;
+pub use set::ReportSet;
+mod target;
+pub use target::ReportTarget;
 
 /// The severity of the report.
 #[derive(
@@ -32,339 +33,6 @@ pub enum ReportLevel {
     Warning,
     Style,
     Info,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-pub enum RangeOrValue<T: Eq + Copy> {
-    Value(T),
-    RangeOp(RangeOp<T>),
-}
-
-impl<T: PartialEq + Eq + Copy> RangeOrValue<T>
-where
-    T: PartialOrd,
-{
-    /// Determine if the given value is contained.
-    fn contains(&self, value: &T) -> bool {
-        match self {
-            Self::Value(x) => x == value,
-            Self::RangeOp(range) => range.contains(value),
-        }
-    }
-}
-
-impl<T> FromStr for RangeOrValue<T>
-where
-    T: FromStr + Eq + Copy,
-    T::Err: fmt::Display + fmt::Debug,
-{
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(value) = s.parse() {
-            Ok(RangeOrValue::Value(value))
-        } else if let Ok(value) = s.parse() {
-            Ok(RangeOrValue::RangeOp(value))
-        } else {
-            Err(Error::InvalidValue(format!("invalid range or value: {s}")))
-        }
-    }
-}
-
-impl<T: fmt::Display + Eq + Copy> fmt::Display for RangeOrValue<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Value(value) => value.fmt(f),
-            Self::RangeOp(value) => value.fmt(f),
-        }
-    }
-}
-
-impl From<ReportLevel> for RangeOrValue<ReportLevel> {
-    fn from(value: ReportLevel) -> Self {
-        Self::Value(value)
-    }
-}
-
-impl From<Scope> for RangeOrValue<Scope> {
-    fn from(value: Scope) -> Self {
-        Self::Value(value)
-    }
-}
-
-// TODO: replace regex with value parser
-static RANGE_OP_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(?<op>[<>]=?|!?=)(?<value>.+)$").unwrap());
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-pub enum RangeOp<T: Eq + Copy> {
-    Less(T),
-    LessOrEqual(T),
-    Equal(T),
-    NotEqual(T),
-    GreaterOrEqual(T),
-    Greater(T),
-}
-
-impl<T: PartialEq + Eq + Copy> RangeOp<T>
-where
-    T: PartialOrd,
-{
-    /// Determine if a range contains a value.
-    fn contains(&self, value: &T) -> bool {
-        match self {
-            Self::Less(x) => value < x,
-            Self::LessOrEqual(x) => value <= x,
-            Self::Equal(x) => value == x,
-            Self::NotEqual(x) => value != x,
-            Self::GreaterOrEqual(x) => value >= x,
-            Self::Greater(x) => value > x,
-        }
-    }
-}
-
-impl<T> FromStr for RangeOp<T>
-where
-    T: FromStr + Eq + Copy,
-    T::Err: fmt::Display + fmt::Debug,
-{
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(caps) = RANGE_OP_RE.captures(s) {
-            let op = caps.name("op").map_or("", |m| m.as_str());
-            let value = caps.name("value").map_or("", |m| m.as_str());
-            let value = value.parse().map_err(|e| {
-                Error::InvalidValue(format!("invalid range value: {value}: {e}"))
-            })?;
-            match op {
-                "<" => Ok(Self::Less(value)),
-                "<=" => Ok(Self::LessOrEqual(value)),
-                "=" => Ok(Self::Equal(value)),
-                "!=" => Ok(Self::NotEqual(value)),
-                ">=" => Ok(Self::GreaterOrEqual(value)),
-                ">" => Ok(Self::Greater(value)),
-                _ => unreachable!("invalid RangeOp regex"),
-            }
-        } else {
-            Err(Error::InvalidValue(format!("invalid range op: {s}")))
-        }
-    }
-}
-
-impl<T: fmt::Display + Eq + Copy> fmt::Display for RangeOp<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Less(value) => write!(f, "<{value}"),
-            Self::LessOrEqual(value) => write!(f, "<={value}"),
-            Self::Equal(value) => write!(f, "={value}"),
-            Self::NotEqual(value) => write!(f, "!={value}"),
-            Self::GreaterOrEqual(value) => write!(f, ">={value}"),
-            Self::Greater(value) => write!(f, ">{value}"),
-        }
-    }
-}
-
-/// Report sets that relate to one or more variants.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-pub enum ReportSet {
-    All,
-    Finalize,
-    Check(Check),
-    Context(Context),
-    Level(RangeOrValue<ReportLevel>),
-    Report(ReportKind),
-    Scope(RangeOrValue<Scope>),
-}
-
-impl From<Check> for ReportSet {
-    fn from(value: Check) -> Self {
-        Self::Check(value)
-    }
-}
-
-impl From<CheckKind> for ReportSet {
-    fn from(value: CheckKind) -> Self {
-        Self::Check(value.into())
-    }
-}
-
-impl From<Context> for ReportSet {
-    fn from(value: Context) -> Self {
-        Self::Context(value)
-    }
-}
-
-impl From<ReportLevel> for ReportSet {
-    fn from(value: ReportLevel) -> Self {
-        Self::Level(value.into())
-    }
-}
-
-impl From<ReportKind> for ReportSet {
-    fn from(value: ReportKind) -> Self {
-        Self::Report(value)
-    }
-}
-
-impl From<Scope> for ReportSet {
-    fn from(value: Scope) -> Self {
-        Self::Scope(value.into())
-    }
-}
-
-impl FromStr for ReportSet {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(val) = s.strip_prefix('@') {
-            match val {
-                "all" => Ok(Self::All),
-                "finalize" => Ok(Self::Finalize),
-                _ => val
-                    .parse()
-                    .map(Self::Check)
-                    .or_else(|_| val.parse().map(Self::Context))
-                    .or_else(|_| val.parse().map(Self::Level))
-                    .or_else(|_| val.parse().map(Self::Scope))
-                    .map_err(|_| Error::InvalidValue(format!("invalid report set: {val}"))),
-            }
-        } else {
-            s.parse()
-                .map(Self::Report)
-                .map_err(|_| Error::InvalidValue(format!("invalid report: {s}")))
-        }
-    }
-}
-
-impl fmt::Display for ReportSet {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::All => write!(f, "@all"),
-            Self::Finalize => write!(f, "@finalize"),
-            Self::Check(check) => write!(f, "@{check}"),
-            Self::Context(context) => write!(f, "@{context}"),
-            Self::Level(level) => write!(f, "@{level}"),
-            Self::Report(report) => write!(f, "{report}"),
-            Self::Scope(scope) => write!(f, "@{scope}"),
-        }
-    }
-}
-
-impl ReportSet {
-    /// Return true if the related reports should be added to the selected set.
-    fn selected(&self) -> bool {
-        matches!(self, Self::Report(_) | Self::Check(_))
-    }
-
-    /// Expand a report set into an iterator of its variants.
-    pub(crate) fn expand<'a>(
-        self,
-        default: &'a IndexSet<ReportKind>,
-        supported: &'a IndexSet<ReportKind>,
-    ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
-        match self {
-            Self::All => Box::new(supported.iter().copied()),
-            Self::Finalize => Box::new(
-                default
-                    .iter()
-                    .filter(|r| r.finish_check(Scope::Repo))
-                    .copied(),
-            ),
-            Self::Check(check) => Box::new(check.reports.iter().copied()),
-            Self::Context(context) => Box::new(
-                Check::iter_report(supported)
-                    .filter(move |x| x.context.contains(&context))
-                    .flat_map(|x| x.reports)
-                    .copied(),
-            ),
-            Self::Level(range) => Box::new(
-                default
-                    .iter()
-                    .filter(move |r| range.contains(&r.level()))
-                    .copied(),
-            ),
-            Self::Report(kind) => Box::new([kind].into_iter()),
-            Self::Scope(range) => Box::new(
-                default
-                    .iter()
-                    .filter(move |r| range.contains(&r.scope()))
-                    .copied(),
-            ),
-        }
-    }
-}
-
-/// Wrapper for report set targets.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub struct ReportTarget(TriState<ReportSet>);
-
-impl ReportTarget {
-    /// Collapse report targets into default and selected report variant sets.
-    pub fn collapse<'a, I>(
-        targets: I,
-        defaults: &IndexSet<ReportKind>,
-        supported: &IndexSet<ReportKind>,
-    ) -> crate::Result<(IndexSet<ReportKind>, IndexSet<ReportKind>)>
-    where
-        I: IntoIterator<Item = &'a Self>,
-    {
-        // sort sets by variant
-        let mut targets: IndexSet<_> = targets.into_iter().copied().map(|x| x.0).collect();
-        targets.sort_unstable();
-
-        // don't use defaults if neutral options exist
-        let mut enabled = if let Some(TriState::Set(_)) = targets.first() {
-            Default::default()
-        } else {
-            defaults.clone()
-        };
-
-        // Expand report sets, only adding explicitly selected check and report variants
-        // to the selection set. Set membership determines if an enabled check is skipped
-        // with a warning or errors out if it is unable to be run.
-        let mut selected = IndexSet::new();
-        for target in targets {
-            match target {
-                TriState::Set(set) | TriState::Add(set) => {
-                    for r in set.expand(defaults, supported) {
-                        enabled.insert(r);
-                        // track explicitly selected or supported variants
-                        if set.selected() || supported.contains(&r) {
-                            selected.insert(r);
-                        }
-                    }
-                }
-                TriState::Remove(set) => {
-                    for r in set.expand(defaults, supported) {
-                        enabled.swap_remove(&r);
-                    }
-                }
-            };
-        }
-
-        if enabled.is_empty() {
-            Err(Error::InvalidValue("no reports enabled".to_string()))
-        } else {
-            enabled.sort_unstable();
-            selected.sort_unstable();
-            Ok((enabled, selected))
-        }
-    }
-}
-
-impl<T: Into<ReportSet>> From<T> for ReportTarget {
-    fn from(value: T) -> Self {
-        Self(TriState::Set(value.into()))
-    }
-}
-
-impl FromStr for ReportTarget {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse().map(Self)
-    }
 }
 
 /// Report variants.
@@ -1168,15 +836,12 @@ impl<R: BufRead> Iterator for Iter<'_, R> {
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
-    use pkgcraft::restrict::Scope;
-    use pkgcraft::test::test_data;
     use pretty_assertions::assert_eq;
     use strum::IntoEnumIterator;
 
-    use super::*;
-    use crate::check::Check;
-    use crate::report::ReportLevel;
     use crate::test::assert_ordered_reports;
+
+    use super::*;
 
     // serialized reports in order
     static REPORTS: &str = indoc::indoc! {r#"
@@ -1255,44 +920,5 @@ mod tests {
             ReportKind::LiveOnly.package(cpn).location(1)
         });
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn report_target() {
-        let data = test_data();
-
-        // default checks for gentoo repo
-        let repo = data.ebuild_repo("gentoo").unwrap();
-        let defaults = ReportKind::defaults(repo);
-        let supported = ReportKind::supported(repo, Scope::Repo);
-        let (enabled, selected) = ReportTarget::collapse([], &defaults, &supported).unwrap();
-        assert!(selected.is_empty());
-        let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
-        // repo specific checks enabled when scanning the matching repo
-        assert!(checks.contains(&CheckKind::Header));
-
-        // default checks
-        let repo = data.ebuild_repo("qa-primary").unwrap();
-        let defaults = ReportKind::defaults(repo);
-        let supported = ReportKind::supported(repo, Scope::Repo);
-        let (enabled, selected) = ReportTarget::collapse([], &defaults, &supported).unwrap();
-        assert!(selected.is_empty());
-        let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
-        assert!(checks.contains(&CheckKind::Dependency));
-        // optional checks aren't run by default when scanning
-        assert!(!checks.contains(&CheckKind::UnstableOnly));
-        // repo specific checks aren't run by default when scanning non-matching repo
-        assert!(!checks.contains(&CheckKind::Header));
-
-        // non-default reports aren't enabled when their matching level is targeted
-        let report = ReportKind::HeaderInvalid;
-        assert_eq!(report.level(), ReportLevel::Error);
-        let target = ReportLevel::Error.into();
-        let (enabled, selected) =
-            ReportTarget::collapse([&target], &defaults, &supported).unwrap();
-        assert!(!enabled.contains(&report));
-        assert!(!enabled.is_empty());
-        assert!(selected.is_subset(&enabled));
-        assert!(!selected.is_empty());
     }
 }
