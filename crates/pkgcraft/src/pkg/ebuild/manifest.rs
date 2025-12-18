@@ -202,14 +202,14 @@ impl FromStr for ManifestEntry {
             [mtype, name, size, hashes @ ..]
                 if !hashes.is_empty() && hashes.len() % 2 == 0 =>
             {
-                (mtype, name, size, hashes)
+                Ok((mtype, name, size, hashes))
             }
-            _ => {
-                return Err(Error::InvalidValue(
-                    "invalid number of manifest tokens".to_string(),
-                ));
+            [_mtype, name, ..] => {
+                let missing = DEFAULT_HASHES.iter().join(", ");
+                Err(Error::InvalidValue(format!("{name}: missing hashes: {missing}")))
             }
-        };
+            _ => Err(Error::InvalidValue(format!("invalid manifest entry: {s}"))),
+        }?;
 
         let kind = mtype
             .parse()
@@ -229,8 +229,7 @@ impl Manifest {
     /// Parse a [`Manifest`] from a file.
     pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
         match fs::read_to_string(path) {
-            Ok(data) => Self::parse(&data)
-                .map_err(|e| Error::InvalidValue(format!("failed parsing: {e}"))),
+            Ok(data) => Self::parse(&data),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(Error::IO(format!("failed reading: {e}"))),
         }
@@ -240,11 +239,8 @@ impl Manifest {
     fn parse(data: &str) -> crate::Result<Self> {
         let mut manifest = Self::default();
 
-        for (i, line) in data.lines().enumerate() {
-            let entry: ManifestEntry = line
-                .parse()
-                .map_err(|e| Error::InvalidValue(format!("line {}: {e}", i + 1)))?;
-            manifest.0.insert(entry);
+        for line in data.lines() {
+            manifest.0.insert(line.parse()?);
         }
 
         if manifest.is_empty() {

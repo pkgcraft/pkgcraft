@@ -621,7 +621,7 @@ async fn invalid_manifest() {
         .arg(&repo)
         .assert()
         .stdout("")
-        .stderr(contains("invalid number of manifest tokens"))
+        .stderr(contains("file: missing hashes: BLAKE2B, SHA512"))
         .success();
     let data = fs::read_to_string(&path).unwrap();
     assert_eq!(&data, expected);
