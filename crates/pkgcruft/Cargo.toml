@@ -36,9 +36,9 @@ harness = false
 [dependencies]
 anstream = "0.6.21"
 anyhow = "1.0.100"
-camino = "1.2.1"
+camino = "1.2.2"
 clap = { version = "4.5.53", features = ["derive", "string"] }
-clap_complete = "4.5.61"
+clap_complete = "4.5.62"
 clap-verbosity-flag = "3.0.4"
 colorchoice-clap = "1.0.7"
 crossbeam-channel = "0.5.15"
@@ -59,10 +59,10 @@ serde_json = "1.0.145"
 strfmt = "0.2.5"
 strum = { version = "0.27.2", features = ["derive"] }
 thiserror = "2.0.17"
-tracing = "0.1.43"
+tracing = "0.1.44"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.22"
-tree-sitter = "0.26.2"
+tree-sitter = "0.26.3"
 url = "2.5.7"
 walkdir = "2.5.0"
 

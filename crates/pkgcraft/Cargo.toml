@@ -25,7 +25,7 @@ test = ["dep:pretty_assertions"]
 blake2 = "0.10.6"
 blake3 = { version = "1.8.2", features = ["traits-preview"] }
 cached = "0.56.0"
-camino = { version = "1.2.1", features = ["serde1"] }
+camino = { version = "1.2.2", features = ["serde1"] }
 chic = "1.2.2"
 clap = { version = "4.5.53", features = ["derive"] }
 crossbeam-channel = "0.5.15"
@@ -51,7 +51,7 @@ ordermap = { version = "1.0.0", features = ["rayon", "serde"] }
 peg = "0.8.5"
 rayon = "1.11.0"
 regex = "1.12.2"
-reqwest = { version = "0.12.25", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
+reqwest = { version = "0.12.26", default-features = false, features = ["hickory-dns", "rustls-tls", "socks", "stream"] }
 roxmltree = "0.21.1"
 rust-ini = "0.21.3"
 scallop = { path = "../scallop", version = "0.0.30" }
@@ -61,11 +61,11 @@ sha2 = "0.10.9"
 strum = { version = "0.27.2", features = ["derive"] }
 tempfile = "3.23.0"
 thiserror = "2.0.17"
-tree-sitter = "0.26.2"
+tree-sitter = "0.26.3"
 tree-sitter-bash = "0.25.1"
 tokio = { version = "1.48.0", features = ["full"] }
-toml = "0.9.8"
-tracing = "0.1.43"
+toml = "0.9.10"
+tracing = "0.1.44"
 url = { version = "2.5.7", features = ["serde"] }
 walkdir = "2.5.0"
 

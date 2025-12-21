@@ -40,12 +40,12 @@ libc = "0.2.178"
 nix = { version = "0.30.1", features = ["fs", "mman", "process", "signal"] }
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.17"
-tracing = "0.1.43"
+tracing = "0.1.44"
 
 [build-dependencies]
 autotools = "0.2.7"
 bindgen = "0.72.1"
-camino = "1.2.1"
+camino = "1.2.2"
 num_cpus = "1.17.0"
 pkg-config = "0.3.32"
 regex = "1.12.2"
