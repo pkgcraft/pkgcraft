@@ -19,7 +19,7 @@ name = "pkgcraft"
 
 [features]
 # test support for external crates
-test = ["dep:pretty_assertions"]
+test = ["dep:ctor", "dep:pretty_assertions"]
 
 [dependencies]
 blake2 = "0.10.6"
@@ -70,6 +70,7 @@ url = { version = "2.5.7", features = ["serde"] }
 walkdir = "2.5.0"
 
 # exported test support deps
+ctor = { version = "0.6.3", optional = true }
 pretty_assertions = { version = "1.4.1", optional = true }
 
 [dev-dependencies]

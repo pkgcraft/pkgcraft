@@ -37,11 +37,12 @@ macro_rules! define_cmd {
 }
 pub use define_cmd;
 
-/// Initialization for all test executables.
-#[cfg(test)]
+/// Initialization for test executables.
+#[cfg(any(feature = "test", test))]
 #[ctor::ctor]
 fn initialize() {
-    // initialize bash
+    // initialize shell for internal tests
+    #[cfg(test)]
     crate::shell::init().unwrap();
 
     // disable config loading by default
