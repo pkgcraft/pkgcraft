@@ -45,8 +45,12 @@ fn initialize() {
     #[cfg(test)]
     crate::shell::init().unwrap();
 
-    // disable config loading by default
-    unsafe { env::set_var("PKGCRAFT_CONFIG", "") };
+    unsafe {
+        // disable config loading by default
+        env::set_var("PKGCRAFT_CONFIG", "");
+        // disable forced color output
+        env::remove_var("CLICOLOR_FORCE");
+    }
 }
 
 #[serde_as]
