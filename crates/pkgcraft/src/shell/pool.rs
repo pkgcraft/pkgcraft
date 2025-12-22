@@ -8,12 +8,17 @@ use std::time::{Duration, Instant};
 use indexmap::IndexMap;
 use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
 use itertools::Itertools;
+use jobserver::{
+    Client,
+    FromEnvErrorKind::{NoEnvVar, NoJobserver},
+};
 use nix::sys::wait::waitpid;
 use nix::unistd::{ForkResult, Pid, dup, dup2_stdout, fork};
 use scallop::pool::{NamedSemaphore, redirect_output, suppress_output};
 use scallop::variables::{self, ShellVariable};
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
+use tracing::{debug, error};
 
 use crate::config::ConfigRepos;
 use crate::dep::Cpv;
@@ -364,6 +369,7 @@ pub struct BuildPool {
     tx: IpcSender<Command>,
     rx: IpcReceiver<Command>,
     pid: OnceLock<Pid>,
+    jobserver: OnceLock<Client>,
 }
 
 // needed due to IpcSender lacking Sync
@@ -383,6 +389,7 @@ impl BuildPool {
             tx,
             rx,
             pid: OnceLock::new(),
+            jobserver: OnceLock::new(),
         }
     }
 
@@ -406,6 +413,20 @@ impl BuildPool {
                     prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
                 }
 
+                // try pulling jobserver info from the environment
+                let jobserver = unsafe { Client::from_env_ext(true) };
+                if let Some((_, path)) = jobserver.var {
+                    match jobserver.client {
+                        Ok(client) => {
+                            debug!("using jobserver: {}", path.display());
+                            self.jobserver.set(client).expect("jobserver already set");
+                        }
+                        // ignore errors where jobserver info doesn't exist
+                        Err(e) if matches!(e.kind(), NoEnvVar | NoJobserver) => (),
+                        Err(e) => error!("invalid jobserver: {e}: {}", path.display()),
+                    }
+                };
+
                 // initialize semaphore to track jobs
                 let pid = std::process::id();
                 let name = format!("/pkgcraft-task-pool-{pid}");
@@ -421,22 +442,42 @@ impl BuildPool {
                 suppress_output()?;
 
                 while let Ok(Command::Task(task)) = self.rx.recv() {
-                    // wait on bounded semaphore for pool space
-                    sem.acquire().unwrap();
+                    // acquire pool token
+                    if let Some(client) = self.jobserver.get() {
+                        client.acquire_raw().unwrap();
+                    } else {
+                        sem.acquire().unwrap();
+                    }
+
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
                         Ok(ForkResult::Child) => {
+                            // initialize process
                             scallop::shell::fork_init();
+
+                            // run task
                             task.run(&config);
-                            sem.release().unwrap();
+
+                            // release pool token
+                            if let Some(client) = self.jobserver.get() {
+                                client.release_raw().unwrap();
+                            } else {
+                                sem.release().unwrap();
+                            }
+
+                            // terminate process
                             unsafe { libc::_exit(0) };
                         }
                         Err(e) => panic!("process pool fork failed: {e}"), // grcov-excl-line
                     }
                 }
 
-                // wait for forked processes to complete
-                sem.wait().unwrap();
+                // wait for semaphore to empty
+                if self.jobserver.get().is_none() {
+                    sem.wait().unwrap();
+                }
+
+                // terminate process
                 unsafe { libc::_exit(0) }
             }
             Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line

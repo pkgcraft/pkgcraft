@@ -3148,6 +3148,7 @@ dependencies = [
  "ipc-channel",
  "is_executable",
  "itertools 0.14.0",
+ "jobserver",
  "libc",
  "md-5",
  "nix",
