@@ -435,8 +435,7 @@ impl BuildPool {
                     }
                 }
 
-                // wait for forked processes to complete
-                sem.wait().unwrap();
+                // task pipe is closed so exit
                 unsafe { libc::_exit(0) }
             }
             Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line
