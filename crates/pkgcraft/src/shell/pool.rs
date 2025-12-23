@@ -360,7 +360,7 @@ impl Command {
 
 #[derive(Debug)]
 pub struct BuildPool {
-    jobs: usize,
+    tasks: usize,
     tx: IpcSender<Command>,
     rx: IpcReceiver<Command>,
     pid: OnceLock<Pid>,
@@ -376,10 +376,10 @@ impl Default for BuildPool {
 }
 
 impl BuildPool {
-    pub(crate) fn new(jobs: usize) -> Self {
+    pub(crate) fn new(tasks: usize) -> Self {
         let (tx, rx) = ipc::channel().unwrap();
         Self {
-            jobs,
+            tasks,
             tx,
             rx,
             pid: OnceLock::new(),
@@ -406,10 +406,10 @@ impl BuildPool {
                     prctl::set_pdeathsig(Signal::SIGTERM).unwrap();
                 }
 
-                // initialize semaphore to track jobs
+                // initialize semaphore to control pool access
                 let pid = std::process::id();
                 let name = format!("/pkgcraft-task-pool-{pid}");
-                let mut sem = NamedSemaphore::new(&name, self.jobs)?;
+                let mut sem = NamedSemaphore::new(&name, self.tasks)?;
 
                 // initialize bash
                 super::init()?;
@@ -421,7 +421,7 @@ impl BuildPool {
                 suppress_output()?;
 
                 while let Ok(Command::Task(task)) = self.rx.recv() {
-                    // wait on bounded semaphore for pool space
+                    // wait for pool space
                     sem.acquire().unwrap();
                     match unsafe { fork() } {
                         Ok(ForkResult::Parent { .. }) => (),
