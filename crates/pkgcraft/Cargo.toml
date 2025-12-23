@@ -19,7 +19,7 @@ name = "pkgcraft"
 
 [features]
 # test support for external crates
-test = ["dep:ctor", "dep:pretty_assertions"]
+test = ["dep:ctor", "dep:pretty_assertions", "scallop/test"]
 
 [dependencies]
 blake2 = "0.10.6"
