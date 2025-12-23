@@ -19,7 +19,7 @@ use crate::repo::{Repo, Repository};
 use crate::traits::SourceBash;
 use crate::types::{Deque, OrderedSet};
 
-pub mod commands;
+pub(crate) mod commands;
 pub mod environment;
 pub(crate) mod hooks;
 mod install;
@@ -27,9 +27,9 @@ mod metadata;
 pub(crate) mod operations;
 pub mod phase;
 pub mod pool;
-pub use pool::BuildPool;
-pub mod scope;
-pub(crate) mod test;
+pub(crate) use pool::BuildPool;
+pub(crate) mod scope;
+mod test;
 mod unescape;
 mod utils;
 
