@@ -6,8 +6,9 @@ use std::rc::Rc;
 use std::thread;
 
 use camino::{Utf8Path, Utf8PathBuf};
-use crossbeam_channel::{Receiver, Sender, bounded};
+use crossbeam_channel::{IntoIter, Receiver, Sender, bounded, unbounded};
 use indexmap::{Equivalent, IndexSet};
+use rayon::{iter::ParallelBridge, prelude::*};
 use scallop::{ExecStatus, source};
 use tracing::error;
 
@@ -226,7 +227,8 @@ where
 impl<I, F, T, R> IntoIterator for ParallelMapBuilder<I, F, T, R>
 where
     I: IntoIterator<Item = T> + Send + 'static,
-    F: Fn(T) -> R + Clone + Send + 'static,
+    <I as IntoIterator>::IntoIter: ParallelBridge + Send,
+    F: Fn(T) -> R + Clone + Send + Sync + 'static,
     T: Send + 'static,
     R: Send + 'static,
 {
@@ -240,7 +242,6 @@ where
 
 /// Iterator that converts values in parallel while retaining the original order.
 pub struct ParallelMapIter<R: Send> {
-    threads: Vec<thread::JoinHandle<()>>,
     rx: Receiver<R>,
 }
 
@@ -251,41 +252,20 @@ where
     fn new<I, F, T>(value: I, func: F, jobs: usize) -> Self
     where
         I: IntoIterator<Item = T> + Send + 'static,
-        F: Fn(T) -> R + Clone + Send + 'static,
+        <I as IntoIterator>::IntoIter: ParallelBridge + Send,
+        F: Fn(T) -> R + Clone + Send + Sync + 'static,
         T: Send + 'static,
     {
-        let (input_tx, input_rx) = bounded(jobs);
-        let (output_tx, output_rx) = bounded(jobs);
-        let mut threads = vec![Self::producer(value, input_tx)];
-        threads.extend(
-            (0..jobs).map(|_| Self::worker(func.clone(), input_rx.clone(), output_tx.clone())),
-        );
+        let (tx, rx) = bounded(jobs);
 
-        Self { threads, rx: output_rx }
-    }
+        rayon::spawn(move || {
+            let _ = value
+                .into_iter()
+                .par_bridge()
+                .try_for_each_with(tx, |tx, item| tx.send(func(item)));
+        });
 
-    fn producer<I, T>(value: I, tx: Sender<T>) -> thread::JoinHandle<()>
-    where
-        I: IntoIterator<Item = T> + Send + 'static,
-        T: Send + 'static,
-    {
-        thread::spawn(move || {
-            for item in value {
-                tx.send(item).ok();
-            }
-        })
-    }
-
-    fn worker<F, T>(func: F, rx: Receiver<T>, tx: Sender<R>) -> thread::JoinHandle<()>
-    where
-        F: Fn(T) -> R + Clone + Send + 'static,
-        T: Send + 'static,
-    {
-        thread::spawn(move || {
-            for item in rx {
-                tx.send(func(item)).ok();
-            }
-        })
+        Self { rx }
     }
 }
 
@@ -310,12 +290,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.rx.recv() {
             Ok(item) => Some(item),
-            Err(_) => {
-                for thread in self.threads.drain(..) {
-                    thread.join().unwrap();
-                }
-                None
-            }
+            Err(_) => None,
         }
     }
 }
