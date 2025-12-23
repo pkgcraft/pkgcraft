@@ -163,7 +163,6 @@ jobs:
         key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
   coverage:
-    if: ${{ github.ref_name == 'main' }}
     needs: test
     runs-on: ubuntu-latest
     continue-on-error: true
