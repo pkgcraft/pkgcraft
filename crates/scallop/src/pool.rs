@@ -40,7 +40,7 @@ impl NamedSemaphore {
             Ok(Self { sem, size })
         } else {
             let err = Errno::last_raw();
-            Err(Error::Base(format!("sem_open() failed: {err}")))
+            Err(Error::Base(format!("failed creating semaphore: {err}")))
         }
     }
 
@@ -50,7 +50,7 @@ impl NamedSemaphore {
         } else {
             // grcov-excl-start: only errors on signal handler interrupt
             let err = Errno::last_raw();
-            Err(Error::Base(format!("sem_wait() failed: {err}")))
+            Err(Error::Base(format!("failed acquiring semaphore: {err}")))
         } // grcov-excl-stop
     }
 
@@ -59,7 +59,7 @@ impl NamedSemaphore {
             Ok(())
         } else {
             let err = Errno::last_raw();
-            Err(Error::Base(format!("sem_post() failed: {err}")))
+            Err(Error::Base(format!("failed releasing semaphore: {err}")))
         }
     }
 
