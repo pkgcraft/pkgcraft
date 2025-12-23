@@ -128,15 +128,18 @@ jobs:
           # run tests while collecting coverage information
           cargo llvm-cov --no-report nextest --all-features --workspace --tests
 
+          # make sure all profile data is in the expected directory
+          find crates -name '*.profraw' -exec mv {} target/llvm-cov-target/ \;
+
           # process coverage information
-          grcov . -s . --binary-path ./target/llvm-cov-target \
+          grcov . -s . --binary-path target/llvm-cov-target \
             --keep-only "crates/*/src/*" -t lcov --llvm --branch -o lcov.info \
             --excl-line "unreachable!(.*)|grcov-excl-line" \
             --excl-start grcov-excl-start \
             --excl-stop grcov-excl-stop
 
           # remove generated coverage data to avoid caching it
-          find . -name \*.profraw -delete
+          rm -rf target/llvm-cov-target
         else
           cargo nextest run --all-features --workspace --tests
         fi
