@@ -47,8 +47,9 @@ fn initialize() {
     unsafe {
         // disable config loading by default
         env::set_var("PKGCRAFT_CONFIG", "");
-        // disable forced color output
+        // disable color output by default
         env::remove_var("CLICOLOR_FORCE");
+        env::remove_var("CLICOLOR");
     }
 }
 
