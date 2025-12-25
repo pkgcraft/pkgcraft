@@ -301,13 +301,13 @@ mod tests {
         config.finalize().unwrap();
 
         // create a large number of packages with a subshelled, invalid scope builtin call
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing metadata generation error handling"
+            SLOT=0
+            VAR=$(best_version cat/pkg)
+        "#};
         for pv in 0..50 {
-            let data = indoc::indoc! {r#"
-                EAPI=8
-                DESCRIPTION="testing metadata generation error handling"
-                SLOT=0
-                VAR=$(best_version cat/pkg)
-            "#};
             temp.create_ebuild_from_str(format!("cat/pkg-{pv}"), data)
                 .unwrap();
         }
