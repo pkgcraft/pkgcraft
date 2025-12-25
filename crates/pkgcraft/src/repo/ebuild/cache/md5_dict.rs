@@ -285,19 +285,13 @@ impl Cache for Md5Dict {
             .collect();
 
         // remove invalid file and parent directory if empty
-        let remove_file = |path: &Utf8Path| -> crate::Result<()> {
-            fs::remove_file(path).map_err(|e| {
-                Error::IO(format!("failed removing old cache entry: {path}: {e}"))
-            })?;
-
+        let remove_file = |path: &Utf8Path| -> io::Result<()> {
+            fs::remove_file(path)?;
             let dir = path.parent().unwrap();
-            if let Err(e) = fs::remove_dir(dir)
-                && e.kind() != io::ErrorKind::DirectoryNotEmpty
-            {
-                return Err(Error::IO(format!("failed removing cache dir: {dir}: {e}")));
+            match fs::remove_dir(dir) {
+                Err(e) if e.kind() != io::ErrorKind::DirectoryNotEmpty => Err(e),
+                _ => Ok(()),
             }
-
-            Ok(())
         };
 
         // Remove outdated, invalid, and unrelated files as well as their parent
@@ -318,7 +312,9 @@ impl Cache for Md5Dict {
                     .unwrap_or_default();
 
                 if !valid {
-                    remove_file(&path)?;
+                    remove_file(&path).map_err(|e| {
+                        Error::IO(format!("failed removing old cache entry: {relpath}: {e}"))
+                    })?;
                 }
 
                 Ok(())
