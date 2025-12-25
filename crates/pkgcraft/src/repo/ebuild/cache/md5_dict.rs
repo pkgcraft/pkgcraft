@@ -252,7 +252,7 @@ impl Cache for Md5Dict {
         // convert metadata to the cache entry format
         let entry = Self::Entry::from(meta);
         // atomically create cache file
-        let path = self.path.join(pkg.cpv().category()).join(pkg.cpv().pf());
+        let path = self.path.join(pkg.cpv().to_string());
         atomic_write_file(path, entry.to_bytes())
     }
 
@@ -263,7 +263,7 @@ impl Cache for Md5Dict {
     }
 
     fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
-        let path = self.path.join(cpv.category()).join(cpv.pf());
+        let path = self.path.join(cpv.to_string());
         match remove_file_and_parent(&path) {
             Err(e) if e.kind() != io::ErrorKind::NotFound => {
                 Err(Error::IO(format!("failed removing cache file: {cpv}: {e}")))
