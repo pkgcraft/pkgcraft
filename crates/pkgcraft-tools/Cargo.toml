@@ -19,8 +19,6 @@ name = "pk"
 path = "src/main.rs"
 
 [features]
-# flaky tests that aren't run by default
-flaky = []
 # network tests that aren't run by default
 network = []
 

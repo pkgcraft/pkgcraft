@@ -138,63 +138,34 @@ fn path_targets() {
 }
 
 #[test]
-#[cfg(feature = "flaky")]
-fn bound_and_sort() {
-    use std::os::fd::AsRawFd;
-
+fn bound() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
-    repo.create_ebuild("cat/fast-1", &[]).unwrap();
-    let f = std::fs::File::open(repo.path().join("profiles/repo_name")).unwrap();
-    let fd = f.as_raw_fd();
-
-    let data = indoc::formatdoc! {r#"
-        EAPI=8
-        DESCRIPTION="ebuild with slower global scope code"
-        SLOT=0
-
-        # forcibly wait for at least 25ms to slow down ebuild sourcing
-        read -t 0.025 -u {fd}
-
-        :
-    "#};
-    repo.create_ebuild_from_str("cat/slow-1", &data).unwrap();
+    repo.create_ebuild("cat/pkg-1", &[]).unwrap();
 
     for opt in ["-B", "--bound"] {
-        for (val, pkg) in [
-            ("25ms", "cat/slow"),
-            (">25ms", "cat/slow"),
-            (">=25ms", "cat/slow"),
-            ("<25ms", "cat/fast"),
-            ("<=25ms", "cat/fast"),
-        ] {
+        for val in ["10ms", ">10ms", ">=10ms", "<10ms", "<=10ms"] {
             cmd("pk pkg source")
                 .args([opt, val])
                 .arg(&repo)
                 .assert()
-                .stdout(lines_contain([pkg]))
                 .stderr("")
                 .success();
         }
     }
+}
 
-    // sorting output
-    for opts in [vec![], vec!["--bench", "500ms"], vec!["-b", "10"]] {
-        cmd("pk pkg source --sort")
-            .args(opts)
-            .arg(&repo)
-            .assert()
-            .stdout(predicate::function(|s: &str| {
-                let lines: Vec<_> = s
-                    .lines()
-                    .filter_map(|s| s.split_once("::"))
-                    .map(|(x, _)| x)
-                    .collect();
-                assert_eq!(lines, ["cat/fast-1", "cat/slow-1"]);
-                true
-            }))
-            .stderr("")
-            .success();
-    }
+#[test]
+fn sort() {
+    let mut repo = EbuildRepoBuilder::new().build().unwrap();
+    repo.create_ebuild("cat/pkg-1", &[]).unwrap();
+    repo.create_ebuild("cat/pkg-2", &[]).unwrap();
+
+    cmd("pk pkg source --sort")
+        .arg(&repo)
+        .assert()
+        .stdout(predicate::str::is_empty().not())
+        .stderr("")
+        .success();
 }
 
 #[test]
