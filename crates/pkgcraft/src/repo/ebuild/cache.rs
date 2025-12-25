@@ -268,13 +268,8 @@ impl MetadataCacheRegen<'_> {
                             error!("{e}");
                         });
                     }
-                    Ok(output) => {
-                        if let Some(data) = output {
-                            progress.suspend(|| {
-                                eprintln!("{data}");
-                            });
-                        }
-                    }
+                    Ok(Some(output)) => progress.suspend(|| eprintln!("{output}")),
+                    Ok(None) => (),
                 }
             })
             .filter(|result| result.is_err())
