@@ -12,7 +12,7 @@ use walkdir::WalkDir;
 
 use crate::Error;
 use crate::dep::Cpv;
-use crate::files::{atomic_write_file, is_file};
+use crate::files::{atomic_write_file, is_file, remove_file_and_parent};
 use crate::pkg::ebuild::EbuildRawPkg;
 use crate::pkg::ebuild::metadata::{Key, Metadata};
 use crate::pkg::{Package, RepoPackage};
@@ -264,15 +264,11 @@ impl Cache for Md5Dict {
 
     fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
         let path = self.path.join(cpv.category()).join(cpv.pf());
-        match fs::remove_file(&path) {
+        match remove_file_and_parent(&path) {
             Err(e) if e.kind() != io::ErrorKind::NotFound => {
-                Err(Error::IO(format!("failed removing cache entry: {cpv}: {e}")))
+                Err(Error::IO(format!("failed removing cache file: {cpv}: {e}")))
             }
-            _ => {
-                // remove empty parent directory
-                let _ = fs::remove_dir(path.parent().unwrap());
-                Ok(())
-            }
+            _ => Ok(()),
         }
     }
 
@@ -283,16 +279,6 @@ impl Cache for Md5Dict {
             .max_depth(2)
             .into_iter()
             .collect();
-
-        // remove invalid file and parent directory if empty
-        let remove_file = |path: &Utf8Path| -> io::Result<()> {
-            fs::remove_file(path)?;
-            let dir = path.parent().unwrap();
-            match fs::remove_dir(dir) {
-                Err(e) if e.kind() != io::ErrorKind::DirectoryNotEmpty => Err(e),
-                _ => Ok(()),
-            }
-        };
 
         // Remove outdated, invalid, and unrelated files as well as their parent
         // directories if empty.
@@ -312,8 +298,8 @@ impl Cache for Md5Dict {
                     .unwrap_or_default();
 
                 if !valid {
-                    remove_file(&path).map_err(|e| {
-                        Error::IO(format!("failed removing old cache entry: {relpath}: {e}"))
+                    remove_file_and_parent(&path).map_err(|e| {
+                        Error::IO(format!("failed removing cache file: {relpath}: {e}"))
                     })?;
                 }
 

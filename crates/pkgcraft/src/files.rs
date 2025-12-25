@@ -1,7 +1,7 @@
-use std::fs;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::{fs, io};
 
 use camino::{Utf8DirEntry, Utf8Path};
 use itertools::Itertools;
@@ -183,4 +183,15 @@ pub(crate) fn atomic_write_file<C: AsRef<[u8]>, P: AsRef<Utf8Path>>(
         .map_err(|e| Error::IO(format!("failed renaming file: {temp} -> {path}: {e}")))?;
 
     Ok(())
+}
+
+/// Remove a file and its parent directory if empty.
+pub(crate) fn remove_file_and_parent<P: AsRef<Path>>(path: P) -> io::Result<()> {
+    let path = path.as_ref();
+    fs::remove_file(path)?;
+    let dir = path.parent().unwrap();
+    match fs::remove_dir(dir) {
+        Err(e) if e.kind() != io::ErrorKind::DirectoryNotEmpty => Err(e),
+        _ => Ok(()),
+    }
 }
