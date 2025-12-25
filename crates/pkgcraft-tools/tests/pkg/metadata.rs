@@ -115,16 +115,20 @@ fn remove() {
     temp.create_ebuild("cat/a-1", &[]).unwrap();
     temp.create_ebuild("a/b-1", &[]).unwrap();
     let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+    config.finalize().unwrap();
 
     env::set_current_dir(&repo).unwrap();
 
-    for opt in ["-R", "--remove"] {
-        // generate metadata
+    let regen_metadata = || {
         cmd("pk pkg metadata")
             .assert()
             .stdout("")
             .stderr("")
             .success();
+    };
+
+    for opt in ["-R", "--remove"] {
+        regen_metadata();
 
         // Cpv target
         cmd("pk pkg metadata cat/pkg-1")
@@ -140,6 +144,8 @@ fn remove() {
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
 
+        regen_metadata();
+
         // Cpn target
         cmd("pk pkg metadata cat/pkg")
             .arg(opt)
@@ -154,6 +160,8 @@ fn remove() {
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
 
+        regen_metadata();
+
         // category target
         cmd("pk pkg metadata cat")
             .arg(opt)
@@ -167,6 +175,8 @@ fn remove() {
             let path = repo.metadata().cache().path().join(cpv);
             assert_eq!(path.exists(), status, "failed for {cpv}: {path}");
         }
+
+        regen_metadata();
 
         // repo target
         cmd("pk pkg metadata")
