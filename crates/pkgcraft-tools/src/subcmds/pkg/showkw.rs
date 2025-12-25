@@ -6,6 +6,7 @@ use clap::Args;
 use clap::builder::{ArgPredicate, PossibleValuesParser, TypedValueParser};
 use indexmap::IndexSet;
 use itertools::Itertools;
+use owo_colors::OwoColorize;
 use pkgcraft::cli::{MaybeStdinVec, Targets, TriState};
 use pkgcraft::config::Config;
 use pkgcraft::dep::Cpn;
@@ -18,7 +19,7 @@ use pkgcraft::traits::LogErrors;
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use tabled::settings::object::{Columns, Rows};
 use tabled::settings::style::{HorizontalLine, VerticalLine};
-use tabled::settings::{Alignment, Color, Padding, Style, Theme, Width};
+use tabled::settings::{Alignment, Padding, Style, Theme, Width};
 use tabled::{Table, builder::Builder};
 
 #[derive(Args)]
@@ -90,8 +91,8 @@ impl PkgStatus {
 impl std::fmt::Display for PkgStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Deprecated => write!(f, "{}", Color::FG_YELLOW.colorize("D")),
-            Self::Masked => write!(f, "{}", Color::FG_RED.colorize("M")),
+            Self::Deprecated => write!(f, "{}", "D".yellow()),
+            Self::Masked => write!(f, "{}", "M".red()),
         }
     }
 }
@@ -263,11 +264,7 @@ impl Command {
             // build table headers
             let mut builder = Builder::new();
             let mut headers = vec![String::new(), String::new()];
-            headers.extend(
-                target_arches
-                    .iter()
-                    .map(|a| Color::FG_BRIGHT_WHITE.colorize(a)),
-            );
+            headers.extend(target_arches.iter().map(|a| a.bright_white().to_string()));
             headers.push("eapi".to_string());
             headers.push("slot".to_string());
             headers.push("repo".to_string());
@@ -307,13 +304,13 @@ impl Command {
                         .collect();
 
                     row.extend(target_arches.iter().map(|arch| match map.get(arch) {
-                        Some(KeywordStatus::Disabled) => Color::FG_RED.colorize("-"),
-                        Some(KeywordStatus::Stable) => Color::FG_GREEN.colorize("+"),
-                        Some(KeywordStatus::Unstable) => Color::FG_BRIGHT_YELLOW.colorize("~"),
+                        Some(KeywordStatus::Disabled) => "-".red().to_string(),
+                        Some(KeywordStatus::Stable) => "+".green().to_string(),
+                        Some(KeywordStatus::Unstable) => "~".bright_yellow().to_string(),
                         None => " ".to_string(),
                     }));
 
-                    row.push(Color::FG_BRIGHT_GREEN.colorize(pkg.eapi()));
+                    row.push(pkg.eapi().bright_green().to_string());
 
                     let slot = pkg.fullslot();
                     if !prev_slot
@@ -328,7 +325,7 @@ impl Command {
                         row.push("".to_string());
                     }
 
-                    row.push(Color::FG_YELLOW.colorize(pkg.repo()));
+                    row.push(pkg.repo().yellow().to_string());
 
                     builder.push_record(row);
                 }

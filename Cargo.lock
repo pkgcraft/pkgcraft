@@ -3209,6 +3209,7 @@ dependencies = [
  "indoc",
  "itertools 0.14.0",
  "num_cpus",
+ "owo-colors",
  "pkgcraft",
  "predicates",
  "pretty_assertions",
