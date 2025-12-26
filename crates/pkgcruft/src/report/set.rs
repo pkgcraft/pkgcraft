@@ -2,7 +2,6 @@ use std::fmt;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
-use indexmap::IndexSet;
 use pkgcraft::restrict::Scope;
 use regex::Regex;
 
@@ -248,19 +247,25 @@ impl ReportSet {
     }
 
     /// Expand a report set into an iterator of its variants.
-    pub(crate) fn expand<'a>(
+    pub(crate) fn expand<'a, I, J>(
         self,
-        default: &'a IndexSet<ReportKind>,
-        supported: &'a IndexSet<ReportKind>,
-    ) -> Box<dyn Iterator<Item = ReportKind> + 'a> {
+        default: I,
+        supported: J,
+    ) -> Box<dyn Iterator<Item = ReportKind> + 'a>
+    where
+        I: IntoIterator<Item = &'a ReportKind>,
+        I::IntoIter: 'a,
+        J: IntoIterator<Item = &'a ReportKind>,
+        J::IntoIter: 'a,
+    {
+        let default = default.into_iter();
+        let supported = supported.into_iter();
+
         match self {
-            Self::All => Box::new(supported.iter().copied()),
-            Self::Finalize => Box::new(
-                default
-                    .iter()
-                    .filter(|r| r.finish_check(Scope::Repo))
-                    .copied(),
-            ),
+            Self::All => Box::new(supported.copied()),
+            Self::Finalize => {
+                Box::new(default.filter(|r| r.finish_check(Scope::Repo)).copied())
+            }
             Self::Check(check) => Box::new(check.reports.iter().copied()),
             Self::Context(context) => Box::new(
                 Check::iter_report(supported)
@@ -268,19 +273,13 @@ impl ReportSet {
                     .flat_map(|x| x.reports)
                     .copied(),
             ),
-            Self::Level(range) => Box::new(
-                default
-                    .iter()
-                    .filter(move |r| range.contains(&r.level()))
-                    .copied(),
-            ),
+            Self::Level(range) => {
+                Box::new(default.filter(move |r| range.contains(&r.level())).copied())
+            }
             Self::Report(kind) => Box::new([kind].into_iter()),
-            Self::Scope(range) => Box::new(
-                default
-                    .iter()
-                    .filter(move |r| range.contains(&r.scope()))
-                    .copied(),
-            ),
+            Self::Scope(range) => {
+                Box::new(default.filter(move |r| range.contains(&r.scope())).copied())
+            }
         }
     }
 }
