@@ -105,7 +105,7 @@ async fn hook() {
             cat/pkg
               MetadataError: version 2: unsupported EAPI: 0
         "})
-        .stderr(contains("Error: scanning errors found"))
+        .stderr(contains("pkgcruft-git-pre-push: error: scanning errors found"))
         .failure()
         .code(1);
 
@@ -134,7 +134,7 @@ async fn hook() {
             cat/pkg
               MetadataError: version 2: unsupported EAPI: 0
         "})
-        .stderr(contains("Error: scanning errors found"))
+        .stderr(contains("pkgcruft-git-pre-push: error: scanning errors found"))
         .failure()
         .code(1);
 }

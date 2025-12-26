@@ -3,7 +3,6 @@ use std::os::unix::fs::symlink;
 
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use predicates::prelude::*;
-use predicates::str::contains;
 use tempfile::tempdir;
 
 use crate::git::{GitRepo, git};
@@ -23,7 +22,7 @@ async fn invalid_repo() {
         .current_dir(path)
         .assert()
         .stdout("")
-        .stderr(contains(format!("invalid ebuild repo: {path}")))
+        .stderr(format!("pkgcruft-git-pre-commit: error: invalid ebuild repo: {path}\n"))
         .failure()
         .code(1);
 }
@@ -119,7 +118,7 @@ async fn failure() {
         .stderr(indoc::indoc! {"
             cat/pkg
               MetadataError: version 2: unsupported EAPI: 0
-            Error: scanning errors found
+            pkgcruft-git-pre-commit: error: scanning errors found
         "})
         .failure()
         .code(1);

@@ -40,7 +40,7 @@ pub(crate) struct Command {
     remote_uri: String,
 }
 
-fn main() -> anyhow::Result<ExitCode> {
+fn try_main() -> anyhow::Result<ExitCode> {
     let args = Command::parse();
 
     // set color choice
@@ -140,4 +140,12 @@ fn main() -> anyhow::Result<ExitCode> {
     } else {
         Ok(ExitCode::SUCCESS)
     }
+}
+
+fn main() -> anyhow::Result<ExitCode> {
+    try_main().or_else(|e| {
+        let cmd = env!("CARGO_BIN_NAME");
+        eprintln!("{cmd}: error: {e}");
+        Ok(ExitCode::from(1))
+    })
 }
