@@ -1,12 +1,24 @@
 use std::fs;
 use std::os::unix::fs::symlink;
 
+use assert_cmd::Command;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use predicates::prelude::*;
 use predicates::str::contains;
 use tempfile::tempdir;
 
 use crate::git::{GitRepo, git};
+
+#[tokio::test]
+async fn invalid_command() {
+    Command::new(env!("CARGO_BIN_EXE_pkgcruft-git-pre-push"))
+        .arg("remote-name")
+        .assert()
+        .stdout("")
+        .stderr(contains("pkgcruft-git-pre-push"))
+        .failure()
+        .code(2);
+}
 
 #[tokio::test]
 async fn hook() {
