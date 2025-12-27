@@ -283,3 +283,51 @@ impl ReportSet {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::check::{CheckKind, Context};
+
+    use super::*;
+
+    #[test]
+    fn parse_and_display() {
+        use RangeOp::*;
+        use ReportLevel::*;
+        use Scope::*;
+
+        for (s, expected) in [
+            ("@all", ReportSet::All),
+            ("@finalize", ReportSet::Finalize),
+            // check
+            ("@Metadata", ReportSet::Check(CheckKind::Metadata.into())),
+            // context
+            ("@gentoo", ReportSet::Context(Context::Gentoo)),
+            ("@gentoo-inherited", ReportSet::Context(Context::GentooInherited)),
+            ("@optional", ReportSet::Context(Context::Optional)),
+            ("@overlay", ReportSet::Context(Context::Overlay)),
+            // level
+            ("@warning", ReportSet::Level(RangeOrValue::Value(Warning))),
+            ("@<warning", ReportSet::Level(RangeOrValue::RangeOp(Less(Warning)))),
+            ("@<=warning", ReportSet::Level(RangeOrValue::RangeOp(LessOrEqual(Warning)))),
+            ("@=warning", ReportSet::Level(RangeOrValue::RangeOp(Equal(Warning)))),
+            ("@!=warning", ReportSet::Level(RangeOrValue::RangeOp(NotEqual(Warning)))),
+            ("@>=style", ReportSet::Level(RangeOrValue::RangeOp(GreaterOrEqual(Style)))),
+            ("@>error", ReportSet::Level(RangeOrValue::RangeOp(Greater(Error)))),
+            // report
+            ("MetadataError", ReportSet::Report(ReportKind::MetadataError)),
+            // scope
+            ("@version", ReportSet::Scope(RangeOrValue::Value(Version))),
+            ("@<package", ReportSet::Scope(RangeOrValue::RangeOp(Less(Package)))),
+            ("@<=category", ReportSet::Scope(RangeOrValue::RangeOp(LessOrEqual(Category)))),
+            ("@=repo", ReportSet::Scope(RangeOrValue::RangeOp(Equal(Repo)))),
+            ("@!=repo", ReportSet::Scope(RangeOrValue::RangeOp(NotEqual(Repo)))),
+            ("@>=package", ReportSet::Scope(RangeOrValue::RangeOp(GreaterOrEqual(Package)))),
+            ("@>version", ReportSet::Scope(RangeOrValue::RangeOp(Greater(Version)))),
+        ] {
+            let set: ReportSet = s.parse().unwrap();
+            assert_eq!(set, expected);
+            assert_eq!(set.to_string(), s);
+        }
+    }
+}
