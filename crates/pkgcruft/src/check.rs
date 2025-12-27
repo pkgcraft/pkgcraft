@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Not;
-use std::str::FromStr;
 use std::sync::{Arc, LazyLock};
 use std::time::Instant;
 
@@ -17,7 +16,6 @@ use pkgcraft::restrict::Scope;
 use pkgcraft::types::{OrderedMap, OrderedSet};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
-use crate::Error;
 use crate::report::ReportKind;
 use crate::scan::ScannerRun;
 use crate::source::SourceKind;
@@ -257,18 +255,6 @@ impl PartialOrd for Check {
 impl fmt::Display for Check {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.kind)
-    }
-}
-
-impl FromStr for Check {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let kind: CheckKind = s
-            .parse()
-            .map_err(|_| Error::InvalidValue(format!("unknown check: {s}")))?;
-
-        Ok(CHECKS.get(&kind).copied().unwrap())
     }
 }
 
