@@ -292,7 +292,8 @@ mod tests {
 
     #[test]
     fn parse_and_display() {
-        use Range::*;
+        use self::Range::*;
+        use RangeOrValue::*;
         use ReportLevel::*;
         use Scope::*;
 
@@ -307,23 +308,23 @@ mod tests {
             ("@optional", ReportSet::Context(Context::Optional)),
             ("@overlay", ReportSet::Context(Context::Overlay)),
             // level
-            ("@warning", ReportSet::Level(RangeOrValue::Value(Warning))),
-            ("@<warning", ReportSet::Level(RangeOrValue::Range(Less(Warning)))),
-            ("@<=warning", ReportSet::Level(RangeOrValue::Range(LessOrEqual(Warning)))),
-            ("@=warning", ReportSet::Level(RangeOrValue::Range(Equal(Warning)))),
-            ("@!=warning", ReportSet::Level(RangeOrValue::Range(NotEqual(Warning)))),
-            ("@>=style", ReportSet::Level(RangeOrValue::Range(GreaterOrEqual(Style)))),
-            ("@>error", ReportSet::Level(RangeOrValue::Range(Greater(Error)))),
+            ("@warning", ReportSet::Level(Value(Warning))),
+            ("@<warning", ReportSet::Level(Range(Less(Warning)))),
+            ("@<=warning", ReportSet::Level(Range(LessOrEqual(Warning)))),
+            ("@=warning", ReportSet::Level(Range(Equal(Warning)))),
+            ("@!=warning", ReportSet::Level(Range(NotEqual(Warning)))),
+            ("@>=style", ReportSet::Level(Range(GreaterOrEqual(Style)))),
+            ("@>error", ReportSet::Level(Range(Greater(Error)))),
             // report
             ("MetadataError", ReportSet::Report(ReportKind::MetadataError)),
             // scope
-            ("@version", ReportSet::Scope(RangeOrValue::Value(Version))),
-            ("@<package", ReportSet::Scope(RangeOrValue::Range(Less(Package)))),
-            ("@<=category", ReportSet::Scope(RangeOrValue::Range(LessOrEqual(Category)))),
-            ("@=repo", ReportSet::Scope(RangeOrValue::Range(Equal(Repo)))),
-            ("@!=repo", ReportSet::Scope(RangeOrValue::Range(NotEqual(Repo)))),
-            ("@>=package", ReportSet::Scope(RangeOrValue::Range(GreaterOrEqual(Package)))),
-            ("@>version", ReportSet::Scope(RangeOrValue::Range(Greater(Version)))),
+            ("@version", ReportSet::Scope(Value(Version))),
+            ("@<package", ReportSet::Scope(Range(Less(Package)))),
+            ("@<=category", ReportSet::Scope(Range(LessOrEqual(Category)))),
+            ("@=repo", ReportSet::Scope(Range(Equal(Repo)))),
+            ("@!=repo", ReportSet::Scope(Range(NotEqual(Repo)))),
+            ("@>=package", ReportSet::Scope(Range(GreaterOrEqual(Package)))),
+            ("@>version", ReportSet::Scope(Range(Greater(Version)))),
         ] {
             let set: ReportSet = s.parse().unwrap();
             assert_eq!(set, expected);
