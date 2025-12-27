@@ -145,7 +145,9 @@ impl super::CheckRun for Check {
         while !targets.is_empty()
             && let Some(dep) = deps.next()
         {
-            if let Some(dep_targets) = self.get_targets(&run.repo, dep.no_use_deps()) {
+            if let Some(dep_targets) = self.get_targets(&run.repo, dep.no_use_deps())
+                && !dep_targets.is_empty()
+            {
                 targets.retain(|&x| dep_targets.contains(x));
             }
         }
