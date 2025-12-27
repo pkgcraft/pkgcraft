@@ -97,32 +97,24 @@ impl super::CheckRun for Check {
             .take_while(|&x| !supported.contains(x))
             .collect::<Vec<_>>();
 
-        if targets.is_empty() {
-            // no updates available
-            return;
-        }
+        // all deps with matching USE dependencies
+        let mut deps = deps.iter().filter(|x| use_starts_with(x, &[IUSE_PREFIX]));
 
         // drop targets with missing dependencies
-        for dep in deps
-            .iter()
-            .filter(|x| use_starts_with(x, &[IUSE_PREFIX]))
-            .map(|x| x.no_use_deps())
+        while !targets.is_empty()
+            && let Some(dep) = deps.next()
         {
             if let Some(dep_targets) = self.get_targets(&run.repo, dep.no_use_deps()) {
                 targets.retain(|&x| dep_targets.contains(x));
-                if !targets.is_empty() {
-                    continue;
-                }
             }
-
-            // no updates available
-            return;
         }
 
-        RubyUpdate
-            .version(pkg)
-            .message(targets.iter().rev().join(", "))
-            .report(run);
+        if !targets.is_empty() {
+            RubyUpdate
+                .version(pkg)
+                .message(targets.iter().rev().join(", "))
+                .report(run);
+        }
     }
 }
 
