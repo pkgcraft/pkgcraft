@@ -479,6 +479,15 @@ mod tests {
         assert!(reports.is_empty(), "no checks for reports: {}", reports.iter().join(", "));
     }
 
+    #[test]
+    fn context() {
+        // verify all context variants have at least one check
+        let contexts: Vec<_> = Context::iter()
+            .filter(|x| !Check::iter().any(|c| c.context.contains(x)))
+            .collect();
+        assert!(contexts.is_empty(), "no checks for contexts: {}", contexts.iter().join(", "));
+    }
+
     // TODO: re-enable test when a SourceKind::Repo check is implemented
     /*#[test]
     fn source() {
