@@ -13,7 +13,7 @@ use super::{ReportKind, ReportLevel};
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum RangeOrValue<T: Eq + Copy> {
     Value(T),
-    RangeOp(RangeOp<T>),
+    Range(Range<T>),
 }
 
 impl<T: PartialEq + Eq + Copy> RangeOrValue<T>
@@ -24,7 +24,7 @@ where
     fn contains(&self, value: &T) -> bool {
         match self {
             Self::Value(x) => x == value,
-            Self::RangeOp(range) => range.contains(value),
+            Self::Range(range) => range.contains(value),
         }
     }
 }
@@ -40,7 +40,7 @@ where
         if let Ok(value) = s.parse() {
             Ok(RangeOrValue::Value(value))
         } else if let Ok(value) = s.parse() {
-            Ok(RangeOrValue::RangeOp(value))
+            Ok(RangeOrValue::Range(value))
         } else {
             Err(Error::InvalidValue(format!("invalid range or value: {s}")))
         }
@@ -51,7 +51,7 @@ impl<T: fmt::Display + Eq + Copy> fmt::Display for RangeOrValue<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Value(value) => value.fmt(f),
-            Self::RangeOp(value) => value.fmt(f),
+            Self::Range(value) => value.fmt(f),
         }
     }
 }
@@ -73,7 +73,7 @@ static RANGE_OP_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(?<op>[<>]=?|!?=)(?<value>.+)$").unwrap());
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-pub enum RangeOp<T: Eq + Copy> {
+pub enum Range<T: Eq + Copy> {
     Less(T),
     LessOrEqual(T),
     Equal(T),
@@ -82,7 +82,7 @@ pub enum RangeOp<T: Eq + Copy> {
     Greater(T),
 }
 
-impl<T: PartialEq + Eq + Copy> RangeOp<T>
+impl<T: PartialEq + Eq + Copy> Range<T>
 where
     T: PartialOrd,
 {
@@ -99,7 +99,7 @@ where
     }
 }
 
-impl<T> FromStr for RangeOp<T>
+impl<T> FromStr for Range<T>
 where
     T: FromStr + Eq + Copy,
     T::Err: fmt::Display + fmt::Debug,
@@ -120,7 +120,7 @@ where
                 "!=" => Ok(Self::NotEqual(value)),
                 ">=" => Ok(Self::GreaterOrEqual(value)),
                 ">" => Ok(Self::Greater(value)),
-                _ => unreachable!("invalid RangeOp regex"),
+                _ => unreachable!("invalid Range regex"),
             }
         } else {
             Err(Error::InvalidValue(format!("invalid range op: {s}")))
@@ -128,7 +128,7 @@ where
     }
 }
 
-impl<T: fmt::Display + Eq + Copy> fmt::Display for RangeOp<T> {
+impl<T: fmt::Display + Eq + Copy> fmt::Display for Range<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Less(value) => write!(f, "<{value}"),
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn parse_and_display() {
-        use RangeOp::*;
+        use Range::*;
         use ReportLevel::*;
         use Scope::*;
 
@@ -308,22 +308,22 @@ mod tests {
             ("@overlay", ReportSet::Context(Context::Overlay)),
             // level
             ("@warning", ReportSet::Level(RangeOrValue::Value(Warning))),
-            ("@<warning", ReportSet::Level(RangeOrValue::RangeOp(Less(Warning)))),
-            ("@<=warning", ReportSet::Level(RangeOrValue::RangeOp(LessOrEqual(Warning)))),
-            ("@=warning", ReportSet::Level(RangeOrValue::RangeOp(Equal(Warning)))),
-            ("@!=warning", ReportSet::Level(RangeOrValue::RangeOp(NotEqual(Warning)))),
-            ("@>=style", ReportSet::Level(RangeOrValue::RangeOp(GreaterOrEqual(Style)))),
-            ("@>error", ReportSet::Level(RangeOrValue::RangeOp(Greater(Error)))),
+            ("@<warning", ReportSet::Level(RangeOrValue::Range(Less(Warning)))),
+            ("@<=warning", ReportSet::Level(RangeOrValue::Range(LessOrEqual(Warning)))),
+            ("@=warning", ReportSet::Level(RangeOrValue::Range(Equal(Warning)))),
+            ("@!=warning", ReportSet::Level(RangeOrValue::Range(NotEqual(Warning)))),
+            ("@>=style", ReportSet::Level(RangeOrValue::Range(GreaterOrEqual(Style)))),
+            ("@>error", ReportSet::Level(RangeOrValue::Range(Greater(Error)))),
             // report
             ("MetadataError", ReportSet::Report(ReportKind::MetadataError)),
             // scope
             ("@version", ReportSet::Scope(RangeOrValue::Value(Version))),
-            ("@<package", ReportSet::Scope(RangeOrValue::RangeOp(Less(Package)))),
-            ("@<=category", ReportSet::Scope(RangeOrValue::RangeOp(LessOrEqual(Category)))),
-            ("@=repo", ReportSet::Scope(RangeOrValue::RangeOp(Equal(Repo)))),
-            ("@!=repo", ReportSet::Scope(RangeOrValue::RangeOp(NotEqual(Repo)))),
-            ("@>=package", ReportSet::Scope(RangeOrValue::RangeOp(GreaterOrEqual(Package)))),
-            ("@>version", ReportSet::Scope(RangeOrValue::RangeOp(Greater(Version)))),
+            ("@<package", ReportSet::Scope(RangeOrValue::Range(Less(Package)))),
+            ("@<=category", ReportSet::Scope(RangeOrValue::Range(LessOrEqual(Category)))),
+            ("@=repo", ReportSet::Scope(RangeOrValue::Range(Equal(Repo)))),
+            ("@!=repo", ReportSet::Scope(RangeOrValue::Range(NotEqual(Repo)))),
+            ("@>=package", ReportSet::Scope(RangeOrValue::Range(GreaterOrEqual(Package)))),
+            ("@>version", ReportSet::Scope(RangeOrValue::Range(Greater(Version)))),
         ] {
             let set: ReportSet = s.parse().unwrap();
             assert_eq!(set, expected);
