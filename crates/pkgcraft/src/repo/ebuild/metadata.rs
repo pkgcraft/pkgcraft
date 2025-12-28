@@ -721,32 +721,6 @@ mod tests {
     }
 
     #[test]
-    fn config_settings() {
-        let repo = EbuildRepoBuilder::new().build().unwrap();
-
-        // empty
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert!(metadata.config.masters.is_empty());
-        assert!(metadata.config.properties_allowed.is_empty());
-        assert!(metadata.config.restrict_allowed.is_empty());
-        assert!(metadata.config.thin_manifests);
-
-        // existing
-        let data = indoc::indoc! {r#"
-            masters = repo1 repo2
-            properties-allowed = interactive live
-            restrict-allowed = fetch mirror
-            thin-manifests = false
-        "#};
-        fs::write(repo.path().join("metadata/layout.conf"), data).unwrap();
-        let metadata = Metadata::try_new("test", repo.path()).unwrap();
-        assert_ordered_eq!(&metadata.config.masters, ["repo1", "repo2"]);
-        assert_ordered_eq!(&metadata.config.properties_allowed, ["interactive", "live"]);
-        assert_ordered_eq!(&metadata.config.restrict_allowed, ["fetch", "mirror"]);
-        assert!(!metadata.config.thin_manifests);
-    }
-
-    #[test]
     fn arches() {
         let repo = EbuildRepoBuilder::new().build().unwrap();
 

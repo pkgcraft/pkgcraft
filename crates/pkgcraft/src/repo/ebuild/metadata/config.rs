@@ -163,44 +163,78 @@ impl fmt::Display for Config {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.cache_formats.is_empty() {
             let values = self.cache_formats.iter().join(" ");
-            writeln!(f, "cache-formats: {values}")?;
+            writeln!(f, "cache-formats = {values}")?;
         }
         if !self.eapis_banned.is_empty() {
             let values = self.eapis_banned.iter().join(" ");
-            writeln!(f, "eapis-banned: {values}")?;
+            writeln!(f, "eapis-banned = {values}")?;
         }
         if !self.eapis_deprecated.is_empty() {
             let values = self.eapis_deprecated.iter().join(" ");
-            writeln!(f, "eapis-deprecated: {values}")?;
+            writeln!(f, "eapis-deprecated = {values}")?;
         }
         if !self.eapis_testing.is_empty() {
             let values = self.eapis_testing.iter().join(" ");
-            writeln!(f, "eapis-testing: {values}")?;
+            writeln!(f, "eapis-testing = {values}")?;
         }
         if !self.manifest_hashes.is_empty() {
             let values = self.manifest_hashes.iter().join(" ");
-            writeln!(f, "manifest-hashes: {values}")?;
+            writeln!(f, "manifest-hashes = {values}")?;
         }
         if !self.manifest_required_hashes.is_empty() {
             let values = self.manifest_required_hashes.iter().join(" ");
-            writeln!(f, "manifest-required-hashes: {values}")?;
+            writeln!(f, "manifest-required-hashes = {values}")?;
         }
         if !self.masters.is_empty() {
             let values = self.masters.iter().join(" ");
-            writeln!(f, "masters: {values}")?;
+            writeln!(f, "masters = {values}")?;
         }
         if !self.profile_formats.is_empty() {
             let values = self.profile_formats.iter().join(" ");
-            writeln!(f, "profile-formats: {values}")?;
+            writeln!(f, "profile-formats = {values}")?;
         }
         if !self.properties_allowed.is_empty() {
             let values = self.properties_allowed.iter().join(" ");
-            writeln!(f, "properties-allowed: {values}")?;
+            writeln!(f, "properties-allowed = {values}")?;
         }
         if !self.restrict_allowed.is_empty() {
             let values = self.restrict_allowed.iter().join(" ");
-            writeln!(f, "restrict-allowed: {values}")?;
+            writeln!(f, "restrict-allowed = {values}")?;
         }
-        writeln!(f, "thin-manifests: {}", self.thin_manifests)
+        writeln!(f, "thin-manifests = {}", self.thin_manifests)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use crate::test::assert_ordered_eq;
+
+    use super::*;
+
+    #[test]
+    fn settings() {
+        // empty
+        let config = Config::default();
+        assert!(config.is_empty());
+        assert!(config.masters.is_empty());
+        assert!(config.properties_allowed.is_empty());
+        assert!(config.restrict_allowed.is_empty());
+        assert!(!config.thin_manifests);
+
+        // valid
+        let data = indoc::indoc! {r#"
+            masters = repo1 repo2
+            properties-allowed = interactive live
+            restrict-allowed = fetch mirror
+            thin-manifests = false
+        "#};
+        let config: Config = data.parse().unwrap();
+        assert_ordered_eq!(&config.masters, ["repo1", "repo2"]);
+        assert_ordered_eq!(&config.properties_allowed, ["interactive", "live"]);
+        assert_ordered_eq!(&config.restrict_allowed, ["fetch", "mirror"]);
+        assert!(!config.thin_manifests);
+        assert_eq!(config.to_string(), data);
     }
 }
