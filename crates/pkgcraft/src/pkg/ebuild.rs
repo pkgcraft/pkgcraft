@@ -597,6 +597,24 @@ mod tests {
     }
 
     #[test]
+    fn env() {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+        config.finalize().unwrap();
+
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing env"
+            SLOT=0
+            VAR=1
+        "#};
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        assert_eq!(pkg.env().get("VAR").unwrap(), "1");
+    }
+
+    #[test]
     fn deprecated() {
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
