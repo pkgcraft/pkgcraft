@@ -24,8 +24,8 @@ macro_rules! define_cmd {
             let mut args = cmd.as_ref().split_whitespace();
             let mut cmd = match args.next() {
                 $(Some($cmd) => assert_cmd::cargo::cargo_bin_cmd!($cmd),)+
-                Some(x) => panic!("unknown command: {x}"),
-                None => panic!("invalid command"),
+                Some(x) => unreachable!("unknown command: {x}"),
+                None => unreachable!("invalid command"),
             };
             cmd.args(args);
             // disable config loading by default
@@ -274,7 +274,7 @@ pub fn test_data_patched() -> TestDataPatched {
                     if let Err(e) = fs::copy(src, &dest)
                         && e.kind() != io::ErrorKind::NotFound
                     {
-                        panic!("failed copying {src} to {dest}: {e}");
+                        unreachable!("failed copying {src} to {dest}: {e}");
                     }
                 }
             }
@@ -314,7 +314,10 @@ pub fn test_data_patched() -> TestDataPatched {
                         .map(|s| s == "orig")
                         .unwrap_or_default()
                 }) {
-                    panic!("mismatched patch: {}", change.strip_prefix(tmppath).unwrap());
+                    unreachable!(
+                        "mismatched patch: {}",
+                        change.strip_prefix(tmppath).unwrap()
+                    );
                 }
             }
 
