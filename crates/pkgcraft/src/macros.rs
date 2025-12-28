@@ -9,7 +9,7 @@ macro_rules! build_path {
 }
 pub use build_path;
 
-// Return Ordering if the arguments or expression are not equal.
+/// Return Ordering if the arguments or expression are not equal.
 #[macro_export]
 macro_rules! cmp_not_equal {
     ($cmp:expr) => {
@@ -23,7 +23,7 @@ macro_rules! cmp_not_equal {
 }
 pub(crate) use cmp_not_equal;
 
-// Return Option<Ordering> if the arguments or expression are not equal.
+/// Return Option<Ordering> if the arguments or expression are not equal.
 macro_rules! partial_cmp_not_equal_opt {
     ($partial_cmp:expr) => {
         if let Some(cmp) = $partial_cmp
@@ -38,7 +38,7 @@ macro_rules! partial_cmp_not_equal_opt {
 }
 pub(crate) use partial_cmp_not_equal_opt;
 
-// Return false if the arguments are not equal or the expression is false.
+/// Return false if the arguments are not equal or the expression is false.
 macro_rules! bool_not_equal {
     ($bool:expr) => {
         if !$bool {
