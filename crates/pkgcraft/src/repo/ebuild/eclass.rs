@@ -122,10 +122,14 @@ mod tests {
         assert!(Eclass::try_new(&repo.path().join("licenses/l1"), cache).is_err());
 
         // valid
-        let path = repo.path().join("eclass/a.eclass");
-        let eclass = Eclass::try_new(&path, cache).unwrap();
-        assert_eq!(eclass.path(), path);
-        assert_eq!(eclass.name(), "a");
-        assert!(!eclass.chksum().is_empty());
+        let path_a = repo.path().join("eclass/a.eclass");
+        let eclass_a = Eclass::try_new(&path_a, cache).unwrap();
+        assert_eq!(eclass_a.path(), path_a);
+        assert_eq!(eclass_a.name(), "a");
+        assert!(!eclass_a.chksum().is_empty());
+        assert!(eclass_a == eclass_a);
+        let path_b = repo.path().join("eclass/b.eclass");
+        let eclass_b = Eclass::try_new(&path_b, cache).unwrap();
+        assert!(eclass_a < eclass_b);
     }
 }
