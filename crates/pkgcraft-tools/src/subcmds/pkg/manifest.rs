@@ -203,7 +203,7 @@ impl Command {
 
             let thick = self
                 .thick
-                .unwrap_or_else(|| !repo.metadata().config.thin_manifests);
+                .unwrap_or_else(|| !repo.metadata().config.thin_manifests());
             let distfiles: IndexMap<_, _> = pkgs
                 .iter()
                 .flat_map(|x| x.distfiles())

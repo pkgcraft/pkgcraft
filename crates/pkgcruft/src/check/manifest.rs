@@ -45,7 +45,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
     };
 
     Box::new(Check {
-        thin_manifests: config.thin_manifests,
+        thin_manifests: config.thin_manifests(),
         colliding: Default::default(),
         conflicting: Default::default(),
         manifest_hashes,

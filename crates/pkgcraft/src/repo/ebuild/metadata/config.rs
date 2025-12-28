@@ -82,7 +82,7 @@ pub struct Config {
     pub restrict_allowed: OrderedSet<String>,
 
     /// Control whether thin or thick Manifest files are used.
-    pub thin_manifests: bool,
+    thin_manifests: Option<bool>,
 }
 
 /// Parse an iterable value from an [`Ini`] object.
@@ -126,7 +126,7 @@ impl TryFrom<Ini> for Config {
             profile_formats: parse_iter!(ini, "profile-formats")?,
             properties_allowed: parse_iter!(ini, "properties-allowed")?,
             restrict_allowed: parse_iter!(ini, "restrict-allowed")?,
-            thin_manifests: parse!(ini, "thin-manifests")?.unwrap_or(false),
+            thin_manifests: parse!(ini, "thin-manifests")?,
         })
     }
 }
@@ -148,6 +148,11 @@ impl Config {
         let path = repo.path().join("metadata/layout.conf");
         let data = self.to_string();
         atomic_write_file(&path, &data)
+    }
+
+    /// Return true if thin manifests are enabled, false otherwise.
+    pub fn thin_manifests(&self) -> bool {
+        self.thin_manifests.unwrap_or_default()
     }
 }
 
@@ -201,7 +206,11 @@ impl fmt::Display for Config {
             let values = self.restrict_allowed.iter().join(" ");
             writeln!(f, "restrict-allowed = {values}")?;
         }
-        writeln!(f, "thin-manifests = {}", self.thin_manifests)
+        if let Some(value) = self.thin_manifests {
+            writeln!(f, "thin-manifests = {value}")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -221,7 +230,8 @@ mod tests {
         assert!(config.masters.is_empty());
         assert!(config.properties_allowed.is_empty());
         assert!(config.restrict_allowed.is_empty());
-        assert!(!config.thin_manifests);
+        assert!(!config.thin_manifests());
+        assert_eq!(config.to_string(), "");
 
         // valid
         let data = indoc::indoc! {r#"
@@ -241,7 +251,7 @@ mod tests {
         assert_ordered_eq!(&config.masters, ["repo1", "repo2"]);
         assert_ordered_eq!(&config.properties_allowed, ["interactive", "live"]);
         assert_ordered_eq!(&config.restrict_allowed, ["fetch", "mirror"]);
-        assert!(!config.thin_manifests);
+        assert!(!config.thin_manifests());
         assert_eq!(config.to_string(), data);
 
         // unknown fields are ignored
