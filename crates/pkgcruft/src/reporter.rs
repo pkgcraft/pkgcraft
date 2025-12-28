@@ -285,7 +285,10 @@ impl FormatReporter {
 
 #[cfg(test)]
 mod tests {
+    use pkgcraft::test::test_data;
     use pretty_assertions::assert_eq;
+
+    use crate::scan::Scanner;
 
     use super::*;
 
@@ -432,5 +435,22 @@ mod tests {
         format_reporter.format = "{name}".to_string();
         let output = report(format_reporter.clone());
         assert_eq!(expected, &output);
+    }
+
+    #[test]
+    fn time() {
+        // time reporter requires running against a repo to record check timings
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+        let mut reporter: Reporter = TimeReporter::default().into();
+        let scanner = Scanner::new().reporter(&reporter);
+        let reports = scanner.run(repo, repo).unwrap();
+        let mut output = anstream::AutoStream::never(Vec::new());
+        for report in reports {
+            reporter.report(&report, &mut output).unwrap();
+        }
+        reporter.finish(&mut output).unwrap();
+        let output = String::from_utf8(output.as_inner().to_vec()).unwrap();
+        assert!(output.contains("Metadata: "));
     }
 }
