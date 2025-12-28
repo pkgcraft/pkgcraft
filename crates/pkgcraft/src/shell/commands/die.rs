@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use clap::builder::NonEmptyStringValueParser;
 use scallop::{Error, ExecStatus};
 
 use crate::eapi::Feature::NonfatalDie;
@@ -21,7 +22,11 @@ struct Command {
     #[arg(short = 'n')]
     nonfatal: bool,
 
-    #[arg(allow_hyphen_values = true, default_value = "(no error message)")]
+    #[arg(
+        allow_hyphen_values = true,
+        default_value = "(no error message)",
+        value_parser = NonEmptyStringValueParser::new(),
+    )]
     message: String,
 }
 
@@ -85,6 +90,8 @@ mod tests {
         // verify message output
         let r = source::string("die \"output message\"");
         assert_err_re!(r, "^line 1: die: error: output message$");
+        let r = source::string("die \"\"");
+        assert_err_re!(r, r#"^line 1: die: error: a value is required for '\[MESSAGE\]'"#);
     }
 
     #[ignore]
