@@ -637,16 +637,24 @@ mod tests {
     #[test]
     fn rev_new_and_parse() {
         // invalid
-        for s in ["a", "a1", "1.1", ".1"] {
+        for s in ["a", "a1", "1.1", ".1", "0.1"] {
             assert!(s.parse::<Revision>().is_err());
             assert!(Revision::try_new(s).is_err());
         }
 
         // valid
-        for s in ["", "1", "01"] {
+        for s in ["", "0", "00", "1", "01", "010"] {
             let rev = Revision::try_new(s).unwrap();
             assert_eq!(rev.to_string(), s);
         }
+
+        // comparisons
+        let r1 = Revision::try_new("1").unwrap();
+        let r2 = Revision::try_new("2").unwrap();
+        assert!(r1 < r2);
+        let r0 = Revision::try_new("0").unwrap();
+        let r00 = Revision::try_new("00").unwrap();
+        assert!(r0 == r00);
     }
 
     #[test]
