@@ -45,10 +45,7 @@ impl Ini {
             Err(e) => return Err(Error::IO(e.to_string())),
         };
 
-        let ini = ini::Ini::load_from_str(&data)
-            .map_err(|e| Error::InvalidValue(format!("failed parsing INI: {e}")))?;
-
-        Ok(Self(ini))
+        data.parse()
     }
 
     /// Iterate over the config values for a key, splitting by whitespace.
