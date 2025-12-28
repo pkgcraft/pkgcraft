@@ -139,7 +139,7 @@ impl Command {
         }
 
         let mut stdout = anstream::stdout().lock();
-        let mut reporter = self.options.reporter.collapse(None);
+        let mut reporter = self.options.reporter.collapse();
         for report in reports {
             reporter.report(&report, &mut stdout)?;
         }

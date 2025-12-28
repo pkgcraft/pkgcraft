@@ -15,6 +15,7 @@ use crate::error::Error;
 use crate::ignore::Ignore;
 use crate::iter::{ReportIter, ReportSender};
 use crate::report::{Report, ReportKind, ReportSet, ReportTarget};
+use crate::reporter::Reporter;
 use crate::source::PkgFilter;
 
 /// Scanner builder.
@@ -64,6 +65,14 @@ impl Scanner {
         I::Item: Into<ReportTarget>,
     {
         self.reports = values.into_iter().map(Into::into).collect();
+        self
+    }
+
+    /// Initialize the reporter if necessary.
+    pub fn reporter(mut self, reporter: &Reporter) -> Self {
+        if let Reporter::Time(r) = reporter {
+            self.stats = r.stats.clone();
+        }
         self
     }
 

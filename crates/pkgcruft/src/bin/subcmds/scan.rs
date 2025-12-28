@@ -73,6 +73,9 @@ impl Command {
             .pkg_targets(self.targets.iter().flatten())?
             .collapse();
 
+        // determine reporter
+        let mut reporter = self.reporter.collapse();
+
         // create report scanner
         let scanner = Scanner::new()
             .jobs(self.jobs)
@@ -80,10 +83,8 @@ impl Command {
             .filters(self.filters.iter().cloned())
             .force(self.force)
             .sort(self.sort)
+            .reporter(&reporter)
             .exit(self.exit.iter().copied());
-
-        // determine reporter
-        let mut reporter = self.reporter.collapse(Some(&scanner));
 
         // run scanner for all targets
         let mut stdout = anstream::stdout().lock();
