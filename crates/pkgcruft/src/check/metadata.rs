@@ -28,8 +28,10 @@ struct Check {
 
 impl super::CheckRun for Check {
     fn run_cpv(&self, cpv: &Cpv, run: &ScannerRun) {
-        if let Err(InvalidPkg { err, .. }) = self.regen.run(cpv) {
-            MetadataError.version(cpv).message(err).report(run)
+        match self.regen.run(cpv) {
+            Ok(_) => (),
+            Err(InvalidPkg { err, .. }) => MetadataError.version(cpv).message(err).report(run),
+            Err(e) => unreachable!("unexpected metadata error: {e}"),
         }
     }
 }
