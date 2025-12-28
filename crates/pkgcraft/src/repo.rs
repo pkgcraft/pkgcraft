@@ -801,22 +801,22 @@ macro_rules! make_contains_path {
     ($x:ty) => {
         impl<T: AsRef<Utf8Path>> $crate::repo::Contains<T> for $x {
             fn contains(&self, path: T) -> bool {
-                match self.path() {
-                    p if p.as_str().is_empty() => false,
-                    repo_path => {
-                        let path = path.as_ref();
-                        if path.is_absolute() {
-                            if let (Ok(path), Ok(repo_path)) =
-                                (path.canonicalize(), repo_path.canonicalize())
-                            {
-                                path.starts_with(&repo_path) && path.exists()
-                            } else {
-                                false
-                            }
-                        } else {
-                            repo_path.join(path).exists()
-                        }
+                let repo_path = self.path();
+                if repo_path == "" {
+                    return false;
+                }
+
+                let path = path.as_ref();
+                if path.is_absolute() {
+                    if let (Ok(path), Ok(repo_path)) =
+                        (path.canonicalize(), repo_path.canonicalize())
+                    {
+                        path.starts_with(&repo_path) && path.exists()
+                    } else {
+                        false
                     }
+                } else {
+                    repo_path.join(path).exists()
                 }
             }
         }
