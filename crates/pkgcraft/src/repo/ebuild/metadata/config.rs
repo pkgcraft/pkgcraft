@@ -225,7 +225,14 @@ mod tests {
 
         // valid
         let data = indoc::indoc! {r#"
+            cache-formats = md5-dict
+            eapis-banned = 5 6
+            eapis-deprecated = 7
+            eapis-testing = 9
+            manifest-hashes = BLAKE2B SHA512
+            manifest-required-hashes = BLAKE2B
             masters = repo1 repo2
+            profile-formats = format1 format2
             properties-allowed = interactive live
             restrict-allowed = fetch mirror
             thin-manifests = false
