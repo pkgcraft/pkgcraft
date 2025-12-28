@@ -335,7 +335,7 @@ async fn regen() {
     let mut config = repo.metadata().config.clone();
     config.manifest_hashes = [HashType::Blake3].into_iter().collect();
     config.manifest_required_hashes = [HashType::Blake3].into_iter().collect();
-    config.write().unwrap();
+    config.write(&repo).unwrap();
 
     cmd("pk pkg manifest")
         .arg(&repo)

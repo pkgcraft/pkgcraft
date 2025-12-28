@@ -26,7 +26,7 @@ use crate::macros::build_path;
 use crate::pkg::ebuild::keyword::Arch;
 use crate::pkg::ebuild::manifest::{HashType, Manifest};
 use crate::pkg::ebuild::xml;
-use crate::repo::{PkgRepository, RepoFormat};
+use crate::repo::{PkgRepository, RepoFormat, Repository};
 use crate::traits::FilterLines;
 use crate::types::{OrderedMap, OrderedSet};
 
@@ -64,9 +64,6 @@ impl Ini {
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 #[non_exhaustive]
 pub struct Config {
-    /// Path for the serialized config.
-    path: Utf8PathBuf,
-
     /// The ordered set of metadata cache types.
     pub cache_formats: OrderedSet<CacheFormat>,
 
@@ -128,12 +125,11 @@ macro_rules! parse {
 }
 
 impl Config {
-    fn try_new(repo_path: &Utf8Path) -> crate::Result<Self> {
-        let path = repo_path.join("metadata/layout.conf");
+    fn try_new<P: AsRef<Utf8Path>>(repo_path: P) -> crate::Result<Self> {
+        let path = repo_path.as_ref().join("metadata/layout.conf");
         let ini = Ini::load(&path)?;
 
         Ok(Self {
-            path,
             cache_formats: parse_iter!(ini, "cache-formats")?,
             eapis_banned: parse_iter!(ini, "eapis-banned")?,
             eapis_deprecated: parse_iter!(ini, "eapis-deprecated")?,
@@ -150,17 +146,14 @@ impl Config {
 
     /// The config file contains no settings or is nonexistent.
     pub fn is_empty(&self) -> bool {
-        let config = Self {
-            path: self.path.clone(),
-            ..Default::default()
-        };
-        self == &config
+        self == &Default::default()
     }
 
-    /// Write the config back to its related path.
-    pub fn write(&self) -> crate::Result<()> {
+    /// Write the config back to a given repo.
+    pub fn write<R: Repository>(&self, repo: R) -> crate::Result<()> {
+        let path = repo.path().join("metadata/layout.conf");
         let data = self.to_string();
-        atomic_write_file(&self.path, &data)
+        atomic_write_file(&path, &data)
     }
 }
 
