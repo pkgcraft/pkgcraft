@@ -507,26 +507,28 @@ impl Drop for ScopedOptions {
 
 /// Handle builtin errors.
 pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
+    let mut msg = String::new();
+
     // add error line prolog for relevant line numbers
     let lineno = shell::executing_line_number();
-    let prolog = if lineno > 0 {
-        format!("line {lineno}: ")
-    } else {
-        String::new()
-    };
+    if lineno > 0 {
+        msg.push_str(&format!("line {lineno}: "));
+    }
 
+    // append command prefix for relevant builtin errors lacking it
     let err_msg = err.to_string();
-    let err_msg = match cmd.as_ref() {
-        // command_not_found_handle builtin messages are unprefixed
-        "command_not_found_handle" => format!("{prolog}{err_msg}"),
-        // don't append matching prefix
-        s if err_msg.starts_with(s) => format!("{prolog}{err_msg}"),
-        s => format!("{prolog}{s}: error: {err_msg}"),
-    };
+    let cmd = cmd.as_ref();
+    let cmd_prefix = format!("{cmd}: error: ");
+    if cmd != "command_not_found_handle" && !err_msg.starts_with(&cmd_prefix) {
+        msg.push_str(&cmd_prefix);
+    }
+
+    // append builtin error message
+    msg.push_str(&err_msg);
 
     let bail = matches!(err, Error::Bail(_));
     // push error message into shared memory so subshell errors can be captured
-    shell::set_shm_error(&err_msg, bail);
+    shell::set_shm_error(&msg, bail);
 
     // exit subshell with status causing the main process to longjmp to the entry point
     if bail && !shell::in_main() {
