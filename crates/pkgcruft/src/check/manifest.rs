@@ -72,12 +72,13 @@ impl Check {
 impl super::CheckRun for Check {
     fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         // parse manifest
-        let result = run.repo.metadata().pkg_manifest_parse(cpn);
-        let Ok(manifest) = result else {
-            if let Err(UnversionedPkg { err, .. }) = result {
+        let manifest = match run.repo.metadata().pkg_manifest_parse(cpn) {
+            Ok(manifest) => manifest,
+            Err(UnversionedPkg { err, .. }) => {
                 ManifestInvalid.package(cpn).message(err).report(run);
+                return;
             }
-            return;
+            Err(e) => unreachable!("unexpected metadata error: {e}"),
         };
 
         let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
