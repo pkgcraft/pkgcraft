@@ -1,7 +1,7 @@
+use std::path::Path;
 use std::str::{FromStr, SplitWhitespace};
 use std::{fmt, fs, io};
 
-use camino::Utf8Path;
 use itertools::Itertools;
 
 use crate::Error;
@@ -16,8 +16,8 @@ use crate::types::OrderedSet;
 struct Ini(ini::Ini);
 
 impl Ini {
-    fn load(path: &Utf8Path) -> crate::Result<Self> {
-        let data = match fs::read_to_string(path) {
+    fn load<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
+        let data = match fs::read_to_string(path.as_ref()) {
             Ok(data) => data,
             Err(e) if e.kind() == io::ErrorKind::NotFound => Default::default(),
             Err(e) => return Err(Error::IO(e.to_string())),
@@ -132,9 +132,9 @@ impl TryFrom<Ini> for Config {
 }
 
 impl Config {
-    pub(super) fn try_new<P: AsRef<Utf8Path>>(repo_path: P) -> crate::Result<Self> {
+    pub(super) fn try_new<P: AsRef<Path>>(repo_path: P) -> crate::Result<Self> {
         let path = repo_path.as_ref().join("metadata/layout.conf");
-        let ini = Ini::load(&path)?;
+        let ini = Ini::load(path)?;
         ini.try_into()
     }
 
