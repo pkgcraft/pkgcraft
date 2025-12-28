@@ -77,12 +77,6 @@ impl Borrow<str> for Eclass {
     }
 }
 
-impl Borrow<str> for &Eclass {
-    fn borrow(&self) -> &str {
-        &self.0.name
-    }
-}
-
 impl Ord for Eclass {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.name.cmp(&other.0.name)
