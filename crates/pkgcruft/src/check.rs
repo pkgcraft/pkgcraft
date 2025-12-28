@@ -355,14 +355,19 @@ pub(crate) struct CheckRunner {
     runner: Arc<Runner>,
 }
 
-/// Record check running time for the time reporter.
-fn time<F>(runner: &CheckRunner, run: &ScannerRun, func: F)
-where
-    F: FnOnce(),
-{
-    let now = Instant::now();
-    func();
-    *run.stats.entry(runner.check).or_default() += now.elapsed();
+/// Optionally track check running time for the time reporter.
+fn time<F: FnOnce()>(runner: &CheckRunner, run: &ScannerRun, func: F) {
+    if let Some(mut entry) = run
+        .stats
+        .as_ref()
+        .map(|x| x.entry(runner.check).or_default())
+    {
+        let now = Instant::now();
+        func();
+        *entry += now.elapsed();
+    } else {
+        func();
+    }
 }
 
 impl CheckRun for CheckRunner {

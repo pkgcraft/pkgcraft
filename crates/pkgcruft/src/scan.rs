@@ -28,7 +28,7 @@ pub struct Scanner {
     exit: IndexSet<ReportSet>,
     filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
-    stats: Arc<DashMap<Check, Duration>>,
+    stats: Option<Arc<DashMap<Check, Duration>>>,
 }
 
 impl Scanner {
@@ -71,7 +71,7 @@ impl Scanner {
     /// Initialize the reporter if necessary.
     pub fn reporter(mut self, reporter: &Reporter) -> Self {
         if let Reporter::Time(r) = reporter {
-            self.stats = r.stats.clone();
+            self.stats = Some(r.stats.clone());
         }
         self
     }
@@ -98,11 +98,6 @@ impl Scanner {
     /// Return true if the scanning process failed, false otherwise.
     pub fn failed(&self) -> bool {
         self.failed.load(Ordering::Relaxed)
-    }
-
-    /// Return the check timing statistics for the scanner.
-    pub fn stats(&self) -> &Arc<DashMap<Check, Duration>> {
-        &self.stats
     }
 
     /// Run the scanner returning an iterator of reports.
@@ -201,7 +196,7 @@ pub(crate) struct ScannerRun {
     failed: Arc<AtomicBool>,
     pub(crate) sort: bool,
     pub(crate) sender: OnceLock<ReportSender>,
-    pub(crate) stats: Arc<DashMap<Check, Duration>>,
+    pub(crate) stats: Option<Arc<DashMap<Check, Duration>>>,
 }
 
 impl ScannerRun {
