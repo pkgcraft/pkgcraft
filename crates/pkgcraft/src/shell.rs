@@ -169,7 +169,7 @@ impl BuildData {
             BuildState::Metadata(pkg) => pkg.cpv(),
             BuildState::Build(pkg) => pkg.cpv(),
             BuildState::Replace { new, .. } => new.cpv(),
-            _ => panic!("cpv invalid for scope: {}", self.scope),
+            _ => unreachable!("cpv invalid for scope: {}", self.scope),
         }
     }
 
@@ -179,7 +179,7 @@ impl BuildData {
             BuildState::Metadata(pkg) => pkg.repo(),
             BuildState::Build(pkg) => pkg.repo(),
             BuildState::Replace { new, .. } => new.repo(),
-            _ => panic!("ebuild repo invalid for scope: {}", self.scope),
+            _ => unreachable!("ebuild repo invalid for scope: {}", self.scope),
         }
     }
 
@@ -189,7 +189,7 @@ impl BuildData {
             BuildState::Metadata(pkg) => pkg.repo().into(),
             BuildState::Build(pkg) => pkg.repo().into(),
             BuildState::Replace { new, .. } => new.repo().into(),
-            _ => panic!("repo invalid for scope: {}", self.scope),
+            _ => unreachable!("repo invalid for scope: {}", self.scope),
         }
     }
 
@@ -198,7 +198,7 @@ impl BuildData {
         match &self.state {
             BuildState::Build(pkg) => EbuildPackage::Pkg(pkg),
             BuildState::Replace { new, .. } => EbuildPackage::Pkg(new),
-            _ => panic!("ebuild pkg invalid for scope: {}", self.scope),
+            _ => unreachable!("ebuild pkg invalid for scope: {}", self.scope),
         }
     }
 
@@ -208,7 +208,7 @@ impl BuildData {
             BuildState::Metadata(pkg) => Box::new(pkg),
             BuildState::Build(pkg) => Box::new(pkg),
             BuildState::Replace { new, .. } => Box::new(new),
-            _ => panic!("pkg invalid for scope: {}", self.scope),
+            _ => unreachable!("pkg invalid for scope: {}", self.scope),
         }
     }
 
@@ -224,7 +224,7 @@ impl BuildData {
     fn phase(&self) -> &phase::Phase {
         match &self.scope {
             Scope::Phase(k) => self.eapi().phases().get(k).expect("unknown scope phase"),
-            scope => panic!("phase invalid for scope: {scope}"),
+            scope => unreachable!("phase invalid for scope: {scope}"),
         }
     }
 
@@ -232,7 +232,7 @@ impl BuildData {
     fn eclass(&self) -> Eclass {
         match &self.scope {
             Scope::Eclass(Some(eclass)) => eclass.clone(),
-            scope => panic!("eclass invalid for scope: {scope}"),
+            scope => unreachable!("eclass invalid for scope: {scope}"),
         }
     }
 
@@ -243,7 +243,7 @@ impl BuildData {
     {
         self.env
             .get(var.borrow())
-            .unwrap_or_else(|| panic!("{var} unset"))
+            .unwrap_or_else(|| unreachable!("{var} unset"))
     }
 
     /// Get the value for a given build variable from the build state.
