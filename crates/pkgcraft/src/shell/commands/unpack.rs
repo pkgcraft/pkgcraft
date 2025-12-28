@@ -112,7 +112,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 /// Alter file permissions.
 fn chmod(path: &Path, mode: Mode) -> scallop::Result<()> {
     fchmodat(AT_FDCWD, path, mode, FollowSymlink).map_err(|e| {
-        Error::Base(format!("failed changing permissions: {}: {e}", path.to_string_lossy()))
+        Error::Base(format!("failed changing permissions: {}: {e}", path.display()))
     })
 }
 
@@ -120,7 +120,7 @@ fn chmod(path: &Path, mode: Mode) -> scallop::Result<()> {
 fn correct_permissions(entry: DirEntry) -> scallop::Result<()> {
     let path = entry.path();
     let stat = lstat(path).map_err(|e| {
-        Error::Base(format!("failed getting file status: {}: {e}", path.to_string_lossy()))
+        Error::Base(format!("failed getting file status: {}: {e}", path.display()))
     })?;
     let mode = Mode::from_bits_truncate(stat.st_mode);
 

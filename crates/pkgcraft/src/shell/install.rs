@@ -126,8 +126,8 @@ impl Install {
         let failed = |e: io::Error| -> Error {
             Error::Base(format!(
                 "failed creating link: {} -> {}: {e}",
-                source.to_string_lossy(),
-                target.to_string_lossy()
+                source.display(),
+                target.display()
             ))
         };
 
@@ -156,10 +156,7 @@ impl Install {
         let gid = opts.group.as_ref().map(|g| g.gid);
         if uid.is_some() || gid.is_some() {
             fchownat(AT_FDCWD, path, uid, gid, AtFlags::AT_SYMLINK_NOFOLLOW).map_err(|e| {
-                Error::Base(format!(
-                    "failed setting file uid/gid: {}: {e}",
-                    path.to_string_lossy()
-                ))
+                Error::Base(format!("failed setting file uid/gid: {}: {e}", path.display()))
             })?;
         }
 
@@ -167,10 +164,7 @@ impl Install {
             && !path.is_symlink()
         {
             fchmodat(AT_FDCWD, path, **mode, FollowSymlink).map_err(|e| {
-                Error::Base(format!(
-                    "failed setting file mode: {}: {e}",
-                    path.to_string_lossy()
-                ))
+                Error::Base(format!("failed setting file mode: {}: {e}", path.display()))
             })?;
         }
 
@@ -201,10 +195,7 @@ impl Install {
             .try_for_each(|path| -> scallop::Result<()> {
                 let path = self.prefix(path);
                 fs::create_dir_all(&path).map_err(|e| {
-                    Error::Base(format!(
-                        "failed creating dir: {}: {e}",
-                        path.to_string_lossy()
-                    ))
+                    Error::Base(format!("failed creating dir: {}: {e}", path.display()))
                 })?;
                 self.set_attributes(opts, path)?;
                 Ok(())
@@ -323,7 +314,7 @@ impl Install {
                 let source = source.as_ref();
                 let dest = self.prefix(dest.as_ref());
                 let meta = fs::metadata(source).map_err(|e| {
-                    Error::Base(format!("invalid file: {}: {e}", source.to_string_lossy()))
+                    Error::Base(format!("invalid file: {}: {e}", source.display()))
                 })?;
 
                 // matching `install` command, remove dest before install
@@ -331,7 +322,7 @@ impl Install {
                     Err(e) if e.kind() != io::ErrorKind::NotFound => {
                         return Err(Error::Base(format!(
                             "failed removing file: {}: {e}",
-                            dest.to_string_lossy()
+                            dest.display()
                         )));
                     }
                     _ => (),
@@ -340,8 +331,8 @@ impl Install {
                 fs::copy(source, &dest).map_err(|e| {
                     Error::Base(format!(
                         "failed copying file: {} to {}: {e}",
-                        source.to_string_lossy(),
-                        dest.to_string_lossy()
+                        source.display(),
+                        dest.display()
                     ))
                 })?;
 

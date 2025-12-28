@@ -75,7 +75,7 @@ impl FileTree {
             let meta = fs::symlink_metadata(path).unwrap();
             let expected = files
                 .pop()
-                .unwrap_or_else(|| panic!("unknown path: {}", path.to_string_lossy()));
+                .unwrap_or_else(|| panic!("unknown path: {}", path.display()));
             assert_eq!(file_path.to_string_lossy(), expected.path);
 
             if let Some(expected) = expected.mode {
