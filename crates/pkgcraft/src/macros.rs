@@ -26,10 +26,10 @@ pub(crate) use cmp_not_equal;
 // Return Option<Ordering> if the arguments or expression are not equal.
 macro_rules! partial_cmp_not_equal_opt {
     ($partial_cmp:expr) => {
-        if let Some(cmp) = $partial_cmp {
-            if cmp != ::std::cmp::Ordering::Equal {
-                return Some(cmp);
-            }
+        if let Some(cmp) = $partial_cmp
+            && cmp != ::std::cmp::Ordering::Equal
+        {
+            return Some(cmp);
         }
     };
     ($x:expr, $y:expr) => {
