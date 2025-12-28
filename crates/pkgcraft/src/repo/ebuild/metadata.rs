@@ -39,14 +39,16 @@ struct Ini(ini::Ini);
 
 impl Ini {
     fn load(path: &Utf8Path) -> crate::Result<Self> {
-        match ini::Ini::load_from_file(path) {
-            Ok(c) => Ok(Self(c)),
-            Err(ini::Error::Io(e)) if e.kind() == io::ErrorKind::NotFound => {
-                Ok(Self::default())
-            }
-            Err(ini::Error::Io(e)) => Err(Error::IO(e.to_string())),
-            Err(ini::Error::Parse(e)) => Err(Error::IO(format!("failed parsing INI: {e}"))),
-        }
+        let data = match fs::read_to_string(path) {
+            Ok(data) => data,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Default::default(),
+            Err(e) => return Err(Error::IO(e.to_string())),
+        };
+
+        let ini = ini::Ini::load_from_str(&data)
+            .map_err(|e| Error::InvalidValue(format!("failed parsing INI: {e}")))?;
+
+        Ok(Self(ini))
     }
 
     /// Iterate over the config values for a key, splitting by whitespace.
@@ -57,6 +59,16 @@ impl Ini {
     /// Get a value related to a key from the main section if it exists.
     fn get(&self, key: &str) -> Option<&str> {
         self.0.general_section().get(key)
+    }
+}
+
+impl FromStr for Ini {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let ini = ini::Ini::load_from_str(s)
+            .map_err(|e| Error::InvalidValue(format!("failed parsing INI: {e}")))?;
+        Ok(Self(ini))
     }
 }
 
@@ -124,11 +136,10 @@ macro_rules! parse {
     };
 }
 
-impl Config {
-    fn try_new<P: AsRef<Utf8Path>>(repo_path: P) -> crate::Result<Self> {
-        let path = repo_path.as_ref().join("metadata/layout.conf");
-        let ini = Ini::load(&path)?;
+impl TryFrom<Ini> for Config {
+    type Error = Error;
 
+    fn try_from(ini: Ini) -> crate::Result<Self> {
         Ok(Self {
             cache_formats: parse_iter!(ini, "cache-formats")?,
             eapis_banned: parse_iter!(ini, "eapis-banned")?,
@@ -143,6 +154,14 @@ impl Config {
             thin_manifests: parse!(ini, "thin-manifests")?.unwrap_or(false),
         })
     }
+}
+
+impl Config {
+    fn try_new<P: AsRef<Utf8Path>>(repo_path: P) -> crate::Result<Self> {
+        let path = repo_path.as_ref().join("metadata/layout.conf");
+        let ini = Ini::load(&path)?;
+        ini.try_into()
+    }
 
     /// The config file contains no settings or is nonexistent.
     pub fn is_empty(&self) -> bool {
@@ -154,6 +173,14 @@ impl Config {
         let path = repo.path().join("metadata/layout.conf");
         let data = self.to_string();
         atomic_write_file(&path, &data)
+    }
+}
+
+impl FromStr for Config {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        Ini::from_str(s)?.try_into()
     }
 }
 
