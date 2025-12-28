@@ -243,5 +243,13 @@ mod tests {
         assert_ordered_eq!(&config.restrict_allowed, ["fetch", "mirror"]);
         assert!(!config.thin_manifests);
         assert_eq!(config.to_string(), data);
+
+        // unknown fields are ignored
+        let data = indoc::indoc! {r#"
+            unknown1 = data
+            unknown2 = data
+        "#};
+        let config: Config = data.parse().unwrap();
+        assert!(config.is_empty());
     }
 }
