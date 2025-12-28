@@ -78,7 +78,7 @@ impl super::CheckRun for Check {
                 ManifestInvalid.package(cpn).message(err).report(run);
                 return;
             }
-            Err(e) => unreachable!("unexpected metadata error: {e}"),
+            Err(e) => unreachable!("unexpected manifest parsing error: {e}"),
         };
 
         let pkg_distfiles: HashSet<_> = pkgs.iter().flat_map(|p| p.distfiles()).collect();
