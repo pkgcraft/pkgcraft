@@ -515,15 +515,18 @@ pub fn handle_error<S: AsRef<str>>(cmd: S, err: Error) -> ExecStatus {
         String::new()
     };
 
-    // command_not_found_handle builtin messages are unprefixed
-    let msg = match cmd.as_ref() {
-        "command_not_found_handle" => format!("{prolog}{err}"),
-        s => format!("{prolog}{s}: error: {err}"),
+    let err_msg = err.to_string();
+    let err_msg = match cmd.as_ref() {
+        // command_not_found_handle builtin messages are unprefixed
+        "command_not_found_handle" => format!("{prolog}{err_msg}"),
+        // don't append matching prefix
+        s if err_msg.starts_with(s) => format!("{prolog}{err_msg}"),
+        s => format!("{prolog}{s}: error: {err_msg}"),
     };
 
     let bail = matches!(err, Error::Bail(_));
     // push error message into shared memory so subshell errors can be captured
-    shell::set_shm_error(&msg, bail);
+    shell::set_shm_error(&err_msg, bail);
 
     // exit subshell with status causing the main process to longjmp to the entry point
     if bail && !shell::in_main() {
