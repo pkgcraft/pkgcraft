@@ -1499,10 +1499,14 @@ mod tests {
 
         // path
         assert!(repo.contains(""));
+        assert!(repo.contains("./"));
         assert!(!repo.contains("/"));
+        assert!(!repo.contains("/."));
+        assert!(!repo.contains("/.."));
+        assert!(!repo.contains("/nonexistent/abspath"));
         assert!(repo.contains(repo.path()));
         assert!(repo.contains("profiles"));
-        assert!(!repo.contains("a/pkg"));
+        assert!(!repo.contains("nonexistent/path"));
         assert!(repo.contains("cat"));
         assert!(repo.contains("cat/pkg"));
         assert!(repo.contains("cat/pkg/pkg-1.ebuild"));
