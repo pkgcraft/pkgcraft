@@ -16,10 +16,7 @@ pub enum RangeOrValue<T: Eq + Copy> {
     Range(Range<T>),
 }
 
-impl<T: PartialEq + Eq + Copy> RangeOrValue<T>
-where
-    T: PartialOrd,
-{
+impl<T: PartialEq + Eq + PartialOrd + Copy> RangeOrValue<T> {
     /// Determine if the given value is contained.
     fn contains(&self, value: &T) -> bool {
         match self {
@@ -82,10 +79,7 @@ pub enum Range<T: Eq + Copy> {
     Greater(T),
 }
 
-impl<T: PartialEq + Eq + Copy> Range<T>
-where
-    T: PartialOrd,
-{
+impl<T: PartialEq + Eq + PartialOrd + Copy> Range<T> {
     /// Determine if a range contains a value.
     fn contains(&self, value: &T) -> bool {
         match self {
