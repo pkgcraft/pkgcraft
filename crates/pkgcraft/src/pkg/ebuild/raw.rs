@@ -107,11 +107,9 @@ impl EbuildRawPkg {
 
     /// Return the bash parse tree for the ebuild.
     pub fn tree(&self) -> &bash::Tree {
-        self.0.tree.get_or_init(|| {
-            // HACK: figure out better method for self-referential lifetimes
-            let data = Arc::clone(&self.0.data);
-            bash::Tree::new(data)
-        })
+        self.0
+            .tree
+            .get_or_init(|| bash::Tree::new(self.0.data.clone()))
     }
 
     /// Try to deserialize the package's metadata from the cache.

@@ -1,5 +1,5 @@
+use std::fmt;
 use std::sync::{Arc, OnceLock};
-use std::{fmt, fs};
 
 use camino::Utf8PathBuf;
 use indexmap::{IndexMap, IndexSet};
@@ -35,11 +35,8 @@ pub mod xml;
 
 #[derive(Debug)]
 struct InternalEbuildPkg {
-    cpv: Cpv,
-    repo: EbuildRepo,
     meta: Metadata,
-    data: OnceLock<Arc<str>>,
-    tree: OnceLock<bash::Tree>,
+    raw: EbuildRawPkg,
     iuse_effective: OnceLock<OrderedSet<String>>,
     metadata: OnceLock<Arc<xml::Metadata>>,
     manifest: OnceLock<Arc<Manifest>>,
@@ -71,11 +68,8 @@ impl TryFrom<EbuildRawPkg> for EbuildPkg {
 
     fn try_from(pkg: EbuildRawPkg) -> crate::Result<Self> {
         Ok(Self(Arc::new(InternalEbuildPkg {
-            cpv: pkg.cpv().clone(),
-            repo: pkg.repo(),
             meta: pkg.metadata(true)?,
-            data: OnceLock::new(),
-            tree: OnceLock::new(),
+            raw: pkg,
             iuse_effective: OnceLock::new(),
             metadata: OnceLock::new(),
             manifest: OnceLock::new(),
@@ -86,47 +80,39 @@ impl TryFrom<EbuildRawPkg> for EbuildPkg {
 impl EbuildPkg {
     /// Return the path of the package's ebuild file path relative to the repository root.
     pub fn relpath(&self) -> Utf8PathBuf {
-        self.0.cpv.relpath()
+        self.0.raw.relpath()
     }
 
     /// Return the absolute path of the package's ebuild file.
     pub fn path(&self) -> Utf8PathBuf {
-        self.0.repo.path().join(self.relpath())
-    }
-
-    fn data_inner(&self) -> &Arc<str> {
-        self.0
-            .data
-            .get_or_init(|| fs::read_to_string(self.path()).unwrap_or_default().into())
+        self.0.raw.path()
     }
 
     /// Return a package's ebuild file content.
     pub fn data(&self) -> &str {
-        self.data_inner()
+        self.0.raw.data()
     }
 
     /// Return the mapping of global environment variables exported by the package.
     pub fn env(&self) -> IndexMap<String, String> {
-        let repo = &self.0.repo;
-        repo.pool().env(repo, &self.0.cpv).unwrap()
+        let repo = self.repo();
+        repo.pool().env(&repo, self.cpv()).unwrap()
     }
 
     /// Run the pkg_pretend phase for the package.
     pub fn pretend(&self) -> crate::Result<Option<String>> {
-        let repo = &self.0.repo;
-        repo.pool().pretend(repo, &self.0.cpv)
+        let repo = self.repo();
+        repo.pool().pretend(&repo, self.cpv())
     }
 
     /// Return the bash parse tree for the ebuild.
     pub fn tree(&self) -> &bash::Tree {
-        let data = Arc::clone(self.data_inner());
-        self.0.tree.get_or_init(|| bash::Tree::new(data))
+        self.0.raw.tree()
     }
 
     /// Return true if a package is globally deprecated in its repo, false otherwise.
     pub fn deprecated(&self) -> bool {
-        self.0
-            .repo
+        self.repo()
             .metadata()
             .pkg_deprecated()
             .iter()
@@ -140,8 +126,7 @@ impl EbuildPkg {
 
     /// Return true if a package is globally masked in its repo, false otherwise.
     pub fn masked(&self) -> bool {
-        self.0
-            .repo
+        self.repo()
             .metadata()
             .pkg_mask()
             .iter()
@@ -291,14 +276,14 @@ impl EbuildPkg {
     pub fn metadata(&self) -> &xml::Metadata {
         self.0
             .metadata
-            .get_or_init(|| self.0.repo.metadata().pkg_metadata(self.cpn()))
+            .get_or_init(|| self.repo().metadata().pkg_metadata(self.cpn()))
     }
 
     /// Return a package's manifest.
     pub fn manifest(&self) -> &Manifest {
         self.0
             .manifest
-            .get_or_init(|| self.0.repo.metadata().pkg_manifest(self.cpn()))
+            .get_or_init(|| self.repo().metadata().pkg_manifest(self.cpn()))
     }
 
     /// Generate fetchable URIs for a package's SRC_URI targets.
@@ -374,7 +359,7 @@ impl Package for EbuildPkg {
     }
 
     fn cpv(&self) -> &Cpv {
-        &self.0.cpv
+        self.0.raw.cpv()
     }
 }
 
@@ -382,7 +367,7 @@ impl RepoPackage for EbuildPkg {
     type Repo = EbuildRepo;
 
     fn repo(&self) -> Self::Repo {
-        self.0.repo.clone()
+        self.0.raw.repo()
     }
 }
 
@@ -401,7 +386,7 @@ impl Intersects<Dep> for EbuildPkg {
         // TODO: compare usedeps to iuse_effective
 
         if let Some(val) = dep.repo() {
-            bool_not_equal!(self.0.repo.name(), val);
+            bool_not_equal!(self.repo().name(), val);
         }
 
         if let Some(val) = dep.version() {
@@ -414,6 +399,8 @@ impl Intersects<Dep> for EbuildPkg {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use crate::config::Config;
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::repo::PkgRepository;
