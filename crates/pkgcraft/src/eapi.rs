@@ -959,6 +959,7 @@ mod tests {
     fn display_and_debug() {
         for eapi in &*EAPIS {
             let s = eapi.to_string();
+            assert_eq!(s, eapi.as_ref());
             assert!(format!("{eapi:?}").contains(&s));
         }
     }
