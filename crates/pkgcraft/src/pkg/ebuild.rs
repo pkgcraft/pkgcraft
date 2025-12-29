@@ -63,20 +63,6 @@ impl fmt::Debug for EbuildPkg {
     }
 }
 
-impl TryFrom<EbuildRawPkg> for EbuildPkg {
-    type Error = Error;
-
-    fn try_from(pkg: EbuildRawPkg) -> crate::Result<Self> {
-        Ok(Self(Arc::new(InternalEbuildPkg {
-            meta: pkg.metadata(true)?,
-            raw: pkg,
-            iuse_effective: OnceLock::new(),
-            metadata: OnceLock::new(),
-            manifest: OnceLock::new(),
-        })))
-    }
-}
-
 impl EbuildPkg {
     /// Return the path of the package's ebuild file path relative to the repository root.
     pub fn relpath(&self) -> Utf8PathBuf {

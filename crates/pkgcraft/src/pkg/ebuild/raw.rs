@@ -19,9 +19,9 @@ use super::metadata::Metadata;
 
 #[derive(Clone)]
 struct InternalEbuildRawPkg {
-    pub(super) cpv: Cpv,
-    pub(super) repo: EbuildRepo,
-    pub(super) eapi: &'static Eapi,
+    cpv: Cpv,
+    repo: EbuildRepo,
+    eapi: &'static Eapi,
     data: Arc<str>,
     chksum: String,
     tree: OnceLock<bash::Tree>,
@@ -35,6 +35,20 @@ make_pkg_traits!(EbuildRawPkg);
 impl fmt::Debug for EbuildRawPkg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "EbuildRawPkg {{ {self} }}")
+    }
+}
+
+impl TryFrom<EbuildRawPkg> for super::EbuildPkg {
+    type Error = Error;
+
+    fn try_from(pkg: EbuildRawPkg) -> crate::Result<Self> {
+        Ok(Self(Arc::new(super::InternalEbuildPkg {
+            meta: pkg.metadata(true)?,
+            raw: pkg,
+            iuse_effective: OnceLock::new(),
+            metadata: OnceLock::new(),
+            manifest: OnceLock::new(),
+        })))
     }
 }
 
