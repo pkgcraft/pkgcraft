@@ -912,7 +912,7 @@ mod tests {
     }
 
     #[test]
-    fn pkg_metadata() {
+    fn metadata() {
         let data = test_data();
         let repo = data.ebuild_repo("xml").unwrap();
 
@@ -931,6 +931,24 @@ mod tests {
         // multiple
         let pkg = repo.get_pkg("pkg/multiple-8").unwrap();
         assert!(!pkg.metadata().is_empty());
+    }
+
+    #[test]
+    fn manifest() {
+        let data = test_data();
+        let repo = data.ebuild_repo("qa-primary").unwrap();
+
+        // none
+        let pkg = repo.get_pkg("stub/live-0").unwrap();
+        assert!(pkg.manifest().is_empty());
+
+        // invalid
+        let pkg = repo.get_pkg("Manifest/ManifestInvalid2-0").unwrap();
+        assert!(pkg.manifest().is_empty());
+
+        // single
+        let pkg = repo.get_pkg("stub/mirror-0").unwrap();
+        assert_eq!(pkg.manifest().len(), 1);
     }
 
     #[test]
