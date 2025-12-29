@@ -109,7 +109,9 @@ impl Command {
         let mut fetchables = IndexSet::new();
         for pkg in &mut iter {
             fetchables.extend(
-                pkg.fetchables(self.restrict, self.mirrors)
+                pkg.fetchables()
+                    .override_restrict(self.restrict)
+                    .use_default_mirrors(self.mirrors)
                     .filter_map(|result| match result {
                         Ok(value) => Some(value),
                         Err(e) => {

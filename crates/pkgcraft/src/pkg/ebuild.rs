@@ -302,16 +302,12 @@ impl EbuildPkg {
     }
 
     /// Generate fetchable URIs for a package's SRC_URI targets.
-    pub fn fetchables(
-        &self,
-        override_restrict: bool,
-        use_default_mirrors: bool,
-    ) -> IterFetchable<'_> {
+    pub fn fetchables(&self) -> IterFetchable<'_> {
         IterFetchable {
             pkg: self,
             uris: self.src_uri().iter_flatten(),
-            override_restrict,
-            use_default_mirrors,
+            override_restrict: false,
+            use_default_mirrors: false,
         }
     }
 
@@ -331,6 +327,20 @@ pub struct IterFetchable<'a> {
     uris: crate::dep::IterFlatten<'a, Uri>,
     override_restrict: bool,
     use_default_mirrors: bool,
+}
+
+impl IterFetchable<'_> {
+    /// Enable returning fetch-restricted URIs during iteration.
+    pub fn override_restrict(mut self, value: bool) -> Self {
+        self.override_restrict = value;
+        self
+    }
+
+    /// Force returned fetchables to use the default mirrors.
+    pub fn use_default_mirrors(mut self, value: bool) -> Self {
+        self.use_default_mirrors = value;
+        self
+    }
 }
 
 impl Iterator for IterFetchable<'_> {

@@ -52,7 +52,7 @@ impl Command {
             let mut iter = repo.iter_ordered().log_errors(self.ignore);
             for pkg in &mut iter {
                 let cpv = pkg.cpv();
-                for f in pkg.fetchables(false, false).filter_map(Result::ok) {
+                for f in pkg.fetchables().filter_map(Result::ok) {
                     for mirror in f.mirrors().iter().map(|x| x.name()) {
                         mirrors
                             .entry(mirror.to_string())
