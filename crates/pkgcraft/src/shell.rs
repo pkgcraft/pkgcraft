@@ -23,7 +23,6 @@ pub(crate) mod commands;
 pub mod environment;
 pub(crate) mod hooks;
 mod install;
-mod metadata;
 pub(crate) mod operations;
 pub mod phase;
 pub mod pool;

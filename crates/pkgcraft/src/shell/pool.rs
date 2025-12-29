@@ -10,20 +10,25 @@ use itertools::Itertools;
 use nix::sys::wait::waitpid;
 use nix::unistd::{ForkResult, Pid, fork};
 use scallop::pool::{NamedSemaphore, redirect_output, suppress_output};
-use scallop::variables::{self, ShellVariable};
+use scallop::{
+    functions,
+    variables::{self, ShellVariable},
+};
 use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
 
 use crate::config::ConfigRepos;
 use crate::dep::Cpv;
 use crate::error::Error;
-use crate::pkg::ebuild::metadata::Metadata;
-use crate::pkg::{Package, PkgPretend, Source};
+use crate::pkg::ebuild::EbuildRawPkg;
+use crate::pkg::ebuild::metadata::{Key, Metadata};
+use crate::pkg::{Package, PkgPretend, RepoPackage, Source};
 use crate::repo::EbuildRepo;
 use crate::repo::Repository;
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
 
 use super::environment::{BASH, EXTERNAL};
+use super::get_build_mut;
 
 /// Get an ebuild repo from a config matching a given ID.
 fn get_ebuild_repo<'a>(repos: &'a ConfigRepos, repo: &str) -> crate::Result<&'a EbuildRepo> {
@@ -60,6 +65,48 @@ impl MetadataTask {
         }
     }
 
+    /// Generate the metadata for a given package.
+    fn pkg_to_metadata(pkg: &EbuildRawPkg) -> crate::Result<Metadata> {
+        pkg.source()?;
+
+        let eapi = pkg.eapi();
+        let repo = &pkg.repo();
+        let build = get_build_mut();
+        let mut meta = Metadata::default();
+
+        // populate metadata fields using the current build state
+        for key in eapi.metadata_keys() {
+            match key {
+                Key::CHKSUM => meta.deserialize(eapi, repo, key, pkg.chksum())?,
+                Key::DEFINED_PHASES => {
+                    meta.defined_phases = eapi
+                        .phases()
+                        .iter()
+                        .filter(|p| functions::find(p).is_some())
+                        .map(|p| p.kind)
+                        .collect();
+                }
+                Key::INHERIT => meta.inherit = build.inherit.clone(),
+                Key::INHERITED => meta.inherited = build.inherited.clone(),
+                key => {
+                    if let Some(val) = build.incrementals.get(key) {
+                        let s = val.iter().join(" ");
+                        meta.deserialize(eapi, repo, key, &s)?;
+                    } else if let Some(val) = variables::optional(key) {
+                        let s = val.split_whitespace().join(" ");
+                        meta.deserialize(eapi, repo, key, &s)?;
+                    } else if eapi.mandatory_keys().contains(key) {
+                        return Err(Error::InvalidValue(format!(
+                            "missing required value: {key}"
+                        )));
+                    }
+                }
+            }
+        }
+
+        Ok(meta)
+    }
+
     fn run(self, config: &ConfigRepos) -> crate::Result<Option<String>> {
         let repo = get_ebuild_repo(config, &self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
@@ -74,7 +121,7 @@ impl MetadataTask {
             None
         };
 
-        let meta = Metadata::try_from(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
+        let meta = Self::pkg_to_metadata(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
 
         // process captured output to send back to the main process
         let output = if let Some(file) = output {
