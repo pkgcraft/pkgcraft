@@ -431,6 +431,8 @@ mod tests {
     fn repository_trait() {
         let repo = FakeRepo::new("fake", 0);
         assert_eq!(repo.format(), RepoFormat::Fake);
+        assert_eq!(repo.to_string(), "fake");
+        assert!(format!("{repo:?}").contains("fake"));
         assert_eq!(repo.id(), "fake");
         assert_eq!(repo.priority(), 0);
         assert_eq!(repo.path(), "");
