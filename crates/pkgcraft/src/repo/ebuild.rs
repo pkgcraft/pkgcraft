@@ -276,8 +276,9 @@ impl EbuildRepo {
     pub fn cpn_from_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpn> {
         let path = path.as_ref();
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
-        let relpath = Utf8Path::from_path(relpath)
-            .ok_or_else(|| Error::InvalidValue(format!("invalid cpn path: {relpath:?}")))?;
+        let relpath = Utf8Path::from_path(relpath).ok_or_else(|| {
+            Error::InvalidValue(format!("invalid cpn path: {}", relpath.display()))
+        })?;
         let path_err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid cpn path: {relpath}: {s}"))
         };
@@ -300,8 +301,9 @@ impl EbuildRepo {
     fn cpv_from_path<P: AsRef<Path>>(&self, path: P) -> crate::Result<Cpv> {
         let path = path.as_ref();
         let relpath = path.strip_prefix(self.path()).unwrap_or(path);
-        let relpath = Utf8Path::from_path(relpath)
-            .ok_or_else(|| Error::InvalidValue(format!("invalid cpv path: {relpath:?}")))?;
+        let relpath = Utf8Path::from_path(relpath).ok_or_else(|| {
+            Error::InvalidValue(format!("invalid cpv path: {}", relpath.display()))
+        })?;
         let path_err = |s: &str| -> Error {
             Error::InvalidValue(format!("invalid cpv path: {relpath}: {s}"))
         };
