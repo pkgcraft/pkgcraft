@@ -28,20 +28,31 @@ pub trait CacheEntry {
 
 pub trait Cache {
     type Entry: CacheEntry;
+
     /// Return the hex-encoded checksum for the given data.
     fn chksum<S: AsRef<[u8]>>(&self, data: S) -> String;
+
     /// Return the cache's format.
     fn format(&self) -> CacheFormat;
+
     /// Return the cache's filesystem path.
     fn path(&self) -> &Utf8Path;
+
     /// Get the cache entry for a given package if it exists.
     fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>>;
+
     /// Update the cache with the given package metadata.
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()>;
+
     /// Forcibly remove the entire cache.
     fn remove(&self, repo: &EbuildRepo) -> crate::Result<()>;
-    /// Remove the cache entry for a Cpv.
-    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()>;
+
+    /// Remove a cache entry erroring if nonexistent.
+    fn remove_entry<T>(&self, value: T) -> crate::Result<()>
+    where
+        T: TryInto<Cpv>,
+        Error: From<T::Error>;
+
     /// Remove outdated entries from the cache.
     fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()>;
 }
@@ -143,9 +154,13 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
+    fn remove_entry<T>(&self, value: T) -> crate::Result<()>
+    where
+        T: TryInto<Cpv>,
+        Error: From<T::Error>,
+    {
         match self {
-            Self::Md5Dict(cache) => cache.remove_entry(cpv),
+            Self::Md5Dict(cache) => cache.remove_entry(value),
         }
     }
 

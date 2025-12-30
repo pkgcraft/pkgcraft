@@ -262,14 +262,15 @@ impl Cache for Md5Dict {
             .map_err(|e| Error::IO(format!("failed removing metadata cache: {path}: {e}")))
     }
 
-    fn remove_entry(&self, cpv: &Cpv) -> crate::Result<()> {
+    fn remove_entry<T>(&self, value: T) -> crate::Result<()>
+    where
+        T: TryInto<Cpv>,
+        Error: From<T::Error>,
+    {
+        let cpv = value.try_into()?;
         let path = self.path.join(cpv.to_string());
-        match remove_file_and_parent(&path) {
-            Err(e) if e.kind() != io::ErrorKind::NotFound => {
-                Err(Error::IO(format!("failed removing cache file: {cpv}: {e}")))
-            }
-            _ => Ok(()),
-        }
+        remove_file_and_parent(&path)
+            .map_err(|e| Error::IO(format!("failed removing cache file: {cpv}: {e}")))
     }
 
     fn clean<C: for<'a> Contains<&'a Cpv> + Sync>(&self, collection: C) -> crate::Result<()> {
