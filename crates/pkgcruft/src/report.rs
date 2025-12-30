@@ -695,11 +695,6 @@ impl Report {
         self.message.as_deref()
     }
 
-    /// The severity of the report.
-    pub fn level(&self) -> ReportLevel {
-        self.kind.level()
-    }
-
     /// Serialize a [`Report`] into a JSON string.
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self).expect("failed serializing report")
