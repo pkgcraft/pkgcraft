@@ -81,7 +81,7 @@ impl CacheEntry for Md5DictEntry {
         let invalid = |e| Error::InvalidValue(format!("{pkg}: invalid metadata: {e}"));
 
         for key in eapi.metadata_keys() {
-            if let Some(val) = self.0.get(key) {
+            if let Some(val) = self.get(key) {
                 meta.deserialize(eapi, repo, key, val)
                     .map_err(|e| invalid(e.to_string()))?;
             } else if eapi.mandatory_keys().contains(key) {
@@ -96,7 +96,7 @@ impl CacheEntry for Md5DictEntry {
         let invalid = |e| Error::InvalidValue(format!("{pkg}: invalid metadata: {e}"));
 
         // verify ebuild checksum
-        if let Some(val) = self.0.get(&MetadataKey::CHKSUM) {
+        if let Some(val) = self.get(&MetadataKey::CHKSUM) {
             if val != pkg.chksum() {
                 return Err(invalid("mismatched ebuild checksum"));
             }
@@ -105,7 +105,7 @@ impl CacheEntry for Md5DictEntry {
         }
 
         // verify eclass checksums
-        if let Some(val) = self.0.get(&MetadataKey::INHERITED) {
+        if let Some(val) = self.get(&MetadataKey::INHERITED) {
             let repo = pkg.repo();
             for (name, chksum) in val.split_whitespace().tuples() {
                 let Some(eclass) = repo.eclasses().get(name) else {
@@ -116,13 +116,17 @@ impl CacheEntry for Md5DictEntry {
                     return Err(invalid(&format!("mismatched eclass checksum: {name}")));
                 }
             }
-        } else if self.0.get(&MetadataKey::INHERIT).is_some() {
+        } else if self.get(&MetadataKey::INHERIT).is_some() {
             // Note that this doesn't catch all missing error variants, but it's the best
             // that can be done without sourcing the ebuild.
             return Err(invalid("missing eclass checksum"));
         }
 
         Ok(())
+    }
+
+    fn get(&self, key: &MetadataKey) -> Option<&str> {
+        self.0.get(key).map(|x| x.as_str())
     }
 }
 
