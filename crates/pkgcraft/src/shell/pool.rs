@@ -473,14 +473,14 @@ impl BuildPool {
                             scallop::shell::fork_init();
                             task.run(&config);
                             sem.release().unwrap();
-                            unsafe { libc::_exit(0) };
+                            std::process::exit(0);
                         }
                         Err(e) => panic!("process pool fork failed: {e}"), // grcov-excl-line
                     }
                 }
 
-                // task pipe is closed so exit
-                unsafe { libc::_exit(0) }
+                // task pool is closed
+                std::process::exit(0);
             }
             Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line
         }
