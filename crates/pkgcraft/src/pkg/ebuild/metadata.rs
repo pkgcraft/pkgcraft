@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
 use itertools::Itertools;
-use strum::{AsRefStr, Display, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator};
 
 use crate::Error;
 use crate::dep::{Dep, DependencySet, Slot, Uri};
@@ -109,6 +109,11 @@ pub struct Metadata {
 }
 
 impl Metadata {
+    /// Return the iterator of metadata keys for the metadata object in cache entry order.
+    pub(crate) fn keys(&self) -> impl Iterator<Item = MetadataKey> {
+        MetadataKey::iter().filter(|x| self.eapi.metadata_keys().contains(x))
+    }
+
     /// Deserialize a metadata string value to its field value.
     pub(crate) fn deserialize(
         &mut self,

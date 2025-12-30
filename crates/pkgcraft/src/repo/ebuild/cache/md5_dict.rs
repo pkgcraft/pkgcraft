@@ -7,7 +7,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use walkdir::WalkDir;
 
 use crate::Error;
@@ -25,6 +24,18 @@ use super::{Cache, CacheEntry, CacheFormat};
 /// Wrapper that converts metadata keys to md5-dict compatible keys.
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 struct Md5DictKey(MetadataKey);
+
+impl Md5DictKey {
+    /// Serialize a metadata value to a cache data entry, skipping empty values.
+    fn serialize(key: MetadataKey, meta: &Metadata) -> Option<(Self, String)> {
+        let value = meta.serialize(key);
+        if value.is_empty() {
+            None
+        } else {
+            Some((Self(key), value))
+        }
+    }
+}
 
 impl Borrow<MetadataKey> for Md5DictKey {
     fn borrow(&self) -> &MetadataKey {
@@ -147,21 +158,10 @@ impl FromStr for Md5DictEntry {
     }
 }
 
-/// Serialize a metadata field to its md5-dict cache mapping, returning None for empty fields.
-fn serialize(meta: &Metadata, key: MetadataKey) -> Option<(Md5DictKey, String)> {
-    let value = meta.serialize(key);
-    if value.is_empty() {
-        None
-    } else {
-        Some((Md5DictKey(key), value))
-    }
-}
-
 impl From<&Metadata> for Md5DictEntry {
     fn from(meta: &Metadata) -> Self {
-        MetadataKey::iter()
-            .filter(|x| meta.eapi.metadata_keys().contains(x))
-            .filter_map(|key| serialize(meta, key))
+        meta.keys()
+            .filter_map(|key| Md5DictKey::serialize(key, meta))
             .collect()
     }
 }
