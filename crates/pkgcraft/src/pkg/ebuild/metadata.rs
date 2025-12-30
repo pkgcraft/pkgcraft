@@ -85,27 +85,28 @@ impl Borrow<str> for MetadataKey {
 /// This is created via deserializing metadata cache entries or pulled directly from the
 /// environment after sourcing an ebuild.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[non_exhaustive]
 pub struct Metadata {
-    pub(crate) eapi: &'static Eapi,
-    pub(crate) description: String,
-    pub(crate) slot: Slot,
-    pub(crate) bdepend: DependencySet<Dep>,
-    pub(crate) depend: DependencySet<Dep>,
-    pub(crate) idepend: DependencySet<Dep>,
-    pub(crate) pdepend: DependencySet<Dep>,
-    pub(crate) rdepend: DependencySet<Dep>,
-    pub(crate) license: DependencySet<String>,
-    pub(crate) properties: DependencySet<String>,
-    pub(crate) required_use: DependencySet<String>,
-    pub(crate) restrict: DependencySet<String>,
-    pub(crate) src_uri: DependencySet<Uri>,
-    pub(crate) homepage: OrderedSet<String>,
-    pub(crate) defined_phases: OrderedSet<PhaseKind>,
-    pub(crate) keywords: OrderedSet<Keyword>,
-    pub(crate) iuse: OrderedSet<Iuse>,
-    pub(crate) inherit: OrderedSet<Eclass>,
-    pub(crate) inherited: OrderedSet<Eclass>,
-    pub(crate) chksum: String,
+    pub eapi: &'static Eapi,
+    pub description: String,
+    pub slot: Slot,
+    pub bdepend: DependencySet<Dep>,
+    pub depend: DependencySet<Dep>,
+    pub idepend: DependencySet<Dep>,
+    pub pdepend: DependencySet<Dep>,
+    pub rdepend: DependencySet<Dep>,
+    pub license: DependencySet<String>,
+    pub properties: DependencySet<String>,
+    pub required_use: DependencySet<String>,
+    pub restrict: DependencySet<String>,
+    pub src_uri: DependencySet<Uri>,
+    pub homepage: OrderedSet<String>,
+    pub defined_phases: OrderedSet<PhaseKind>,
+    pub keywords: OrderedSet<Keyword>,
+    pub iuse: OrderedSet<Iuse>,
+    pub inherit: OrderedSet<Eclass>,
+    pub inherited: OrderedSet<Eclass>,
+    pub chksum: String,
 }
 
 impl Metadata {
