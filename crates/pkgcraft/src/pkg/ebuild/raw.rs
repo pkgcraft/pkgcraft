@@ -43,7 +43,7 @@ impl TryFrom<EbuildRawPkg> for super::EbuildPkg {
 
     fn try_from(pkg: EbuildRawPkg) -> crate::Result<Self> {
         Ok(Self(Arc::new(super::InternalEbuildPkg {
-            meta: pkg.metadata(true)?,
+            meta: pkg.metadata()?,
             raw: pkg,
             iuse_effective: OnceLock::new(),
             metadata: OnceLock::new(),
@@ -127,7 +127,7 @@ impl EbuildRawPkg {
     }
 
     /// Try to deserialize the package's metadata from the cache.
-    fn get_metadata(&self) -> crate::Result<Metadata> {
+    pub(crate) fn get_metadata(&self) -> crate::Result<Metadata> {
         self.0
             .repo
             .metadata()
@@ -136,20 +136,16 @@ impl EbuildRawPkg {
             .and_then(|entry| entry.to_metadata(self))
     }
 
-    /// Deserialize or regenerate a package's metadata.
-    pub(crate) fn metadata(&self, regen_on_failure: bool) -> crate::Result<Metadata> {
-        self.get_metadata().or_else(|e| {
-            if regen_on_failure {
-                self.0
-                    .repo
-                    .pool()
-                    .metadata_task(&self.0.repo)
-                    .force(true)
-                    .run(&self.0.cpv)?;
-                self.get_metadata()
-            } else {
-                Err(e)
-            }
+    /// Deserialize a package's metadata, regenerating it on error.
+    pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
+        self.get_metadata().or_else(|_| {
+            self.0
+                .repo
+                .pool()
+                .metadata_task(&self.0.repo)
+                .force(true)
+                .run(&self.0.cpv)?;
+            self.get_metadata()
         })
     }
 

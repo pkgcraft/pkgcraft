@@ -322,7 +322,7 @@ mod tests {
         let repo = data.ebuild_repo("metadata").unwrap();
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
-            let r = pkg.metadata(false);
+            let r = pkg.get_metadata();
             assert!(r.is_ok(), "{pkg}: failed converting to metadata: {}", r.unwrap_err());
         }
 
@@ -333,7 +333,7 @@ mod tests {
             let pkg = pkg.unwrap();
             let err = fs::read_to_string(pkg.path().parent().unwrap().join("error")).unwrap();
             let err = err.trim();
-            assert_err_re!(pkg.metadata(false), format!("^{pkg}: invalid metadata: {err}$"));
+            assert_err_re!(pkg.get_metadata(), format!("^{pkg}: invalid metadata: {err}$"));
         }
     }
 
@@ -346,7 +346,7 @@ mod tests {
         let new_cache = Md5Dict::from_path(Utf8Path::from_path(dir.path()).unwrap());
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
-            let meta = pkg.metadata(false).unwrap();
+            let meta = pkg.get_metadata().unwrap();
             new_cache.update(&pkg, &meta).unwrap();
             let new_entry = new_cache.get(&pkg).unwrap();
             let old_entry = repo_cache.get(&pkg).unwrap();
