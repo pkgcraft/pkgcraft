@@ -11,7 +11,7 @@ use scallop::variables::{self, Attr, bind, unbind};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::get_build_mut;
-use super::scope::EbuildScope;
+use super::scope::ScopeSet;
 
 /// Ordered set of all externally defined environment variables.
 ///
@@ -107,7 +107,7 @@ impl Variable {
     pub(crate) fn allowed_in<I>(self, scopes: I) -> BuildVariable
     where
         I: IntoIterator,
-        I::Item: Into<EbuildScope>,
+        I::Item: Into<ScopeSet>,
     {
         BuildVariable {
             var: self,
@@ -135,7 +135,7 @@ impl Variable {
 #[derive(Debug, Clone)]
 pub struct BuildVariable {
     var: Variable,
-    allowed: HashSet<EbuildScope>,
+    allowed: HashSet<ScopeSet>,
     external: bool,
 }
 
@@ -209,7 +209,7 @@ impl BuildVariable {
     pub(crate) fn allowed_in<I>(mut self, scopes: I) -> Self
     where
         I: IntoIterator,
-        I::Item: Into<EbuildScope>,
+        I::Item: Into<ScopeSet>,
     {
         self.allowed.extend(scopes.into_iter().map(Into::into));
         self
@@ -229,7 +229,7 @@ impl BuildVariable {
     /// Determine if the variable is allowed in a given `Scope`.
     pub fn is_allowed<T>(&self, value: &T) -> bool
     where
-        EbuildScope: PartialEq<T>,
+        ScopeSet: PartialEq<T>,
     {
         self.allowed.iter().any(|x| x == value)
     }
@@ -271,7 +271,7 @@ mod tests {
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
-        let all_scopes: Vec<_> = EbuildScope::All.into_iter().collect();
+        let all_scopes: Vec<_> = ScopeSet::All.into_iter().collect();
 
         for eapi in &*EAPIS_OFFICIAL {
             for var in Variable::iter() {

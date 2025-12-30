@@ -6,7 +6,7 @@ use crate::repo::ebuild::Eclass;
 
 use super::phase::PhaseKind;
 
-/// Marker used to denote valid or current build state scope.
+/// Build state scope.
 #[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
 pub enum Scope {
     #[default]
@@ -50,9 +50,9 @@ impl fmt::Display for Scope {
     }
 }
 
-/// Multi-scope type for EAPI registration.
+/// Scope sets used to represent groups of related scopes.
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum EbuildScope {
+pub enum ScopeSet {
     All,
     Eclass,
     Global,
@@ -62,19 +62,19 @@ pub enum EbuildScope {
     Phase(PhaseKind),
 }
 
-impl From<PhaseKind> for EbuildScope {
+impl From<PhaseKind> for ScopeSet {
     fn from(value: PhaseKind) -> Self {
         Self::Phase(value)
     }
 }
 
-impl EbuildScope {
+impl ScopeSet {
     pub(crate) fn iter(&self) -> impl Iterator<Item = Scope> {
         self.into_iter()
     }
 }
 
-impl PartialEq<Scope> for EbuildScope {
+impl PartialEq<Scope> for ScopeSet {
     fn eq(&self, other: &Scope) -> bool {
         match (self, other) {
             (Self::All, _) => true,
@@ -89,14 +89,14 @@ impl PartialEq<Scope> for EbuildScope {
     }
 }
 
-impl PartialEq<PhaseKind> for EbuildScope {
+impl PartialEq<PhaseKind> for ScopeSet {
     fn eq(&self, other: &PhaseKind) -> bool {
         let scope = Scope::Phase(*other);
         *self == scope
     }
 }
 
-impl IntoIterator for EbuildScope {
+impl IntoIterator for ScopeSet {
     type Item = Scope;
     type IntoIter = Box<dyn Iterator<Item = Scope>>;
 
@@ -121,7 +121,7 @@ impl IntoIterator for EbuildScope {
     }
 }
 
-impl IntoIterator for &EbuildScope {
+impl IntoIterator for &ScopeSet {
     type Item = Scope;
     type IntoIter = Box<dyn Iterator<Item = Scope>>;
 

@@ -10,7 +10,7 @@ use indexmap::IndexSet;
 
 use super::get_build_mut;
 use super::phase::PhaseKind;
-use super::scope::EbuildScope;
+use super::scope::ScopeSet;
 
 mod _new;
 mod _phases;
@@ -342,7 +342,7 @@ impl Builtin {
     pub(crate) fn allowed_in<I>(self, scopes: I) -> Command
     where
         I: IntoIterator,
-        I::Item: Into<EbuildScope>,
+        I::Item: Into<ScopeSet>,
     {
         Command {
             builtin: self,
@@ -377,7 +377,7 @@ impl Deref for Builtin {
 #[derive(Debug, Clone)]
 pub struct Command {
     builtin: Builtin,
-    pub allowed: HashSet<EbuildScope>,
+    pub allowed: HashSet<ScopeSet>,
     pub die_on_failure: bool,
 }
 
@@ -451,7 +451,7 @@ impl Command {
     /// Determine if the command is allowed in a given `Scope`.
     pub fn is_allowed<T>(&self, value: &T) -> bool
     where
-        EbuildScope: PartialEq<T>,
+        ScopeSet: PartialEq<T>,
     {
         self.allowed.iter().any(|x| x == value)
     }
@@ -802,7 +802,7 @@ macro_rules! cmd_scope_tests {
             use crate::eapi::EAPIS_OFFICIAL;
             use crate::pkg::Source;
             use crate::repo::ebuild::EbuildRepoBuilder;
-            use crate::shell::scope::{EbuildScope, Scope};
+            use crate::shell::scope::{Scope, ScopeSet};
             use crate::test::assert_err_re;
 
             let cmd = $cmd;
@@ -831,7 +831,7 @@ macro_rules! cmd_scope_tests {
             temp.create_eclass("invalid", &eclass).unwrap();
             let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
             config.finalize().unwrap();
-            let all_scopes: HashSet<_> = EbuildScope::All.into_iter().collect();
+            let all_scopes: HashSet<_> = ScopeSet::All.into_iter().collect();
 
             for eapi in &*EAPIS_OFFICIAL {
                 if let Some(cmd) = eapi.commands().get(name) {
