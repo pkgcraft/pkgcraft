@@ -243,7 +243,7 @@ pub enum ReportKind {
 }
 
 impl ReportKind {
-    /// Create a version scope report.
+    /// Create a version report builder.
     pub(crate) fn version<T: Into<Cpv>>(self, value: T) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
@@ -252,7 +252,7 @@ impl ReportKind {
         })
     }
 
-    /// Create a package scope report.
+    /// Create a package report builder.
     pub(crate) fn package<T>(self, value: T) -> ReportBuilder
     where
         T: TryInto<Cpn>,
@@ -269,7 +269,7 @@ impl ReportKind {
         })
     }
 
-    /// Create a category scope report.
+    /// Create a category report builder.
     pub(crate) fn category<S: fmt::Display>(self, value: S) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
@@ -278,7 +278,7 @@ impl ReportKind {
         })
     }
 
-    /// Create a repo scope report.
+    /// Create a repo report builder.
     pub(crate) fn repo<R: Repository>(self, repo: R) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
@@ -287,7 +287,7 @@ impl ReportKind {
         })
     }
 
-    /// Create a report using a scope.
+    /// Create a report builder using a custom scope.
     pub(crate) fn in_scope(self, scope: ReportScope) -> ReportBuilder {
         ReportBuilder(Report {
             kind: self,
