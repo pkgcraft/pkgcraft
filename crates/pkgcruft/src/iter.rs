@@ -318,7 +318,7 @@ impl ReportIter {
         self.rx.recv().map(|value| match value {
             Item::Report(report) => {
                 self.target_cache
-                    .entry(report.scope().into())
+                    .entry(Target::from(&report.target))
                     .or_default()
                     .push(report);
             }

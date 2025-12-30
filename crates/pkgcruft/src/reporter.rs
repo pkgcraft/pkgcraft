@@ -12,7 +12,7 @@ use strum::{EnumString, VariantNames};
 
 use crate::Error;
 use crate::check::Check;
-use crate::report::{Report, ReportKind, ReportScope};
+use crate::report::{Report, ReportKind, ReportTarget};
 
 #[derive(EnumString, VariantNames, Debug, Clone)]
 #[strum(serialize_all = "kebab-case")]
@@ -166,11 +166,11 @@ impl From<FancyReporter> for Reporter {
 
 impl FancyReporter {
     fn report<W: Write>(&mut self, report: &Report, output: &mut W) -> crate::Result<()> {
-        let scope = report.scope();
-        let key = if let ReportScope::Version(cpv, _) = scope {
+        let target = &report.target;
+        let key = if let ReportTarget::Version(cpv, _) = target {
             cpv.cpn().to_string()
         } else {
-            scope.to_string()
+            target.to_string()
         };
 
         if !self
@@ -188,7 +188,7 @@ impl FancyReporter {
 
         write!(output, "  {}", report.kind.colorize())?;
 
-        if let ReportScope::Version(cpv, location) = scope {
+        if let ReportTarget::Version(cpv, location) = target {
             write!(output, ": version {}", cpv.version())?;
             if let Some(value) = location {
                 write!(output, ", {value}")?;
@@ -237,8 +237,8 @@ impl FormatReporter {
             .into_iter()
             .collect();
 
-        match report.scope() {
-            ReportScope::Version(cpv, _) => {
+        match &report.target {
+            ReportTarget::Version(cpv, _) => {
                 let category = cpv.category().to_string();
                 let package = cpv.package().to_string();
                 let version = cpv.version().to_string();
@@ -253,17 +253,17 @@ impl FormatReporter {
                     ("cpn".to_string(), cpv.cpn().to_string()),
                 ]);
             }
-            ReportScope::Package(cpn) => {
+            ReportTarget::Package(cpn) => {
                 attrs.extend([
                     ("category".to_string(), cpn.category().to_string()),
                     ("package".to_string(), cpn.package().to_string()),
                     ("cpn".to_string(), cpn.to_string()),
                 ]);
             }
-            ReportScope::Category(cat) => {
+            ReportTarget::Category(cat) => {
                 attrs.extend([("category".to_string(), cat.to_string())]);
             }
-            ReportScope::Repo(repo) => {
+            ReportTarget::Repo(repo) => {
                 attrs.extend([("repo".to_string(), repo.to_string())]);
             }
         }
@@ -293,13 +293,13 @@ mod tests {
     use super::*;
 
     static REPORTS: &str = indoc::indoc! {r#"
-        {"scope":{"Version":["cat/pkg-1-r2",null]},"kind":"DependencyDeprecated","message":"BDEPEND: cat/deprecated"}
-        {"scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"kind":"WhitespaceUnneeded","message":"empty line"}
-        {"scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"kind":"WhitespaceInvalid","message":"character '\\u{2001}'"}
-        {"scope":{"Package":"cat/pkg"},"kind":"UnstableOnly","message":"arch"}
-        {"scope":{"Category":"cat1"},"kind":"RepoCategoryEmpty","message":null}
-        {"scope":{"Category":"cat2"},"kind":"RepoCategoryEmpty","message":null}
-        {"scope":{"Repo":"repo1"},"kind":"LicensesUnused","message":"unused"}
+        {"target":{"Version":["cat/pkg-1-r2",null]},"kind":"DependencyDeprecated","message":"BDEPEND: cat/deprecated"}
+        {"target":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"kind":"WhitespaceUnneeded","message":"empty line"}
+        {"target":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"kind":"WhitespaceInvalid","message":"character '\\u{2001}'"}
+        {"target":{"Package":"cat/pkg"},"kind":"UnstableOnly","message":"arch"}
+        {"target":{"Category":"cat1"},"kind":"RepoCategoryEmpty","message":null}
+        {"target":{"Category":"cat2"},"kind":"RepoCategoryEmpty","message":null}
+        {"target":{"Repo":"repo1"},"kind":"LicensesUnused","message":"unused"}
     "#};
 
     fn report<R: Into<Reporter>>(reporter: R) -> String {

@@ -3,7 +3,7 @@ use pkgcraft::dep::{Cpn, Cpv};
 use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{IgnoreInvalid, IgnoreUnused};
-use crate::report::ReportScope;
+use crate::report::ReportTarget;
 use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
@@ -26,46 +26,46 @@ struct Check;
 
 impl super::CheckRun for Check {
     fn finish_cpv(&self, cpv: &Cpv, run: &ScannerRun) {
-        let scope = ReportScope::Version(cpv.clone(), None);
+        let target = ReportTarget::Version(cpv.clone(), None);
 
         // forciby populate the cache
-        run.ignore.generate(&scope, Some(run)).count();
+        run.ignore.generate(&target, Some(run)).count();
 
-        // flag unused version scope ignore directives
-        if let Some(sets) = run.ignore.unused(&scope) {
+        // flag unused version ignore directives
+        if let Some(sets) = run.ignore.unused(&target) {
             let sets = sets.iter().join(", ");
             IgnoreUnused.version(cpv).message(sets).report(run);
         }
     }
 
     fn finish_cpn(&self, cpn: &Cpn, run: &ScannerRun) {
-        let scope = ReportScope::Package(cpn.clone());
+        let target = ReportTarget::Package(cpn.clone());
 
         // forciby populate the cache
-        run.ignore.generate(&scope, Some(run)).count();
+        run.ignore.generate(&target, Some(run)).count();
 
-        // flag unused package scope ignore directives
-        if let Some(sets) = run.ignore.unused(&scope) {
+        // flag unused package ignore directives
+        if let Some(sets) = run.ignore.unused(&target) {
             let sets = sets.iter().join(", ");
             IgnoreUnused.package(cpn).message(sets).report(run);
         }
     }
 
     fn finish_category(&self, category: &str, run: &ScannerRun) {
-        let scope = ReportScope::Category(category.to_string());
+        let target = ReportTarget::Category(category.to_string());
 
         // forciby populate the cache
-        run.ignore.generate(&scope, Some(run)).count();
+        run.ignore.generate(&target, Some(run)).count();
 
-        if let Some(sets) = run.ignore.unused(&scope) {
+        if let Some(sets) = run.ignore.unused(&target) {
             let sets = sets.iter().join(", ");
             IgnoreUnused.category(category).message(sets).report(run);
         }
     }
 
     fn finish(&self, run: &ScannerRun) {
-        let scope = ReportScope::Repo(run.repo.to_string());
-        if let Some(sets) = run.ignore.unused(&scope) {
+        let target = ReportTarget::Repo(run.repo.to_string());
+        if let Some(sets) = run.ignore.unused(&target) {
             let sets = sets.iter().join(", ");
             IgnoreUnused.repo(&run.repo).message(sets).report(run);
         }
@@ -100,22 +100,22 @@ mod tests {
         // return all report variants in order to trigger ignore filtering
         let scanner = Scanner::new().reports([ReportSet::All]);
 
-        // version scope
+        // version
         let reports: Vec<_> = scanner
             .run(repo, "Ignore/IgnoreUnused-0")
             .unwrap()
             .collect();
         assert_ordered_reports!(&reports, &expected[..2]);
 
-        // package scope
+        // package
         let reports: Vec<_> = scanner.run(repo, "Ignore/IgnoreUnused").unwrap().collect();
         assert_ordered_reports!(&reports, &expected[..4]);
 
-        // category scope
+        // category
         let reports: Vec<_> = scanner.run(repo, "Ignore/*").unwrap().collect();
         assert_ordered_reports!(&reports, &expected[..6]);
 
-        // repo scope
+        // repo
         let reports: Vec<_> = scanner
             .run(repo, repo)
             .unwrap()

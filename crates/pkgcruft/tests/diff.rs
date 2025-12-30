@@ -76,15 +76,15 @@ fn empty() {
 #[test]
 fn output() {
     let old = indoc::indoc! {r#"
-        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
-        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
-        {"kind":"UnstableOnly","scope":{"Package":"a/b"},"message":"arch"}
+        {"kind":"UnstableOnly","target":{"Package":"cat/pkg"},"message":"arch"}
+        {"kind":"DependencyDeprecated","target":{"Version":["cat/pkg-1-r2",null]},"message":"BDEPEND: cat/deprecated"}
+        {"kind":"WhitespaceInvalid","target":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
+        {"kind":"UnstableOnly","target":{"Package":"a/b"},"message":"arch"}
     "#};
     let new = indoc::indoc! {r#"
-        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg"},"message":"arch"}
-        {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"message":"empty line"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
+        {"kind":"UnstableOnly","target":{"Package":"cat/pkg"},"message":"arch"}
+        {"kind":"WhitespaceUnneeded","target":{"Version":["cat/pkg-1-r2",{"line":3,"column":0}]},"message":"empty line"}
+        {"kind":"WhitespaceInvalid","target":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
     "#};
 
     let mut old_file = NamedTempFile::new().unwrap();

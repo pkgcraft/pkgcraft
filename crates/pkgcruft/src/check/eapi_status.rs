@@ -111,7 +111,7 @@ mod tests {
         let reports = scanner.run(&repo, &repo).unwrap();
         let expected = vec![
             Report::from_json(
-                r#"{"kind":"EapiUnused","scope":{"Repo":"test"},"message":"7"}"#,
+                r#"{"kind":"EapiUnused","target":{"Repo":"test"},"message":"7"}"#,
             )
             .unwrap(),
         ];

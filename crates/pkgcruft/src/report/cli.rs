@@ -7,12 +7,12 @@ use crate::Error;
 
 use super::{ReportKind, ReportSet};
 
-/// Wrapper for report set targets.
+/// Wrapper for targeted report sets.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Clone)]
-pub struct ReportTarget(TriState<ReportSet>);
+pub struct Reports(TriState<ReportSet>);
 
-impl ReportTarget {
-    /// Collapse report targets into default and selected report variant sets.
+impl Reports {
+    /// Collapse reports into default and selected sets.
     pub fn collapse<'a, I>(
         targets: I,
         defaults: &IndexSet<ReportKind>,
@@ -65,13 +65,13 @@ impl ReportTarget {
     }
 }
 
-impl<T: Into<ReportSet>> From<T> for ReportTarget {
+impl<T: Into<ReportSet>> From<T> for Reports {
     fn from(value: T) -> Self {
         Self(TriState::Set(value.into()))
     }
 }
 
-impl FromStr for ReportTarget {
+impl FromStr for Reports {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -97,7 +97,7 @@ mod tests {
         let repo = data.ebuild_repo("gentoo").unwrap();
         let defaults = ReportKind::defaults(repo);
         let supported = ReportKind::supported(repo, Scope::Repo);
-        let (enabled, selected) = ReportTarget::collapse([], &defaults, &supported).unwrap();
+        let (enabled, selected) = Reports::collapse([], &defaults, &supported).unwrap();
         assert!(selected.is_empty());
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         // repo specific checks enabled when scanning the matching repo
@@ -107,7 +107,7 @@ mod tests {
         let repo = data.ebuild_repo("qa-primary").unwrap();
         let defaults = ReportKind::defaults(repo);
         let supported = ReportKind::supported(repo, Scope::Repo);
-        let (enabled, selected) = ReportTarget::collapse([], &defaults, &supported).unwrap();
+        let (enabled, selected) = Reports::collapse([], &defaults, &supported).unwrap();
         assert!(selected.is_empty());
         let checks: IndexSet<_> = Check::iter_report(&enabled).collect();
         assert!(checks.contains(&CheckKind::Dependency));
@@ -120,8 +120,7 @@ mod tests {
         let report = ReportKind::HeaderInvalid;
         assert_eq!(report.level(), ReportLevel::Error);
         let target = ReportLevel::Error.into();
-        let (enabled, selected) =
-            ReportTarget::collapse([&target], &defaults, &supported).unwrap();
+        let (enabled, selected) = Reports::collapse([&target], &defaults, &supported).unwrap();
         assert!(!enabled.contains(&report));
         assert!(!enabled.is_empty());
         assert!(selected.is_subset(&enabled));

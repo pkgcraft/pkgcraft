@@ -48,7 +48,7 @@ pub(crate) struct Command {
     reporter: options::reporter::ReporterOptions,
 
     #[clap(flatten)]
-    reports: options::reports::Reports,
+    reports: options::reports::ReportOptions,
 
     // positionals
     /// Target packages or paths

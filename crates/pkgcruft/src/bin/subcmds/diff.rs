@@ -28,7 +28,7 @@ pub(crate) struct Options {
 #[derive(Debug, Args)]
 pub(crate) struct Command {
     #[clap(flatten)]
-    reports: options::reports::Reports,
+    reports: options::reports::ReportOptions,
 
     #[clap(flatten)]
     options: Options,

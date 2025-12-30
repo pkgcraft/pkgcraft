@@ -14,7 +14,7 @@ use crate::check::{Check, CheckRunner};
 use crate::error::Error;
 use crate::ignore::Ignore;
 use crate::iter::{ReportIter, ReportSender};
-use crate::report::{Report, ReportKind, ReportSet, ReportTarget};
+use crate::report::{Report, ReportKind, ReportSet, Reports};
 use crate::reporter::Reporter;
 use crate::source::PkgFilter;
 
@@ -24,7 +24,7 @@ pub struct Scanner {
     jobs: usize,
     force: bool,
     sort: bool,
-    reports: IndexSet<ReportTarget>,
+    reports: IndexSet<Reports>,
     exit: IndexSet<ReportSet>,
     filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
@@ -62,7 +62,7 @@ impl Scanner {
     pub fn reports<I>(mut self, values: I) -> Self
     where
         I: IntoIterator,
-        I::Item: Into<ReportTarget>,
+        I::Item: Into<Reports>,
     {
         self.reports = values.into_iter().map(Into::into).collect();
         self
@@ -113,7 +113,7 @@ impl Scanner {
         let (enabled, selected) = if self.reports.is_empty() {
             (defaults.clone(), Default::default())
         } else {
-            ReportTarget::collapse(&self.reports, &defaults, &supported)?
+            Reports::collapse(&self.reports, &defaults, &supported)?
         };
 
         // expand exit sets
@@ -248,8 +248,8 @@ impl ScannerRun {
                 || kind == ReportKind::IgnoreInvalid
                 || !self.ignore.ignored(&report, self))
         {
-            // skip reports with scopes above the current scan scope
-            if report.scope() <= &self.scope {
+            // skip reports with targets above the current scan scope
+            if report.target.scope() <= self.scope {
                 if self.exit.contains(&kind) {
                     self.failed.store(true, Ordering::Relaxed);
                 }

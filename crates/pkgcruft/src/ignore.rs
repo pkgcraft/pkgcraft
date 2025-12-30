@@ -9,7 +9,7 @@ use pkgcraft::traits::FilterLines;
 use rayon::prelude::*;
 use tracing::warn;
 
-use crate::report::{Report, ReportKind, ReportScope, ReportSet};
+use crate::report::{Report, ReportKind, ReportSet, ReportTarget};
 use crate::scan::ScannerRun;
 
 /// Individual ignore directive relating to a ReportSet.
@@ -49,7 +49,7 @@ type CacheEntry = IndexMap<ReportKind, Vec<IgnoreDirective>>;
 /// generated.
 pub struct Ignore {
     repo: EbuildRepo,
-    cache: DashMap<ReportScope, CacheEntry>,
+    cache: DashMap<ReportTarget, CacheEntry>,
     default: IndexSet<ReportKind>,
     supported: IndexSet<ReportKind>,
 }
@@ -73,14 +73,14 @@ impl Ignore {
             .collect::<Vec<_>>()
             .into_par_iter()
             .for_each(|cpv| {
-                let scope = ReportScope::Version(cpv, None);
-                self.generate(&scope, None).count();
+                let target = ReportTarget::Version(cpv, None);
+                self.generate(&target, None).count();
             });
         self
     }
 
     /// Load ignore data from ebuild lines or files.
-    fn load_data(&self, scope: &ReportScope, run: Option<&ScannerRun>) -> CacheEntry {
+    fn load_data(&self, target: &ReportTarget, run: Option<&ScannerRun>) -> CacheEntry {
         let mut ignore: CacheEntry = IndexMap::new();
 
         // Parse ignore directives from a line.
@@ -106,19 +106,19 @@ impl Ignore {
                     Err(e) => {
                         if let Some(run) = run {
                             ReportKind::IgnoreInvalid
-                                .in_scope(scope.clone())
+                                .target(target.clone())
                                 .message(e)
                                 .report(run);
                         } else {
-                            warn!("{scope}: invalid ignore directive: line {lineno}: {e}");
+                            warn!("{target}: invalid ignore directive: line {lineno}: {e}");
                         }
                     }
                 }
             }
         };
 
-        let path = scope.to_abspath(&self.repo);
-        if matches!(scope, ReportScope::Version(..)) {
+        let path = target.to_abspath(&self.repo);
+        if matches!(target, ReportTarget::Version(..)) {
             // TODO: use BufRead to avoid loading the entire ebuild file?
             for (i, line) in fs::read_to_string(path)
                 .unwrap_or_default()
@@ -152,24 +152,24 @@ impl Ignore {
     /// cache rather than regenerating the data.
     pub(crate) fn generate<'a, 'b>(
         &'a self,
-        scope: &'b ReportScope,
+        target: &'b ReportTarget,
         run: Option<&'a ScannerRun>,
-    ) -> impl Iterator<Item = RefMut<'a, ReportScope, CacheEntry>> + use<'a, 'b> {
-        IgnoreScopes::new(&self.repo, scope).map(move |scope| {
+    ) -> impl Iterator<Item = RefMut<'a, ReportTarget, CacheEntry>> + use<'a, 'b> {
+        IgnoreTargets::new(&self.repo, target).map(move |target| {
             self.cache
-                .entry(scope.clone())
-                .or_insert_with(|| self.load_data(&scope, run))
+                .entry(target.clone())
+                .or_insert_with(|| self.load_data(&target, run))
         })
     }
 
-    /// Determine if a report is ignored via relevant ignore directives.
+    /// Determine if a report is ignored via ignore directives.
     ///
-    /// For example, a version scope report will check for repo, category, package, and
+    /// For example, a version report will check for repo, category, package, and
     /// ebuild directives.
     pub(crate) fn ignored(&self, report: &Report, run: &ScannerRun) -> bool {
         let mut ignored = false;
 
-        for mut entry in self.generate(report.scope(), Some(run)) {
+        for mut entry in self.generate(&report.target, Some(run)) {
             if let Some(directives) = entry.get_mut(&report.kind) {
                 for d in directives {
                     d.used = true;
@@ -181,9 +181,9 @@ impl Ignore {
         ignored
     }
 
-    /// Return the set of unused ignore directives for a scope if it exists.
-    pub fn unused(&self, scope: &ReportScope) -> Option<IndexSet<ReportSet>> {
-        self.cache.get(scope).and_then(|entry| {
+    /// Return the set of unused ignore directives for a target if it exists.
+    pub fn unused(&self, target: &ReportTarget) -> Option<IndexSet<ReportSet>> {
+        self.cache.get(target).and_then(|entry| {
             let map = entry.value();
             let sets: IndexSet<_> = map
                 .values()
@@ -208,8 +208,8 @@ impl fmt::Display for Ignore {
 
         entries.sort_by(|a, b| a.key().cmp(b.key()));
         for entry in entries {
-            let (scope, map) = entry.pair();
-            writeln!(f, "{scope}")?;
+            let (target, map) = entry.pair();
+            writeln!(f, "{target}")?;
             // output report sets
             let mut directives: IndexSet<_> = map.values().flatten().collect();
             directives.sort_unstable();
@@ -222,19 +222,19 @@ impl fmt::Display for Ignore {
     }
 }
 
-/// Iterator over relevant scopes for ignore data in a repo targeting a scope.
+/// Iterator of report targets for ignore data in a repo.
 ///
 /// This iterates in reverse precedence order allowing more specific ignore entries to
 /// override those at a larger scope. For example, package specific entries override repo
 /// settings.
-struct IgnoreScopes<'a, 'b> {
+struct IgnoreTargets<'a, 'b> {
     repo: &'a EbuildRepo,
-    target: &'b ReportScope,
+    target: &'b ReportTarget,
     scope: Option<Scope>,
 }
 
-impl<'a, 'b> IgnoreScopes<'a, 'b> {
-    fn new(repo: &'a EbuildRepo, target: &'b ReportScope) -> Self {
+impl<'a, 'b> IgnoreTargets<'a, 'b> {
+    fn new(repo: &'a EbuildRepo, target: &'b ReportTarget) -> Self {
         Self {
             repo,
             target,
@@ -243,25 +243,25 @@ impl<'a, 'b> IgnoreScopes<'a, 'b> {
     }
 }
 
-impl Iterator for IgnoreScopes<'_, '_> {
-    type Item = ReportScope;
+impl Iterator for IgnoreTargets<'_, '_> {
+    type Item = ReportTarget;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.scope.map(|scope| {
             let entry_scope = match (scope, self.target) {
-                (Scope::Version, ReportScope::Version(..)) => self.target.clone(),
-                (Scope::Package, ReportScope::Version(cpv, _)) => {
-                    ReportScope::Package(cpv.cpn().clone())
+                (Scope::Version, ReportTarget::Version(..)) => self.target.clone(),
+                (Scope::Package, ReportTarget::Version(cpv, _)) => {
+                    ReportTarget::Package(cpv.cpn().clone())
                 }
-                (Scope::Package, ReportScope::Package(_)) => self.target.clone(),
-                (Scope::Category, ReportScope::Category(_)) => self.target.clone(),
-                (Scope::Category, ReportScope::Package(cpn)) => {
-                    ReportScope::Category(cpn.category().into())
+                (Scope::Package, ReportTarget::Package(_)) => self.target.clone(),
+                (Scope::Category, ReportTarget::Category(_)) => self.target.clone(),
+                (Scope::Category, ReportTarget::Package(cpn)) => {
+                    ReportTarget::Category(cpn.category().into())
                 }
-                (Scope::Category, ReportScope::Version(cpv, _)) => {
-                    ReportScope::Category(cpv.category().into())
+                (Scope::Category, ReportTarget::Version(cpv, _)) => {
+                    ReportTarget::Category(cpv.category().into())
                 }
-                _ => ReportScope::Repo(self.repo.to_string()),
+                _ => ReportTarget::Repo(self.repo.to_string()),
             };
 
             // set the scope to the next lower level

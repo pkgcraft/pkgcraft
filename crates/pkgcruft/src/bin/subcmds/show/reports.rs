@@ -5,7 +5,7 @@ use clap::Args;
 use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
 use pkgcraft::restrict::Scope;
-use pkgcruft::report::{ReportKind, ReportTarget};
+use pkgcruft::report::{ReportKind, Reports};
 use strum::IntoEnumIterator;
 
 use crate::options;
@@ -18,7 +18,7 @@ pub(super) struct Subcommand {
     repo: Option<String>,
 
     #[clap(flatten)]
-    reports: options::reports::Reports,
+    reports: options::reports::ReportOptions,
 }
 
 impl Subcommand {
@@ -35,7 +35,7 @@ impl Subcommand {
                 let supported = ReportKind::supported(&repo, Scope::Repo);
                 if selected {
                     let (enabled, _) =
-                        ReportTarget::collapse(&self.reports, &defaults, &supported)?;
+                        Reports::collapse(&self.reports, &defaults, &supported)?;
                     enabled
                 } else {
                     defaults

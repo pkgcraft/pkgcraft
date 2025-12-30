@@ -19,8 +19,8 @@ use crate::scan::ScannerRun;
 
 mod set;
 pub use set::ReportSet;
-mod target;
-pub use target::ReportTarget;
+mod cli;
+pub use cli::Reports;
 
 /// The severity of the report.
 #[derive(
@@ -246,8 +246,8 @@ impl ReportKind {
     /// Create a version report builder.
     pub(crate) fn version<T: Into<Cpv>>(self, value: T) -> ReportBuilder {
         ReportBuilder(Report {
+            target: ReportTarget::Version(value.into(), None),
             kind: self,
-            scope: ReportScope::Version(value.into(), None),
             message: Default::default(),
         })
     }
@@ -263,8 +263,8 @@ impl ReportKind {
             .unwrap_or_else(|e| unreachable!("can't convert value to Cpn: {e}"));
 
         ReportBuilder(Report {
+            target: ReportTarget::Package(cpn),
             kind: self,
-            scope: ReportScope::Package(cpn),
             message: Default::default(),
         })
     }
@@ -272,8 +272,8 @@ impl ReportKind {
     /// Create a category report builder.
     pub(crate) fn category<S: fmt::Display>(self, value: S) -> ReportBuilder {
         ReportBuilder(Report {
+            target: ReportTarget::Category(value.to_string()),
             kind: self,
-            scope: ReportScope::Category(value.to_string()),
             message: Default::default(),
         })
     }
@@ -281,17 +281,17 @@ impl ReportKind {
     /// Create a repo report builder.
     pub(crate) fn repo<R: Repository>(self, repo: R) -> ReportBuilder {
         ReportBuilder(Report {
+            target: ReportTarget::Repo(repo.name().to_string()),
             kind: self,
-            scope: ReportScope::Repo(repo.name().to_string()),
             message: Default::default(),
         })
     }
 
-    /// Create a report builder using a custom scope.
-    pub(crate) fn in_scope(self, scope: ReportScope) -> ReportBuilder {
+    /// Create a report builder using a custom target.
+    pub(crate) fn target(self, target: ReportTarget) -> ReportBuilder {
         ReportBuilder(Report {
+            target,
             kind: self,
-            scope,
             message: Default::default(),
         })
     }
@@ -517,10 +517,10 @@ impl ReportBuilder {
     where
         L: Into<Location>,
     {
-        if let ReportScope::Version(_, location @ None) = &mut self.0.scope {
+        if let ReportTarget::Version(_, location @ None) = &mut self.0.target {
             *location = Some(value.into());
         } else {
-            panic!("invalid report scope: {:?}", self.0.scope);
+            panic!("invalid report target: {:?}", self.0.target);
         }
 
         self
@@ -578,16 +578,17 @@ impl From<&Node<'_>> for Location {
     }
 }
 
+/// The target the report relates to, e.g. a specific package version or package name.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
-pub enum ReportScope {
+pub enum ReportTarget {
     Version(Cpv, Option<Location>),
     Package(Cpn),
     Category(String),
     Repo(String),
 }
 
-impl ReportScope {
-    fn scope(&self) -> Scope {
+impl ReportTarget {
+    pub(crate) fn scope(&self) -> Scope {
         match self {
             Self::Version(_, _) => Scope::Version,
             Self::Package(_) => Scope::Package,
@@ -612,7 +613,7 @@ impl ReportScope {
     }
 }
 
-impl Ord for ReportScope {
+impl Ord for ReportTarget {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Repo(v1), Self::Repo(v2)) => v1.cmp(v2),
@@ -633,25 +634,13 @@ impl Ord for ReportScope {
     }
 }
 
-impl PartialOrd for ReportScope {
+impl PartialOrd for ReportTarget {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq<Scope> for ReportScope {
-    fn eq(&self, other: &Scope) -> bool {
-        self.scope() == *other
-    }
-}
-
-impl PartialOrd<Scope> for ReportScope {
-    fn partial_cmp(&self, other: &Scope) -> Option<Ordering> {
-        Some(self.scope().cmp(other))
-    }
-}
-
-impl fmt::Debug for ReportScope {
+impl fmt::Debug for ReportTarget {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Version(cpv, Some(location)) => {
@@ -665,7 +654,7 @@ impl fmt::Debug for ReportScope {
     }
 }
 
-impl fmt::Display for ReportScope {
+impl fmt::Display for ReportTarget {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Version(cpv, Some(location)) => write!(f, "{cpv}, {location}"),
@@ -679,17 +668,17 @@ impl fmt::Display for ReportScope {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Report {
-    scope: ReportScope,
+    /// The report target, e.g. a specific ebuild package version.
+    pub target: ReportTarget,
+
+    /// The report type.
     pub kind: ReportKind,
+
+    /// The report message.
     message: Option<String>,
 }
 
 impl Report {
-    /// The scope the report relates to, e.g. a specific package version or package name.
-    pub fn scope(&self) -> &ReportScope {
-        &self.scope
-    }
-
     /// The report message.
     pub fn message(&self) -> Option<&str> {
         self.message.as_deref()
@@ -710,7 +699,7 @@ impl Report {
 
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.scope, self.kind)?;
+        write!(f, "{}: {}", self.target, self.kind)?;
         if let Some(value) = self.message() {
             write!(f, ": {value}")?;
         }
@@ -720,9 +709,9 @@ impl fmt::Display for Report {
 
 impl Restriction<&Report> for Restrict {
     fn matches(&self, report: &Report) -> bool {
-        match &report.scope {
-            ReportScope::Version(cpv, _) => self.matches(cpv),
-            ReportScope::Package(cpn) => self.matches(cpn),
+        match &report.target {
+            ReportTarget::Version(cpv, _) => self.matches(cpv),
+            ReportTarget::Package(cpn) => self.matches(cpn),
             _ => false,
         }
     }
@@ -786,7 +775,7 @@ impl<'a, R: BufRead> Iter<'a, R> {
 
         // skip excluded scope variants
         if let Some(scopes) = self.scopes
-            && !scopes.contains(&report.scope().scope())
+            && !scopes.contains(&report.target.scope())
         {
             return true;
         }
@@ -840,17 +829,17 @@ mod tests {
 
     // serialized reports in order
     static REPORTS: &str = indoc::indoc! {r#"
-        {"kind":"DependencyDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}
-        {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}
-        {"kind":"WhitespaceUnneeded","scope":{"Version":["cat/pkg1-2-r3",{"line":3,"column":0}]},"message":"empty line"}
-        {"kind":"WhitespaceInvalid","scope":{"Version":["cat/pkg1-2-r3",{"line":6,"column":0}]},"message":"missing ending newline"}
-        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch1"}
-        {"kind":"UnstableOnly","scope":{"Package":"cat/pkg1"},"message":"arch2"}
-        {"kind":"EapiDeprecated","scope":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
-        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat1"},"message":null}
-        {"kind":"RepoCategoryEmpty","scope":{"Category":"cat2"},"message":null}
-        {"kind":"LicensesUnused","scope":{"Repo":"repo1"},"message":"unused"}
-        {"kind":"LicensesUnused","scope":{"Repo":"repo2"},"message":"unused"}
+        {"kind":"DependencyDeprecated","target":{"Version":["cat/pkg1-2-r3",null]},"message":"BDEPEND: cat/deprecated"}
+        {"kind":"EapiDeprecated","target":{"Version":["cat/pkg1-2-r3",null]},"message":"6"}
+        {"kind":"WhitespaceUnneeded","target":{"Version":["cat/pkg1-2-r3",{"line":3,"column":0}]},"message":"empty line"}
+        {"kind":"WhitespaceInvalid","target":{"Version":["cat/pkg1-2-r3",{"line":6,"column":0}]},"message":"missing ending newline"}
+        {"kind":"UnstableOnly","target":{"Package":"cat/pkg1"},"message":"arch1"}
+        {"kind":"UnstableOnly","target":{"Package":"cat/pkg1"},"message":"arch2"}
+        {"kind":"EapiDeprecated","target":{"Version":["cat/pkg2-1-r2",null]},"message":"6"}
+        {"kind":"RepoCategoryEmpty","target":{"Category":"cat1"},"message":null}
+        {"kind":"RepoCategoryEmpty","target":{"Category":"cat2"},"message":null}
+        {"kind":"LicensesUnused","target":{"Repo":"repo1"},"message":"unused"}
+        {"kind":"LicensesUnused","target":{"Repo":"repo2"},"message":"unused"}
     "#};
 
     #[test]
@@ -874,7 +863,7 @@ mod tests {
         // verify ordering manually for PartialOrd tests
         for (a, b) in expected.iter().tuples() {
             assert!(a < b);
-            assert!(a.scope() <= b.scope());
+            assert!(a.target <= b.target);
         }
 
         // reverse reports and sort them back into the expected order
@@ -889,12 +878,12 @@ mod tests {
     fn display_and_debug() {
         for report in REPORTS.lines().filter_map(|s| Report::from_json(s).ok()) {
             let kind = report.kind.to_string();
-            let scope = report.scope().to_string();
+            let target = report.target.to_string();
 
             // regular output
             let s = report.to_string();
             assert!(s.contains(&kind));
-            assert!(s.contains(&scope));
+            assert!(s.contains(&target));
 
             // debug output
             let s = format!("{report:?}");
