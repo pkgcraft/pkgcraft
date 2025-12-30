@@ -38,8 +38,8 @@ pub trait Cache {
     /// Return the cache's filesystem path.
     fn path(&self) -> &Utf8Path;
 
-    /// Get the cache entry for a given package if it exists.
-    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>>;
+    /// Get the cache entry for a given package if it exists and is valid.
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Option<Self::Entry>>;
 
     /// Update the cache with the given package metadata.
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()>;
@@ -127,7 +127,7 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>> {
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Option<Self::Entry>> {
         match self {
             Self::Md5Dict(cache) => cache
                 .get(pkg)
@@ -353,7 +353,7 @@ mod tests {
         let cache = repo.metadata().cache();
 
         // cache entry doesn't exist
-        assert!(cache.get(&pkg).is_none());
+        assert!(cache.get(&pkg).unwrap().is_none());
 
         // generate cache
         cache.regen(&repo).run().unwrap();
@@ -370,6 +370,6 @@ mod tests {
         cache.remove_entry("cat/pkg-1").unwrap();
 
         // cache entry doesn't exist
-        assert!(cache.get(&pkg).is_none());
+        assert!(cache.get(&pkg).unwrap().is_none());
     }
 }

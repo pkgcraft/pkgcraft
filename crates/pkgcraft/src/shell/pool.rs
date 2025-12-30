@@ -207,11 +207,11 @@ impl MetadataTaskBuilder {
 
         if !self.force {
             let pkg = self.repo.get_pkg_raw(cpv.clone())?;
-            if let Some(result) = cache.get(&pkg) {
+            if let Ok(Some(entry)) = cache.get(&pkg) {
                 if self.verify {
                     // perform deserialization, returning any occurring error
-                    return result.and_then(|e| e.to_metadata(&pkg)).map(|_| None);
-                } else if result.is_ok() {
+                    return entry.to_metadata(&pkg).map(|_| None);
+                } else {
                     // skip deserialization, assuming existing cache entry is valid
                     return Ok(None);
                 }

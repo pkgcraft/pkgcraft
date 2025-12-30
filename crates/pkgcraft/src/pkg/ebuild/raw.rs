@@ -132,9 +132,8 @@ impl EbuildRawPkg {
             .repo
             .metadata()
             .cache()
-            .get(self)
+            .get(self)?
             .ok_or_else(|| Error::InvalidValue(format!("{self}: missing metadata entry")))
-            .flatten()
             .and_then(|entry| entry.to_metadata(self))
     }
 

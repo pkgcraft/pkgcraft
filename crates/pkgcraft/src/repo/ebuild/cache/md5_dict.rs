@@ -236,15 +236,14 @@ impl Cache for Md5Dict {
         &self.path
     }
 
-    fn get(&self, pkg: &EbuildRawPkg) -> Option<crate::Result<Self::Entry>> {
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Option<Self::Entry>> {
         let path = self.path.join(pkg.cpv().to_string());
         match fs::read_to_string(&path) {
-            Ok(data) => Some(
-                data.parse::<Self::Entry>()
-                    .and_then(|entry| entry.verify(pkg).and(Ok(entry))),
-            ),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => None,
-            Err(e) => Some(Err(Error::IO(format!("failed loading metadata: {path}: {e}")))),
+            Ok(data) => data
+                .parse::<Self::Entry>()
+                .and_then(|entry| entry.verify(pkg).map(|_| Some(entry))),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(Error::IO(format!("failed loading metadata: {path}: {e}"))),
         }
     }
 
