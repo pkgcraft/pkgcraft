@@ -1333,9 +1333,6 @@ mod tests {
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        fs::File::create(temp.path().join("cat/pkg/pkga-1.ebuild")).unwrap();
-        fs::File::create(temp.path().join("cat/pkg/pkg.ebuild")).unwrap();
-        fs::create_dir_all(temp.path().join("cat/pkg/files")).unwrap();
         config.finalize().unwrap();
 
         // non-repo path
@@ -1379,12 +1376,15 @@ mod tests {
         );
 
         // ebuild with invalid file name
+        fs::File::create(temp.path().join("cat/pkg/pkga-1.ebuild")).unwrap();
         assert_eq!(repo.restrict_from_path("cat/pkg/pkga-1.ebuild").unwrap(), Restrict::False);
 
         // ebuild with invalid file name
+        fs::File::create(temp.path().join("cat/pkg/pkg.ebuild")).unwrap();
         assert_eq!(repo.restrict_from_path("cat/pkg/pkg.ebuild").unwrap(), Restrict::False);
 
         // non-ebuild package path
+        fs::create_dir_all(temp.path().join("cat/pkg/files")).unwrap();
         assert_eq!(repo.restrict_from_path("cat/pkg/files").unwrap(), Restrict::False);
     }
 
