@@ -129,7 +129,7 @@ impl Cache for MetadataCache {
 
     fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
         match self {
-            Self::Md5Dict(cache) => cache.get(pkg).map(MetadataCacheEntry::Md5Dict),
+            Self::Md5Dict(cache) => cache.get(pkg).map(Self::Entry::Md5Dict),
         }
     }
 
