@@ -136,12 +136,6 @@ impl Md5DictEntry {
     }
 }
 
-impl FromIterator<(Md5DictKey, String)> for Md5DictEntry {
-    fn from_iter<I: IntoIterator<Item = (Md5DictKey, String)>>(iterable: I) -> Self {
-        Self(iterable.into_iter().collect())
-    }
-}
-
 impl FromStr for Md5DictEntry {
     type Err = Error;
 
@@ -160,9 +154,11 @@ impl FromStr for Md5DictEntry {
 
 impl From<&Metadata> for Md5DictEntry {
     fn from(meta: &Metadata) -> Self {
-        meta.keys()
-            .filter_map(|key| Md5DictKey::serialize(key, meta))
-            .collect()
+        Self(
+            meta.keys()
+                .filter_map(|key| Md5DictKey::serialize(key, meta))
+                .collect(),
+        )
     }
 }
 
