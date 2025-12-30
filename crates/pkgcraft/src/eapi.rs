@@ -14,7 +14,7 @@ use strum::EnumString;
 use crate::Error;
 use crate::archive::Archive;
 use crate::dep;
-use crate::pkg::ebuild::metadata::Key;
+use crate::pkg::ebuild::MetadataKey;
 use crate::restrict::Restriction;
 use crate::restrict::str::Restrict as StrRestrict;
 use crate::shell::commands::econf::EconfOption;
@@ -99,10 +99,10 @@ pub struct Eapi {
     features: HashSet<Feature>,
     operations: HashSet<Operation>,
     phases: IndexSet<Phase>,
-    dep_keys: IndexSet<Key>,
-    incremental_keys: IndexSet<Key>,
-    mandatory_keys: IndexSet<Key>,
-    metadata_keys: IndexSet<Key>,
+    dep_keys: IndexSet<MetadataKey>,
+    incremental_keys: IndexSet<MetadataKey>,
+    mandatory_keys: IndexSet<MetadataKey>,
+    metadata_keys: IndexSet<MetadataKey>,
     econf_options: IndexSet<EconfOption>,
     archives: HashSet<String>,
     env: IndexSet<BuildVariable>,
@@ -288,22 +288,22 @@ impl Eapi {
     }
 
     /// Metadata variables for dependencies.
-    pub fn dep_keys(&self) -> &IndexSet<Key> {
+    pub fn dep_keys(&self) -> &IndexSet<MetadataKey> {
         &self.dep_keys
     }
 
     /// Metadata variables that are incrementally handled.
-    pub(crate) fn incremental_keys(&self) -> &IndexSet<Key> {
+    pub(crate) fn incremental_keys(&self) -> &IndexSet<MetadataKey> {
         &self.incremental_keys
     }
 
     /// Metadata variables that must exist.
-    pub fn mandatory_keys(&self) -> &IndexSet<Key> {
+    pub fn mandatory_keys(&self) -> &IndexSet<MetadataKey> {
         &self.mandatory_keys
     }
 
     /// Metadata variables that may exist.
-    pub fn metadata_keys(&self) -> &IndexSet<Key> {
+    pub fn metadata_keys(&self) -> &IndexSet<MetadataKey> {
         &self.metadata_keys
     }
 
@@ -396,7 +396,7 @@ impl Eapi {
     }
 
     /// Update dependency types during Eapi registration.
-    fn update_dep_keys(mut self, updates: &[Key]) -> Self {
+    fn update_dep_keys(mut self, updates: &[MetadataKey]) -> Self {
         self.dep_keys.extend(updates);
         self.dep_keys.sort_unstable();
         self.metadata_keys.extend(updates);
@@ -405,14 +405,14 @@ impl Eapi {
     }
 
     /// Update incremental variables during Eapi registration.
-    fn update_incremental_keys(mut self, updates: &[Key]) -> Self {
+    fn update_incremental_keys(mut self, updates: &[MetadataKey]) -> Self {
         self.incremental_keys.extend(updates);
         self.incremental_keys.sort_unstable();
         self
     }
 
     /// Update mandatory metadata variables during Eapi registration.
-    fn update_mandatory_keys(mut self, updates: &[Key]) -> Self {
+    fn update_mandatory_keys(mut self, updates: &[MetadataKey]) -> Self {
         self.mandatory_keys.extend(updates);
         self.mandatory_keys.sort_unstable();
         self.metadata_keys.extend(updates);
@@ -421,7 +421,7 @@ impl Eapi {
     }
 
     /// Update metadata variables during Eapi registration.
-    fn update_metadata_keys(mut self, updates: &[Key]) -> Self {
+    fn update_metadata_keys(mut self, updates: &[MetadataKey]) -> Self {
         self.metadata_keys.extend(updates);
         self.metadata_keys.sort_unstable();
         self
@@ -514,7 +514,7 @@ static OLD_EAPIS: LazyLock<IndexSet<String>> = LazyLock::new(|| {
 });
 
 pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
-    use crate::pkg::ebuild::metadata::Key::*;
+    use crate::pkg::ebuild::MetadataKey::*;
     use crate::shell::commands::builtins::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks;
@@ -760,7 +760,7 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
 });
 
 pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
-    use crate::pkg::ebuild::metadata::Key::*;
+    use crate::pkg::ebuild::MetadataKey::*;
     use crate::shell::commands::builtins::*;
     use crate::shell::environment::Variable::*;
     use crate::shell::hooks;
@@ -805,7 +805,7 @@ pub static EAPI7: LazyLock<Eapi> = LazyLock::new(|| {
 });
 
 pub static EAPI8: LazyLock<Eapi> = LazyLock::new(|| {
-    use crate::pkg::ebuild::metadata::Key::*;
+    use crate::pkg::ebuild::MetadataKey::*;
     use crate::shell::commands::builtins::*;
     use Feature::*;
 

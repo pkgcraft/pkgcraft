@@ -13,7 +13,7 @@ use crate::Error;
 use crate::dep::{ConditionalFlatten, Cpn, Cpv, Dep, UseDep};
 use crate::macros::build_path;
 use crate::pkg::Package;
-use crate::pkg::ebuild::metadata::Key;
+use crate::pkg::ebuild::MetadataKey;
 use crate::traits::LogErrors;
 
 use super::EbuildRepo;
@@ -84,7 +84,7 @@ impl fmt::Display for QaRevDep<'_> {
 
 /// Cache of reverse dependencies for an ebuild repo.
 #[derive(Debug, Default)]
-pub struct RevDepCache(HashMap<Cpn, HashMap<RevDep, HashSet<Key>>>);
+pub struct RevDepCache(HashMap<Cpn, HashMap<RevDep, HashSet<MetadataKey>>>);
 
 impl RevDepCache {
     /// Create a reverse dependencies cache from an ebuild repo.
@@ -122,7 +122,7 @@ impl RevDepCache {
     }
 
     /// Get the reverse dependencies for a Cpn.
-    pub fn get(&self, cpn: &Cpn) -> Option<&HashMap<RevDep, HashSet<Key>>> {
+    pub fn get(&self, cpn: &Cpn) -> Option<&HashMap<RevDep, HashSet<MetadataKey>>> {
         self.0.get(cpn)
     }
 

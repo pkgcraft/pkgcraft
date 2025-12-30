@@ -9,7 +9,7 @@ use crate::Error;
 use crate::dep::Cpv;
 use crate::eapi::{EAPI_LATEST_OFFICIAL, Eapi};
 use crate::files::atomic_write_file;
-use crate::pkg::ebuild::metadata::Key;
+use crate::pkg::ebuild::MetadataKey;
 use crate::repo::ebuild::Metadata;
 use crate::repo::{Repo, RepoFormat};
 
@@ -140,10 +140,11 @@ impl EbuildTempRepo {
             .map_err(|e| Error::IO(format!("failed creating {cpv} ebuild: {e}")))?;
 
         // ebuild defaults
+        use MetadataKey::*;
         let mut values = indexmap::IndexMap::from([
-            (Key::EAPI, EAPI_LATEST_OFFICIAL.as_str()),
-            (Key::DESCRIPTION, "stub package description"),
-            (Key::SLOT, "0"),
+            (EAPI, EAPI_LATEST_OFFICIAL.as_str()),
+            (DESCRIPTION, "stub package description"),
+            (SLOT, "0"),
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"

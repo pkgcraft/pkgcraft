@@ -20,8 +20,7 @@ use tempfile::NamedTempFile;
 use crate::config::ConfigRepos;
 use crate::dep::Cpv;
 use crate::error::Error;
-use crate::pkg::ebuild::EbuildRawPkg;
-use crate::pkg::ebuild::metadata::{Key, Metadata};
+use crate::pkg::ebuild::{EbuildRawPkg, Metadata, MetadataKey};
 use crate::pkg::{Package, PkgPretend, RepoPackage, Source};
 use crate::repo::EbuildRepo;
 use crate::repo::Repository;
@@ -75,10 +74,11 @@ impl MetadataTask {
         let mut meta = Metadata::default();
 
         // populate metadata fields using the current build state
+        use MetadataKey::*;
         for key in eapi.metadata_keys() {
             match key {
-                Key::CHKSUM => meta.deserialize(eapi, repo, key, pkg.chksum())?,
-                Key::DEFINED_PHASES => {
+                CHKSUM => meta.deserialize(eapi, repo, key, pkg.chksum())?,
+                DEFINED_PHASES => {
                     meta.defined_phases = eapi
                         .phases()
                         .iter()
@@ -86,8 +86,8 @@ impl MetadataTask {
                         .map(|p| p.kind)
                         .collect();
                 }
-                Key::INHERIT => meta.inherit = build.inherit.clone(),
-                Key::INHERITED => meta.inherited = build.inherited.clone(),
+                INHERIT => meta.inherit = build.inherit.clone(),
+                INHERITED => meta.inherited = build.inherited.clone(),
                 key => {
                     if let Some(val) = build.incrementals.get(key) {
                         let s = val.iter().join(" ");

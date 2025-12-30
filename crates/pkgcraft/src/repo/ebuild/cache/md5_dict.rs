@@ -14,7 +14,7 @@ use crate::Error;
 use crate::dep::Cpv;
 use crate::files::{atomic_write_file, is_file, remove_file_and_parent};
 use crate::pkg::ebuild::EbuildRawPkg;
-use crate::pkg::ebuild::metadata::{Key, Metadata};
+use crate::pkg::ebuild::{Metadata, MetadataKey};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::EbuildRepo;
 use crate::traits::Contains;
@@ -24,10 +24,10 @@ use super::{Cache, CacheEntry, CacheFormat};
 
 /// Wrapper that converts metadata keys to md5-dict compatible keys.
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-struct Md5DictKey(Key);
+struct Md5DictKey(MetadataKey);
 
-impl Borrow<Key> for Md5DictKey {
-    fn borrow(&self) -> &Key {
+impl Borrow<MetadataKey> for Md5DictKey {
+    fn borrow(&self) -> &MetadataKey {
         &self.0
     }
 }
@@ -37,8 +37,8 @@ impl FromStr for Md5DictKey {
 
     fn from_str(s: &str) -> crate::Result<Self> {
         let key = match s {
-            "_eclasses_" => Key::INHERITED,
-            "_md5_" => Key::CHKSUM,
+            "_eclasses_" => MetadataKey::INHERITED,
+            "_md5_" => MetadataKey::CHKSUM,
             s => s.parse().map_err(|_| {
                 Error::InvalidValue(format!("invalid md5-dict cache key: {s}"))
             })?,
@@ -51,8 +51,8 @@ impl FromStr for Md5DictKey {
 impl fmt::Display for Md5DictKey {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.0 {
-            Key::INHERITED => write!(f, "_eclasses_"),
-            Key::CHKSUM => write!(f, "_md5_"),
+            MetadataKey::INHERITED => write!(f, "_eclasses_"),
+            MetadataKey::CHKSUM => write!(f, "_md5_"),
             key => write!(f, "{key}"),
         }
     }
@@ -85,7 +85,7 @@ impl CacheEntry for Md5DictEntry {
         let invalid = |e| Error::InvalidValue(format!("{pkg}: invalid metadata: {e}"));
 
         // verify ebuild checksum
-        if let Some(val) = self.0.get(&Key::CHKSUM) {
+        if let Some(val) = self.0.get(&MetadataKey::CHKSUM) {
             if val != pkg.chksum() {
                 return Err(invalid("mismatched ebuild checksum"));
             }
@@ -94,7 +94,7 @@ impl CacheEntry for Md5DictEntry {
         }
 
         // verify eclass checksums
-        if let Some(val) = self.0.get(&Key::INHERITED) {
+        if let Some(val) = self.0.get(&MetadataKey::INHERITED) {
             let repo = pkg.repo();
             for (name, chksum) in val.split_whitespace().tuples() {
                 let Some(eclass) = repo.eclasses().get(name) else {
@@ -105,7 +105,7 @@ impl CacheEntry for Md5DictEntry {
                     return Err(invalid(&format!("mismatched eclass checksum: {name}")));
                 }
             }
-        } else if self.0.get(&Key::INHERIT).is_some() {
+        } else if self.0.get(&MetadataKey::INHERIT).is_some() {
             // Note that this doesn't catch all missing error variants, but it's the best
             // that can be done without sourcing the ebuild.
             return Err(invalid("missing eclass checksum"));
@@ -148,23 +148,24 @@ impl FromStr for Md5DictEntry {
 }
 
 /// Serialize a metadata field to its md5-dict cache mapping, returning None for empty fields.
-fn serialize(meta: &Metadata, key: Key) -> Option<(Md5DictKey, String)> {
+fn serialize(meta: &Metadata, key: MetadataKey) -> Option<(Md5DictKey, String)> {
+    use MetadataKey::*;
     let value = match key {
-        Key::CHKSUM => meta.chksum.to_string(),
-        Key::DESCRIPTION => meta.description.to_string(),
-        Key::SLOT => meta.slot.to_string(),
-        Key::BDEPEND => meta.bdepend.to_string(),
-        Key::DEPEND => meta.depend.to_string(),
-        Key::IDEPEND => meta.idepend.to_string(),
-        Key::PDEPEND => meta.pdepend.to_string(),
-        Key::RDEPEND => meta.rdepend.to_string(),
-        Key::LICENSE => meta.license.to_string(),
-        Key::PROPERTIES => meta.properties.to_string(),
-        Key::REQUIRED_USE => meta.required_use.to_string(),
-        Key::RESTRICT => meta.restrict.to_string(),
-        Key::SRC_URI => meta.src_uri.to_string(),
-        Key::HOMEPAGE => meta.homepage.iter().join(" "),
-        Key::DEFINED_PHASES => {
+        CHKSUM => meta.chksum.to_string(),
+        DESCRIPTION => meta.description.to_string(),
+        SLOT => meta.slot.to_string(),
+        BDEPEND => meta.bdepend.to_string(),
+        DEPEND => meta.depend.to_string(),
+        IDEPEND => meta.idepend.to_string(),
+        PDEPEND => meta.pdepend.to_string(),
+        RDEPEND => meta.rdepend.to_string(),
+        LICENSE => meta.license.to_string(),
+        PROPERTIES => meta.properties.to_string(),
+        REQUIRED_USE => meta.required_use.to_string(),
+        RESTRICT => meta.restrict.to_string(),
+        SRC_URI => meta.src_uri.to_string(),
+        HOMEPAGE => meta.homepage.iter().join(" "),
+        DEFINED_PHASES => {
             // PMS specifies if no phase functions are defined, a single hyphen is used.
             if meta.defined_phases.is_empty() {
                 "-".to_string()
@@ -172,15 +173,15 @@ fn serialize(meta: &Metadata, key: Key) -> Option<(Md5DictKey, String)> {
                 meta.defined_phases.iter().map(|p| p.name()).join(" ")
             }
         }
-        Key::KEYWORDS => meta.keywords.iter().join(" "),
-        Key::IUSE => meta.iuse.iter().join(" "),
-        Key::INHERIT => meta.inherit.iter().join(" "),
-        Key::INHERITED => meta
+        KEYWORDS => meta.keywords.iter().join(" "),
+        IUSE => meta.iuse.iter().join(" "),
+        INHERIT => meta.inherit.iter().join(" "),
+        INHERITED => meta
             .inherited
             .iter()
             .flat_map(|e| [e.name(), e.chksum()])
             .join("\t"),
-        Key::EAPI => meta.eapi.to_string(),
+        EAPI => meta.eapi.to_string(),
     };
 
     if value.is_empty() {
@@ -192,7 +193,7 @@ fn serialize(meta: &Metadata, key: Key) -> Option<(Md5DictKey, String)> {
 
 impl From<&Metadata> for Md5DictEntry {
     fn from(meta: &Metadata) -> Self {
-        Key::iter()
+        MetadataKey::iter()
             .filter(|x| meta.eapi.metadata_keys().contains(x))
             .filter_map(|key| serialize(meta, key))
             .collect()

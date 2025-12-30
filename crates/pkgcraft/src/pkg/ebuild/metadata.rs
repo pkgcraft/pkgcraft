@@ -24,7 +24,7 @@ use super::keyword::Keyword;
 #[strum(serialize_all = "UPPERCASE")]
 #[allow(non_camel_case_types)]
 #[allow(clippy::upper_case_acronyms)]
-pub enum Key {
+pub enum MetadataKey {
     BDEPEND,
     DEFINED_PHASES,
     DEPEND,
@@ -48,33 +48,33 @@ pub enum Key {
     CHKSUM,
 }
 
-impl PartialEq for Key {
+impl PartialEq for MetadataKey {
     fn eq(&self, other: &Self) -> bool {
         self.as_ref() == other.as_ref()
     }
 }
 
-impl Eq for Key {}
+impl Eq for MetadataKey {}
 
-impl Ord for Key {
+impl Ord for MetadataKey {
     fn cmp(&self, other: &Self) -> Ordering {
         self.as_ref().cmp(other.as_ref())
     }
 }
 
-impl PartialOrd for Key {
+impl PartialOrd for MetadataKey {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Hash for Key {
+impl Hash for MetadataKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_ref().hash(state);
     }
 }
 
-impl Borrow<str> for Key {
+impl Borrow<str> for MetadataKey {
     fn borrow(&self) -> &str {
         self.as_ref()
     }
@@ -114,7 +114,7 @@ impl Metadata {
         &mut self,
         eapi: &'static Eapi,
         repo: &EbuildRepo,
-        key: &Key,
+        key: &MetadataKey,
         val: &str,
     ) -> crate::Result<()> {
         // return the Eclass for a given identifier if it exists
@@ -144,44 +144,39 @@ impl Metadata {
                 .ok_or_else(|| Error::InvalidValue(format!("nonexistent phase: {name}")))
         };
 
+        use MetadataKey::*;
         match key {
-            Key::CHKSUM => self.chksum = val.to_string(),
-            Key::DESCRIPTION => self.description = val.to_string(),
-            Key::SLOT => self.slot = Slot::try_new(val)?,
-            Key::BDEPEND => self.bdepend = DependencySet::package(val, eapi)?,
-            Key::DEPEND => self.depend = DependencySet::package(val, eapi)?,
-            Key::IDEPEND => self.idepend = DependencySet::package(val, eapi)?,
-            Key::PDEPEND => self.pdepend = DependencySet::package(val, eapi)?,
-            Key::RDEPEND => self.rdepend = DependencySet::package(val, eapi)?,
-            Key::LICENSE => self.license = DependencySet::license(val)?,
-            Key::PROPERTIES => self.properties = DependencySet::properties(val)?,
-            Key::REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
-            Key::RESTRICT => self.restrict = DependencySet::restrict(val)?,
-            Key::SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
-            Key::HOMEPAGE => {
-                self.homepage = val.split_whitespace().map(String::from).collect()
-            }
-            Key::DEFINED_PHASES => {
+            CHKSUM => self.chksum = val.to_string(),
+            DESCRIPTION => self.description = val.to_string(),
+            SLOT => self.slot = Slot::try_new(val)?,
+            BDEPEND => self.bdepend = DependencySet::package(val, eapi)?,
+            DEPEND => self.depend = DependencySet::package(val, eapi)?,
+            IDEPEND => self.idepend = DependencySet::package(val, eapi)?,
+            PDEPEND => self.pdepend = DependencySet::package(val, eapi)?,
+            RDEPEND => self.rdepend = DependencySet::package(val, eapi)?,
+            LICENSE => self.license = DependencySet::license(val)?,
+            PROPERTIES => self.properties = DependencySet::properties(val)?,
+            REQUIRED_USE => self.required_use = DependencySet::required_use(val)?,
+            RESTRICT => self.restrict = DependencySet::restrict(val)?,
+            SRC_URI => self.src_uri = DependencySet::src_uri(val)?,
+            HOMEPAGE => self.homepage = val.split_whitespace().map(String::from).collect(),
+            DEFINED_PHASES => {
                 // PMS specifies if no phase functions are defined, a single hyphen is used.
                 if val != "-" {
                     self.defined_phases = val.split_whitespace().map(phase).try_collect()?
                 }
             }
-            Key::KEYWORDS => {
-                self.keywords = val.split_whitespace().map(keyword).try_collect()?
-            }
-            Key::IUSE => {
-                self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?
-            }
-            Key::INHERIT => self.inherit = val.split_whitespace().map(eclass).try_collect()?,
-            Key::INHERITED => {
+            KEYWORDS => self.keywords = val.split_whitespace().map(keyword).try_collect()?,
+            IUSE => self.iuse = val.split_whitespace().map(Iuse::try_new).try_collect()?,
+            INHERIT => self.inherit = val.split_whitespace().map(eclass).try_collect()?,
+            INHERITED => {
                 self.inherited = val
                     .split_whitespace()
                     .tuples()
                     .map(|(name, _chksum)| eclass(name))
                     .try_collect()?
             }
-            Key::EAPI => {
+            EAPI => {
                 let sourced: &Eapi = val.try_into()?;
                 if sourced != eapi {
                     return Err(Error::InvalidValue(format!(

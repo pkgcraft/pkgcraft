@@ -2,7 +2,7 @@ use dashmap::DashSet;
 use itertools::Itertools;
 use pkgcraft::dep::{Dep, Dependency, Operator, SlotOperator, UseDepKind};
 use pkgcraft::pkg::Package;
-use pkgcraft::pkg::ebuild::{EbuildPkg, metadata::Key};
+use pkgcraft::pkg::ebuild::{EbuildPkg, MetadataKey::PDEPEND};
 use pkgcraft::restrict::Scope;
 use pkgcraft::traits::Intersects;
 
@@ -95,7 +95,7 @@ impl super::CheckRun for Check {
                             .report(run);
                     }
 
-                    if key == Key::PDEPEND {
+                    if key == PDEPEND {
                         DependencyInvalid
                             .version(pkg)
                             .message(format!("{key}: = slot operator invalid: {dep}"))

@@ -7,8 +7,7 @@ use globset::{Glob, GlobSetBuilder};
 use indexmap::IndexMap;
 use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
-use pkgcraft::pkg::ebuild::EbuildRawPkg;
-use pkgcraft::pkg::ebuild::metadata::Key;
+use pkgcraft::pkg::ebuild::{EbuildRawPkg, MetadataKey};
 use pkgcraft::repo::RepoFormat;
 use pkgcraft::shell::environment::Variable;
 use pkgcraft::traits::{LogErrors, ParallelMapOrdered};
@@ -67,7 +66,7 @@ impl Command {
             .ebuild_raw_pkgs();
 
         let eapi: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
-        let meta: HashSet<_> = Key::iter().map(|v| v.to_string()).collect();
+        let meta: HashSet<_> = MetadataKey::iter().map(|v| v.to_string()).collect();
 
         // create variable filters
         let (mut hide, mut show) = (GlobSetBuilder::new(), GlobSetBuilder::new());

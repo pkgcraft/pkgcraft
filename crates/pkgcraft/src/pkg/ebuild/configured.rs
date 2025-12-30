@@ -12,8 +12,7 @@ use crate::restrict::{Restrict as BaseRestrict, Restriction};
 use crate::traits::Intersects;
 use crate::types::OrderedSet;
 
-use super::EbuildPkg;
-use super::metadata::Key;
+use super::{EbuildPkg, MetadataKey};
 
 #[derive(Clone)]
 pub struct EbuildConfiguredPkg {
@@ -44,7 +43,7 @@ impl EbuildConfiguredPkg {
     /// Return a package's evaluated dependencies for a given iterable of descriptors.
     pub fn dependencies<I>(&self, keys: I) -> DependencySet<&Dep>
     where
-        I: IntoIterator<Item = Key>,
+        I: IntoIterator<Item = MetadataKey>,
     {
         self.raw
             .dependencies(keys)

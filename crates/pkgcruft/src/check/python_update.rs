@@ -4,8 +4,10 @@ use dashmap::{DashMap, mapref::one::MappedRef};
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::dep::Flatten;
-use pkgcraft::pkg::ebuild::EbuildPkg;
-use pkgcraft::pkg::ebuild::metadata::Key::{self, BDEPEND, DEPEND};
+use pkgcraft::pkg::ebuild::{
+    EbuildPkg,
+    MetadataKey::{self, BDEPEND, DEPEND},
+};
 use pkgcraft::repo::{EbuildRepo, PkgRepository};
 use pkgcraft::restrict::{Restrict, Scope};
 use strum::{AsRefStr, Display, EnumIter, IntoEnumIterator};
@@ -49,7 +51,7 @@ impl Eclass {
     }
 
     /// Dependency variants to pull for matching, with empty lists pulling all deps.
-    fn keys(&self) -> impl Iterator<Item = Key> {
+    fn keys(&self) -> impl Iterator<Item = MetadataKey> {
         match self {
             Self::PythonR1 => [].iter().copied(),
             Self::PythonSingleR1 => [].iter().copied(),

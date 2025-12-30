@@ -25,8 +25,8 @@ pub mod iuse;
 pub mod keyword;
 pub mod manifest;
 use manifest::Manifest;
-pub mod metadata;
-use metadata::{Key, Metadata};
+mod metadata;
+pub use metadata::{Metadata, MetadataKey};
 mod raw;
 pub use raw::EbuildRawPkg;
 mod restrict;
@@ -142,7 +142,7 @@ impl EbuildPkg {
     /// Return a package's dependencies for a given iterable of descriptors.
     pub fn dependencies<I>(&self, keys: I) -> DependencySet<&Dep>
     where
-        I: IntoIterator<Item = Key>,
+        I: IntoIterator<Item = MetadataKey>,
     {
         // collapse duplicate keys
         let mut keys: IndexSet<_> = keys.into_iter().collect();
@@ -151,13 +151,14 @@ impl EbuildPkg {
             keys = self.eapi().dep_keys().clone();
         }
 
+        use MetadataKey::*;
         keys.into_iter()
             .filter_map(|k| match k {
-                Key::BDEPEND => Some(self.bdepend()),
-                Key::DEPEND => Some(self.depend()),
-                Key::IDEPEND => Some(self.idepend()),
-                Key::PDEPEND => Some(self.pdepend()),
-                Key::RDEPEND => Some(self.rdepend()),
+                BDEPEND => Some(self.bdepend()),
+                DEPEND => Some(self.depend()),
+                IDEPEND => Some(self.idepend()),
+                PDEPEND => Some(self.pdepend()),
+                RDEPEND => Some(self.rdepend()),
                 // non-dependency keys are ignored
                 _ => None,
             })
@@ -537,6 +538,7 @@ mod tests {
 
     #[test]
     fn dependencies() {
+        use MetadataKey::*;
         let data = test_data();
         let repo = data.ebuild_repo("metadata").unwrap();
 
@@ -546,7 +548,7 @@ mod tests {
             assert!(pkg.dependencies([*key]).is_empty());
         }
         assert!(pkg.dependencies([]).is_empty());
-        assert!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).is_empty());
+        assert!(pkg.dependencies([DEPEND, RDEPEND]).is_empty());
 
         // empty
         let pkg = repo.get_pkg("optional/empty-8").unwrap();
@@ -554,7 +556,7 @@ mod tests {
             assert!(pkg.dependencies([*key]).is_empty());
         }
         assert!(pkg.dependencies([]).is_empty());
-        assert!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).is_empty());
+        assert!(pkg.dependencies([DEPEND, RDEPEND]).is_empty());
 
         // single-line
         let pkg = repo.get_pkg("dependencies/single-8").unwrap();
@@ -562,7 +564,7 @@ mod tests {
             assert_eq!(pkg.dependencies([*key]).to_string(), "a/pkg b/pkg");
         }
         assert_eq!(pkg.dependencies([]).to_string(), "a/pkg b/pkg");
-        assert_eq!(pkg.dependencies([Key::DEPEND, Key::RDEPEND]).to_string(), "a/pkg b/pkg");
+        assert_eq!(pkg.dependencies([DEPEND, RDEPEND]).to_string(), "a/pkg b/pkg");
 
         // multi-line
         let pkg = repo.get_pkg("dependencies/multi-8").unwrap();
@@ -570,13 +572,10 @@ mod tests {
             assert_eq!(pkg.dependencies([*key]).to_string(), "a/pkg u? ( b/pkg )");
         }
         assert_eq!(pkg.dependencies([]).to_string(), "a/pkg u? ( b/pkg )");
-        assert_eq!(
-            pkg.dependencies([Key::DEPEND, Key::RDEPEND]).to_string(),
-            "a/pkg u? ( b/pkg )"
-        );
+        assert_eq!(pkg.dependencies([DEPEND, RDEPEND]).to_string(), "a/pkg u? ( b/pkg )");
 
         // non-dependency keys are ignored
-        assert!(pkg.dependencies([Key::LICENSE]).is_empty());
+        assert!(pkg.dependencies([LICENSE]).is_empty());
     }
 
     #[test]

@@ -12,7 +12,7 @@ use scallop::{Error, ExecStatus, builtins, functions};
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
 use crate::macros::build_path;
-use crate::pkg::ebuild::{EbuildConfiguredPkg, EbuildPkg, EbuildRawPkg, metadata::Key};
+use crate::pkg::ebuild::{EbuildConfiguredPkg, EbuildPkg, EbuildRawPkg, MetadataKey};
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::{Repo, Repository};
@@ -114,7 +114,7 @@ pub(crate) struct BuildData {
     /// complete set of inherited eclasses
     inherited: OrderedSet<Eclass>,
     /// incremental metadata fields
-    incrementals: HashMap<Key, Deque<String>>,
+    incrementals: HashMap<MetadataKey, Deque<String>>,
 }
 
 impl BuildData {
