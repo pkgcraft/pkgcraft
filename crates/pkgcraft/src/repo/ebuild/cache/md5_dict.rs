@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::str::FromStr;
-use std::{fmt, fs, io};
+use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
@@ -236,13 +236,12 @@ impl Cache for Md5Dict {
         &self.path
     }
 
-    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Option<Self::Entry>> {
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
         let path = self.path.join(pkg.cpv().to_string());
         match fs::read_to_string(&path) {
             Ok(data) => data
                 .parse::<Self::Entry>()
-                .and_then(|entry| entry.verify(pkg).map(|_| Some(entry))),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+                .and_then(|entry| entry.verify(pkg).map(|_| entry)),
             Err(e) => Err(Error::IO(format!("failed loading metadata: {path}: {e}"))),
         }
     }
@@ -349,8 +348,8 @@ mod tests {
             let pkg = pkg.unwrap();
             let meta = pkg.metadata(false).unwrap();
             new_cache.update(&pkg, &meta).unwrap();
-            let new_entry = new_cache.get(&pkg).unwrap().unwrap();
-            let old_entry = repo_cache.get(&pkg).unwrap().unwrap();
+            let new_entry = new_cache.get(&pkg).unwrap();
+            let old_entry = repo_cache.get(&pkg).unwrap();
             assert_eq!(new_entry, old_entry);
             let new_meta = new_entry.to_metadata(&pkg).unwrap();
             let old_meta = old_entry.to_metadata(&pkg).unwrap();

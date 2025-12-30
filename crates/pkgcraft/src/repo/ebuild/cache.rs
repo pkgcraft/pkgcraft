@@ -39,7 +39,7 @@ pub trait Cache {
     fn path(&self) -> &Utf8Path;
 
     /// Get the cache entry for a given package if it exists and is valid.
-    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Option<Self::Entry>>;
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry>;
 
     /// Update the cache with the given package metadata.
     fn update(&self, pkg: &EbuildRawPkg, meta: &Metadata) -> crate::Result<()>;
@@ -127,11 +127,9 @@ impl Cache for MetadataCache {
         }
     }
 
-    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Option<Self::Entry>> {
+    fn get(&self, pkg: &EbuildRawPkg) -> crate::Result<Self::Entry> {
         match self {
-            Self::Md5Dict(cache) => cache
-                .get(pkg)
-                .map(|result| result.map(MetadataCacheEntry::Md5Dict)),
+            Self::Md5Dict(cache) => cache.get(pkg).map(MetadataCacheEntry::Md5Dict),
         }
     }
 
@@ -353,13 +351,13 @@ mod tests {
         let cache = repo.metadata().cache();
 
         // cache entry doesn't exist
-        assert!(cache.get(&pkg).unwrap().is_none());
+        assert!(cache.get(&pkg).is_err());
 
         // generate cache
         cache.regen(&repo).run().unwrap();
 
         // valid cache entry exists
-        let entry = cache.get(&pkg).unwrap().unwrap();
+        let entry = cache.get(&pkg).unwrap();
         assert!(entry.verify(&pkg).is_ok());
 
         // remove nonexistent cache entry
@@ -370,6 +368,6 @@ mod tests {
         cache.remove_entry("cat/pkg-1").unwrap();
 
         // cache entry doesn't exist
-        assert!(cache.get(&pkg).unwrap().is_none());
+        assert!(cache.get(&pkg).is_err());
     }
 }

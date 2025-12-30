@@ -207,7 +207,7 @@ impl MetadataTaskBuilder {
 
         if !self.force {
             let pkg = self.repo.get_pkg_raw(cpv.clone())?;
-            if let Ok(Some(entry)) = cache.get(&pkg) {
+            if let Ok(entry) = cache.get(&pkg) {
                 if self.verify {
                     // perform deserialization, returning any occurring error
                     return entry.to_metadata(&pkg).map(|_| None);
