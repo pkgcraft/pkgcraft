@@ -79,7 +79,7 @@ impl PhaseKind {
         }
     }
 
-    /// Return the phase name, e.g. src_compile -> compile.
+    /// Return the short phase name, e.g. src_compile -> compile.
     pub fn name(&self) -> &str {
         self.as_ref()
             .split_once('_')
@@ -173,7 +173,7 @@ impl Borrow<PhaseKind> for Phase {
 
 impl Borrow<str> for Phase {
     fn borrow(&self) -> &str {
-        self.kind.name()
+        self.kind.borrow()
     }
 }
 
@@ -249,5 +249,39 @@ impl Phase {
     /// Return the phase name, e.g. src_compile -> compile.
     pub fn name(&self) -> &str {
         self.kind.name()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn phasekind_traits() {
+        let src_compile = PhaseKind::SrcCompile;
+        assert_eq!(src_compile, src_compile);
+
+        // hash and borrow
+        let set = IndexSet::from([src_compile]);
+        assert_eq!(set.get("compile").unwrap(), &src_compile);
+
+        // ordered by short name
+        let pkg_setup = PhaseKind::PkgSetup;
+        assert!(src_compile < pkg_setup);
+    }
+
+    #[test]
+    fn phase_traits() {
+        let src_compile: Phase = PhaseKind::SrcCompile.into();
+        assert_eq!(src_compile, src_compile);
+
+        // hash and borrow
+        let set = IndexSet::from([src_compile.clone()]);
+        assert_eq!(set.get("compile").unwrap(), &src_compile);
+        assert_eq!(set.get(&PhaseKind::SrcCompile).unwrap(), &src_compile);
+
+        // ordered by short name
+        let pkg_setup: Phase = PhaseKind::PkgSetup.into();
+        assert!(src_compile < pkg_setup);
     }
 }
