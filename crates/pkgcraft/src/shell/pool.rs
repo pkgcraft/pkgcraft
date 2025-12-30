@@ -475,14 +475,14 @@ impl BuildPool {
                             sem.release().unwrap();
                             std::process::exit(0);
                         }
-                        Err(e) => panic!("process pool fork failed: {e}"), // grcov-excl-line
+                        Err(e) => unreachable!("task pool fork failed: {e}"),
                     }
                 }
 
                 // task pool is closed
                 std::process::exit(0);
             }
-            Err(e) => panic!("process pool failed start: {e}"), // grcov-excl-line
+            Err(e) => unreachable!("task pool start failed: {e}"),
         }
     }
 
