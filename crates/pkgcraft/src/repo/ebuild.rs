@@ -290,7 +290,7 @@ impl EbuildRepo {
 
         // ignore paths from non-categories such as profiles/*
         if !self.categories().contains(cat) {
-            path_err("non-category path");
+            return Err(path_err("non-category path"));
         }
 
         Cpn::try_from((cat, pkg))
@@ -1325,6 +1325,31 @@ mod tests {
         assert_eq!(repo.id(), "name");
         assert_eq!(repo.name(), "primary");
         assert!(!format!("{repo:?}").contains(repo.name()));
+    }
+
+    #[test]
+    fn cpn_from_path() {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        config.finalize().unwrap();
+
+        // mismatched
+        let r = repo.cpn_from_path("cat");
+        assert_err_re!(r, "invalid cpn path: cat: mismatched path components");
+
+        // non-category
+        let r = repo.cpn_from_path("profiles/default");
+        assert_err_re!(r, "invalid cpn path: profiles/default: non-category path");
+
+        // nonexistent
+        let cpn = repo.cpn_from_path("cat/nonexistent").unwrap();
+        assert_eq!(cpn.to_string(), "cat/nonexistent");
+
+        // existent
+        let cpn = repo.cpn_from_path("cat/pkg").unwrap();
+        assert_eq!(cpn.to_string(), "cat/pkg");
     }
 
     #[test]
