@@ -10,7 +10,7 @@ use scallop::variables::{self, Attr, bind, unbind};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::get_build_mut;
-use super::scope::ScopeSet;
+use super::scope::{Scope, ScopeSet};
 
 /// Ordered set of all externally defined environment variables.
 ///
@@ -110,7 +110,7 @@ impl Variable {
     {
         BuildVariable {
             var: self,
-            allowed: scopes.into_iter().map(Into::into).collect(),
+            allowed: scopes.into_iter().flat_map(Into::into).collect(),
             external: false,
         }
     }
@@ -134,7 +134,7 @@ impl Variable {
 #[derive(Debug, Clone)]
 pub struct BuildVariable {
     var: Variable,
-    allowed: IndexSet<ScopeSet>,
+    allowed: IndexSet<Scope>,
     external: bool,
 }
 
@@ -217,11 +217,8 @@ impl BuildVariable {
     }
 
     /// Determine if the variable is allowed in a given `Scope`.
-    pub fn is_allowed<T>(&self, value: &T) -> bool
-    where
-        ScopeSet: PartialEq<T>,
-    {
-        self.allowed.iter().any(|x| x == value)
+    pub fn is_allowed(&self, scope: &Scope) -> bool {
+        self.allowed.contains(scope)
     }
 
     pub(crate) fn bind(&self, value: &str) -> scallop::Result<ExecStatus> {

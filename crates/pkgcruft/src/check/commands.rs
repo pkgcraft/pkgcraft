@@ -164,7 +164,7 @@ fn eapi_command<'a>(
             .location(cmd_node)
             .report(run);
     } else if let Ok(phase) = func_name.parse::<PhaseKind>()
-        && !eapi_cmd.is_allowed(&phase)
+        && !eapi_cmd.is_allowed(&phase.into())
     {
         CommandScopeInvalid
             .version(pkg)

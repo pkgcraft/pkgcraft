@@ -33,6 +33,7 @@ mod unescape;
 mod utils;
 
 use environment::{BASH, EXTERNAL, Variable};
+use phase::{Phase, PhaseKind};
 use scope::Scope;
 
 // builtins that are permanently disabled
@@ -61,12 +62,18 @@ impl Default for BuildState {
     }
 }
 
+/// Wrapper that reverts the build state to the previous scope and eclass on drop.
 #[derive(Debug)]
-struct Scoped(Scope);
+struct Scoped {
+    prev_scope: Scope,
+    prev_eclass: Option<Eclass>,
+}
 
 impl Drop for Scoped {
     fn drop(&mut self) {
-        get_build_mut().scope = self.0.clone();
+        let build = get_build_mut();
+        build.scope = self.prev_scope;
+        build.eclass = self.prev_eclass.take();
     }
 }
 
@@ -86,6 +93,7 @@ pub(crate) struct BuildData {
     use_: HashSet<String>,
 
     scope: Scope,
+    eclass: Option<Eclass>,
     user_patches_applied: bool,
 
     insopts: IndexSet<String>,
@@ -99,7 +107,7 @@ pub(crate) struct BuildData {
     strip_exclude: IndexSet<Utf8PathBuf>,
 
     /// phases defined by eclasses
-    eclass_phases: IndexMap<phase::PhaseKind, Eclass>,
+    eclass_phases: IndexMap<PhaseKind, Eclass>,
 
     /// set of directly inherited eclasses
     inherit: OrderedSet<Eclass>,
@@ -211,16 +219,29 @@ impl BuildData {
         }
     }
 
-    /// Change the current build to a temporary scope, reverting to the previous value when
-    /// the returned value is dropped.
-    fn scoped<T: Into<Scope>>(&mut self, value: T) -> Scoped {
-        let scoped = Scoped(self.scope.clone());
-        self.scope = value.into();
+    /// Configure the build state for temporary eclass scope.
+    fn in_eclass(&mut self, eclass: Eclass) -> Scoped {
+        let scoped = Scoped {
+            prev_scope: self.scope,
+            prev_eclass: self.eclass.take(),
+        };
+        self.scope = Scope::Eclass;
+        self.eclass = Some(eclass);
+        scoped
+    }
+
+    /// Configure the build state for temporary phase scope.
+    fn in_phase(&mut self, phase: PhaseKind) -> Scoped {
+        let scoped = Scoped {
+            prev_scope: self.scope,
+            prev_eclass: self.eclass.take(),
+        };
+        self.scope = phase.into();
         scoped
     }
 
     /// Get the current build phase if it exists.
-    fn phase(&self) -> &phase::Phase {
+    fn phase(&self) -> &Phase {
         match &self.scope {
             Scope::Phase(k) => self.eapi().phases().get(k).expect("unknown scope phase"),
             scope => unreachable!("phase invalid for scope: {scope}"),
@@ -229,10 +250,10 @@ impl BuildData {
 
     /// Get the current eclass if it exists.
     fn eclass(&self) -> Eclass {
-        match &self.scope {
-            Scope::Eclass(Some(eclass)) => eclass.clone(),
-            scope => unreachable!("eclass invalid for scope: {scope}"),
-        }
+        let scope = &self.scope;
+        self.eclass
+            .clone()
+            .unwrap_or_else(|| unreachable!("eclass invalid for scope: {scope}"))
     }
 
     /// Get the cached value for a given build variable from the build state.

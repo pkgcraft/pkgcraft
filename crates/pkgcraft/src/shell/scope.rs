@@ -2,29 +2,21 @@ use std::fmt;
 
 use strum::IntoEnumIterator;
 
-use crate::repo::ebuild::Eclass;
-
 use super::phase::PhaseKind;
 
 /// Build state scope.
-#[derive(Debug, Default, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Scope {
     #[default]
     Global,
-    Eclass(Option<Eclass>),
+    Eclass,
     Phase(PhaseKind),
 }
 
 impl Scope {
-    /// Determine if the scope is an eclass scope.
-    pub(crate) fn is_eclass(&self) -> bool {
-        matches!(self, Self::Eclass(_))
-    }
-}
-
-impl From<Eclass> for Scope {
-    fn from(value: Eclass) -> Self {
-        Self::Eclass(Some(value))
+    /// Determine if the scope is global scope.
+    pub(crate) fn is_global(&self) -> bool {
+        self == &Self::Global
     }
 }
 
@@ -37,7 +29,7 @@ impl From<PhaseKind> for Scope {
 impl AsRef<str> for Scope {
     fn as_ref(&self) -> &str {
         match self {
-            Self::Eclass(_) => "eclass",
+            Self::Eclass => "eclass",
             Self::Global => "global",
             Self::Phase(p) => p.as_ref(),
         }
@@ -74,28 +66,6 @@ impl ScopeSet {
     }
 }
 
-impl PartialEq<Scope> for ScopeSet {
-    fn eq(&self, other: &Scope) -> bool {
-        match (self, other) {
-            (Self::All, _) => true,
-            (Self::Eclass, Scope::Eclass(_)) => true,
-            (Self::Global, Scope::Global) => true,
-            (Self::Phases, Scope::Phase(_)) => true,
-            (Self::Pkg, Scope::Phase(x)) => x.as_ref().starts_with("pkg_"),
-            (Self::Src, Scope::Phase(x)) => x.as_ref().starts_with("src_"),
-            (Self::Phase(x), Scope::Phase(y)) => x == y,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<PhaseKind> for ScopeSet {
-    fn eq(&self, other: &PhaseKind) -> bool {
-        let scope = Scope::Phase(*other);
-        *self == scope
-    }
-}
-
 impl IntoIterator for ScopeSet {
     type Item = Scope;
     type IntoIter = Box<dyn Iterator<Item = Scope>>;
@@ -103,7 +73,7 @@ impl IntoIterator for ScopeSet {
     fn into_iter(self) -> Self::IntoIter {
         match self {
             Self::All => Box::new([Self::Global, Self::Eclass, Self::Phases].iter().flatten()),
-            Self::Eclass => Box::new([Scope::Eclass(None)].into_iter()),
+            Self::Eclass => Box::new([Scope::Eclass].into_iter()),
             Self::Global => Box::new([Scope::Global].into_iter()),
             Self::Phases => Box::new(PhaseKind::iter().map(Scope::Phase)),
             Self::Pkg => Box::new(

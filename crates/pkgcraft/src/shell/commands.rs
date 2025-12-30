@@ -9,7 +9,7 @@ use indexmap::IndexSet;
 
 use super::get_build_mut;
 use super::phase::PhaseKind;
-use super::scope::ScopeSet;
+use super::scope::{Scope, ScopeSet};
 
 mod _new;
 mod _phases;
@@ -345,7 +345,7 @@ impl Builtin {
     {
         Command {
             builtin: self,
-            allowed: scopes.into_iter().map(Into::into).collect(),
+            allowed: scopes.into_iter().flat_map(Into::into).collect(),
             die_on_failure: true,
         }
     }
@@ -376,7 +376,7 @@ impl Deref for Builtin {
 #[derive(Debug, Clone)]
 pub struct Command {
     builtin: Builtin,
-    pub allowed: IndexSet<ScopeSet>,
+    pub allowed: IndexSet<Scope>,
     pub die_on_failure: bool,
 }
 
@@ -448,11 +448,8 @@ impl Command {
     }
 
     /// Determine if the command is allowed in a given `Scope`.
-    pub fn is_allowed<T>(&self, value: &T) -> bool
-    where
-        ScopeSet: PartialEq<T>,
-    {
-        self.allowed.iter().any(|x| x == value)
+    pub fn is_allowed(&self, scope: &Scope) -> bool {
+        self.allowed.contains(scope)
     }
 
     /// Determine if the command is a phase stub.
@@ -833,14 +830,12 @@ macro_rules! cmd_scope_tests {
 
             for eapi in &*EAPIS_OFFICIAL {
                 if let Some(cmd) = eapi.commands().get(name) {
-                    let scopes: IndexSet<_> =
-                        cmd.allowed.iter().flat_map(|x| x.iter()).collect();
                     // test non-utf8 args for commands that accept arguments
                     if has_args {
-                        for scope in &scopes {
+                        for scope in &cmd.allowed {
                             let info = format!("EAPI={eapi}, scope: {scope}");
                             match scope {
-                                Scope::Eclass(_) => {
+                                Scope::Eclass => {
                                     let data = indoc::formatdoc! {r#"
                                         EAPI={eapi}
                                         inherit invalid
@@ -889,10 +884,10 @@ macro_rules! cmd_scope_tests {
                     }
 
                     // test invalid scope usage
-                    for scope in all_scopes.difference(&scopes) {
+                    for scope in all_scopes.difference(&cmd.allowed) {
                         let info = format!("EAPI={eapi}, scope: {scope}");
                         match scope {
-                            Scope::Eclass(_) => {
+                            Scope::Eclass => {
                                 let data = indoc::formatdoc! {r#"
                                     EAPI={eapi}
                                     inherit e1

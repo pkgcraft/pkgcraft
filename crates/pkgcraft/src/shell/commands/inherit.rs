@@ -35,7 +35,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .ok_or_else(|| Error::Base(format!("unknown eclass: {name}")))?;
 
         // track direct inherits
-        if !build.scope.is_eclass() {
+        if build.scope.is_global() {
             build.inherit.insert(eclass.clone());
         }
 
@@ -46,7 +46,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
         }
 
         // track build scope
-        let _scope = build.scoped(eclass.clone());
+        let _scope = build.in_eclass(eclass.clone());
 
         // update $ECLASS and $INHERITED variables
         eclass_var.bind(name, None, None)?;
