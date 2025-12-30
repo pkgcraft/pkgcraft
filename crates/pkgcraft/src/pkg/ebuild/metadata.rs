@@ -189,4 +189,42 @@ impl Metadata {
 
         Ok(())
     }
+
+    /// Serialize a metadata field to its string value.
+    pub(crate) fn serialize(&self, key: MetadataKey) -> String {
+        use MetadataKey::*;
+        match key {
+            CHKSUM => self.chksum.to_string(),
+            DESCRIPTION => self.description.to_string(),
+            SLOT => self.slot.to_string(),
+            BDEPEND => self.bdepend.to_string(),
+            DEPEND => self.depend.to_string(),
+            IDEPEND => self.idepend.to_string(),
+            PDEPEND => self.pdepend.to_string(),
+            RDEPEND => self.rdepend.to_string(),
+            LICENSE => self.license.to_string(),
+            PROPERTIES => self.properties.to_string(),
+            REQUIRED_USE => self.required_use.to_string(),
+            RESTRICT => self.restrict.to_string(),
+            SRC_URI => self.src_uri.to_string(),
+            HOMEPAGE => self.homepage.iter().join(" "),
+            DEFINED_PHASES => {
+                // PMS specifies if no phase functions are defined, a single hyphen is used.
+                if self.defined_phases.is_empty() {
+                    "-".to_string()
+                } else {
+                    self.defined_phases.iter().map(|p| p.name()).join(" ")
+                }
+            }
+            KEYWORDS => self.keywords.iter().join(" "),
+            IUSE => self.iuse.iter().join(" "),
+            INHERIT => self.inherit.iter().join(" "),
+            INHERITED => self
+                .inherited
+                .iter()
+                .flat_map(|e| [e.name(), e.chksum()])
+                .join("\t"),
+            EAPI => self.eapi.to_string(),
+        }
+    }
 }

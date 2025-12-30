@@ -149,41 +149,7 @@ impl FromStr for Md5DictEntry {
 
 /// Serialize a metadata field to its md5-dict cache mapping, returning None for empty fields.
 fn serialize(meta: &Metadata, key: MetadataKey) -> Option<(Md5DictKey, String)> {
-    use MetadataKey::*;
-    let value = match key {
-        CHKSUM => meta.chksum.to_string(),
-        DESCRIPTION => meta.description.to_string(),
-        SLOT => meta.slot.to_string(),
-        BDEPEND => meta.bdepend.to_string(),
-        DEPEND => meta.depend.to_string(),
-        IDEPEND => meta.idepend.to_string(),
-        PDEPEND => meta.pdepend.to_string(),
-        RDEPEND => meta.rdepend.to_string(),
-        LICENSE => meta.license.to_string(),
-        PROPERTIES => meta.properties.to_string(),
-        REQUIRED_USE => meta.required_use.to_string(),
-        RESTRICT => meta.restrict.to_string(),
-        SRC_URI => meta.src_uri.to_string(),
-        HOMEPAGE => meta.homepage.iter().join(" "),
-        DEFINED_PHASES => {
-            // PMS specifies if no phase functions are defined, a single hyphen is used.
-            if meta.defined_phases.is_empty() {
-                "-".to_string()
-            } else {
-                meta.defined_phases.iter().map(|p| p.name()).join(" ")
-            }
-        }
-        KEYWORDS => meta.keywords.iter().join(" "),
-        IUSE => meta.iuse.iter().join(" "),
-        INHERIT => meta.inherit.iter().join(" "),
-        INHERITED => meta
-            .inherited
-            .iter()
-            .flat_map(|e| [e.name(), e.chksum()])
-            .join("\t"),
-        EAPI => meta.eapi.to_string(),
-    };
-
+    let value = meta.serialize(key);
     if value.is_empty() {
         None
     } else {
