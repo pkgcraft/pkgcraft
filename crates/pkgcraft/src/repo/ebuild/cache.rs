@@ -305,7 +305,9 @@ mod tests {
 
     use crate::config::Config;
     use crate::repo::ebuild::EbuildRepoBuilder;
-    use crate::test::assert_logs_re;
+    use crate::test::{assert_err_re, assert_logs_re};
+
+    use super::*;
 
     #[traced_test]
     #[test]
@@ -337,5 +339,37 @@ mod tests {
                 "invalid pkg: cat/pkg-{pv}::test: line 4: best_version: error: disabled in global scope$"
             ));
         }
+    }
+
+    #[test]
+    fn cache() {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+        config.finalize().unwrap();
+
+        let pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
+        let cache = repo.metadata().cache();
+
+        // cache entry doesn't exist
+        assert!(cache.get(&pkg).is_none());
+
+        // generate cache
+        cache.regen(&repo).run().unwrap();
+
+        // valid cache entry exists
+        let entry = cache.get(&pkg).unwrap().unwrap();
+        assert!(entry.verify(&pkg).is_ok());
+
+        // remove nonexistent cache entry
+        let r = cache.remove_entry("cat/pkg-2");
+        assert_err_re!(r, "^failed removing cache file: cat/pkg-2: No such file or directory");
+
+        // remove existent cache entry
+        cache.remove_entry("cat/pkg-1").unwrap();
+
+        // cache entry doesn't exist
+        assert!(cache.get(&pkg).is_none());
     }
 }
