@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::LazyLock;
@@ -135,7 +134,7 @@ impl Variable {
 #[derive(Debug, Clone)]
 pub struct BuildVariable {
     var: Variable,
-    allowed: HashSet<ScopeSet>,
+    allowed: IndexSet<ScopeSet>,
     external: bool,
 }
 

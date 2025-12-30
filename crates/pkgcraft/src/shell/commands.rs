@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
@@ -377,7 +376,7 @@ impl Deref for Builtin {
 #[derive(Debug, Clone)]
 pub struct Command {
     builtin: Builtin,
-    pub allowed: HashSet<ScopeSet>,
+    pub allowed: IndexSet<ScopeSet>,
     pub die_on_failure: bool,
 }
 
@@ -794,8 +793,7 @@ macro_rules! cmd_scope_tests {
     ($cmd:expr) => {
         #[test]
         fn cmd_scope() {
-            use std::collections::HashSet;
-
+            use indexmap::IndexSet;
             use itertools::Itertools;
 
             use crate::config::Config;
@@ -831,11 +829,11 @@ macro_rules! cmd_scope_tests {
             temp.create_eclass("invalid", &eclass).unwrap();
             let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
             config.finalize().unwrap();
-            let all_scopes: HashSet<_> = ScopeSet::All.into_iter().collect();
+            let all_scopes: IndexSet<_> = ScopeSet::All.into_iter().collect();
 
             for eapi in &*EAPIS_OFFICIAL {
                 if let Some(cmd) = eapi.commands().get(name) {
-                    let scopes: HashSet<_> =
+                    let scopes: IndexSet<_> =
                         cmd.allowed.iter().flat_map(|x| x.iter()).collect();
                     // test non-utf8 args for commands that accept arguments
                     if has_args {
