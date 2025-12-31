@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 use std::path::Path;
-use std::sync::{Arc, OnceLock, Weak};
+use std::sync::{Arc, OnceLock};
 use std::{fmt, fs, iter, mem};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -49,7 +49,7 @@ struct InternalEbuildRepo {
 #[derive(Default)]
 struct LazyMetadata {
     masters: OnceLock<Vec<EbuildRepo>>,
-    pool: OnceLock<Weak<BuildPool>>,
+    pool: OnceLock<Arc<BuildPool>>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -159,7 +159,7 @@ impl EbuildRepo {
         self.0
             .data
             .pool
-            .set(Arc::downgrade(config.pool()))
+            .set(config.pool().clone())
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         // collapse lazy fields
@@ -176,14 +176,12 @@ impl EbuildRepo {
     }
 
     /// Return the build pool for the repo.
-    pub fn pool(&self) -> Arc<BuildPool> {
+    pub fn pool(&self) -> &BuildPool {
         self.0
             .data
             .pool
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
-            .upgrade()
-            .unwrap_or_else(|| panic!("destroyed ebuild repo: {self}"))
     }
 
     pub fn metadata(&self) -> &Metadata {
