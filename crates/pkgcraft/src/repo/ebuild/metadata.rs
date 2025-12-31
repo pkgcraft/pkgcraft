@@ -445,7 +445,7 @@ impl Metadata {
             let name = vals.next().expect("empty mirrors line");
 
             if vals.peek().is_none() {
-                warn(format!("invalid {name} mirror: no urls"));
+                warn(format!("invalid mirror: {name}: no urls"));
                 return None;
             }
 
@@ -455,7 +455,7 @@ impl Metadata {
                 let url = match format!("{}/", url.trim_end_matches('/')).parse() {
                     Ok(url) => url,
                     Err(e) => {
-                        warn(format!("invalid {name} mirror url: {url}: {e}"));
+                        warn(format!("invalid mirror url: {url}: {e}"));
                         continue;
                     }
                 };
@@ -925,6 +925,7 @@ mod tests {
         assert_logs_re!(".+ group4: cyclic alias: group4");
     }
 
+    #[traced_test]
     #[test]
     fn mirrors() {
         let repo = EbuildRepoBuilder::new().build().unwrap();
@@ -969,6 +970,12 @@ mod tests {
                 expected
             );
         }
+
+        // verify log messages for invalid entries
+        let path = "test::profiles/thirdpartymirrors";
+        assert_logs_re!("^.+: {path}, line 2: invalid mirror: invalid1: no urls$");
+        assert_logs_re!("^.+: {path}, line 5: invalid mirror url: invalid-url: .+$");
+        assert_logs_re!("^.+: {path}, line 14: invalid mirror url: invalid-url: .+$");
     }
 
     #[traced_test]
