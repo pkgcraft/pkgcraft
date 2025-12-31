@@ -413,7 +413,7 @@ mod tests {
         let reports = scanner.run(repo, "eapi/invalid-9999").unwrap();
         let expected = glob_reports!("{path}/eapi/invalid/reports.json");
         assert_unordered_reports!(reports, expected);
-        assert_logs_re!(format!(".+: skipping due to invalid pkg: eapi/invalid-9999"));
+        assert_logs_re!(".+: skipping due to invalid pkg: eapi/invalid-9999");
     }
 
     #[test]

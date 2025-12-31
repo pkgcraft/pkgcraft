@@ -342,9 +342,9 @@ mod tests {
 
         // verify all pkgs caused logged errors
         for pv in 0..50 {
-            assert_logs_re!(format!(
+            assert_logs_re!(
                 "invalid pkg: cat/pkg-{pv}::test: line 4: best_version: error: disabled in global scope$"
-            ));
+            );
         }
     }
 
