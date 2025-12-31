@@ -95,7 +95,7 @@ impl Fetchable {
 
         // validate protocol
         if !SUPPORTED_PROTOCOLS.contains(url.scheme()) {
-            return Err(Error::InvalidFetchable(format!("unsupported protocol: {url}")));
+            return Err(Error::InvalidFetchable(format!("unsupported protocol: {value}")));
         }
 
         // URLs without paths or queries are invalid
