@@ -157,9 +157,6 @@ pub struct MetadataTaskBuilder {
     verify: bool,
 }
 
-// needed due to IpcSender lacking Sync
-unsafe impl Sync for MetadataTaskBuilder {}
-
 impl MetadataTaskBuilder {
     /// Create a new ebuild package metadata cache task builder.
     fn new(pool: &BuildPool, repo: &EbuildRepo) -> Self {
@@ -410,7 +407,7 @@ pub struct BuildPool {
     pid: OnceLock<Pid>,
 }
 
-// needed due to IpcSender lacking Sync
+// needed due to IpcReceiver lacking Sync
 unsafe impl Sync for BuildPool {}
 
 impl Default for BuildPool {
