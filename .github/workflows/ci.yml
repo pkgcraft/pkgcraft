@@ -119,44 +119,18 @@ jobs:
       if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
       uses: taiki-e/install-action@cargo-llvm-cov
 
-    - name: Install grcov
-      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
-      uses: taiki-e/install-action@grcov
-
-    - name: Install cargo-nextest
-      uses: taiki-e/install-action@nextest
-
-    - name: Build and run tests
+    - name: Build tests
       run: |
-        # only collect code coverage for the latest rust release on linux
+        # only collect coverage for the latest rust release on linux
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          # run tests while collecting coverage information
-          cargo llvm-cov --no-report nextest --all-features --workspace --tests
-
-          # make sure all profile data is in the expected directory
-          find crates -name \*.profraw -exec mv '{}' target/llvm-cov-target/ \;
-
-          # process coverage information
-          grcov . -s . --binary-path target/llvm-cov-target \
-            --keep-only "crates/*/src/*" -t lcov --llvm --branch -o lcov.info \
-            --excl-line "unreachable!(.*)|grcov-excl-line" \
-            --excl-start grcov-excl-start \
-            --excl-stop grcov-excl-stop
-
-          # remove generated coverage data to avoid caching it
-          find . -name \*.profraw -delete
-        else
-          cargo nextest run --all-features --workspace --tests
+          # set environment variables needed for coverage
+          source <(cargo llvm-cov show-env --export-prefix)
+          # remove artifacts that may affect coverage results
+          cargo llvm-cov clean --workspace
         fi
 
-    - name: Upload build artifacts
-      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
-      uses: actions/upload-artifact@v6
-      with:
-        name: coverage
-        path: lcov.info
-        if-no-files-found: error
-        retention-days: 3
+        # build tests
+        cargo build --all-features --workspace --tests
 
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
@@ -169,6 +143,45 @@ jobs:
           ~/.cargo/git/db
           target
         key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+    - name: Install grcov
+      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
+      uses: taiki-e/install-action@grcov
+
+    - name: Install cargo-nextest
+      uses: taiki-e/install-action@nextest
+
+    - name: Run tests
+      run: |
+        # set environment variables needed for coverage
+        if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
+          source <(cargo llvm-cov show-env --export-prefix)
+        fi
+
+        # run tests
+        cargo nextest run --all-features --workspace --tests
+
+        # only collect coverage for the latest rust release on linux
+        if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
+          # make sure all profile data is in the expected directory
+          find crates -name \*.profraw -exec mv '{}' target/debug/ \;
+
+          # process coverage information
+          grcov . -s . --binary-path target/debug \
+            --keep-only "crates/*/src/*" -t lcov --llvm --branch -o lcov.info \
+            --excl-line "unreachable!(.*)|grcov-excl-line" \
+            --excl-start grcov-excl-start \
+            --excl-stop grcov-excl-stop
+        fi
+
+    - name: Upload build artifacts
+      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
+      uses: actions/upload-artifact@v6
+      with:
+        name: coverage
+        path: lcov.info
+        if-no-files-found: error
+        retention-days: 3
 
   coverage:
     needs: test
