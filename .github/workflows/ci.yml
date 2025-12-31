@@ -43,14 +43,17 @@ jobs:
         include:
           - os: ubuntu-latest
             rust-version: ${{ needs.msrv.outputs.version }}
+            rust: msrv
           - os: ubuntu-latest
             rust-version: stable
+            rust: stable
           - os: macos-latest
             rust-version: stable
+            rust: stable
 
     steps:
     - name: Free disk space for coverage data
-      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
+      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
       uses: jlumbroso/free-disk-space@main
       timeout-minutes: 5
       with:
@@ -84,17 +87,17 @@ jobs:
           ~/.cargo/registry/cache
           ~/.cargo/git/db
           target
-        key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
+        key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ matrix.rust }}-${{ steps.rust.outputs.cachekey }}-cargo-${{ hashFiles('Cargo.lock') }}
 
     - name: Remove old caches
-      if: ${{ matrix.rust-version != 'stable' && github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
+      if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
       continue-on-error: true
       run: |
         gh extension install actions/gh-actions-cache
 
         REPO=${{ github.repository }}
         BRANCH=${{ github.ref }}
-        KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-
+        KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ matrix.rust }}-
 
         # find matching caches
         mapfile -t cache_keys < <( gh actions-cache list -R $REPO -B $BRANCH --key $KEY --sort created-at --order desc | cut -f 1 )
@@ -113,11 +116,11 @@ jobs:
       uses: taiki-e/install-action@protoc
 
     - name: Install cargo-llvm-cov
-      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
+      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
       uses: taiki-e/install-action@cargo-llvm-cov
 
     - name: Install grcov
-      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
+      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
       uses: taiki-e/install-action@grcov
 
     - name: Install cargo-nextest
@@ -126,7 +129,7 @@ jobs:
     - name: Build and run tests
       run: |
         # only collect code coverage for the latest rust release on linux
-        if [[ ${{ matrix.rust-version }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
+        if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
           # run tests while collecting coverage information
           cargo llvm-cov --no-report nextest --all-features --workspace --tests
 
@@ -147,7 +150,7 @@ jobs:
         fi
 
     - name: Upload build artifacts
-      if: ${{ matrix.rust-version == 'stable' && runner.os == 'Linux' }}
+      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
       uses: actions/upload-artifact@v6
       with:
         name: coverage
