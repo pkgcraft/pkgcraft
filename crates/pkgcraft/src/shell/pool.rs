@@ -433,15 +433,22 @@ impl BuildPool {
             return Ok(());
         }
 
-        let (tx, rx) = ipc::channel().unwrap();
-        self.tx.set(tx).expect("task pool already running");
+        let (server, name) = IpcOneShotServer::new()?;
 
         match unsafe { fork() } {
             Ok(ForkResult::Parent { child }) => {
                 self.pid.set(child).expect("task pool already running");
+                let (_, tx) = server.accept().expect("failed receiving tx");
+                self.tx.set(tx).expect("task pool already running");
                 Ok(())
             }
             Ok(ForkResult::Child) => {
+                // bootstrap the main task channel
+                let (tx, rx) = ipc::channel().unwrap();
+                let tx0 = IpcSender::connect(name).expect("failed connecting to the server");
+                tx0.send(tx).expect("failed sending tx");
+                std::mem::drop(tx0);
+
                 // signal child to exit on parent death
                 #[cfg(target_os = "linux")]
                 {
