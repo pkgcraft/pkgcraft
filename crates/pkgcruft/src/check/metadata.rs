@@ -52,7 +52,7 @@ mod tests {
         // primary unfixed
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let dir = repo.path().join(CHECK);
+        let dir = repo.path().join("EbuildMetadata");
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_reports!(reports, expected);
