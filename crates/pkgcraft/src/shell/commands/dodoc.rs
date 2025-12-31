@@ -145,17 +145,20 @@ mod tests {
         "#,
         );
 
-        // non-unicode nested path
-        fs::create_dir_all("doc2/subdir").unwrap();
-        let mut path = PathBuf::from("doc2/subdir");
-        path.push(OsStr::from_bytes(&[0x66, 0x6f, 0x80, 0x6f]));
-        fs::File::create(path).unwrap();
-        dodoc(&["-r", "doc2"]).unwrap();
-        file_tree.assert(
-            r#"
-            [[files]]
-            path = "/usr/share/doc/pkg-1/newdir/doc2/subdir/fo�o"
-        "#,
-        );
+        // macos uses APFS which only allows UTF-8 file names
+        if !cfg!(target_os = "macos") {
+            // non-unicode nested path
+            fs::create_dir_all("doc2/subdir").unwrap();
+            let mut path = PathBuf::from("doc2/subdir");
+            path.push(OsStr::from_bytes(&[0x66, 0x6f, 0x80, 0x6f]));
+            fs::File::create(path).unwrap();
+            dodoc(&["-r", "doc2"]).unwrap();
+            file_tree.assert(
+                r#"
+                [[files]]
+                path = "/usr/share/doc/pkg-1/newdir/doc2/subdir/fo�o"
+            "#,
+            );
+        }
     }
 }
