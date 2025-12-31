@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use indexmap::IndexMap;
-use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender};
 use itertools::Itertools;
 use nix::sys::wait::waitpid;
 use nix::unistd::{ForkResult, Pid, fork};
@@ -161,7 +161,7 @@ impl MetadataTaskBuilder {
     /// Create a new ebuild package metadata cache task builder.
     fn new(pool: &BuildPool, repo: &EbuildRepo) -> Self {
         Self {
-            tx: pool.tx.clone(),
+            tx: pool.tx().clone(),
             repo: repo.clone(),
             cache: Default::default(),
             force: Default::default(),
@@ -402,13 +402,9 @@ impl Command {
 #[derive(Debug)]
 pub struct BuildPool {
     tasks: usize,
-    tx: IpcSender<Command>,
-    rx: IpcReceiver<Command>,
+    tx: OnceLock<IpcSender<Command>>,
     pid: OnceLock<Pid>,
 }
-
-// needed due to IpcReceiver lacking Sync
-unsafe impl Sync for BuildPool {}
 
 impl Default for BuildPool {
     fn default() -> Self {
@@ -418,13 +414,16 @@ impl Default for BuildPool {
 
 impl BuildPool {
     pub(crate) fn new(tasks: usize) -> Self {
-        let (tx, rx) = ipc::channel().unwrap();
         Self {
             tasks,
-            tx,
-            rx,
+            tx: OnceLock::new(),
             pid: OnceLock::new(),
         }
+    }
+
+    /// Return a reference to the sender to submit tasks into the pool.
+    fn tx(&self) -> &IpcSender<Command> {
+        self.tx.get().expect("task pool isn't running")
     }
 
     /// Start the build pool loop.
@@ -433,6 +432,9 @@ impl BuildPool {
             // task pool already running
             return Ok(());
         }
+
+        let (tx, rx) = ipc::channel().unwrap();
+        self.tx.set(tx).expect("task pool already running");
 
         match unsafe { fork() } {
             Ok(ForkResult::Parent { child }) => {
@@ -461,7 +463,7 @@ impl BuildPool {
                 // suppress global output by default
                 suppress_output()?;
 
-                while let Ok(Command::Task(task)) = self.rx.recv() {
+                while let Ok(Command::Task(task)) = rx.recv() {
                     // wait for pool space
                     sem.acquire().unwrap();
                     match unsafe { fork() } {
@@ -495,7 +497,7 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<Option<String>> {
         let task = PretendTask::new(repo, cpv);
-        Command::run_task(&self.tx, task)
+        Command::run_task(self.tx(), task)
     }
 
     /// Return the mapping of global environment variables exported by a package.
@@ -505,7 +507,7 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<IndexMap<String, String>> {
         let task = EnvTask::new(repo, cpv);
-        Command::run_task(&self.tx, task)
+        Command::run_task(self.tx(), task)
     }
 
     /// Return the time duration required to source a package.
@@ -515,13 +517,15 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<Duration> {
         let task = DurationTask::new(repo, cpv);
-        Command::run_task(&self.tx, task)
+        Command::run_task(self.tx(), task)
     }
 }
 
 impl Drop for BuildPool {
     fn drop(&mut self) {
-        self.tx.send(Command::Stop).ok();
+        if let Some(tx) = self.tx.get() {
+            tx.send(Command::Stop).ok();
+        }
         // TODO: consider combining with bash SIGCHLD handler
         if let Some(pid) = self.pid.get() {
             waitpid(*pid, None).ok();
