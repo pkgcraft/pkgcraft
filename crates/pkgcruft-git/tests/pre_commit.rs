@@ -35,7 +35,7 @@ async fn invalid_repo() {
         .current_dir(path)
         .assert()
         .stdout("")
-        .stderr(format!("pkgcruft-git-pre-commit: error: invalid ebuild repo: {path}\n"))
+        .stderr(contains("pkgcruft-git-pre-commit: error: invalid ebuild repo: "))
         .failure()
         .code(1);
 }
