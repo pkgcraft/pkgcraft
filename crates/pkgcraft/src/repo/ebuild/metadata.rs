@@ -122,33 +122,6 @@ impl Mirror {
             .join(path.strip_prefix('/').unwrap_or(path))
             .map_err(|e| Error::InvalidValue(format!("invalid url: {e}")))
     }
-
-    /// Parse a line from profiles/thirdpartymirrors into a set of mirrors.
-    fn from_line(line: &str) -> crate::Result<(String, IndexSet<Self>)> {
-        let vals: Vec<_> = line.split_whitespace().collect();
-        let [name, urls @ ..] = &vals[..] else {
-            return Err(Error::InvalidValue("empty line".to_string()));
-        };
-
-        if urls.is_empty() {
-            return Err(Error::InvalidValue("no urls listed".to_string()));
-        }
-
-        let mut mirrors = IndexSet::new();
-        for url in urls {
-            // force URL to end with / so Url::join() works as expected
-            let url = format!("{}/", url.trim_end_matches('/'));
-            let mirror = Self {
-                name: name.to_string(),
-                url: url.parse().map_err(|e| {
-                    Error::InvalidValue(format!("invalid mirror url: {url}: {e}"))
-                })?,
-            };
-            mirrors.insert(mirror);
-        }
-
-        Ok((name.to_string(), mirrors))
-    }
 }
 
 /// Parse a USE description line into a (name, description) tuple.
@@ -461,16 +434,46 @@ impl Metadata {
 
     /// Return a repo's globally defined mirrors.
     pub fn mirrors(&self) -> &IndexMap<String, IndexSet<Mirror>> {
+        // parse a line from profiles/thirdpartymirrors into a set of mirrors
+        let parse_line = |lineno: usize, line: &str| -> Option<(String, IndexSet<Mirror>)> {
+            // log warning for invalid mirror errors
+            let warn = |err: String| {
+                warn!("{}::profiles/thirdpartymirrors, line {lineno}: {err}", self.id);
+            };
+
+            let mut vals = line.split_whitespace().peekable();
+            let name = vals.next().expect("empty mirrors line");
+
+            if vals.peek().is_none() {
+                warn(format!("invalid {name} mirror: no urls"));
+                return None;
+            }
+
+            let mut mirrors = IndexSet::new();
+            for url in vals {
+                // force URL to end with / so Url::join() works as expected
+                let url = match format!("{}/", url.trim_end_matches('/')).parse() {
+                    Ok(url) => url,
+                    Err(e) => {
+                        warn(format!("invalid {name} mirror url: {url}: {e}"));
+                        continue;
+                    }
+                };
+                let mirror = Mirror { name: name.to_string(), url };
+                mirrors.insert(mirror);
+            }
+
+            if mirrors.is_empty() {
+                None
+            } else {
+                Some((name.to_string(), mirrors))
+            }
+        };
+
         self.mirrors.get_or_init(|| {
             self.read_path("profiles/thirdpartymirrors")
                 .filter_lines()
-                .filter_map(|(i, s)| match Mirror::from_line(s) {
-                    Ok((name, mirrors)) => Some((name, mirrors)),
-                    Err(e) => {
-                        warn!("{}::profiles/thirdpartymirrors, line {i}: {e}", self.id,);
-                        None
-                    }
-                })
+                .filter_map(|(i, s)| parse_line(i, s))
                 .collect()
         })
     }
@@ -937,32 +940,35 @@ mod tests {
 
         // multiple with mixed whitespace
         let data = indoc::indoc! {r#"
+            # mirror with no urls
+            invalid1
+
+            # mirror with invalid url
+            invalid2 invalid-url
+
             # comment 1
             mirror1 https://a/mirror/ https://another/mirror
 
             # comment 2
             mirror2	http://yet/another/mirror/
+
+            # mirror with both valid and invalid url
+            mirror3 https://b/mirror invalid-url
         "#};
         let metadata = Metadata::try_new("test", repo.path()).unwrap();
         fs::write(metadata.path.join("profiles/thirdpartymirrors"), data).unwrap();
-        assert_ordered_eq!(
-            metadata
-                .mirrors()
-                .get("mirror1")
-                .unwrap()
-                .iter()
-                .map(|x| x.url.as_str()),
-            ["https://a/mirror/", "https://another/mirror/"],
-        );
-        assert_ordered_eq!(
-            metadata
-                .mirrors()
-                .get("mirror2")
-                .unwrap()
-                .iter()
-                .map(|x| x.url.as_str()),
-            ["http://yet/another/mirror/"]
-        );
+        let mirrors = metadata.mirrors();
+        assert_eq!(mirrors.len(), 3);
+        for (name, expected) in [
+            ("mirror1", vec!["https://a/mirror/", "https://another/mirror/"]),
+            ("mirror2", vec!["http://yet/another/mirror/"]),
+            ("mirror3", vec!["https://b/mirror/"]),
+        ] {
+            assert_ordered_eq!(
+                mirrors.get(name).unwrap().iter().map(|x| x.url.as_str()),
+                expected
+            );
+        }
     }
 
     #[traced_test]
