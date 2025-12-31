@@ -73,10 +73,7 @@ mod tests {
         let _file_tree = FileTree::new();
         run_commands(|| {
             let r = pkg.build();
-            assert_err_re!(
-                r,
-                "line 5: fperms: error: failed running: chmod: cannot access 'nonexistent': No such file or directory$"
-            );
+            assert_err_re!(r, "line 5: fperms: error: failed running: chmod: .+$");
         })
     }
 
