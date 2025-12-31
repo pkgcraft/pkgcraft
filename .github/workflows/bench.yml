@@ -28,7 +28,9 @@ jobs:
       id: restore-cache
       with:
         path: |
-          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
           target
         key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-${{ steps.rust.outputs.cachekey }}-${{ github.run_id }}
         restore-keys: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-rust-
@@ -81,6 +83,8 @@ jobs:
       uses: actions/cache/save@v4
       with:
         path: |
-          ~/.cargo/bin
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
           target
         key: ${{ steps.restore-cache.outputs.cache-primary-key }}
