@@ -368,6 +368,8 @@ mod tests {
         // valid cache entry exists
         let entry = cache.get(&pkg).unwrap();
         assert!(entry.verify(&pkg).is_ok());
+        assert!(entry.get(&MetadataKey::DEPEND).is_none());
+        assert_eq!(entry.get(&MetadataKey::SLOT).unwrap(), "0");
 
         // remove nonexistent cache entry
         let r = cache.remove_entry("cat/pkg-2");
