@@ -388,6 +388,8 @@ impl Intersects<Dep> for EbuildPkg {
 mod tests {
     use std::fs;
 
+    use itertools::Itertools;
+
     use crate::config::Config;
     use crate::eapi::EAPI_LATEST_OFFICIAL;
     use crate::repo::PkgRepository;
@@ -931,6 +933,159 @@ mod tests {
         // single
         let pkg = repo.get_pkg("stub/mirror-0").unwrap();
         assert_eq!(pkg.manifest().len(), 1);
+    }
+
+    #[test]
+    fn fetchables() {
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().name("repo").build().unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+        let mirrors = indoc::indoc! {r#"
+            repo https://default/mirror
+            test https://test/mirror1 https://test/mirror2
+        "#};
+        fs::write(repo.path().join("profiles/thirdpartymirrors"), mirrors).unwrap();
+        config.finalize().unwrap();
+
+        // no fetchables
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        let fetchables: Vec<_> = pkg.fetchables().try_collect().unwrap();
+        assert!(fetchables.is_empty());
+
+        // single restricted flat URI
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing fetchables"
+            SLOT=0
+            SRC_URI="restricted.gz"
+            RESTRICT="fetch"
+        "#};
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        // no restrict override
+        let fetchables: Vec<_> = pkg.fetchables().try_collect().unwrap();
+        assert!(fetchables.is_empty());
+        // restrict override
+        let fetchables: Vec<_> = pkg
+            .fetchables()
+            .override_restrict(true)
+            .try_collect()
+            .unwrap();
+        assert!(fetchables.is_empty());
+
+        // invalid fetchable
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing fetchables"
+            SLOT=0
+            SRC_URI="ftp://a/file"
+        "#};
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        let r: Result<Vec<_>, _> = pkg.fetchables().try_collect();
+        let err = format!("^{pkg}: invalid fetchable: unsupported protocol: ftp://a/file$");
+        assert_err_re!(r, err);
+
+        // single restricted fetchable
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing fetchables"
+            SLOT=0
+            SRC_URI="https://url/to/restricted.gz"
+            RESTRICT="fetch"
+        "#};
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        // no restrict override
+        let fetchables: Vec<_> = pkg.fetchables().try_collect().unwrap();
+        assert!(fetchables.is_empty());
+        // restrict override
+        let fetchables: Vec<_> = pkg
+            .fetchables()
+            .override_restrict(true)
+            .try_collect()
+            .unwrap();
+        assert_ordered_eq!(
+            fetchables.iter().map(|x| x.to_string()),
+            ["https://url/to/restricted.gz"]
+        );
+
+        // single unmirrored fetchable
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing fetchables"
+            SLOT=0
+            SRC_URI="https://url/to/a.tar.gz"
+        "#};
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        // no default mirrors
+        let fetchables: Vec<_> = pkg.fetchables().try_collect().unwrap();
+        assert_ordered_eq!(
+            fetchables.iter().map(|x| x.to_string()),
+            ["https://url/to/a.tar.gz"]
+        );
+        // expanded mirrors
+        assert_ordered_eq!(
+            fetchables.iter().flatten().map(|(_, f)| f.to_string()),
+            ["https://url/to/a.tar.gz"]
+        );
+        // default mirrors
+        let fetchables: Vec<_> = pkg
+            .fetchables()
+            .use_default_mirrors(true)
+            .try_collect()
+            .unwrap();
+        assert_ordered_eq!(
+            fetchables.iter().map(|x| x.to_string()),
+            ["https://url/to/a.tar.gz"]
+        );
+        // expanded mirrors
+        assert_ordered_eq!(
+            fetchables.iter().flatten().map(|(_, f)| f.to_string()),
+            ["https://default/mirror/to/a.tar.gz", "https://url/to/a.tar.gz"]
+        );
+
+        // single mirrored fetchable
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing fetchables"
+            SLOT=0
+            SRC_URI="mirror://test/a.tar.xz"
+        "#};
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        // no default mirrors
+        let fetchables: Vec<_> = pkg.fetchables().try_collect().unwrap();
+        assert_ordered_eq!(
+            fetchables.iter().map(|x| x.to_string()),
+            ["mirror://test/a.tar.xz"]
+        );
+        // expanded mirrors
+        assert_ordered_eq!(
+            fetchables.iter().flatten().map(|(_, f)| f.to_string()),
+            ["https://test/mirror1/a.tar.xz", "https://test/mirror2/a.tar.xz"]
+        );
+        // default mirrors
+        let fetchables: Vec<_> = pkg
+            .fetchables()
+            .use_default_mirrors(true)
+            .try_collect()
+            .unwrap();
+        assert_ordered_eq!(
+            fetchables.iter().map(|x| x.to_string()),
+            ["mirror://test/a.tar.xz"]
+        );
+        // expanded mirrors
+        assert_ordered_eq!(
+            fetchables.iter().flatten().map(|(_, f)| f.to_string()),
+            [
+                "https://default/mirror/a.tar.xz",
+                "https://test/mirror1/a.tar.xz",
+                "https://test/mirror2/a.tar.xz"
+            ]
+        );
     }
 
     #[test]
