@@ -273,9 +273,9 @@ impl EbuildPkg {
             .get_or_init(|| self.repo().metadata().pkg_manifest(self.cpn()))
     }
 
-    /// Generate fetchable URIs for a package's SRC_URI targets.
-    pub fn fetchables(&self) -> IterFetchable<'_> {
-        IterFetchable {
+    /// Return an iterable of fetchable URIs for a package's SRC_URI targets.
+    pub fn fetchables(&self) -> IterFetchables<'_> {
+        IterFetchables {
             pkg: self,
             uris: self.src_uri().iter_flatten(),
             override_restrict: false,
@@ -294,14 +294,14 @@ impl EbuildPkg {
     }
 }
 
-pub struct IterFetchable<'a> {
+pub struct IterFetchables<'a> {
     pkg: &'a EbuildPkg,
     uris: crate::dep::IterFlatten<'a, Uri>,
     override_restrict: bool,
     use_default_mirrors: bool,
 }
 
-impl IterFetchable<'_> {
+impl IterFetchables<'_> {
     /// Enable returning fetch-restricted URIs during iteration.
     pub fn override_restrict(mut self, value: bool) -> Self {
         self.override_restrict = value;
@@ -315,7 +315,7 @@ impl IterFetchable<'_> {
     }
 }
 
-impl Iterator for IterFetchable<'_> {
+impl Iterator for IterFetchables<'_> {
     type Item = crate::Result<Fetchable>;
 
     fn next(&mut self) -> Option<Self::Item> {
