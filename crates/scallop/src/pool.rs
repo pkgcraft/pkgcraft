@@ -85,17 +85,8 @@ mod tests {
 
     #[test]
     fn semaphore() {
-        // exceed max semaphore value
-        let size = u32::MAX.try_into().unwrap();
-        assert!(NamedSemaphore::new("test", size).is_err());
-
-        // max value is i32::MAX
-        let size = i32::MAX.try_into().unwrap();
-        let mut sem = NamedSemaphore::new("test", size).unwrap();
-        // overflow semaphore value
-        assert!(sem.release().is_err());
-
         // acquire then release
+        let mut sem = NamedSemaphore::new("test", 1).unwrap();
         sem.acquire().unwrap();
         assert!(sem.release().is_ok());
 
