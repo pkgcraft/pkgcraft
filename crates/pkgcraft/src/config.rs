@@ -144,8 +144,7 @@ impl ConfigInner {
         if !self.loaded {
             if let Ok(value) = env::var("PKGCRAFT_CONFIG") {
                 self.load_path(&value)?;
-            } else {
-                self.settings = Default::default();
+            } else if !cfg!(any(feature = "test", test)) {
                 self.repos =
                     ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
             }
