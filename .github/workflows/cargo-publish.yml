@@ -37,7 +37,38 @@ jobs:
       with:
         submodules: true
 
+    - name: Restore cache
+      uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        path: /usr/local
+        key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-scallop-${{ hashFiles('crates/scallop/bash/configure') }}
+
+    - name: Remove old caches
+      if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
+      continue-on-error: true
+      run: |
+        gh extension install actions/gh-actions-cache
+
+        REPO=${{ github.repository }}
+        BRANCH=${{ github.ref }}
+        KEY=${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-scallop-
+
+        # find matching caches
+        mapfile -t cache_keys < <( gh actions-cache list -R $REPO -B $BRANCH --key $KEY --sort created-at --order desc | cut -f 1 )
+
+        # remove all matching caches
+        for key in ${cache_keys[@]}
+        do
+          gh actions-cache delete $key -R $REPO -B $BRANCH --confirm
+        done
+
+        exit 0
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Build the required scallop release
+      if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
       run: |
         # determine required version
         version=$(sed -rn "/^PACKAGE_VERSION=/ s/^.*='(.*)'/\1/p" crates/scallop/bash/configure)
@@ -57,6 +88,13 @@ jobs:
         echo "SCALLOP_NO_VENDOR=1" >> $GITHUB_ENV
         echo "PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig" >> $GITHUB_ENV
         echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
+
+    - name: Save cache
+      if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: /usr/local
+        key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
     - name: Set up rust toolchain
       uses: dtolnay/rust-toolchain@stable
