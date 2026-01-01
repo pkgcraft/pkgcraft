@@ -37,6 +37,27 @@ jobs:
       with:
         submodules: true
 
+    - name: Build the required scallop release
+      run: |
+        # determine required version
+        version=$(sed -rn "/^PACKAGE_VERSION=/ s/^.*='(.*)'/\1/p" crates/scallop/bash/configure)
+        pkg="scallop-${version}"
+        echo "Building and installing: ${pkg}"
+
+        # fetch and unpack
+        curl -L https://github.com/pkgcraft/bash/releases/download/${pkg}/${pkg}.tar.xz | tar -xJ
+
+        # build and install scallop
+        cd ${pkg}
+        ./configure-scallop
+        make -j libscallop.so
+        sudo make install-library install-headers
+
+        # make scallop crate use shared library
+        echo "SCALLOP_NO_VENDOR=1" >> $GITHUB_ENV
+        echo "PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
+
     - name: Set up rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
