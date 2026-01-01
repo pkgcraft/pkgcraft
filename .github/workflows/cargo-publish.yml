@@ -3,6 +3,9 @@ name: cargo-publish
 on:
   push:
     tags: ['**']
+    branches: ['**']
+    paths:
+      - ".github/workflows/cargo-publish.yml"
   workflow_dispatch:
     inputs:
       tag:
@@ -13,14 +16,17 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-    - name: Parse tag name
+    - name: Determine package to publish
       run: |
-        TAG=${{ inputs.tag }}
-        if [[ -n ${TAG} ]]; then
-          echo "Doing a dry run for tag: ${TAG}"
-        else
+        if [[ ${{ github.ref_type }} == 'tag' ]]; then
           TAG=${{ github.ref_name }}
           echo "PUBLISH_CRATE=true" >> $GITHUB_ENV
+        elif [[ -n "${{ inputs.tag }}" ]]; then
+          TAG=${{ inputs.tag }}
+          echo "Doing a dry run for tag: ${TAG}"
+        else
+          TAG=pkgcraft
+          echo "Doing a dry run for pkgcraft"
         fi
 
         echo "PKG=${TAG%%-[0-9]*}" >> $GITHUB_ENV
