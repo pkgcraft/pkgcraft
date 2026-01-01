@@ -85,14 +85,14 @@ jobs:
         fi
 
         # build and install scallop
-        ./configure-scallop --prefix=~/scallop
+        ./configure-scallop --prefix=${HOME}/scallop
         make -j libscallop.so
         sudo make install-library install-headers
 
         # make scallop crate use shared library
         echo "SCALLOP_NO_VENDOR=1" >> $GITHUB_ENV
-        echo "PKG_CONFIG_LIBDIR=~/scallop/lib/pkgconfig" >> $GITHUB_ENV
-        echo "LD_LIBRARY_PATH=~/scallop/lib" >> $GITHUB_ENV
+        echo "PKG_CONFIG_LIBDIR=${HOME}/scallop/lib/pkgconfig" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=${HOME}/scallop/lib" >> $GITHUB_ENV
 
     - name: Save cache
       if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
