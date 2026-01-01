@@ -8,6 +8,7 @@ on:
       - "crates/*/build.rs"
       - "crates/*/src/**"
       - "crates/*/tests/**"
+      - "crates/scallop/bash"
       - "testdata"
       - ".github/workflows/ci.yml"
   pull_request:
