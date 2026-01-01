@@ -1,4 +1,4 @@
-use std::{env, fs, io, process};
+use std::{fs, io, process};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
@@ -43,14 +43,6 @@ fn initialize() {
     // initialize shell for internal tests
     #[cfg(test)]
     crate::shell::init().unwrap();
-
-    unsafe {
-        // disable config loading by default
-        env::set_var("PKGCRAFT_CONFIG", "");
-        // disable color output by default
-        env::remove_var("CLICOLOR_FORCE");
-        env::remove_var("CLICOLOR");
-    }
 }
 
 #[serde_as]
