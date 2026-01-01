@@ -37,12 +37,18 @@ jobs:
       with:
         submodules: true
 
+    - name: Get required scallop version
+      id: scallop
+      run: |
+        version=$(sed -rn "/^PACKAGE_VERSION=/ s/^.*='(.*)'/\1/p" crates/scallop/bash/configure)
+        echo "version=${version}" >> $GITHUB_OUTPUT
+
     - name: Restore cache
       uses: actions/cache/restore@v4
       id: restore-cache
       with:
         path: ~/scallop
-        key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-scallop-${{ hashFiles('crates/scallop/bash/configure') }}
+        key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-scallop-${{ steps.scallop.outputs.version }}
 
     - name: Remove old caches
       if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
@@ -66,12 +72,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build the required scallop release
+    - name: Build and install scallop
       if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
       run: |
-        # determine required version
-        version=$(sed -rn "/^PACKAGE_VERSION=/ s/^.*='(.*)'/\1/p" crates/scallop/bash/configure)
-        pkg="scallop-${version}"
+        pkg="scallop-${{ steps.scallop.outputs.version }}"
 
         # fetch and unpack
         if [[ ${PKG} != ${VERSION} ]]; then
