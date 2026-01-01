@@ -73,13 +73,18 @@ jobs:
         # determine required version
         version=$(sed -rn "/^PACKAGE_VERSION=/ s/^.*='(.*)'/\1/p" crates/scallop/bash/configure)
         pkg="scallop-${version}"
-        echo "Building and installing: ${pkg}"
 
         # fetch and unpack
-        curl -L https://github.com/pkgcraft/bash/releases/download/${pkg}/${pkg}.tar.xz | tar -xJ
+        if [[ ${PKG} != ${VERSION} ]]; then
+          curl -L https://github.com/pkgcraft/bash/releases/download/${pkg}/${pkg}.tar.xz | tar -xJ
+          cd ${pkg}
+          echo "Building and installing ${pkg} release"
+        else
+          cd crates/scallop/bash
+          echo "Building and installing ${pkg} from git"
+        fi
 
         # build and install scallop
-        cd ${pkg}
         ./configure-scallop --prefix=~/scallop
         make -j libscallop.so
         sudo make install-library install-headers
