@@ -169,11 +169,20 @@ jobs:
 
         # only collect coverage for the latest rust release on linux
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          # make sure all profile data is in the expected directory
-          find crates -name \*.profraw -exec mv '{}' target/debug/ \;
+          # move all profile data respecting $LLVM_PROFILE_FILE to the expected location
+          mkdir -p "${HOME}/coverage"
+          mv target/pkgcraft-*.profraw "${HOME}/coverage"
+
+          # error out if $LLVM_PROFILE_FILE isn't being respected by any tests
+          profraw_files=$(find . -name \*.profraw)
+          if [[ -n "${profraw_files}" ]]; then
+            echo "Unknown profraw files: ${profraw_files}"
+            exit 1
+          fi
 
           # process coverage information
-          grcov . -s . --binary-path target/debug \
+          grcov "${HOME}/coverage" \
+            --source-dir . --binary-path target/debug \
             --keep-only "crates/*/src/*" -t lcov --llvm --branch -o lcov.info \
             --excl-line "unreachable!(.*)|grcov-excl-line" \
             --excl-start grcov-excl-start \
