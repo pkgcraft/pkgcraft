@@ -400,28 +400,14 @@ impl Command {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BuildPool {
     tasks: usize,
     tx: OnceLock<IpcSender<Command>>,
     pid: OnceLock<Pid>,
 }
 
-impl Default for BuildPool {
-    fn default() -> Self {
-        Self::new(num_cpus::get())
-    }
-}
-
 impl BuildPool {
-    pub(crate) fn new(tasks: usize) -> Self {
-        Self {
-            tasks,
-            tx: OnceLock::new(),
-            pid: OnceLock::new(),
-        }
-    }
-
     /// Return a reference to the sender to submit tasks into the pool.
     fn tx(&self) -> &IpcSender<Command> {
         self.tx.get().expect("task pool isn't running")
