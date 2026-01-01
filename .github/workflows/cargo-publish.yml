@@ -41,7 +41,7 @@ jobs:
       uses: actions/cache/restore@v4
       id: restore-cache
       with:
-        path: /usr/local
+        path: ~/scallop
         key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-scallop-${{ hashFiles('crates/scallop/bash/configure') }}
 
     - name: Remove old caches
@@ -80,20 +80,20 @@ jobs:
 
         # build and install scallop
         cd ${pkg}
-        ./configure-scallop
+        ./configure-scallop --prefix=~/scallop
         make -j libscallop.so
         sudo make install-library install-headers
 
         # make scallop crate use shared library
         echo "SCALLOP_NO_VENDOR=1" >> $GITHUB_ENV
-        echo "PKG_CONFIG_LIBDIR=/usr/local/lib/pkgconfig" >> $GITHUB_ENV
-        echo "LD_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
+        echo "PKG_CONFIG_LIBDIR=~/scallop/lib/pkgconfig" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=~/scallop/lib" >> $GITHUB_ENV
 
     - name: Save cache
       if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@v4
       with:
-        path: /usr/local
+        path: ~/scallop
         key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
     - name: Set up rust toolchain
