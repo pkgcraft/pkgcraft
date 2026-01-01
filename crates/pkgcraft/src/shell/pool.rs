@@ -25,6 +25,7 @@ use crate::pkg::{Package, PkgPretend, RepoPackage, Source};
 use crate::repo::EbuildRepo;
 use crate::repo::Repository;
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
+use crate::utils::bounded_jobs;
 
 use super::environment::{BASH, EXTERNAL};
 use super::get_build_mut;
@@ -459,7 +460,7 @@ impl BuildPool {
                 // initialize semaphore to control pool access
                 let pid = std::process::id();
                 let name = format!("/pkgcraft-task-pool-{pid}");
-                let mut sem = NamedSemaphore::new(&name, self.tasks)?;
+                let mut sem = NamedSemaphore::new(&name, bounded_jobs(self.tasks))?;
 
                 // initialize bash
                 super::init()?;
