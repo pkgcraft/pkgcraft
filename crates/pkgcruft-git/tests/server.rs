@@ -85,3 +85,26 @@ async fn start() {
         .unwrap();
     tokio::spawn(async move { service.start().await });
 }
+
+#[tokio::test]
+async fn temp_git_repo() {
+    // initialize git repo
+    let repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+    let git_repo = GitRepo::init(&repo).unwrap();
+    let oid = git_repo.stage(&["*"]).unwrap();
+    git_repo.commit(oid, "initial import").unwrap();
+
+    // invalid git repo URI
+    let result = PkgcruftServiceBuilder::new("invalid-repo")
+        .temp(true)
+        .socket("127.0.0.1:0")
+        .build();
+    assert_err_re!(result, "^failed cloning git repo: invalid-repo: .+$");
+
+    // valid
+    let result = PkgcruftServiceBuilder::new(repo.path())
+        .temp(true)
+        .socket("127.0.0.1:0")
+        .build();
+    assert!(result.is_ok(), "{}", result.unwrap_err());
+}
