@@ -3280,6 +3280,7 @@ dependencies = [
  "config",
  "futures",
  "git2",
+ "gix",
  "hyper-util",
  "indexmap",
  "indoc",

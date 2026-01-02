@@ -1,4 +1,3 @@
-use std::io::{self, Write};
 use std::path::Path;
 
 use git2::{Diff, Oid};
@@ -6,34 +5,15 @@ use git2::{Diff, Oid};
 use crate::Error;
 
 /// Clone a git repo into a path.
-pub(crate) fn clone<P: AsRef<Path>>(uri: &str, path: P) -> Result<(), git2::Error> {
-    let path = path.as_ref();
-    let mut cb = git2::RemoteCallbacks::new();
-
-    // show transfer progress
-    cb.transfer_progress(|stats| {
-        if stats.received_objects() == stats.total_objects() {
-            print!("Resolving deltas {}/{}\r", stats.indexed_deltas(), stats.total_deltas());
-        } else if stats.total_objects() > 0 {
-            print!(
-                "Received {}/{} objects ({}) in {} bytes\r",
-                stats.received_objects(),
-                stats.total_objects(),
-                stats.indexed_objects(),
-                stats.received_bytes()
-            );
-        }
-        io::stdout().flush().unwrap();
-        true
-    });
-
-    let mut fo = git2::FetchOptions::new();
-    fo.remote_callbacks(cb);
-
-    let mut builder = git2::build::RepoBuilder::new();
-    builder.fetch_options(fo);
-    builder.clone(uri, path)?;
-
+pub(crate) fn clone<P: AsRef<Path>>(uri: &str, path: P) -> crate::Result<()> {
+    let mut prepare_fetch = gix::prepare_clone(uri, path)
+        .map_err(|e| Error::Git(format!("failed cloning repo: {uri}: {e}")))?;
+    let (mut prepare_checkout, _) = prepare_fetch
+        .fetch_then_checkout(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
+        .map_err(|e| Error::Git(format!("failed fetching git repo: {uri}: {e}")))?;
+    let (_repo, _outcome) = prepare_checkout
+        .main_worktree(gix::progress::Discard, &gix::interrupt::IS_INTERRUPTED)
+        .map_err(|e| Error::Git(format!("failed checking out git repo: {uri}: {e}")))?;
     Ok(())
 }
 

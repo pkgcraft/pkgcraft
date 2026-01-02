@@ -13,5 +13,7 @@ pub enum Error {
     #[error("{0}")]
     Pkgcruft(#[from] pkgcruft::Error),
     #[error("{0}")]
-    Git(#[from] git2::Error),
+    Git(String),
+    #[error("{0}")]
+    Git2(#[from] git2::Error),
 }
