@@ -163,7 +163,7 @@ async fn hook() {
         remote:
     "};
     let stderr = String::from_utf8(output.stderr).unwrap();
-    let stderr = stderr.lines().map(|x| x.trim().to_string()).join("\n");
+    let stderr = stderr.lines().map(|x| x.trim()).join("\n");
     assert!(stderr.contains(expected), "stderr missing expected output:\n{stderr}");
     assert_eq!(output.status.code().unwrap(), 1);
 
@@ -198,7 +198,7 @@ async fn hook() {
         remote:
     "};
     let stderr = String::from_utf8(output.stderr).unwrap();
-    let stderr = stderr.lines().map(|x| x.trim().to_string()).join("\n");
+    let stderr = stderr.lines().map(|x| x.trim()).join("\n");
     assert!(stderr.contains(expected), "stderr missing expected output:\n{stderr}");
     assert_eq!(output.status.code().unwrap(), 1);
 }
