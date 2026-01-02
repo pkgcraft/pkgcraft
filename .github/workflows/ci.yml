@@ -139,6 +139,11 @@ jobs:
         # build tests
         cargo build --all-features --workspace --tests
 
+        # remove unnecessary profile data
+        if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
+          find . -name \*.profraw -delete
+        fi
+
     - name: Save cache
       if: ${{ github.ref_name == 'main' && steps.restore-cache.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@v4
