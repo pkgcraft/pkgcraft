@@ -45,9 +45,9 @@ impl Listener {
                 let listener = TcpListener::bind(&socket).await.map_err(|e| {
                     Error::Start(format!("failed binding to socket: {socket}: {e}"))
                 })?;
-                let addr = listener.local_addr().map_err(|e| {
-                    Error::Start(format!("invalid local address: {socket}: {e}"))
-                })?;
+                let addr = listener
+                    .local_addr()
+                    .unwrap_or_else(|e| unreachable!("invalid socket: {socket}: {e}"));
                 (addr.to_string(), Listener::Tcp(listener))
             }
         };
