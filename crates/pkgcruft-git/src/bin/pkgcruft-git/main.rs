@@ -113,7 +113,8 @@ fn main() {
     // TODO: improve error chain output
     // extract error message from tonic status responses
     if let Err(error) = try_main() {
-        eprintln!("error: {error}\n");
+        let cmd = env!("CARGO_BIN_NAME");
+        eprintln!("{cmd}: error: {error}\n");
         error
             .chain()
             .skip(1)

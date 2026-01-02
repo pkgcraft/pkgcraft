@@ -11,7 +11,7 @@ fn connect() {
             .assert()
             .stdout("")
             .stderr(indoc::formatdoc! {"
-                error: failed connecting to service: {socket}
+                pkgcruft-git: error: failed connecting to service: {socket}
 
                 caused by: transport error
                 caused by: No such file or directory (os error 2)
