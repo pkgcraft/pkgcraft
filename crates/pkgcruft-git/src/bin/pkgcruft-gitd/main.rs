@@ -59,16 +59,17 @@ async fn try_main() -> anyhow::Result<ExitCode> {
     bounded_thread_pool(args.jobs);
 
     // initialize service
-    let mut service = PkgcruftServiceBuilder::new(&args.uri)
+    let mut builder = PkgcruftServiceBuilder::new(&args.uri)
         .jobs(args.jobs)
         .temp(args.temp);
 
     // override default socket
     if let Some(value) = &args.bind {
-        service = service.socket(value);
+        builder = builder.socket(value);
     }
 
     // start service
+    let service = builder.build()?;
     service.start().await?;
 
     Ok(ExitCode::SUCCESS)

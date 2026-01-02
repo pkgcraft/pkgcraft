@@ -92,6 +92,83 @@ impl PkgcruftServiceBuilder {
         self
     }
 
+    /// Create a PkgcruftService from the builder.
+    pub fn build(self) -> crate::Result<PkgcruftService> {
+        let mut _tempdir = None;
+        let path = if self.temp {
+            // create temporary git repo dir
+            let tempdir = tempdir()
+                .map_err(|e| Error::Service(format!("failed creating temp dir: {e}")))?;
+            let path = Utf8PathBuf::from_path_buf(tempdir.path().to_owned())
+                .map_err(|p| Error::Service(format!("invalid tempdir path: {p:?}")))?;
+            _tempdir = Some(tempdir);
+
+            // clone git repo into temporary dir
+            let uri = &self.uri;
+            git::clone(uri, &path)
+                .map_err(|e| Error::Service(format!("failed cloning git repo: {uri}: {e}")))?;
+
+            path
+        } else {
+            self.uri.into()
+        };
+
+        // verify target path is a valid ebuild repo
+        let mut config = PkgcraftConfig::new("pkgcraft", "");
+        let repo = config
+            .add_repo_path("repo", &path, 0)
+            .map_err(|e| Error::Service(format!("invalid repo: {e}")))?;
+        let repo = repo
+            .into_ebuild()
+            .map_err(|e| Error::Service(format!("invalid ebuild repo: {path}: {e}")))?;
+        config
+            .finalize()
+            .map_err(|e| Error::Service(format!("failed finalizing config: {e}")))?;
+
+        // generate ebuild repo metadata ignoring failures
+        repo.metadata()
+            .cache()
+            .regen(&repo)
+            .progress(true)
+            .run()
+            .ok();
+
+        // TODO: generate or verify db of existing pkgcruft reports
+
+        Ok(PkgcruftService {
+            _tempdir,
+            path,
+            scanning: Arc::new(Semaphore::new(1)),
+            jobs: self.jobs,
+            socket: self.socket,
+        })
+    }
+}
+
+/// Pkgcruft service spawned into a tokio task providing socket access for tests.
+#[derive(Debug)]
+pub struct PkgcruftdTask {
+    pub socket: String,
+    _service: JoinHandle<crate::Result<Pkgcruftd>>,
+}
+
+/// Pkgcruft service wrapper that forces the service to end when dropped.
+#[derive(Debug)]
+pub struct Pkgcruftd {
+    _tx: oneshot::Sender<()>,
+}
+
+/// Pkgcruft service.
+#[derive(Debug)]
+pub struct PkgcruftService {
+    _tempdir: Option<TempDir>,
+    path: Utf8PathBuf,
+    scanning: Arc<Semaphore>,
+    jobs: usize,
+    socket: Option<String>,
+}
+
+impl PkgcruftService {
     /// Create a network listener for the service.
     async fn create_listener(&self) -> crate::Result<(String, Listener)> {
         // determine network socket
@@ -107,8 +184,7 @@ impl PkgcruftServiceBuilder {
 
     /// Start the service listening on the given Listener.
     async fn listen(self, listener: Listener) -> crate::Result<Pkgcruftd> {
-        let service = PkgcruftService::try_new(&self.uri, self.temp, self.jobs)?;
-        let server = Server::builder().add_service(PkgcruftServer::new(service));
+        let server = Server::builder().add_service(PkgcruftServer::new(self));
 
         let (tx, rx) = oneshot::channel::<()>();
         match listener {
@@ -146,78 +222,6 @@ impl PkgcruftServiceBuilder {
         let (socket, listener) = self.create_listener().await?;
         let _service = tokio::spawn(async move { self.listen(listener).await });
         Ok(PkgcruftdTask { socket, _service })
-    }
-}
-
-/// Pkgcruft service spawned into a tokio task providing socket access for tests.
-#[derive(Debug)]
-pub struct PkgcruftdTask {
-    pub socket: String,
-    _service: JoinHandle<crate::Result<Pkgcruftd>>,
-}
-
-/// Pkgcruft service wrapper that forces the service to end when dropped.
-#[derive(Debug)]
-pub struct Pkgcruftd {
-    _tx: oneshot::Sender<()>,
-}
-
-struct PkgcruftService {
-    _tempdir: Option<TempDir>,
-    path: Utf8PathBuf,
-    scanning: Arc<Semaphore>,
-    jobs: usize,
-}
-
-impl PkgcruftService {
-    /// Try creating a new service.
-    fn try_new(uri: &str, temp: bool, jobs: usize) -> crate::Result<Self> {
-        let mut _tempdir = None;
-        let path = if temp {
-            // create temporary git repo dir
-            let tempdir = tempdir()
-                .map_err(|e| Error::Service(format!("failed creating temp dir: {e}")))?;
-            let path = Utf8PathBuf::from_path_buf(tempdir.path().to_owned())
-                .map_err(|p| Error::Service(format!("invalid tempdir path: {p:?}")))?;
-            _tempdir = Some(tempdir);
-
-            // clone git repo into temporary dir
-            git::clone(uri, &path)
-                .map_err(|e| Error::Service(format!("failed cloning git repo: {uri}: {e}")))?;
-
-            path
-        } else {
-            uri.into()
-        };
-
-        // verify target path is a valid ebuild repo
-        let mut config = PkgcraftConfig::new("pkgcraft", "");
-        let repo = config
-            .add_repo_path("repo", &path, 0)
-            .map_err(|e| Error::Service(format!("invalid repo: {e}")))?;
-        let repo = repo
-            .into_ebuild()
-            .map_err(|e| Error::Service(format!("invalid ebuild repo: {path}: {e}")))?;
-        config
-            .finalize()
-            .map_err(|e| Error::Service(format!("failed finalizing config: {e}")))?;
-
-        // generate ebuild repo metadata ignoring failures
-        repo.metadata()
-            .cache()
-            .regen(&repo)
-            .progress(true)
-            .run()
-            .ok();
-
-        // TODO: generate or verify db of existing pkgcruft reports
-
-        Ok(Self {
-            _tempdir,
-            path,
-            scanning: Arc::new(Semaphore::new(1)),
-            jobs,
-        })
     }
 
     /// Perform a scanning run for a push request.

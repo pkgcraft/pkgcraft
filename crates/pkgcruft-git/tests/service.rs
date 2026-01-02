@@ -19,7 +19,7 @@ async fn uds() {
             service = service.socket(value);
         }
 
-        service.spawn().await.unwrap();
+        service.build().unwrap().spawn().await.unwrap();
         let ver = env!("CARGO_PKG_VERSION");
         let expected = format!("client: {ver}, server: {ver}\n");
 
@@ -42,6 +42,8 @@ async fn tcp() {
     for addr in ["127.0.0.1:0", "[::]:0"] {
         let service = PkgcruftServiceBuilder::new(repo.path())
             .socket(addr)
+            .build()
+            .unwrap()
             .spawn()
             .await
             .unwrap();
@@ -72,6 +74,8 @@ async fn scan() {
     let socket = tmp.path().to_str().unwrap();
     let _service = PkgcruftServiceBuilder::new(repo.path())
         .socket(socket)
+        .build()
+        .unwrap()
         .spawn()
         .await
         .unwrap();

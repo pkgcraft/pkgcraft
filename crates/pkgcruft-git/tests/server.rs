@@ -27,6 +27,8 @@ async fn socket_errors() {
     let socket = tmp.path().to_str().unwrap();
     PkgcruftServiceBuilder::new(repo.path())
         .socket(socket)
+        .build()
+        .unwrap()
         .spawn()
         .await
         .unwrap();
@@ -42,6 +44,8 @@ async fn socket_errors() {
     // uds socket insufficient path permissions
     let result = PkgcruftServiceBuilder::new(repo.path())
         .socket("/path/to/nonexistent/socket")
+        .build()
+        .unwrap()
         .spawn()
         .await;
     assert_err_re!(result, "failed creating socket dir: /path/to/nonexistent: .*");
@@ -49,6 +53,8 @@ async fn socket_errors() {
     // tcp socket already used
     let service = PkgcruftServiceBuilder::new(repo.path())
         .socket("127.0.0.1:0")
+        .build()
+        .unwrap()
         .spawn()
         .await
         .unwrap();
@@ -73,6 +79,9 @@ async fn start() {
     let socket = tmp.path().to_str().unwrap();
 
     // custom socket
-    let service = PkgcruftServiceBuilder::new(repo.path()).socket(socket);
+    let service = PkgcruftServiceBuilder::new(repo.path())
+        .socket(socket)
+        .build()
+        .unwrap();
     tokio::spawn(async move { service.start().await });
 }
