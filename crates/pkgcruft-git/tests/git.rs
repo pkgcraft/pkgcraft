@@ -1,14 +1,20 @@
 use std::io::Write;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
-use std::sync::LazyLock;
 
-use assert_cmd::Command;
 use tempfile::NamedTempFile;
 
-/// Determine if the `git` binary exists in the system path.
-pub(crate) static GIT_EXISTS: LazyLock<bool> =
-    LazyLock::new(|| Command::new("git").arg("-v").ok().is_ok());
+/// Create a custom git config.
+fn git_config() -> NamedTempFile {
+    let data = indoc::indoc! {"
+        [user]
+            name = Pkgcruft Git
+            email = pkgcruft-git@pkgcruft.pkgcraft
+    "};
+    let mut config = NamedTempFile::new().unwrap();
+    config.write_all(data.as_bytes()).unwrap();
+    config
+}
 
 /// Git repository wrapper.
 pub(crate) struct GitRepo(git2::Repository);
@@ -64,14 +70,14 @@ impl DerefMut for GitRepo {
     }
 }
 
-/// Git command wrapper.
+/// Synchronous git command wrapper.
 pub(crate) struct GitCmd {
-    cmd: Command,
+    cmd: assert_cmd::Command,
     _config: NamedTempFile,
 }
 
 impl Deref for GitCmd {
-    type Target = Command;
+    type Target = assert_cmd::Command;
 
     fn deref(&self) -> &Self::Target {
         &self.cmd
@@ -88,37 +94,70 @@ impl GitCmd {
     /// Construct a git command that uses custom config files.
     pub(crate) fn new<S: AsRef<str>>(cmd: S) -> Self {
         let args: Vec<_> = cmd.as_ref().split_whitespace().collect();
-        let mut cmd = Command::new("git");
+        let mut cmd = assert_cmd::Command::new("git");
         cmd.args(&args);
-
-        // create custom git config
-        let data = indoc::indoc! {"
-            [user]
-                name = Pkgcruft Git
-                email = pkgcruft-git@pkgcruft.pkgcraft
-        "};
-        let mut config = NamedTempFile::new().unwrap();
-        config.write_all(data.as_bytes()).unwrap();
-        let config_path = config.path().to_str().unwrap();
 
         // disable system config
         cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
         // use custom user config
-        cmd.env("GIT_CONFIG_GLOBAL", config_path);
+        let config = git_config();
+        cmd.env("GIT_CONFIG_GLOBAL", config.path());
 
         Self { cmd, _config: config }
     }
 }
 
-/// Run a git command if `git` exists on the system path.
+/// Run a git command ignoring system and user config settings.
 #[macro_export]
 macro_rules! git {
     ($cmd:expr) => {
-        if *$crate::git::GIT_EXISTS {
-            $crate::git::GitCmd::new($cmd)
-        } else {
-            return;
-        }
+        $crate::git::GitCmd::new($cmd)
     };
 }
 pub(crate) use git;
+
+/// Asynchronous git command wrapper.
+pub(crate) struct GitCmdAsync {
+    cmd: tokio::process::Command,
+    _config: NamedTempFile,
+}
+
+impl Deref for GitCmdAsync {
+    type Target = tokio::process::Command;
+
+    fn deref(&self) -> &Self::Target {
+        &self.cmd
+    }
+}
+
+impl DerefMut for GitCmdAsync {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cmd
+    }
+}
+
+impl GitCmdAsync {
+    /// Construct a git command that uses custom config files.
+    pub(crate) fn new<S: AsRef<str>>(cmd: S) -> Self {
+        let args: Vec<_> = cmd.as_ref().split_whitespace().collect();
+        let mut cmd = tokio::process::Command::new("git");
+        cmd.args(&args);
+
+        // disable system config
+        cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
+        // use custom user config
+        let config = git_config();
+        cmd.env("GIT_CONFIG_GLOBAL", config.path());
+
+        Self { cmd, _config: config }
+    }
+}
+
+/// Run an async git command ignoring system and user config settings.
+#[macro_export]
+macro_rules! git_async {
+    ($cmd:expr) => {
+        $crate::git::GitCmdAsync::new($cmd)
+    };
+}
+pub(crate) use git_async;

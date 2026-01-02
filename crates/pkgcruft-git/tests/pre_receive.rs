@@ -8,7 +8,7 @@ use predicates::str::contains;
 use tempfile::TempDir;
 use tokio::process::Command;
 
-use crate::git::{GitRepo, git};
+use crate::git::{GitRepo, git, git_async};
 
 #[test]
 fn invalid_uri() {
@@ -123,8 +123,7 @@ async fn hook() {
     git!("commit -m good").current_dir(&repo).assert().success();
 
     // trigger hook via `git push`
-    let mut cmd = Command::new("git");
-    cmd.arg("push");
+    let mut cmd = git_async!("push");
     cmd.current_dir(&repo);
     let output = cmd.output().await.unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
@@ -150,8 +149,7 @@ async fn hook() {
         .success();
 
     // trigger hook via `git push`
-    let mut cmd = Command::new("git");
-    cmd.arg("push");
+    let mut cmd = git_async!("push");
     cmd.current_dir(&repo);
     let output = cmd.output().await.unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
@@ -182,8 +180,7 @@ async fn hook() {
         .success();
 
     // trigger hook via `git push`
-    let mut cmd = Command::new("git");
-    cmd.arg("push");
+    let mut cmd = git_async!("push");
     cmd.current_dir(&repo);
     let output = cmd.output().await.unwrap();
     let stdout = String::from_utf8(output.stdout).unwrap();
