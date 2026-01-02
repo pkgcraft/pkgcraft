@@ -2,6 +2,7 @@ mod client;
 mod git;
 mod pre_commit;
 mod pre_push;
+mod pre_receive;
 mod server;
 mod service;
 
