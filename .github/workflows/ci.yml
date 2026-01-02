@@ -59,10 +59,10 @@ jobs:
       timeout-minutes: 5
       with:
         android: true
-        dotnet: false
-        haskell: false
+        dotnet: true
+        haskell: true
         docker-images: false
-        tool-cache: false
+        tool-cache: true
         large-packages: false
         swap-storage: false
 
