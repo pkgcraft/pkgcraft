@@ -13,11 +13,14 @@ async fn socket_errors() {
     GitRepo::init(&repo).unwrap();
 
     // invalid socket
-    let result = PkgcruftServiceBuilder::new(repo.path())
-        .socket("invalid-socket")
-        .spawn()
-        .await;
-    assert_err_re!(result, "^invalid socket: invalid-socket$");
+    cmd("pkgcruft-gitd")
+        .args(["-b", "invalid-socket"])
+        .arg(repo.path())
+        .assert()
+        .stdout("")
+        .stderr("pkgcruft-gitd: error: invalid socket: invalid-socket\n")
+        .failure()
+        .code(1);
 
     // uds socket already used
     let tmp = NamedTempFile::new().unwrap();
@@ -32,7 +35,7 @@ async fn socket_errors() {
         .arg(repo.path())
         .assert()
         .stdout("")
-        .stderr(contains(format!("pkgcruft-gitd: error: service already running: {socket}")))
+        .stderr(format!("pkgcruft-gitd: error: service already running: {socket}\n"))
         .failure()
         .code(1);
 
