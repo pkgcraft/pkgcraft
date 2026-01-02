@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use std::io::{self, BufRead, IsTerminal};
 use std::ops::Deref;
 
 use anyhow::anyhow;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcruft::report::Report;
 use pkgcruft::reporter::{FancyReporter, Reporter};
@@ -20,24 +22,31 @@ impl Command {
             anyhow::bail!("requires running as a git pre-receive hook");
         }
 
+        // HACK: Pull git-related variables from the environment.
+        //
+        // For some reason std::env::var() calls don't work as expected in certain
+        // situations (e.g. when the git2 crate is compiled with
+        // RUSTFLAGS="-Cinstrument-coverage" for code coverage support), but
+        // std::env::vars() still includes all the data, so this manually collects and
+        // pulls the required values.
+        let env: HashMap<_, _> = std::env::vars().collect();
+        let odb_dir = env
+            .get("GIT_OBJECT_DIRECTORY")
+            .ok_or_else(|| anyhow!("env missing $GIT_OBJECT_DIRECTORY"))?;
+        let odb_alts = env
+            .get("GIT_ALTERNATE_OBJECT_DIRECTORIES")
+            .ok_or_else(|| anyhow!("env missing $GIT_ALTERNATE_OBJECT_DIRECTORIES"))?;
+
         // pull object directories from the environment
         //
         // git2::Repository::open_from_env() doesn't appear to respect the temporary
         // object directory used for incoming objects before they're merged into the tree
         // so we manually add them ourselves.
-        let mut odb_paths = vec![];
-        if let Ok(value) = std::env::var("GIT_OBJECT_DIRECTORY") {
-            odb_paths.push(value);
-        }
-        if let Ok(values) = std::env::var("GIT_ALTERNATE_OBJECT_DIRECTORIES") {
-            odb_paths.extend(values.split(':').map(|s| s.to_string()));
-        }
+        let mut odb_paths = IndexSet::new();
+        odb_paths.insert(odb_dir.as_str());
+        odb_paths.extend(odb_alts.split(':'));
 
-        // WARNING: This appears to invalidate the environment in some fashion so
-        // std::env::var() calls don't work as expected after it even though
-        // std::env::vars() will still show all the variables.
-        //
-        // open git repo specified by $GIT_DIR
+        // open repo specified by $GIT_DIR or search starting in the current dir
         let repo = git2::Repository::open_from_env()
             .map_err(|e| anyhow!("failed opening git repo: {e}"))?;
 
