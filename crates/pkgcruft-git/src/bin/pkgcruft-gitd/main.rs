@@ -1,4 +1,5 @@
 use std::io::stderr;
+use std::process::ExitCode;
 
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
@@ -38,8 +39,7 @@ pub(crate) struct Command {
     uri: String,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn try_main() -> anyhow::Result<ExitCode> {
     let args = Command::parse();
 
     // set color choice
@@ -71,5 +71,14 @@ async fn main() -> anyhow::Result<()> {
     // start service
     service.start().await?;
 
-    Ok(())
+    Ok(ExitCode::SUCCESS)
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<ExitCode> {
+    try_main().await.or_else(|e| {
+        let cmd = env!("CARGO_BIN_NAME");
+        eprintln!("{cmd}: error: {e}");
+        Ok(ExitCode::from(1))
+    })
 }

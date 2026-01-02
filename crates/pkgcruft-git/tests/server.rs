@@ -17,7 +17,7 @@ async fn socket_errors() {
         .socket("invalid-socket")
         .spawn()
         .await;
-    assert_err_re!(result, "invalid socket: invalid-socket");
+    assert_err_re!(result, "^invalid socket: invalid-socket$");
 
     // uds socket already used
     let tmp = NamedTempFile::new().unwrap();
@@ -32,7 +32,7 @@ async fn socket_errors() {
         .arg(repo.path())
         .assert()
         .stdout("")
-        .stderr(contains(format!("service already running on: {socket}")))
+        .stderr(contains(format!("pkgcruft-gitd: error: service already running: {socket}")))
         .failure()
         .code(1);
 
@@ -55,7 +55,7 @@ async fn socket_errors() {
         .arg(repo.path())
         .assert()
         .stdout("")
-        .stderr(contains(format!("failed binding to socket: {socket}")))
+        .stderr(contains(format!("pkgcruft-gitd: error: failed binding to socket: {socket}")))
         .failure()
         .code(1);
 }

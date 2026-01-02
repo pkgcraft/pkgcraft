@@ -14,7 +14,7 @@ pub(crate) fn verify_socket_path<P: AsRef<Utf8Path>>(path: P) -> crate::Result<(
 
     // check if the socket is already in use
     if UnixStream::connect(path).is_ok() {
-        return Err(Error::InvalidValue(format!("service already running on: {path}")));
+        return Err(Error::InvalidValue(format!("service already running: {path}")));
     }
 
     // create dirs and remove old socket file if it exists
