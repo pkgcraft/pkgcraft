@@ -36,14 +36,14 @@ impl Listener {
             Err(_) if socket.starts_with('/') => {
                 verify_socket_path(socket)?;
                 let listener = UnixListener::bind(socket).map_err(|e| {
-                    Error::Start(format!("failed binding to socket: {socket}: {e}"))
+                    Error::Service(format!("failed binding to socket: {socket}: {e}"))
                 })?;
                 (socket.to_string(), Listener::Unix(listener))
             }
             Err(_) => return Err(Error::InvalidValue(format!("invalid socket: {socket}"))),
             Ok(socket) => {
                 let listener = TcpListener::bind(&socket).await.map_err(|e| {
-                    Error::Start(format!("failed binding to socket: {socket}: {e}"))
+                    Error::Service(format!("failed binding to socket: {socket}: {e}"))
                 })?;
                 let addr = listener
                     .local_addr()
@@ -176,14 +176,14 @@ impl PkgcruftService {
         let path = if temp {
             // create temporary git repo dir
             let tempdir = tempdir()
-                .map_err(|e| Error::Start(format!("failed creating temp dir: {e}")))?;
+                .map_err(|e| Error::Service(format!("failed creating temp dir: {e}")))?;
             let path = Utf8PathBuf::from_path_buf(tempdir.path().to_owned())
-                .map_err(|p| Error::Start(format!("invalid tempdir path: {p:?}")))?;
+                .map_err(|p| Error::Service(format!("invalid tempdir path: {p:?}")))?;
             _tempdir = Some(tempdir);
 
             // clone git repo into temporary dir
             git::clone(uri, &path)
-                .map_err(|e| Error::Start(format!("failed cloning git repo: {uri}: {e}")))?;
+                .map_err(|e| Error::Service(format!("failed cloning git repo: {uri}: {e}")))?;
 
             path
         } else {
@@ -194,13 +194,13 @@ impl PkgcruftService {
         let mut config = PkgcraftConfig::new("pkgcraft", "");
         let repo = config
             .add_repo_path("repo", &path, 0)
-            .map_err(|e| Error::Start(format!("invalid repo: {e}")))?;
+            .map_err(|e| Error::Service(format!("invalid repo: {e}")))?;
         let repo = repo
             .into_ebuild()
-            .map_err(|e| Error::Start(format!("invalid ebuild repo: {path}: {e}")))?;
+            .map_err(|e| Error::Service(format!("invalid ebuild repo: {path}: {e}")))?;
         config
             .finalize()
-            .map_err(|e| Error::Start(format!("failed finalizing config: {e}")))?;
+            .map_err(|e| Error::Service(format!("failed finalizing config: {e}")))?;
 
         // generate ebuild repo metadata ignoring failures
         repo.metadata()

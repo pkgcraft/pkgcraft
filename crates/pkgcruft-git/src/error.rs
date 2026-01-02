@@ -1,10 +1,6 @@
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("failed connecting to pkgcruft-gitd: {0}")]
-    Connect(String),
-    #[error("failed starting pkgcruft-gitd: {0}")]
-    Start(String),
-    #[error("pkgcruft-gitd failed: {0}")]
+    #[error("{0}")]
     Service(String),
     #[error("invalid push request: {0}")]
     InvalidPushRequest(String),
