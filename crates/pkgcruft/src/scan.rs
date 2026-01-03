@@ -1,3 +1,4 @@
+use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
@@ -217,11 +218,7 @@ impl ScannerRun {
         let restrict = value.try_into_restrict(repo)?;
         let scope = Scope::from(&restrict);
 
-        info!("repo: {repo}");
-        info!("scope: {scope}");
-        info!("target: {restrict:?}");
-
-        Ok(Self {
+        let run = Self {
             repo: repo.clone(),
             restrict,
             scope,
@@ -237,7 +234,11 @@ impl ScannerRun {
             sort: scanner.sort,
             sender: Default::default(),
             stats: scanner.stats.clone(),
-        })
+        };
+
+        info!("{run}");
+
+        Ok(run)
     }
 
     pub(crate) fn sender(&self) -> &ReportSender {
@@ -276,6 +277,15 @@ impl ScannerRun {
     /// Return true if the scanning run is cancelled.
     pub(crate) fn is_cancelled(&self) -> bool {
         self.cancel.load(Ordering::Relaxed)
+    }
+}
+
+impl fmt::Display for ScannerRun {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let repo = &self.repo;
+        let scope = &self.scope;
+        let target = &self.restrict;
+        write!(f, "scanner run: repo: {repo}, scope: {scope}, target: {target:?}")
     }
 }
 
