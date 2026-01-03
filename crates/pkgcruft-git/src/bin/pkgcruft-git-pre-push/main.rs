@@ -92,17 +92,16 @@ fn try_main() -> anyhow::Result<ExitCode> {
 
         // determine diff
         let diff = git::diff(&git_repo, remote_obj, local_obj)?;
+        let paths = diff.deltas().filter_map(|d| d.new_file().path());
 
         // determine target Cpns from diff
         let mut cpns = IndexSet::new();
         let mut eclass = false;
-        for delta in diff.deltas() {
-            if let Some(path) = delta.new_file().path() {
-                if let Ok(cpn) = repo.cpn_from_path(path) {
-                    cpns.insert(cpn);
-                } else if path.starts_with("eclass") {
-                    eclass = true;
-                }
+        for path in paths {
+            if let Ok(cpn) = repo.cpn_from_path(path) {
+                cpns.insert(cpn);
+            } else if path.starts_with("eclass") {
+                eclass = true;
             }
         }
 

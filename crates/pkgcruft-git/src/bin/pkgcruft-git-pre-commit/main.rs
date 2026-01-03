@@ -74,19 +74,11 @@ fn try_main() -> anyhow::Result<ExitCode> {
         .jobs(args.jobs)
         .exit([ReportLevel::Critical, ReportLevel::Error]);
 
-    // determine diff
+    // determine target Cpns from diff
     let tree = git_repo.head()?.peel_to_tree()?;
     let diff = git_repo.diff_tree_to_index(Some(&tree), None, None)?;
-
-    // determine target Cpns from diff
-    let mut cpns = IndexSet::new();
-    for delta in diff.deltas() {
-        if let Some(path) = delta.new_file().path()
-            && let Ok(cpn) = repo.cpn_from_path(path)
-        {
-            cpns.insert(cpn);
-        }
-    }
+    let paths = diff.deltas().filter_map(|d| d.new_file().path());
+    let cpns: IndexSet<_> = paths.filter_map(|p| repo.cpn_from_path(p).ok()).collect();
 
     // scan individual packages that were changed
     for cpn in cpns {
