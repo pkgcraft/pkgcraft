@@ -88,23 +88,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn semaphore() {
-        // macos doesn't have the same failures as linux
-        if !cfg!(target_os = "macos") {
-            // invalid name
-            let r = NamedSemaphore::new("/", 1);
-            assert_err_re!(r, "^failed creating semaphore: Invalid argument");
-
-            // exceed max semaphore value
-            let max_size = unsafe { libc::sysconf(libc::_SC_SEM_VALUE_MAX) };
-            let max_size: usize = max_size.try_into().unwrap();
-            let r = NamedSemaphore::new("test", max_size + 1);
-            assert_err_re!(r, "^failed creating semaphore: Invalid argument");
-            let mut sem = NamedSemaphore::new("test", max_size).unwrap();
-            let r = sem.release();
-            assert_err_re!(r, "^failed releasing semaphore: Value too large");
-        }
-
+    fn valid() {
         // acquire then release
         let mut sem = NamedSemaphore::new("test", 1).unwrap();
         sem.acquire().unwrap();
@@ -113,5 +97,23 @@ mod tests {
         // acquire all
         let mut sem = NamedSemaphore::new("test", 10).unwrap();
         sem.wait().unwrap();
+    }
+
+    // macos doesn't have the same failures as linux
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn invalid() {
+        // invalid name
+        let r = NamedSemaphore::new("/", 1);
+        assert_err_re!(r, "^failed creating semaphore: Invalid argument");
+
+        // exceed max semaphore value
+        let max_size = unsafe { libc::sysconf(libc::_SC_SEM_VALUE_MAX) };
+        let max_size: usize = max_size.try_into().unwrap();
+        let r = NamedSemaphore::new("test", max_size + 1);
+        assert_err_re!(r, "^failed creating semaphore: Invalid argument");
+        let mut sem = NamedSemaphore::new("test", max_size).unwrap();
+        let r = sem.release();
+        assert_err_re!(r, "^failed releasing semaphore: Value too large");
     }
 }
