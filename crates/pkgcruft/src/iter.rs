@@ -132,7 +132,11 @@ fn pkg_worker(
         #[cfg(test)]
         let _entered = thread_span.clone().entered();
 
-        for (check, target, id) in rx {
+        // run checks for targets
+        let mut targets = rx.into_iter();
+        while let Some((check, target, id)) = targets.next()
+            && !run.is_cancelled()
+        {
             if let Some(check) = check {
                 runner.run(&check, &target, &run);
             } else {
@@ -141,27 +145,20 @@ fn pkg_worker(
                 // signal iterator to process reports for a target
                 run.sender().process(target, id)?;
             }
-
-            // return early if the scanning run was cancelled
-            if run.is_cancelled() {
-                return Ok(());
-            }
         }
 
         // signal the finish wait group
         drop(wg);
 
-        // finalize checks
-        for (check, target) in finish_rx {
+        // run finalize methods for targets
+        let mut finish_targets = finish_rx.into_iter();
+        while let Some((check, target)) = finish_targets.next()
+            && !run.is_cancelled()
+        {
             if let Some(target) = target {
                 runner.finish_target(&check, &target, &run);
             } else {
                 runner.finish_check(&check, &run);
-            }
-
-            // return early if the scanning run was cancelled
-            if run.is_cancelled() {
-                return Ok(());
             }
         }
 
@@ -245,26 +242,23 @@ fn version_worker(
         #[cfg(test)]
         let _entered = thread_span.clone().entered();
 
-        for (check, target) in rx {
+        // run checks for targets
+        let mut targets = rx.into_iter();
+        while let Some((check, target)) = targets.next()
+            && !run.is_cancelled()
+        {
             runner.run(&check, &target, &run);
-
-            // return early if the scanning run was cancelled
-            if run.is_cancelled() {
-                return Ok(());
-            }
         }
 
         // signal the finish wait group
         drop(wg);
 
         // run finalize methods for targets
-        for (check, target) in finish_rx {
+        let mut finish_targets = finish_rx.into_iter();
+        while let Some((check, target)) = finish_targets.next()
+            && !run.is_cancelled()
+        {
             runner.finish_target(&check, &target, &run);
-
-            // return early if the scanning run was cancelled
-            if run.is_cancelled() {
-                return Ok(());
-            }
         }
 
         // signal iterator on thread completion
