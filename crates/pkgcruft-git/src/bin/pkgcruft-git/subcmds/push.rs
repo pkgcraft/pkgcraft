@@ -1,9 +1,8 @@
-use std::collections::HashMap;
 use std::io::{self, BufRead, IsTerminal};
 use std::ops::Deref;
 
 use anyhow::anyhow;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use pkgcruft::report::Report;
 use pkgcruft::reporter::{FancyReporter, Reporter};
@@ -29,7 +28,7 @@ impl Command {
         // RUSTFLAGS="-Cinstrument-coverage" for code coverage support), but
         // std::env::vars() still includes all the data, so this manually collects and
         // pulls the required values.
-        let env: HashMap<_, _> = std::env::vars().collect();
+        let env: IndexMap<_, _> = std::env::vars().collect();
         let odb_dir = env
             .get("GIT_OBJECT_DIRECTORY")
             .ok_or_else(|| anyhow!("env missing $GIT_OBJECT_DIRECTORY"))?;
@@ -53,7 +52,7 @@ impl Command {
         // manually add all object directories so incoming commits can be found
         let odb = repo.odb()?;
         for path in odb_paths {
-            odb.add_disk_alternate(&path)?;
+            odb.add_disk_alternate(path)?;
         }
 
         let mut failed = false;
