@@ -170,6 +170,16 @@ impl EbuildRepo {
         Ok(())
     }
 
+    /// Load a standalone ebuild repository from a given path.
+    pub fn standalone<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Self> {
+        let path = path.as_ref();
+        let mut config = Config::new("pkgcraft", "");
+        let repo = config.add_format_repo_nested_path(path, 0, RepoFormat::Ebuild)?;
+        let repo = repo.into_ebuild().expect("invalid ebuild repo");
+        config.finalize()?;
+        Ok(repo)
+    }
+
     /// Return the repo's path.
     pub fn path(&self) -> &Utf8Path {
         &self.config().location
@@ -1249,7 +1259,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn masters() {
+    fn finalized() {
         let data = test_data();
         let repos = data.path().join("repos");
 
@@ -1284,6 +1294,42 @@ mod tests {
         let secondary_repo = r2.as_ebuild().unwrap();
         assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
         assert_ordered_eq!(secondary_repo.trees(), [secondary_repo, primary_repo]);
+    }
+
+    #[test]
+    fn standalone() {
+        let data = test_data();
+        let repos = data.path().join("repos");
+
+        // invalid
+        let path = repos.join("invalid/unsupported-eapi");
+        let r = EbuildRepo::standalone(&path);
+        let err = format!("^invalid repo: {path}: profiles/eapi: unsupported EAPI: 0$");
+        assert_err_re!(r, err);
+
+        // valid
+        let primary = repos.join("valid/primary");
+        let repo = EbuildRepo::standalone(&primary).unwrap();
+        assert_eq!(repo.path(), primary);
+        assert!(repo.masters().is_empty());
+
+        // valid nested path
+        let repo = EbuildRepo::standalone(primary.join("profiles")).unwrap();
+        assert_eq!(repo.path(), primary);
+        assert!(repo.masters().is_empty());
+
+        // valid overlay
+        let secondary = repos.join("valid/secondary");
+        let repo = EbuildRepo::standalone(&secondary).unwrap();
+        // verify the repo is finalized
+        assert_eq!(repo.path(), secondary);
+        assert_ordered_eq!(repo.masters().iter().map(|x| x.path()), [&primary]);
+
+        // valid overlay nested path
+        let repo = EbuildRepo::standalone(secondary.join("metadata")).unwrap();
+        // verify the repo is finalized
+        assert_eq!(repo.path(), secondary);
+        assert_ordered_eq!(repo.masters().iter().map(|x| x.path()), [&primary]);
     }
 
     #[test]
