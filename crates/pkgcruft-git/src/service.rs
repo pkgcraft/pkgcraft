@@ -290,8 +290,9 @@ impl PkgcruftService {
         git_repo.set_head(ref_name)?;
         git_repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
 
-        // determine diff
+        // determine changed paths from diff
         let diff = git::diff(git_repo, &push.old_ref, &push.new_ref)?;
+        let paths = diff.deltas().filter_map(|d| d.new_file().path());
 
         // initialize ebuild repo
         let mut config = PkgcraftConfig::new("pkgcraft", "");
@@ -302,13 +303,11 @@ impl PkgcruftService {
         // determine target Cpns from diff
         let mut cpns = IndexSet::new();
         let mut eclass = false;
-        for delta in diff.deltas() {
-            if let Some(path) = delta.new_file().path() {
-                if let Ok(cpn) = repo.cpn_from_path(path) {
-                    cpns.insert(cpn);
-                } else if path.starts_with("eclass") {
-                    eclass = true;
-                }
+        for path in paths {
+            if let Ok(cpn) = repo.cpn_from_path(path) {
+                cpns.insert(cpn);
+            } else if path.starts_with("eclass") {
+                eclass = true;
             }
         }
 
