@@ -11,8 +11,8 @@ pub enum Error {
     ReportInit(ReportKind, String),
     #[error("{0}: check {1}")]
     CheckInit(Check, String),
-    #[error("{0}")]
-    ChannelClosed(String),
+    #[error("scanning run canceled")]
+    Canceled,
     #[error("{0}")]
     IO(String),
     #[error("{0}")]
@@ -26,7 +26,7 @@ impl From<io::Error> for Error {
 }
 
 impl<T> From<crossbeam_channel::SendError<T>> for Error {
-    fn from(e: crossbeam_channel::SendError<T>) -> Self {
-        Error::ChannelClosed(format!("{e}"))
+    fn from(_: crossbeam_channel::SendError<T>) -> Self {
+        Error::Canceled
     }
 }
