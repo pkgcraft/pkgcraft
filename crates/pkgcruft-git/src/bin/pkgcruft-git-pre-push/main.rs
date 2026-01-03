@@ -85,9 +85,8 @@ fn try_main() -> anyhow::Result<ExitCode> {
     for line in stdin.lines() {
         let line = line?;
         // get hook input args
-        let Some((_local_ref, local_obj, _remote_ref, remote_obj)) =
-            line.split(' ').collect_tuple()
-        else {
+        let refs = line.split_whitespace().collect_tuple();
+        let Some((_local_ref, local_obj, _remote_ref, remote_obj)) = refs else {
             anyhow::bail!("invalid pre-push hook arguments: {line}");
         };
 

@@ -60,7 +60,8 @@ impl Command {
             // TODO: skip pushes where the ref name doesn't match the default branch
             //
             // get push information
-            let Some((old_ref, new_ref, ref_name)) = line.split(' ').collect_tuple() else {
+            let refs = line.split_whitespace().collect_tuple();
+            let Some((old_ref, new_ref, ref_name)) = refs else {
                 anyhow::bail!("invalid pre-receive hook arguments: {line}");
             };
 
