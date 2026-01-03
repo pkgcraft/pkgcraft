@@ -83,8 +83,6 @@ impl Drop for NamedSemaphore {
 
 #[cfg(test)]
 mod tests {
-    use crate::test::assert_err_re;
-
     use super::*;
 
     #[test]
@@ -103,6 +101,8 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn invalid() {
+        use crate::test::assert_err_re;
+
         // invalid name
         let r = NamedSemaphore::new("/", 1);
         assert_err_re!(r, "^failed creating semaphore: Invalid argument");
