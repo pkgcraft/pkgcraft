@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, IsTerminal};
+use std::io::{self, BufRead};
 use std::ops::Deref;
 
 use anyhow::anyhow;
@@ -17,9 +17,6 @@ impl Command {
     pub(super) async fn run(&self, client: &mut Client) -> anyhow::Result<()> {
         let mut stdout = anstream::stdout().lock();
         let stdin = io::stdin().lock();
-        if stdin.is_terminal() {
-            anyhow::bail!("requires running as a git pre-receive hook");
-        }
 
         // HACK: Pull git-related variables from the environment.
         //

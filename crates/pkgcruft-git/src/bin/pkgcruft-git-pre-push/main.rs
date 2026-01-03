@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, IsTerminal};
+use std::io::{self, BufRead};
 use std::process::ExitCode;
 
 use anyhow::anyhow;
@@ -58,9 +58,6 @@ fn try_main() -> anyhow::Result<ExitCode> {
 
     let mut stdout = anstream::stdout().lock();
     let stdin = io::stdin().lock();
-    if stdin.is_terminal() {
-        anyhow::bail!("requires running as a git pre-push hook");
-    }
 
     // load repo from the current working directory
     let path = current_dir()?;
