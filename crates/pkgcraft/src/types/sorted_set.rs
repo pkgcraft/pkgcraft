@@ -68,7 +68,7 @@ impl<T: Ordered> SortedSet<T> {
     pub fn shift_replace_index(&mut self, index: usize, value: T) -> Option<T> {
         if index < self.len() {
             match self.insert_full(value) {
-                (_, true) => return self.swap_remove_index(index),
+                (_, true) => return self.shift_remove_index(index),
                 (idx, false) if idx != index => return self.shift_remove_index(index),
                 _ => (),
             }
@@ -210,7 +210,101 @@ make_set_traits!(SortedSet<T>);
 
 #[cfg(test)]
 mod tests {
+    use crate::test::assert_ordered_eq;
+
     use super::*;
+
+    #[test]
+    fn shift_replace() {
+        let mut set = SortedSet::new();
+
+        // empty set
+        assert!(set.shift_replace("a", "b").is_none());
+
+        // no match
+        set.extend(["y", "z"]);
+        assert!(set.shift_replace("a", "b").is_none());
+
+        // matching, existent value
+        assert!(set.shift_replace("y", "y").is_none());
+
+        // nonexistent value
+        assert_eq!(set.shift_replace("y", "a"), Some("y"));
+        assert_ordered_eq!(&set, &["z", "a"]);
+
+        // existent value
+        assert_eq!(set.shift_replace("z", "a"), Some("z"));
+        assert_ordered_eq!(&set, &["a"]);
+    }
+
+    #[test]
+    fn swap_replace() {
+        let mut set = SortedSet::new();
+
+        // empty set
+        assert!(set.swap_replace("a", "b").is_none());
+
+        // no match
+        set.extend(["y", "z"]);
+        assert!(set.swap_replace("a", "b").is_none());
+
+        // matching, existent value
+        assert!(set.swap_replace("y", "y").is_none());
+
+        // nonexistent value
+        assert_eq!(set.swap_replace("y", "a"), Some("y"));
+        assert_ordered_eq!(&set, &["a", "z"]);
+
+        // existent value
+        assert_eq!(set.swap_replace("z", "a"), Some("z"));
+        assert_ordered_eq!(&set, &["a"]);
+    }
+
+    #[test]
+    fn shift_replace_index() {
+        let mut set = SortedSet::new();
+
+        // empty set
+        assert!(set.shift_replace_index(1, "a").is_none());
+
+        // nonexistent index
+        set.extend(["y", "z"]);
+        assert!(set.shift_replace_index(2, "b").is_none());
+
+        // existent index, matching value
+        assert!(set.shift_replace_index(0, "y").is_none());
+
+        // existent index, nonexistent value
+        assert_eq!(set.shift_replace_index(0, "a"), Some("y"));
+        assert_ordered_eq!(&set, &["z", "a"]);
+
+        // existent index, existent value
+        assert_eq!(set.shift_replace_index(0, "a"), Some("z"));
+        assert_ordered_eq!(&set, &["a"]);
+    }
+
+    #[test]
+    fn swap_replace_index() {
+        let mut set = SortedSet::new();
+
+        // empty set
+        assert!(set.swap_replace_index(1, "a").is_none());
+
+        // nonexistent index
+        set.extend(["y", "z"]);
+        assert!(set.swap_replace_index(2, "b").is_none());
+
+        // existent index, matching value
+        assert!(set.swap_replace_index(0, "y").is_none());
+
+        // existent index, nonexistent value
+        assert_eq!(set.swap_replace_index(0, "a"), Some("y"));
+        assert_ordered_eq!(&set, &["a", "z"]);
+
+        // existent index, existent value
+        assert_eq!(set.swap_replace_index(1, "a"), Some("z"));
+        assert_ordered_eq!(&set, &["a"]);
+    }
 
     #[test]
     fn hash() {
