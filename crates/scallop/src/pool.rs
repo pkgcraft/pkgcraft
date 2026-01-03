@@ -1,5 +1,6 @@
 use std::ffi::CString;
 use std::fs::File;
+use std::io;
 use std::os::fd::AsFd;
 
 use nix::errno::Errno;
@@ -39,7 +40,7 @@ impl NamedSemaphore {
             unsafe { libc::sem_unlink(name.as_ptr()) };
             Ok(Self { sem, size })
         } else {
-            let err = Errno::last_raw();
+            let err = io::Error::from_raw_os_error(Errno::last_raw());
             Err(Error::Base(format!("failed creating semaphore: {err}")))
         }
     }
@@ -49,7 +50,7 @@ impl NamedSemaphore {
             Ok(())
         } else {
             // grcov-excl-start: only errors on signal handler interrupt
-            let err = Errno::last_raw();
+            let err = io::Error::from_raw_os_error(Errno::last_raw());
             Err(Error::Base(format!("failed acquiring semaphore: {err}")))
         } // grcov-excl-stop
     }
@@ -58,7 +59,7 @@ impl NamedSemaphore {
         if unsafe { libc::sem_post(self.sem) } == 0 {
             Ok(())
         } else {
-            let err = Errno::last_raw();
+            let err = io::Error::from_raw_os_error(Errno::last_raw());
             Err(Error::Base(format!("failed releasing semaphore: {err}")))
         }
     }
