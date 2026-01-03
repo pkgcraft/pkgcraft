@@ -1,8 +1,10 @@
+use std::fs;
 use std::io::Write;
 use std::net::SocketAddr;
+use std::os::unix::net::UnixStream;
 use std::sync::Arc;
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use futures::FutureExt;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -21,7 +23,6 @@ use tonic::{Request, Response, Status};
 
 use crate::proto::pkgcruft_server::{Pkgcruft, PkgcruftServer};
 use crate::proto::{EmptyRequest, PushRequest, PushResponse, StringResponse};
-use crate::uds::verify_socket_path;
 use crate::{Error, git};
 
 enum Listener {
@@ -30,30 +31,45 @@ enum Listener {
 }
 
 impl Listener {
+    /// Return a UnixListener for a valid domain socket.
+    fn unix_listener<P: AsRef<Utf8Path>>(path: P) -> crate::Result<UnixListener> {
+        let path = path.as_ref();
+        let socket_dir = &path
+            .parent()
+            .ok_or_else(|| Error::InvalidValue(format!("invalid socket: {path}")))?;
+
+        // check if the socket is already in use
+        if UnixStream::connect(path).is_ok() {
+            return Err(Error::InvalidValue(format!("service already running: {path}")));
+        }
+
+        // create dirs and remove old socket file if it exists
+        fs::create_dir_all(socket_dir).map_err(|e| {
+            Error::InvalidValue(format!("failed creating socket dir: {socket_dir}: {e}"))
+        })?;
+        fs::remove_file(path).ok();
+
+        UnixListener::bind(path)
+            .map_err(|e| Error::Service(format!("failed binding to socket: {path}: {e}")))
+    }
+
     /// Try creating a new listener for the pkgcruft service.
     async fn try_new<S: AsRef<str>>(socket: S) -> crate::Result<(String, Self)> {
         let socket = socket.as_ref();
-        let (socket, listener) = match socket.parse::<SocketAddr>() {
-            Err(_) if socket.starts_with('/') => {
-                verify_socket_path(socket)?;
-                let listener = UnixListener::bind(socket).map_err(|e| {
-                    Error::Service(format!("failed binding to socket: {socket}: {e}"))
-                })?;
-                (socket.to_string(), Listener::Unix(listener))
-            }
-            Err(_) => return Err(Error::InvalidValue(format!("invalid socket: {socket}"))),
-            Ok(socket) => {
-                let listener = TcpListener::bind(&socket).await.map_err(|e| {
-                    Error::Service(format!("failed binding to socket: {socket}: {e}"))
-                })?;
-                let addr = listener
-                    .local_addr()
-                    .unwrap_or_else(|e| unreachable!("invalid socket: {socket}: {e}"));
-                (addr.to_string(), Listener::Tcp(listener))
-            }
-        };
-
-        Ok((socket, listener))
+        if let Ok(socket) = socket.parse::<SocketAddr>() {
+            let listener = TcpListener::bind(&socket).await.map_err(|e| {
+                Error::Service(format!("failed binding to socket: {socket}: {e}"))
+            })?;
+            let addr = listener
+                .local_addr()
+                .unwrap_or_else(|e| unreachable!("invalid socket: {socket}: {e}"));
+            Ok((addr.to_string(), Listener::Tcp(listener)))
+        } else if socket.starts_with('/') {
+            let listener = Self::unix_listener(socket)?;
+            Ok((socket.to_string(), Listener::Unix(listener)))
+        } else {
+            Err(Error::InvalidValue(format!("invalid socket: {socket}")))
+        }
     }
 }
 

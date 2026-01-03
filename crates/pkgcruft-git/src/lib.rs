@@ -2,7 +2,6 @@ mod error;
 pub mod git;
 pub mod proto;
 pub mod service;
-mod uds;
 
 pub use self::error::Error;
 pub use self::proto::pkgcruft_client::PkgcruftClient as Client;
