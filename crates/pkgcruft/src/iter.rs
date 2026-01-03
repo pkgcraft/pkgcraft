@@ -113,6 +113,17 @@ fn pkg_producer(
     })
 }
 
+/// Return immediately if a scanning run is canceled, otherwise return false.
+macro_rules! canceled {
+    ($run:expr) => {
+        if $run.is_canceled() {
+            return Ok(());
+        } else {
+            false
+        }
+    };
+}
+
 /// Create worker thread that parallelizes check running at a package level.
 fn pkg_worker(
     run: Arc<ScannerRun>,
@@ -135,7 +146,7 @@ fn pkg_worker(
         // run checks for targets
         let mut targets = rx.into_iter();
         while let Some((check, target, id)) = targets.next()
-            && !run.is_cancelled()
+            && !canceled!(run)
         {
             if let Some(check) = check {
                 runner.run(&check, &target, &run);
@@ -153,7 +164,7 @@ fn pkg_worker(
         // run finalize methods for targets
         let mut finish_targets = finish_rx.into_iter();
         while let Some((check, target)) = finish_targets.next()
-            && !run.is_cancelled()
+            && !canceled!(run)
         {
             if let Some(target) = target {
                 runner.finish_target(&check, &target, &run);
@@ -245,7 +256,7 @@ fn version_worker(
         // run checks for targets
         let mut targets = rx.into_iter();
         while let Some((check, target)) = targets.next()
-            && !run.is_cancelled()
+            && !canceled!(run)
         {
             runner.run(&check, &target, &run);
         }
@@ -256,7 +267,7 @@ fn version_worker(
         // run finalize methods for targets
         let mut finish_targets = finish_rx.into_iter();
         while let Some((check, target)) = finish_targets.next()
-            && !run.is_cancelled()
+            && !canceled!(run)
         {
             runner.finish_target(&check, &target, &run);
         }

@@ -274,8 +274,8 @@ impl ScannerRun {
         self.enabled.contains(&kind)
     }
 
-    /// Return true if the scanning run is cancelled.
-    pub(crate) fn is_cancelled(&self) -> bool {
+    /// Return true if the scanning run is canceled.
+    pub(crate) fn is_canceled(&self) -> bool {
         self.cancel.load(Ordering::Relaxed)
     }
 }
