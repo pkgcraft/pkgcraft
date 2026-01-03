@@ -62,7 +62,7 @@ impl Command {
             // get push information
             let refs = line.split_whitespace().collect_tuple();
             let Some((old_ref, new_ref, ref_name)) = refs else {
-                anyhow::bail!("invalid pre-receive hook arguments: {line}");
+                anyhow::bail!("invalid pre-receive hook arguments: {line}"); // grcov-excl-line
             };
 
             // TODO: Consider streaming packfile entries to the server instead of

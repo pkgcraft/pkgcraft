@@ -87,7 +87,7 @@ fn try_main() -> anyhow::Result<ExitCode> {
         // get hook input args
         let refs = line.split_whitespace().collect_tuple();
         let Some((_local_ref, local_obj, _remote_ref, remote_obj)) = refs else {
-            anyhow::bail!("invalid pre-push hook arguments: {line}");
+            anyhow::bail!("invalid pre-push hook arguments: {line}"); // grcov-excl-line
         };
 
         // determine diff
