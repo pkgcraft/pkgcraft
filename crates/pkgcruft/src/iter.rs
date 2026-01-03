@@ -141,6 +141,11 @@ fn pkg_worker(
                 // signal iterator to process reports for a target
                 run.sender().process(target, id)?;
             }
+
+            // return early if the scanning run was cancelled
+            if run.is_cancelled() {
+                return Ok(());
+            }
         }
 
         // signal the finish wait group
@@ -152,6 +157,11 @@ fn pkg_worker(
                 runner.finish_target(&check, &target, &run);
             } else {
                 runner.finish_check(&check, &run);
+            }
+
+            // return early if the scanning run was cancelled
+            if run.is_cancelled() {
+                return Ok(());
             }
         }
 
@@ -237,6 +247,11 @@ fn version_worker(
 
         for (check, target) in rx {
             runner.run(&check, &target, &run);
+
+            // return early if the scanning run was cancelled
+            if run.is_cancelled() {
+                return Ok(());
+            }
         }
 
         // signal the finish wait group
@@ -245,6 +260,11 @@ fn version_worker(
         // run finalize methods for targets
         for (check, target) in finish_rx {
             runner.finish_target(&check, &target, &run);
+
+            // return early if the scanning run was cancelled
+            if run.is_cancelled() {
+                return Ok(());
+            }
         }
 
         // signal iterator on thread completion

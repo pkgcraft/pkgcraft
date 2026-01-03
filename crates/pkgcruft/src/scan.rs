@@ -28,6 +28,7 @@ pub struct Scanner {
     exit: IndexSet<ReportSet>,
     filters: IndexSet<PkgFilter>,
     failed: Arc<AtomicBool>,
+    cancel: Arc<AtomicBool>,
     stats: Option<Arc<DashMap<Check, Duration>>>,
 }
 
@@ -181,6 +182,13 @@ impl Scanner {
     }
 }
 
+impl Drop for Scanner {
+    fn drop(&mut self) {
+        // cancels scanning runs on drop
+        self.cancel.store(true, Ordering::Relaxed);
+    }
+}
+
 /// Conglomeration of scanning run data.
 pub(crate) struct ScannerRun {
     pub(crate) repo: EbuildRepo,
@@ -194,6 +202,7 @@ pub(crate) struct ScannerRun {
     enabled: IndexSet<ReportKind>,
     exit: IndexSet<ReportKind>,
     failed: Arc<AtomicBool>,
+    pub(crate) cancel: Arc<AtomicBool>,
     pub(crate) sort: bool,
     pub(crate) sender: OnceLock<ReportSender>,
     pub(crate) stats: Option<Arc<DashMap<Check, Duration>>>,
@@ -224,6 +233,7 @@ impl ScannerRun {
             enabled: Default::default(),
             exit: Default::default(),
             failed: scanner.failed.clone(),
+            cancel: scanner.cancel.clone(),
             sort: scanner.sort,
             sender: Default::default(),
             stats: scanner.stats.clone(),
@@ -261,6 +271,11 @@ impl ScannerRun {
     /// Return true if the run has a report variant enabled.
     pub(crate) fn enabled(&self, kind: ReportKind) -> bool {
         self.enabled.contains(&kind)
+    }
+
+    /// Return true if the scanning run is cancelled.
+    pub(crate) fn is_cancelled(&self) -> bool {
+        self.cancel.load(Ordering::Relaxed)
     }
 }
 
