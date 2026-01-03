@@ -178,13 +178,6 @@ jobs:
           mkdir -p target/coverage
           mv target/pkgcraft-*.profraw target/coverage
 
-          # error out if $LLVM_PROFILE_FILE isn't being respected by any tests
-          profraw_files=$(find . -name \*.profraw)
-          if [[ -n "${profraw_files}" ]]; then
-            echo "Unknown profraw files: ${profraw_files}"
-            exit 1
-          fi
-
           # process coverage information
           mkdir coverage
           grcov target/coverage \
@@ -193,6 +186,14 @@ jobs:
             --excl-line "unreachable!(.*)|grcov-excl-line" \
             --excl-start grcov-excl-start \
             --excl-stop grcov-excl-stop
+
+          # error out if $LLVM_PROFILE_FILE isn't being respected by any tests
+          rm -rf target/coverage
+          profraw_files=$(find . -name \*.profraw)
+          if [[ -n "${profraw_files}" ]]; then
+            echo "Unknown profraw files: ${profraw_files}"
+            exit 1
+          fi
         fi
 
     - name: Upload build artifacts
