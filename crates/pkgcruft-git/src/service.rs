@@ -7,6 +7,7 @@ use futures::FutureExt;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
+use pkgcraft::repo::RepoFormat;
 use pkgcraft::restrict::Restrict;
 use pkgcruft::report::ReportLevel;
 use pkgcruft::scan::Scanner;
@@ -278,10 +279,8 @@ impl PkgcruftService {
 
         // initialize ebuild repo
         let mut config = PkgcraftConfig::new("pkgcraft", "");
-        let repo = config.add_repo_path("repo", &self.path, 0)?;
-        let repo = repo
-            .into_ebuild()
-            .map_err(|e| Error::InvalidValue(format!("invalid ebuild repo: {e}")))?;
+        let repo = config.add_format_repo_path("repo", &self.path, 0, RepoFormat::Ebuild)?;
+        let repo = repo.into_ebuild().expect("invalid ebuild repo");
         config.finalize()?;
 
         // determine target Cpns from diff
@@ -339,45 +338,45 @@ impl Pkgcruft for PkgcruftService {
         &self,
         _request: Request<EmptyRequest>,
     ) -> Result<Response<Self::ScanStream>, Status> {
-        // TODO: use try_acquire_owned() with custom timeout
-        // acquire exclusive scanning permission
-        let permit = self.scanning.clone().acquire_owned().await.unwrap();
+        let scan = async || -> crate::Result<Self::ScanStream> {
+            // TODO: use try_acquire_owned() with custom timeout
+            // acquire exclusive scanning permission
+            let permit = self.scanning.clone().acquire_owned().await.unwrap();
 
-        // TODO: partially reload repo or reset lazy metadata fields
-        let mut config = PkgcraftConfig::new("pkgcraft", "");
-        let repo = config
-            .add_repo_path("repo", &self.path, 0)
-            .map_err(|e| Status::from_error(Box::new(e)))?;
-        let repo = repo
-            .into_ebuild()
-            .map_err(|e| Status::invalid_argument(format!("invalid ebuild repo: {e}")))?;
-        config
-            .finalize()
-            .map_err(|e| Status::from_error(Box::new(e)))?;
+            // TODO: partially reload repo or reset lazy metadata fields
+            let mut config = PkgcraftConfig::new("pkgcraft", "");
+            let repo =
+                config.add_format_repo_path("repo", &self.path, 0, RepoFormat::Ebuild)?;
+            let repo = repo.into_ebuild().expect("invalid ebuild repo");
+            config.finalize()?;
 
-        // TODO: process request data into a restrict target
-        let scanner = Scanner::new().jobs(self.jobs);
-        let reports = scanner
-            .run(&repo, repo.path())
-            .map_err(|e| Status::from_error(Box::new(e)))?;
+            // TODO: process request data into a restrict target
+            let scanner = Scanner::new().jobs(self.jobs);
+            let reports = scanner.run(&repo, repo.path())?;
 
-        let (tx, rx) = mpsc::channel(4);
+            let (tx, rx) = mpsc::channel(4);
 
-        tokio::spawn(async move {
-            for report in reports {
-                if tx.send(Ok(report.into())).await.is_err() {
-                    break;
+            tokio::spawn(async move {
+                for report in reports {
+                    if tx.send(Ok(report.into())).await.is_err() {
+                        break;
+                    }
                 }
-            }
 
-            // explicitly own until scanning is finished
-            drop(permit);
-            drop(scanner);
-            drop(repo);
-            drop(config);
-        });
+                // explicitly own until scanning is finished
+                drop(permit);
+                drop(scanner);
+                drop(repo);
+                drop(config);
+            });
 
-        Ok(Response::new(ReceiverStream::new(rx)))
+            Ok(ReceiverStream::new(rx))
+        };
+
+        scan()
+            .await
+            .map(Response::new)
+            .map_err(|e| Status::from_error(Box::new(e)))
     }
 
     async fn push(
