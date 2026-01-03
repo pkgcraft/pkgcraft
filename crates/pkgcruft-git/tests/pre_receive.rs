@@ -130,7 +130,7 @@ async fn hook() {
     assert!(stdout.is_empty());
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(!stderr.is_empty());
-    assert_eq!(output.status.code().unwrap(), 0);
+    assert_eq!(output.status.code().unwrap(), 0, "git push failed:\n{stderr}");
 
     // create bad package
     let data = indoc::indoc! {r#"
