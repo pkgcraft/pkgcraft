@@ -117,7 +117,7 @@ fn pkg_producer(
 macro_rules! canceled {
     ($run:expr) => {
         if $run.is_canceled() {
-            return Ok(());
+            return Err(crate::Error::Canceled);
         } else {
             false
         }
