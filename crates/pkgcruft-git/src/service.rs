@@ -380,10 +380,10 @@ impl Pkgcruft for PkgcruftService {
                 }
 
                 // explicitly own until scanning is finished
-                drop(permit);
                 drop(scanner);
                 drop(repo);
                 drop(config);
+                drop(permit);
             });
 
             Ok(ReceiverStream::new(rx))
@@ -434,8 +434,8 @@ impl Pkgcruft for PkgcruftService {
                         .ok();
 
                     // explicitly own until repo mangling is finished
-                    drop(permit);
                     drop(git_repo);
+                    drop(permit);
                 });
             }
 
