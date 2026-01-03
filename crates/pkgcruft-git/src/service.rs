@@ -384,56 +384,52 @@ impl Pkgcruft for PkgcruftService {
         &self,
         request: Request<PushRequest>,
     ) -> Result<Response<PushResponse>, Status> {
-        // TODO: use try_acquire_owned() with custom timeout
-        // acquire exclusive scanning permission
-        let permit = self.scanning.clone().acquire_owned().await.unwrap();
+        let push = async || {
+            // TODO: use try_acquire_owned() with custom timeout
+            // acquire exclusive scanning permission
+            let permit = self.scanning.clone().acquire_owned().await.unwrap();
 
-        let push = request.into_inner();
-        let record = indoc::formatdoc! {"
-            scanning push:
-              old ref: {}
-              new ref: {}
-              ref name: {}
-        ", push.old_ref, push.new_ref, push.ref_name};
-        tracing::info!("{record}");
+            let push = request.into_inner();
+            let record = indoc::formatdoc! {"
+                scanning push:
+                old ref: {}
+                new ref: {}
+                ref name: {}
+            ", push.old_ref, push.new_ref, push.ref_name};
+            tracing::info!("{record}");
 
-        let git_repo =
-            git2::Repository::open(&self.path).map_err(|e| Status::from_error(Box::new(e)))?;
+            let git_repo = git2::Repository::open(&self.path)?;
 
-        // run targeted pkgcruft scanning
-        let result = self.handle_push(&git_repo, &push);
+            // run targeted pkgcruft scanning
+            let result = self.handle_push(&git_repo, &push);
 
-        // reset HEAD on error or failure
-        if result.is_err() || result.as_ref().map(|r| r.failed).unwrap_or_default() {
-            // reset reference and HEAD
-            let old_oid: git2::Oid = push
-                .old_ref
-                .parse()
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-            git_repo
-                .find_reference(&push.ref_name)
-                .map_err(|e| Status::from_error(Box::new(e)))?
-                .set_target(old_oid, "")
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-            git_repo
-                .set_head(&push.ref_name)
-                .map_err(|e| Status::from_error(Box::new(e)))?;
-
-            // asynchronously revert working tree and index
-            tokio::spawn(async move {
+            // reset HEAD on error or failure
+            if result.is_err() || result.as_ref().map(|r| r.failed).unwrap_or_default() {
+                // reset reference and HEAD
+                let old_oid: git2::Oid = push.old_ref.parse()?;
                 git_repo
-                    .checkout_head(Some(git2::build::CheckoutBuilder::default().force()))
-                    .ok();
+                    .find_reference(&push.ref_name)?
+                    .set_target(old_oid, "")?;
+                git_repo.set_head(&push.ref_name)?;
 
-                // explicitly own until repo mangling is finished
-                drop(permit);
-                drop(git_repo);
-            });
-        }
+                // asynchronously revert working tree and index
+                tokio::spawn(async move {
+                    git_repo
+                        .checkout_head(Some(git2::build::CheckoutBuilder::default().force()))
+                        .ok();
 
-        match result {
-            Ok(reply) => Ok(Response::new(reply)),
-            Err(e) => Err(Status::from_error(Box::new(e))),
-        }
+                    // explicitly own until repo mangling is finished
+                    drop(permit);
+                    drop(git_repo);
+                });
+            }
+
+            result
+        };
+
+        push()
+            .await
+            .map(Response::new)
+            .map_err(|e| Status::from_error(Box::new(e)))
     }
 }
