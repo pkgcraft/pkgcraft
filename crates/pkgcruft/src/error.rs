@@ -12,6 +12,8 @@ pub enum Error {
     #[error("{0}: check {1}")]
     CheckInit(Check, String),
     #[error("{0}")]
+    ChannelClosed(String),
+    #[error("{0}")]
     IO(String),
     #[error("{0}")]
     Pkgcraft(#[from] pkgcraft::Error),
@@ -20,5 +22,11 @@ pub enum Error {
 impl From<io::Error> for Error {
     fn from(e: io::Error) -> Self {
         Error::IO(format!("{e}: {}", e.kind()))
+    }
+}
+
+impl<T> From<crossbeam_channel::SendError<T>> for Error {
+    fn from(e: crossbeam_channel::SendError<T>) -> Self {
+        Error::ChannelClosed(format!("{e}"))
     }
 }

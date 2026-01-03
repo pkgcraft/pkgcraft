@@ -32,13 +32,13 @@ impl ReportSender {
     }
 
     /// Direct the iterator to process all reports for a target.
-    fn process(&self, target: Target, id: usize) {
-        self.0.send(Item::Process(target, id)).ok();
+    fn process(&self, target: Target, id: usize) -> crate::Result<()> {
+        Ok(self.0.send(Item::Process(target, id))?)
     }
 
     /// Notify the iterator that a worker thread finished.
-    fn finish(&self) {
-        self.0.send(Item::Finish(thread::current().id())).ok();
+    fn finish(&self) -> crate::Result<()> {
+        Ok(self.0.send(Item::Finish(thread::current().id()))?)
     }
 }
 
@@ -48,15 +48,15 @@ fn pkg_producer(
     wg: WaitGroup,
     tx: Sender<(Option<CheckRunner>, Target, usize)>,
     finish_tx: Sender<(CheckRunner, Option<Target>)>,
-) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
+) -> thread::JoinHandle<crate::Result<()>> {
+    thread::spawn(move || -> crate::Result<()> {
         // run repo checks in parallel
         for runner in run
             .runners
             .iter()
             .filter(|r| r.check.sources.contains(&SourceKind::Repo))
         {
-            tx.send((Some(runner.clone()), Target::Repo, 0)).ok();
+            tx.send((Some(runner.clone()), Target::Repo, 0))?;
         }
 
         let category_targets: Vec<_> = run
@@ -76,14 +76,14 @@ fn pkg_producer(
         // run category checks in parallel
         for target in &category_targets {
             for runner in &category_runners {
-                tx.send((Some(runner.clone()), target.clone(), 0)).ok();
+                tx.send((Some(runner.clone()), target.clone(), 0))?;
             }
         }
 
         // parallelize running checks per package
         if run.runners.iter().any(|r| r.check.scope <= Scope::Package) {
             for (id, cpn) in run.repo.iter_cpn_restrict(&run.restrict).enumerate() {
-                tx.send((None, cpn.into(), id)).ok();
+                tx.send((None, cpn.into(), id))?;
             }
         }
 
@@ -93,7 +93,7 @@ fn pkg_producer(
 
         for target in &category_targets {
             for runner in category_runners.iter().filter(|r| r.check.finish_target()) {
-                finish_tx.send((runner.clone(), Some(target.clone()))).ok();
+                finish_tx.send((runner.clone(), Some(target.clone())))?;
             }
         }
 
@@ -103,11 +103,13 @@ fn pkg_producer(
             .iter()
             .filter(|r| r.check.finish_check(run.scope))
         {
-            finish_tx.send((runner.clone(), None)).ok();
+            finish_tx.send((runner.clone(), None))?;
         }
 
         // signal iterator on thread completion
-        run.sender().finish();
+        run.sender().finish()?;
+
+        Ok(())
     })
 }
 
@@ -118,7 +120,7 @@ fn pkg_worker(
     wg: WaitGroup,
     rx: Receiver<(Option<CheckRunner>, Target, usize)>,
     finish_rx: Receiver<(CheckRunner, Option<Target>)>,
-) -> thread::JoinHandle<()> {
+) -> thread::JoinHandle<crate::Result<()>> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
     #[cfg(test)]
@@ -137,7 +139,7 @@ fn pkg_worker(
                 // run all checks for a target
                 runner.run_checks(&target, &run);
                 // signal iterator to process reports for a target
-                run.sender().process(target, id);
+                run.sender().process(target, id)?;
             }
         }
 
@@ -154,7 +156,9 @@ fn pkg_worker(
         }
 
         // signal iterator on thread completion
-        run.sender().finish();
+        run.sender().finish()?;
+
+        Ok(())
     })
 }
 
@@ -164,7 +168,7 @@ fn version_producer(
     wg: WaitGroup,
     tx: Sender<(CheckRunner, Target)>,
     finish_tx: Sender<(CheckRunner, Target)>,
-) -> thread::JoinHandle<()> {
+) -> thread::JoinHandle<crate::Result<()>> {
     thread::spawn(move || {
         let cpvs: Vec<_> = run.repo.iter_cpv_restrict(&run.restrict).collect();
         let cpns: Vec<_> = run.repo.iter_cpn_restrict(&run.restrict).collect();
@@ -175,7 +179,7 @@ fn version_producer(
                 .iter()
                 .filter(|r| r.check.scope == Scope::Version)
             {
-                tx.send((runner.clone(), cpv.clone().into())).ok();
+                tx.send((runner.clone(), cpv.clone().into()))?;
             }
         }
 
@@ -185,7 +189,7 @@ fn version_producer(
                 .iter()
                 .filter(|r| r.check.scope == Scope::Package)
             {
-                tx.send((runner.clone(), cpn.clone().into())).ok();
+                tx.send((runner.clone(), cpn.clone().into()))?;
             }
         }
 
@@ -195,18 +199,20 @@ fn version_producer(
 
         for cpv in &cpvs {
             for runner in run.runners.iter().filter(|r| r.check.finish_target()) {
-                finish_tx.send((runner.clone(), cpv.clone().into())).ok();
+                finish_tx.send((runner.clone(), cpv.clone().into()))?;
             }
         }
 
         for cpn in &cpns {
             for runner in run.runners.iter().filter(|r| r.check.finish_target()) {
-                finish_tx.send((runner.clone(), cpn.clone().into())).ok();
+                finish_tx.send((runner.clone(), cpn.clone().into()))?;
             }
         }
 
         // signal iterator on thread completion
-        run.sender().finish();
+        run.sender().finish()?;
+
+        Ok(())
     })
 }
 
@@ -217,7 +223,7 @@ fn version_worker(
     wg: WaitGroup,
     rx: Receiver<(CheckRunner, Target)>,
     finish_rx: Receiver<(CheckRunner, Target)>,
-) -> thread::JoinHandle<()> {
+) -> thread::JoinHandle<crate::Result<()>> {
     // hack to force log capturing for tests to work in threads
     // https://github.com/dbrgn/tracing-test/issues/23
     #[cfg(test)]
@@ -242,7 +248,9 @@ fn version_worker(
         }
 
         // signal iterator on thread completion
-        run.sender().finish();
+        run.sender().finish()?;
+
+        Ok(())
     })
 }
 
@@ -250,7 +258,7 @@ fn version_worker(
 #[derive(Debug)]
 pub struct ReportIter {
     rx: Receiver<Item>,
-    threads: HashMap<thread::ThreadId, thread::JoinHandle<()>>,
+    threads: HashMap<thread::ThreadId, thread::JoinHandle<crate::Result<()>>>,
     id: usize,
     sort: bool,
     target_cache: HashMap<Target, Vec<Report>>,
@@ -336,7 +344,7 @@ impl ReportIter {
                     .threads
                     .remove(&id)
                     .unwrap_or_else(|| panic!("unknown thread: {id:?}"));
-                thread.join().unwrap();
+                thread.join().unwrap().ok();
 
                 // flush remaining cached reports when all threads are complete
                 if self.threads.is_empty() {
