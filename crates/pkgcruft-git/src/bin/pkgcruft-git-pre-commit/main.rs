@@ -6,8 +6,7 @@ use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use indexmap::IndexSet;
 use pkgcraft::cli::colorize;
-use pkgcraft::config::Config as PkgcraftConfig;
-use pkgcraft::repo::RepoFormat;
+use pkgcraft::repo::EbuildRepo;
 use pkgcraft::utils::current_dir;
 use pkgcruft::report::ReportLevel;
 use pkgcruft::reporter::{FancyReporter, Reporter};
@@ -54,14 +53,7 @@ fn try_main() -> anyhow::Result<ExitCode> {
 
     // load repo from the current working directory
     let path = current_dir()?;
-    let mut config = PkgcraftConfig::new("pkgcraft", "");
-    let repo = config
-        .add_format_repo_nested_path(&path, 0, RepoFormat::Ebuild)?
-        .into_ebuild()
-        .expect("failed loading repo");
-    config
-        .finalize()
-        .map_err(|e| anyhow!("failed finalizing config: {e}"))?;
+    let repo = EbuildRepo::standalone(&path)?;
 
     // WARNING: This appears to invalidate the environment in some fashion so
     // std::env::var() calls don't work as expected after it even though

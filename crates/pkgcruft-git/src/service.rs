@@ -9,7 +9,7 @@ use futures::FutureExt;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
-use pkgcraft::repo::RepoFormat;
+use pkgcraft::repo::EbuildRepo;
 use pkgcraft::restrict::Restrict;
 use pkgcruft::report::ReportLevel;
 use pkgcruft::scan::Scanner;
@@ -131,16 +131,7 @@ impl PkgcruftServiceBuilder {
         };
 
         // verify target path is a valid ebuild repo
-        let mut config = PkgcraftConfig::new("pkgcraft", "");
-        let repo = config
-            .add_repo_path("repo", &path, 0)
-            .map_err(|e| Error::Service(format!("invalid repo: {e}")))?;
-        let repo = repo
-            .into_ebuild()
-            .map_err(|e| Error::Service(format!("invalid ebuild repo: {path}: {e}")))?;
-        config
-            .finalize()
-            .map_err(|e| Error::Service(format!("failed finalizing config: {e}")))?;
+        let repo = EbuildRepo::standalone(&path)?;
 
         // generate ebuild repo metadata ignoring failures
         repo.metadata()
@@ -294,13 +285,8 @@ impl PkgcruftService {
         let diff = git::diff(git_repo, &push.old_ref, &push.new_ref)?;
         let paths = diff.deltas().filter_map(|d| d.new_file().path());
 
-        // initialize ebuild repo
-        let mut config = PkgcraftConfig::new("pkgcraft", "");
-        let repo = config.add_format_repo_path("repo", &self.path, 0, RepoFormat::Ebuild)?;
-        let repo = repo.into_ebuild().expect("invalid ebuild repo");
-        config.finalize()?;
-
         // determine target Cpns from diff
+        let repo = EbuildRepo::standalone(&self.path)?;
         let mut cpns = IndexSet::new();
         let mut eclass = false;
         for path in paths {
@@ -358,15 +344,9 @@ impl Pkgcruft for PkgcruftService {
             // acquire exclusive scanning permission
             let permit = self.scanning.clone().acquire_owned().await.unwrap();
 
-            // TODO: partially reload repo or reset lazy metadata fields
-            let mut config = PkgcraftConfig::new("pkgcraft", "");
-            let repo =
-                config.add_format_repo_path("repo", &self.path, 0, RepoFormat::Ebuild)?;
-            let repo = repo.into_ebuild().expect("invalid ebuild repo");
-            config.finalize()?;
-
             // TODO: process request data into a restrict target
             let scanner = Scanner::new().jobs(self.jobs);
+            let repo = EbuildRepo::standalone(&self.path)?;
             let reports = scanner.run(&repo, repo.path())?;
 
             let (tx, rx) = mpsc::channel(4);
@@ -381,7 +361,6 @@ impl Pkgcruft for PkgcruftService {
                 // explicitly own until scanning is finished
                 drop(scanner);
                 drop(repo);
-                drop(config);
                 drop(permit);
             });
 
