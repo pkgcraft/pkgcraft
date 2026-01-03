@@ -203,7 +203,7 @@ jobs:
         name: coverage
         path: coverage
         if-no-files-found: error
-        retention-days: 3
+        retention-days: 1
 
   coverage:
     needs: test
