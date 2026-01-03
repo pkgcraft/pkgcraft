@@ -23,6 +23,7 @@ pub fn suppress_output() -> crate::Result<()> {
 }
 
 /// Semaphore wrapping libc named semaphore calls.
+#[derive(Debug)]
 pub struct NamedSemaphore {
     sem: *mut libc::sem_t,
     size: u32,
@@ -82,10 +83,16 @@ impl Drop for NamedSemaphore {
 
 #[cfg(test)]
 mod tests {
+    use crate::test::assert_err_re;
+
     use super::*;
 
     #[test]
     fn semaphore() {
+        // invalid name
+        let r = NamedSemaphore::new("/", 1);
+        assert_err_re!(r, "^failed creating semaphore: Invalid argument");
+
         // acquire then release
         let mut sem = NamedSemaphore::new("test", 1).unwrap();
         sem.acquire().unwrap();
