@@ -208,11 +208,10 @@ impl MetadataTaskBuilder {
             if let Ok(entry) = cache.get(&pkg) {
                 if self.verify {
                     // perform deserialization, returning any occurring error
-                    return entry.to_metadata(&pkg).map(|_| None);
-                } else {
-                    // skip deserialization, assuming existing cache entry is valid
-                    return Ok(None);
+                    entry.to_metadata(&pkg)?;
                 }
+
+                return Ok(None);
             }
         }
 
