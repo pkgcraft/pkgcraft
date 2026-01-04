@@ -182,7 +182,7 @@ jobs:
           mkdir coverage
           grcov target/coverage \
             --source-dir . --binary-path target/debug --llvm --branch \
-            --keep-only "crates/*/src/*" -t html,lcov -o coverage \
+            --keep-only "crates/*/src/*" -t lcov -o coverage \
             --excl-line "unreachable!(.*)|grcov-excl-line" \
             --excl-start grcov-excl-start \
             --excl-stop grcov-excl-stop
