@@ -434,7 +434,7 @@ impl BuildPool {
                 let (tx, rx) = ipc::channel().unwrap();
                 let tx0 = IpcSender::connect(name).expect("failed connecting to the server");
                 tx0.send(tx).expect("failed sending tx");
-                std::mem::drop(tx0);
+                drop(tx0);
 
                 // signal child to exit on parent death
                 #[cfg(target_os = "linux")]
