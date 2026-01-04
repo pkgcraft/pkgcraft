@@ -215,10 +215,21 @@ impl fmt::Display for Config {
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
+    use tempfile::tempdir;
 
     use crate::test::{assert_err_re, assert_ordered_eq};
 
     use super::*;
+
+    #[test]
+    fn ini() {
+        // directory
+        let dir = tempdir().unwrap();
+        assert!(Ini::load(dir.path()).is_err());
+
+        // nonexistent
+        assert!(Ini::load(dir.path().join("nonexistent")).is_ok());
+    }
 
     #[test]
     fn config() {
