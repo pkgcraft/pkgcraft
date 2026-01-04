@@ -90,9 +90,8 @@ macro_rules! parse_iter {
     ($ini:expr, $key:expr) => {
         $ini.iter($key)
             .map(|s| {
-                s.parse().map_err(|_| {
-                    Error::InvalidValue(format!("{}: unsupported value: {s}", $key))
-                })
+                s.parse()
+                    .map_err(|_| Error::InvalidValue(format!("{}: invalid value: {s}", $key)))
             })
             .try_collect()
     };
@@ -103,9 +102,8 @@ macro_rules! parse {
     ($ini:expr, $key:expr) => {
         $ini.get($key)
             .map(|s| {
-                s.parse().map_err(|_| {
-                    Error::InvalidValue(format!("{}: unsupported value: {s}", $key))
-                })
+                s.parse()
+                    .map_err(|_| Error::InvalidValue(format!("{}: invalid value: {s}", $key)))
             })
             .transpose()
     };
@@ -218,12 +216,12 @@ impl fmt::Display for Config {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use crate::test::assert_ordered_eq;
+    use crate::test::{assert_err_re, assert_ordered_eq};
 
     use super::*;
 
     #[test]
-    fn settings() {
+    fn config() {
         // empty
         let config = Config::default();
         assert!(config.is_empty());
@@ -253,6 +251,12 @@ mod tests {
         assert_ordered_eq!(&config.restrict_allowed, ["fetch", "mirror"]);
         assert!(!config.thin_manifests());
         assert_eq!(config.to_string(), data);
+
+        // invalid
+        let r = Config::from_str("cache-formats = unknown");
+        assert_err_re!(r, "^cache-formats: invalid value: unknown$");
+        let r = Config::from_str("thin-manifests = invalid");
+        assert_err_re!(r, "^thin-manifests: invalid value: invalid$");
 
         // unknown fields are ignored
         let data = indoc::indoc! {r#"
