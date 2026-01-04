@@ -75,4 +75,20 @@ fn output() {
         "})
         .stderr("")
         .success();
+
+    // ascii format
+    cmd("pk pkg showkw cat/pkg-1 -f ascii")
+        .assert()
+        .stdout(indoc::indoc! {"
+            keywords for cat/pkg:
+              | a a   |     |
+              | m r   | e s | r
+              | d m x | a l | e
+              | 6 6 8 | p o | p
+              | 4 4 6 | i t | o
+            --+-------+-----+------
+            1 | + ~ - | 8 0 | test
+        "})
+        .stderr("")
+        .success();
 }
