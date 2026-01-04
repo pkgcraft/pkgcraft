@@ -156,6 +156,7 @@ fn bound() {
 
 #[test]
 fn sort() {
+    // TODO: use slow and fast ebuild leveraging custom `sleep` builtin
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     repo.create_ebuild("cat/pkg-1", &[]).unwrap();
     repo.create_ebuild("cat/pkg-2", &[]).unwrap();
@@ -166,6 +167,16 @@ fn sort() {
         .stdout(predicate::str::is_empty().not())
         .stderr("")
         .success();
+
+    for opt in ["-b", "--bench"] {
+        cmd("pk pkg source")
+            .args([opt, "--sort"])
+            .arg(&repo)
+            .assert()
+            .stdout(predicate::str::is_empty().not())
+            .stderr("")
+            .success();
+    }
 }
 
 #[test]
