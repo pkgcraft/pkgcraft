@@ -187,6 +187,15 @@ jobs:
             --excl-start grcov-excl-start \
             --excl-stop grcov-excl-stop
 
+          # Manually check if coverage processing failed since grcov doesn't return a
+          # failure status on error.
+          #
+          # See the upstream issue at https://github.com/mozilla/grcov/issues/1160.
+          if [[ $(grep -c . lcov) -le 1 ]]; then
+            echo "grcov failed processing coverage data"
+            exit 1
+          fi
+
           # error out if $LLVM_PROFILE_FILE isn't being respected by any tests
           rm -rf target/coverage
           profraw_files=$(find . -name \*.profraw)
