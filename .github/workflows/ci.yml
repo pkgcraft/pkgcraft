@@ -196,7 +196,7 @@ jobs:
           #
           # See the upstream issue at https://github.com/mozilla/grcov/issues/1160.
           if [[ $(grep -c . coverage/lcov) -le 1 ]]; then
-            echo "grcov failed processing coverage data" >&2
+            echo "::warning:: Skipping code coverage, grcov failed processing data"
           else
             COVERAGE=true
           fi
