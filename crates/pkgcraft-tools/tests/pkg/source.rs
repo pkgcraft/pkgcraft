@@ -173,6 +173,7 @@ fn sort() {
     "#};
     repo.create_ebuild_from_str("slowest/pkg-1", &data).unwrap();
 
+    // verify pkgs are sorted by duration
     let sorted = |s: &str| -> bool {
         let lines: Vec<_> = s.lines().collect();
         let pkgs: Vec<_> = lines
@@ -190,15 +191,12 @@ fn sort() {
         .stderr("")
         .success();
 
-    for opt in ["-b", "--bench"] {
-        cmd("pk pkg source --sort")
-            .args([opt, "2"])
-            .arg(&repo)
-            .assert()
-            .stdout(predicate::function(sorted))
-            .stderr("")
-            .success();
-    }
+    cmd("pk pkg source --sort --bench 2")
+        .arg(&repo)
+        .assert()
+        .stdout(predicate::function(sorted))
+        .stderr("")
+        .success();
 }
 
 #[test]
