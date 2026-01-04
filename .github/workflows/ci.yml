@@ -179,10 +179,9 @@ jobs:
           mv target/pkgcraft-*.profraw target/coverage
 
           # process coverage information
-          mkdir coverage
           grcov target/coverage \
             --source-dir . --binary-path target/debug --llvm --branch \
-            --keep-only "crates/*/src/*" -t lcov -o coverage \
+            --keep-only "crates/*/src/*" -t lcov -o pkgcraft.lcov \
             --excl-line "unreachable!(.*)|grcov-excl-line" \
             --excl-start grcov-excl-start \
             --excl-stop grcov-excl-stop
@@ -191,7 +190,7 @@ jobs:
           # failure status on error.
           #
           # See the upstream issue at https://github.com/mozilla/grcov/issues/1160.
-          if [[ $(grep -c . lcov) -le 1 ]]; then
+          if [[ $(grep -c . pkgcraft.lcov) -le 1 ]]; then
             echo "grcov failed processing coverage data"
             exit 1
           fi
@@ -210,7 +209,7 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         name: coverage
-        path: coverage
+        path: pkgcraft.lcov
         if-no-files-found: error
         retention-days: 1
 
@@ -230,6 +229,6 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: lcov
+        files: pkgcraft.lcov
         disable_search: true
         fail_ci_if_error: true
