@@ -574,7 +574,7 @@ macro_rules! make_builtin {
             name: $name,
             func: $func,
             cfunc: $func_name,
-            flags: $crate::builtins::Attr::NONE,
+            flags: $crate::builtins::Attr::ENABLED,
             help: $long_doc,
             usage: $usage,
         };
