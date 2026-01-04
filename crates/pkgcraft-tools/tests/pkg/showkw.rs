@@ -35,6 +35,18 @@ fn ignore() {
 }
 
 #[test]
+fn nonexistent_arches() {
+    let repo = EbuildRepoBuilder::new().build().unwrap();
+    env::set_current_dir(repo.path()).unwrap();
+    cmd("pk pkg showkw -a arch1,arch2")
+        .assert()
+        .stdout("")
+        .stderr("pk: error: nonexistent arches: arch1, arch2\n")
+        .failure()
+        .code(2);
+}
+
+#[test]
 fn output() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     fs::write(repo.path().join("profiles/arch.list"), "amd64\narm64\nx86\n").unwrap();
