@@ -39,8 +39,6 @@ jobs:
   test:
     needs: msrv
     runs-on: ${{ matrix.os }}
-    outputs:
-      coverage: ${{ steps.test.outputs.coverage }}
     strategy:
       matrix:
         include:
@@ -175,7 +173,7 @@ jobs:
         # run tests
         cargo nextest run --all-features --workspace --tests
 
-        # default to not uploading code coverage
+        # default to not uploading coverage
         COVERAGE=false
 
         # only collect coverage for the latest rust release on linux
@@ -215,7 +213,7 @@ jobs:
         # set output to disable uploading code coverage on grcov failure
         echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
 
-    - name: Upload build artifacts
+    - name: Upload coverage artifacts
       if: ${{ steps.test.outputs.coverage == 'true' }}
       uses: actions/upload-artifact@v6
       with:
@@ -224,20 +222,11 @@ jobs:
         if-no-files-found: error
         retention-days: 1
 
-  coverage:
-    needs: test
-    if: ${{ needs.test.outputs.coverage == 'true' }}
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v7
-
     - name: Upload coverage to Codecov
+      if: ${{ steps.test.outputs.coverage == 'true' }}
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: lcov
+        files: coverage/lcov
         disable_search: true
-        fail_ci_if_error: true
+        fail_ci_if_error: false
