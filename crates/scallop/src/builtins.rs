@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::collections::HashSet;
 use std::ffi::{CStr, CString, c_int};
 use std::hash::{Hash, Hasher};
 use std::{cmp, fmt, mem, process, ptr};
@@ -339,9 +338,9 @@ where
 }
 
 /// Get the sets of enabled and disabled shell builtins.
-pub fn shell_builtins() -> (HashSet<String>, HashSet<String>) {
-    let mut enabled = HashSet::new();
-    let mut disabled = HashSet::new();
+pub fn shell_builtins() -> (IndexSet<String>, IndexSet<String>) {
+    let mut enabled = IndexSet::new();
+    let mut disabled = IndexSet::new();
 
     let end = unsafe { (bash::NUM_SHELL_BUILTINS - 1) as isize };
     for i in 0..end {
@@ -602,7 +601,7 @@ mod tests {
         assert_eq!(profile.as_ref(), "profile");
 
         // Hash and Borrow<str>
-        let builtins = HashSet::from([profile]);
+        let builtins = IndexSet::from([profile]);
         assert_eq!(builtins.get("profile").unwrap(), &profile);
     }
 
