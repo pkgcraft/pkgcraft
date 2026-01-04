@@ -122,18 +122,13 @@ jobs:
     - name: Install protoc for arcanist
       uses: taiki-e/install-action@protoc
 
-    - name: Install cargo-llvm-cov
-      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
-      uses: taiki-e/install-action@cargo-llvm-cov
-
     - name: Build tests
       run: |
         # only collect coverage for the latest rust release on linux
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          # set environment variables needed for coverage
-          source <(cargo llvm-cov show-env --export-prefix)
-          # remove artifacts that may affect coverage results
-          cargo llvm-cov clean --workspace
+          export RUSTFLAGS="-C instrument-coverage"
+          export CFLAGS="-Wl,--build-id"
+          export LLVM_PROFILE_FILE="${PWD}/target/pkgcraft-%b-%4m.profraw"
         fi
 
         # build tests
@@ -167,7 +162,9 @@ jobs:
       run: |
         # set environment variables needed for coverage
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
-          source <(cargo llvm-cov show-env --export-prefix)
+          export RUSTFLAGS="-C instrument-coverage"
+          export CFLAGS="-Wl,--build-id"
+          export LLVM_PROFILE_FILE="${PWD}/target/pkgcraft-%b-%4m.profraw"
         fi
 
         # run tests
