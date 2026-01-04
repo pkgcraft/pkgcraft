@@ -16,12 +16,14 @@ mod _bash;
 mod _profile;
 #[cfg(test)]
 mod _scallop;
+mod _sleep;
 
 // export native bash builtins
 pub use _bash::*;
 
 // export builtins for external registry
 pub use _profile::BUILTIN as profile;
+pub use _sleep::BUILTIN as sleep;
 
 pub type BuiltinFn = fn(&[&str]) -> crate::Result<ExecStatus>;
 pub type BuiltinFnPtr = unsafe extern "C" fn(list: *mut bash::WordList) -> c_int;

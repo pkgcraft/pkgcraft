@@ -3868,6 +3868,7 @@ dependencies = [
  "bitflags",
  "camino",
  "ctor",
+ "humantime",
  "indexmap",
  "indoc",
  "itertools 0.14.0",
