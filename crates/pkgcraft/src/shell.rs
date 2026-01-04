@@ -469,6 +469,10 @@ pub(crate) fn init() -> scallop::Result<()> {
     // all builtins are enabled by default, access is restricted at runtime based on scope
     builtins::register(&*commands::BUILTINS);
 
+    // load extra builtins for tests
+    #[cfg(any(feature = "test", test))]
+    builtins::register([builtins::sleep]);
+
     // permanently disable builtins such as `enable` to restrict overriding builtins
     builtins::disable(DISABLED_BUILTINS)?;
 
