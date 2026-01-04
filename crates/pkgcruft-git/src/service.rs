@@ -11,7 +11,7 @@ use itertools::Itertools;
 use pkgcraft::config::Config as PkgcraftConfig;
 use pkgcraft::repo::EbuildRepo;
 use pkgcraft::restrict::Restrict;
-use pkgcruft::report::ReportLevel;
+use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::scan::Scanner;
 use tempfile::{TempDir, tempdir};
 use tokio::net::{TcpListener, UnixListener};
@@ -310,7 +310,7 @@ impl PkgcruftService {
 
         // scan full tree for metadata errors on eclass changes
         if eclass {
-            scanner = scanner.reports([pkgcruft::check::CheckKind::Metadata]);
+            scanner = scanner.reports([ReportKind::MetadataError]);
             let reports_iter = scanner.run(&repo, Restrict::True)?;
             reports.extend(reports_iter.into_iter().map(|r| r.to_json()));
         }

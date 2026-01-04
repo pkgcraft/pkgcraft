@@ -295,7 +295,7 @@ mod tests {
             ("@all", ReportSet::All),
             ("@finalize", ReportSet::Finalize),
             // check
-            ("@Metadata", ReportSet::Check(CheckKind::Metadata)),
+            ("@EbuildMetadata", ReportSet::Check(CheckKind::EbuildMetadata)),
             // context
             ("@gentoo", ReportSet::Context(Context::Gentoo)),
             ("@gentoo-inherited", ReportSet::Context(Context::GentooInherited)),

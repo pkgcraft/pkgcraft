@@ -26,6 +26,7 @@ mod dependency_slot_missing;
 mod duplicates;
 mod eapi_stale;
 mod eapi_status;
+mod ebuild_metadata;
 mod ebuild_name;
 mod eclass;
 mod filesdir;
@@ -38,7 +39,6 @@ mod keywords_dropped;
 mod license;
 mod live;
 mod manifest;
-mod metadata;
 mod properties;
 mod python_update;
 mod repo_layout;
@@ -74,6 +74,7 @@ pub enum CheckKind {
     Duplicates,
     EapiStale,
     EapiStatus,
+    EbuildMetadata,
     EbuildName,
     Eclass,
     Filesdir,
@@ -86,7 +87,6 @@ pub enum CheckKind {
     License,
     Live,
     Manifest,
-    Metadata,
     Properties,
     PythonUpdate,
     RepoLayout,

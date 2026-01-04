@@ -10,7 +10,7 @@ use pkgcraft::cli::colorize;
 use pkgcraft::repo::EbuildRepo;
 use pkgcraft::restrict::Restrict;
 use pkgcraft::utils::current_dir;
-use pkgcruft::report::ReportLevel;
+use pkgcruft::report::{ReportKind, ReportLevel};
 use pkgcruft::reporter::{FancyReporter, Reporter};
 use pkgcruft::scan::Scanner;
 use pkgcruft_git::git;
@@ -107,9 +107,7 @@ fn try_main() -> anyhow::Result<ExitCode> {
 
         // scan full tree for metadata errors on eclass changes
         if eclass {
-            let scanner = scanner
-                .clone()
-                .reports([pkgcruft::check::CheckKind::Metadata]);
+            let scanner = scanner.clone().reports([ReportKind::MetadataError]);
             // TODO: use eclass restriction instead of scanning entire repo
             reports.extend(scanner.run(&repo, Restrict::True)?);
             failed |= scanner.failed();

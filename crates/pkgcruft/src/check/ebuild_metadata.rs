@@ -8,7 +8,7 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    kind: super::CheckKind::Metadata,
+    kind: super::CheckKind::EbuildMetadata,
     reports: &[MetadataError],
     scope: Scope::Version,
     sources: &[SourceKind::Cpv],
@@ -52,7 +52,7 @@ mod tests {
         // primary unfixed
         let data = test_data();
         let repo = data.ebuild_repo("qa-primary").unwrap();
-        let dir = repo.path().join("EbuildMetadata");
+        let dir = repo.path().join(CHECK);
         let expected = glob_reports!("{dir}/*/reports.json");
         let reports = scanner.run(repo, repo).unwrap();
         assert_unordered_reports!(reports, expected);
