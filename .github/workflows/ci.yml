@@ -39,6 +39,8 @@ jobs:
   test:
     needs: msrv
     runs-on: ${{ matrix.os }}
+    outputs:
+      coverage: ${{ steps.test.outputs.coverage }}
     strategy:
       matrix:
         include:
@@ -163,6 +165,7 @@ jobs:
       uses: taiki-e/install-action@nextest
 
     - name: Run tests
+      id: test
       run: |
         # set environment variables needed for coverage
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
@@ -172,6 +175,9 @@ jobs:
         # run tests
         cargo nextest run --all-features --workspace --tests
 
+        # default to not uploading code coverage
+        COVERAGE=false
+
         # only collect coverage for the latest rust release on linux
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
           # move all profile data respecting $LLVM_PROFILE_FILE to the expected location
@@ -179,9 +185,10 @@ jobs:
           mv target/pkgcraft-*.profraw target/coverage
 
           # process coverage information
+          mkdir coverage
           grcov target/coverage \
             --source-dir . --binary-path target/debug --llvm --branch \
-            --keep-only "crates/*/src/*" -t lcov -o pkgcraft.lcov \
+            --keep-only "crates/*/src/*" -t html,lcov -o coverage \
             --excl-line "unreachable!(.*)|grcov-excl-line" \
             --excl-start grcov-excl-start \
             --excl-stop grcov-excl-stop
@@ -190,9 +197,10 @@ jobs:
           # failure status on error.
           #
           # See the upstream issue at https://github.com/mozilla/grcov/issues/1160.
-          if [[ $(grep -c . pkgcraft.lcov) -le 1 ]]; then
-            echo "grcov failed processing coverage data"
-            exit 1
+          if [[ $(grep -c . coverage/lcov) -le 1 ]]; then
+            echo "grcov failed processing coverage data" >&2
+          else
+            COVERAGE=true
           fi
 
           # error out if $LLVM_PROFILE_FILE isn't being respected by any tests
@@ -204,24 +212,25 @@ jobs:
           fi
         fi
 
+        # set output to disable uploading code coverage on grcov failure
+        echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+
     - name: Upload build artifacts
-      if: ${{ matrix.rust == 'stable' && runner.os == 'Linux' }}
+      if: ${{ steps.test.outputs.coverage == 'true' }}
       uses: actions/upload-artifact@v6
       with:
         name: coverage
-        path: pkgcraft.lcov
+        path: coverage
         if-no-files-found: error
         retention-days: 1
 
   coverage:
     needs: test
+    if: ${{ needs.test.outputs.coverage == 'true' }}
     runs-on: ubuntu-latest
     continue-on-error: true
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-
     - name: Download artifacts
       uses: actions/download-artifact@v7
 
@@ -229,6 +238,6 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: pkgcraft.lcov
+        files: lcov
         disable_search: true
         fail_ci_if_error: true
