@@ -156,24 +156,46 @@ fn bound() {
 
 #[test]
 fn sort() {
-    // TODO: use slow and fast ebuild leveraging custom `sleep` builtin
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
-    repo.create_ebuild("cat/pkg-1", &[]).unwrap();
-    repo.create_ebuild("cat/pkg-2", &[]).unwrap();
+    repo.create_ebuild("z/fast-pkg-1", &[]).unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="slower sourced ebuild"
+        SLOT=0
+        sleep 100ms
+    "#};
+    repo.create_ebuild_from_str("slower/pkg-1", &data).unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="slowest sourced ebuild"
+        SLOT=0
+        sleep 300ms
+    "#};
+    repo.create_ebuild_from_str("slowest/pkg-1", &data).unwrap();
+
+    let sorted = |s: &str| -> bool {
+        let lines: Vec<_> = s.lines().collect();
+        let pkgs: Vec<_> = lines
+            .iter()
+            .filter_map(|s| s.split_once("::"))
+            .map(|(prefix, _)| prefix)
+            .collect();
+        pkgs == ["z/fast-pkg-1", "slower/pkg-1", "slowest/pkg-1"]
+    };
 
     cmd("pk pkg source --sort")
         .arg(&repo)
         .assert()
-        .stdout(predicate::str::is_empty().not())
+        .stdout(predicate::function(sorted))
         .stderr("")
         .success();
 
     for opt in ["-b", "--bench"] {
-        cmd("pk pkg source")
-            .args([opt, "--sort"])
+        cmd("pk pkg source --sort")
+            .args([opt, "2"])
             .arg(&repo)
             .assert()
-            .stdout(predicate::str::is_empty().not())
+            .stdout(predicate::function(sorted))
             .stderr("")
             .success();
     }
