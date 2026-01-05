@@ -8,7 +8,7 @@ static LONG_DOC: &str = "Sleep for a given amount of time.";
 #[doc = stringify!(LONG_DOC)]
 pub(crate) fn run(args: &[&str]) -> crate::Result<ExecStatus> {
     let [value] = args else {
-        return Err(Error::Base("requires 1 arg, got 0".into()));
+        return Err(Error::Base(format!("requires 1 arg, got {}", args.len())));
     };
 
     let duration: humantime::Duration = value
@@ -34,8 +34,11 @@ mod tests {
         builtins::register([sleep]);
         builtins::enable([sleep]).unwrap();
 
-        // no args
-        assert!(sleep.call(&[]).is_err());
+        // invalid args length
+        let r = sleep.call(&[]);
+        assert_err_re!(r, "^requires 1 arg, got 0$");
+        let r = sleep.call(&["a", "b"]);
+        assert_err_re!(r, "^requires 1 arg, got 2$");
 
         // missing unit
         let r = sleep.call(&["1"]);
