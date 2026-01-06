@@ -140,14 +140,28 @@ fn path_targets() {
 #[test]
 fn bound() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
-    repo.create_ebuild("cat/pkg-1", &[]).unwrap();
+    repo.create_ebuild("fast/pkg-1", &[]).unwrap();
+    let data = indoc::formatdoc! {r#"
+        EAPI=8
+        DESCRIPTION="slow sourced ebuild"
+        SLOT=0
+        sleep 100ms
+    "#};
+    repo.create_ebuild_from_str("slow/pkg-1", &data).unwrap();
 
     for opt in ["-B", "--bound"] {
-        for val in ["10ms", ">10ms", ">=10ms", "<10ms", "<=10ms"] {
+        for (val, pkg) in [
+            ("100ms", "slow/pkg"),
+            (">100ms", "slow/pkg"),
+            (">=100ms", "slow/pkg"),
+            ("<100ms", "fast/pkg"),
+            ("<=100ms", "fast/pkg"),
+        ] {
             cmd("pk pkg source")
                 .args([opt, val])
                 .arg(&repo)
                 .assert()
+                .stdout(lines_contain([pkg]))
                 .stderr("")
                 .success();
         }
