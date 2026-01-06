@@ -25,7 +25,7 @@ fn pkg_target_from_stdin() {
 #[test]
 fn invalid_pkgs() {
     let mut temp = EbuildRepoBuilder::new().build().unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with global die"
         SLOT=0
@@ -141,7 +141,7 @@ fn path_targets() {
 fn bound() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     repo.create_ebuild("fast/pkg-1", &[]).unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="slow sourced ebuild"
         SLOT=0
@@ -172,14 +172,14 @@ fn bound() {
 fn sort() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     repo.create_ebuild("z/fast-pkg-1", &[]).unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="slower sourced ebuild"
         SLOT=0
         sleep 100ms
     "#};
     repo.create_ebuild_from_str("slower/pkg-1", &data).unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="slowest sourced ebuild"
         SLOT=0

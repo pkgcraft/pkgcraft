@@ -42,7 +42,7 @@ fn invalid_pkgs() {
 #[tokio::test]
 async fn unsupported() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with unsupported URI"
         SRC_URI="ftp://pkgcraft.pkgcraft/file"

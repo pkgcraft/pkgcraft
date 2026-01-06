@@ -50,7 +50,7 @@ fn nonexistent_arches() {
 fn output() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
     fs::write(repo.path().join("profiles/arch.list"), "amd64\narm64\nx86\n").unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with keywords"
         SLOT=0

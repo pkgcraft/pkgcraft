@@ -266,7 +266,7 @@ fn verify() {
 #[test]
 fn output() {
     let mut repo = EbuildRepoBuilder::new().build().unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with output during metadata generation"
         SLOT=0

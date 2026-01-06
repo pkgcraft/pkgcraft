@@ -79,7 +79,7 @@ fn current_dir_repo() {
     let mut repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
     repo.create_ebuild("a/b-1", &[]).unwrap();
     repo.create_ebuild("c/d-1", &[]).unwrap();
-    let data = indoc::formatdoc! {r#"
+    let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="ebuild with revdeps"
         IUSE="u1 u2"
