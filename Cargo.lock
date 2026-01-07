@@ -3170,6 +3170,7 @@ dependencies = [
  "tree-sitter-bash",
  "url",
  "walkdir",
+ "winnow",
 ]
 
 [[package]]
