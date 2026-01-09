@@ -31,9 +31,9 @@ fn invalid_pkgs() {
         SLOT=0
         die msg
     "#};
-    temp.create_ebuild_from_str("a/pkg-1", &data).unwrap();
-    temp.create_ebuild_from_str("cat/a-1", &data).unwrap();
-    temp.create_ebuild_from_str("cat/b-1", &data).unwrap();
+    temp.create_ebuild_from_str("a/pkg-1", data).unwrap();
+    temp.create_ebuild_from_str("cat/a-1", data).unwrap();
+    temp.create_ebuild_from_str("cat/b-1", data).unwrap();
     let path = temp.path();
 
     // dep restriction
@@ -147,7 +147,7 @@ fn bound() {
         SLOT=0
         sleep 100ms
     "#};
-    repo.create_ebuild_from_str("slow/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("slow/pkg-1", data).unwrap();
 
     for opt in ["-B", "--bound"] {
         for (val, pkg) in [
@@ -178,14 +178,14 @@ fn sort() {
         SLOT=0
         sleep 100ms
     "#};
-    repo.create_ebuild_from_str("slower/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("slower/pkg-1", data).unwrap();
     let data = indoc::indoc! {r#"
         EAPI=8
         DESCRIPTION="slowest sourced ebuild"
         SLOT=0
         sleep 300ms
     "#};
-    repo.create_ebuild_from_str("slowest/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("slowest/pkg-1", data).unwrap();
 
     // verify pkgs are sorted by duration
     let sorted = |s: &str| -> bool {

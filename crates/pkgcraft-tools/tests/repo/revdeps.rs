@@ -90,7 +90,7 @@ fn current_dir_repo() {
         IDEPEND="u1? ( c/d ) u2? ( c/d )"
         PDEPEND="u1? ( a/b !u2? ( c/d ) )"
     "#};
-    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
 
     env::set_current_dir(repo.path()).unwrap();
     cmd("pk repo revdeps")

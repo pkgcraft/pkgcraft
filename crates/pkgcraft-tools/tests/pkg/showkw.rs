@@ -56,7 +56,7 @@ fn output() {
         SLOT=0
         KEYWORDS="amd64 ~arm64 -x86"
     "#};
-    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
 
     env::set_current_dir(repo.path()).unwrap();
 

@@ -277,7 +277,7 @@ fn output() {
         eerror eerror
         einfo einfo
     "#};
-    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
 
     // output is suppressed by default
     cmd("pk pkg metadata")

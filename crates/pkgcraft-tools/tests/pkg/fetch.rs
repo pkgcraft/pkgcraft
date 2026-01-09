@@ -62,7 +62,7 @@ async fn unsupported() {
         SRC_URI="ftp://pkgcraft.pkgcraft/file"
         SLOT=0
     "#};
-    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
 
     // FTP is not supported
     cmd("pk pkg fetch")
@@ -522,7 +522,7 @@ async fn restrict() {
         SLOT=0
         RESTRICT="fetch"
     "#};
-    repo.create_ebuild_from_str("restricted/file-1", &data)
+    repo.create_ebuild_from_str("restricted/file-1", data)
         .unwrap();
     let data = indoc::formatdoc! {r#"
         EAPI=8

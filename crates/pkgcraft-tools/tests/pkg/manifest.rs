@@ -48,7 +48,7 @@ async fn unsupported() {
         SRC_URI="ftp://pkgcraft.pkgcraft/file"
         SLOT=0
     "#};
-    repo.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+    repo.create_ebuild_from_str("cat/pkg-1", data).unwrap();
 
     cmd("pk pkg manifest")
         .arg(&repo)
