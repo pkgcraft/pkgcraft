@@ -397,7 +397,7 @@ impl Pkgcruft for PkgcruftService {
             let result = self.handle_push(&git_repo, &push);
 
             // reset HEAD on error or failure
-            if result.is_err() || result.as_ref().map(|r| r.failed).unwrap_or_default() {
+            if result.as_ref().map_or_else(|_| true, |r| r.failed) {
                 // reset reference and HEAD
                 let old_oid: git2::Oid = push.old_ref.parse()?;
                 git_repo
