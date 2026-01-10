@@ -14,7 +14,7 @@ rust-version.workspace = true
 [dependencies]
 anyhow = "1.0.100"
 async-stream = "0.3.6"
-clap = { version = "4.5.53", default-features = false, features = ["std", "suggestions"] }
+clap = { version = "4.5.54", default-features = false, features = ["std", "suggestions"] }
 config = { version = "0.15.19", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 hyper-util = "0.1.19"
@@ -23,11 +23,11 @@ prost = "0.14.1"
 regex = "1.12.2"
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.17"
-tokio = { version = "1.48", features = ["full"] }
-tokio-stream = { version = "0.1.17", features = ["net"] }
+tokio = { version = "1.49", features = ["full"] }
+tokio-stream = { version = "0.1.18", features = ["net"] }
 tonic = { version = "0.14.2", features = ["tls-ring", "gzip"] }
 tonic-prost = "0.14.2"
-url = "2.5.7"
+url = "2.5.8"
 
 # pakt specific deps
 tracing = "0.1.44"
@@ -38,7 +38,7 @@ tower = "0.5.2"
 tonic-prost-build = "0.14.2"
 
 [dev-dependencies]
-assert_cmd = "2.1.1"
+assert_cmd = "2.1.2"
 regex = "1.12.2"
 tempfile = "3.24.0"
 
