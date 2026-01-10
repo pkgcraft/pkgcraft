@@ -81,10 +81,14 @@ jobs:
     - name: Install tools on macOS
       if: runner.os == 'macOS'
       run: |
-        # install the latest bash release -- macos defaults to an ancient version due to licensing
+        # install the latest bash release for `mapfile` support in cache removal step
+        # macos defaults to an ancient version due to licensing
         brew install bash
-        # install GNU sed as `sed` for pkgcruft-git tests
-        brew install gnu-sed --with-default-names
+
+        # install GNU sed for pkgcruft-git tests
+        brew install gnu-sed
+        # make it available as `sed`
+        echo "/opt/homebrew/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
 
     - name: Restore cache
       uses: actions/cache/restore@v4
