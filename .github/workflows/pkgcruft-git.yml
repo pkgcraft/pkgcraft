@@ -35,7 +35,7 @@ jobs:
         name: source
         path: ./*.tar.xz
         if-no-files-found: error
-        retention-days: 3
+        retention-days: 1
 
   linux:
     runs-on: ubuntu-22.04
@@ -73,7 +73,7 @@ jobs:
         name: ${{ github.ref_name }}-${{ matrix.target }}
         path: ./*.tar.xz
         if-no-files-found: error
-        retention-days: 3
+        retention-days: 1
 
   publish:
     if: startsWith(github.ref, 'refs/tags/')
