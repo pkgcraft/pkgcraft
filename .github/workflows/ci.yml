@@ -83,6 +83,8 @@ jobs:
       run: |
         # install the latest bash release -- macos defaults to an ancient version due to licensing
         brew install bash
+        # install GNU sed as `sed` for pkgcruft-git tests
+        brew install gnu-sed --with-default-names
 
     - name: Restore cache
       uses: actions/cache/restore@v4
