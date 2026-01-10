@@ -128,7 +128,7 @@ jobs:
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
           export RUSTFLAGS="-C instrument-coverage"
           export CFLAGS="-Wl,--build-id"
-          export LLVM_PROFILE_FILE="${PWD}/target/pkgcraft-%b-%4m.profraw"
+          export LLVM_PROFILE_FILE="${PWD}/target/%b-%4m.profraw"
         fi
 
         # build tests
@@ -164,7 +164,7 @@ jobs:
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
           export RUSTFLAGS="-C instrument-coverage"
           export CFLAGS="-Wl,--build-id"
-          export LLVM_PROFILE_FILE="${PWD}/target/pkgcraft-%b-%4m.profraw"
+          export LLVM_PROFILE_FILE="${PWD}/target/%b-%4m.profraw"
         fi
 
         # run tests
@@ -177,7 +177,7 @@ jobs:
         if [[ ${{ matrix.rust }} == 'stable' && ${{ runner.os }} == 'Linux' ]]; then
           # move all profile data respecting $LLVM_PROFILE_FILE to the expected location
           mkdir -p target/coverage
-          mv target/pkgcraft-*.profraw target/coverage
+          mv target/*.profraw target/coverage
 
           # process coverage information
           mkdir coverage
