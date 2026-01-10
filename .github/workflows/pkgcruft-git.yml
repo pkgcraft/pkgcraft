@@ -3,6 +3,10 @@ name: pkgcruft-git
 on:
   push:
     tags: ['pkgcruft-git-*']
+    branches: ['**']
+    paths:
+      - "Cross.toml"
+      - ".github/workflows/pkgcruft-git.yml"
   workflow_dispatch:
 
 jobs:

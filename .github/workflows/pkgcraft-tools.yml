@@ -3,6 +3,10 @@ name: pkgcraft-tools
 on:
   push:
     tags: [pkgcraft-tools-*]
+    branches: ['**']
+    paths:
+      - "Cross.toml"
+      - ".github/workflows/pkgcraft-tools.yml"
   workflow_dispatch:
 
 jobs:
