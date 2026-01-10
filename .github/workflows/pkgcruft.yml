@@ -1,4 +1,4 @@
-name: pkgcruft-release
+name: pkgcruft
 
 on:
   push:

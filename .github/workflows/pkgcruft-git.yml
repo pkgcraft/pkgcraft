@@ -1,8 +1,8 @@
-name: pkgcraft-c-release
+name: pkgcruft-git
 
 on:
   push:
-    tags: [pkgcraft-c-*]
+    tags: ['pkgcruft-git-*']
   workflow_dispatch:
 
 jobs:
@@ -18,9 +18,15 @@ jobs:
     - name: Set up rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Create vendored release tarball
+    - name: Install protoc for arcanist
+      uses: taiki-e/install-action@protoc
+
+    - name: Create vendored release
+      run: .ci/vendor-release pkgcruft-git
+
+    - name: Create archive
       run: |
-        .ci/vendor-release pkgcraft-c
+        # create the release tarball
         tar -cv -I "xz -9 -T0" -f ${{ github.ref_name }}.tar.xz ${{ github.ref_name }}
 
     - name: Upload artifact
@@ -36,6 +42,8 @@ jobs:
     strategy:
       matrix:
         target:
+          - aarch64-unknown-linux-gnu
+          - powerpc64le-unknown-linux-gnu
           - x86_64-unknown-linux-gnu
 
     steps:
@@ -44,29 +52,20 @@ jobs:
       with:
         submodules: true
 
-    - name: Set build dir env
-      run: echo build_dir=~/pkgcraft-c >> $GITHUB_ENV
-
     - name: Set up rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Install cargo-c via binary package on Linux
-      if: runner.os == 'Linux'
-      run: curl -L https://github.com/lu-zero/cargo-c/releases/latest/download/cargo-c-x86_64-unknown-linux-musl.tar.gz | tar xvzf - -C ~/.cargo/bin
+    - name: Install cross
+      run: cargo install cross --git https://github.com/cross-rs/cross
 
-    - name: Build pkgcraft-c
+    - name: Build pkgcruft-git
+      run: cross build --target ${{ matrix.target }} --profile release-strip -p pkgcruft-git
+
+    - name: Create archive
       run: |
-        cargo cinstall --version
-        cargo cinstall --prefix="${build_dir}/usr" --profile release-strip -p pkgcraft-c
-
-    - name: Mangle files and create tarball
-      run: |
-        # replace pkgconfig prefix
-        find ${build_dir} -name pkgcraft.pc -exec sed -i '/^prefix=/cprefix=/usr' {} +
-
-        tar \
+        tar -C target/${{ matrix.target }}/release-strip \
           -cv -I "xz -9 -T0" -f ${{ github.ref_name }}-${{ matrix.target }}.tar.xz \
-          -C ${build_dir} .
+          pkgcruft-git pkgcruft-gitd pkgcruft-git-pre-commit pkgcruft-git-pre-push
 
     - name: Upload artifact
       uses: actions/upload-artifact@v6

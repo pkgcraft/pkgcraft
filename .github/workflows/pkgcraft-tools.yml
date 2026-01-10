@@ -1,4 +1,4 @@
-name: pkgcraft-tools-release
+name: pkgcraft-tools
 
 on:
   push:
