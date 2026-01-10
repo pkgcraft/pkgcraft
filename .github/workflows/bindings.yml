@@ -1,4 +1,4 @@
-name: pkgcraft-c
+name: bindings
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - "crates/scallop/**"
       - "crates/pkgcraft/**"
       - "crates/pkgcraft-c/**"
-      - ".github/workflows/pkgcraft-c.yml"
+      - ".github/workflows/bindings.yml"
       - "!crates/*/benches/**"
       - "!crates/*/tests/**"
       - "!**/README.md"
