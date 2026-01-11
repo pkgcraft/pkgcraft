@@ -235,3 +235,56 @@ async fn hook() {
     assert!(stderr.contains(expected), "stderr missing expected output:\n{stderr}");
     assert_eq!(output.status.code().unwrap(), 1);
 }
+
+#[tokio::test]
+async fn non_fast_forward() {
+    let mut service = Service::new().await;
+    let repo = &mut service.client_ebuild_repo;
+    let client_repo = &mut service.client_git_repo;
+
+    // recreate package
+    let data = indoc::indoc! {r#"
+        EAPI=8
+
+        DESCRIPTION="overwritten package"
+        HOMEPAGE="https://pkgcraft.pkgcraft"
+        LICENSE="abc"
+        SLOT=0
+    "#};
+    repo.create_ebuild_from_str("a/b-1", data).unwrap();
+
+    // amend commit in client repo
+    client_repo.stage(&["*"]).unwrap();
+    git_async!("commit --amend --no-edit")
+        .current_dir(&repo)
+        .status()
+        .await
+        .unwrap();
+
+    // non-fast-forward push fails on remote git repo
+    let output = git_async!("push")
+        .current_dir(&repo)
+        .output()
+        .await
+        .unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.is_empty());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("non-fast-forward"), "unexpected stderr:\n{stderr}");
+    assert_eq!(output.status.code().unwrap(), 1, "git push succeeded:\n{stderr}");
+
+    // non-fast-forward force push fails on the server
+    let output = git_async!("push --force")
+        .current_dir(&repo)
+        .output()
+        .await
+        .unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.is_empty());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(
+        stderr.contains("pkgcruft-git: error: non-fast-forward merge"),
+        "unexpected stderr:\n{stderr}"
+    );
+    assert_eq!(output.status.code().unwrap(), 1, "git push succeeded:\n{stderr}");
+}
