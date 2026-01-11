@@ -158,7 +158,6 @@ async fn hook() {
         remote: bad/pkg
         remote:   MetadataError: version 1: unsupported EAPI: 0
         remote: pkgcruft-git: error: scanning errors found
-        remote:
     "};
     let stderr = String::from_utf8(output.stderr).unwrap();
     let stderr = stderr.lines().map(|x| x.trim()).join("\n");
@@ -192,7 +191,6 @@ async fn hook() {
         remote: good/pkg
         remote:   MetadataError: version 1: line 3: inherit: error: failed loading eclass: e1: line 2: disabled builtin: cd
         remote: pkgcruft-git: error: scanning errors found
-        remote:
     "};
     let stderr = String::from_utf8(output.stderr).unwrap();
     let stderr = stderr.lines().map(|x| x.trim()).join("\n");

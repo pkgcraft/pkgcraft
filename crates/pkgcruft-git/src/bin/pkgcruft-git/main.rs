@@ -1,6 +1,6 @@
 use std::io::stderr;
 use std::net::SocketAddr;
-use std::process;
+use std::process::ExitCode;
 use std::time::Duration;
 
 use anyhow::Context;
@@ -49,7 +49,7 @@ pub(crate) struct Command {
 }
 
 #[tokio::main]
-async fn try_main() -> anyhow::Result<()> {
+async fn try_main() -> anyhow::Result<ExitCode> {
     let args = Command::parse();
 
     // set color choice
@@ -106,22 +106,20 @@ async fn try_main() -> anyhow::Result<()> {
     };
 
     let mut client: Client = pkgcruft_git::Client::new(channel);
-    args.subcmd.run(&mut client).await
+    args.subcmd.run(&mut client).await?;
+    Ok(ExitCode::SUCCESS)
 }
 
-fn main() {
-    // TODO: improve error chain output
-    // extract error message from tonic status responses
-    if let Err(error) = try_main() {
+fn main() -> anyhow::Result<ExitCode> {
+    try_main().or_else(|e| {
         let cmd = env!("CARGO_BIN_NAME");
-        eprintln!("{cmd}: error: {error}\n");
-        error
-            .chain()
-            .skip(1)
-            .for_each(|cause| match cause.downcast_ref() {
-                Some(e @ tonic::Status { .. }) => eprintln!("caused by: {}", e.message()),
-                _ => eprintln!("caused by: {cause}"),
-            });
-        process::exit(1);
-    }
+
+        // extract error message from tonic status objects
+        match e.downcast_ref::<tonic::Status>() {
+            Some(status) => eprintln!("{cmd}: error: {}", status.message()),
+            None => eprintln!("{cmd}: error: {e}"),
+        }
+
+        Ok(ExitCode::from(1))
+    })
 }
