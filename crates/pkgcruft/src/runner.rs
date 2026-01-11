@@ -36,7 +36,7 @@ impl Target {
             Self::Cpn(cpn) => runner.finish_cpn(cpn, run),
             Self::Cpv(cpv) => runner.finish_cpv(cpv, run),
             Self::Category(cat) => runner.finish_category(cat, run),
-            _ => (),
+            Self::Repo => unreachable!("repo targets inherently support finalization"),
         }
     }
 }
