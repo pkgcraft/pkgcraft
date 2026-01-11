@@ -274,7 +274,7 @@ impl PkgcruftService {
                 .find_reference(ref_name)?
                 .set_target(new_oid, &msg)?;
         } else {
-            return Err(Error::InvalidValue(format!("non-fast-forward merge: {analysis:?}")));
+            return Err(Error::InvalidValue("non-fast-forward merge".to_string()));
         }
 
         // update HEAD for target reference
