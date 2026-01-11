@@ -255,27 +255,23 @@ impl PkgcruftService {
         let new_oid: git2::Oid = push.new_ref.parse()?;
         let commit = git_repo.find_annotated_commit(new_oid)?;
 
-        // update target reference for unborn or fast-forward merge variants
+        // bail on non-fast-forward merge
         let (analysis, _prefs) = git_repo.merge_analysis(&[&commit])?;
-        if analysis.is_unborn() {
-            let msg = format!("unborn: setting {ref_name}: {new_oid}");
-            git_repo.reference("HEAD", new_oid, false, &msg)?;
-        } else if analysis.is_fast_forward() {
-            // verify HEAD points to the expected commit
-            let head = git_repo.head()?;
-            let head_oid = head.peel_to_commit()?.id();
-            if head_oid != old_oid {
-                return Err(Error::InvalidValue(format!("invalid git repo HEAD: {head_oid}")));
-            }
-
-            // update target reference
-            let msg = format!("fast-forward: setting {ref_name}: {new_oid}");
-            git_repo
-                .find_reference(ref_name)?
-                .set_target(new_oid, &msg)?;
-        } else {
+        if !analysis.is_fast_forward() {
             return Err(Error::InvalidValue("non-fast-forward merge".to_string()));
         }
+
+        // verify HEAD points to the expected commit
+        let head = git_repo.head()?;
+        let head_oid = head.peel_to_commit()?.id();
+        if head_oid != old_oid {
+            return Err(Error::InvalidValue(format!("invalid git repo HEAD: {head_oid}")));
+        }
+
+        // update target reference
+        git_repo
+            .find_reference(ref_name)?
+            .set_target(new_oid, &format!("fast-forward: setting {ref_name}: {new_oid}"))?;
 
         // update HEAD for target reference
         git_repo.set_head(ref_name)?;
