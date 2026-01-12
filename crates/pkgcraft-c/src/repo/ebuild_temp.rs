@@ -87,21 +87,6 @@ pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_create_ebuild_from_str(
     }
 }
 
-/// Persist a temporary repo to disk, returning its path.
-///
-/// # Safety
-/// The related EbuildTempRepo pointer is invalid on function completion and should not be used.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_temp_persist(
-    r: *mut EbuildTempRepo,
-) -> *mut c_char {
-    ffi_catch_panic! {
-        let temp = unsafe { r.read() };
-        let path = unwrap_or_panic!(temp.persist());
-        try_ptr_from_str!(path.as_str())
-    }
-}
-
 /// Free a temporary repo.
 ///
 /// Freeing a temporary repo removes the related directory from the filesystem.

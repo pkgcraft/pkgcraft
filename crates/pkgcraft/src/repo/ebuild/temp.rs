@@ -197,12 +197,6 @@ impl EbuildTempRepo {
             .map_err(|e| Error::IO(format!("failed writing to eclass: {e}")))?;
         Ok(path)
     }
-
-    /// Persist the temporary repo to disk, returning the [`Utf8PathBuf`] where it is located.
-    pub fn persist(self) -> crate::Result<Utf8PathBuf> {
-        Utf8PathBuf::from_path_buf(self.tempdir.keep())
-            .map_err(|p| Error::IO(format!("non-unicode repo path: {p:?}")))
-    }
 }
 
 impl From<&EbuildTempRepo> for Repo {
