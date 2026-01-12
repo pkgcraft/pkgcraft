@@ -17,3 +17,9 @@ pub enum Error {
     #[error("{0}")]
     Git2(#[from] git2::Error),
 }
+
+impl From<Error> for tonic::Status {
+    fn from(e: Error) -> Self {
+        tonic::Status::from_error(Box::new(e))
+    }
+}

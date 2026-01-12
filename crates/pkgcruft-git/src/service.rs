@@ -25,6 +25,9 @@ use crate::proto::pkgcruft_server::{Pkgcruft, PkgcruftServer};
 use crate::proto::{EmptyRequest, PushRequest, PushResponse, StringResponse};
 use crate::{Error, git};
 
+/// Wrapper for tonic-related service results.
+type ServiceResult<T> = Result<tonic::Response<T>, tonic::Status>;
+
 enum Listener {
     Tcp(TcpListener),
     Unix(UnixListener),
@@ -320,10 +323,7 @@ impl PkgcruftService {
 
 #[tonic::async_trait]
 impl Pkgcruft for PkgcruftService {
-    async fn version(
-        &self,
-        _request: Request<EmptyRequest>,
-    ) -> Result<Response<StringResponse>, Status> {
+    async fn version(&self, _request: Request<EmptyRequest>) -> ServiceResult<StringResponse> {
         let data = env!("CARGO_PKG_VERSION").to_string();
         let reply = StringResponse { data };
         Ok(Response::new(reply))
@@ -331,10 +331,7 @@ impl Pkgcruft for PkgcruftService {
 
     type ScanStream = ReceiverStream<Result<StringResponse, Status>>;
 
-    async fn scan(
-        &self,
-        _request: Request<EmptyRequest>,
-    ) -> Result<Response<Self::ScanStream>, Status> {
+    async fn scan(&self, _request: Request<EmptyRequest>) -> ServiceResult<Self::ScanStream> {
         let scan = async || -> crate::Result<Self::ScanStream> {
             // TODO: use try_acquire_owned() with custom timeout
             // acquire exclusive scanning permission
@@ -363,16 +360,10 @@ impl Pkgcruft for PkgcruftService {
             Ok(ReceiverStream::new(rx))
         };
 
-        scan()
-            .await
-            .map(Response::new)
-            .map_err(|e| Status::from_error(Box::new(e)))
+        Ok(scan().await.map(Response::new)?)
     }
 
-    async fn push(
-        &self,
-        request: Request<PushRequest>,
-    ) -> Result<Response<PushResponse>, Status> {
+    async fn push(&self, request: Request<PushRequest>) -> ServiceResult<PushResponse> {
         let push = async || {
             // TODO: use try_acquire_owned() with custom timeout
             // acquire exclusive scanning permission
@@ -416,9 +407,6 @@ impl Pkgcruft for PkgcruftService {
             result
         };
 
-        push()
-            .await
-            .map(Response::new)
-            .map_err(|e| Status::from_error(Box::new(e)))
+        Ok(push().await.map(Response::new)?)
     }
 }
