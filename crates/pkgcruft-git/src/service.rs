@@ -254,7 +254,6 @@ impl PkgcruftService {
 
         // determine target commit
         let ref_name = &push.ref_name;
-        let old_oid: git2::Oid = push.old_ref.parse()?;
         let new_oid: git2::Oid = push.new_ref.parse()?;
         let commit = git_repo.find_annotated_commit(new_oid)?;
 
@@ -262,13 +261,6 @@ impl PkgcruftService {
         let (analysis, _prefs) = git_repo.merge_analysis(&[&commit])?;
         if !analysis.is_fast_forward() {
             return Err(Error::InvalidValue("non-fast-forward merge".to_string()));
-        }
-
-        // verify HEAD points to the expected commit
-        let head = git_repo.head()?;
-        let head_oid = head.peel_to_commit()?.id();
-        if head_oid != old_oid {
-            return Err(Error::InvalidValue(format!("invalid git repo HEAD: {head_oid}")));
         }
 
         // update target reference
