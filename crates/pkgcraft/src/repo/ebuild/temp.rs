@@ -1,5 +1,5 @@
+use std::fs;
 use std::io::Write;
-use std::{env, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use itertools::Itertools;
@@ -37,7 +37,7 @@ impl EbuildRepoBuilder {
         self
     }
 
-    /// Set the repo path.
+    /// Set a persistent repo path, otherwise a temporary directory is used.
     pub fn path<P: AsRef<Utf8Path>>(mut self, value: P) -> Self {
         self.path = Some(value.as_ref().to_path_buf());
         self
@@ -57,14 +57,27 @@ impl EbuildRepoBuilder {
 
     /// Build the temporary ebuild repo.
     pub fn build(self) -> crate::Result<EbuildTempRepo> {
-        EbuildTempRepo::new(self.name, self.path.as_deref(), self.priority, self.eapi)
+        let (_tempdir, path) = if let Some(path) = self.path {
+            fs::create_dir_all(&path)?;
+            (None, path)
+        } else {
+            let tempdir = TempDir::with_prefix("pkgcraft-ebuild-temp-repo-")
+                .map_err(|e| Error::RepoInit(format!("failed creating repo: {e}")))?;
+            let path =
+                Utf8PathBuf::from_path_buf(tempdir.path().to_path_buf()).map_err(|p| {
+                    Error::RepoInit(format!("non-unicode temp path: {}", p.display()))
+                })?;
+            (Some(tempdir), path)
+        };
+
+        EbuildTempRepo::new(self.name, _tempdir, path, self.priority, self.eapi)
     }
 }
 
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub struct EbuildTempRepo {
-    tempdir: TempDir,
+    _tempdir: Option<TempDir>,
     path: Utf8PathBuf,
     name: String,
     priority: i32,
@@ -74,19 +87,11 @@ impl EbuildTempRepo {
     /// Create a temporary repo at a path or inside `env::temp_dir()`.
     fn new(
         name: String,
-        path: Option<&Utf8Path>,
+        _tempdir: Option<TempDir>,
+        path: Utf8PathBuf,
         priority: i32,
         eapi: Option<&Eapi>,
     ) -> crate::Result<Self> {
-        let path = match path {
-            Some(p) => p.to_path_buf().into_std_path_buf(),
-            None => env::temp_dir(),
-        };
-        let tempdir = TempDir::new_in(path)
-            .map_err(|e| Error::RepoInit(format!("failed creating repo: {name}: {e}")))?;
-        let path = Utf8PathBuf::from_path_buf(tempdir.path().to_path_buf())
-            .map_err(|p| Error::RepoInit(format!("non-unicode temp path: {p:?}")))?;
-
         for dir in ["metadata", "profiles"] {
             fs::create_dir(path.join(dir))
                 .map_err(|e| Error::RepoInit(format!("failed creating repo: {name}: {e}")))?;
@@ -107,7 +112,7 @@ impl EbuildTempRepo {
         fs::write(path.join("profiles/eapi"), format!("{eapi}\n"))
             .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
 
-        Ok(Self { tempdir, path, name, priority })
+        Ok(Self { _tempdir, path, name, priority })
     }
 
     pub fn path(&self) -> &Utf8Path {
