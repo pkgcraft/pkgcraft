@@ -43,7 +43,12 @@ impl Service {
         let remote_git_repo = GitRepo::init_bare(remote_path).unwrap();
 
         // create client repo
-        let mut client_ebuild_repo = EbuildRepoBuilder::new().name("repo").build().unwrap();
+        let client_path = &tmpdir_path.join("client");
+        let mut client_ebuild_repo = EbuildRepoBuilder::new()
+            .path(client_path)
+            .name("repo")
+            .build()
+            .unwrap();
         let licenses_dir = client_ebuild_repo.path().join("licenses");
         fs::create_dir(&licenses_dir).unwrap();
         fs::write(licenses_dir.join("abc"), "stub license").unwrap();
