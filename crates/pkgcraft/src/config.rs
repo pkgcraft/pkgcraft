@@ -418,7 +418,7 @@ impl Config<ConfigInner> {
 mod tests {
     use std::fs;
 
-    use tempfile::tempdir;
+    use camino_tempfile::tempdir;
     use tracing_test::traced_test;
 
     use crate::repo::Repository;
@@ -485,9 +485,8 @@ mod tests {
     fn load_portage_repos() {
         let mut config = Config::new("pkgcraft", "");
         let tmpdir = tempdir().unwrap();
-        let conf_path = tmpdir.path().to_str().unwrap();
-        let path = tmpdir.path().join("repos.conf");
-        let path = path.to_str().unwrap();
+        let conf_path = tmpdir.path().as_str();
+        let path = &tmpdir.path().join("repos.conf");
         let data = test_data();
         let repos_dir = data.path().join("repos");
 
@@ -596,7 +595,7 @@ mod tests {
         let t3 = EbuildRepoBuilder::new().name("r3").build().unwrap();
         let tmpdir = tempdir().unwrap();
         let conf_dir = tmpdir.path();
-        let conf_path = conf_dir.to_str().unwrap();
+        let conf_path = conf_dir.as_str();
         fs::create_dir(conf_dir.join("repos.conf")).unwrap();
         let data = indoc::formatdoc! {r#"
             [r1]

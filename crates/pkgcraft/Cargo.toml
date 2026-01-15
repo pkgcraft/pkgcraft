@@ -26,6 +26,7 @@ blake2 = "0.10.6"
 blake3 = { version = "1.8.3", features = ["traits-preview"] }
 cached = "0.56.0"
 camino = { version = "1.2.2", features = ["serde1"] }
+camino-tempfile = "1.4.1"
 chic = "1.2.2"
 clap = { version = "4.5.54", features = ["derive"] }
 crossbeam-channel = "0.5.15"

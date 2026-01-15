@@ -476,6 +476,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "camino-tempfile"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64308c4c82a5c38679945ddf88738dc1483dcc563bbb5780755ae9f8497d2b20"
+dependencies = [
+ "camino",
+ "tempfile",
+]
+
+[[package]]
 name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3214,6 +3224,7 @@ dependencies = [
  "blake3",
  "cached",
  "camino",
+ "camino-tempfile",
  "chic",
  "clap",
  "criterion",

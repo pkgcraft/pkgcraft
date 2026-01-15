@@ -382,12 +382,16 @@ impl Manifest {
         Ok(())
     }
 
-    pub fn verify(&self, pkgdir: &Utf8Path, distdir: &Utf8Path) -> crate::Result<()> {
+    pub fn verify<P, Q>(&self, pkgdir: P, distdir: Q) -> crate::Result<()>
+    where
+        P: AsRef<Utf8Path>,
+        Q: AsRef<Utf8Path>,
+    {
         self.into_iter().try_for_each(|f| {
             let path = match f.kind {
-                ManifestType::Aux => build_path!(pkgdir, "files", f.name()),
-                ManifestType::Dist => distdir.join(f.name()),
-                _ => pkgdir.join(f.name()),
+                ManifestType::Aux => build_path!(pkgdir.as_ref(), "files", f.name()),
+                ManifestType::Dist => distdir.as_ref().join(f.name()),
+                _ => pkgdir.as_ref().join(f.name()),
             };
             let data =
                 fs::read(&path).map_err(|e| Error::IO(format!("failed reading: {e}")))?;
@@ -416,7 +420,7 @@ impl<'a> IntoIterator for &'a Manifest {
 
 #[cfg(test)]
 mod tests {
-    use tempfile::tempdir;
+    use camino_tempfile::tempdir;
 
     use crate::test::assert_err_re;
 
@@ -424,8 +428,7 @@ mod tests {
 
     #[test]
     fn distfile_verification() {
-        let tmpdir = tempdir().unwrap();
-        let distdir: &Utf8Path = tmpdir.path().try_into().unwrap();
+        let distdir = tempdir().unwrap();
 
         // empty
         let r = Manifest::parse("");
@@ -436,12 +439,12 @@ mod tests {
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        let r = manifest.verify(distdir, distdir);
+        let r = manifest.verify(&distdir, &distdir);
         assert_err_re!(r, "No such file or directory");
 
         // primary hash failure
-        fs::write(distdir.join("a.tar.gz"), "value").unwrap();
-        let r = manifest.verify(distdir, distdir);
+        fs::write(distdir.path().join("a.tar.gz"), "value").unwrap();
+        let r = manifest.verify(&distdir, &distdir);
         assert_err_re!(r, "BLAKE2B hash failed");
 
         // secondary hash failure
@@ -449,7 +452,7 @@ mod tests {
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        let r = manifest.verify(distdir, distdir);
+        let r = manifest.verify(&distdir, &distdir);
         assert_err_re!(r, "SHA512 hash failed");
 
         // verified
@@ -457,7 +460,7 @@ mod tests {
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
         "#};
         let manifest = Manifest::parse(data).unwrap();
-        assert!(manifest.verify(distdir, distdir).is_ok());
+        assert!(manifest.verify(&distdir, &distdir).is_ok());
     }
 
     #[test]

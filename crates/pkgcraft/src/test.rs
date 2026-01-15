@@ -1,10 +1,10 @@
 use std::{fs, io, process};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use camino_tempfile::Utf8TempDir;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
-use tempfile::TempDir;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::Error;
@@ -203,7 +203,7 @@ pub fn test_data() -> TestData {
 
 #[derive(Debug)]
 pub struct TestDataPatched {
-    _tmpdir: TempDir,
+    _tmpdir: Utf8TempDir,
     config: Config,
 }
 
@@ -231,8 +231,7 @@ fn is_change(entry: &DirEntry) -> bool {
 }
 
 pub fn test_data_patched() -> TestDataPatched {
-    let _tmpdir = TempDir::new().unwrap();
-    let tmppath = Utf8Path::from_path(_tmpdir.path()).unwrap();
+    let tmpdir = Utf8TempDir::new().unwrap();
     let mut config = Config::new("pkgcraft", "");
 
     // generate temporary repos with changes applied
@@ -250,7 +249,7 @@ pub fn test_data_patched() -> TestDataPatched {
 
         if !changes.is_empty() {
             let old_path = repo.path();
-            let new_path = tmppath.join(name);
+            let new_path = tmpdir.path().join(name);
 
             for entry in WalkDir::new(old_path) {
                 let entry = entry.unwrap();
@@ -308,7 +307,7 @@ pub fn test_data_patched() -> TestDataPatched {
                 }) {
                     unreachable!(
                         "mismatched patch: {}",
-                        change.strip_prefix(tmppath).unwrap()
+                        change.strip_prefix(&tmpdir).unwrap()
                     );
                 }
             }
@@ -320,7 +319,7 @@ pub fn test_data_patched() -> TestDataPatched {
 
     config.finalize().unwrap();
 
-    TestDataPatched { _tmpdir, config }
+    TestDataPatched { _tmpdir: tmpdir, config }
 }
 
 /// Verify two, ordered iterables are equal.

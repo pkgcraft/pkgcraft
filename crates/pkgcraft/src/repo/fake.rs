@@ -398,8 +398,8 @@ mod tests {
     use std::fs::File;
     use std::io::Write;
 
+    use camino_tempfile::tempdir;
     use itertools::Itertools;
-    use tempfile::tempdir;
     use tracing_test::traced_test;
 
     use crate::pkg::Package;
@@ -410,13 +410,12 @@ mod tests {
     #[test]
     fn from_path() {
         let dir = tempdir().unwrap();
-        let path = Utf8Path::from_path(dir.path()).unwrap();
 
         // empty dir
-        assert!(FakeRepo::from_path("test", 0, path).is_err());
+        assert!(FakeRepo::from_path("test", 0, &dir).is_err());
 
         // empty file
-        let repo_path = path.join("fake");
+        let repo_path = dir.path().join("fake");
         let mut f = File::create(&repo_path).unwrap();
         let repo = FakeRepo::from_path("test", 0, &repo_path).unwrap();
         assert!(repo.is_empty());

@@ -276,7 +276,7 @@ impl Cache for Md5Dict {
 
 #[cfg(test)]
 mod tests {
-    use tempfile::tempdir;
+    use camino_tempfile::tempdir;
 
     use crate::test::*;
 
@@ -310,7 +310,7 @@ mod tests {
         let repo = data.ebuild_repo("metadata").unwrap();
         let repo_cache = Md5Dict::from_repo(repo);
         let dir = tempdir().unwrap();
-        let new_cache = Md5Dict::from_path(Utf8Path::from_path(dir.path()).unwrap());
+        let new_cache = Md5Dict::from_path(&dir);
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
             let meta = pkg.get_metadata().unwrap();

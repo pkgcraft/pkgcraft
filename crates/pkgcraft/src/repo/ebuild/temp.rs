@@ -2,8 +2,8 @@ use std::fs;
 use std::io::Write;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use camino_tempfile::Utf8TempDir;
 use itertools::Itertools;
-use tempfile::TempDir;
 
 use crate::Error;
 use crate::dep::Cpv;
@@ -61,12 +61,8 @@ impl EbuildRepoBuilder {
             fs::create_dir_all(&path)?;
             (None, path)
         } else {
-            let tempdir = TempDir::with_prefix("pkgcraft-ebuild-temp-repo-")
-                .map_err(|e| Error::RepoInit(format!("failed creating repo: {e}")))?;
-            let path =
-                Utf8PathBuf::from_path_buf(tempdir.path().to_path_buf()).map_err(|p| {
-                    Error::RepoInit(format!("non-unicode temp path: {}", p.display()))
-                })?;
+            let tempdir = Utf8TempDir::with_prefix("pkgcraft-ebuild-temp-repo-")?;
+            let path = tempdir.path().to_path_buf();
             (Some(tempdir), path)
         };
 
@@ -99,7 +95,7 @@ impl EbuildRepoBuilder {
 /// A temporary repo that is automatically deleted when it goes out of scope.
 #[derive(Debug)]
 pub struct EbuildTempRepo {
-    _tempdir: Option<TempDir>,
+    _tempdir: Option<Utf8TempDir>,
     path: Utf8PathBuf,
     name: String,
     priority: i32,

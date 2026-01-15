@@ -837,7 +837,7 @@ impl Restriction<&Repo> for Restrict {
 mod tests {
     use std::collections::HashSet;
 
-    use tempfile::tempdir;
+    use camino_tempfile::tempdir;
 
     use crate::repo::ebuild::EbuildRepoBuilder;
     use crate::test::{assert_err_re, assert_ordered_eq};
@@ -901,21 +901,19 @@ mod tests {
     #[test]
     fn from_path() {
         let dir = tempdir().unwrap();
-        let path = Utf8Path::from_path(dir.path()).unwrap();
 
         // invalid repo
-        let r = Repo::from_path("test", path, 0);
-        assert_err_re!(r, format!("^invalid repo: {path}$"));
+        let r = Repo::from_path("test", &dir, 0);
+        assert_err_re!(r, format!("^invalid repo: {}$", dir.path()));
     }
 
     #[test]
     fn from_nested_path() {
         let dir = tempdir().unwrap();
-        let path = Utf8Path::from_path(dir.path()).unwrap();
 
         // invalid repo
-        let r = Repo::from_nested_path(path, 0);
-        assert_err_re!(r, format!("^invalid repo: {path}$"));
+        let r = Repo::from_nested_path(&dir, 0);
+        assert_err_re!(r, format!("^invalid repo: {}$", dir.path()));
 
         // ebuild repo
         let mut temp = EbuildRepoBuilder::new().name("test").build().unwrap();

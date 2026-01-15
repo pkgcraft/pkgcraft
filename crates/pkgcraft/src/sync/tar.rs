@@ -6,11 +6,11 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use camino_tempfile::Builder;
 use futures::StreamExt;
 use regex::Regex;
 use reqwest::header::{ETAG, HeaderMap};
 use serde::{Deserialize, Serialize};
-use tempfile::Builder;
 
 use crate::Error;
 use crate::repo::RepoFormat;
@@ -116,11 +116,11 @@ impl Syncable for Repo {
                 "--extract",
                 "--gzip",
                 "-f",
-                temp_file.path().to_str().unwrap(),
+                temp_file.path().as_str(),
                 "--strip-components=1",
                 "--no-same-owner",
                 "-C",
-                tmp_dir.path().to_str().unwrap(),
+                tmp_dir.path().as_str(),
             ])
             .stdout(Stdio::null())
             .output()

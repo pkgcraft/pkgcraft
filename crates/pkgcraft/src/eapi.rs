@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::{fmt, fs, io};
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use indexmap::{IndexSet, set::MutableValues};
 use itertools::Either;
 use strum::EnumString;
@@ -272,7 +272,7 @@ impl Eapi {
     /// Load an archive from a given path if it's supported.
     pub(crate) fn archive_from_path<P>(&self, path: P) -> crate::Result<Archive>
     where
-        P: Into<Utf8PathBuf>,
+        P: AsRef<Utf8Path>,
     {
         let archive = Archive::from_path(path)?;
         let file_name = archive.file_name();
@@ -934,7 +934,7 @@ impl Restriction<&'static Eapi> for Restrict {
 
 #[cfg(test)]
 mod tests {
-    use tempfile::NamedTempFile;
+    use camino_tempfile::{NamedUtf8TempFile, tempdir};
 
     use crate::test::assert_err_re;
     use crate::test::assert_ordered_eq;
@@ -1026,14 +1026,12 @@ mod tests {
         // &Utf8Path
         let r: crate::Result<&Eapi> = Utf8Path::new("nonexistent").try_into();
         assert_err_re!(r, "unsupported EAPI: 0$");
-        let dir = tempfile::tempdir().unwrap();
-        let r: crate::Result<&Eapi> = Utf8Path::new(dir.path().to_str().unwrap()).try_into();
+        let dir = tempdir().unwrap();
+        let r: crate::Result<&Eapi> = dir.path().try_into();
         assert_err_re!(r, "failed reading EAPI: ");
-        let file = NamedTempFile::new().unwrap();
+        let file = NamedUtf8TempFile::new().unwrap();
         fs::write(&file, "8").unwrap();
-        eapi = Utf8Path::new(file.path().to_str().unwrap())
-            .try_into()
-            .unwrap();
+        eapi = file.path().try_into().unwrap();
         assert_eq!(&*EAPI8, eapi);
     }
 
