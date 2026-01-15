@@ -55,7 +55,7 @@ impl EbuildRepoBuilder {
         self
     }
 
-    /// Build the temporary ebuild repo.
+    /// Create an ebuild repo at a given path or inside `env::temp_dir()`.
     pub fn build(self) -> crate::Result<EbuildTempRepo> {
         let (_tempdir, path) = if let Some(path) = self.path {
             fs::create_dir_all(&path)?;
@@ -70,7 +70,29 @@ impl EbuildRepoBuilder {
             (Some(tempdir), path)
         };
 
-        EbuildTempRepo::new(self.name, _tempdir, path, self.priority, self.eapi)
+        for dir in ["metadata", "profiles"] {
+            fs::create_dir(path.join(dir))?;
+        }
+
+        let config = indoc::indoc! {"
+            manifest-hashes = BLAKE2B SHA512
+            manifest-required-hashes = BLAKE2B
+            thin-manifests = true
+        "};
+        fs::write(path.join("metadata/layout.conf"), config)?;
+
+        let name = self.name;
+        fs::write(path.join("profiles/repo_name"), format!("{name}\n"))?;
+
+        let eapi = self.eapi.unwrap_or(&EAPI_LATEST_OFFICIAL);
+        fs::write(path.join("profiles/eapi"), format!("{eapi}\n"))?;
+
+        Ok(EbuildTempRepo {
+            _tempdir,
+            path,
+            name,
+            priority: self.priority,
+        })
     }
 }
 
@@ -84,37 +106,6 @@ pub struct EbuildTempRepo {
 }
 
 impl EbuildTempRepo {
-    /// Create a temporary repo at a path or inside `env::temp_dir()`.
-    fn new(
-        name: String,
-        _tempdir: Option<TempDir>,
-        path: Utf8PathBuf,
-        priority: i32,
-        eapi: Option<&Eapi>,
-    ) -> crate::Result<Self> {
-        for dir in ["metadata", "profiles"] {
-            fs::create_dir(path.join(dir))
-                .map_err(|e| Error::RepoInit(format!("failed creating repo: {name}: {e}")))?;
-        }
-
-        let config = indoc::indoc! {"
-            manifest-hashes = BLAKE2B SHA512
-            manifest-required-hashes = BLAKE2B
-            thin-manifests = true
-        "};
-        fs::write(path.join("metadata/layout.conf"), config)
-            .map_err(|e| Error::RepoInit(format!("failed writing repo config: {e}")))?;
-
-        fs::write(path.join("profiles/repo_name"), format!("{name}\n"))
-            .map_err(|e| Error::RepoInit(format!("failed writing repo name: {e}")))?;
-
-        let eapi = eapi.unwrap_or(&EAPI_LATEST_OFFICIAL);
-        fs::write(path.join("profiles/eapi"), format!("{eapi}\n"))
-            .map_err(|e| Error::RepoInit(format!("failed writing repo EAPI: {e}")))?;
-
-        Ok(Self { _tempdir, path, name, priority })
-    }
-
     pub fn path(&self) -> &Utf8Path {
         &self.path
     }
