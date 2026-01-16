@@ -1,11 +1,11 @@
 use std::{env, fs};
 
+use camino_tempfile::{NamedUtf8TempFile, tempdir};
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::{assert_ordered_eq, assert_unordered_eq, test_data, test_data_path};
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
-use tempfile::{NamedTempFile, tempdir};
 
 use crate::cmd;
 use crate::test::*;
@@ -128,8 +128,7 @@ fn current_dir_targets() {
 
     // empty dir
     let tmpdir = tempdir().unwrap();
-    let path = tmpdir.path().to_str().unwrap();
-    env::set_current_dir(path).unwrap();
+    env::set_current_dir(&tmpdir).unwrap();
     cmd("pkgcruft scan")
         .assert()
         .stdout("")
@@ -194,8 +193,8 @@ fn path_targets() {
         .code(2);
 
     // invalid
-    let file = NamedTempFile::new().unwrap();
-    let path = file.path().to_str().unwrap();
+    let file = NamedUtf8TempFile::new().unwrap();
+    let path = file.path();
     cmd("pkgcruft scan")
         .arg(path)
         .assert()

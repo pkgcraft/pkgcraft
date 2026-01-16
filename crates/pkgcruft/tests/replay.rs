@@ -1,23 +1,23 @@
 use std::fs;
 use std::io::Write;
 
+use camino_tempfile::NamedUtf8TempFile;
 use itertools::Itertools;
 use pkgcraft::test::test_data;
 use predicates::prelude::*;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
-use tempfile::NamedTempFile;
 
 use crate::cmd;
 use crate::test::*;
 
 /// Temporary file of all serialized reports from the primary QA test repo.
-pub(crate) fn qa_primary_file() -> NamedTempFile {
+pub(crate) fn qa_primary_file() -> NamedUtf8TempFile {
     let data = test_data();
     let repo = data.path().join("repos/valid/qa-primary");
     let reports = glob_reports!("{repo}/**/reports.json");
     let data = reports.iter().map(|x| x.to_json()).join("\n");
-    let mut file = NamedTempFile::new().unwrap();
+    let mut file = NamedUtf8TempFile::new().unwrap();
     file.write_all(data.as_bytes()).unwrap();
     file
 }
@@ -76,7 +76,7 @@ fn stdin() {
 
 #[test]
 fn file_targets() {
-    let mut file = NamedTempFile::new().unwrap();
+    let mut file = NamedUtf8TempFile::new().unwrap();
     writeln!(file, "invalid reports json file").unwrap();
 
     // invalid

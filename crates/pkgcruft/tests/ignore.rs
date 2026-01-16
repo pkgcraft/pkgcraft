@@ -1,10 +1,10 @@
 use std::{env, fs};
 
+use camino_tempfile::tempdir;
 use pkgcraft::repo::ebuild::EbuildRepoBuilder;
 use pkgcraft::test::test_data;
 use predicates::prelude::*;
 use predicates::str::contains;
-use tempfile::tempdir;
 
 use crate::cmd;
 
@@ -24,8 +24,7 @@ fn empty_repo() {
 fn current_dir_targets() {
     // empty dir
     let tmpdir = tempdir().unwrap();
-    let path = tmpdir.path().to_str().unwrap();
-    env::set_current_dir(path).unwrap();
+    env::set_current_dir(&tmpdir).unwrap();
     cmd("pkgcruft ignore")
         .assert()
         .stdout("")

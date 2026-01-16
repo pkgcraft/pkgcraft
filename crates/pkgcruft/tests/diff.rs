@@ -1,8 +1,8 @@
 use std::io::Write;
 
+use camino_tempfile::NamedUtf8TempFile;
 use predicates::str::contains;
 use pretty_assertions::assert_eq;
-use tempfile::NamedTempFile;
 
 use crate::cmd;
 use crate::replay::qa_primary_file;
@@ -87,9 +87,9 @@ fn output() {
         {"kind":"WhitespaceInvalid","target":{"Version":["cat/pkg-1-r2",{"line":3,"column":28}]},"message":"character '\\u{2001}'"}
     "#};
 
-    let mut old_file = NamedTempFile::new().unwrap();
+    let mut old_file = NamedUtf8TempFile::new().unwrap();
     old_file.write_all(old.as_bytes()).unwrap();
-    let mut new_file = NamedTempFile::new().unwrap();
+    let mut new_file = NamedUtf8TempFile::new().unwrap();
     new_file.write_all(new.as_bytes()).unwrap();
 
     // color disabled

@@ -1,7 +1,7 @@
 use std::fs;
 
+use camino_tempfile::tempdir;
 use predicates::prelude::*;
-use tempfile::tempdir;
 
 use crate::cmd;
 
