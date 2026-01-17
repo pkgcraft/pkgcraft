@@ -895,4 +895,52 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn evaluate_force() {
+        // dependencies
+        for (s, force, expected) in [
+            ("a/b", true, "a/b"),
+            ("a/b", false, "a/b"),
+            ("( c/d a/b )", true, "( c/d a/b )"),
+            ("|| ( c/d a/b )", true, "|| ( c/d a/b )"),
+            ("u? ( c/d a/b )", false, ""),
+            ("u? ( c/d a/b )", true, "c/d a/b"),
+            ("!u? ( c/d a/b )", true, "c/d a/b"),
+            ("!u? ( c/d a/b )", false, ""),
+        ] {
+            // ref
+            let dep = Dependency::package(s, Default::default()).unwrap();
+            assert_eq!(
+                dep.evaluate_force(force)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+            assert_eq!(
+                dep.into_iter_evaluate_force(force)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+
+            // wrapped ref
+            let dep = dep.to_ref();
+            assert_eq!(
+                dep.clone()
+                    .evaluate_force(force)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+            assert_eq!(
+                dep.into_iter_evaluate_force(force)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+        }
+    }
 }
