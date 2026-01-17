@@ -868,13 +868,15 @@ mod tests {
                     .iter()
                     .map(|x| x.to_string())
                     .join(" "),
-                expected
+                expected,
+                "failed evaluating: {s}"
             );
             assert_eq!(
                 dep.into_iter_evaluate(&options)
                     .map(|x| x.to_string())
                     .join(" "),
-                expected
+                expected,
+                "failed evaluating: {s}"
             );
 
             // wrapped ref
@@ -885,13 +887,67 @@ mod tests {
                     .iter()
                     .map(|x| x.to_string())
                     .join(" "),
-                expected
+                expected,
+                "failed evaluating: {s}"
             );
             assert_eq!(
                 dep.into_iter_evaluate(&options)
                     .map(|x| x.to_string())
                     .join(" "),
-                expected
+                expected,
+                "failed evaluating: {s}"
+            );
+        }
+
+        // REQUIRED_USE
+        for (s, options, expected) in [
+            ("a", vec![], "a"),
+            ("!a", vec![], "!a"),
+            ("( b a )", vec![], "( b a )"),
+            ("( b !a )", vec![], "( b !a )"),
+            ("|| ( b a )", vec![], "|| ( b a )"),
+            ("^^ ( b a )", vec![], "^^ ( b a )"),
+            ("?? ( b a )", vec![], "?? ( b a )"),
+            ("u? ( b a )", vec![], ""),
+            ("u? ( b a )", vec!["u"], "b a"),
+            ("!u? ( b a )", vec![], "b a"),
+            ("!u? ( b a )", vec!["u"], ""),
+        ] {
+            let dep = Dependency::required_use(s).unwrap();
+            let options: IndexSet<&str> = options.into_iter().collect();
+            assert_eq!(
+                dep.evaluate(&options)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
+            );
+            assert_eq!(
+                dep.into_iter_evaluate(&options)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
+            );
+
+            // wrapped ref
+            let dep = dep.to_ref();
+            assert_eq!(
+                dep.clone()
+                    .evaluate(&options)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
+            );
+            assert_eq!(
+                dep.into_iter_evaluate(&options)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
             );
         }
     }
@@ -940,6 +996,57 @@ mod tests {
                     .map(|x| x.to_string())
                     .join(" "),
                 expected
+            );
+        }
+
+        // REQUIRED_USE
+        for (s, force, expected) in [
+            ("a", true, "a"),
+            ("!a", false, "!a"),
+            ("( b a )", true, "( b a )"),
+            ("( b !a )", true, "( b !a )"),
+            ("|| ( b a )", true, "|| ( b a )"),
+            ("^^ ( b a )", true, "^^ ( b a )"),
+            ("?? ( b a )", true, "?? ( b a )"),
+            ("u? ( b a )", false, ""),
+            ("u? ( b a )", true, "b a"),
+            ("!u? ( b a )", true, "b a"),
+            ("!u? ( b a )", false, ""),
+        ] {
+            let dep = Dependency::required_use(s).unwrap();
+            assert_eq!(
+                dep.evaluate_force(force)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
+            );
+            assert_eq!(
+                dep.into_iter_evaluate_force(force)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
+            );
+
+            // wrapped ref
+            let dep = dep.to_ref();
+            assert_eq!(
+                dep.clone()
+                    .evaluate_force(force)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
+            );
+            assert_eq!(
+                dep.into_iter_evaluate_force(force)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected,
+                "failed evaluating: {s}"
             );
         }
     }
