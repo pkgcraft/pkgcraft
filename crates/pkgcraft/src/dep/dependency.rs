@@ -539,7 +539,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn dep_variants() {
+    fn variants() {
         // Dependency<Dep>
         Dependency::package("a/b", Default::default()).unwrap();
         // Dependency<String>
@@ -552,7 +552,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_contains() {
+    fn contains() {
         let d = Dep::try_new("a/b").unwrap();
         let target_dep = Dependency::package("a/b", Default::default()).unwrap();
         let dep = Dependency::package("!u? ( a/b )", Default::default()).unwrap();
@@ -591,7 +591,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_to_ref_and_into_owned() {
+    fn to_ref_and_into_owned() {
         for (s, len) in [
             ("a", 1),
             ("!a", 1),
@@ -631,7 +631,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_iter() {
+    fn iter() {
         for (s, expected) in [
             ("( ( a ) )", vec!["( a )"]),
             ("a", vec![]),
@@ -669,7 +669,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_iter_flatten() {
+    fn iter_flatten() {
         for (s, expected) in [
             ("( ( a ) )", vec!["a"]),
             ("a", vec!["a"]),
@@ -711,7 +711,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_iter_recursive() {
+    fn iter_recursive() {
         for (s, expected) in [
             ("( ( a ) )", vec!["( ( a ) )", "( a )", "a"]),
             ("a", vec!["a"]),
@@ -741,7 +741,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_iter_conditionals() {
+    fn iter_conditionals() {
         for (s, expected) in [
             ("u? ( a )", vec!["u?"]),
             ("a", vec![]),
@@ -771,7 +771,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_iter_conditional_flatten() {
+    fn iter_conditional_flatten() {
         for (s, expected) in [
             ("u? ( a )", vec![(vec!["u?"], "a")]),
             ("a", vec![(vec![], "a")]),
@@ -815,7 +815,7 @@ mod tests {
     }
 
     #[test]
-    fn dep_sort() {
+    fn sort() {
         // dependencies
         for (s, expected) in [
             ("a/b", "a/b"),
