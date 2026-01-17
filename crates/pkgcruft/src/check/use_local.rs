@@ -2,18 +2,23 @@ use std::collections::HashSet;
 
 use itertools::Itertools;
 use pkgcraft::dep::Cpn;
+use pkgcraft::error::Error::UnversionedPkg;
 use pkgcraft::pkg::ebuild::EbuildPkg;
 use pkgcraft::restrict::Scope;
 
 use crate::report::ReportKind::{
-    UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused,
+    EbuildMetadataXmlInvalid, UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted,
+    UseLocalUnused,
 };
 use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
     kind: super::CheckKind::UseLocal,
-    reports: &[UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted, UseLocalUnused],
+    reports: &[
+        EbuildMetadataXmlInvalid, UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted,
+        UseLocalUnused,
+    ],
     scope: Scope::Package,
     sources: &[SourceKind::EbuildPkg],
     context: &[],
@@ -28,7 +33,19 @@ struct Check;
 
 impl super::CheckRun for Check {
     fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
-        let metadata = run.repo.metadata().pkg_metadata(cpn);
+        // parse metadata
+        let metadata = match run.repo.metadata().pkg_metadata(cpn) {
+            Ok(manifest) => manifest,
+            Err(UnversionedPkg { err, .. }) => {
+                EbuildMetadataXmlInvalid
+                    .package(cpn)
+                    .message(err)
+                    .report(run);
+                return;
+            }
+            Err(e) => unreachable!("unexpected metadata parsing error: {e}"),
+        };
+
         let local_use = metadata.local_use();
         let sorted_flags = local_use
             .keys()

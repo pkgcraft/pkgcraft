@@ -137,9 +137,15 @@ impl Command {
 
         let failed = &AtomicBool::new(false);
         let mut fetchables = IndexSet::new();
-        let mut pkg_distfiles = IndexMap::<_, IndexMap<_, _>>::new();
+        let mut pkg_distfiles = IndexMap::new();
         for ((repo, cpn), pkgs) in pkg_sets {
-            let manifest = repo.metadata().pkg_manifest(&cpn);
+            let manifest = match repo.metadata().pkg_manifest(&cpn) {
+                Ok(manifest) => manifest,
+                Err(e) => {
+                    error!("{e}");
+                    Default::default()
+                }
+            };
 
             // A manifest entry is regenerated if the entry hashes don't match the repo
             // hashes or the related file isn't in the manifest.
@@ -211,7 +217,7 @@ impl Command {
                 .collect();
             let pkgdir = build_path!(repo.path(), cpn.category(), cpn.package());
             if self.force || manifest.outdated(&pkgdir, &distfiles, thick) {
-                pkg_distfiles.insert((repo, cpn, pkgdir, thick), distfiles);
+                pkg_distfiles.insert((repo, cpn, pkgdir, thick), (manifest, distfiles));
             }
         }
 
@@ -290,16 +296,7 @@ impl Command {
 
         // create manifests if no download failures occurred
         if !failed.load(Ordering::Relaxed) {
-            for ((repo, cpn, pkgdir, thick), distfiles) in pkg_distfiles {
-                // load manifest from file
-                let mut manifest = match repo.metadata().pkg_manifest_parse(&cpn) {
-                    Ok(value) => value,
-                    Err(e) => {
-                        error!("{e}");
-                        Default::default()
-                    }
-                };
-
+            for ((repo, cpn, pkgdir, thick), (mut manifest, distfiles)) in pkg_distfiles {
                 // update manifest entries
                 let hashes = &repo.metadata().config.manifest_hashes;
                 if let Err(e) = manifest.update(&distfiles, hashes, &pkgdir, thick) {

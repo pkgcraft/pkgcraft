@@ -72,7 +72,7 @@ impl Check {
 impl super::CheckRun for Check {
     fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
         // parse manifest
-        let manifest = match run.repo.metadata().pkg_manifest_parse(cpn) {
+        let manifest = match run.repo.metadata().pkg_manifest(cpn) {
             Ok(manifest) => manifest,
             Err(UnversionedPkg { err, .. }) => {
                 ManifestInvalid.package(cpn).message(err).report(run);

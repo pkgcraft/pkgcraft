@@ -510,35 +510,35 @@ impl Metadata {
         })
     }
 
-    /// Return the parsed package metadata result for a [`Cpn`].
-    pub fn pkg_metadata_parse(&self, cpn: &Cpn) -> crate::Result<xml::Metadata> {
+    /// Return the package metadata result for a [`Cpn`].
+    pub fn pkg_metadata(&self, cpn: &Cpn) -> crate::Result<xml::Metadata> {
         let path = build_path!(&self.path, cpn.category(), cpn.package(), "metadata.xml");
         xml::Metadata::from_path(&path).map_err(|e| e.into_unversioned_pkg_err(cpn, &self.id))
     }
 
     /// Return the cached package manifest for a [`Cpn`].
-    pub fn pkg_metadata(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
+    pub(crate) fn pkg_metadata_cached(&self, cpn: &Cpn) -> Arc<xml::Metadata> {
         if let Some(value) = self.pkg_metadata_cache.get(cpn) {
             value.clone()
         } else {
-            let value = Arc::new(self.pkg_metadata_parse(cpn).unwrap_or_default());
+            let value = Arc::new(self.pkg_metadata(cpn).unwrap_or_default());
             self.pkg_metadata_cache.insert(cpn.clone(), value.clone());
             value
         }
     }
 
-    /// Return the parsed package manifest result for a [`Cpn`].
-    pub fn pkg_manifest_parse(&self, cpn: &Cpn) -> crate::Result<Manifest> {
+    /// Return the package manifest result for a [`Cpn`].
+    pub fn pkg_manifest(&self, cpn: &Cpn) -> crate::Result<Manifest> {
         let path = build_path!(&self.path, cpn.category(), cpn.package(), "Manifest");
         Manifest::from_path(&path).map_err(|e| e.into_unversioned_pkg_err(cpn, &self.id))
     }
 
     /// Return the cached package manifest for a [`Cpn`].
-    pub fn pkg_manifest(&self, cpn: &Cpn) -> Arc<Manifest> {
+    pub(crate) fn pkg_manifest_cached(&self, cpn: &Cpn) -> Arc<Manifest> {
         if let Some(value) = self.pkg_manifest_cache.get(cpn) {
             value.clone()
         } else {
-            let value = Arc::new(self.pkg_manifest_parse(cpn).unwrap_or_default());
+            let value = Arc::new(self.pkg_manifest(cpn).unwrap_or_default());
             self.pkg_manifest_cache.insert(cpn.clone(), value.clone());
             value
         }
@@ -666,7 +666,7 @@ impl Metadata {
                     })
                     .collect::<Vec<_>>()
             })
-            .map(|cpn| (self.pkg_metadata(&cpn), cpn))
+            .filter_map(|cpn| self.pkg_metadata(&cpn).ok().map(|m| (m, cpn)))
             .collect::<Vec<_>>();
 
         let mut data = data

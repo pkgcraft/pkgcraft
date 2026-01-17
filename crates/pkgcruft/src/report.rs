@@ -98,6 +98,9 @@ pub enum ReportKind {
     /// EAPIs that are unused by ebuilds in the repo.
     EapiUnused,
 
+    /// Ebuild metadata.xml is invalid.
+    EbuildMetadataXmlInvalid,
+
     /// Ebuild file has a mismatched package name or invalid version.
     EbuildNameInvalid,
 
@@ -314,6 +317,7 @@ impl ReportKind {
             Self::EapiStale => Warning,
             Self::EapiUnstable => Error,
             Self::EapiUnused => Warning,
+            Self::EbuildMetadataXmlInvalid => Error,
             Self::EbuildNameInvalid => Error,
             Self::EbuildVersionsEqual => Error,
             Self::EclassUnused => Warning,
@@ -395,6 +399,7 @@ impl ReportKind {
             Self::EapiStale => Scope::Version,
             Self::EapiUnstable => Scope::Version,
             Self::EapiUnused => Scope::Repo,
+            Self::EbuildMetadataXmlInvalid => Scope::Package,
             Self::EbuildNameInvalid => Scope::Package,
             Self::EbuildVersionsEqual => Scope::Package,
             Self::EclassUnused => Scope::Repo,
