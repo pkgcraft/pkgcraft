@@ -61,11 +61,7 @@ fn try_main() -> anyhow::Result<ExitCode> {
     // load repo from the current working directory
     let path = current_dir()?;
     let repo = EbuildRepo::standalone(&path)?;
-
-    // WARNING: This appears to invalidate the environment in some fashion so
-    // std::env::var() calls don't work as expected after it even though
-    // std::env::vars() will still show all the variables.
-    let git_repo = git2::Repository::open(&path)
+    let git_repo = git2::Repository::open(&repo)
         .map_err(|e| anyhow!("failed opening git repo: {path}: {e}"))?;
 
     let mut failed = false;

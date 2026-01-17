@@ -36,7 +36,7 @@ fn generate_msg() -> anyhow::Result<Option<String>> {
     // load repo from the current working directory
     let path = current_dir()?;
     let repo = EbuildRepo::standalone(&path)?;
-    let git_repo = git2::Repository::open(repo.path())
+    let git_repo = git2::Repository::open(&repo)
         .map_err(|e| anyhow!("failed opening git repo: {path}: {e}"))?;
 
     // determine target Cpns from diff
