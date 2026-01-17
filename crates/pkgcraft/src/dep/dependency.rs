@@ -534,6 +534,8 @@ impl Restriction<&Dependency<Dep>> for BaseRestrict {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+
     use crate::test::assert_ordered_eq;
 
     use super::*;
@@ -869,14 +871,12 @@ mod tests {
                     .map(|x| x.to_string())
                     .join(" "),
                 expected,
-                "failed evaluating: {s}"
             );
             assert_eq!(
                 dep.into_iter_evaluate(&options)
                     .map(|x| x.to_string())
                     .join(" "),
                 expected,
-                "failed evaluating: {s}"
             );
 
             // wrapped ref
@@ -888,14 +888,12 @@ mod tests {
                     .map(|x| x.to_string())
                     .join(" "),
                 expected,
-                "failed evaluating: {s}"
             );
             assert_eq!(
                 dep.into_iter_evaluate(&options)
                     .map(|x| x.to_string())
                     .join(" "),
                 expected,
-                "failed evaluating: {s}"
             );
         }
 
@@ -921,14 +919,12 @@ mod tests {
                     .map(|x| x.to_string())
                     .join(" "),
                 expected,
-                "failed evaluating: {s}"
             );
             assert_eq!(
                 dep.into_iter_evaluate(&options)
                     .map(|x| x.to_string())
                     .join(" "),
                 expected,
-                "failed evaluating: {s}"
             );
 
             // wrapped ref
@@ -939,15 +935,13 @@ mod tests {
                     .iter()
                     .map(|x| x.to_string())
                     .join(" "),
-                expected,
-                "failed evaluating: {s}"
+                expected
             );
             assert_eq!(
                 dep.into_iter_evaluate(&options)
                     .map(|x| x.to_string())
                     .join(" "),
                 expected,
-                "failed evaluating: {s}"
             );
         }
     }
@@ -1019,15 +1013,13 @@ mod tests {
                     .iter()
                     .map(|x| x.to_string())
                     .join(" "),
-                expected,
-                "failed evaluating: {s}"
+                expected
             );
             assert_eq!(
                 dep.into_iter_evaluate_force(force)
                     .map(|x| x.to_string())
                     .join(" "),
-                expected,
-                "failed evaluating: {s}"
+                expected
             );
 
             // wrapped ref
@@ -1038,15 +1030,13 @@ mod tests {
                     .iter()
                     .map(|x| x.to_string())
                     .join(" "),
-                expected,
-                "failed evaluating: {s}"
+                expected
             );
             assert_eq!(
                 dep.into_iter_evaluate_force(force)
                     .map(|x| x.to_string())
                     .join(" "),
-                expected,
-                "failed evaluating: {s}"
+                expected
             );
         }
     }
