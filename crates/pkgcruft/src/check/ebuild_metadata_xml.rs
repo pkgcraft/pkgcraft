@@ -14,7 +14,7 @@ use crate::scan::ScannerRun;
 use crate::source::SourceKind;
 
 super::register! {
-    kind: super::CheckKind::UseLocal,
+    kind: super::CheckKind::EbuildMetadataXml,
     reports: &[
         EbuildMetadataXmlInvalid, UseLocalDescMissing, UseLocalGlobal, UseLocalUnsorted,
         UseLocalUnused,

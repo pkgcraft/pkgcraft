@@ -27,6 +27,7 @@ mod duplicates;
 mod eapi_stale;
 mod eapi_status;
 mod ebuild_metadata;
+mod ebuild_metadata_xml;
 mod ebuild_name;
 mod eclass;
 mod filesdir;
@@ -47,7 +48,6 @@ mod restrict_test_missing;
 mod ruby_update;
 mod src_uri;
 mod unstable_only;
-mod use_local;
 mod variable_order;
 mod variables;
 mod whitespace;
@@ -75,6 +75,7 @@ pub enum CheckKind {
     EapiStale,
     EapiStatus,
     EbuildMetadata,
+    EbuildMetadataXml,
     EbuildName,
     Eclass,
     Filesdir,
@@ -95,7 +96,6 @@ pub enum CheckKind {
     RubyUpdate,
     SrcUri,
     UnstableOnly,
-    UseLocal,
     VariableOrder,
     Variables,
     Whitespace,
