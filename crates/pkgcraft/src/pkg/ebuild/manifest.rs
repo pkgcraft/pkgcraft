@@ -229,7 +229,16 @@ impl FromStr for Manifest {
     type Err = Error;
 
     fn from_str(s: &str) -> crate::Result<Self> {
-        let manifest: Self = s.lines().map(|x| x.parse()).try_collect()?;
+        let mut manifest = Self::default();
+
+        for (i, line) in s.lines().enumerate() {
+            if !manifest.0.insert(line.parse()?) {
+                return Err(Error::InvalidValue(format!(
+                    "duplicate Manifest entry, line {}",
+                    i + 1
+                )));
+            }
+        }
 
         if manifest.is_empty() {
             Err(Error::InvalidValue("empty Manifest".to_string()))
@@ -438,6 +447,14 @@ mod tests {
         // empty
         let r = Manifest::from_str("");
         assert_err_re!(r, "empty Manifest");
+
+        // duplicate entry
+        let data = indoc::indoc! {r#"
+            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
+            DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
+        "#};
+        let r = Manifest::from_str(data);
+        assert_err_re!(r, "^duplicate Manifest entry, line 2$");
 
         // missing distfile
         let data = indoc::indoc! {r#"
