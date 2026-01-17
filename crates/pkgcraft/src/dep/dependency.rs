@@ -846,4 +846,53 @@ mod tests {
             assert_eq!(dep.to_string(), expected);
         }
     }
+
+    #[test]
+    fn evaluate() {
+        // dependencies
+        for (s, options, expected) in [
+            ("a/b", vec![], "a/b"),
+            ("a/b", vec!["u"], "a/b"),
+            ("( c/d a/b )", vec![], "( c/d a/b )"),
+            ("|| ( c/d a/b )", vec![], "|| ( c/d a/b )"),
+            ("u? ( c/d a/b )", vec![], ""),
+            ("u? ( c/d a/b )", vec!["u"], "c/d a/b"),
+            ("!u? ( c/d a/b )", vec![], "c/d a/b"),
+            ("!u? ( c/d a/b )", vec!["u"], ""),
+        ] {
+            // ref
+            let dep = Dependency::package(s, Default::default()).unwrap();
+            let options: IndexSet<&str> = options.into_iter().collect();
+            assert_eq!(
+                dep.evaluate(&options)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+            assert_eq!(
+                dep.into_iter_evaluate(&options)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+
+            // wrapped ref
+            let dep = dep.to_ref();
+            assert_eq!(
+                dep.clone()
+                    .evaluate(&options)
+                    .iter()
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+            assert_eq!(
+                dep.into_iter_evaluate(&options)
+                    .map(|x| x.to_string())
+                    .join(" "),
+                expected
+            );
+        }
+    }
 }
