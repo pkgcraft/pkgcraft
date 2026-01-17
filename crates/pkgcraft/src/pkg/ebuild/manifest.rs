@@ -225,29 +225,34 @@ impl FromStr for ManifestEntry {
 #[derive(Debug, Default, Eq, PartialEq, Clone)]
 pub struct Manifest(IndexSet<ManifestEntry>);
 
+impl FromStr for Manifest {
+    type Err = Error;
+
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let manifest: Self = s.lines().map(|x| x.parse()).try_collect()?;
+
+        if manifest.is_empty() {
+            Err(Error::InvalidValue("empty Manifest".to_string()))
+        } else {
+            Ok(manifest)
+        }
+    }
+}
+
+impl FromIterator<ManifestEntry> for Manifest {
+    fn from_iter<I: IntoIterator<Item = ManifestEntry>>(iterable: I) -> Self {
+        Self(iterable.into_iter().collect())
+    }
+}
+
 impl Manifest {
     /// Parse a [`Manifest`] from a file.
     pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
         match fs::read_to_string(path) {
-            Ok(data) => Self::parse(&data),
+            Ok(data) => data.parse(),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(Error::IO(format!("failed reading: {e}"))),
         }
-    }
-
-    /// Parse a string into a [`Manifest`].
-    fn parse(data: &str) -> crate::Result<Self> {
-        let mut manifest = Self::default();
-
-        for line in data.lines() {
-            manifest.0.insert(line.parse()?);
-        }
-
-        if manifest.is_empty() {
-            return Err(Error::InvalidValue("empty Manifest".to_string()));
-        }
-
-        Ok(manifest)
     }
 
     pub fn get(&self, name: &str) -> Option<&ManifestEntry> {
@@ -431,14 +436,14 @@ mod tests {
         let distdir = tempdir().unwrap();
 
         // empty
-        let r = Manifest::parse("");
+        let r = Manifest::from_str("");
         assert_err_re!(r, "empty Manifest");
 
         // missing distfile
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
-        let manifest = Manifest::parse(data).unwrap();
+        let manifest = Manifest::from_str(data).unwrap();
         let r = manifest.verify(&distdir, &distdir);
         assert_err_re!(r, "No such file or directory");
 
@@ -451,7 +456,7 @@ mod tests {
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 b
         "#};
-        let manifest = Manifest::parse(data).unwrap();
+        let manifest = Manifest::from_str(data).unwrap();
         let r = manifest.verify(&distdir, &distdir);
         assert_err_re!(r, "SHA512 hash failed");
 
@@ -459,7 +464,7 @@ mod tests {
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
         "#};
-        let manifest = Manifest::parse(data).unwrap();
+        let manifest = Manifest::from_str(data).unwrap();
         assert!(manifest.verify(&distdir, &distdir).is_ok());
     }
 
@@ -469,7 +474,7 @@ mod tests {
         let data = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
         "#};
-        let manifest = Manifest::parse(data).unwrap();
+        let manifest = Manifest::from_str(data).unwrap();
         assert!(!manifest.is_thick());
 
         // thick
@@ -477,7 +482,7 @@ mod tests {
             DIST a.tar.gz 1 BLAKE2B 631ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ec2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
             EBUILD a-1.ebuild 100 BLAKE2B 531ad87bd3f552d3454be98da63b68d13e55fad21cad040183006b52fce5ceeaf2f0178b20b3966447916a330930a8754c2ef1eed552e426a7e158f27a4668c5 SHA512 ac2c83edecb60304d154ebdb85bdfaf61a92bd142e71c4f7b25a15b9cb5f3c0ae301cfb3569cf240e4470031385348bc296d8d99d09e06b26f09591a97527296
         "#};
-        let manifest = Manifest::parse(data).unwrap();
+        let manifest = Manifest::from_str(data).unwrap();
         assert!(manifest.is_thick());
     }
 }
