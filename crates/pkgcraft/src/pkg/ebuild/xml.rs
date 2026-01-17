@@ -266,8 +266,7 @@ impl Metadata {
     /// Parse XML [`Metadata`] from a file.
     pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
         match fs::read_to_string(path) {
-            Ok(data) => Self::parse(&data)
-                .map_err(|e| Error::InvalidValue(format!("invalid metadata: {path}: {e}"))),
+            Ok(data) => Self::parse(&data),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(Error::IO(format!("failed reading metadata: {path}: {e}"))),
         }
