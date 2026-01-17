@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 use std::{fs, io};
 
 use camino::Utf8Path;
@@ -262,18 +263,11 @@ pub struct Metadata {
     description: Option<String>,
 }
 
-impl Metadata {
-    /// Parse XML [`Metadata`] from a file.
-    pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
-        match fs::read_to_string(path) {
-            Ok(data) => Self::parse(&data),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(Error::IO(format!("failed reading: {path}: {e}"))),
-        }
-    }
+impl FromStr for Metadata {
+    type Err = Error;
 
-    fn parse(data: &str) -> crate::Result<Self> {
-        let doc = parse_xml_with_dtd(data).map_err(|e| Error::InvalidValue(e.to_string()))?;
+    fn from_str(s: &str) -> crate::Result<Self> {
+        let doc = parse_xml_with_dtd(s).map_err(|e| Error::InvalidValue(e.to_string()))?;
         let mut data = Self::default();
 
         for node in doc.root_element().children() {
@@ -291,6 +285,17 @@ impl Metadata {
         }
 
         Ok(data)
+    }
+}
+
+impl Metadata {
+    /// Parse XML [`Metadata`] from a file.
+    pub(crate) fn from_path(path: &Utf8Path) -> crate::Result<Self> {
+        match fs::read_to_string(path) {
+            Ok(data) => data.parse(),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(e) => Err(Error::IO(format!("failed reading: {path}: {e}"))),
+        }
     }
 
     fn parse_slots(node: Node, data: &mut Self) {
@@ -387,13 +392,13 @@ mod tests {
             <pkgmetadata>
             </pkg>
         "};
-        assert!(Metadata::parse(data).is_err());
+        assert!(Metadata::from_str(data).is_err());
 
         // missing top level element closure
         let data = indoc::indoc! {"
             <pkgmetadata>
         "};
-        assert!(Metadata::parse(data).is_err());
+        assert!(Metadata::from_str(data).is_err());
 
         // valid
         let data = indoc::indoc! {r#"
@@ -425,7 +430,7 @@ mod tests {
                 <stabilize-allarches/>
             </pkgmetadata>
         "#};
-        assert!(Metadata::parse(data).is_ok());
+        assert!(Metadata::from_str(data).is_ok());
     }
 
     #[test]
