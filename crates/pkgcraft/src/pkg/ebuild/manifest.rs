@@ -257,7 +257,7 @@ impl Manifest {
         match fs::read_to_string(path) {
             Ok(data) => data.parse(),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(Error::IO(format!("failed reading: {e}"))),
+            Err(e) => Err(Error::IO(format!("failed reading: {path}: {e}"))),
         }
     }
 

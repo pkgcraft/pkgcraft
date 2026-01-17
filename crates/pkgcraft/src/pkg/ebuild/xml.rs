@@ -268,7 +268,7 @@ impl Metadata {
         match fs::read_to_string(path) {
             Ok(data) => Self::parse(&data),
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(Error::IO(format!("failed reading metadata: {path}: {e}"))),
+            Err(e) => Err(Error::IO(format!("failed reading: {path}: {e}"))),
         }
     }
 
