@@ -359,6 +359,15 @@ macro_rules! eval {
     };
 }
 
+macro_rules! return_non_empty {
+    ($type:ident, $vals:expr, $options:expr) => {{
+        let evaluated = $type(eval!($vals, $options));
+        if !evaluated.is_empty() {
+            return Some(evaluated);
+        }
+    }};
+}
+
 #[derive(Debug)]
 pub struct IterEvaluate<'a, S: Stringable, T: Ordered> {
     pub(super) q: Deque<&'a Dependency<T>>,
@@ -374,30 +383,10 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IterEvaluate<'a, S, T> {
             match dep {
                 Enabled(val) => return Some(Enabled(val)),
                 Disabled(val) => return Some(Disabled(val)),
-                AllOf(vals) => {
-                    let evaluated = AllOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
-                AnyOf(vals) => {
-                    let evaluated = AnyOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
-                ExactlyOneOf(vals) => {
-                    let evaluated = ExactlyOneOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
-                AtMostOneOf(vals) => {
-                    let evaluated = AtMostOneOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
+                AllOf(vals) => return_non_empty!(AllOf, vals, self.options),
+                AnyOf(vals) => return_non_empty!(AnyOf, vals, self.options),
+                ExactlyOneOf(vals) => return_non_empty!(ExactlyOneOf, vals, self.options),
+                AtMostOneOf(vals) => return_non_empty!(AtMostOneOf, vals, self.options),
                 Conditional(u, vals) => {
                     if u.matches(self.options) {
                         self.q.extend_left(vals);
@@ -424,30 +413,10 @@ impl<'a, S: Stringable, T: Ordered> Iterator for IntoIterEvaluate<'a, S, T> {
             match dep {
                 Enabled(val) => return Some(Enabled(val)),
                 Disabled(val) => return Some(Disabled(val)),
-                AllOf(vals) => {
-                    let evaluated = AllOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
-                AnyOf(vals) => {
-                    let evaluated = AnyOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
-                ExactlyOneOf(vals) => {
-                    let evaluated = ExactlyOneOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
-                AtMostOneOf(vals) => {
-                    let evaluated = AtMostOneOf(eval!(vals, self.options));
-                    if !evaluated.is_empty() {
-                        return Some(evaluated);
-                    }
-                }
+                AllOf(vals) => return_non_empty!(AllOf, vals, self.options),
+                AnyOf(vals) => return_non_empty!(AnyOf, vals, self.options),
+                ExactlyOneOf(vals) => return_non_empty!(ExactlyOneOf, vals, self.options),
+                AtMostOneOf(vals) => return_non_empty!(AtMostOneOf, vals, self.options),
                 Conditional(u, vals) => {
                     if u.matches(self.options) {
                         self.q.extend_left(vals);
