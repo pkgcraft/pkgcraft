@@ -20,7 +20,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
 
     let build = get_build_mut();
     let libdir = get_libdir(Some("lib")).unwrap();
-    let dest = build_path!(build.env(DESTTREE), &libdir);
+    let dest = build_path!(build.env(&DESTTREE), &libdir);
     build
         .install()
         .dest(dest)?

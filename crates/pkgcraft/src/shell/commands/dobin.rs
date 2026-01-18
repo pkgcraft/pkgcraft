@@ -24,7 +24,7 @@ struct Command {
 
 pub(super) fn install_bin(paths: &[Utf8PathBuf], dest: &str) -> scallop::Result<ExecStatus> {
     let build = get_build_mut();
-    let dest = build_path!(build.env(DESTTREE), dest);
+    let dest = build_path!(build.env(&DESTTREE), dest);
     let opts: &[&str] = if geteuid().is_root() {
         &["-m0755", "-o", "root", "-g", "root"]
     } else {

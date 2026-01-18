@@ -135,7 +135,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     };
 
     let build = get_build_mut();
-    let subdir = match build.env(DOCDESTTREE) {
+    let subdir = match build.env(&DOCDESTTREE) {
         "" => "html",
         val => val,
     };

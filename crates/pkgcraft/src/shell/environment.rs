@@ -90,6 +90,12 @@ impl Hash for Variable {
     }
 }
 
+impl Borrow<str> for Variable {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
+
 impl Ord for Variable {
     fn cmp(&self, other: &Self) -> Ordering {
         self.as_ref().cmp(other.as_ref())

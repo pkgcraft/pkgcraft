@@ -55,7 +55,7 @@ pub(crate) fn install_docs<P: AsRef<Utf8Path>>(
 
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
-    let dest = get_build_mut().env(DOCDESTTREE);
+    let dest = get_build_mut().env(&DOCDESTTREE);
     install_docs(cmd.recursive, &cmd.paths, dest)
 }
 

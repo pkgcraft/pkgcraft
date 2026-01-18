@@ -23,7 +23,7 @@ struct Command {
 pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
-    let dest = build.env(EXEDESTTREE);
+    let dest = build.env(&EXEDESTTREE);
     let opts = &build.exeopts;
     build
         .install()

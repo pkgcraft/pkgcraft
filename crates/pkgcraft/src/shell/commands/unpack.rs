@@ -43,7 +43,7 @@ impl FromStr for Archive {
     fn from_str(s: &str) -> scallop::Result<Self> {
         let build = get_build_mut();
         let eapi = build.eapi();
-        let distdir = build.env(DISTDIR);
+        let distdir = build.env(&DISTDIR);
         let path = Utf8Path::new(s);
 
         // Determine the source for a given archive target. Basic filenames are prefixed with

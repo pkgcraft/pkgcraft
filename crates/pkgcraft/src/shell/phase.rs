@@ -9,7 +9,7 @@ use scallop::{ExecStatus, functions};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::commands::functions::emake;
-use super::environment::Variable::D;
+use super::environment::Variable;
 use super::hooks::{Hook, HookBuilder, HookKind};
 use super::utils::makefile_exists;
 use super::{BuildData, BuildFn, get_build_mut};
@@ -19,7 +19,7 @@ pub(crate) mod eapi6;
 
 fn emake_install(build: &mut BuildData) -> scallop::Result<ExecStatus> {
     if makefile_exists() {
-        let destdir = build.env.get(&D).expect("D undefined");
+        let destdir = build.env(&Variable::D);
         let args = &[&format!("DESTDIR={destdir}"), "install"];
         emake(args)?;
     }

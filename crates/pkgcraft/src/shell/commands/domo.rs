@@ -27,7 +27,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
     let cmd = Command::try_parse_args(args)?;
     let build = get_build_mut();
     let dest = if build.eapi().has(DomoUsesDesttree) {
-        build.env(DESTTREE)
+        build.env(&DESTTREE)
     } else {
         "/usr"
     };

@@ -61,7 +61,7 @@ mod tests {
             let build = get_build_mut();
             build.scope = Scope::Phase(PhaseKind::SrcInstall);
             insinto(&["/test/path"]).unwrap();
-            assert_eq!(build.env(INSDESTTREE), "/test/path");
+            assert_eq!(build.env(&INSDESTTREE), "/test/path");
 
             // verify conditional EAPI environment export
             let build_var = eapi.env().get(&INSDESTTREE).unwrap();
@@ -73,7 +73,7 @@ mod tests {
             }
 
             insinto(&["-"]).unwrap();
-            assert_eq!(build.env(INSDESTTREE), "-");
+            assert_eq!(build.env(&INSDESTTREE), "-");
         }
     }
 }

@@ -2,6 +2,7 @@ use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
+use std::fmt;
 
 use camino::Utf8PathBuf;
 use indexmap::{IndexMap, IndexSet};
@@ -85,7 +86,7 @@ pub(crate) struct BuildData {
     nonfatal: bool,
 
     // cache of variable values
-    env: HashMap<Variable, String>,
+    env: IndexMap<Variable, String>,
 
     // TODO: proxy these fields via borrowed package reference
     distfiles: IndexSet<String>,
@@ -257,9 +258,9 @@ impl BuildData {
     }
 
     /// Get the cached value for a given build variable from the build state.
-    fn env<V>(&self, var: V) -> &str
+    fn env<Q>(&self, var: &Q) -> &str
     where
-        V: Borrow<Variable> + std::fmt::Display,
+        Q: Borrow<Variable> + fmt::Display,
     {
         self.env
             .get(var.borrow())
@@ -338,7 +339,7 @@ impl BuildData {
     fn set_vars(&mut self) -> scallop::Result<()> {
         for var in self.eapi().env() {
             if var.is_allowed(&self.scope) {
-                if let Some(val) = self.env.get(var.borrow()) {
+                if let Some(val) = self.env.get(var.as_ref()) {
                     var.bind(val)?;
                 } else {
                     let val = self.get_var(var.into());
