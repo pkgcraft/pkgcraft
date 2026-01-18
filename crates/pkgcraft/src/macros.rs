@@ -2,9 +2,9 @@
 #[macro_export]
 macro_rules! build_path {
     ($base:expr, $($segment:expr),+) => {{
-        let mut base: ::camino::Utf8PathBuf = $base.into();
-        $(base.push($segment);)*
-        base
+        let mut path: ::camino::Utf8PathBuf = $base.into();
+        $(path.push($segment);)*
+        path
     }}
 }
 pub use build_path;
