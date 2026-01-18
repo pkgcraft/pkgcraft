@@ -9,7 +9,7 @@ use crate::bash;
 use crate::dep::{Cpv, Dep};
 use crate::eapi::{self, Eapi};
 use crate::error::Error;
-use crate::macros::bool_not_equal;
+use crate::macros::{bool_not_equal, build_path};
 use crate::pkg::{Package, RepoPackage, make_pkg_traits};
 use crate::repo::ebuild::cache::{Cache, CacheEntry};
 use crate::repo::{EbuildRepo, Repository};
@@ -107,6 +107,16 @@ impl EbuildRawPkg {
     /// Return the absolute path of the package's ebuild.
     pub fn path(&self) -> Utf8PathBuf {
         self.0.repo.path().join(self.relpath())
+    }
+
+    /// Return the package directory for the ebuild.
+    pub fn pkgdir(&self) -> Utf8PathBuf {
+        build_path!(self.repo(), self.category(), self.package())
+    }
+
+    /// Return the files directory for the ebuild.
+    pub fn filesdir(&self) -> Utf8PathBuf {
+        self.pkgdir().join("files")
     }
 
     /// Return the package's ebuild file content.

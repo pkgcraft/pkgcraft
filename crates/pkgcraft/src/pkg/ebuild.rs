@@ -74,6 +74,16 @@ impl EbuildPkg {
         self.0.raw.path()
     }
 
+    /// Return the package directory for the ebuild.
+    pub fn pkgdir(&self) -> Utf8PathBuf {
+        self.0.raw.pkgdir()
+    }
+
+    /// Return the files directory for the ebuild.
+    pub fn filesdir(&self) -> Utf8PathBuf {
+        self.0.raw.filesdir()
+    }
+
     /// Return a package's ebuild file content.
     pub fn data(&self) -> &str {
         self.0.raw.data()
@@ -1112,7 +1122,7 @@ mod tests {
         let manifest = indoc::indoc! {r#"
             DIST a.tar.gz 1 BLAKE2B a SHA512 b
         "#};
-        fs::write(pkg1.path().parent().unwrap().join("Manifest"), manifest).unwrap();
+        fs::write(pkg1.pkgdir().join("Manifest"), manifest).unwrap();
         temp.create_ebuild_from_str("cat1/pkg-2", data).unwrap();
         let pkg2 = repo.get_pkg("cat1/pkg-2").unwrap();
         for pkg in [pkg1, pkg2] {
@@ -1133,7 +1143,7 @@ mod tests {
             DIST b.tar.gz 2 BLAKE2B c SHA512 d
             DIST c.tar.gz 3 BLAKE2B c SHA512 d
         "#};
-        fs::write(pkg1.path().parent().unwrap().join("Manifest"), manifest).unwrap();
+        fs::write(pkg1.pkgdir().join("Manifest"), manifest).unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing distfiles"

@@ -298,7 +298,7 @@ mod tests {
         let repo = data.ebuild_repo("metadata-invalid").unwrap();
         for pkg in repo.iter_raw() {
             let pkg = pkg.unwrap();
-            let err = fs::read_to_string(pkg.path().parent().unwrap().join("error")).unwrap();
+            let err = fs::read_to_string(pkg.pkgdir().join("error")).unwrap();
             let err = err.trim();
             assert_err_re!(pkg.get_metadata(), format!("^{pkg}: invalid metadata: {err}$"));
         }

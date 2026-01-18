@@ -65,8 +65,8 @@ mod tests {
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
 
         // create docs file
-        let filesdir = pkg.path().parent().unwrap().join("files");
-        fs::create_dir(&filesdir).unwrap();
+        let filesdir = &pkg.filesdir();
+        fs::create_dir(filesdir).unwrap();
         fs::write(filesdir.join("readme"), "data").unwrap();
 
         BuildData::from_pkg(&pkg);

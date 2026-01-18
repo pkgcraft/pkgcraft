@@ -413,7 +413,8 @@ mod tests {
 
         temp.create_ebuild("cat/pkg-a-1", &[]).unwrap();
 
-        let path = temp.create_ebuild("cat/pkg-b-1", &[]).unwrap();
+        temp.create_ebuild("cat/pkg-b-1", &[]).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-b-1").unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -423,9 +424,10 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(pkg.pkgdir().join("metadata.xml"), data).unwrap();
 
-        let path = temp.create_ebuild("cat/pkg-c-1", &[]).unwrap();
+        temp.create_ebuild("cat/pkg-c-1", &[]).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-c-1").unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -435,7 +437,7 @@ mod tests {
                 </longdescription>
             </pkgmetadata>
         "#};
-        fs::write(path.parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(pkg.pkgdir().join("metadata.xml"), data).unwrap();
 
         // pkg lacking long description
         let pkg = repo.get_pkg("cat/pkg-a-1").unwrap();
@@ -473,7 +475,7 @@ mod tests {
 
         // single
         temp.create_ebuild("cat/pkg-a-1", &[]).unwrap();
-        let raw_pkg = repo.get_pkg_raw("cat/pkg-a-1").unwrap();
+        let pkg = repo.get_pkg_raw("cat/pkg-a-1").unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -484,11 +486,11 @@ mod tests {
                 </maintainer>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(pkg.pkgdir().join("metadata.xml"), data).unwrap();
 
         // multiple
         temp.create_ebuild("cat/pkg-b-1", &[]).unwrap();
-        let raw_pkg = repo.get_pkg_raw("cat/pkg-b-1").unwrap();
+        let pkg = repo.get_pkg_raw("cat/pkg-b-1").unwrap();
         let data = indoc::indoc! {r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
@@ -503,7 +505,7 @@ mod tests {
                 </maintainer>
             </pkgmetadata>
         "#};
-        fs::write(raw_pkg.path().parent().unwrap().join("metadata.xml"), data).unwrap();
+        fs::write(pkg.pkgdir().join("metadata.xml"), data).unwrap();
 
         // pkgs with no maintainers
         let r: BaseRestrict = Restrict::Maintainers(None).into();

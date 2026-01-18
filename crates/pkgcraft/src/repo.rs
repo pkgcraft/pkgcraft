@@ -737,6 +737,12 @@ macro_rules! make_repo_traits {
             }
         }
 
+        impl From<$x> for camino::Utf8PathBuf {
+            fn from(r: $x) -> camino::Utf8PathBuf {
+                r.path().to_path_buf()
+            }
+        }
+
         impl From<&$x> for crate::restrict::dep::Restrict {
             fn from(r: &$x) -> Self {
                 crate::restrict::dep::Restrict::repo(Some(r.id()))

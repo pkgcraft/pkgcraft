@@ -6,7 +6,6 @@ use camino::Utf8Path;
 use itertools::Itertools;
 use pkgcraft::bash::{Node, Tree};
 use pkgcraft::dep::Cpn;
-use pkgcraft::macros::build_path;
 use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 use pkgcraft::repo::ebuild::Eclass;
 use pkgcraft::restrict::Scope;
@@ -162,9 +161,9 @@ fn expand_node<'a>(
 
 impl super::CheckRun for Check {
     fn run_ebuild_pkg_set(&self, cpn: &Cpn, pkgs: &[EbuildPkg], run: &ScannerRun) {
-        let filesdir = build_path!(run.repo.path(), cpn.category(), cpn.package(), "files");
+        let filesdir = &pkgs.first().unwrap().filesdir();
         // TODO: flag non-utf8 file names?
-        let mut files: HashSet<_> = WalkDir::new(&filesdir)
+        let mut files: HashSet<_> = WalkDir::new(filesdir)
             .min_depth(1)
             .into_iter()
             .filter_map(Result::ok)
@@ -194,7 +193,7 @@ impl super::CheckRun for Check {
                         let location = Location::from(&node);
 
                         // expand references
-                        let mut path = match expand_node(pkg, node, &mut cursor, &filesdir) {
+                        let mut path = match expand_node(pkg, node, &mut cursor, filesdir) {
                             Ok(path) => path,
                             Err(e) => {
                                 warn!("{self}: {pkg}, {location}: {node}: {e}");
