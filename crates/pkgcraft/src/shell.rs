@@ -1,14 +1,13 @@
 use std::borrow::Borrow;
 use std::cell::UnsafeCell;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
-use std::fmt;
+use std::sync::{LazyLock, OnceLock};
+use std::{fmt, fs};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use scallop::variables::*;
-use scallop::{Error, ExecStatus, builtins, functions};
+use scallop::{Error, ExecStatus, builtins, functions, variables};
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
@@ -81,6 +80,9 @@ impl Drop for Scoped {
 #[derive(Default)]
 pub(crate) struct BuildData {
     state: BuildState,
+
+    /// path to the base build directory
+    dir: OnceLock<Utf8PathBuf>,
 
     /// nonfatal status set by the related builtin
     nonfatal: bool,
@@ -267,6 +269,17 @@ impl BuildData {
             .unwrap_or_else(|| unreachable!("{var} unset"))
     }
 
+    /// Get the base build directory.
+    fn dir(&self) -> &Utf8Path {
+        self.dir.get_or_init(|| {
+            // TODO: replace tempdir with path pulled from config
+            let tmpdir = std::env::temp_dir();
+            let tmpdir = tmpdir.to_str().expect("non-unicode system tempdir");
+            let cpv = self.cpv();
+            build_path!(tmpdir, cpv.category(), cpv.pf())
+        })
+    }
+
     /// Get the value for a given build variable from the build state.
     fn get_var(&self, var: Variable) -> String {
         use Variable::*;
@@ -296,19 +309,17 @@ impl BuildData {
             BROOT => Default::default(),
             EPREFIX => Default::default(),
 
-            // TODO: pull these values from the config
-            T => {
-                let path = std::env::temp_dir();
-                let path = path.to_str().expect("non-unicode system tempdir: {path:?}");
-                path.to_string()
+            TMPDIR | T => self.dir().join("temp").to_string(),
+            HOME => self.dir().join("home").to_string(),
+            WORKDIR => self.dir().join("work").to_string(),
+            DISTDIR => self.dir().join("distdir").to_string(),
+            ED => self.dir().join("image").to_string(),
+            D => self.dir().join("image").to_string(),
+            S => {
+                let workdir = self.get_var(WORKDIR);
+                let p = self.get_var(P);
+                format!("{workdir}/{p}")
             }
-            TMPDIR => self.get_var(T),
-            HOME => self.get_var(T),
-            WORKDIR => self.get_var(T),
-            DISTDIR => self.get_var(T),
-            ED => self.get_var(T),
-            D => self.get_var(T),
-            S => self.get_var(T),
 
             DESTTREE => "/usr".to_string(),
             INSDESTTREE | DOCDESTTREE | EXEDESTTREE => Default::default(),
@@ -337,19 +348,43 @@ impl BuildData {
 
     /// Cache and set build environment variables for the current EAPI and scope.
     fn set_vars(&mut self) -> scallop::Result<()> {
-        for var in self.eapi().env() {
-            if var.is_allowed(&self.scope) {
-                if let Some(val) = self.env.get(var.as_ref()) {
-                    var.bind(val)?;
-                } else {
-                    let val = self.get_var(var.into());
-                    var.bind(&val)?;
-                    // cache static values when not generating metadata
-                    if !matches!(self.state, BuildState::Metadata(_)) && var.is_static() {
-                        self.env.insert(var.into(), val);
-                    }
+        for var in self
+            .eapi()
+            .env()
+            .iter()
+            .filter(|v| v.is_allowed(&self.scope))
+        {
+            if let Some(val) = self.env.get(var.as_ref()) {
+                var.bind(val)?;
+            } else {
+                let val = self.get_var(var.into());
+                var.bind(&val)?;
+                // cache static values when not generating metadata
+                if !matches!(self.state, BuildState::Metadata(_))
+                    && var.is_static()
+                    && !var.assignable
+                {
+                    self.env.insert(var.into(), val);
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    /// Create build related directories.
+    #[allow(dead_code)]
+    fn create_dirs(&self) -> scallop::Result<()> {
+        for var in self
+            .eapi()
+            .env()
+            .iter()
+            .filter(|v| v.is_allowed(&self.scope) && v.create_path)
+            .map(Variable::from)
+        {
+            let val = self.env(&var);
+            fs::create_dir_all(val)
+                .map_err(|e| Error::IO(format!("failed creating: {var}: {e}")))?;
         }
 
         Ok(())
@@ -387,6 +422,14 @@ impl BuildData {
         // run global sourcing in restricted shell mode
         scallop::shell::restricted(|| value.source_bash())?;
 
+        // cache global assignments for variables that allow it
+        // TODO: move this into variable handling
+        for var in eapi.env().iter().filter(|v| v.assignable) {
+            if let Some(value) = variables::optional(var) {
+                self.env.insert(var.into(), value);
+            }
+        }
+
         // create function aliases for eclass phases
         for (phase, eclass) in &self.eclass_phases {
             if functions::find(phase).is_none() {
@@ -420,13 +463,13 @@ impl BuildData {
             let export = !deque.is_empty();
 
             // prepend metadata keys that incrementally accumulate to any inherited values
-            if let Some(data) = string_vec(key) {
+            if let Some(data) = variables::string_vec(key) {
                 deque.extend_left(data);
             }
 
             // re-export the incrementally accumulated value if modified by inherits
             if export {
-                bind(key, deque.iter().join(" "), None, None)?;
+                variables::bind(key, deque.iter().join(" "), None, None)?;
             }
         }
 
@@ -512,8 +555,6 @@ impl EbuildPackage<'_> {
 
 #[cfg(test)]
 mod tests {
-    use scallop::variables;
-
     use crate::config::Config;
     use crate::eapi::{EAPIS, EAPIS_OFFICIAL};
     use crate::pkg::{Build, Source};

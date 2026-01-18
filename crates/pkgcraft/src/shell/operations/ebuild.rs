@@ -14,10 +14,14 @@ use super::OperationKind;
 
 impl Build for EbuildPkg {
     fn build(&self) -> scallop::Result<()> {
-        get_build_mut().source_ebuild(&self.path()).map_err(|e| {
+        let build = get_build_mut();
+
+        build.source_ebuild(&self.path()).map_err(|e| {
             let err: crate::Error = e.into();
             err.into_invalid_pkg_err(self)
         })?;
+
+        build.create_dirs()?;
 
         for phase in self.eapi().operation(OperationKind::Build) {
             phase.run().map_err(|e| {
@@ -102,15 +106,18 @@ mod tests {
 
         // no pkg_pretend phase exists
         let pkg = repo.get_pkg("pkg-pretend/none-1").unwrap();
-        assert!(pkg.pretend().is_ok());
+        let r = pkg.pretend();
+        assert!(r.is_ok(), "failed running pkg_pretend: {}", r.unwrap_err());
 
         // success
         let pkg = repo.get_pkg("pkg-pretend/success-1").unwrap();
-        assert!(pkg.pretend().is_ok());
+        let r = pkg.pretend();
+        assert!(r.is_ok(), "failed running pkg_pretend: {}", r.unwrap_err());
 
         // success with output
         let pkg = repo.get_pkg("pkg-pretend/success-with-output-1").unwrap();
-        assert!(pkg.pretend().is_ok());
+        let r = pkg.pretend();
+        assert!(r.is_ok(), "failed running pkg_pretend: {}", r.unwrap_err());
 
         // failure
         let pkg = repo.get_pkg("pkg-pretend/failure-1").unwrap();

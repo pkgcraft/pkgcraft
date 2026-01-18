@@ -92,6 +92,7 @@ mod tests {
             EAPI=9
             DESCRIPTION="testing pipestatus"
             SLOT=0
+            S=${WORKDIR}
 
             func1() {
                 return 1

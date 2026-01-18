@@ -87,6 +87,7 @@ mod tests {
                 EAPI=8
                 DESCRIPTION="testing keepdir"
                 SLOT=0
+                S=${{WORKDIR}}
                 src_install() {{
                     keepdir {args}
                 }}

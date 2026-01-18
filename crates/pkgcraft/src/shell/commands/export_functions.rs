@@ -87,6 +87,7 @@ mod tests {
             inherit e1
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
+            S=${WORKDIR}
         "#};
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
@@ -128,6 +129,7 @@ mod tests {
             inherit e1
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
+            S=${WORKDIR}
         "#};
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
@@ -171,6 +173,7 @@ mod tests {
             inherit e1 e2
             DESCRIPTION="testing EXPORT_FUNCTIONS support"
             SLOT=0
+            S=${WORKDIR}
         "#};
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();

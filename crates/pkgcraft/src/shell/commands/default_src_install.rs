@@ -56,6 +56,7 @@ mod tests {
             SLOT=0
             VAR=1
             DOCS=( "${FILESDIR}"/readme )
+            S=${WORKDIR}
             src_install() {
                 default_src_install
                 VAR=2
@@ -95,6 +96,7 @@ mod tests {
             DESCRIPTION="testing default_src_install command"
             SLOT=0
             VAR=1
+            S=${WORKDIR}
             pkg_setup() {
                 default_src_install
                 VAR=2
@@ -104,7 +106,7 @@ mod tests {
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         let r = pkg.build();
-        assert_err_re!(r, "line 6: default_src_install: error: disabled in pkg_setup scope$");
+        assert_err_re!(r, "line 7: default_src_install: error: disabled in pkg_setup scope$");
         // verify custom pkg_setup() stopped on error
         assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
     }

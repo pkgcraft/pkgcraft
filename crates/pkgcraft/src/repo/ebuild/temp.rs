@@ -134,25 +134,23 @@ impl EbuildTempRepo {
         // ebuild defaults
         use MetadataKey::*;
         let mut values = indexmap::IndexMap::from([
-            (EAPI, EAPI_LATEST_OFFICIAL.as_str()),
-            (DESCRIPTION, "stub package description"),
-            (SLOT, "0"),
+            (EAPI.as_ref(), EAPI_LATEST_OFFICIAL.as_str()),
+            (DESCRIPTION.as_ref(), "stub package description"),
+            (SLOT.as_ref(), "0"),
+            ("S", "${WORKDIR}"),
         ]);
 
         // overrides defaults with specified values, removing the defaults for "-"
         for s in data {
-            let (key, val) = s.split_once('=').unwrap_or((s, ""));
-            let key = key
-                .parse()
-                .map_err(|_| Error::InvalidValue(format!("invalid metadata key: {key}")))?;
+            let (var, val) = s.split_once('=').unwrap_or((s, ""));
             match val {
-                "" => values.swap_remove(&key),
-                _ => values.insert(key, val),
+                "" => values.swap_remove(var),
+                _ => values.insert(var, val),
             };
         }
 
-        for (key, val) in values {
-            f.write(format!("{key}=\"{val}\"\n").as_bytes())
+        for (var, val) in values {
+            f.write(format!("{var}=\"{val}\"\n").as_bytes())
                 .map_err(|e| Error::IO(format!("failed writing to {cpv} ebuild: {e}")))?;
         }
 

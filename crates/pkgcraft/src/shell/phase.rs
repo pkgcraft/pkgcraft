@@ -1,11 +1,11 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::{env, fmt, fs};
 
 use indexmap::IndexSet;
-use scallop::{ExecStatus, functions};
+use scallop::{Error, ExecStatus, functions};
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 
 use super::commands::functions::emake;
@@ -48,10 +48,21 @@ pub enum PhaseKind {
 }
 
 impl PhaseKind {
+    /// Create a phase function with a given initial working directory.
+    pub(crate) fn dir(self, var: Variable) -> Phase {
+        Phase {
+            kind: self,
+            initial_working_directory: Some(var),
+            func: None,
+            hooks: Default::default(),
+        }
+    }
+
     /// Create a phase function that runs an internal function by default.
     pub(crate) fn func(self, func: BuildFn) -> Phase {
         Phase {
             kind: self,
+            initial_working_directory: None,
             func: Some(func),
             hooks: Default::default(),
         }
@@ -123,6 +134,7 @@ impl PartialOrd for PhaseKind {
 #[derive(Debug, Clone)]
 pub struct Phase {
     pub kind: PhaseKind,
+    initial_working_directory: Option<Variable>,
     func: Option<BuildFn>,
     pub(crate) hooks: HashMap<HookKind, IndexSet<Hook>>,
 }
@@ -181,6 +193,7 @@ impl From<PhaseKind> for Phase {
     fn from(value: PhaseKind) -> Self {
         Self {
             kind: value,
+            initial_working_directory: None,
             func: None,
             hooks: Default::default(),
         }
@@ -188,6 +201,12 @@ impl From<PhaseKind> for Phase {
 }
 
 impl Phase {
+    /// Alter the internal function for a phase.
+    pub(crate) fn func(mut self, func: BuildFn) -> Self {
+        self.func = Some(func);
+        self
+    }
+
     /// Run the phase operation.
     #[allow(dead_code)]
     pub(crate) fn run(&self) -> scallop::Result<ExecStatus> {
@@ -196,6 +215,21 @@ impl Phase {
 
         // initialize phase scope variables
         build.set_vars()?;
+
+        // determine the initialize working directory
+        let path = if let Some(var) = &self.initial_working_directory {
+            build.env(var).into()
+        } else {
+            // pkg_* phases require an existing, empty directory
+            let empty_dir = build.dir().join("empty");
+            fs::create_dir_all(&empty_dir)?;
+            empty_dir
+        };
+
+        // set the initial working directory
+        env::set_current_dir(&path).map_err(|e| {
+            Error::IO(format!("{self}: invalid working directory: {path}: {e}"))
+        })?;
 
         // run internal pre-phase hooks
         if let Some(hooks) = self.hooks.get(&HookKind::Pre) {

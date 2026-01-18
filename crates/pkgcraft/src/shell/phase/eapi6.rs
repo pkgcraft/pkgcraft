@@ -46,9 +46,6 @@ mod tests {
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
-        let file_content = indoc::indoc! {"
-            0
-        "};
         let patch1 = indoc::indoc! {"
             --- a/file.txt
             +++ a/file.txt
@@ -72,6 +69,7 @@ mod tests {
                     DESCRIPTION="no options in PATCHES"
                     SLOT=0
                     PATCHES={s}
+                    S=${{WORKDIR}}
                 "#};
                 temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
                 let pkg = repo.get_pkg("cat/pkg-1").unwrap();
@@ -87,6 +85,7 @@ mod tests {
                     DESCRIPTION="PATCHES empty"
                     SLOT=0
                     PATCHES={s}
+                    S=${{WORKDIR}}
                 "#};
                 temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
                 let pkg = repo.get_pkg("cat/pkg-1").unwrap();
@@ -97,20 +96,30 @@ mod tests {
             }
 
             // PATCHES applied
-            for s in ["( 1.patch 2.patch )", "\"1.patch 2.patch\""] {
+            for s in [
+                r#"( "${FILESDIR}"/1.patch "${FILESDIR}"/2.patch )"#,
+                r#""${FILESDIR}/1.patch ${FILESDIR}/2.patch""#,
+            ] {
                 let data = indoc::formatdoc! {r#"
                     EAPI={eapi}
                     DESCRIPTION="PATCHES applied"
                     SLOT=0
                     PATCHES={s}
+                    S=${{WORKDIR}}
+
+                    src_prepare() {{
+                        echo "0" > file.txt
+                        default
+                    }}
                 "#};
                 temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
                 let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
+                let filesdir = &pkg.filesdir();
                 let _file_tree = FileTree::new();
-                fs::write("file.txt", file_content).unwrap();
-                fs::write("1.patch", patch1).unwrap();
-                fs::write("2.patch", patch2).unwrap();
+                fs::create_dir_all(filesdir).unwrap();
+                fs::write(filesdir.join("1.patch"), patch1).unwrap();
+                fs::write(filesdir.join("2.patch"), patch2).unwrap();
                 pkg.build().unwrap();
                 assert_eq!(fs::read_to_string("file.txt").unwrap(), "2\n");
             }
@@ -133,13 +142,17 @@ mod tests {
                     SLOT=0
                     DOCS={s1}
                     HTML_DOCS={s2}
+                    S=${{WORKDIR}}
+                    src_prepare() {{
+                        echo "data" > a.txt
+                        echo "data" > a.html
+                        default
+                    }}
                 "#};
                 temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
                 let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let file_tree = FileTree::new();
-                fs::write("a.txt", "data").unwrap();
-                fs::write("a.html", "data").unwrap();
                 pkg.build().unwrap();
                 file_tree.assert(
                     r#"

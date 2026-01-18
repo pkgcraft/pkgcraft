@@ -53,6 +53,7 @@ mod tests {
             DESCRIPTION="testing default_src_prepare command"
             SLOT=0
             VAR=1
+            S=${WORKDIR}
             src_prepare() {
                 default_src_prepare
                 VAR=2

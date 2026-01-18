@@ -69,8 +69,6 @@ pub(crate) fn src_install(build: &mut BuildData) -> scallop::Result<ExecStatus> 
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use crate::config::Config;
     use crate::eapi;
     use crate::pkg::Build;
@@ -94,13 +92,17 @@ mod tests {
                     SLOT=0
                     DOCS={s1}
                     HTML_DOCS={s2}
+                    S=${{WORKDIR}}
+                    src_prepare() {{
+                        echo "data" > a.txt
+                        echo "data" > a.html
+                        default
+                    }}
                 "#};
                 temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
                 let pkg = repo.get_pkg("cat/pkg-1").unwrap();
                 BuildData::from_pkg(&pkg);
                 let file_tree = FileTree::new();
-                fs::write("a.txt", "data").unwrap();
-                fs::write("a.html", "data").unwrap();
                 pkg.build().unwrap();
                 file_tree.assert(
                     r#"

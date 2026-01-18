@@ -60,6 +60,7 @@ mod tests {
             DESCRIPTION="testing default command"
             SLOT=0
             VAR=1
+            S=${WORKDIR}
             src_prepare() {
                 default
                 VAR=2
@@ -87,6 +88,7 @@ mod tests {
             DESCRIPTION="testing default command"
             SLOT=0
             VAR=1
+            S=${WORKDIR}
             pkg_setup() {
                 default
                 VAR=2
@@ -96,7 +98,7 @@ mod tests {
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         let result = pkg.build();
-        assert_err_re!(result, "line 6: default: error: pkg_setup phase has no default$");
+        assert_err_re!(result, "line 7: default: error: pkg_setup phase has no default$");
         // verify custom pkg_setup() stopped on error
         assert_eq!(scallop::variables::optional("VAR").as_deref(), Some("1"));
     }

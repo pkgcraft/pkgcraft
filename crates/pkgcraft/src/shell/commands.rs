@@ -867,6 +867,7 @@ macro_rules! cmd_scope_tests {
                                         DESCRIPTION="testing phase scope failures"
                                         SLOT=0
                                         VAR=1
+                                        S=${{WORKDIR}}
                                         {phase}() {{
                                             {invalid_cmd}
                                             VAR=2
@@ -927,6 +928,7 @@ macro_rules! cmd_scope_tests {
                                     DESCRIPTION="testing phase scope failures"
                                     SLOT=0
                                     VAR=1
+                                    S=${{WORKDIR}}
                                     {phase}() {{
                                         {cmd}
                                         VAR=2

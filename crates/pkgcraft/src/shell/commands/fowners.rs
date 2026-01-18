@@ -63,6 +63,7 @@ mod tests {
             EAPI=8
             DESCRIPTION="testing fowners command"
             SLOT=0
+            S=${{WORKDIR}}
             src_install() {{
                 fowners nonexistent:nonexistent /nonexistent
             }}
@@ -89,6 +90,7 @@ mod tests {
                 EAPI={eapi}
                 DESCRIPTION="testing fowners command"
                 SLOT=0
+                S=${{WORKDIR}}
                 src_install() {{
                     touch file1 file2
                     doins file1 file2

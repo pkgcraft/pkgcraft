@@ -72,6 +72,7 @@ mod tests {
             EAPI=9
             DESCRIPTION="testing edo"
             SLOT=0
+            S=${WORKDIR}
 
             src_configure() {
                 edo echo 1 2 3 $foo ${bar} "" "white space"
@@ -98,6 +99,7 @@ mod tests {
             EAPI=9
             DESCRIPTION="testing edo"
             SLOT=0
+            S=${WORKDIR}
 
             src_configure() {
                 edo nonexistent arg1 arg2
@@ -113,7 +115,7 @@ mod tests {
         let r = pkg.build();
         assert_err_re!(
             r,
-            "^cat/pkg-1::test: line 6: edo: error: unknown command: nonexistent$"
+            "^cat/pkg-1::test: line 7: edo: error: unknown command: nonexistent$"
         );
     }
 
@@ -126,6 +128,7 @@ mod tests {
             EAPI=9
             DESCRIPTION="testing edo"
             SLOT=0
+            S=${WORKDIR}
 
             src_configure() {
                 nonfatal edo nonexistent arg1 arg2

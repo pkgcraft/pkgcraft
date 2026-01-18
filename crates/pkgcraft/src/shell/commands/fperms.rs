@@ -63,6 +63,7 @@ mod tests {
             EAPI=8
             DESCRIPTION="testing fperms command"
             SLOT=0
+            S=${{WORKDIR}}
             src_install() {{
                 fperms 0777 /nonexistent
             }}
@@ -73,7 +74,7 @@ mod tests {
         let _file_tree = FileTree::new();
         run_commands(|| {
             let r = pkg.build();
-            assert_err_re!(r, "line 5: fperms: error: failed running: chmod: .+$");
+            assert_err_re!(r, "line 6: fperms: error: failed running: chmod: .+$");
         })
     }
 
@@ -89,6 +90,7 @@ mod tests {
                 EAPI={eapi}
                 DESCRIPTION="testing fperms command"
                 SLOT=0
+                S=${{WORKDIR}}
                 src_install() {{
                     touch file1 file2
                     doins file1 file2

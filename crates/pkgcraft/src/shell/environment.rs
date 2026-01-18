@@ -117,6 +117,8 @@ impl Variable {
         BuildVariable {
             var: self,
             allowed: scopes.into_iter().flat_map(Into::into).collect(),
+            assignable: false,
+            create_path: false,
             external: false,
         }
     }
@@ -141,6 +143,8 @@ impl Variable {
 pub struct BuildVariable {
     var: Variable,
     allowed: IndexSet<Scope>,
+    pub(super) assignable: bool,
+    pub(super) create_path: bool,
     external: bool,
 }
 
@@ -205,12 +209,26 @@ impl From<Variable> for BuildVariable {
         BuildVariable {
             var: value,
             allowed: Default::default(),
+            assignable: false,
+            create_path: false,
             external: false,
         }
     }
 }
 
 impl BuildVariable {
+    /// Allow global assignments to override the variable.
+    pub(crate) fn assignable(mut self) -> Self {
+        self.assignable = true;
+        self
+    }
+
+    /// Enable creating the path specified by the variable.
+    pub(crate) fn create(mut self) -> Self {
+        self.create_path = true;
+        self
+    }
+
     /// Enable externally exporting the variable.
     pub(crate) fn external(mut self) -> Self {
         self.external = true;
@@ -219,7 +237,8 @@ impl BuildVariable {
 
     /// Variable value does not vary between phases.
     pub(crate) fn is_static(&self) -> bool {
-        !matches!(self.var, Variable::EBUILD_PHASE | Variable::EBUILD_PHASE_FUNC)
+        use Variable::*;
+        !matches!(self.var, EBUILD_PHASE | EBUILD_PHASE_FUNC)
     }
 
     /// Determine if the variable is allowed in a given `Scope`.
@@ -311,6 +330,7 @@ mod tests {
                                 EAPI={eapi}
                                 DESCRIPTION="testing {var} exporting"
                                 SLOT=0
+                                S=${{WORKDIR}}
                                 {phase}() {{
                                     # run default phase if it exists
                                     nonfatal default
@@ -369,6 +389,7 @@ mod tests {
             EAPI=8
             DESCRIPTION="testing environment state handling"
             SLOT=0
+            S=${WORKDIR}
 
             VARIABLE_GLOBAL="a"
 
@@ -431,6 +452,7 @@ mod tests {
                 EAPI={eapi}
                 DESCRIPTION="testing EBUILD_PHASE(_FUNC) variables"
                 SLOT=0
+                S=${{WORKDIR}}
                 {phases}
             "#};
             temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
@@ -471,6 +493,7 @@ mod tests {
                 EAPI={eapi}
                 DESCRIPTION="testing package-related variables"
                 SLOT=0
+                S=${{WORKDIR}}
 
                 test_vars() {{
                     [[ $CATEGORY == "cat" ]] || die "$1 scope: invalid CATEGORY value: $CATEGORY"
@@ -489,6 +512,8 @@ mod tests {
             temp.create_ebuild_from_str("cat/pkg-1-r2", &data).unwrap();
             let pkg = repo.get_pkg("cat/pkg-1-r2").unwrap();
             pkg.source().unwrap();
+            // TODO: move this create_dirs() call somewhere more apt
+            get_build_mut().create_dirs().unwrap();
             for phase in eapi.phases() {
                 let r = phase.run();
                 assert!(r.is_ok(), "EAPI {eapi}: failed running {phase}: {}", r.unwrap_err());

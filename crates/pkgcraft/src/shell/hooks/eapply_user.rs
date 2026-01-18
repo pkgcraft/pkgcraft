@@ -25,38 +25,41 @@ mod tests {
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
-        let data = indoc::formatdoc! {r#"
+        let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="eapply_user called by default"
             SLOT=0
+            S=${WORKDIR}
         "#};
-        temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         assert!(pkg.build().is_ok());
 
-        let data = indoc::formatdoc! {r#"
+        let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="eapply_user called via default"
             SLOT=0
-            src_prepare() {{
+            S=${WORKDIR}
+            src_prepare() {
                 default
-            }}
+            }
         "#};
-        temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         assert!(pkg.build().is_ok());
 
-        let data = indoc::formatdoc! {r#"
+        let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="eapply_user called explicitly"
             SLOT=0
-            src_prepare() {{
+            S=${WORKDIR}
+            src_prepare() {
                 eapply_user
-            }}
+            }
         "#};
-        temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         assert!(pkg.build().is_ok());
@@ -69,15 +72,16 @@ mod tests {
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
-        let data = indoc::formatdoc! {r#"
+        let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="eapply_user uncalled"
             SLOT=0
-            src_prepare() {{
+            S=${WORKDIR}
+            src_prepare() {
                 :
-            }}
+            }
         "#};
-        temp.create_ebuild_from_str("cat/pkg-1", &data).unwrap();
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
         BuildData::from_pkg(&pkg);
         let r = pkg.build();

@@ -638,12 +638,12 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             PkgPrerm.into(),
             PkgPretend.into(),
             PkgSetup.into(),
-            SrcCompile.func(eapi5::src_compile),
-            SrcConfigure.func(eapi5::src_configure),
-            SrcInstall.func(eapi5::src_install),
-            SrcPrepare.into(),
-            SrcTest.func(eapi5::src_test),
-            SrcUnpack.func(eapi5::src_unpack),
+            SrcCompile.dir(S).func(eapi5::src_compile),
+            SrcConfigure.dir(S).func(eapi5::src_configure),
+            SrcInstall.dir(S).func(eapi5::src_install),
+            SrcPrepare.dir(S),
+            SrcTest.dir(S).func(eapi5::src_test),
+            SrcUnpack.dir(WORKDIR).func(eapi5::src_unpack),
         ])
         .update_operations([
             Build.phases([
@@ -684,7 +684,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
         .update_env([
             A.allowed_in([Src, Phase(PkgNofetch)]),
             CATEGORY.allowed_in([All]),
-            D.allowed_in([SrcInstall, PkgPreinst, PkgPostinst]),
+            D.allowed_in([SrcInstall, PkgPreinst, PkgPostinst]).create(),
             DESTTREE.allowed_in([SrcInstall]),
             DISTDIR.allowed_in([Src, Global]),
             EBUILD_PHASE.allowed_in([Phases]),
@@ -694,7 +694,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             EPREFIX.allowed_in([All]),
             EROOT.allowed_in([Pkg]),
             FILESDIR.allowed_in([Src, Global]),
-            HOME.allowed_in([All]).external(),
+            HOME.allowed_in([All]).create().external(),
             INSDESTTREE.allowed_in([SrcInstall]),
             MERGE_TYPE.allowed_in([Pkg]),
             P.allowed_in([All]),
@@ -707,11 +707,11 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
             REPLACED_BY_VERSION.allowed_in([PkgPrerm, PkgPostrm]),
             REPLACING_VERSIONS.allowed_in([Pkg]),
             ROOT.allowed_in([Pkg]),
-            S.allowed_in([Global, Src]),
-            T.allowed_in([All]),
+            S.allowed_in([Global, Src]).assignable(),
+            T.allowed_in([All]).create(),
             TMPDIR.allowed_in([All]).external(),
             USE.allowed_in([All]),
-            WORKDIR.allowed_in([Src, Global]),
+            WORKDIR.allowed_in([Src, Global]).create(),
         ])
         // unexported, internal variables
         .update_env([DOCDESTTREE, EXEDESTTREE])
@@ -727,6 +727,7 @@ pub static EAPI5: LazyLock<Eapi> = LazyLock::new(|| {
 
 pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
     use crate::shell::commands::builtins::*;
+    use crate::shell::environment::Variable::*;
     use crate::shell::hooks;
     use crate::shell::phase::{PhaseKind::*, eapi6};
     use crate::shell::scope::ScopeSet::*;
@@ -748,8 +749,8 @@ pub static EAPI6: LazyLock<Eapi> = LazyLock::new(|| {
         ])
         .disable_commands([einstall])
         .update_phases([
-            SrcPrepare.func(eapi6::src_prepare),
-            SrcInstall.func(eapi6::src_install),
+            SrcPrepare.dir(S).func(eapi6::src_prepare),
+            SrcInstall.dir(S).func(eapi6::src_install),
         ])
         .update_econf([
             EconfOption::new("--docdir").value("${EPREFIX}/usr/share/doc/${PF}"),
