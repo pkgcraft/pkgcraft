@@ -10,8 +10,8 @@ use crate::Error;
 
 /// Redirect stdout and stderr to a given raw file descriptor.
 pub fn redirect_output<T: AsFd>(fd: T) -> crate::Result<()> {
-    dup2_stdout(&fd).map_err(|e| Error::IO(e.to_string()))?;
-    dup2_stderr(&fd).map_err(|e| Error::IO(e.to_string()))?;
+    dup2_stdout(&fd).map_err(|e| Error::IO(format!("failed redirecting stdout: {e}")))?;
+    dup2_stderr(&fd).map_err(|e| Error::IO(format!("failed redirecting stderr: {e}")))?;
     Ok(())
 }
 
