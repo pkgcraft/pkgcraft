@@ -46,11 +46,6 @@ impl PkgPretend for EbuildPkg {
             return Ok(None);
         }
 
-        // Create temporary file for output before sourcing ebuild to avoid TMPDIR
-        // mangling that overrides the location of where the file is located.
-        let mut file =
-            tempfile().map_err(|e| Error::IO(format!("failed creating tempfile: {e}")))?;
-
         // source ebuild
         self.source()?;
 
@@ -65,6 +60,8 @@ impl PkgPretend for EbuildPkg {
         build.set_vars()?;
 
         // redirect pkg_pretend() output to a temporary file
+        let mut file =
+            tempfile().map_err(|e| Error::IO(format!("failed creating tempfile: {e}")))?;
         redirect_output(&file)?;
 
         // run phase

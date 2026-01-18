@@ -43,6 +43,9 @@ fn initialize() {
     // initialize shell for internal tests
     #[cfg(test)]
     crate::shell::init().unwrap();
+
+    // ignore custom TMPDIR exports that would alter std::env::temp_dir()
+    tempfile::env::override_temp_dir(&std::env::temp_dir());
 }
 
 #[serde_as]
