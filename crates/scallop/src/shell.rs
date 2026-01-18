@@ -24,7 +24,7 @@ impl Env {
 
         // pass through code coverage variables when testing
         if cfg!(any(feature = "test", test)) {
-            env = env.allow(["LLVM_PROFILE_FILE"]);
+            env = env.allow(["LLVM_PROFILE_FILE", "RUST_BACKTRACE"]);
         }
 
         env
