@@ -7,7 +7,6 @@ use tempfile::tempfile;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Build, Package, PkgPretend, Source};
 use crate::shell::phase::PhaseKind;
-use crate::shell::scope::Scope;
 use crate::shell::{BuildData, get_build_mut};
 
 use super::OperationKind;
@@ -49,12 +48,14 @@ impl PkgPretend for EbuildPkg {
         // source ebuild
         self.source()?;
 
+        // find native function
         let Some(mut func) = functions::find(phase) else {
             return Err(Error::Base(format!("{self}: {phase} phase missing")));
         };
 
+        // initialize build scope
         let build = get_build_mut();
-        build.scope = Scope::Phase(phase.kind);
+        build.scope = phase.kind.into();
 
         // initialize phase scope variables
         build.set_vars()?;
