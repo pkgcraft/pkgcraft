@@ -1,8 +1,8 @@
-use std::fs;
+use std::io::{Read, Seek};
 
 use scallop::pool::redirect_output;
 use scallop::{Error, ExecStatus, functions};
-use tempfile::NamedTempFile;
+use tempfile::tempfile;
 
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::pkg::{Build, Package, PkgPretend, Source};
@@ -46,6 +46,12 @@ impl PkgPretend for EbuildPkg {
             return Ok(None);
         }
 
+        // Create temporary file for output before sourcing ebuild to avoid TMPDIR
+        // mangling that overrides the location of where the file is located.
+        let mut file =
+            tempfile().map_err(|e| Error::IO(format!("failed creating tempfile: {e}")))?;
+
+        // source ebuild
         self.source()?;
 
         let Some(mut func) = functions::find(phase) else {
@@ -59,12 +65,17 @@ impl PkgPretend for EbuildPkg {
         build.set_vars()?;
 
         // redirect pkg_pretend() output to a temporary file
-        let file = NamedTempFile::new()?;
         redirect_output(&file)?;
 
-        // execute function capturing output
+        // run phase
         let result = func.execute(&[]);
-        let output = fs::read_to_string(file.path()).unwrap_or_default();
+
+        // read output from temporary file
+        let mut output = vec![];
+        file.rewind()?;
+        file.read_to_end(&mut output)?;
+        // replace invalid UTF-8 in output
+        let output = String::from_utf8_lossy(&output);
         let output = output.trim();
 
         if let Err(e) = result {
@@ -108,23 +119,35 @@ mod tests {
         let pkg = repo.get_pkg("pkg-pretend/none-1").unwrap();
         let r = pkg.pretend();
         assert!(r.is_ok(), "failed running pkg_pretend: {}", r.unwrap_err());
+        assert!(r.unwrap().is_none());
 
         // success
         let pkg = repo.get_pkg("pkg-pretend/success-1").unwrap();
         let r = pkg.pretend();
         assert!(r.is_ok(), "failed running pkg_pretend: {}", r.unwrap_err());
+        assert!(r.unwrap().is_none());
 
         // success with output
         let pkg = repo.get_pkg("pkg-pretend/success-with-output-1").unwrap();
         let r = pkg.pretend();
         assert!(r.is_ok(), "failed running pkg_pretend: {}", r.unwrap_err());
+        let output = r.unwrap().unwrap();
+        let output = output.lines().nth(1).unwrap();
+        assert_eq!(output, "output123");
 
         // failure
         let pkg = repo.get_pkg("pkg-pretend/failure-1").unwrap();
-        assert!(pkg.pretend().is_err());
+        let r = pkg.pretend();
+        assert!(r.is_err());
+        let output = r.unwrap_err().to_string();
+        assert!(!output.contains("output123"));
 
         // failure with output
         let pkg = repo.get_pkg("pkg-pretend/failure-with-output-1").unwrap();
-        assert!(pkg.pretend().is_err());
+        let r = pkg.pretend();
+        assert!(r.is_err());
+        let output = r.unwrap_err().to_string();
+        let output = output.lines().nth(1).unwrap();
+        assert_eq!(output, "output123");
     }
 }
