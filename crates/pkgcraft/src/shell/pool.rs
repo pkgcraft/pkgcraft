@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::fs;
+use std::io::{Read, Seek};
 use std::marker::PhantomData;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
@@ -15,7 +15,7 @@ use scallop::{
     variables::{self, ShellVariable},
 };
 use serde::{Deserialize, Serialize};
-use tempfile::NamedTempFile;
+use tempfile::tempfile;
 
 use crate::config::ConfigRepos;
 use crate::dep::Cpv;
@@ -115,7 +115,8 @@ impl MetadataTask {
         // TODO: use a wrapper method to capture output
         // conditionally capture stdin and stderr
         let output = if self.output {
-            let file = NamedTempFile::new()?;
+            let file =
+                tempfile().map_err(|e| Error::IO(format!("failed creating tempfile: {e}")))?;
             redirect_output(&file)?;
             Some(file)
         } else {
@@ -125,8 +126,13 @@ impl MetadataTask {
         let meta = Self::pkg_to_metadata(&pkg).map_err(|e| e.into_invalid_pkg_err(&pkg))?;
 
         // process captured output to send back to the main process
-        let output = if let Some(file) = output {
-            let data = fs::read_to_string(file.path()).unwrap_or_default();
+        let output = if let Some(mut file) = output {
+            // read output from temporary file
+            let mut data = vec![];
+            file.rewind()?;
+            file.read_to_end(&mut data)?;
+            // replace invalid UTF-8 in output
+            let data = String::from_utf8_lossy(&data);
             let data = data.trim();
             if !data.is_empty() {
                 // indent output data and add package header
