@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8Path;
 use scallop::{ExecStatus, source};
 
 use crate::dep::parse;
@@ -17,7 +17,6 @@ use super::cache::{Cache, MetadataCache};
 #[derive(Debug)]
 struct InternalEclass {
     name: String,
-    path: Utf8PathBuf,
     chksum: String,
     data: Arc<String>,
     tree: OnceLock<bash::Tree>,
@@ -35,7 +34,6 @@ impl Eclass {
 
             Ok(Self(Arc::new(InternalEclass {
                 name: parse::eclass_name(name)?.to_string(),
-                path: path.to_path_buf(),
                 chksum: cache.chksum(&data),
                 data: Arc::new(data),
                 tree: Default::default(),
@@ -48,11 +46,6 @@ impl Eclass {
     /// Return the name of the eclass.
     pub fn name(&self) -> &str {
         &self.0.name
-    }
-
-    /// Return the full path of the eclass.
-    pub fn path(&self) -> &Utf8Path {
-        &self.0.path
     }
 
     /// Return the MD5 checksum of the eclass.
@@ -143,7 +136,6 @@ mod tests {
         // valid
         let path_a = repo.path().join("eclass/a.eclass");
         let eclass_a = Eclass::try_new(&path_a, cache).unwrap();
-        assert_eq!(eclass_a.path(), path_a);
         assert_eq!(eclass_a.name(), "a");
         assert!(!eclass_a.chksum().is_empty());
         assert!(eclass_a == eclass_a);

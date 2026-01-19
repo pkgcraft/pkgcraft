@@ -1893,13 +1893,18 @@ mod tests {
     #[test]
     fn eclasses() {
         let data = test_data();
-        let repo1 = data.ebuild_repo("primary").unwrap();
-        assert_ordered_eq!(repo1.eclasses().iter().map(|e| e.name()), ["a", "c"]);
-        let repo2 = data.ebuild_repo("secondary").unwrap();
-        assert_ordered_eq!(repo2.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
-        // verify the overridden eclass is from the secondary repo
-        let overridden_eclass = repo2.eclasses().get("c").unwrap();
-        assert!(overridden_eclass.path().starts_with(repo2.path()));
+
+        // primary repo
+        let repo = data.ebuild_repo("primary").unwrap();
+        assert_ordered_eq!(repo.eclasses().iter().map(|e| e.name()), ["a", "c"]);
+        let eclass = repo.eclasses().get("c").unwrap();
+        assert_eq!(eclass.data(), "# primary\n");
+
+        // secondary repo with eclass override
+        let repo = data.ebuild_repo("secondary").unwrap();
+        assert_ordered_eq!(repo.eclasses().iter().map(|e| e.name()), ["a", "b", "c"]);
+        let eclass = repo.eclasses().get("c").unwrap();
+        assert_eq!(eclass.data(), "# secondary\n");
     }
 
     #[test]
