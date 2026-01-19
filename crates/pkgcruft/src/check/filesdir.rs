@@ -1,10 +1,9 @@
 use std::collections::HashSet;
-use std::fs;
 use std::path::Path;
 
 use camino::Utf8Path;
 use itertools::Itertools;
-use pkgcraft::bash::{Node, Tree};
+use pkgcraft::bash::Node;
 use pkgcraft::dep::Cpn;
 use pkgcraft::pkg::{Package, ebuild::EbuildPkg};
 use pkgcraft::repo::ebuild::Eclass;
@@ -33,15 +32,10 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         .repo
         .eclasses()
         .into_par_iter()
-        .filter_map(|e| {
-            if let Ok(data) = fs::read_to_string(e.path())
-                && Tree::new(data.into())
-                    .into_iter()
-                    .any(|x| x.kind() == "variable_name" && x.as_str() == "FILESDIR")
-            {
-                return Some(e);
-            }
-            None
+        .filter(|e| {
+            e.tree()
+                .into_iter()
+                .any(|x| x.kind() == "variable_name" && x.as_str() == "FILESDIR")
         })
         .cloned()
         .collect();

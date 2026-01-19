@@ -1,2 +1,4 @@
-ignore-interior-mutability = ["pkgcraft::repo::Repo"]
+# TODO: mark types with #[clippy::ignore_interior_mutability] when available,
+# see upstream issue: https://github.com/rust-lang/rust-clippy/pull/15844
+ignore-interior-mutability = ["pkgcraft::repo::Repo", "pkgcraft::repo::ebuild::Eclass"]
 too-many-arguments-threshold = 10

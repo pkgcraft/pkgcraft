@@ -1,15 +1,15 @@
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use scallop::{ExecStatus, source};
 
-use crate::Error;
 use crate::dep::parse;
 use crate::traits::SourceBash;
+use crate::{Error, bash};
 
 use super::cache::{Cache, MetadataCache};
 
@@ -20,6 +20,7 @@ struct InternalEclass {
     path: Utf8PathBuf,
     data: Arc<String>,
     chksum: String,
+    tree: OnceLock<bash::Tree>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +39,7 @@ impl Eclass {
                 path: path.to_path_buf(),
                 data: Arc::new(data),
                 chksum,
+                tree: Default::default(),
             })))
         } else {
             Err(Error::InvalidValue(format!("invalid eclass: {path}")))
@@ -62,6 +64,13 @@ impl Eclass {
     /// Return the MD5 checksum of the eclass.
     pub(crate) fn chksum(&self) -> &str {
         &self.0.chksum
+    }
+
+    /// Return the bash parse tree for the eclass.
+    pub fn tree(&self) -> &bash::Tree {
+        self.0
+            .tree
+            .get_or_init(|| bash::Tree::new(self.0.data.clone()))
     }
 }
 
