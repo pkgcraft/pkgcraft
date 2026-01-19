@@ -21,13 +21,13 @@ static LANGUAGE: LazyLock<tree_sitter::Language> =
 /// Wrapper for a lazily parsed bash tree.
 #[derive(Debug, Clone)]
 pub struct Tree {
-    data: Arc<str>,
+    data: Arc<String>,
     tree: tree_sitter::Tree,
 }
 
 impl Tree {
     /// Create a new bash parse tree from the given data.
-    pub fn new(data: Arc<str>) -> Self {
+    pub fn new(data: Arc<String>) -> Self {
         let mut parser = tree_sitter::Parser::new();
         parser
             .set_language(&LANGUAGE)

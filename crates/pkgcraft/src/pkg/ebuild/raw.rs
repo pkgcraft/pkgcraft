@@ -22,7 +22,7 @@ struct InternalEbuildRawPkg {
     cpv: Cpv,
     repo: EbuildRepo,
     eapi: &'static Eapi,
-    data: Arc<str>,
+    data: Arc<String>,
     chksum: String,
     tree: OnceLock<bash::Tree>,
 }
