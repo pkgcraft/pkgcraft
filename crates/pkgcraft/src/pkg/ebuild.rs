@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::{Arc, OnceLock};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use tracing::warn;
 
@@ -65,12 +65,12 @@ impl fmt::Debug for EbuildPkg {
 
 impl EbuildPkg {
     /// Return the path of the package's ebuild file path relative to the repository root.
-    pub fn relpath(&self) -> Utf8PathBuf {
+    pub fn relpath(&self) -> &Utf8Path {
         self.0.raw.relpath()
     }
 
     /// Return the absolute path of the package's ebuild file.
-    pub fn path(&self) -> Utf8PathBuf {
+    pub fn path(&self) -> &Utf8Path {
         self.0.raw.path()
     }
 
@@ -474,19 +474,22 @@ mod tests {
     }
 
     #[test]
-    fn pkg_methods() {
+    fn data() {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         config.finalize().unwrap();
 
-        // temp repo ebuild creation defaults to the latest EAPI
-        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
-        let relpath = raw_pkg.relpath();
-        let pkg: EbuildPkg = raw_pkg.try_into().unwrap();
-        assert_eq!(pkg.relpath(), relpath);
-        assert!(!pkg.data().is_empty());
+        let data = indoc::indoc! {r#"
+            EAPI=8
+            DESCRIPTION="testing env"
+            SLOT=0
+            VAR=1
+        "#};
+
+        temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
+        let pkg = repo.get_pkg("cat/pkg-1").unwrap();
+        assert_eq!(pkg.data(), data);
     }
 
     #[test]

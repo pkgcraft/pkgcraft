@@ -2,7 +2,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use std::{fmt, fs};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexMap;
 
 use crate::bash;
@@ -25,6 +25,8 @@ struct InternalEbuildRawPkg {
     data: Arc<String>,
     chksum: String,
     tree: OnceLock<bash::Tree>,
+    path: Utf8PathBuf,
+    relpath: Utf8PathBuf,
 }
 
 #[derive(Clone)]
@@ -55,14 +57,14 @@ impl TryFrom<EbuildRawPkg> for super::EbuildPkg {
 impl EbuildRawPkg {
     pub(crate) fn try_new(cpv: Cpv, repo: &EbuildRepo) -> crate::Result<Self> {
         let relpath = cpv.relpath();
-        let data =
-            fs::read_to_string(repo.path().join(&relpath)).map_err(|e| Error::InvalidPkg {
-                cpv: Box::new(cpv.clone()),
-                repo: repo.to_string(),
-                err: Box::new(Error::InvalidValue(format!(
-                    "failed reading ebuild: {relpath}: {e}"
-                ))),
-            })?;
+        let path = repo.path().join(&relpath);
+        let data = fs::read_to_string(&path).map_err(|e| Error::InvalidPkg {
+            cpv: Box::new(cpv.clone()),
+            repo: repo.to_string(),
+            err: Box::new(Error::InvalidValue(format!(
+                "failed reading ebuild: {relpath}: {e}"
+            ))),
+        })?;
 
         let eapi = Self::parse_eapi(&data).map_err(|error| Error::InvalidPkg {
             cpv: Box::new(cpv.clone()),
@@ -80,6 +82,8 @@ impl EbuildRawPkg {
             data: data.into(),
             chksum,
             tree,
+            relpath,
+            path,
         })))
     }
 
@@ -100,13 +104,13 @@ impl EbuildRawPkg {
     }
 
     /// Return the path of the package's ebuild relative to the repository root.
-    pub fn relpath(&self) -> Utf8PathBuf {
-        self.0.cpv.relpath()
+    pub fn relpath(&self) -> &Utf8Path {
+        &self.0.relpath
     }
 
     /// Return the absolute path of the package's ebuild.
-    pub fn path(&self) -> Utf8PathBuf {
-        self.0.repo.path().join(self.relpath())
+    pub fn path(&self) -> &Utf8Path {
+        &self.0.path
     }
 
     /// Return the package directory for the ebuild.
