@@ -21,7 +21,7 @@ use crate::config::ConfigRepos;
 use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::{EbuildRawPkg, Metadata, MetadataKey};
-use crate::pkg::{Package, PkgPretend, RepoPackage, Source};
+use crate::pkg::{Build, Package, PkgPretend, RepoPackage, Source};
 use crate::repo::EbuildRepo;
 use crate::repo::Repository;
 use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
@@ -299,6 +299,27 @@ impl DurationTask {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct BuildTask {
+    repo: String,
+    cpv: Cpv,
+}
+
+impl BuildTask {
+    fn new<T: Into<Cpv>>(repo: &EbuildRepo, cpv: T) -> Self {
+        Self {
+            repo: repo.id().to_string(),
+            cpv: cpv.into(),
+        }
+    }
+
+    fn run(self, config: &ConfigRepos) -> crate::Result<()> {
+        let repo = config.get_ebuild(&self.repo)?;
+        let pkg = repo.get_pkg(self.cpv)?;
+        Ok(pkg.build()?)
+    }
+}
+
 /// Build pool task.
 #[derive(Debug, Serialize, Deserialize)]
 enum Task {
@@ -306,6 +327,7 @@ enum Task {
     Metadata(MetadataTask, Sender<crate::Result<Option<String>>>),
     Pretend(PretendTask, Sender<crate::Result<Option<String>>>),
     Duration(DurationTask, Sender<crate::Result<Duration>>),
+    Build(BuildTask, Sender<crate::Result<()>>),
 }
 
 /// Wrapper for sending task results via IpcOneShotServer.
@@ -344,22 +366,32 @@ impl IntoTask for EnvTask {
         Task::Env(self, Self::sender(name))
     }
 }
+
 impl IntoTask for MetadataTask {
     type R = Option<String>;
     fn into_task(self, name: String) -> Task {
         Task::Metadata(self, Self::sender(name))
     }
 }
+
 impl IntoTask for PretendTask {
     type R = Option<String>;
     fn into_task(self, name: String) -> Task {
         Task::Pretend(self, Self::sender(name))
     }
 }
+
 impl IntoTask for DurationTask {
     type R = Duration;
     fn into_task(self, name: String) -> Task {
         Task::Duration(self, Self::sender(name))
+    }
+}
+
+impl IntoTask for BuildTask {
+    type R = ();
+    fn into_task(self, name: String) -> Task {
+        Task::Build(self, Self::sender(name))
     }
 }
 
@@ -371,6 +403,7 @@ impl Task {
             Self::Metadata(task, tx) => tx.send(task.run(config)),
             Self::Pretend(task, tx) => tx.send(task.run(config)),
             Self::Duration(task, tx) => tx.send(task.run(config)),
+            Self::Build(task, tx) => tx.send(task.run(config)),
         }
     }
 }
@@ -508,6 +541,12 @@ impl BuildPool {
         cpv: T,
     ) -> crate::Result<Duration> {
         let task = DurationTask::new(repo, cpv);
+        Command::run_task(self.tx(), task)
+    }
+
+    /// Build a package.
+    pub fn build<T: Into<Cpv>>(&self, repo: &EbuildRepo, cpv: T) -> crate::Result<()> {
+        let task = BuildTask::new(repo, cpv);
         Command::run_task(self.tx(), task)
     }
 }
