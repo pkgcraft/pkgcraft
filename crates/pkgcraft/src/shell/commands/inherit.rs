@@ -60,19 +60,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .map(|k| (k, ScopedVariable::new(k)))
             .collect();
 
-        eclass.source_bash().map_err(|e| {
-            // strip path prefix from bash error
-            let s = e.to_string();
-            let s = if s.starts_with('/') {
-                match s.split_once(": ") {
-                    Some((_, suffix)) => suffix,
-                    None => s.as_str(),
-                }
-            } else {
-                s.as_str()
-            };
-            Error::Base(format!("failed loading eclass: {name}: {s}"))
-        })?;
+        eclass.source_bash()?;
 
         // append metadata keys that incrementally accumulate
         for (key, var) in incrementals {

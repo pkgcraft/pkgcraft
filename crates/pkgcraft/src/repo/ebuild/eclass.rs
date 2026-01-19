@@ -97,7 +97,20 @@ impl fmt::Display for Eclass {
 
 impl SourceBash for Eclass {
     fn source_bash(&self) -> scallop::Result<ExecStatus> {
-        source::file(&self.0.path)
+        source::file(&self.0.path).map_err(|e| {
+            // strip path prefix from bash error
+            let s = e.to_string();
+            let s = if s.starts_with('/') {
+                match s.split_once(": ") {
+                    Some((_, suffix)) => suffix,
+                    None => s.as_str(),
+                }
+            } else {
+                s.as_str()
+            };
+            let name = &self.0.name;
+            scallop::Error::Base(format!("failed loading eclass: {name}: {s}"))
+        })
     }
 }
 
