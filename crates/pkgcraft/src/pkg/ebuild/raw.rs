@@ -148,13 +148,9 @@ impl EbuildRawPkg {
 
     /// Deserialize a package's metadata, regenerating it on error.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
+        let repo = &self.0.repo;
         self.get_metadata().or_else(|_| {
-            self.0
-                .repo
-                .pool()
-                .metadata_task(&self.0.repo)
-                .force(true)
-                .run(&self.0.cpv)?;
+            repo.pool().metadata_task(repo).force(true).run(self)?;
             self.get_metadata()
         })
     }
@@ -162,13 +158,13 @@ impl EbuildRawPkg {
     /// Return the mapping of global environment variables exported by the package.
     pub fn env(&self) -> crate::Result<IndexMap<String, String>> {
         let repo = &self.0.repo;
-        self.0.repo.pool().env(repo, &self.0.cpv)
+        repo.pool().env(repo, self)
     }
 
     /// Return the time duration required to source the package.
     pub fn duration(&self) -> crate::Result<Duration> {
         let repo = &self.0.repo;
-        self.0.repo.pool().duration(repo, &self.0.cpv)
+        repo.pool().duration(repo, self)
     }
 }
 

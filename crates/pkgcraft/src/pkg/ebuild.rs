@@ -92,13 +92,13 @@ impl EbuildPkg {
     /// Return the mapping of global environment variables exported by the package.
     pub fn env(&self) -> IndexMap<String, String> {
         let repo = self.repo();
-        repo.pool().env(&repo, self.cpv()).unwrap()
+        repo.pool().env(&repo, self).unwrap()
     }
 
     /// Run the pkg_pretend phase for the package.
     pub fn pretend(&self) -> crate::Result<Option<String>> {
         let repo = self.repo();
-        repo.pool().pretend(&repo, self.cpv())
+        repo.pool().pretend(&repo, self)
     }
 
     /// Return the bash parse tree for the ebuild.
