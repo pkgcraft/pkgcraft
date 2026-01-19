@@ -18,6 +18,7 @@ use super::cache::{Cache, MetadataCache};
 struct InternalEclass {
     name: String,
     path: Utf8PathBuf,
+    data: Arc<String>,
     chksum: String,
 }
 
@@ -28,13 +29,15 @@ impl Eclass {
     /// Create a new eclass.
     pub(crate) fn try_new(path: &Utf8Path, cache: &MetadataCache) -> crate::Result<Self> {
         if let (Some(name), Some("eclass")) = (path.file_stem(), path.extension()) {
-            let data = fs::read(path)
+            let data = fs::read_to_string(path)
                 .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
 
+            let chksum = cache.chksum(&data);
             Ok(Self(Arc::new(InternalEclass {
                 name: parse::eclass_name(name)?.to_string(),
                 path: path.to_path_buf(),
-                chksum: cache.chksum(data),
+                data: Arc::new(data),
+                chksum,
             })))
         } else {
             Err(Error::InvalidValue(format!("invalid eclass: {path}")))
@@ -49,6 +52,11 @@ impl Eclass {
     /// Return the full path of the eclass.
     pub fn path(&self) -> &Utf8Path {
         &self.0.path
+    }
+
+    /// Return the eclass file content.
+    pub fn data(&self) -> &str {
+        &self.0.data
     }
 
     /// Return the MD5 checksum of the eclass.
@@ -97,19 +105,9 @@ impl fmt::Display for Eclass {
 
 impl SourceBash for Eclass {
     fn source_bash(&self) -> scallop::Result<ExecStatus> {
-        source::file(&self.0.path).map_err(|e| {
-            // strip path prefix from bash error
-            let s = e.to_string();
-            let s = if s.starts_with('/') {
-                match s.split_once(": ") {
-                    Some((_, suffix)) => suffix,
-                    None => s.as_str(),
-                }
-            } else {
-                s.as_str()
-            };
+        source::string(self.data()).map_err(|e| {
             let name = &self.0.name;
-            scallop::Error::Base(format!("failed loading eclass: {name}: {s}"))
+            scallop::Error::Base(format!("failed loading eclass: {name}: {e}"))
         })
     }
 }
