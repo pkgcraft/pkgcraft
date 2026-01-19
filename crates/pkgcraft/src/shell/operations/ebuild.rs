@@ -15,7 +15,7 @@ impl Build for EbuildPkg {
     fn build(&self) -> scallop::Result<()> {
         let build = get_build_mut();
 
-        build.source_ebuild(self.path()).map_err(|e| {
+        build.source_ebuild(self.data()).map_err(|e| {
             let err: crate::Error = e.into();
             err.into_invalid_pkg_err(self)
         })?;
@@ -100,7 +100,7 @@ impl Source for EbuildRawPkg {
 impl Source for EbuildPkg {
     fn source(&self) -> scallop::Result<ExecStatus> {
         BuildData::from_pkg(self);
-        get_build_mut().source_ebuild(self.path())
+        get_build_mut().source_ebuild(self.data())
     }
 }
 
