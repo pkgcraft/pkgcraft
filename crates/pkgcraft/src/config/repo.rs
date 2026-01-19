@@ -11,7 +11,7 @@ use tracing::error;
 
 use crate::Error;
 use crate::repo::set::RepoSet;
-use crate::repo::{Repo, RepoFormat, Repository};
+use crate::repo::{EbuildRepo, Repo, RepoFormat, Repository};
 use crate::sync::Syncer;
 
 #[serde_as]
@@ -326,11 +326,19 @@ impl ConfigRepos {
     }
 
     /// Return the repo related to an identifier if it exists.
-    pub fn get<S: AsRef<str>>(&self, key: S) -> crate::Result<&Repo> {
-        let key = key.as_ref();
+    pub fn get<S: AsRef<str>>(&self, id: S) -> crate::Result<&Repo> {
+        let id = id.as_ref();
         self.repos
-            .get(key)
-            .ok_or_else(|| Error::InvalidValue(format!("nonexistent repo: {key}")))
+            .get(id)
+            .ok_or_else(|| Error::InvalidValue(format!("nonexistent repo: {id}")))
+    }
+
+    /// Return the ebuild repo to an identifier if it exists.
+    pub(crate) fn get_ebuild<S: AsRef<str>>(&self, id: S) -> crate::Result<&EbuildRepo> {
+        let id = id.as_ref();
+        self.get(id)?
+            .as_ebuild()
+            .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {id}")))
     }
 
     /// Extend the config with multiple repos.

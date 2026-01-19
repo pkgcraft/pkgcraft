@@ -30,14 +30,6 @@ use crate::utils::bounded_jobs;
 use super::environment::{BASH, EXTERNAL};
 use super::get_build_mut;
 
-/// Get an ebuild repo from a config matching a given ID.
-fn get_ebuild_repo<'a>(repos: &'a ConfigRepos, repo: &str) -> crate::Result<&'a EbuildRepo> {
-    repos
-        .get(repo)?
-        .as_ebuild()
-        .ok_or_else(|| Error::InvalidValue(format!("non-ebuild repo: {repo}")))
-}
-
 /// Update an ebuild repo's package metadata cache for a given [`Cpv`].
 #[derive(Debug, Serialize, Deserialize)]
 struct MetadataTask {
@@ -109,7 +101,7 @@ impl MetadataTask {
     }
 
     fn run(self, config: &ConfigRepos) -> crate::Result<Option<String>> {
-        let repo = get_ebuild_repo(config, &self.repo)?;
+        let repo = config.get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
 
         // TODO: use a wrapper method to capture output
@@ -241,7 +233,7 @@ impl PretendTask {
     }
 
     fn run(self, config: &ConfigRepos) -> crate::Result<Option<String>> {
-        let repo = get_ebuild_repo(config, &self.repo)?;
+        let repo = config.get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg(self.cpv)?;
         Ok(pkg.pkg_pretend()?)
     }
@@ -262,7 +254,7 @@ impl EnvTask {
     }
 
     fn run(self, config: &ConfigRepos) -> crate::Result<IndexMap<String, String>> {
-        let repo = get_ebuild_repo(config, &self.repo)?;
+        let repo = config.get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         let eapi_vars = pkg.eapi().env();
         let metadata_vars = pkg.eapi().metadata_keys();
@@ -298,7 +290,7 @@ impl DurationTask {
     }
 
     fn run(self, config: &ConfigRepos) -> crate::Result<Duration> {
-        let repo = get_ebuild_repo(config, &self.repo)?;
+        let repo = config.get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         let start = Instant::now();
         pkg.source()
