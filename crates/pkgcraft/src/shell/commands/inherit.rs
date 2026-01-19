@@ -2,7 +2,6 @@ use scallop::variables::{ScopedVariable, ShellVariable, Variable};
 use scallop::{Error, ExecStatus};
 
 use crate::shell::get_build_mut;
-use crate::traits::SourceBash;
 
 use super::{TryParseArgs, make_builtin};
 
@@ -60,7 +59,7 @@ pub(crate) fn run(args: &[&str]) -> scallop::Result<ExecStatus> {
             .map(|k| (k, ScopedVariable::new(k)))
             .collect();
 
-        eclass.source_bash()?;
+        eclass.source()?;
 
         // append metadata keys that incrementally accumulate
         for (key, var) in incrementals {

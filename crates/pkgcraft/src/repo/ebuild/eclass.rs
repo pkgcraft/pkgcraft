@@ -8,7 +8,6 @@ use camino::Utf8Path;
 use scallop::{ExecStatus, source};
 
 use crate::dep::parse;
-use crate::traits::SourceBash;
 use crate::{Error, bash};
 
 use super::cache::{Cache, MetadataCache};
@@ -64,6 +63,14 @@ impl Eclass {
             .tree
             .get_or_init(|| bash::Tree::new(self.0.data.clone()))
     }
+
+    /// Source the eclass for bash.
+    pub(crate) fn source(&self) -> scallop::Result<ExecStatus> {
+        source::string(self.data()).map_err(|e| {
+            let name = &self.0.name;
+            scallop::Error::Base(format!("failed loading eclass: {name}: {e}"))
+        })
+    }
 }
 
 impl PartialEq for Eclass {
@@ -101,15 +108,6 @@ impl PartialOrd for Eclass {
 impl fmt::Display for Eclass {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0.name)
-    }
-}
-
-impl SourceBash for Eclass {
-    fn source_bash(&self) -> scallop::Result<ExecStatus> {
-        source::string(self.data()).map_err(|e| {
-            let name = &self.0.name;
-            scallop::Error::Base(format!("failed loading eclass: {name}: {e}"))
-        })
     }
 }
 

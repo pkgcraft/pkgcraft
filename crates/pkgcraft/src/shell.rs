@@ -7,7 +7,7 @@ use std::{fmt, fs};
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use scallop::{Error, ExecStatus, builtins, functions, variables};
+use scallop::{Error, ExecStatus, builtins, functions, source, variables};
 
 use crate::dep::Cpv;
 use crate::eapi::{Eapi, Feature::GlobalFailglob};
@@ -16,7 +16,6 @@ use crate::pkg::ebuild::{EbuildConfiguredPkg, EbuildPkg, EbuildRawPkg, MetadataK
 use crate::pkg::{Package, RepoPackage};
 use crate::repo::ebuild::{EbuildRepo, Eclass};
 use crate::repo::{Repo, Repository};
-use crate::traits::SourceBash;
 use crate::types::{Deque, OrderedSet};
 
 pub(crate) mod commands;
@@ -402,7 +401,7 @@ impl BuildData {
         install::Install::new(self)
     }
 
-    fn source_ebuild<T: SourceBash>(&mut self, value: T) -> scallop::Result<ExecStatus> {
+    fn source_ebuild(&mut self, data: &str) -> scallop::Result<ExecStatus> {
         let eapi = self.eapi();
 
         // explicitly disable builtins in global scope
@@ -420,7 +419,7 @@ impl BuildData {
         }
 
         // run global sourcing in restricted shell mode
-        scallop::shell::restricted(|| value.source_bash())?;
+        scallop::shell::restricted(|| source::string(data))?;
 
         // cache global assignments for variables that allow it
         // TODO: move this into variable handling
