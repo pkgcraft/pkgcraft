@@ -22,8 +22,8 @@ struct InternalEbuildRawPkg {
     cpv: Cpv,
     repo: EbuildRepo,
     eapi: &'static Eapi,
-    data: Arc<String>,
     chksum: String,
+    data: Arc<String>,
     tree: OnceLock<bash::Tree>,
     path: Utf8PathBuf,
     relpath: Utf8PathBuf,
@@ -72,16 +72,13 @@ impl EbuildRawPkg {
             err: Box::new(error),
         })?;
 
-        let chksum = repo.metadata().cache().chksum(&data);
-        let repo = repo.clone();
-        let tree = Default::default();
         Ok(Self(Arc::new(InternalEbuildRawPkg {
             cpv,
-            repo,
+            repo: repo.clone(),
             eapi,
-            data: data.into(),
-            chksum,
-            tree,
+            chksum: repo.metadata().cache().chksum(&data),
+            data: Arc::new(data),
+            tree: Default::default(),
             relpath,
             path,
         })))
@@ -123,14 +120,14 @@ impl EbuildRawPkg {
         self.pkgdir().join("files")
     }
 
-    /// Return the package's ebuild file content.
-    pub fn data(&self) -> &str {
-        &self.0.data
-    }
-
     /// Return the checksum of the package's ebuild file content.
     pub fn chksum(&self) -> &str {
         &self.0.chksum
+    }
+
+    /// Return the package's ebuild file content.
+    pub fn data(&self) -> &str {
+        &self.0.data
     }
 
     /// Return the bash parse tree for the ebuild.

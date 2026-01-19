@@ -18,8 +18,8 @@ use super::cache::{Cache, MetadataCache};
 struct InternalEclass {
     name: String,
     path: Utf8PathBuf,
-    data: Arc<String>,
     chksum: String,
+    data: Arc<String>,
     tree: OnceLock<bash::Tree>,
 }
 
@@ -33,12 +33,11 @@ impl Eclass {
             let data = fs::read_to_string(path)
                 .map_err(|e| Error::IO(format!("failed reading eclass: {path}: {e}")))?;
 
-            let chksum = cache.chksum(&data);
             Ok(Self(Arc::new(InternalEclass {
                 name: parse::eclass_name(name)?.to_string(),
                 path: path.to_path_buf(),
+                chksum: cache.chksum(&data),
                 data: Arc::new(data),
-                chksum,
                 tree: Default::default(),
             })))
         } else {
@@ -56,14 +55,14 @@ impl Eclass {
         &self.0.path
     }
 
-    /// Return the eclass file content.
-    pub fn data(&self) -> &str {
-        &self.0.data
-    }
-
     /// Return the MD5 checksum of the eclass.
     pub(crate) fn chksum(&self) -> &str {
         &self.0.chksum
+    }
+
+    /// Return the eclass file content.
+    pub fn data(&self) -> &str {
+        &self.0.data
     }
 
     /// Return the bash parse tree for the eclass.
