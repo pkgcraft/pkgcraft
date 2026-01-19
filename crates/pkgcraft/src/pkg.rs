@@ -95,7 +95,7 @@ pub(crate) trait PkgPretend: Package {
     fn pkg_pretend(&self) -> scallop::Result<Option<String>>;
 }
 
-pub trait Source: Package {
+pub(crate) trait Source: Package {
     /// Source a package.
     fn source(&self) -> scallop::Result<ExecStatus>;
 }
