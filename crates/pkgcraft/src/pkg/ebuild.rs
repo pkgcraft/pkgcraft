@@ -92,7 +92,9 @@ impl EbuildPkg {
     /// Return the mapping of global environment variables exported by the package.
     pub fn env(&self) -> IndexMap<String, String> {
         let repo = self.repo();
-        repo.pool().env(&repo, self).unwrap()
+        repo.pool()
+            .env(&repo, self)
+            .unwrap_or_else(|e| panic!("{self}: invalid pkg: {e}"))
     }
 
     /// Run the pkg_pretend phase for the package.
