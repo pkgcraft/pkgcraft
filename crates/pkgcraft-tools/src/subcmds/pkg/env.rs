@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
@@ -65,9 +64,6 @@ impl Command {
             .collapse()
             .ebuild_raw_pkgs();
 
-        let eapi: HashSet<_> = Variable::iter().map(|v| v.to_string()).collect();
-        let meta: HashSet<_> = MetadataKey::iter().map(|v| v.to_string()).collect();
-
         // create variable filters
         let (mut hide, mut show) = (GlobSetBuilder::new(), GlobSetBuilder::new());
         let items = self.filter.iter().flat_map(|line| line.split(','));
@@ -81,13 +77,13 @@ impl Command {
             // expand variable aliases
             match var {
                 "@EAPI" => {
-                    for s in eapi.iter() {
-                        set.add(Glob::new(s)?);
+                    for var in Variable::iter() {
+                        set.add(Glob::new(var.as_ref())?);
                     }
                 }
                 "@META" => {
-                    for s in meta.iter() {
-                        set.add(Glob::new(s)?);
+                    for key in MetadataKey::iter() {
+                        set.add(Glob::new(key.as_ref())?);
                     }
                 }
                 _ => {
