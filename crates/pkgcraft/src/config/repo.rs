@@ -407,7 +407,7 @@ impl<'a> Iterator for ReposIter<'a> {
 
 #[cfg(test)]
 mod tests {
-    use tempfile::NamedTempFile;
+    use camino_tempfile::NamedUtf8TempFile;
 
     use crate::config::Config;
     use crate::repo::FakeRepo;
@@ -421,9 +421,8 @@ mod tests {
         assert!(RepoConfig::from_path("nonexistent").is_err());
 
         // empty
-        let file = NamedTempFile::new().unwrap();
-        let path = file.path().to_str().unwrap();
-        let r = RepoConfig::from_path(path);
+        let file = NamedUtf8TempFile::new().unwrap();
+        let r = RepoConfig::from_path(&file);
         assert_err_re!(r, "missing field `location`");
 
         // invalid (missing format)
@@ -431,7 +430,7 @@ mod tests {
             location = "/path/to/repo"
         "#};
         fs::write(&file, data).unwrap();
-        let r = RepoConfig::from_path(path);
+        let r = RepoConfig::from_path(&file);
         assert_err_re!(r, "missing field `format`");
 
         // invalid (invalid syncer)
@@ -440,7 +439,7 @@ mod tests {
             sync = "invalid"
         "#};
         fs::write(&file, data).unwrap();
-        let r = RepoConfig::from_path(path);
+        let r = RepoConfig::from_path(&file);
         assert_err_re!(r, "no syncers available: invalid");
 
         // valid (all required fields)
@@ -449,7 +448,7 @@ mod tests {
             format = "ebuild"
         "#};
         fs::write(&file, data).unwrap();
-        RepoConfig::from_path(path).unwrap();
+        RepoConfig::from_path(&file).unwrap();
 
         // valid (all fields)
         let data = indoc::indoc! {r#"
@@ -459,7 +458,7 @@ mod tests {
             sync = "tar+https://pkgcraft.pkgcraft/repo.tar.gz"
         "#};
         fs::write(&file, data).unwrap();
-        RepoConfig::from_path(path).unwrap();
+        RepoConfig::from_path(&file).unwrap();
     }
 
     #[test]
