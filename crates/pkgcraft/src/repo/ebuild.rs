@@ -1029,10 +1029,43 @@ impl Iterator for IterCpn {
     }
 }
 
+/// Iterator variants for IterCpv.
+enum IteratorCpv {
+    /// Unrestricted iterator
+    All(std::vec::IntoIter<Cpv>),
+
+    /// Exact match
+    Exact(std::iter::Once<Cpv>),
+
+    /// No matches
+    Empty,
+
+    /// Matches with version restriction
+    Version {
+        iter: std::vec::IntoIter<Cpv>,
+        restrict: Restrict,
+    },
+
+    /// Matches with custom restrictions
+    Custom {
+        categories: std::vec::IntoIter<String>,
+        cat_cpvs: Option<indexmap::set::IntoIter<Cpv>>,
+        repo: EbuildRepo,
+        pkg_restrict: Restrict,
+        ver_restrict: Restrict,
+    },
+}
+
 /// Iterable of [`Cpv`] objects.
-pub struct IterCpv(Box<dyn Iterator<Item = Cpv> + Send>);
+pub struct IterCpv(IteratorCpv);
 
 impl IterCpv {
+    /// Create an empty IterCpv iterator.
+    fn empty() -> Self {
+        Self(IteratorCpv::Empty)
+    }
+
+    /// Create a new IterCpv iterator.
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package, Version};
         use StrRestrict::Equal;
@@ -1042,22 +1075,26 @@ impl IterCpv {
         let repo = repo.clone();
 
         // extract matching restrictions for optimized iteration
-        if let Some(restrict) = restrict {
-            let mut match_restrict = |restrict: &Restrict| match restrict {
-                Restrict::Dep(r @ Category(_)) => cat_restricts.push(r.clone()),
-                Restrict::Dep(r @ Package(_)) => pkg_restricts.push(r.clone()),
-                Restrict::Dep(r @ Version(_)) => ver_restricts.push(r.clone()),
-                _ => (),
-            };
+        match restrict {
+            Some(Restrict::False) => return Self::empty(),
+            Some(restrict) => {
+                let mut match_restrict = |restrict: &Restrict| match restrict {
+                    Restrict::Dep(r @ Category(_)) => cat_restricts.push(r.clone()),
+                    Restrict::Dep(r @ Package(_)) => pkg_restricts.push(r.clone()),
+                    Restrict::Dep(r @ Version(_)) => ver_restricts.push(r.clone()),
+                    _ => (),
+                };
 
-            if let Restrict::And(vals) = restrict {
-                vals.iter().for_each(|x| match_restrict(x));
-            } else {
-                match_restrict(restrict);
+                if let Restrict::And(vals) = restrict {
+                    vals.iter().for_each(|x| match_restrict(x));
+                } else {
+                    match_restrict(restrict);
+                }
             }
+            _ => (),
         }
 
-        Self(match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
+        let iter = match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
             ([], [], []) => {
                 // TODO: revert to serialized iteration once repos provide parallel iterators
                 let mut cpvs = repo
@@ -1066,53 +1103,66 @@ impl IterCpv {
                     .flat_map(|s| repo.cpvs_from_category(&s))
                     .collect::<Vec<_>>();
                 cpvs.par_sort();
-                Box::new(cpvs.into_iter())
+                IteratorCpv::All(cpvs.into_iter())
             }
             ([Category(Equal(cat))], [Package(Equal(pn))], [Version(Some(ver))])
                 if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
             {
                 if let Ok(cpv) = Cpv::try_from((cat, pn, ver.without_op())) {
                     if repo.contains(&cpv) {
-                        Box::new(iter::once(cpv))
+                        IteratorCpv::Exact(iter::once(cpv))
                     } else {
-                        Box::new(iter::empty())
+                        IteratorCpv::Empty
                     }
                 } else {
-                    Box::new(iter::empty())
+                    IteratorCpv::Empty
                 }
             }
             ([Category(Equal(cat))], [Package(Equal(pn))], _) => {
-                let ver_restrict = Restrict::and(ver_restricts);
-                Box::new(
-                    repo.cpvs_from_package(cat, pn)
-                        .filter_map(Result::ok)
-                        .filter(move |cpv| ver_restrict.matches(cpv)),
-                )
+                let restrict = Restrict::and(ver_restricts);
+                let cpvs = repo
+                    .cpvs_from_package(cat, pn)
+                    .filter_map(Result::ok)
+                    .collect::<Vec<_>>();
+                IteratorCpv::Version {
+                    iter: cpvs.into_iter(),
+                    restrict,
+                }
             }
             ([], [Package(Equal(pn))], _) => {
                 let pn = mem::take(pn);
-                let ver_restrict = Restrict::and(ver_restricts);
-                Box::new(repo.categories().into_iter().flat_map(move |cat| {
-                    repo.cpvs_from_package(&cat, &pn)
-                        .filter_map(Result::ok)
-                        .filter(|cpv| ver_restrict.matches(cpv))
-                        .collect::<Vec<_>>()
-                }))
+                let restrict = Restrict::and(ver_restricts);
+                let cpvs = repo
+                    .categories()
+                    .into_iter()
+                    .flat_map(move |cat| repo.cpvs_from_package(&cat, &pn))
+                    .filter_map(Result::ok)
+                    .collect::<Vec<_>>();
+                IteratorCpv::Version {
+                    iter: cpvs.into_iter(),
+                    restrict,
+                }
             }
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
                 let pkg_restrict = Restrict::and(pkg_restricts);
                 let ver_restrict = Restrict::and(ver_restricts);
-                Box::new(
-                    repo.categories()
-                        .into_iter()
-                        .filter(move |s| cat_restrict.matches(s))
-                        .flat_map(move |s| repo.cpvs_from_category(&s))
-                        .filter(move |cpv| pkg_restrict.matches(cpv))
-                        .filter(move |cpv| ver_restrict.matches(cpv)),
-                )
+                let categories = repo
+                    .categories()
+                    .into_iter()
+                    .filter(|cat| cat_restrict.matches(cat))
+                    .collect::<Vec<_>>();
+                IteratorCpv::Custom {
+                    categories: categories.into_iter(),
+                    cat_cpvs: None,
+                    repo: repo.clone(),
+                    pkg_restrict,
+                    ver_restrict,
+                }
             }
-        })
+        };
+
+        Self(iter)
     }
 }
 
@@ -1120,24 +1170,57 @@ impl Iterator for IterCpv {
     type Item = Cpv;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        use IteratorCpv::*;
+        match &mut self.0 {
+            All(iter) => iter.next(),
+            Exact(iter) => iter.next(),
+            Empty => None,
+            Version { iter, restrict } => iter.find(|cpv| restrict.matches(cpv)),
+            Custom {
+                categories,
+                cat_cpvs,
+                repo,
+                pkg_restrict,
+                ver_restrict,
+            } => loop {
+                // determine which category to iterate through
+                let cpvs = match cat_cpvs {
+                    Some(iter) => iter,
+                    None => match categories.next() {
+                        // populate cpvs iterator using the matching category
+                        Some(category) => {
+                            let set = repo.cpvs_from_category(&category);
+                            cat_cpvs.insert(set.into_iter())
+                        }
+                        // no categories left to search
+                        None => return None,
+                    },
+                };
+
+                // look for matching cpvs in the selected category
+                if let Some(cpv) =
+                    cpvs.find(|cpv| pkg_restrict.matches(cpv) && ver_restrict.matches(cpv))
+                {
+                    return Some(cpv);
+                }
+
+                // reset category cpvs iterator
+                cat_cpvs.take();
+            },
+        }
     }
 }
 
 /// Iterable of valid ebuild packages matching a given restriction.
 pub struct IterRestrict {
-    iter: Either<iter::Empty<<Iter as Iterator>::Item>, Iter>,
+    iter: Iter,
     restrict: Restrict,
 }
 
 impl IterRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        let iter = if restrict == Restrict::False {
-            Either::Left(iter::empty())
-        } else {
-            Either::Right(Iter::new(repo, Some(&restrict)))
-        };
+        let iter = Iter::new(repo, Some(&restrict));
         Self { iter, restrict }
     }
 }
@@ -1213,18 +1296,16 @@ impl Iterator for IterCpnRestrict {
 
 /// Iterable of [`Cpv`] objects matching a given restriction.
 pub struct IterCpvRestrict {
-    iter: Either<iter::Empty<<IterCpv as Iterator>::Item>, IterCpv>,
+    iter: IterCpv,
     restrict: Restrict,
 }
 
 impl IterCpvRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        let iter = if restrict == Restrict::False {
-            Either::Left(iter::empty())
-        } else {
-            Either::Right(IterCpv::new(repo, Some(&restrict)))
-        };
+        // TODO: Consider passing a mutable restriction to avoid re-running category,
+        // package, and version restrictions.
+        let iter = IterCpv::new(repo, Some(&restrict));
         Self { iter, restrict }
     }
 }
@@ -1239,18 +1320,14 @@ impl Iterator for IterCpvRestrict {
 
 /// Iterable of valid, raw ebuild packages matching a given restriction.
 pub struct IterRawRestrict {
-    iter: Either<iter::Empty<<IterRaw as Iterator>::Item>, IterRaw>,
+    iter: IterRaw,
     restrict: Restrict,
 }
 
 impl IterRawRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        let iter = if restrict == Restrict::False {
-            Either::Left(iter::empty())
-        } else {
-            Either::Right(IterRaw::new(repo, Some(&restrict)))
-        };
+        let iter = IterRaw::new(repo, Some(&restrict));
         Self { iter, restrict }
     }
 }
