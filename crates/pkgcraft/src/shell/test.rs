@@ -1,11 +1,12 @@
 #![cfg(test)]
 
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::{env, fs};
 
+use camino::Utf8PathBuf;
+use camino_tempfile::Utf8TempDir;
 use serde::{Deserialize, Serialize};
-use tempfile::{TempDir, tempdir};
 use walkdir::WalkDir;
 
 use crate::shell::environment::Variable::ED;
@@ -25,25 +26,24 @@ struct FileData {
 
 #[derive(Debug)]
 pub(crate) struct FileTree {
-    _tmp_dir: TempDir,
-    pub(crate) install_dir: PathBuf,
+    _tmpdir: Utf8TempDir,
+    pub(crate) install_dir: Utf8PathBuf,
 }
 
 impl FileTree {
     pub(crate) fn new() -> Self {
-        let tmp_dir = tempdir().unwrap();
-        let path = PathBuf::from(tmp_dir.path());
-        let src_dir = path.join("src");
-        let install_dir = path.join("image");
+        let tmpdir = Utf8TempDir::new().unwrap();
+        let src_dir = tmpdir.path().join("src");
+        let install_dir = tmpdir.path().join("image");
 
         crate::shell::get_build_mut()
             .env
-            .insert(ED, install_dir.to_str().unwrap().into());
+            .insert(ED, install_dir.to_string());
 
         fs::create_dir(&install_dir).unwrap();
         fs::create_dir(&src_dir).unwrap();
         env::set_current_dir(&src_dir).unwrap();
-        FileTree { _tmp_dir: tmp_dir, install_dir }
+        FileTree { _tmpdir: tmpdir, install_dir }
     }
 
     pub(crate) fn wipe(&self) {
