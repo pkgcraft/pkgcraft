@@ -607,11 +607,11 @@ impl PkgRepository for EbuildRepo {
         versions
     }
 
-    fn iter_cpn(&self) -> IterCpn {
+    fn iter_cpn(&self) -> Self::IterCpn {
         IterCpn::new(self, None)
     }
 
-    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> IterCpnRestrict {
+    fn iter_cpn_restrict<R: Into<Restrict>>(&self, value: R) -> Self::IterCpnRestrict {
         IterCpnRestrict::new(self, value)
     }
 
@@ -1196,6 +1196,8 @@ pub struct IterCpnRestrict {
 impl IterCpnRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
+        // TODO: Consider passing a mutable restriction to avoid re-running category and
+        // package restrictions.
         let iter = IterCpn::new(repo, Some(&restrict));
         Self { iter, restrict }
     }
