@@ -852,10 +852,9 @@ enum IteratorCpn {
 
     /// Matches with category restriction
     Category {
-        iter: indexmap::set::IntoIter<String>,
+        iter: std::vec::IntoIter<String>,
         package: String,
         repo: EbuildRepo,
-        restrict: Restrict,
     },
 
     /// Matches with custom restrictions
@@ -943,13 +942,16 @@ impl IterCpn {
             }
             (_, [Equal(pn)]) => {
                 let package = mem::take(pn);
-                let iter = repo.categories().into_iter();
                 let restrict = Restrict::and(cat_restricts);
+                let categories: Vec<_> = repo
+                    .categories()
+                    .into_iter()
+                    .filter(|cat| restrict.matches(cat))
+                    .collect();
                 IteratorCpn::Category {
-                    iter,
+                    iter: categories.into_iter(),
                     package,
                     repo: repo.clone(),
-                    restrict,
                 }
             }
             _ => {
@@ -985,18 +987,12 @@ impl Iterator for IterCpn {
                     category: category.clone(),
                     package,
                 }),
-            Category { iter, package, repo, restrict } => iter.find_map(|category| {
-                if restrict.matches(&category) {
-                    let cpn = Cpn {
-                        category,
-                        package: package.clone(),
-                    };
-                    if repo.contains(&cpn) {
-                        return Some(cpn);
-                    }
-                }
-                None
-            }),
+            Category { iter, package, repo } => iter
+                .map(|category| Cpn {
+                    category,
+                    package: package.clone(),
+                })
+                .find(|cpn| repo.contains(cpn)),
             Custom {
                 categories,
                 cat_packages,
