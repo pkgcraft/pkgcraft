@@ -1243,18 +1243,14 @@ impl Iterator for IterRestrict {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterRestrictOrdered {
-    iter: Either<iter::Empty<<IterOrdered as Iterator>::Item>, IterOrdered>,
+    iter: IterOrdered,
     restrict: Restrict,
 }
 
 impl IterRestrictOrdered {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        let iter = if restrict == Restrict::False {
-            Either::Left(iter::empty())
-        } else {
-            Either::Right(IterOrdered::new(repo, Some(&restrict)))
-        };
+        let iter = IterOrdered::new(repo, Some(&restrict));
         Self { iter, restrict }
     }
 }
@@ -1376,18 +1372,14 @@ impl Iterator for IterRawOrdered {
 ///
 /// This constructs packages in parallel and returns them in repo order.
 pub struct IterRawRestrictOrdered {
-    iter: Either<iter::Empty<<IterRawOrdered as Iterator>::Item>, IterRawOrdered>,
+    iter: IterRawOrdered,
     restrict: Restrict,
 }
 
 impl IterRawRestrictOrdered {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        let iter = if restrict == Restrict::False {
-            Either::Left(iter::empty())
-        } else {
-            Either::Right(IterRawOrdered::new(repo, Some(&restrict)))
-        };
+        let iter = IterRawOrdered::new(repo, Some(&restrict));
         Self { iter, restrict }
     }
 }
