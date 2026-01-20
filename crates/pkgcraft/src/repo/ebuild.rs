@@ -854,6 +854,7 @@ enum IteratorCpn {
     Category {
         iter: indexmap::set::IntoIter<String>,
         package: String,
+        repo: EbuildRepo,
         restrict: Restrict,
     },
 
@@ -861,18 +862,22 @@ enum IteratorCpn {
     Custom {
         categories: indexmap::set::IntoIter<String>,
         cat_packages: Option<(String, indexmap::set::IntoIter<String>)>,
+        repo: EbuildRepo,
         cat_restrict: Restrict,
         pkg_restrict: Restrict,
     },
 }
 
 /// Iterable of [`Cpn`] objects.
-pub struct IterCpn {
-    repo: EbuildRepo,
-    iter: IteratorCpn,
-}
+pub struct IterCpn(IteratorCpn);
 
 impl IterCpn {
+    /// Create an empty IterCpn iterator.
+    fn empty() -> Self {
+        Self(IteratorCpn::Empty)
+    }
+
+    /// Create a new IterCpn iterator.
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
         use DepRestrict::{Category, Package};
         use StrRestrict::Equal;
@@ -937,7 +942,7 @@ impl IterCpn {
                 let package = mem::take(pn);
                 let iter = repo.categories().into_iter();
                 let restrict = Restrict::and(cat_restricts);
-                IteratorCpn::Category { iter, package, restrict }
+                IteratorCpn::Category { iter, package, repo, restrict }
             }
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
@@ -946,13 +951,14 @@ impl IterCpn {
                 IteratorCpn::Custom {
                     categories,
                     cat_packages: None,
+                    repo,
                     cat_restrict,
                     pkg_restrict,
                 }
             }
         };
 
-        Self { repo, iter }
+        Self(iter)
     }
 }
 
@@ -961,7 +967,7 @@ impl Iterator for IterCpn {
 
     fn next(&mut self) -> Option<Self::Item> {
         use IteratorCpn::*;
-        match &mut self.iter {
+        match &mut self.0 {
             All(iter) => iter.next(),
             Exact(iter) => iter.next(),
             Empty => None,
@@ -971,13 +977,13 @@ impl Iterator for IterCpn {
                     category: category.clone(),
                     package,
                 }),
-            Category { iter, package, restrict } => iter.find_map(|category| {
+            Category { iter, package, repo, restrict } => iter.find_map(|category| {
                 if restrict.matches(&category) {
                     let cpn = Cpn {
                         category,
                         package: package.clone(),
                     };
-                    if self.repo.contains(&cpn) {
+                    if repo.contains(&cpn) {
                         return Some(cpn);
                     }
                 }
@@ -986,6 +992,7 @@ impl Iterator for IterCpn {
             Custom {
                 categories,
                 cat_packages,
+                repo,
                 cat_restrict,
                 pkg_restrict,
             } => loop {
@@ -995,7 +1002,7 @@ impl Iterator for IterCpn {
                     None => match categories.find(|cat| cat_restrict.matches(cat)) {
                         // populate packages iterator using the matching category
                         Some(category) => {
-                            let set = self.repo.packages(&category);
+                            let set = repo.packages(&category);
                             cat_packages.insert((category, set.into_iter()))
                         }
                         // no categories left to search
@@ -1178,7 +1185,7 @@ impl Iterator for IterRestrictOrdered {
 
 /// Iterable of [`Cpn`] objects matching a given restriction.
 pub struct IterCpnRestrict {
-    iter: Either<iter::Empty<<IterCpn as Iterator>::Item>, IterCpn>,
+    iter: IterCpn,
     restrict: Restrict,
 }
 
@@ -1186,9 +1193,9 @@ impl IterCpnRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
         let iter = if restrict == Restrict::False {
-            Either::Left(iter::empty())
+            IterCpn::empty()
         } else {
-            Either::Right(IterCpn::new(repo, Some(&restrict)))
+            IterCpn::new(repo, Some(&restrict))
         };
         Self { iter, restrict }
     }
