@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use clap::Args;
 use pkgcraft::cli::Targets;
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
+use pkgcraft::repo::ebuild::{Cache, CacheFormat};
 
 #[derive(Args)]
 #[clap(next_help_heading = "Clean options")]

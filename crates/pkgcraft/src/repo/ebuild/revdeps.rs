@@ -40,7 +40,7 @@ impl RevDep {
 
 /// QA cache format for reverse dependency.
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct QaRevDep<'a> {
+struct QaRevDep<'a> {
     cpv: &'a Cpv,
     blocker: bool,
     use_deps: &'a OrderSet<UseDep>,

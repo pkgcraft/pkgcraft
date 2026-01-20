@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use clap::{Args, builder::ArgPredicate};
 use pkgcraft::cli::{MaybeStdinVec, Targets};
 use pkgcraft::config::Config;
-use pkgcraft::repo::ebuild::cache::{Cache, CacheFormat};
+use pkgcraft::repo::ebuild::{Cache, CacheFormat};
 use pkgcraft::repo::{PkgRepository, RepoFormat};
 use pkgcraft::utils::bounded_thread_pool;
 

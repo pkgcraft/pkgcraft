@@ -3,7 +3,7 @@ use std::ffi::c_char;
 use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::repo::Repo;
-use pkgcraft::repo::ebuild::{EbuildRepo, cache::Cache};
+use pkgcraft::repo::ebuild::{Cache, EbuildRepo};
 
 use crate::macros::*;
 use crate::panic::ffi_catch_panic;

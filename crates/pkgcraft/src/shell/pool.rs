@@ -24,7 +24,7 @@ use crate::pkg::ebuild::{EbuildRawPkg, Metadata, MetadataKey};
 use crate::pkg::{Build, Package, PkgPretend, RepoPackage, Source};
 use crate::repo::EbuildRepo;
 use crate::repo::Repository;
-use crate::repo::ebuild::cache::{Cache, CacheEntry, MetadataCache};
+use crate::repo::ebuild::{Cache, CacheEntry, MetadataCache};
 use crate::utils::bounded_jobs;
 
 use super::environment::{BASH, EXTERNAL};

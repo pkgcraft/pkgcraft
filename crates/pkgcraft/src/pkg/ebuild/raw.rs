@@ -11,7 +11,7 @@ use crate::eapi::{self, Eapi};
 use crate::error::Error;
 use crate::macros::{bool_not_equal, build_path};
 use crate::pkg::{Package, RepoPackage, make_pkg_traits};
-use crate::repo::ebuild::cache::{Cache, CacheEntry};
+use crate::repo::ebuild::{Cache, CacheEntry};
 use crate::repo::{EbuildRepo, Repository};
 use crate::traits::{FilterLines, Intersects};
 
