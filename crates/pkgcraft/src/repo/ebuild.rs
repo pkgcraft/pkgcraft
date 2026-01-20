@@ -832,8 +832,45 @@ impl Iterator for IterRaw {
     }
 }
 
+/// Iterator variants for IterCpn.
+enum IteratorCpn {
+    /// Unrestricted iterator
+    All(std::vec::IntoIter<Cpn>),
+
+    /// Exact match
+    Exact(std::iter::Once<Cpn>),
+
+    /// No matches
+    Empty(std::iter::Empty<Cpn>),
+
+    /// Matches with package restriction
+    Package {
+        iter: indexmap::set::IntoIter<String>,
+        category: String,
+        restrict: Restrict,
+    },
+
+    /// Matches with category restriction
+    Category {
+        iter: indexmap::set::IntoIter<String>,
+        package: String,
+        restrict: Restrict,
+    },
+
+    /// Matches with custom restrictions
+    Custom {
+        categories: indexmap::set::IntoIter<String>,
+        cat_packages: Option<(String, indexmap::set::IntoIter<String>)>,
+        cat_restrict: Restrict,
+        pkg_restrict: Restrict,
+    },
+}
+
 /// Iterable of [`Cpn`] objects.
-pub struct IterCpn(Box<dyn Iterator<Item = Cpn> + Send>);
+pub struct IterCpn {
+    repo: EbuildRepo,
+    iter: IteratorCpn,
+}
 
 impl IterCpn {
     fn new(repo: &EbuildRepo, restrict: Option<&Restrict>) -> Self {
@@ -858,7 +895,7 @@ impl IterCpn {
             }
         }
 
-        Self(match (&mut *cat_restricts, &mut *pkg_restricts) {
+        let iter = match (&mut *cat_restricts, &mut *pkg_restricts) {
             ([], []) => {
                 // TODO: revert to serialized iteration once repos provide parallel iterators
                 let mut cpns = repo
@@ -875,71 +912,47 @@ impl IterCpn {
                     })
                     .collect::<Vec<_>>();
                 cpns.par_sort();
-                Box::new(cpns.into_iter())
+                IteratorCpn::All(cpns.into_iter())
             }
             ([Equal(cat)], [Equal(pn)]) => {
                 let cat = mem::take(cat);
                 let pn = mem::take(pn);
                 if let Ok(cpn) = Cpn::try_from((cat, pn)) {
                     if repo.contains(&cpn) {
-                        Box::new(iter::once(cpn))
+                        IteratorCpn::Exact(iter::once(cpn))
                     } else {
-                        Box::new(iter::empty())
+                        IteratorCpn::Empty(iter::empty())
                     }
                 } else {
-                    Box::new(iter::empty())
+                    IteratorCpn::Empty(iter::empty())
                 }
             }
             ([Equal(cat)], _) => {
-                let cat = mem::take(cat);
-                let pkg_restrict = Restrict::and(pkg_restricts);
-                Box::new(repo.packages(&cat).into_iter().filter_map(move |pn| {
-                    if pkg_restrict.matches(&pn) {
-                        Some(Cpn {
-                            category: cat.clone(),
-                            package: pn,
-                        })
-                    } else {
-                        None
-                    }
-                }))
+                let category = mem::take(cat);
+                let iter = repo.packages(&category).into_iter();
+                let restrict = Restrict::and(pkg_restricts);
+                IteratorCpn::Package { iter, category, restrict }
             }
             (_, [Equal(pn)]) => {
-                let pn = mem::take(pn);
-                let cat_restrict = Restrict::and(cat_restricts);
-                Box::new(repo.categories().into_iter().filter_map(move |cat| {
-                    if cat_restrict.matches(&cat) {
-                        let cpn = Cpn {
-                            category: cat,
-                            package: pn.clone(),
-                        };
-                        if repo.contains(&cpn) {
-                            return Some(cpn);
-                        }
-                    }
-                    None
-                }))
+                let package = mem::take(pn);
+                let iter = repo.categories().into_iter();
+                let restrict = Restrict::and(cat_restricts);
+                IteratorCpn::Category { iter, package, restrict }
             }
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
                 let pkg_restrict = Restrict::and(pkg_restricts);
-                Box::new(
-                    repo.categories()
-                        .into_iter()
-                        .filter(move |cat| cat_restrict.matches(cat))
-                        .flat_map(move |cat| {
-                            repo.packages(&cat)
-                                .into_iter()
-                                .filter(|pn| pkg_restrict.matches(pn))
-                                .map(|pn| Cpn {
-                                    category: cat.clone(),
-                                    package: pn,
-                                })
-                                .collect::<Vec<_>>()
-                        }),
-                )
+                let categories = repo.categories().into_iter();
+                IteratorCpn::Custom {
+                    categories,
+                    cat_packages: None,
+                    cat_restrict,
+                    pkg_restrict,
+                }
             }
-        })
+        };
+
+        Self { repo, iter }
     }
 }
 
@@ -947,7 +960,61 @@ impl Iterator for IterCpn {
     type Item = Cpn;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        use IteratorCpn::*;
+        match &mut self.iter {
+            All(iter) => iter.next(),
+            Exact(iter) => iter.next(),
+            Empty(iter) => iter.next(),
+            Package { iter, category, restrict } => iter
+                .find(|package| restrict.matches(package))
+                .map(|package| Cpn {
+                    category: category.clone(),
+                    package,
+                }),
+            Category { iter, package, restrict } => iter.find_map(|category| {
+                if restrict.matches(&category) {
+                    let cpn = Cpn {
+                        category,
+                        package: package.clone(),
+                    };
+                    if self.repo.contains(&cpn) {
+                        return Some(cpn);
+                    }
+                }
+                None
+            }),
+            Custom {
+                categories,
+                cat_packages,
+                cat_restrict,
+                pkg_restrict,
+            } => loop {
+                // determine which category to iterate through
+                let (category, packages) = match cat_packages {
+                    Some(value) => value,
+                    None => match categories.find(|cat| cat_restrict.matches(cat)) {
+                        // populate packages iterator using the matching category
+                        Some(category) => {
+                            let set = self.repo.packages(&category);
+                            cat_packages.insert((category, set.into_iter()))
+                        }
+                        // no categories left to search
+                        None => return None,
+                    },
+                };
+
+                // look for matching packages in the selected category
+                if let Some(package) = packages.find(|pn| pkg_restrict.matches(pn)) {
+                    return Some(Cpn {
+                        category: category.clone(),
+                        package,
+                    });
+                }
+
+                // reset category packages iterator
+                cat_packages.take();
+            },
+        }
     }
 }
 
