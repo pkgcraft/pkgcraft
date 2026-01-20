@@ -841,7 +841,7 @@ enum IteratorCpn {
     Exact(std::iter::Once<Cpn>),
 
     /// No matches
-    Empty(std::iter::Empty<Cpn>),
+    Empty,
 
     /// Matches with package restriction
     Package {
@@ -921,10 +921,10 @@ impl IterCpn {
                     if repo.contains(&cpn) {
                         IteratorCpn::Exact(iter::once(cpn))
                     } else {
-                        IteratorCpn::Empty(iter::empty())
+                        IteratorCpn::Empty
                     }
                 } else {
-                    IteratorCpn::Empty(iter::empty())
+                    IteratorCpn::Empty
                 }
             }
             ([Equal(cat)], _) => {
@@ -964,7 +964,7 @@ impl Iterator for IterCpn {
         match &mut self.iter {
             All(iter) => iter.next(),
             Exact(iter) => iter.next(),
-            Empty(iter) => iter.next(),
+            Empty => None,
             Package { iter, category, restrict } => iter
                 .find(|package| restrict.matches(package))
                 .map(|package| Cpn {
