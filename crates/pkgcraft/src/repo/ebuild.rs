@@ -886,18 +886,22 @@ impl IterCpn {
         let repo = repo.clone();
 
         // extract matching restrictions for optimized iteration
-        if let Some(restrict) = restrict {
-            let mut match_restrict = |restrict: &Restrict| match restrict {
-                Restrict::Dep(Category(r)) => cat_restricts.push(r.clone()),
-                Restrict::Dep(Package(r)) => pkg_restricts.push(r.clone()),
-                _ => (),
-            };
+        match restrict {
+            Some(Restrict::False) => return Self::empty(),
+            Some(restrict) => {
+                let mut match_restrict = |restrict: &Restrict| match restrict {
+                    Restrict::Dep(Category(r)) => cat_restricts.push(r.clone()),
+                    Restrict::Dep(Package(r)) => pkg_restricts.push(r.clone()),
+                    _ => (),
+                };
 
-            if let Restrict::And(vals) = restrict {
-                vals.iter().for_each(|x| match_restrict(x));
-            } else {
-                match_restrict(restrict);
+                if let Restrict::And(vals) = restrict {
+                    vals.iter().for_each(|x| match_restrict(x));
+                } else {
+                    match_restrict(restrict);
+                }
             }
+            _ => (),
         }
 
         let iter = match (&mut *cat_restricts, &mut *pkg_restricts) {
@@ -1192,11 +1196,7 @@ pub struct IterCpnRestrict {
 impl IterCpnRestrict {
     fn new<R: Into<Restrict>>(repo: &EbuildRepo, value: R) -> Self {
         let restrict = value.into();
-        let iter = if restrict == Restrict::False {
-            IterCpn::empty()
-        } else {
-            IterCpn::new(repo, Some(&restrict))
-        };
+        let iter = IterCpn::new(repo, Some(&restrict));
         Self { iter, restrict }
     }
 }
