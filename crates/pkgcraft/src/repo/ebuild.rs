@@ -883,7 +883,6 @@ impl IterCpn {
         use StrRestrict::Equal;
         let mut cat_restricts = vec![];
         let mut pkg_restricts = vec![];
-        let repo = repo.clone();
 
         // extract matching restrictions for optimized iteration
         match restrict {
@@ -946,7 +945,12 @@ impl IterCpn {
                 let package = mem::take(pn);
                 let iter = repo.categories().into_iter();
                 let restrict = Restrict::and(cat_restricts);
-                IteratorCpn::Category { iter, package, repo, restrict }
+                IteratorCpn::Category {
+                    iter,
+                    package,
+                    repo: repo.clone(),
+                    restrict,
+                }
             }
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
@@ -955,7 +959,7 @@ impl IterCpn {
                 IteratorCpn::Custom {
                     categories,
                     cat_packages: None,
-                    repo,
+                    repo: repo.clone(),
                     cat_restrict,
                     pkg_restrict,
                 }
