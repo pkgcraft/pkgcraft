@@ -137,9 +137,10 @@ pub enum IterCpn {
 
     /// Matches with custom restrictions
     Custom {
-        categories: std::vec::IntoIter<String>,
+        categories: indexmap::set::IntoIter<String>,
         cat_packages: Option<(String, indexmap::set::IntoIter<String>)>,
         repo: EbuildRepo,
+        cat_restrict: Restrict,
         pkg_restrict: Restrict,
     },
 }
@@ -222,15 +223,11 @@ impl IterCpn {
             _ => {
                 let cat_restrict = Restrict::and(cat_restricts);
                 let pkg_restrict = Restrict::and(pkg_restricts);
-                let categories = repo
-                    .categories()
-                    .into_iter()
-                    .filter(|cat| cat_restrict.matches(cat))
-                    .collect::<Vec<_>>();
                 Self::Custom {
-                    categories: categories.into_iter(),
+                    categories: repo.categories().into_iter(),
                     cat_packages: None,
                     repo: repo.clone(),
+                    cat_restrict,
                     pkg_restrict,
                 }
             }
@@ -262,12 +259,13 @@ impl Iterator for IterCpn {
                 categories,
                 cat_packages,
                 repo,
+                cat_restrict,
                 pkg_restrict,
             } => loop {
                 // determine which category to iterate through
                 let (category, packages) = match cat_packages {
                     Some(value) => value,
-                    None => match categories.next() {
+                    None => match categories.find(|cat| cat_restrict.matches(cat)) {
                         // populate packages iterator using the matching category
                         Some(category) => {
                             let set = repo.packages(&category);
@@ -294,6 +292,7 @@ impl Iterator for IterCpn {
 }
 
 /// Iterator of [`Cpv`] objects.
+#[allow(clippy::large_enum_variant)]
 pub enum IterCpv {
     /// Unrestricted iterator
     All(std::vec::IntoIter<Cpv>),
@@ -312,9 +311,10 @@ pub enum IterCpv {
 
     /// Matches with custom restrictions
     Custom {
-        categories: std::vec::IntoIter<String>,
+        categories: indexmap::set::IntoIter<String>,
         cat_cpvs: Option<indexmap::set::IntoIter<Cpv>>,
         repo: EbuildRepo,
+        cat_restrict: Restrict,
         pkg_restrict: Restrict,
         ver_restrict: Restrict,
     },
@@ -398,15 +398,11 @@ impl IterCpv {
                 let cat_restrict = Restrict::and(cat_restricts);
                 let pkg_restrict = Restrict::and(pkg_restricts);
                 let ver_restrict = Restrict::and(ver_restricts);
-                let categories = repo
-                    .categories()
-                    .into_iter()
-                    .filter(|cat| cat_restrict.matches(cat))
-                    .collect::<Vec<_>>();
                 Self::Custom {
-                    categories: categories.into_iter(),
+                    categories: repo.categories().into_iter(),
                     cat_cpvs: None,
                     repo: repo.clone(),
+                    cat_restrict,
                     pkg_restrict,
                     ver_restrict,
                 }
@@ -428,13 +424,14 @@ impl Iterator for IterCpv {
                 categories,
                 cat_cpvs,
                 repo,
+                cat_restrict,
                 pkg_restrict,
                 ver_restrict,
             } => loop {
                 // determine which category to iterate through
                 let cpvs = match cat_cpvs {
                     Some(iter) => iter,
-                    None => match categories.next() {
+                    None => match categories.find(|cat| cat_restrict.matches(cat)) {
                         // populate cpvs iterator using the matching category
                         Some(category) => {
                             let set = repo.cpvs_from_category(&category);
