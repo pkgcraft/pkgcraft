@@ -26,6 +26,7 @@ pub struct Targets<'a> {
     config: &'a mut Config,
     repo_set: RepoSet,
     repo_format: Option<RepoFormat>,
+    target_repo: Option<Repo>,
     scopes: Option<HashSet<Scope>>,
 }
 
@@ -35,8 +36,9 @@ impl<'a> Targets<'a> {
         Self {
             config,
             repo_set: Default::default(),
-            repo_format: Default::default(),
-            scopes: Default::default(),
+            repo_format: None,
+            target_repo: None,
+            scopes: None,
         }
     }
 
@@ -70,14 +72,18 @@ impl<'a> Targets<'a> {
             }
 
             // try to pull repo from config before path fallback
-            self.repo_set = self
+            let repo = self
                 .config
                 .repos()
                 .get(id)
                 .cloned()
-                .or_else(|_| self.repo_from_path(id))?
-                .into();
+                .or_else(|_| self.repo_from_path(id))?;
+            self.target_repo = Some(repo);
         } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(x)) {
+            self.target_repo = Some(repo);
+        };
+
+        if let Some(repo) = self.target_repo.clone() {
             self.repo_set = repo.into();
         }
 
@@ -171,11 +177,14 @@ impl<'a> Targets<'a> {
                     Error::InvalidValue(format!("invalid path target: {target}: {e}"))
                 });
 
-            // try loading repo from path target
-            let repo_target = path_target
-                .as_ref()
-                .ok()
-                .map(|_| self.repo_from_nested_path(s));
+            // try determining target repo from path target if it doesn't exist yet
+            let repo_target = match self.target_repo.as_ref() {
+                Some(repo) => Some(Ok(repo.clone())),
+                None => path_target
+                    .as_ref()
+                    .ok()
+                    .map(|_| self.repo_from_nested_path(s)),
+            };
 
             match (restrict::parse::dep(s), path_target, repo_target) {
                 (_, Ok(path), Some(Ok(repo))) => {
