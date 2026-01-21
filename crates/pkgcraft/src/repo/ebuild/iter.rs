@@ -193,15 +193,11 @@ impl IterCpn {
             ([Equal(cat)], [Equal(pn)]) => {
                 let cat = mem::take(cat);
                 let pn = mem::take(pn);
-                if let Ok(cpn) = Cpn::try_from((cat, pn)) {
-                    if repo.contains(&cpn) {
-                        Self::Exact(iter::once(cpn))
-                    } else {
-                        Self::Empty
-                    }
-                } else {
-                    Self::Empty
-                }
+                Cpn::try_from((cat, pn))
+                    .ok()
+                    .filter(|cpn| repo.contains(cpn))
+                    .map(|cpn| Self::Exact(iter::once(cpn)))
+                    .unwrap_or(Self::Empty)
             }
             ([Equal(cat)], _) => {
                 let category = mem::take(cat);
@@ -367,15 +363,11 @@ impl IterCpv {
             ([Category(Equal(cat))], [Package(Equal(pn))], [Version(Some(ver))])
                 if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
             {
-                if let Ok(cpv) = Cpv::try_from((cat, pn, ver.without_op())) {
-                    if repo.contains(&cpv) {
-                        Self::Exact(iter::once(cpv))
-                    } else {
-                        Self::Empty
-                    }
-                } else {
-                    Self::Empty
-                }
+                Cpv::try_from((cat, pn, ver.without_op()))
+                    .ok()
+                    .filter(|cpv| repo.contains(cpv))
+                    .map(|cpv| Self::Exact(iter::once(cpv)))
+                    .unwrap_or(Self::Empty)
             }
             ([Category(Equal(cat))], [Package(Equal(pn))], _) => {
                 let restrict = Restrict::and(ver_restricts);
