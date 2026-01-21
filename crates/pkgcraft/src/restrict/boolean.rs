@@ -58,10 +58,10 @@ macro_rules! restrict_impl_boolean {
                 }
             }
 
-            if restricts.len() == 1 {
-                *restricts.pop().unwrap()
-            } else {
-                Self::And(restricts)
+            match restricts.len() {
+                0 => Self::True,
+                1 => *restricts.pop().unwrap(),
+                _ => Self::And(restricts),
             }
         }
 
@@ -78,10 +78,10 @@ macro_rules! restrict_impl_boolean {
                 }
             }
 
-            if restricts.len() == 1 {
-                *restricts.pop().unwrap()
-            } else {
-                Self::Or(restricts)
+            match restricts.len() {
+                0 => Self::True,
+                1 => *restricts.pop().unwrap(),
+                _ => Self::Or(restricts),
             }
         }
 
@@ -98,10 +98,10 @@ macro_rules! restrict_impl_boolean {
                 }
             }
 
-            if restricts.len() == 1 {
-                *restricts.pop().unwrap()
-            } else {
-                Self::Xor(restricts)
+            match restricts.len() {
+                0 => Self::True,
+                1 => *restricts.pop().unwrap(),
+                _ => Self::Xor(restricts),
             }
         }
 
