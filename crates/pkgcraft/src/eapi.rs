@@ -10,6 +10,7 @@ use camino::Utf8Path;
 use indexmap::{IndexSet, set::MutableValues};
 use itertools::Either;
 use strum::EnumString;
+use winnow::Parser;
 
 use crate::Error;
 use crate::archive::Archive;
@@ -24,32 +25,74 @@ use crate::shell::hooks::HookBuilder;
 use crate::shell::operations::{Operation, OperationKind};
 use crate::shell::phase::Phase;
 
-peg::parser!(grammar parse() for str {
-    // EAPIs must not begin with a hyphen, dot, or plus sign.
-    pub(super) rule eapi() -> &'input str
-        = s:$(quiet!{
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '_']
-            ['a'..='z' | 'A'..='Z' | '0'..='9' | '+' | '_' | '.' | '-']*
-        } / expected!("EAPI"))
-        { s }
+mod parser {
+    use winnow::combinator::{alt, delimited, trace};
+    use winnow::prelude::*;
+    use winnow::token::{one_of, take_while};
 
-    rule single_quotes<T>(expr: rule<T>) -> T
-        = "\'" v:expr() "\'" { v }
+    const APOSTROPHE: char = '\'';
+    const QUOTATION_MARK: char = '"';
 
-    rule double_quotes<T>(expr: rule<T>) -> T
-        = "\"" v:expr() "\"" { v }
+    /// Parse an eapi.
+    ///
+    /// The allowed character set is `[a-zA-Z0-9_][a-zA-Z0-9_+.-]*`.
+    fn eapi<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
+        trace(
+            "eapi",
+            (
+                one_of(('a'..='z', 'A'..='Z', '0'..='9', '_')),
+                take_while(0.., ('a'..='z', 'A'..='Z', '0'..='9', '_', '+', '.', '-')),
+            )
+                .take(),
+        )
+        .parse_next(input)
+    }
 
-    rule optionally_quoted<T>(expr: rule<T>) -> T
-        = s:expr() { s }
-        / s:double_quotes(<expr()>) { s }
-        / s:single_quotes(<expr()>) { s }
+    /// Parse an eapi, optionally quoted with either single or double quotes.
+    pub(super) fn maybe_quoted_eapi<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
+        trace(
+            "maybe_quoted_eapi",
+            alt((
+                eapi,
+                delimited(QUOTATION_MARK, eapi, QUOTATION_MARK),
+                delimited(APOSTROPHE, eapi, APOSTROPHE),
+            )),
+        )
+        .parse_next(input)
+    }
 
-    pub(super) rule eapi_value() -> &'input str
-        = s:optionally_quoted(<eapi()>) { s }
-});
+    #[cfg(test)]
+    mod tests {
+        use super::*;
 
-pub(crate) fn parse_value(s: &str) -> crate::Result<&str> {
-    parse::eapi_value(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))
+        #[test]
+        fn value() {
+            for input in ["a", "A", "0", "_", "aA0_+.-"] {
+                assert_eq!(eapi.parse(input), Ok(input));
+            }
+
+            for input in ["", "+", ".", "*"] {
+                assert!(eapi.parse(input).is_err());
+            }
+        }
+
+        #[test]
+        fn quoted() {
+            for input in ["0", "\"0\"", "'0'"] {
+                assert_eq!(maybe_quoted_eapi.parse(input), Ok("0"));
+            }
+
+            for input in ["", "'0", "\"0", "0'", "0\"", "'0\"", "\"0'"] {
+                assert!(maybe_quoted_eapi.parse(input).is_err());
+            }
+        }
+    }
+}
+
+pub(crate) fn parse_value(input: &str) -> crate::Result<&str> {
+    parser::maybe_quoted_eapi
+        .parse(input)
+        .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {input:?}")))
 }
 
 /// Features that relate to differentiation between EAPIs as specified by PMS.
@@ -231,7 +274,9 @@ impl Eapi {
     /// Verify a string represents a valid EAPI.
     pub fn parse<S: AsRef<str>>(s: S) -> crate::Result<()> {
         let s = s.as_ref();
-        parse::eapi(s).map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
+        parser::maybe_quoted_eapi
+            .parse(s)
+            .map_err(|_| Error::InvalidValue(format!("invalid EAPI: {s:?}")))?;
         Ok(())
     }
 
