@@ -1,7 +1,5 @@
 use std::{iter, mem};
 
-use rayon::prelude::*;
-
 use crate::dep::{Cpn, Cpv, Operator};
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg};
 use crate::repo::PkgRepository;
@@ -112,14 +110,11 @@ impl Iterator for IterRaw {
 
 /// Iterator of [`Cpn`] objects.
 pub enum IterCpn {
-    /// Unrestricted iterator
-    All(std::vec::IntoIter<Cpn>),
+    /// No matches
+    Empty,
 
     /// Exact match
     Exact(std::iter::Once<Cpn>),
-
-    /// No matches
-    Empty,
 
     /// Matches with package restriction
     Package {
@@ -173,24 +168,6 @@ impl IterCpn {
         }
 
         match (&mut *cat_restricts, &mut *pkg_restricts) {
-            ([], []) => {
-                // TODO: revert to serialized iteration once repos provide parallel iterators
-                let mut cpns = repo
-                    .categories()
-                    .into_par_iter()
-                    .flat_map(|cat| {
-                        repo.packages(&cat)
-                            .into_iter()
-                            .map(|pn| Cpn {
-                                category: cat.to_string(),
-                                package: pn,
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                    .collect::<Vec<_>>();
-                cpns.par_sort();
-                Self::All(cpns.into_iter())
-            }
             ([Equal(cat)], [Equal(pn)]) => {
                 let cat = mem::take(cat);
                 let pn = mem::take(pn);
@@ -240,9 +217,8 @@ impl Iterator for IterCpn {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::All(iter) => iter.next(),
-            Self::Exact(iter) => iter.next(),
             Self::Empty => None,
+            Self::Exact(iter) => iter.next(),
             Self::Package { packages, category, restrict } => {
                 packages.find(|pn| restrict.matches(pn)).map(|pn| Cpn {
                     category: category.clone(),
@@ -294,14 +270,11 @@ impl Iterator for IterCpn {
 /// Iterator of [`Cpv`] objects.
 #[allow(clippy::large_enum_variant)]
 pub enum IterCpv {
-    /// Unrestricted iterator
-    All(std::vec::IntoIter<Cpv>),
+    /// No matches
+    Empty,
 
     /// Exact match
     Exact(std::iter::Once<Cpv>),
-
-    /// No matches
-    Empty,
 
     /// Matches with version restriction
     Version {
@@ -350,16 +323,6 @@ impl IterCpv {
         }
 
         match (&mut *cat_restricts, &mut *pkg_restricts, &mut *ver_restricts) {
-            ([], [], []) => {
-                // TODO: revert to serialized iteration once repos provide parallel iterators
-                let mut cpvs = repo
-                    .categories()
-                    .into_par_iter()
-                    .flat_map(|s| repo.cpvs_from_category(&s))
-                    .collect::<Vec<_>>();
-                cpvs.par_sort();
-                Self::All(cpvs.into_iter())
-            }
             ([Category(Equal(cat))], [Package(Equal(pn))], [Version(Some(ver))])
                 if ver.op().is_none() || ver.op() == Some(Operator::Equal) =>
             {
@@ -416,9 +379,8 @@ impl Iterator for IterCpv {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::All(iter) => iter.next(),
-            Self::Exact(iter) => iter.next(),
             Self::Empty => None,
+            Self::Exact(iter) => iter.next(),
             Self::Version { iter, restrict } => iter.find(|cpv| restrict.matches(cpv)),
             Self::Custom {
                 categories,
