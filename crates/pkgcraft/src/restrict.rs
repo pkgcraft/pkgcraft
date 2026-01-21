@@ -15,10 +15,6 @@ pub mod set;
 pub mod str;
 
 boolean::restrict_with_boolean! {Restrict,
-    // constants
-    True,
-    False,
-
     // object attributes
     Dep(DepRestrict),
     Pkg(PkgRestrict),

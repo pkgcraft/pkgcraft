@@ -4,6 +4,8 @@ macro_rules! restrict_with_boolean {
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         pub enum $name {
             $($variants)*
+            False,
+            True,
             And(Vec<Box<Self>>),
             Or(Vec<Box<Self>>),
             Xor(Vec<Box<Self>>),
@@ -18,6 +20,8 @@ macro_rules! restrict_match_boolean {
    ($r:expr, $obj:expr, $($matcher:pat $(if $pred:expr)* => $result:expr,)+) => {
        match $r {
            $($matcher $(if $pred)* => $result,)+
+            Self::False => false,
+            Self::True => true,
             Self::And(vals) => vals.iter().all(|r| r.matches($obj)),
             Self::Or(vals) => vals.iter().any(|r| r.matches($obj)),
             Self::Xor(vals) => {
