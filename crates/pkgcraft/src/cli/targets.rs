@@ -63,7 +63,7 @@ impl<'a> Targets<'a> {
     ///
     /// When None is passed, the current working directory is tried.
     pub fn repo<S: AsRef<str>>(mut self, value: Option<S>) -> crate::Result<Self> {
-        if let Some(id) = value {
+        self.target_repo = if let Some(id) = value {
             let id = id.as_ref();
 
             // load system config for repo alias support
@@ -72,17 +72,17 @@ impl<'a> Targets<'a> {
             }
 
             // try to pull repo from config before path fallback
-            let repo = self
-                .config
-                .repos()
-                .get(id)
-                .cloned()
-                .or_else(|_| self.repo_from_path(id))?;
-            self.target_repo = Some(repo);
+            Some(
+                self.config
+                    .repos()
+                    .get(id)
+                    .cloned()
+                    .or_else(|_| self.repo_from_path(id))?,
+            )
         } else {
-            self.target_repo = current_dir()
+            current_dir()
                 .and_then(|x| self.repo_from_nested_path(x))
-                .ok();
+                .ok()
         };
 
         if let Some(repo) = self.target_repo.clone() {
