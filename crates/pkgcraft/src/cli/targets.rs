@@ -79,8 +79,10 @@ impl<'a> Targets<'a> {
                 .cloned()
                 .or_else(|_| self.repo_from_path(id))?;
             self.target_repo = Some(repo);
-        } else if let Ok(repo) = current_dir().and_then(|x| self.repo_from_nested_path(x)) {
-            self.target_repo = Some(repo);
+        } else {
+            self.target_repo = current_dir()
+                .and_then(|x| self.repo_from_nested_path(x))
+                .ok();
         };
 
         if let Some(repo) = self.target_repo.clone() {
