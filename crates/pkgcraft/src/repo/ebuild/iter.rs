@@ -123,14 +123,14 @@ pub enum IterCpn {
 
     /// Matches with package restriction
     Package {
-        iter: indexmap::set::IntoIter<String>,
+        packages: indexmap::set::IntoIter<String>,
         category: String,
         restrict: Restrict,
     },
 
     /// Matches with category restriction
     Category {
-        iter: std::vec::IntoIter<String>,
+        categories: std::vec::IntoIter<String>,
         package: String,
         repo: EbuildRepo,
     },
@@ -201,9 +201,9 @@ impl IterCpn {
             }
             ([Equal(cat)], _) => {
                 let category = mem::take(cat);
-                let iter = repo.packages(&category).into_iter();
+                let packages = repo.packages(&category).into_iter();
                 let restrict = Restrict::and(pkg_restricts);
-                Self::Package { iter, category, restrict }
+                Self::Package { packages, category, restrict }
             }
             (_, [Equal(pn)]) => {
                 let package = mem::take(pn);
@@ -214,7 +214,7 @@ impl IterCpn {
                     .filter(|cat| restrict.matches(cat))
                     .collect();
                 Self::Category {
-                    iter: categories.into_iter(),
+                    categories: categories.into_iter(),
                     package,
                     repo: repo.clone(),
                 }
@@ -246,13 +246,13 @@ impl Iterator for IterCpn {
             Self::All(iter) => iter.next(),
             Self::Exact(iter) => iter.next(),
             Self::Empty => None,
-            Self::Package { iter, category, restrict } => iter
-                .find(|package| restrict.matches(package))
-                .map(|package| Cpn {
+            Self::Package { packages, category, restrict } => {
+                packages.find(|pn| restrict.matches(pn)).map(|pn| Cpn {
                     category: category.clone(),
-                    package,
-                }),
-            Self::Category { iter, package, repo } => iter
+                    package: pn,
+                })
+            }
+            Self::Category { categories, package, repo } => categories
                 .map(|category| Cpn {
                     category,
                     package: package.clone(),
