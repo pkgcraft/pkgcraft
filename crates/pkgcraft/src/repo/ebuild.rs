@@ -485,8 +485,7 @@ impl EbuildRepo {
         T: TryInto<Cpv>,
         Error: From<T::Error>,
     {
-        let raw_pkg = self.get_pkg_raw(value)?;
-        raw_pkg.try_into()
+        self.get_pkg_raw(value).and_then(TryInto::try_into)
     }
 
     /// Retrieve a raw package from the repo given its [`Cpv`].
