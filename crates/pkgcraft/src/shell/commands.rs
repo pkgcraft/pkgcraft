@@ -825,7 +825,6 @@ macro_rules! cmd_scope_tests {
             "#};
             temp.create_eclass("invalid", &eclass).unwrap();
             let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-            config.finalize().unwrap();
             let all_scopes: IndexSet<_> = ScopeSet::All.into_iter().collect();
 
             for eapi in &*EAPIS_OFFICIAL {

@@ -20,14 +20,14 @@ super::register! {
 
 type VariableFn = for<'a> fn(&str, &Node<'a>, &EbuildRawPkg, &ScannerRun);
 
-pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+pub(super) fn create(_run: &ScannerRun) -> crate::Result<super::Runner> {
     let mut check = Check { variables: Default::default() };
 
     for eapi in &*EAPIS {
         check.register_eapi(eapi, eapi.env(), eapi_variable);
     }
 
-    Box::new(check)
+    Ok(Box::new(check))
 }
 
 struct Check {

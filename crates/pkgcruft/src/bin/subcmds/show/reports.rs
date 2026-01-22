@@ -28,7 +28,7 @@ impl Subcommand {
             (true, None) => self.reports.replay().unwrap_or_default(),
             (selected, Some(repo)) => {
                 let mut config = Config::new("pkgcraft", "");
-                let repo = Targets::new(&mut config)
+                let repo = Targets::new(&mut config)?
                     .repo_targets([repo])?
                     .ebuild_repo()?;
                 let defaults = ReportKind::defaults(&repo);

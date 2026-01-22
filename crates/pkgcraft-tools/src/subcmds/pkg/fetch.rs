@@ -97,7 +97,7 @@ impl Command {
         fs::create_dir_all(&self.dir)?;
 
         // convert targets to pkgs
-        let mut iter = Targets::new(config)
+        let mut iter = Targets::new(config)?
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?

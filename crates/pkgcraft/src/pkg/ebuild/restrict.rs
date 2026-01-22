@@ -273,7 +273,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // single
         let data = indoc::indoc! {r#"
@@ -318,7 +317,6 @@ mod tests {
             .unwrap();
         temp.create_ebuild("cat/pkg-2", &["DESCRIPTION=desc2"])
             .unwrap();
-        config.finalize().unwrap();
 
         let pkg = repo.get_pkg("cat/pkg-2").unwrap();
 
@@ -345,7 +343,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
         temp.create_ebuild("cat/pkg-1", &["SLOT=1/2"]).unwrap();
@@ -376,7 +373,6 @@ mod tests {
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-0", &["SLOT=0"]).unwrap();
         temp.create_ebuild("cat/pkg-1", &["SLOT=1/2"]).unwrap();
-        config.finalize().unwrap();
 
         // no explicit subslot
         let pkg = repo.get_pkg("cat/pkg-0").unwrap();
@@ -409,7 +405,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-a-1", &[]).unwrap();
 
@@ -468,7 +463,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // none
         temp.create_ebuild("noxml/pkg-1", &[]).unwrap();

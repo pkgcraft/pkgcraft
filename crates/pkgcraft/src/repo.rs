@@ -863,9 +863,6 @@ mod tests {
         let fake = FakeRepo::new("fake", 0).pkgs(["cat/pkg-1"]).unwrap();
         let f_repo = config.add_repo(fake).unwrap();
 
-        // finalize repos
-        config.finalize().unwrap();
-
         // comparisons
         assert!(e_repo != f_repo);
         assert!(e_repo > f_repo);

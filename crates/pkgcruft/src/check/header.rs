@@ -21,13 +21,13 @@ super::register! {
 static GENTOO_LICENSE_HEADER: &str =
     "# Distributed under the terms of the GNU General Public License v2";
 
-pub(super) fn create(_run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(_run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         copyright_re: Regex::new(
             r"^# Copyright ((?P<begin>\d{4})-)?(?P<end>\d{4}) (?P<holder>.+)$",
         )
         .unwrap(),
-    })
+    }))
 }
 
 struct Check {

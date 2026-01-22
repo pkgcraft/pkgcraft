@@ -106,7 +106,6 @@ mod tests {
         temp.create_eclass("e3", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // single
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
@@ -140,7 +139,6 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
@@ -162,7 +160,6 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
@@ -194,7 +191,6 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
@@ -225,7 +221,6 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
@@ -262,7 +257,6 @@ mod tests {
         temp.create_eclass("e3", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
@@ -291,7 +285,6 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -321,7 +314,6 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -368,7 +360,6 @@ mod tests {
         temp.create_eclass("r", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();

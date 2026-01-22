@@ -90,7 +90,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // invalid PV
         for (rng, ver, expected) in [
@@ -145,7 +144,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1.2.3", &[]).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1.2.3").unwrap();

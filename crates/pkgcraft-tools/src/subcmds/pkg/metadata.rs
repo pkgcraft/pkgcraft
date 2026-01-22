@@ -66,7 +66,7 @@ impl Command {
         bounded_thread_pool(self.jobs);
 
         // convert targets to restrictions
-        let targets = Targets::new(config)
+        let targets = Targets::new(config)?
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?

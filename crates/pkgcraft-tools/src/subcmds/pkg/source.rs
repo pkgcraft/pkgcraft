@@ -495,7 +495,7 @@ fn source(targets: PkgTargets, cmd: &Command) -> anyhow::Result<ExitCode> {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // convert targets to pkgs
-        let targets = Targets::new(config)
+        let targets = Targets::new(config)?
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?

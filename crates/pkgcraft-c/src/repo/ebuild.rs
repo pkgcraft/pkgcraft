@@ -1,6 +1,5 @@
 use std::ffi::c_char;
 
-use pkgcraft::config::Config;
 use pkgcraft::eapi::Eapi;
 use pkgcraft::repo::Repo;
 use pkgcraft::repo::ebuild::{Cache, EbuildRepo};
@@ -21,18 +20,14 @@ macro_rules! try_repo_from_ptr {
     }};
 }
 
-/// Return a configured repo using the given config.
+/// Return a configured repo.
 ///
 /// # Safety
-/// The arguments must be valid Repo and Config pointers.
+/// The argument must be a valid Repo pointer.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pkgcraft_repo_ebuild_configure(
-    r: *mut Repo,
-    c: *mut Config,
-) -> *mut Repo {
+pub unsafe extern "C" fn pkgcraft_repo_ebuild_configure(r: *mut Repo) -> *mut Repo {
     let repo = try_repo_from_ptr!(r);
-    let config = try_ref_from_ptr!(c);
-    Box::into_raw(Box::new(repo.configure(config).into()))
+    Box::into_raw(Box::new(repo.configure().into()))
 }
 
 /// Return an ebuild repo's metadata arches.

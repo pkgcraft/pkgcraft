@@ -27,7 +27,7 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let eclasses = run
         .repo
         .eclasses()
@@ -40,7 +40,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         .cloned()
         .collect();
 
-    Box::new(Check { eclasses })
+    Ok(Box::new(Check { eclasses }))
 }
 
 struct Check {

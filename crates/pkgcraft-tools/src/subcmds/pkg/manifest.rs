@@ -127,7 +127,7 @@ impl Command {
         let dir = dir.as_path()?;
 
         // convert targets to pkg sets
-        let pkg_sets = Targets::new(config)
+        let pkg_sets = Targets::new(config)?
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .scope(|x| *x >= Scope::Package)

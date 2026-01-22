@@ -11,7 +11,7 @@ use crate::error::Error;
 use crate::pkg::ebuild::{EbuildRawPkg, Metadata, MetadataKey};
 use crate::repo::PkgRepository;
 use crate::restrict::Restrict;
-use crate::shell::pool::MetadataTaskBuilder;
+use crate::shell::pool::MetadataRegen;
 use crate::traits::Contains;
 
 use super::EbuildRepo;
@@ -185,7 +185,7 @@ impl MetadataCache {
             cache: self,
             progress: false,
             clean: true,
-            regen: repo.pool().metadata_task(repo).cache(self),
+            regen: repo.metadata_regen().cache(self),
             repo: repo.clone(),
             targets: None,
         }
@@ -197,7 +197,7 @@ pub struct MetadataCacheRegen<'a> {
     cache: &'a MetadataCache,
     progress: bool,
     clean: bool,
-    regen: MetadataTaskBuilder,
+    regen: MetadataRegen,
     repo: EbuildRepo,
     targets: Option<IndexSet<Cpv>>,
 }
@@ -276,7 +276,7 @@ impl MetadataCacheRegen<'_> {
             .into_par_iter()
             .map(|cpv| {
                 progress.inc(1);
-                self.regen.run(cpv)
+                self.regen.get(cpv)
             })
             .inspect(|result| {
                 match result {
@@ -322,7 +322,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // create a large number of packages with a subshelled, invalid scope builtin call
         let data = indoc::indoc! {r#"
@@ -354,7 +353,6 @@ mod tests {
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
         let cache = repo.metadata().cache();

@@ -16,8 +16,8 @@ super::register! {
     create,
 }
 
-pub(super) fn create(_run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(_run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         restricts: ["test", "!test? ( test )"]
             .iter()
             .map(|s| {
@@ -26,7 +26,7 @@ pub(super) fn create(_run: &ScannerRun) -> super::Runner {
             })
             .collect(),
         iuse: Iuse::try_new("test").unwrap(),
-    })
+    }))
 }
 
 struct Check {

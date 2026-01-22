@@ -17,7 +17,7 @@ use scallop::{
 use serde::{Deserialize, Serialize};
 use tempfile::tempfile;
 
-use crate::config::ConfigRepos;
+use crate::config::Config;
 use crate::dep::Cpv;
 use crate::error::Error;
 use crate::pkg::ebuild::{EbuildRawPkg, Metadata, MetadataKey};
@@ -100,8 +100,8 @@ impl MetadataTask {
         Ok(meta)
     }
 
-    fn run(self, config: &ConfigRepos) -> crate::Result<Option<String>> {
-        let repo = config.get_ebuild(&self.repo)?;
+    fn run(self, config: &Config) -> crate::Result<Option<String>> {
+        let repo = config.repos().get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
 
         // TODO: use a wrapper method to capture output
@@ -145,9 +145,9 @@ impl MetadataTask {
     }
 }
 
-/// Task builder for ebuild package metadata cache generation.
+/// Builder to generate ebuild metadata.
 #[derive(Debug)]
-pub struct MetadataTaskBuilder {
+pub struct MetadataRegen {
     tx: IpcSender<Command>,
     repo: EbuildRepo,
     cache: Option<MetadataCache>,
@@ -156,8 +156,8 @@ pub struct MetadataTaskBuilder {
     verify: bool,
 }
 
-impl MetadataTaskBuilder {
-    /// Create a new ebuild package metadata cache task builder.
+impl MetadataRegen {
+    /// Create a new ebuild metadata builder.
     fn new(pool: &BuildPool, repo: &EbuildRepo) -> Self {
         Self {
             tx: pool.tx().clone(),
@@ -175,7 +175,7 @@ impl MetadataTaskBuilder {
         self
     }
 
-    /// Force the package's metadata to be regenerated.
+    /// Force the ebuild's metadata to be regenerated.
     pub fn force(mut self, value: bool) -> Self {
         self.force = value;
         self
@@ -187,14 +187,14 @@ impl MetadataTaskBuilder {
         self
     }
 
-    /// Verify the package's metadata.
+    /// Verify the ebuild's metadata.
     pub fn verify(mut self, value: bool) -> Self {
         self.verify = value;
         self
     }
 
-    /// Run the task for a target [`Cpv`].
-    pub fn run<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<Option<String>> {
+    /// Get the ebuild metadata for a target [`Cpv`] or run a task to generate it.
+    pub fn get<T: Into<Cpv>>(&self, cpv: T) -> crate::Result<Option<String>> {
         let cpv = cpv.into();
         let cache = self
             .cache
@@ -232,8 +232,8 @@ impl PretendTask {
         }
     }
 
-    fn run(self, config: &ConfigRepos) -> crate::Result<Option<String>> {
-        let repo = config.get_ebuild(&self.repo)?;
+    fn run(self, config: &Config) -> crate::Result<Option<String>> {
+        let repo = config.repos().get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg(self.cpv)?;
         Ok(pkg.pkg_pretend()?)
     }
@@ -253,8 +253,8 @@ impl EnvTask {
         }
     }
 
-    fn run(self, config: &ConfigRepos) -> crate::Result<IndexMap<String, String>> {
-        let repo = config.get_ebuild(&self.repo)?;
+    fn run(self, config: &Config) -> crate::Result<IndexMap<String, String>> {
+        let repo = config.repos().get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         let eapi_vars = pkg.eapi().env();
         let metadata_vars = pkg.eapi().metadata_keys();
@@ -289,8 +289,8 @@ impl DurationTask {
         }
     }
 
-    fn run(self, config: &ConfigRepos) -> crate::Result<Duration> {
-        let repo = config.get_ebuild(&self.repo)?;
+    fn run(self, config: &Config) -> crate::Result<Duration> {
+        let repo = config.repos().get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg_raw(self.cpv)?;
         let start = Instant::now();
         pkg.source()
@@ -313,8 +313,8 @@ impl BuildTask {
         }
     }
 
-    fn run(self, config: &ConfigRepos) -> crate::Result<()> {
-        let repo = config.get_ebuild(&self.repo)?;
+    fn run(self, config: &Config) -> crate::Result<()> {
+        let repo = config.repos().get_ebuild(&self.repo)?;
         let pkg = repo.get_pkg(self.cpv)?;
         Ok(pkg.build()?)
     }
@@ -397,7 +397,7 @@ impl IntoTask for BuildTask {
 
 impl Task {
     /// Run the task, sending the result back to the main process.
-    fn run(self, config: &ConfigRepos) {
+    fn run(self, config: &Config) {
         match self {
             Self::Env(task, tx) => tx.send(task.run(config)),
             Self::Metadata(task, tx) => tx.send(task.run(config)),
@@ -431,7 +431,7 @@ impl Command {
 }
 
 #[derive(Debug, Default)]
-pub struct BuildPool {
+pub(crate) struct BuildPool {
     tasks: usize,
     tx: OnceLock<IpcSender<Command>>,
     pid: OnceLock<Pid>,
@@ -443,23 +443,21 @@ impl BuildPool {
         self.tx.get().expect("task pool isn't running")
     }
 
-    /// Start the build pool loop.
-    pub(crate) fn start(&self, config: ConfigRepos) -> crate::Result<()> {
-        if self.pid.get().is_some() {
-            // task pool already running
-            return Ok(());
-        }
-
-        let (server, name) = IpcOneShotServer::new()?;
+    /// Start the build pool if it's not running and return a reference to it.
+    pub(crate) fn start(config: &Config) -> Self {
+        let pool = Self::default();
+        let (server, name) = IpcOneShotServer::new().unwrap();
 
         match unsafe { fork() } {
             Ok(ForkResult::Parent { child }) => {
-                self.pid.set(child).expect("task pool already running");
+                pool.pid.set(child).expect("task pool already running");
                 let (_, tx) = server.accept().expect("failed receiving tx");
-                self.tx.set(tx).expect("task pool already running");
-                Ok(())
+                pool.tx.set(tx).expect("task pool already running");
+                pool
             }
             Ok(ForkResult::Child) => {
+                let config = config.clone();
+
                 // bootstrap the main task channel
                 let (tx, rx) = ipc::channel().unwrap();
                 let tx0 = IpcSender::connect(name).expect("failed connecting to the server");
@@ -476,16 +474,16 @@ impl BuildPool {
                 // initialize semaphore to control pool access
                 let pid = std::process::id();
                 let name = format!("/pkgcraft-task-pool-{pid}");
-                let mut sem = NamedSemaphore::new(&name, bounded_jobs(self.tasks))?;
+                let mut sem = NamedSemaphore::new(&name, bounded_jobs(pool.tasks)).unwrap();
 
                 // initialize bash
-                super::init()?;
+                super::init().unwrap();
 
                 // enable internal bash SIGCHLD handler
                 unsafe { scallop::bash::set_sigchld_handler() };
 
                 // suppress global output by default
-                suppress_output()?;
+                suppress_output().unwrap();
 
                 while let Ok(Command::Task(task)) = rx.recv() {
                     // wait for pool space
@@ -509,13 +507,13 @@ impl BuildPool {
         }
     }
 
-    /// Create an ebuild package metadata regeneration task builder.
-    pub fn metadata_task(&self, repo: &EbuildRepo) -> MetadataTaskBuilder {
-        MetadataTaskBuilder::new(self, repo)
+    /// Create an ebuild metadata regeneration builder.
+    pub(crate) fn metadata_regen(&self, repo: &EbuildRepo) -> MetadataRegen {
+        MetadataRegen::new(self, repo)
     }
 
     /// Run the pkg_pretend phase for an ebuild package.
-    pub fn pretend<T: Into<Cpv>>(
+    pub(crate) fn pretend<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
         cpv: T,
@@ -525,7 +523,7 @@ impl BuildPool {
     }
 
     /// Return the mapping of global environment variables exported by a package.
-    pub fn env<T: Into<Cpv>>(
+    pub(crate) fn env<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
         cpv: T,
@@ -535,7 +533,7 @@ impl BuildPool {
     }
 
     /// Return the time duration required to source a package.
-    pub fn duration<T: Into<Cpv>>(
+    pub(crate) fn duration<T: Into<Cpv>>(
         &self,
         repo: &EbuildRepo,
         cpv: T,
@@ -545,7 +543,8 @@ impl BuildPool {
     }
 
     /// Build a package.
-    pub fn build<T: Into<Cpv>>(&self, repo: &EbuildRepo, cpv: T) -> crate::Result<()> {
+    #[allow(dead_code)]
+    pub(crate) fn build<T: Into<Cpv>>(&self, repo: &EbuildRepo, cpv: T) -> crate::Result<()> {
         let task = BuildTask::new(repo, cpv);
         Command::run_task(self.tx(), task)
     }

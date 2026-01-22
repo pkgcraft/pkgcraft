@@ -32,14 +32,16 @@ pub struct Targets<'a> {
 
 impl<'a> Targets<'a> {
     /// Create a target restrictions parser.
-    pub fn new(config: &'a mut Config) -> Self {
-        Self {
+    pub fn new(config: &'a mut Config) -> crate::Result<Self> {
+        config.unlock()?;
+
+        Ok(Self {
             config,
             repo_set: Default::default(),
             repo_format: None,
             target_repo: None,
             scopes: None,
-        }
+        })
     }
 
     /// Set the allowed repo format.
@@ -227,8 +229,9 @@ impl<'a> Targets<'a> {
             targets.push((target, set, restrict));
         }
 
-        // finalize the config after loading repos to start the build pool
-        self.config.finalize()?;
+        // TODO: debug deadlocks when task pool is started implicitly
+        // start the task pool
+        self.config.pool();
 
         // verify matches exist
         let targets = targets
@@ -247,7 +250,7 @@ impl<'a> Targets<'a> {
         Ok(PkgTargets(targets))
     }
 
-    /// Determine target repos and finalize the config.
+    /// Determine target repos and verify the config.
     pub fn repo_targets<I>(mut self, values: I) -> crate::Result<RepoTargets>
     where
         I: IntoIterator,
@@ -281,8 +284,9 @@ impl<'a> Targets<'a> {
             return Err(Error::InvalidValue("no repo targets".to_string()));
         }
 
-        // finalize the config after loading repos to start the build pool
-        self.config.finalize()?;
+        // TODO: debug deadlocks when task pool is started implicitly
+        // start the task pool
+        self.config.pool();
 
         Ok(RepoTargets(repos))
     }
@@ -494,14 +498,14 @@ mod tests {
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-2"]).unwrap();
         let fake_repo = config.add_repo(fake_repo).unwrap().into_fake().unwrap();
 
-        // finalize config and pull pkgs
-        config.finalize().unwrap();
+        // pull pkgs
         let ebuild_pkg = ebuild_repo.get_pkg("cat/pkg-1").unwrap();
         let fake_pkg = fake_repo.get_pkg("cat/pkg-2").unwrap();
 
         // no specific repo target uses all configured repos
         let none: Option<&str> = None;
         let targets = Targets::new(&mut config)
+            .unwrap()
             .repo(none)
             .unwrap()
             .pkg_targets(["cat/pkg"])
@@ -523,6 +527,7 @@ mod tests {
         env::set_current_dir(path).unwrap();
         // single target with single pkg
         let targets = Targets::new(&mut config)
+            .unwrap()
             .repo(none)
             .unwrap()
             .pkg_targets(["slot/slot"])
@@ -531,6 +536,7 @@ mod tests {
         assert_eq!(targets.len_pkgs(), 1);
         // single target with multiple pkgs
         let targets = Targets::new(&mut config)
+            .unwrap()
             .repo(none)
             .unwrap()
             .pkg_targets(["properties/inherit"])
@@ -539,11 +545,12 @@ mod tests {
         assert_eq!(targets.len_pkgs(), 2);
 
         // nonexistent repo ID
-        let r = Targets::new(&mut config).repo(Some("nonexistent"));
+        let r = Targets::new(&mut config).unwrap().repo(Some("nonexistent"));
         assert_err_re!(r, "nonexistent repo: nonexistent");
 
         // valid repo ID
         let targets = Targets::new(&mut config)
+            .unwrap()
             .repo(Some("ebuild"))
             .unwrap()
             .pkg_targets(["cat/pkg"])
@@ -551,21 +558,24 @@ mod tests {
         assert_eq!(targets.len(), 1);
 
         // nonexistent repo path
-        let r = Targets::new(&mut config).repo(Some("/path/to/nonexistent/repo"));
+        let r = Targets::new(&mut config)
+            .unwrap()
+            .repo(Some("/path/to/nonexistent/repo"));
         assert_err_re!(r, "nonexistent repo: /path/to/nonexistent/repo");
 
         // valid repo path
         let path = ebuild_repo.path();
-        let r = Targets::new(&mut config).repo(Some(path));
+        let r = Targets::new(&mut config).unwrap().repo(Some(path));
         assert!(r.is_ok());
 
         // invalid nested repo path
         let path = ebuild_repo.path().join("cat/pkg");
-        let r = Targets::new(&mut config).repo(Some(&path));
+        let r = Targets::new(&mut config).unwrap().repo(Some(&path));
         assert_err_re!(r, format!("invalid repo: {path}"));
 
         // valid repo path
         let targets = Targets::new(&mut config)
+            .unwrap()
             .repo(Some(temp.path()))
             .unwrap()
             .pkg_targets(["cat/pkg"])
@@ -573,23 +583,27 @@ mod tests {
         assert_eq!(targets.len(), 1);
 
         // nonexistent repo target with dep restriction
-        let r = Targets::new(&mut config).pkg_targets(["cat/pkg::nonexistent"]);
+        let r = Targets::new(&mut config)
+            .unwrap()
+            .pkg_targets(["cat/pkg::nonexistent"]);
         assert_err_re!(r, "nonexistent repo: nonexistent");
 
         // no match
         for target in ["cat/pkg:slot", "pkg:slot"] {
-            let r = Targets::new(&mut config).pkg_targets([target]);
+            let r = Targets::new(&mut config).unwrap().pkg_targets([target]);
             assert_err_re!(r, format!("no match: {target}"));
         }
 
         // existing repo target with dep restriction
         let targets = Targets::new(&mut config)
+            .unwrap()
             .pkg_targets(["cat/pkg::fake"])
             .unwrap();
         assert_eq!(targets.len(), 1);
 
         // existing repo path
         let targets = Targets::new(&mut config)
+            .unwrap()
             .pkg_targets([ebuild_repo.path()])
             .unwrap();
         assert_eq!(targets.len(), 1);
@@ -608,16 +622,16 @@ mod tests {
         let fake_repo = FakeRepo::new("fake", 0).pkgs(["cat/pkg-2"]).unwrap();
         let fake_repo = config.add_repo(fake_repo).unwrap().into_fake().unwrap();
 
-        // finalize config
-        config.finalize().unwrap();
-
         // no targets
         let empty: [&str; 0] = [];
-        let r = Targets::new(&mut config).repo_targets(empty);
+        let r = Targets::new(&mut config).unwrap().repo_targets(empty);
         assert_err_re!(r, "no repo targets");
 
         // single target
-        let targets = Targets::new(&mut config).repo_targets(["ebuild"]).unwrap();
+        let targets = Targets::new(&mut config)
+            .unwrap()
+            .repo_targets(["ebuild"])
+            .unwrap();
         assert!(!targets.is_empty());
         assert_eq!(targets.len(), 1);
         let repo = targets.ebuild_repo().unwrap();
@@ -625,6 +639,7 @@ mod tests {
 
         // multiple target
         let targets = Targets::new(&mut config)
+            .unwrap()
             .repo_targets(["ebuild", "fake"])
             .unwrap();
         assert_eq!(targets.len(), 2);

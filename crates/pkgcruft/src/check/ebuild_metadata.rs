@@ -1,7 +1,7 @@
 use pkgcraft::dep::Cpv;
 use pkgcraft::error::Error::InvalidPkg;
 use pkgcraft::restrict::Scope;
-use pkgcraft::shell::pool::MetadataTaskBuilder;
+use pkgcraft::shell::pool::MetadataRegen;
 
 use crate::report::ReportKind::MetadataError;
 use crate::scan::ScannerRun;
@@ -16,19 +16,19 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
-        regen: run.repo.pool().metadata_task(&run.repo),
-    })
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
+        regen: run.repo.metadata_regen(),
+    }))
 }
 
 struct Check {
-    regen: MetadataTaskBuilder,
+    regen: MetadataRegen,
 }
 
 impl super::CheckRun for Check {
     fn run_cpv(&self, cpv: &Cpv, run: &ScannerRun) {
-        match self.regen.run(cpv) {
+        match self.regen.get(cpv) {
             Ok(_) => (),
             Err(InvalidPkg { err, .. }) => MetadataError.version(cpv).message(err).report(run),
             Err(e) => unreachable!("unexpected metadata error: {e}"),

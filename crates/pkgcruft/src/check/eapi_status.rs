@@ -17,7 +17,7 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let banned = &run.repo.metadata().config.eapis_banned;
     let unused = if run.enabled(EapiUnused) && !banned.is_empty() {
         EAPIS_OFFICIAL
@@ -30,7 +30,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         Default::default()
     };
 
-    Box::new(Check { unused })
+    Ok(Box::new(Check { unused }))
 }
 
 struct Check {
@@ -104,6 +104,7 @@ mod tests {
         }
         let mut config = Config::new("pkgcraft", "");
         let repo = Targets::new(&mut config)
+            .unwrap()
             .repo_targets([temp.path()])
             .unwrap()
             .ebuild_repo()

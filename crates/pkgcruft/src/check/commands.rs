@@ -33,7 +33,7 @@ super::register! {
 type CommandFn =
     for<'a> fn(&str, &Node<'a>, &Node<'a>, &mut TreeCursor<'a>, &EbuildRawPkg, &ScannerRun);
 
-pub(super) fn create(_run: &ScannerRun) -> super::Runner {
+pub(super) fn create(_run: &ScannerRun) -> crate::Result<super::Runner> {
     let mut check = Check { commands: Default::default() };
 
     // register non-EAPI commands
@@ -45,7 +45,7 @@ pub(super) fn create(_run: &ScannerRun) -> super::Runner {
         check.register_eapi(eapi, eapi.commands(), eapi_command);
     }
 
-    Box::new(check)
+    Ok(Box::new(check))
 }
 
 struct Check {

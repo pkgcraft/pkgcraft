@@ -17,14 +17,14 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         allowed: run
             .repo
             .trees()
             .flat_map(|r| r.metadata().config.properties_allowed.clone())
             .collect(),
-    })
+    }))
 }
 
 struct Check {

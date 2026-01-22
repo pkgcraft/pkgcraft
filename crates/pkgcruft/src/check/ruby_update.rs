@@ -27,11 +27,11 @@ super::register! {
 static IUSE_PREFIX: &str = "ruby_targets_";
 static IMPL_PKG: &str = "dev-lang/ruby";
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         targets: impl_targets(&run.repo, "ruby_targets", "ruby").collect(),
         dep_targets: Default::default(),
-    })
+    }))
 }
 
 struct Check {

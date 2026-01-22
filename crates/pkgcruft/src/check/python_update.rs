@@ -60,13 +60,13 @@ impl Eclass {
     }
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         targets: Eclass::iter()
             .map(|e| (e, e.targets(&run.repo).collect()))
             .collect(),
         dep_targets: Default::default(),
-    })
+    }))
 }
 
 struct Check {

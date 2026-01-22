@@ -76,7 +76,7 @@ fn git_repo() {
         .stderr("")
         .success();
 
-    // initial sync
+    // initial sync will work
     cmd("pk repo sync test")
         .args(["--config", config_dir])
         .assert()
@@ -84,11 +84,12 @@ fn git_repo() {
         .stderr("")
         .success();
 
-    // sync of existing repo
+    // syncing existing repo will error out on config load
     cmd("pk repo sync test")
         .args(["--config", config_dir])
         .assert()
         .stdout("")
-        .stderr("")
-        .success();
+        .stderr("pk: error: config error: test: nonexistent masters: gentoo\n")
+        .failure()
+        .code(2);
 }

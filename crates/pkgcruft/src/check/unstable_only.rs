@@ -21,8 +21,8 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         stable: run
             .repo
             .metadata()
@@ -30,7 +30,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
             .get("stable")
             .cloned()
             .unwrap_or_default(),
-    })
+    }))
 }
 
 struct Check {

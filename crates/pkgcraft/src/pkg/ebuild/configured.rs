@@ -1,7 +1,5 @@
 use std::fmt;
-use std::sync::Arc;
 
-use crate::config::Settings;
 use crate::dep::{Cpv, Dep, DependencySet, Evaluate, Uri};
 use crate::eapi::Eapi;
 use crate::macros::bool_not_equal;
@@ -17,7 +15,6 @@ use super::{EbuildPkg, MetadataKey};
 #[derive(Clone)]
 pub struct EbuildConfiguredPkg {
     repo: ConfiguredRepo,
-    settings: Arc<Settings>,
     raw: EbuildPkg,
 }
 
@@ -36,8 +33,8 @@ impl fmt::Debug for EbuildConfiguredPkg {
 }
 
 impl EbuildConfiguredPkg {
-    pub(crate) fn new(repo: ConfiguredRepo, settings: Arc<Settings>, raw: EbuildPkg) -> Self {
-        Self { repo, settings, raw }
+    pub(crate) fn new(repo: ConfiguredRepo, raw: EbuildPkg) -> Self {
+        Self { repo, raw }
     }
 
     /// Return a package's evaluated dependencies for a given iterable of descriptors.
@@ -47,42 +44,70 @@ impl EbuildConfiguredPkg {
     {
         self.raw
             .dependencies(keys)
-            .evaluate(self.settings.options())
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated BDEPEND.
     pub fn bdepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.meta.bdepend.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .bdepend
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated DEPEND.
     pub fn depend(&self) -> DependencySet<&Dep> {
-        self.raw.0.meta.depend.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .depend
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated IDEPEND.
     pub fn idepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.meta.idepend.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .idepend
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated PDEPEND.
     pub fn pdepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.meta.pdepend.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .pdepend
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated RDEPEND.
     pub fn rdepend(&self) -> DependencySet<&Dep> {
-        self.raw.0.meta.rdepend.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .rdepend
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated LICENSE.
     pub fn license(&self) -> DependencySet<&String> {
-        self.raw.0.meta.license.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .license
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated PROPERTIES.
     pub fn properties(&self) -> DependencySet<&String> {
-        self.raw.0.meta.properties.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .properties
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated RESTRICT.
@@ -91,17 +116,25 @@ impl EbuildConfiguredPkg {
             .0
             .meta
             .required_use
-            .evaluate(self.settings.options())
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated RESTRICT.
     pub fn restrict(&self) -> DependencySet<&String> {
-        self.raw.0.meta.restrict.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .restrict
+            .evaluate(self.repo.settings().options())
     }
 
     /// Return a configured package's evaluated SRC_URI.
     pub fn src_uri(&self) -> DependencySet<&Uri> {
-        self.raw.0.meta.src_uri.evaluate(self.settings.options())
+        self.raw
+            .0
+            .meta
+            .src_uri
+            .evaluate(self.repo.settings().options())
     }
 
     // TODO: combine this with profile and config settings

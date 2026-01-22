@@ -16,13 +16,13 @@ super::register! {
     create,
 }
 
-pub(super) fn create(_run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(_run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         allowed_leading_whitespace: ["heredoc_body", "raw_string"]
             .iter()
             .map(|s| s.to_string())
             .collect(),
-    })
+    }))
 }
 
 struct Check {

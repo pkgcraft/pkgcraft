@@ -116,7 +116,6 @@ mod tests {
         "#};
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();

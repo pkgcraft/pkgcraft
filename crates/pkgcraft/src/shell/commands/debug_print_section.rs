@@ -65,7 +65,6 @@ mod tests {
         "#};
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();
@@ -95,7 +94,6 @@ mod tests {
         "#};
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild_from_str("cat/pkg-1", data).unwrap();
         let raw_pkg = repo.get_pkg_raw("cat/pkg-1").unwrap();

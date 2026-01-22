@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::sync::Arc;
 use std::{fmt, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -171,11 +170,7 @@ pub struct ConfigRepos {
 }
 
 impl ConfigRepos {
-    pub(super) fn new(
-        config_dir: &Utf8Path,
-        db_dir: &Utf8Path,
-        settings: &Arc<super::Settings>,
-    ) -> crate::Result<Self> {
+    pub(super) fn new(config_dir: &Utf8Path, db_dir: &Utf8Path) -> crate::Result<Self> {
         let config_dir = config_dir.join("repos");
         let repos_dir = db_dir.join("repos");
 
@@ -225,7 +220,7 @@ impl ConfigRepos {
         };
 
         // add repos to the config
-        config.extend(repos, settings)?;
+        config.extend(repos)?;
         Ok(config)
     }
 
@@ -342,10 +337,9 @@ impl ConfigRepos {
     }
 
     /// Extend the config with multiple repos.
-    pub(crate) fn extend<I: IntoIterator<Item = Repo>>(
+    pub(super) fn extend<I: IntoIterator<Item = Repo>>(
         &mut self,
         repos: I,
-        settings: &Arc<super::Settings>,
     ) -> crate::Result<()> {
         let mut existing_repos = vec![];
         let mut new_repos = IndexMap::new();
@@ -370,7 +364,7 @@ impl ConfigRepos {
         for (_name, repo) in &new_repos {
             // create configured ebuild repos
             if let Repo::Ebuild(r) = repo {
-                let configured = r.configure(settings.clone());
+                let configured = r.configure();
                 self.configured.insert(configured.into());
             }
         }

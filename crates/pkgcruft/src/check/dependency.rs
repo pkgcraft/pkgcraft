@@ -27,7 +27,7 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let unused = if run.enabled(PackageDeprecatedUnused) {
         run.repo
             .metadata()
@@ -39,7 +39,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         Default::default()
     };
 
-    Box::new(Check { unused })
+    Ok(Box::new(Check { unused }))
 }
 
 struct Check {

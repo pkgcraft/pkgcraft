@@ -14,6 +14,7 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
         temp.create_ebuild(format!("cat/pkg-{i}"), &[]).unwrap();
     }
     let repo = Targets::new(&mut config)
+        .unwrap()
         .repo_targets([temp.path()])
         .unwrap()
         .ebuild_repo()
@@ -47,13 +48,15 @@ pub fn bench_repo_ebuild(c: &mut Criterion) {
 
     c.bench_function("repo-ebuild-metadata-regen-force", |b| {
         b.iter(|| {
-            let _ = repo.metadata().cache().regen(repo).force(true).run();
+            let metadata_regen = repo.metadata().cache().regen(repo);
+            let _ = metadata_regen.force(true).run();
         });
     });
 
     c.bench_function("repo-ebuild-metadata-regen-verify", |b| {
         b.iter(|| {
-            let _ = repo.metadata().cache().regen(repo).run();
+            let metadata_regen = repo.metadata().cache().regen(repo);
+            let _ = metadata_regen.run();
         });
     });
 }

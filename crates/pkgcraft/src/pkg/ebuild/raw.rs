@@ -149,9 +149,8 @@ impl EbuildRawPkg {
 
     /// Deserialize a package's metadata, regenerating it on error.
     pub(crate) fn metadata(&self) -> crate::Result<Metadata> {
-        let repo = &self.0.repo;
         self.get_metadata().or_else(|_| {
-            repo.pool().metadata_task(repo).force(true).run(self)?;
+            self.0.repo.metadata_regen().force(true).get(self)?;
             self.get_metadata()
         })
     }
@@ -250,7 +249,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8

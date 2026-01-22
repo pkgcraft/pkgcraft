@@ -49,7 +49,7 @@ impl Command {
         // build custom, global thread pool when limiting jobs
         bounded_thread_pool(self.jobs);
 
-        let repo = Targets::new(config)
+        let repo = Targets::new(config)?
             .repo_targets([&self.repo])?
             .ebuild_repo()?;
 

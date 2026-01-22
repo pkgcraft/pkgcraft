@@ -44,7 +44,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let patch1 = indoc::indoc! {"
             --- a/file.txt
@@ -131,7 +130,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // default src_install handles DOCS and HTML_DOCS
         for eapi in eapi::range("6..").unwrap() {

@@ -19,7 +19,7 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let unused = if run.enabled(LicensesUnused) {
         run.repo
             .metadata()
@@ -31,7 +31,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         Default::default()
     };
 
-    Box::new(Check {
+    Ok(Box::new(Check {
         deprecated: run
             .repo
             .license_groups()
@@ -43,7 +43,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
             .map(|x| x.to_string())
             .collect(),
         unused,
-    })
+    }))
 }
 
 struct Check {

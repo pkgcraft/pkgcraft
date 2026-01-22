@@ -27,7 +27,7 @@ pub(crate) struct Command {
 
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
-        let repos = Targets::new(config)
+        let repos = Targets::new(config)?
             .repo_targets(&self.repos)?
             .ebuild_repos()?;
 

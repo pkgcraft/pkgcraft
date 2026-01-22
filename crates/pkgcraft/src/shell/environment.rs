@@ -282,7 +282,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
         let all_scopes: Vec<_> = ScopeSet::All.into_iter().collect();
 
         for eapi in &*EAPIS_OFFICIAL {
@@ -384,7 +383,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
         let data = indoc::indoc! {r#"
             EAPI=8
             DESCRIPTION="testing environment state handling"
@@ -428,7 +426,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests
@@ -470,7 +467,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             // generate phase tests

@@ -32,7 +32,7 @@ impl Command {
         let mut config = Config::new("pkgcraft", "");
 
         // determine package restrictions
-        let targets = Targets::new(&mut config)
+        let targets = Targets::new(&mut config)?
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?

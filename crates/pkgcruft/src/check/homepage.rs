@@ -17,14 +17,14 @@ super::register! {
     create,
 }
 
-pub(super) fn create(_run: &ScannerRun) -> super::Runner {
-    Box::new(Check {
+pub(super) fn create(_run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check {
         allowed_protocols: ["http", "https"].into_iter().map(Into::into).collect(),
         missing_categories: ["acct-group", "acct-user", "virtual"]
             .iter()
             .map(|x| x.to_string())
             .collect(),
-    })
+    }))
 }
 
 struct Check {

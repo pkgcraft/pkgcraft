@@ -567,7 +567,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             // external commands are denied via restricted shell setting PATH=/dev/null
@@ -592,7 +591,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // absolute command errors in restricted shells currently don't bail, so force them to
         builtins::set(["-e"]).unwrap();
@@ -617,7 +615,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             let data = indoc::formatdoc! {r#"
@@ -642,7 +639,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         for eapi in &*EAPIS_OFFICIAL {
             for cmd in eapi.commands().iter().filter(|b| !b.is_phase()) {
@@ -665,7 +661,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         for eapi in &*EAPIS {
             for phase in eapi.phases() {

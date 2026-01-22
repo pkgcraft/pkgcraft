@@ -114,7 +114,6 @@ fn remove() {
     temp.create_ebuild("cat/a-1", &[]).unwrap();
     temp.create_ebuild("a/b-1", &[]).unwrap();
     let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-    config.finalize().unwrap();
 
     env::set_current_dir(&repo).unwrap();
 

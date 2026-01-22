@@ -91,9 +91,9 @@ impl EbuildPkg {
 
     /// Return the mapping of global environment variables exported by the package.
     pub fn env(&self) -> IndexMap<String, String> {
-        let repo = self.repo();
-        repo.pool()
-            .env(&repo, self)
+        self.0
+            .raw
+            .env()
             .unwrap_or_else(|e| panic!("{self}: invalid pkg: {e}"))
     }
 
@@ -425,7 +425,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // unknown
         temp.create_ebuild("cat/pkg-1", &["EAPI=unknown"]).unwrap();
@@ -478,7 +477,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -497,7 +495,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();
@@ -600,7 +597,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -960,7 +956,6 @@ mod tests {
             test https://test/mirror1 https://test/mirror2
         "#};
         fs::write(repo.path().join("profiles/thirdpartymirrors"), mirrors).unwrap();
-        config.finalize().unwrap();
 
         // no fetchables
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
@@ -1108,7 +1103,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         // none
         temp.create_ebuild("nomanifest/pkg-1", &[]).unwrap();

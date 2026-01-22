@@ -14,6 +14,7 @@ pub fn bench(c: &mut Criterion) {
     if let Ok(path) = env::var("PKGCRUFT_BENCH_REPO") {
         let mut config = Config::new("pkgcraft", "");
         let repo = Targets::new(&mut config)
+            .unwrap()
             .repo_targets([path])
             .unwrap()
             .ebuild_repo()

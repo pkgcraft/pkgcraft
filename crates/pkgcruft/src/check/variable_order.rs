@@ -33,8 +33,8 @@ enum Variable {
     PROPERTIES,
 }
 
-pub(super) fn create(_run: &ScannerRun) -> super::Runner {
-    Box::new(Check)
+pub(super) fn create(_run: &ScannerRun) -> crate::Result<super::Runner> {
+    Ok(Box::new(Check))
 }
 
 struct Check;

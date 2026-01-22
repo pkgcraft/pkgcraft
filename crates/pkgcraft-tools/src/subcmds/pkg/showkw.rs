@@ -246,7 +246,7 @@ impl<I: Iterator<Item = EbuildPkg>> Iterator for CpnPkgsIter<'_, I> {
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // determine pkg targets
-        let pkg_targets = Targets::new(config)
+        let pkg_targets = Targets::new(config)?
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?;

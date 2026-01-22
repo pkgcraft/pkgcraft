@@ -1,13 +1,15 @@
 use std::env;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, OnceLock, Weak};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 
+use crate::Error;
 use crate::macros::build_path;
 use crate::repo::{Repo, RepoFormat, Repository};
-use crate::{Error, shell};
+use crate::shell::BuildPool;
 pub(crate) use repo::RepoConfig;
 
 mod portage;
@@ -101,7 +103,7 @@ impl ConfigPath {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct Settings {
     options: IndexSet<String>,
 }
@@ -112,56 +114,104 @@ impl Settings {
     }
 }
 
-mod sealed {
-    use super::{ConfigPath, ConfigRepos, Settings};
-    use std::sync::Arc;
+#[derive(Debug, Default)]
+struct ConfigInternal {
+    path: ConfigPath,
+    repos: ConfigRepos,
+    settings: Arc<Settings>,
 
-    pub trait Config: Default + std::fmt::Debug {
-        fn repos(&self) -> &ConfigRepos;
+    /// Flag used to denote when config files have been loaded.
+    loaded: bool,
 
-        fn path(&self) -> &ConfigPath;
+    /// Flag used to denote when portage repos have been loaded.
+    portage: bool,
 
-        fn settings(&self) -> &Arc<Settings>;
+    /// Task pool for the config.
+    pool: OnceLock<Arc<BuildPool>>,
+
+    // TODO: Replace with RwLock usage if it can be fit into the task pool design.
+    /// Mutability lock for the config.
+    lock: AtomicBool,
+}
+
+/// System config
+#[derive(Debug, Default, Clone)]
+pub struct Config {
+    inner: Arc<ConfigInternal>,
+}
+
+/// Weak wrapper for the system config used to break cyclic references.
+#[derive(Debug, Default, Clone)]
+pub(crate) struct ConfigWeak {
+    inner: Weak<ConfigInternal>,
+}
+
+impl From<&Config> for ConfigWeak {
+    fn from(config: &Config) -> Self {
+        let inner = Arc::downgrade(&config.inner);
+        Self { inner }
     }
 }
 
-#[derive(Debug, Default)]
-pub struct ConfigInner {
-    path: ConfigPath,
-    pub(crate) repos: ConfigRepos,
-    settings: Arc<Settings>,
-    /// Flag used to denote when config files have been loaded.
-    loaded: bool,
-    /// Flag used to denote when portage repos have been loaded.
-    portage: bool,
-    // TODO: Remove it later
-    pool: Arc<shell::BuildPool>,
+impl From<&ConfigWeak> for Config {
+    fn from(config: &ConfigWeak) -> Self {
+        let inner = config
+            .inner
+            .upgrade()
+            .unwrap_or_else(|| unreachable!("invalid config reference"));
+        Self { inner }
+    }
 }
 
-impl ConfigInner {
+impl Config {
+    /// Create a new config.
+    pub fn new(name: &str, prefix: &str) -> Self {
+        let path = ConfigPath::new(name, prefix);
+        let inner = Arc::new(ConfigInternal { path, ..Default::default() });
+        Config { inner }
+    }
+
+    /// Get a mutable reference to the config.
+    ///
+    /// This uses unsafe to modify raw pointers directly because weak references are
+    /// copied into each ebuild repo so Arc::get_mut() doesn't work.
+    fn get_mut(&mut self) -> crate::Result<&mut ConfigInternal> {
+        if self.is_locked() {
+            return Err(Error::Config("immutable config".to_string()));
+        }
+
+        // TODO: use Arc::get_mut_unchecked() when stabilized
+        Ok(unsafe { &mut *(Arc::as_ptr(&self.inner) as *mut _) })
+    }
+
     /// Load user or system config files, if none are found revert to loading portage files.
     pub fn load(&mut self) -> crate::Result<()> {
-        if !self.loaded {
+        if !self.inner.loaded {
             if let Ok(value) = env::var("PKGCRAFT_CONFIG") {
                 self.load_path(&value)?;
             } else if !cfg!(any(feature = "test", test)) {
-                self.repos =
-                    ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
+                self.get_mut()?.repos =
+                    ConfigRepos::new(&self.path().config, &self.path().db)?;
             }
         }
 
-        self.loaded = true;
+        self.get_mut()?.loaded = true;
+        self.finalize()?;
+
         Ok(())
     }
 
     /// Load config files from a given path.
     pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
-        if !self.loaded && !path.is_empty() {
-            self.path = ConfigPath::new("pkgcraft", path);
-            self.repos = ConfigRepos::new(&self.path.config, &self.path.db, &self.settings)?;
+        let config = self.get_mut()?;
+        if !config.loaded && !path.is_empty() {
+            config.path = ConfigPath::new("pkgcraft", path);
+            config.repos = ConfigRepos::new(&config.path.config, &config.path.db)?;
         };
 
-        self.loaded = true;
+        config.loaded = true;
+        self.finalize()?;
+
         Ok(())
     }
 
@@ -171,6 +221,7 @@ impl ConfigInner {
     /// falling back to the default locations if it's undefined.
     pub fn load_portage_repos(&mut self, config_dir: Option<&str>) -> crate::Result<()> {
         let env_var = env::var("PORTAGE_CONFIG");
+        let config = self.get_mut()?;
 
         // use specified path or use fallbacks
         let config_dirs: &[&str] = if let Some(value) = config_dir {
@@ -186,113 +237,17 @@ impl ConfigInner {
             let path = Utf8Path::new(dir).join("repos.conf");
             if let Ok(true) = path.try_exists() {
                 let repos = portage::load_repos_conf(path)?;
-                self.repos.extend(repos, &self.settings)?;
+                config.repos.extend(repos)?;
             } else if let Some(s) = config_dir {
                 return Err(Error::Config(format!("nonexistent portage config path: {s}")));
             }
         }
 
-        self.loaded = true;
-        self.portage = true;
+        config.loaded = true;
+        config.portage = true;
+        self.finalize()?;
+
         Ok(())
-    }
-}
-
-impl sealed::Config for ConfigInner {
-    fn repos(&self) -> &ConfigRepos {
-        &self.repos
-    }
-
-    fn path(&self) -> &ConfigPath {
-        &self.path
-    }
-
-    fn settings(&self) -> &Arc<Settings> {
-        &self.settings
-    }
-}
-
-/*
-#[derive(Debug, Default)]
-struct ConfigFinalized {
-    inner: Arc<ConfigInner>,
-    pool: Arc<shell::BuildPool>,
-}
-
-impl sealed::Config for ConfigFinalized {
-    fn repos(&self) -> &ConfigRepos {
-        self.inner.repos()
-    }
-
-    fn path(&self) -> &ConfigPath {
-        self.inner.path()
-    }
-
-    fn settings(&self) -> &Arc<Settings> {
-        self.inner.settings()
-    }
-}
-*/
-
-/// System config
-#[derive(Debug, Default)]
-pub struct Config<C: sealed::Config = ConfigInner> {
-    inner: C,
-}
-
-impl<C: sealed::Config> From<&Config<C>> for Arc<Settings> {
-    fn from(config: &Config<C>) -> Self {
-        config.settings().clone()
-    }
-}
-
-// Accessors for the main fields
-impl<C: sealed::Config> Config<C> {
-    pub fn repos(&self) -> &ConfigRepos {
-        self.inner.repos()
-    }
-
-    pub fn path(&self) -> &ConfigPath {
-        self.inner.path()
-    }
-
-    pub fn settings(&self) -> &Arc<Settings> {
-        self.inner.settings()
-    }
-}
-
-// Accessor for repos
-impl<C: sealed::Config> Config<C> {
-    /// Determine if the config has all named repos loaded.
-    fn has_repos<I>(&self, repos: I) -> bool
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        repos.into_iter().all(|x| self.repos().get(x).is_ok())
-    }
-}
-
-impl Config<ConfigInner> {
-    pub fn new(name: &str, prefix: &str) -> Self {
-        let path = ConfigPath::new(name, prefix);
-        let inner = ConfigInner { path, ..Default::default() };
-        Config { inner }
-    }
-
-    /// Load user or system config files, if none are found revert to loading portage files.
-    pub fn load(&mut self) -> crate::Result<()> {
-        self.inner.load()
-    }
-
-    /// Load config files from a given path.
-    pub fn load_path(&mut self, path: &str) -> crate::Result<()> {
-        self.inner.load_path(path)
-    }
-
-    /// Load portage config files from a given directory, falling back to the default locations.
-    pub fn load_portage_repos(&mut self, path: Option<&str>) -> crate::Result<()> {
-        self.inner.load_portage_repos(path)
     }
 
     /// Add local repo from a filesystem path.
@@ -345,6 +300,15 @@ impl Config<ConfigInner> {
         }
     }
 
+    /// Determine if the config has all named repos loaded.
+    fn has_repos<I>(&self, repos: I) -> bool
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        repos.into_iter().all(|x| self.repos().get(x).is_ok())
+    }
+
     /// Add a repo to the config.
     pub fn add_repo<T>(&mut self, value: T) -> crate::Result<Repo>
     where
@@ -376,9 +340,7 @@ impl Config<ConfigInner> {
             repo.finalize(self)?;
         }
 
-        let settings = self.settings().clone();
-
-        self.inner.repos.extend([repo.clone()], &settings)?;
+        self.get_mut()?.repos.extend([repo.clone()])?;
 
         Ok(repo)
     }
@@ -388,29 +350,58 @@ impl Config<ConfigInner> {
         if self.inner.portage {
             Err(Error::Config("can't alter portage repos".to_string()))
         } else {
-            Ok(&mut self.inner.repos)
+            Ok(&mut self.get_mut()?.repos)
         }
     }
 
-    // TODO: Move to ConfigFinalized once repo is generic over Config.
-
-    /// Finalize the config repos and start the build pool.
-    pub fn finalize(&self) -> crate::Result<()> {
-        // finalize repos
-        for (id, repo) in &self.inner.repos {
+    /// Finalize the configured repos.
+    pub(crate) fn finalize(&self) -> crate::Result<()> {
+        for (id, repo) in self.repos() {
             repo.finalize(self)
                 .map_err(|e| Error::Config(format!("{id}: {e}")))?;
         }
 
-        // start the build pool
-        self.inner.pool.start(self.inner.repos.clone())?;
-
         Ok(())
     }
 
-    /// Return the build pool for the config.
-    pub fn pool(&self) -> &Arc<shell::BuildPool> {
-        &self.inner.pool
+    /// Return the task pool for the config.
+    pub(crate) fn pool(&self) -> &Arc<BuildPool> {
+        self.inner.pool.get_or_init(|| {
+            self.lock();
+            Arc::new(BuildPool::start(self))
+        })
+    }
+
+    /// Make the config immutable.
+    pub(crate) fn lock(&self) {
+        self.inner.lock.store(true, Ordering::Relaxed);
+    }
+
+    /// Revert config immutability.
+    pub(crate) fn unlock(&mut self) -> crate::Result<()> {
+        self.inner.lock.store(false, Ordering::Relaxed);
+        self.get_mut()?.pool.take();
+        Ok(())
+    }
+
+    /// Return the lock status for the config.
+    pub(crate) fn is_locked(&self) -> bool {
+        self.inner.lock.load(Ordering::Relaxed)
+    }
+
+    /// Return the repos for the config.
+    pub fn repos(&self) -> &ConfigRepos {
+        &self.inner.repos
+    }
+
+    /// Return the paths for the config.
+    pub fn path(&self) -> &ConfigPath {
+        &self.inner.path
+    }
+
+    /// Return the settings for the config.
+    pub fn settings(&self) -> &Arc<Settings> {
+        &self.inner.settings
     }
 }
 
@@ -586,8 +577,7 @@ mod tests {
             location = {repos_dir}/invalid/nonexistent-masters
         "#};
         fs::write(path, data).unwrap();
-        config.load_portage_repos(Some(conf_path)).unwrap();
-        let r = config.finalize();
+        let r = config.load_portage_repos(Some(conf_path));
         assert_err_re!(r, "^.* nonexistent masters: nonexistent1, nonexistent2$");
 
         // multiple config files in a specified directory
@@ -615,7 +605,6 @@ mod tests {
         "#, t3.path()};
         fs::write(conf_dir.join("repos.conf/r3.conf"), data).unwrap();
         config.load_portage_repos(Some(conf_path)).unwrap();
-        config.finalize().unwrap();
         assert_ordered_eq!(config.repos().iter().map(|(_, r)| r.id()), ["r3", "r1", "r2"]);
 
         // reloading directory succeeds

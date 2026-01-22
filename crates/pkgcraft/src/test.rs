@@ -194,8 +194,6 @@ pub fn test_data() -> TestData {
         config.add_repo(repo).unwrap();
     }
 
-    config.finalize().unwrap();
-
     TestData {
         path: path.clone(),
         config,
@@ -319,8 +317,6 @@ pub fn test_data_patched() -> TestDataPatched {
             config.add_repo(repo).unwrap();
         }
     }
-
-    config.finalize().unwrap();
 
     TestDataPatched { _tmpdir: tmpdir, config }
 }

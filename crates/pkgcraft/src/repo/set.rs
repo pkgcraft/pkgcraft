@@ -518,7 +518,6 @@ mod tests {
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let e_repo = config.add_repo(&temp).unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        config.finalize().unwrap();
 
         // single ebuild
         let s = RepoSet::from_iter([e_repo.clone(), f_repo]);

@@ -17,7 +17,7 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let empty_categories = if run.enabled(RepoPackageEmpty) {
         run.repo.categories().iter().map(Into::into).collect()
     } else {
@@ -35,7 +35,7 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         Default::default()
     };
 
-    Box::new(Check { empty_categories, unused })
+    Ok(Box::new(Check { empty_categories, unused }))
 }
 
 struct Check {

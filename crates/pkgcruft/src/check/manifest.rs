@@ -22,7 +22,7 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let config = &run.repo.metadata().config;
 
     // determine default hashes
@@ -44,13 +44,13 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
             .unwrap()
     };
 
-    Box::new(Check {
+    Ok(Box::new(Check {
         thin_manifests: config.thin_manifests(),
         colliding: Default::default(),
         conflicting: Default::default(),
         manifest_hashes,
         required_hash,
-    })
+    }))
 }
 
 struct Check {

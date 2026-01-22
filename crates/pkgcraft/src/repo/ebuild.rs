@@ -18,6 +18,7 @@ pub use self::revdeps::RevDepCache;
 pub use self::temp::{EbuildRepoBuilder, EbuildTempRepo};
 
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use std::{fmt, fs};
@@ -27,7 +28,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use tracing::warn;
 
-use crate::config::{Config, RepoConfig, Settings};
+use crate::config::{Config, ConfigWeak, RepoConfig};
 use crate::dep::{self, Cpn, Cpv, Dep, Version};
 use crate::eapi::Eapi;
 use crate::error::Error;
@@ -36,7 +37,7 @@ use crate::macros::build_path;
 use crate::pkg::ebuild::{EbuildPkg, EbuildRawPkg, keyword::Arch};
 use crate::restrict::Restrict;
 use crate::restrict::dep::Restrict as DepRestrict;
-use crate::shell::BuildPool;
+use crate::shell::pool::{BuildPool, MetadataRegen};
 use crate::traits::{Contains, Intersects};
 use crate::xml::parse_xml_with_dtd;
 
@@ -52,7 +53,7 @@ struct InternalEbuildRepo {
 #[derive(Default)]
 struct LazyMetadata {
     masters: OnceLock<Vec<EbuildRepo>>,
-    pool: OnceLock<Arc<BuildPool>>,
+    config: OnceLock<ConfigWeak>,
     arches: OnceLock<IndexSet<Arch>>,
     licenses: OnceLock<IndexSet<String>>,
     license_groups: OnceLock<IndexMap<String, IndexSet<String>>>,
@@ -93,7 +94,36 @@ impl From<&EbuildRepo> for Restrict {
     }
 }
 
-make_repo_traits!(EbuildRepo);
+/// Wrapper for a standalone ebuild repo.
+#[derive(Debug, Clone)]
+pub struct EbuildRepoStandalone {
+    repo: EbuildRepo,
+    _config: Config,
+}
+
+impl Deref for EbuildRepoStandalone {
+    type Target = EbuildRepo;
+
+    fn deref(&self) -> &Self::Target {
+        &self.repo
+    }
+}
+
+impl PartialEq for EbuildRepoStandalone {
+    fn eq(&self, other: &Self) -> bool {
+        self.repo == other.repo
+    }
+}
+
+impl Eq for EbuildRepoStandalone {}
+
+impl fmt::Display for EbuildRepoStandalone {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.repo)
+    }
+}
+
+make_repo_traits!(EbuildRepo, EbuildRepoStandalone);
 
 impl EbuildRepo {
     /// Create an ebuild repo from a RepoConfig.
@@ -130,14 +160,14 @@ impl EbuildRepo {
         })))
     }
 
-    /// Finalize the repo, resolving repo dependencies and collapsing lazy metadata.
+    /// Finalize the repo and collapse lazy metadata.
     ///
     /// This collapses lazy fields used in metadata regeneration that leverages
     /// process-based parallelism. Without collapsing, every spawned process reinitializes
     /// any lazy data it accesses, causing significant overhead.
     pub(super) fn finalize(&self, config: &Config) -> crate::Result<()> {
-        // check if the repo has already been initialized
-        if self.0.data.masters.get().is_some() {
+        // check if the repo has already been verified
+        if self.0.data.config.get().is_some() {
             return Ok(());
         }
 
@@ -161,11 +191,12 @@ impl EbuildRepo {
 
         self.0
             .data
-            .pool
-            .set(config.pool().clone())
+            .config
+            .set(config.into())
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         // collapse lazy fields
+        self.masters();
         self.eclasses();
         self.arches();
         self.licenses();
@@ -174,13 +205,12 @@ impl EbuildRepo {
     }
 
     /// Load a standalone ebuild repository from a given path.
-    pub fn standalone<P: AsRef<Utf8Path>>(path: P) -> crate::Result<Self> {
+    pub fn standalone<P: AsRef<Utf8Path>>(path: P) -> crate::Result<EbuildRepoStandalone> {
         let path = path.as_ref();
         let mut config = Config::new("pkgcraft", "");
         let repo = config.add_format_repo_nested_path(path, 0, RepoFormat::Ebuild)?;
         let repo = repo.into_ebuild().expect("invalid ebuild repo");
-        config.finalize()?;
-        Ok(repo)
+        Ok(EbuildRepoStandalone { _config: config, repo })
     }
 
     /// Return the repo's path.
@@ -188,17 +218,28 @@ impl EbuildRepo {
         &self.config().location
     }
 
-    /// Return the build pool for the repo.
-    pub fn pool(&self) -> &BuildPool {
+    /// Return the system config for the repo.
+    pub(crate) fn sysconfig(&self) -> Config {
         self.0
             .data
-            .pool
+            .config
             .get()
             .unwrap_or_else(|| panic!("uninitialized ebuild repo: {self}"))
+            .into()
+    }
+
+    /// Return the build pool for the repo.
+    pub(crate) fn pool(&self) -> Arc<BuildPool> {
+        self.sysconfig().pool().clone()
     }
 
     pub fn metadata(&self) -> &Metadata {
         &self.0.metadata
+    }
+
+    /// Return an ebuild metadata builder for the ebuild repo.
+    pub fn metadata_regen(&self) -> MetadataRegen {
+        self.pool().metadata_regen(self)
     }
 
     /// Return the repo EAPI (set in profiles/eapi).
@@ -433,6 +474,8 @@ impl EbuildRepo {
     ///
     /// This constructs packages in parallel and returns them in repo order.
     pub fn iter_ordered(&self) -> IterOrdered {
+        // TODO: debug deadlocks when task pool is started implicitly
+        self.pool();
         IterOrdered::new(self, None)
     }
 
@@ -440,6 +483,8 @@ impl EbuildRepo {
     ///
     /// This constructs packages in parallel and returns them in completion order.
     pub fn iter_unordered(&self) -> IterUnordered {
+        // TODO: debug deadlocks when task pool is started implicitly
+        self.pool();
         IterUnordered::new(self, None)
     }
 
@@ -520,11 +565,8 @@ impl EbuildRepo {
     }
 
     /// Return a configured repo using the given config settings.
-    pub fn configure<T: Into<Arc<Settings>>>(
-        &self,
-        settings: T,
-    ) -> configured::ConfiguredRepo {
-        configured::ConfiguredRepo::new(self.clone(), settings.into())
+    pub fn configure(&self) -> configured::ConfiguredRepo {
+        configured::ConfiguredRepo::new(self.clone())
     }
 
     /// Return the RevDepCache for the repo.
@@ -747,7 +789,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn finalized() {
+    fn masters_and_trees() {
         let data = test_data();
         let repos = data.path().join("repos");
 
@@ -756,7 +798,6 @@ mod tests {
         let repo = config
             .add_repo_path("a", repos.join("valid/primary"), 0)
             .unwrap();
-        config.finalize().unwrap();
         let primary_repo = repo.as_ebuild().unwrap();
         assert!(primary_repo.masters().is_empty());
         assert_ordered_eq!(primary_repo.trees(), [primary_repo]);
@@ -777,7 +818,6 @@ mod tests {
         let r2 = config
             .add_repo_path("secondary", repos.join("valid/secondary"), 0)
             .unwrap();
-        config.finalize().unwrap();
         let primary_repo = r1.as_ebuild().unwrap();
         let secondary_repo = r2.as_ebuild().unwrap();
         assert_ordered_eq!(secondary_repo.masters(), [primary_repo]);
@@ -867,7 +907,6 @@ mod tests {
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        config.finalize().unwrap();
 
         // mismatched
         let r = repo.cpn_from_path("cat");
@@ -892,7 +931,6 @@ mod tests {
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
-        config.finalize().unwrap();
 
         // non-repo path
         assert!(repo.restrict_from_path("/").is_none());
@@ -978,7 +1016,6 @@ mod tests {
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
-        config.finalize().unwrap();
 
         assert_eq!(repo.len(), 2);
         assert!(!repo.is_empty());
@@ -996,7 +1033,6 @@ mod tests {
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("a-cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("z-cat/pkg-1", &[]).unwrap();
-        config.finalize().unwrap();
 
         assert_ordered_eq!(repo.categories(), ["a-cat", "cat", "z-cat"]);
     }
@@ -1006,7 +1042,6 @@ mod tests {
         let mut config = Config::default();
         let temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         assert!(repo.packages("cat").is_empty());
         fs::create_dir_all(temp.path().join("cat/pkg")).unwrap();
@@ -1021,7 +1056,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let ver = |s: &str| Version::try_new(s).unwrap();
 
@@ -1054,7 +1088,6 @@ mod tests {
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat/pkg-2", &[]).unwrap();
-        config.finalize().unwrap();
 
         // path
         assert!(repo.contains(""));
@@ -1113,7 +1146,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
@@ -1130,7 +1162,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat1/pkga-1", &[]).unwrap();
@@ -1195,7 +1226,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
@@ -1211,7 +1241,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat1/pkga-1", &[]).unwrap();
@@ -1271,7 +1300,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
@@ -1287,7 +1315,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
         temp.create_ebuild("a/b-1", &[]).unwrap();
         temp.create_ebuild("a/b-2", &[]).unwrap();
         temp.create_ebuild("z/z-1", &[]).unwrap();
@@ -1336,7 +1363,6 @@ mod tests {
         for cpv in &cpvs {
             temp.create_ebuild(cpv, &[]).unwrap();
         }
-        config.finalize().unwrap();
 
         // valid pkgs
         let pkgs: Vec<_> = repo.iter_ordered().try_collect().unwrap();
@@ -1359,7 +1385,6 @@ mod tests {
         for cpv in &cpvs {
             temp.create_ebuild(cpv, &[]).unwrap();
         }
-        config.finalize().unwrap();
 
         // valid pkgs
         let pkgs: Vec<_> = repo.iter_unordered().try_collect().unwrap();
@@ -1439,5 +1464,28 @@ mod tests {
         assert!(repo.categories_xml().get("pkg").is_none());
         // nonexistent categories don't have entries
         assert!(repo.categories_xml().get("nonexistent").is_none());
+    }
+
+    #[test]
+    fn pool() {
+        let mut config = Config::new("pkgcraft", "");
+        let mut temp = EbuildRepoBuilder::new().name("repo1").build().unwrap();
+        let repo1 = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+        temp.create_ebuild("cat/pkg-1", &[]).unwrap();
+        // task pool is auto-started and the config is locked
+        assert_eq!(repo1.iter().count(), 1);
+
+        // config is immutable while task pool is running
+        let mut temp = EbuildRepoBuilder::new().name("repo2").build().unwrap();
+        temp.create_ebuild("cat/pkg-2", &[]).unwrap();
+        let r = config.add_repo(&temp);
+        assert_err_re!(r, "^config error: immutable config$");
+        assert!(config.is_locked());
+
+        // config can be unlocked, causing the task pool to end
+        config.unlock().unwrap();
+        let repo2 = config.add_repo(&temp).unwrap();
+        assert_eq!(repo1.iter().count(), 1);
+        assert_eq!(repo2.iter().count(), 1);
     }
 }

@@ -17,14 +17,14 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let unused = if run.enabled(EclassUnused) {
         run.repo.metadata().eclasses().iter().cloned().collect()
     } else {
         Default::default()
     };
 
-    Box::new(Check { unused })
+    Ok(Box::new(Check { unused }))
 }
 
 struct Check {

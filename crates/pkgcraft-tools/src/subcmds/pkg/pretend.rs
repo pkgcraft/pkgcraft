@@ -42,7 +42,7 @@ fn pretend(result: pkgcraft::Result<EbuildPkg>) -> pkgcraft::Result<Option<Strin
 impl Command {
     pub(super) fn run(&self, config: &mut Config) -> anyhow::Result<ExitCode> {
         // convert targets to pkgs
-        let pkgs = Targets::new(config)
+        let pkgs = Targets::new(config)?
             .repo_format(RepoFormat::Ebuild)
             .repo(self.repo.as_deref())?
             .pkg_targets(self.targets.iter().flatten())?

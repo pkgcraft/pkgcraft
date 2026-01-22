@@ -80,7 +80,6 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -122,7 +121,6 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -166,7 +164,6 @@ mod tests {
         temp.create_eclass("e2", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -200,7 +197,6 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8
@@ -228,7 +224,6 @@ mod tests {
         temp.create_eclass("e1", eclass).unwrap();
 
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         let data = indoc::indoc! {r#"
             EAPI=8

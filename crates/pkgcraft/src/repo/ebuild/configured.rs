@@ -1,7 +1,7 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use camino::Utf8Path;
 use indexmap::IndexSet;
@@ -19,7 +19,7 @@ use super::EbuildRepo;
 #[derive(Clone)]
 pub struct ConfiguredRepo {
     raw: EbuildRepo,
-    settings: Arc<Settings>,
+    settings: OnceLock<Arc<Settings>>,
 }
 
 impl fmt::Debug for ConfiguredRepo {
@@ -61,8 +61,13 @@ impl Hash for ConfiguredRepo {
 make_repo_traits!(ConfiguredRepo);
 
 impl ConfiguredRepo {
-    pub(super) fn new(raw: EbuildRepo, settings: Arc<Settings>) -> Self {
-        ConfiguredRepo { raw, settings }
+    pub(super) fn new(raw: EbuildRepo) -> Self {
+        ConfiguredRepo { raw, settings: OnceLock::new() }
+    }
+
+    pub(crate) fn settings(&self) -> &Settings {
+        self.settings
+            .get_or_init(|| self.raw.sysconfig().settings().clone())
     }
 }
 
@@ -174,11 +179,9 @@ impl Iterator for Iter {
     type Item = crate::Result<EbuildConfiguredPkg>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|x| {
-            x.map(|pkg| {
-                EbuildConfiguredPkg::new(self.repo.clone(), self.repo.settings.clone(), pkg)
-            })
-        })
+        self.iter
+            .next()
+            .map(|x| x.map(|pkg| EbuildConfiguredPkg::new(self.repo.clone(), pkg)))
     }
 }
 
@@ -216,11 +219,10 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat2/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat1/pkg-1", &[]).unwrap();
-        let repo = repo.configure(&config);
+        let repo = repo.configure();
         let pkgs: Vec<_> = repo.iter().try_collect().unwrap();
         assert_ordered_eq!(
             pkgs.iter().map(|p| p.cpv().to_string()),
@@ -233,11 +235,10 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &[]).unwrap();
         temp.create_ebuild("cat/pkg-2", &[]).unwrap();
-        let repo = repo.configure(&config);
+        let repo = repo.configure();
 
         // single match via CPV
         let cpv = Cpv::try_new("cat/pkg-1").unwrap();

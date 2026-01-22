@@ -165,7 +165,7 @@ impl Scanner {
                 } else if let Some(scope) = check.scoped(run.scope) {
                     Err(Error::CheckInit(check, format!("requires {scope} scope")))
                 } else {
-                    Ok(check.to_runner(&run))
+                    check.to_runner(&run)
                 }
             })
             .filter(|result| {

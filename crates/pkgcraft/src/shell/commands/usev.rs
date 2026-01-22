@@ -94,7 +94,6 @@ mod tests {
         let mut config = Config::default();
         let mut temp = EbuildRepoBuilder::new().build().unwrap();
         let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
-        config.finalize().unwrap();
 
         temp.create_ebuild("cat/pkg-1", &["IUSE=use"]).unwrap();
         let pkg = repo.get_pkg("cat/pkg-1").unwrap();

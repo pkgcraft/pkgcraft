@@ -17,7 +17,7 @@ super::register! {
     create,
 }
 
-pub(super) fn create(run: &ScannerRun) -> super::Runner {
+pub(super) fn create(run: &ScannerRun) -> crate::Result<super::Runner> {
     let unused = if run.enabled(UseGlobalUnused) {
         run.repo
             .metadata()
@@ -29,10 +29,10 @@ pub(super) fn create(run: &ScannerRun) -> super::Runner {
         Default::default()
     };
 
-    Box::new(Check {
+    Ok(Box::new(Check {
         use_expand: ["cpu_flags_"].into_iter().map(Into::into).collect(),
         unused,
-    })
+    }))
 }
 
 struct Check {

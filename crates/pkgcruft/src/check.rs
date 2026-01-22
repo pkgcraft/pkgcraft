@@ -125,16 +125,16 @@ pub struct Check {
     pub(crate) scope: Scope,
     pub(crate) sources: &'static [SourceKind],
     pub context: &'static [Context],
-    create: fn(&ScannerRun) -> Runner,
+    create: fn(&ScannerRun) -> crate::Result<Runner>,
 }
 
 impl Check {
     /// Create a check runner from a check.
-    pub(crate) fn to_runner(self, run: &ScannerRun) -> CheckRunner {
-        CheckRunner {
+    pub(crate) fn to_runner(self, run: &ScannerRun) -> crate::Result<CheckRunner> {
+        Ok(CheckRunner {
             check: self,
-            runner: Arc::new((self.create)(run)),
-        }
+            runner: Arc::new((self.create)(run)?),
+        })
     }
 
     /// Return an iterator of available checks.
