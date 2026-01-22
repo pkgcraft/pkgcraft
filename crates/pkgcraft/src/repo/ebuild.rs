@@ -1284,29 +1284,44 @@ mod tests {
 
     #[test]
     fn iter_restrict() {
-        let data = test_data();
-        let repo = data.ebuild_repo("metadata").unwrap();
+        let mut config = Config::default();
+        let mut temp = EbuildRepoBuilder::new().build().unwrap();
+        let repo = config.add_repo(&temp).unwrap().into_ebuild().unwrap();
+        config.finalize().unwrap();
+        temp.create_ebuild("a/b-1", &[]).unwrap();
+        temp.create_ebuild("a/b-2", &[]).unwrap();
+        temp.create_ebuild("z/z-1", &[]).unwrap();
 
         // non-matching restriction
         let restrict = Restrict::False;
         assert!(repo.iter_restrict(restrict).next().is_none());
 
         // single match via Cpv
-        let cpv = Cpv::try_new("optional/none-8").unwrap();
+        let cpv = Cpv::try_new("a/b-1").unwrap();
         let pkgs: Vec<_> = repo.iter_restrict(&cpv).try_collect().unwrap();
         assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), [cpv.to_string()]);
 
         // single match via package
-        let pkg = repo.iter().next().unwrap().unwrap();
+        let pkg = repo.get_pkg("a/b-1").unwrap();
         let pkgs: Vec<_> = repo.iter_restrict(&pkg).try_collect().unwrap();
-        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), [pkg.cpv().to_string()],);
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), [pkg.cpv().to_string()]);
+
+        // multiple matches via Cpn
+        let cpn = Cpn::try_new("a/b").unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(&cpn).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["a/b-1", "a/b-2"]);
 
         // multiple matches via package name
-        let restrict = DepRestrict::package("inherit");
-        assert!(repo.iter_restrict(restrict).count() > 2);
+        let restrict = DepRestrict::package("b");
+        let pkgs: Vec<_> = repo.iter_restrict(restrict).try_collect().unwrap();
+        assert_ordered_eq!(pkgs.iter().map(|p| p.cpv().to_string()), ["a/b-1", "a/b-2"]);
 
         // all pkgs via repo ref
-        let pkgs: Vec<_> = repo.iter_restrict(repo).try_collect().unwrap();
+        let pkgs: Vec<_> = repo.iter_restrict(&repo).try_collect().unwrap();
+        assert_ordered_eq!(
+            pkgs.iter().map(|p| p.cpv().to_string()),
+            ["a/b-1", "a/b-2", "z/z-1"]
+        );
         assert_eq!(pkgs.len(), repo.len());
     }
 
