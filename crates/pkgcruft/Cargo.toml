@@ -58,7 +58,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 strfmt = "0.2.5"
 strum = { version = "0.27.2", features = ["derive"] }
-thiserror = "2.0.17"
+thiserror = "2.0.18"
 tracing = "0.1.44"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.22"

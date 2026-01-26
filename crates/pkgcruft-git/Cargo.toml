@@ -26,7 +26,7 @@ colorchoice-clap = "1.0.7"
 config = { version = "0.15.19", default-features = false, features = ["toml"] }
 futures = "0.3.31"
 git2 = "0.20.3"
-gix = { version = "0.77.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation"] }
+gix = { version = "0.78.0", default-features = false, features = ["blocking-http-transport-reqwest-rust-tls", "worktree-mutation"] }
 hyper-util = "0.1.19"
 indexmap = "2.13.0"
 indoc = "2.0.7"
@@ -34,10 +34,10 @@ itertools = "0.14.0"
 num_cpus = "1.17.0"
 pkgcraft = { path = "../pkgcraft", version = "0.0.31" }
 pkgcruft = { path = "../pkgcruft", version = "0.0.18" }
-prost = "0.14.1"
+prost = "0.14.3"
 regex = "1.12.2"
 serde = { version = "1.0.228", features = ["derive"] }
-thiserror = "2.0.17"
+thiserror = "2.0.18"
 tokio = { version = "1.49", features = ["full"] }
 tokio-stream = { version = "0.1.18", features = ["net"] }
 tonic = { version = "0.14.2", features = ["tls-ring", "gzip"] }
@@ -49,7 +49,7 @@ tempfile = "3.24.0"
 url = "2.5.8"
 
 # client specific deps
-tower = "0.5.2"
+tower = "0.5.3"
 
 [build-dependencies]
 tonic-prost-build = "0.14.2"
