@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io;
 use std::os::fd::AsFd;
 
-use nix::errno::Errno;
 use nix::unistd::{dup2_stderr, dup2_stdout};
 
 use crate::Error;
@@ -41,7 +40,7 @@ impl NamedSemaphore {
             unsafe { libc::sem_unlink(name.as_ptr()) };
             Ok(Self { sem, size })
         } else {
-            let err = io::Error::from_raw_os_error(Errno::last_raw());
+            let err = io::Error::last_os_error();
             Err(Error::Base(format!("failed creating semaphore: {err}")))
         }
     }
@@ -51,7 +50,7 @@ impl NamedSemaphore {
             Ok(())
         } else {
             // grcov-excl-start: only errors on signal handler interrupt
-            let err = io::Error::from_raw_os_error(Errno::last_raw());
+            let err = io::Error::last_os_error();
             Err(Error::Base(format!("failed acquiring semaphore: {err}")))
         } // grcov-excl-stop
     }
@@ -60,7 +59,7 @@ impl NamedSemaphore {
         if unsafe { libc::sem_post(self.sem) } == 0 {
             Ok(())
         } else {
-            let err = io::Error::from_raw_os_error(Errno::last_raw());
+            let err = io::Error::last_os_error();
             Err(Error::Base(format!("failed releasing semaphore: {err}")))
         }
     }
