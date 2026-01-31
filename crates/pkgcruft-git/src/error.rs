@@ -9,9 +9,9 @@ pub enum Error {
     #[error("{0}")]
     IO(String),
     #[error("{0}")]
-    Pkgcraft(#[from] pkgcraft::Error),
+    Pkgcraft(Box<pkgcraft::Error>),
     #[error("{0}")]
-    Pkgcruft(#[from] pkgcruft::Error),
+    Pkgcruft(Box<pkgcruft::Error>),
     #[error("{0}")]
     Git(String),
     #[error("{0}")]
@@ -21,5 +21,17 @@ pub enum Error {
 impl From<Error> for tonic::Status {
     fn from(e: Error) -> Self {
         tonic::Status::from_error(Box::new(e))
+    }
+}
+
+impl From<pkgcraft::Error> for Error {
+    fn from(e: pkgcraft::Error) -> Self {
+        Self::Pkgcraft(Box::new(e))
+    }
+}
+
+impl From<pkgcruft::Error> for Error {
+    fn from(e: pkgcruft::Error) -> Self {
+        Self::Pkgcruft(Box::new(e))
     }
 }
