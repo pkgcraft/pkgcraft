@@ -30,7 +30,7 @@ impl super::CheckRun for Check {
 
         for result in run.repo.cpvs_from_package(cpn.category(), cpn.package()) {
             match result {
-                Err(InvalidEbuild { cpn, file, err }) => {
+                Err(InvalidEbuild { file, err, .. }) => {
                     let err = format!("{file}: {err}");
                     EbuildNameInvalid.package(cpn).message(err).report(run)
                 }
