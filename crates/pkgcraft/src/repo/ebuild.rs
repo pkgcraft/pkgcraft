@@ -196,7 +196,6 @@ impl EbuildRepo {
             .unwrap_or_else(|_| panic!("re-finalizing repo: {self}"));
 
         // collapse lazy fields
-        self.masters();
         self.eclasses();
         self.arches();
         self.licenses();
