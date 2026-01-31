@@ -370,6 +370,7 @@ impl EbuildRepo {
         let invalid_ebuild = |s: &str| -> Error {
             Error::InvalidEbuild {
                 cpn: cpn.clone(),
+                repo: self.to_string(),
                 file: file.to_string(),
                 err: s.to_string(),
             }
