@@ -256,7 +256,7 @@ impl EbuildRepo {
     }
 
     /// Return the iterator of all inherited repos.
-    pub fn trees(&self) -> impl Iterator<Item = &Self> {
+    pub fn trees(&self) -> impl DoubleEndedIterator<Item = &Self> {
         [self].into_iter().chain(self.masters())
     }
 
